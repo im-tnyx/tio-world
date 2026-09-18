@@ -22,17 +22,18 @@
 **Repository state last verified:** 2026-09-18
 **Branch:** `tnyx/tnyx-224-n5d-6-supabase-edge-function-protected-meal-text-parser`
 **Base main SHA:** `7c7df7b30256091301d93325c031440f6b44d526`
-**Final implementation/test SHA:** `9e7b86069e49e5b45db9332ea65b06a547488d1c`
-**Observed repository state at implementation/test SHA:** 18 commits ahead / 0 behind `main`; expected TNYX-224 scope only.
+**Previous reviewed PR SHA:** `a2077db9071885c97ee0d7a65cca3ed7dc336ca9`
+**Review-fix code/test SHA before this brief commit:** `eb32413926dd38650537674d3da6e7bc92e1982a`
+**Observed repository state:** Existing draft PR #280; review-fix source/tests pushed on the same bounded branch.
 **Observed uncommitted/dirty files:** Not observable through GitHub API; user-local unrelated work was not touched.
-**PR / tracker:** No PR at this checkpoint; Linear TNYX-224 = `In Progress`; TNYX-225/TNYX-226 unchanged.
-**Current implementation state:** Source complete and focused tests committed. Known Gemini malformed-JSON typo and nutrition schema-version typo are fixed.
+**PR / tracker:** Draft PR #280 open; Linear TNYX-224 = `In Progress`; TNYX-225/TNYX-226 unchanged.
+**Current implementation state:** Review fixes implemented: conservative factual-food identity matching plus request-level deadline/bounded-concurrency execution. Prior Gemini/schema typos remain fixed.
 **Relevant execution surface:** `.ai/tasks/tnyx-224-supabase-edge-function-protected-meal-text-parser.md`, `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/*`
-**Validation completed at implementation/test SHA:** TypeScript PASS; focused tests 28/28 PASS; exact source/test blobs were matched to GitHub blob SHAs before validation.
-**Validation protocol note:** This handoff-only brief commit moves branch HEAD after the implementation/test SHA. Exact PR-head TypeScript/tests/scope/diff validation is rerun after this file is pushed and recorded in the draft PR and Linear comment rather than creating a self-referential SHA loop in this brief.
+**Review-fix validation before this brief commit:** strict TypeScript production check PASS; focused tests 39/39 PASS; modified source/test GitHub blobs matched the validation workspace byte-for-byte.
+**Validation protocol note:** This brief commit moves PR HEAD after the review-fix code/test SHA. Exact final PR-head validation is rerun after this file is pushed and recorded in PR #280 + Linear rather than creating a self-referential SHA loop in this brief.
 **Current blocker:** None for source/PR readiness. Live provider validation remains intentionally not run.
-**Open review finding IDs:** TNYX-224-G2 (Deferred provenance); TNYX-224-G3 (production/live-provider gate)
-**Next exact action:** Push this reconciled brief, rerun exact-head validation, create draft PR, fresh-read PR, sync Linear. Do not merge.
+**Open review finding IDs:** TNYX-224-G2 (Deferred provenance); TNYX-224-G3 (production/live-provider gate). PR #280 correctness findings TNYX-224-G6/G7 are resolved in source pending exact final-head validation.
+**Next exact action:** Rerun exact final-head TypeScript/tests/diff/scope validation, update draft PR #280 validation evidence, comment both fixes, sync Linear. Do not merge or deploy.
 
 ## 1. Discovery
 
@@ -120,13 +121,16 @@ Provider DTOs, tokens, IDs, prompts, and raw responses remain internal. Resolver
 - [x] FatSecret OAuth2/search/detail resolver with deterministic matching/serving conversion.
 - [x] Edamam parser/nutrients factual fallback.
 - [x] Primary/secondary orchestration with no nutrient blending.
+- [x] Conservative factual identity matcher: exact/safe normalized token-equivalence only; materially expanded labels are rejected.
+- [x] Request execution budget: 45s overall deadline, bounded item concurrency (default 3; hard cap 4), ordered results, request-abort propagation.
 - [x] Authenticated HTTP handler and `verify_jwt=true` function config.
 - [x] Focused tests committed.
 - [x] Source/test snapshot TypeScript validation.
 - [x] Source/test snapshot focused tests.
+- [x] PR #280 review-fix source tests added (39 focused tests at code/test SHA).
 - [ ] Exact final PR-head validation after this handoff-only brief commit.
-- [ ] Draft PR creation and post-PR verification.
-- [ ] Linear exact-head/PR comment sync.
+- [ ] PR #280 body/comment exact-head evidence sync.
+- [ ] Linear exact-head/review-fix sync.
 
 ## 6. Quality Review
 
@@ -157,6 +161,8 @@ Focused coverage includes authenticated rejection, invalid request shapes, Gemin
 | TNYX-224-G1 | Blocker | Resolved | Provider selection/readiness was previously unresolved. | Owner-approved FatSecret + Edamam development path. |
 | TNYX-224-G4 | High | Resolved | Gemini malformed JSON returned invalid discriminator `unavaile`. | Fixed before tests; malformed JSON test passes. |
 | TNYX-224-G5 | High | Resolved | `NUTRITION_SCHMA_VERSION` typo broke canonical snapshot typing/runtime. | Corrected to `NUTRITION_SCHEMA_VERSION`; type-check and provider tests pass. |
+| TNYX-224-G6 | High | Resolved | Factual provider matching accepted prefix/contained-token labels such as `milk → milk chocolate` and `rice → rice pudding`. | Replaced permissive prefix/containment acceptance with conservative normalized token-multiset identity matching; exact/reordered/punctuation and bounded singular/plural lexical variation are allowed, extra semantic tokens are rejected. FatSecret and Edamam paths both enforce it. |
+| TNYX-224-G7 | High | Resolved | Up to 8 items were resolved sequentially with no request-level latency budget, risking Supabase 150s timeout/504. | Added 45s overall request deadline, ordered bounded concurrency (default 3, hard cap 4), AbortSignal propagation through Gemini/resolvers/provider fetches, and sanitized `unavailable` on budget exhaustion with no partial success. |
 | TNYX-224-G2 | Deferred | Deferred | Durable provider provenance has no current DB/domain home. | Explicitly out of scope; no persistence field added. |
 | TNYX-224-G3 | High | Open | Live provider/deployment validation is gated by credential/runtime/provider restrictions. | No deployment/live call in this PR. |
 
@@ -168,6 +174,7 @@ Focused coverage includes authenticated rejection, invalid request shapes, Gemin
 .ai/tasks/tnyx-224-supabase-edge-function-protected-meal-text-parser.md
 supabase/config.toml
 supabase/functions/nutrition-meal-text-parse/contract.ts
+supabase/functions/nutrition-meal-text-parse/async_control.ts
 supabase/functions/nutrition-meal-text-parse/types.ts
 supabase/functions/nutrition-meal-text-parse/matching.ts
 supabase/functions/nutrition-meal-text-parse/resolver.ts
@@ -184,7 +191,7 @@ supabase/functions/nutrition-meal-text-parse/handler_test.ts
 
 ### Actual Behavior
 
-Source is ready for review. The function is protected by Supabase user JWT validation and in-function `auth: "user"`, interprets language with Gemini only, resolves factual nutrition through FatSecret then Edamam, and returns provider-neutral Tio outcomes without DB persistence.
+Source remains bounded to TNYX-224. The function is protected by Supabase user JWT validation and in-function `auth: "user"`, interprets language with Gemini only, resolves factual nutrition through FatSecret then Edamam using conservative identity matching, and returns provider-neutral Tio outcomes without DB persistence. Requests have a 45s overall deadline and independent item resolution uses bounded ordered concurrency.
 
 ### Deployment / Live Validation
 
