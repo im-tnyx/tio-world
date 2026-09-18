@@ -62,6 +62,10 @@ void main() {
           container.read(mealCategoriesRepositoryProvider);
       expect(mealCategoriesRepo, isA<MealCategoriesRepository>());
 
+      final mealTextParseRepo =
+          container.read(mealTextParseRepositoryProvider);
+      expect(mealTextParseRepo, isNull);
+
       final finalizer = container.read(onboardingRemoteFinalizerProvider);
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
     });
@@ -118,6 +122,10 @@ void main() {
       expect(
         container.read(mealCategoriesRepositoryProvider),
         isA<InMemoryMealCategoriesRepository>(),
+      );
+      expect(
+        container.read(mealTextParseRepositoryProvider),
+        isNull,
       );
 
       final validator =
@@ -187,6 +195,20 @@ void main() {
       expect(
         container.read(mealCategoriesRepositoryProvider),
         isA<SupabaseMealCategoriesRepository>(),
+      );
+    });
+
+    test('Supabase availability selects the Supabase meal-text parser', () {
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(_FakeSupabaseClient()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(mealTextParseRepositoryProvider),
+        isA<SupabaseMealTextParseRepository>(),
       );
     });
 

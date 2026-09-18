@@ -302,6 +302,22 @@ final nutritionTargetsRepositoryProvider =
   return InMemoryNutritionTargetsRepository();
 });
 
+/// Natural-language meal-text parsing capability (TNYX-225).
+///
+/// Unlike other Nutrition owners above, this capability has no safe
+/// in-memory/offline fallback: parsing requires the protected
+/// `nutrition-meal-text-parse` Edge Function, so it resolves to `null` when
+/// no Supabase client is available rather than fabricating a fake parser.
+/// TNYX-226 decides how/when the Add Food UI consumes this capability.
+final mealTextParseRepositoryProvider =
+    Provider<MealTextParseRepository?>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseMealTextParseRepository(client: supabaseClient);
+  }
+  return null;
+});
+
 final onboardingRemoteFinalizerProvider =
     Provider<OnboardingRemoteFinalizer>((ref) {
   final apiClient = ref.watch(authenticatedApiClientProvider);
