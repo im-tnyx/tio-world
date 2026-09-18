@@ -126,7 +126,7 @@ export function parseGeminiInterpretation(text: string): InterpretationResult {
   try {
     decoded = JSON.parse(text);
   } catch {
-    return { kind: "unavaile" };
+    return { kind: "unavailable" };
   }
 
   if (decoded === null || typeof decoded !== "object" || Array.isArray(decoded)) {
