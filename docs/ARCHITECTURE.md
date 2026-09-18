@@ -288,6 +288,9 @@ Profile owns approved personal/fitness context. Feature domains own their own co
 - Workout owns workout-specific settings, routines/programs, and training behavior.
 - A profile value may seed a feature default through a stable contract.
 - A profile change must not silently replace a user-confirmed feature override.
+- Canonical saved country/region context is Profile-owned and persists as nullable `public.user_profiles.country_code` in uppercase ISO 3166-1 alpha-2 format; `NULL` means unknown/unset.
+- Country/region is distinct from phone calling code, timezone, language preference, and current device/IP location; it must not be inferred from those signals.
+- Protected server consumers may read this Profile-owned value through the authenticated caller's RLS-scoped path. Provider-specific localization/market identifiers stay server-side and must not become Flutter/domain source of truth.
 
 ## Design System Direction
 

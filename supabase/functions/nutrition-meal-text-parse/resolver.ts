@@ -1,6 +1,7 @@
 import type {
   FoodNutritionResolver,
   MealCandidate,
+  NutritionResolverContext,
   ResolverResult,
 } from "./types.ts";
 
@@ -14,14 +15,15 @@ export async function resolveWithFallback(
   primary: FoodNutritionResolver,
   secondary: FoodNutritionResolver | null,
   signal?: AbortSignal,
+  context?: NutritionResolverContext,
 ): Promise<ResolverResult> {
   if (signal?.aborted) return { kind: "unavailable" };
 
-  const first = await primary.resolve(candidate, signal);
+  const first = await primary.resolve(candidate, signal, context);
   if (signal?.aborted) return { kind: "unavailable" };
   if (first.kind === "resolved" || secondary === null) return first;
 
-  const second = await secondary.resolve(candidate, signal);
+  const second = await secondary.resolve(candidate, signal, context);
   if (signal?.aborted) return { kind: "unavailable" };
   if (second.kind === "resolved") return second;
 

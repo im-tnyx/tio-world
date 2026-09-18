@@ -13,6 +13,7 @@ import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
 import type {
   FoodNutritionResolver,
   MealCandidate,
+  NutritionResolverContext,
   ResolverResult,
 } from "./types.ts";
 
@@ -79,16 +80,23 @@ export class FatSecretResolver implements FoodNutritionResolver {
     this.#fetch = options.fetchFn ?? fetch;
   }
 
-  async resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult> {
+  async resolve(
+    candidate: MealCandidate,
+    signal?: AbortSignal,
+    context?: NutritionResolverContext,
+  ): Promise<ResolverResult> {
     if (!this.#clientId || !this.#clientSecret) return { kind: "unavailable" };
     if (candidate.quantity === null || candidate.unit === null) {
       return { kind: "incomplete" };
     }
 
+    const region = fatSecretRegionForCountry(context?.countryCode);
+    if (region === null) return { kind: "incomplete" };
+
     const token = await this.#getToken(signal);
     if (token === null) return { kind: "unavailable" };
 
-    const search = await this.#search(candidate.foodName, token, signal);
+    const search = await this.#search(candidate.foodName, token, region, signal);
     if (search.kind !== "ok") return search.result;
 
     const match = selectFatSecretMatch(candidate.foodName, search.foods);
@@ -96,7 +104,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
       return { kind: "incomplete" };
     }
 
-    const detail = await this.#getFood(String(match.food_id), token, signal);
+    const detail = await this.#getFood(String(match.food_id), token, region, signal);
     if (detail.kind !== "ok") return detail.result;
 
     const item = resolveFatSecretServing(candidate, detail.food);
@@ -150,6 +158,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
   async #search(
     query: string,
     token: string,
+    region: string,
     signal?: AbortSignal,
   ): Promise<
     | { readonly kind: "ok"; readonly foods: readonly FatSecretSearchFood[] }
@@ -161,6 +170,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
       max_results: "8",
       page_number: "0",
       format: "json",
+      region,
     });
     const response = await this.#boundedFetch(SEARCH_URL, {
       method: "POST",
@@ -194,6 +204,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
   async #getFood(
     foodId: string,
     token: string,
+    region: string,
     signal?: AbortSignal,
   ): Promise<
     | { readonly kind: "ok"; readonly food: Record<string, unknown> }
@@ -202,6 +213,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
     const url = new URL(FOOD_URL);
     url.searchParams.set("food_id", foodId);
     url.searchParams.set("format", "json");
+    url.searchParams.set("region", region);
 
     const response = await this.#boundedFetch(url, {
       headers: { Authorization: `Bearer ${token}` },
@@ -232,6 +244,12 @@ export class FatSecretResolver implements FoodNutritionResolver {
   ): Promise<Response | null> {
     return fetchWithTimeout(this.#fetch, input, init, this.#timeoutMs, signal);
   }
+}
+
+export function fatSecretRegionForCountry(countryCode: string | undefined): string | null {
+  if (countryCode === undefined) return null;
+  const trimmed = countryCode.trim();
+  return /^[A-Z]{2}$/.test(trimmed) ? trimmed : null;
 }
 
 function toArray(value: unknown): unknown[] {

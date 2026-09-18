@@ -1,0 +1,48 @@
+name: Supabase Functions CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/supabase-functions-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-functions-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nutrition-meal-text-parse:
+    name: Check and test meal-text parser
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+
+      - name: Toolchain info
+        run: deno --version
+
+      - name: Type-check parser entrypoint
+        run: deno check supabase/functions/nutrition-meal-text-parse/index.ts
+
+      - name: Type-check parser source and tests
+        shell: bash
+        run: deno check supabase/functions/nutrition-meal-text-parse/*.ts
+
+      - name: Run parser tests
+        run: |
+          deno test \
+            --allow-read=supabase/functions/nutrition-meal-text-parse \
+            supabase/functions/nutrition-meal-text-parse

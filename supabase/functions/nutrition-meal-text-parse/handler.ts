@@ -20,8 +20,13 @@ import type {
   ResolverResult,
 } from "./types.ts";
 
+export type AuthenticationResult =
+  | { readonly kind: "authenticated"; readonly countryCode: string | null }
+  | { readonly kind: "unauthorized" }
+  | { readonly kind: "unavailable" };
+
 export interface MealTextHandlerDependencies {
-  readonly authenticate: (request: Request) => Promise<boolean>;
+  readonly authenticate: (request: Request) => Promise<AuthenticationResult>;
   readonly interpreter: MealInterpreter;
   readonly primaryResolver: FoodNutritionResolver;
   readonly secondaryResolver?: FoodNutritionResolver | null;
@@ -47,17 +52,20 @@ export function createMealTextHandler(
     const deadline = setTimeout(() => requestAbort.abort(), deadlineMs);
 
     try {
-      let authenticated: boolean | typeof ABORTED;
+      let authentication: AuthenticationResult | typeof ABORTED;
       try {
-        authenticated = await raceWithAbort(
+        authentication = await raceWithAbort(
           requestAbort.signal,
           () => dependencies.authenticate(request),
         );
       } catch {
-        authenticated = false;
+        authentication = { kind: "unavailable" };
       }
-      if (authenticated === ABORTED) return unavailableResponse();
-      if (!authenticated) return json({ error: "unauthorized" }, 401);
+      if (authentication === ABORTED) return unavailableResponse();
+      if (authentication.kind === "unauthorized") {
+        return json({ error: "unauthorized" }, 401);
+      }
+      if (authentication.kind === "unavailable") return unavailableResponse();
 
       let body: unknown;
       try {
@@ -69,6 +77,11 @@ export function createMealTextHandler(
 
       const validation = validateParseRequest(body);
       if (!validation.ok) return json({ error: "invalid_request" }, 400);
+
+      const countryCode = authentication.countryCode;
+      if (countryCode === null) {
+        return response(outcomeResponse("incomplete"));
+      }
 
       let interpretation;
       try {
@@ -101,6 +114,7 @@ export function createMealTextHandler(
             dependencies.primaryResolver,
             dependencies.secondaryResolver ?? null,
             signal,
+            { countryCode },
           ),
         );
       } catch {
