@@ -22,9 +22,9 @@ export type ResolverResult =
 
 export interface FoodNutritionResolver {
   readonly name: "fatsecret" | "edamam";
-  resolve(candidate: MealCandidate): Promise<ResolverResult>;
+  resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult>;
 }
 
 export interface MealInterpreter {
-  interpret(mealText: string): Promise<InterpretationResult>;
+  interpret(mealText: string, signal?: AbortSignal): Promise<InterpretationResult>;
 }
