@@ -3,9 +3,10 @@ import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
   finitePositiveNumber,
-  matchScore,
+  isSafeFoodIdentityMatch,
   normalizeUnit,
 } from "./matching.ts";
+import { fetchWithTimeout } from "./async_control.ts";
 import type {
   FoodNutritionResolver,
   MealCandidate,
@@ -15,7 +16,6 @@ import type {
 const PARSER_URL = "https://api.edamam.com/api/food-database/v2/parser";
 const NUTRIENTS_URL = "https://api.edamam.com/api/food-database/v2/nutrients";
 const DEFAULT_TIMEOUT_MS = 6000;
-const MIN_MATCH_SCORE = 86;
 
 interface EdamamOptions {
   readonly appId: string;
@@ -56,13 +56,13 @@ export class EdamamResolver implements FoodNutritionResolver {
     this.#fetch = options.fetchFn ?? fetch;
   }
 
-  async resolve(candidate: MealCandidate): Promise<ResolverResult> {
+  async resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult> {
     if (!this.#appId || !this.#appKey) return { kind: "unavailable" };
     if (candidate.quantity === null || candidate.unit === null) {
       return { kind: "incomplete" };
     }
 
-    const parsed = await this.#parseCandidate(candidate);
+    const parsed = await this.#parseCandidate(candidate, signal);
     if (parsed.kind !== "ok") return parsed.result;
 
     const foodId = parsed.value.food?.foodId;
@@ -77,7 +77,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       quantity === null ||
       !measureUri ||
       !measureLabel ||
-      matchScore(candidate.foodName, label) < MIN_MATCH_SCORE ||
+      !isSafeFoodIdentityMatch(candidate.foodName, label) ||
       !quantityMatches(candidate.quantity, quantity) ||
       !measureIsCompatible(candidate.unit, measureLabel)
     ) {
@@ -88,14 +88,17 @@ export class EdamamResolver implements FoodNutritionResolver {
       foodId,
       quantity,
       measureUri,
-    });
+    }, signal);
     if (nutrients.kind !== "ok") return nutrients.result;
 
     const item = buildEdamamItem(candidate, label, nutrients.totalNutrients);
     return item === null ? { kind: "incomplete" } : { kind: "resolved", item };
   }
 
-  async #parseCandidate(candidate: MealCandidate): Promise<
+  async #parseCandidate(
+    candidate: MealCandidate,
+    signal?: AbortSignal,
+  ): Promise<
     | { readonly kind: "ok"; readonly value: ParsedFood }
     | { readonly kind: "fail"; readonly result: ResolverResult }
   > {
@@ -108,7 +111,7 @@ export class EdamamResolver implements FoodNutritionResolver {
 
     const response = await this.#boundedFetch(url, {
       headers: { Accept: "application/json" },
-    });
+    }, signal);
     if (response === null || !response.ok) {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
@@ -133,7 +136,7 @@ export class EdamamResolver implements FoodNutritionResolver {
     readonly foodId: string;
     readonly quantity: number;
     readonly measureUri: string;
-  }): Promise<
+  }, signal?: AbortSignal): Promise<
     | {
         readonly kind: "ok";
         readonly totalNutrients: Readonly<Record<string, EdamamNutrient>>;
@@ -156,7 +159,7 @@ export class EdamamResolver implements FoodNutritionResolver {
           },
         ],
       }),
-    });
+    }, signal);
     if (response === null || !response.ok) {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
@@ -185,16 +188,12 @@ export class EdamamResolver implements FoodNutritionResolver {
     return url;
   }
 
-  async #boundedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
-    try {
-      return await this.#fetch(input, { ...init, signal: controller.signal });
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timeout);
-    }
+  async #boundedFetch(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    signal?: AbortSignal,
+  ): Promise<Response | null> {
+    return fetchWithTimeout(this.#fetch, input, init, this.#timeoutMs, signal);
   }
 }
 
