@@ -44,7 +44,7 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioSocialButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioGroupCard`, the `TioSettings*` row family, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
+Prefer reusable core UI such as `TioButton`, `TioSocialButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioGroupCard`, the `TioSettings*` row family, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
 A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
@@ -381,7 +381,6 @@ TioUsernameInputField
 TioMobileNumberField
 TioCard
 TioSelectableCard
-TioConfirmationCard
 TioAvatar
 TioDateCalendar
 TioDateTimePickerPopup
@@ -416,7 +415,15 @@ The danger colour also drives the pressed/focused/hovered state layer, at the sa
 
 Because the container is a translucent tint rather than an opaque danger surface, `danger` content reads against the surface beneath it and no `onDanger` foreground role is needed. This variant deliberately does not add one.
 
-Existing destructive confirmations have not all converged here: `TioConfirmationCard` still routes confirm through `TioButton.primary`. Bringing those onto this contract is separate #173 work.
+`showTioConfirmationBottomSheet` exposes `TioConfirmationIntent.standard` and `TioConfirmationIntent.destructive` at the presenter boundary, with `standard` as the backwards-compatible default. The shared action mapping is:
+
+```text
+standard confirm    -> TioButton.primary
+destructive confirm -> TioButton.destructive
+cancel              -> TioButton.secondary
+```
+
+Existing callers that omit the intent therefore keep the standard confirm treatment; destructive consumers opt in explicitly. The presenter composes the confirmation UI internally from base `TioCard` + semantic `TioButton` variants. The confirmation surface itself remains the current `TioCardVariant.elevated` contract unless a separate approved surface-convergence slice changes it.
 
 The variant exposes no radius, height, fill, border-colour or label-size override. Reproducing a historical local button recipe through override parameters is how the drift this family exists to remove becomes representable again.
 
@@ -438,7 +445,7 @@ The trailing slot exists for a caller-owned contextual overflow or end action �
 
 Compact-width geometry stays the caller's responsibility. The centre slot is absolutely positioned across the whole bar, so a caller filling both slots must verify that its cluster does not collide with a centred label at small widths, under a large text scale, or with a long localized string. Core does not reserve that space or shrink the cluster; a caller that cannot fit both actions should not use both. The visible status icon remains fixed at the right edge whether the optional action is present or absent. When that action exists, the status drops only its redundant leading padding so the two visible icons are not artificially far apart; right padding remains unchanged.
 
-`TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
+`showTioConfirmationBottomSheet` is the generic themed confirm/cancel presenter. Product-specific copy, consequences, persistence, and navigation remain feature-owned. The presenter owns the reusable result contract and internal confirmation composition; features should call it rather than creating a product-action-specific dialog/token bag when its interaction fits.
 
 ### Editable field capabilities
 
@@ -526,7 +533,7 @@ Features still own callbacks, navigation, values, keys, domain copy, and intenti
 
 `TioEditorSheet` keeps its actions pinned below the scroll view, separated by `TioEditorSheetTokens.actionGap`. `flushActions` removes that gap so the action region begins immediately below the body; it defaults to false, so no existing sheet moves. Pass true only when the action region draws its own boundary — a rule across the sheet, for instance — because a gap and a separator say the same thing twice and leave dead space above the line.
 
-`showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, and `TioConfirmationCard` composition. Features supply only the title, message, confirm/cancel labels, and optional icon widget. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
+`showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, presenter-level `TioConfirmationIntent`, boolean result semantics, and internal `TioCard` + `TioButton` composition. Features supply only the title, message, confirm/cancel labels, optional icon widget, and semantic confirmation intent. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
 
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 

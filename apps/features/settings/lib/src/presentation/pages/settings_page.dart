@@ -28,49 +28,19 @@ class SettingsPage extends StatelessWidget {
 
   final VoidCallback? onLogoutPressed;
 
-  void _showLogoutDialog(BuildContext context) {
-    final colors = context.tioColors;
-
-    showDialog<void>(
+  Future<void> _showLogoutConfirmation(BuildContext context) async {
+    final confirmed = await showTioConfirmationBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: colors.surfaceRaised,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(TioRadius.lg),
-        ),
-        title: Text(
-          'Log Out',
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: TioFontWeight.w700,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to log out of your account?',
-          style: TextStyle(color: colors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: colors.textSecondary),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.danger,
-              foregroundColor: TioPalette.white,
-            ),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              onLogoutPressed?.call();
-            },
-            child: const Text('Log Out'),
-          ),
-        ],
-      ),
+      title: 'Log Out',
+      message: 'Are you sure you want to log out of your account?',
+      confirmLabel: 'Log Out',
+      cancelLabel: 'Cancel',
+      intent: TioConfirmationIntent.destructive,
     );
+
+    if (confirmed == true) {
+      onLogoutPressed?.call();
+    }
   }
 
   @override
@@ -186,7 +156,7 @@ class SettingsPage extends StatelessWidget {
                   title: 'Log Out',
                   supportingText: 'Sign out of your Tio account on this device',
                   showChevron: false,
-                  onTap: () => _showLogoutDialog(context),
+                  onTap: () => _showLogoutConfirmation(context),
                 ),
               ],
             ),

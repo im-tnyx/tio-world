@@ -287,7 +287,9 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(find.text('Log out of Tio?'), findsOneWidget);
+    expect(find.text('Log out'), findsOneWidget);
     expect(exits, 0);
 
     await tester.tap(find.text('Log out'));
