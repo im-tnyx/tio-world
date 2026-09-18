@@ -1,6 +1,6 @@
 # TNYX-222 — Settings logout shared destructive confirmation
 
-**Status:** Validation / final review
+**Status:** Final review complete — Ready for Review
 **Primary owner:** Implementation
 **Affected platforms:** Flutter phone app / Core UI
 
@@ -21,13 +21,13 @@
 **Ownership transition:** Not applicable
 **Repository base last verified:** `main` at `17383476fdb8844b592041e730a764bd132f602c`
 **Branch:** `tnyx/tnyx-222-settings-logout-shared-destructive-confirmation-intent`
-**HEAD SHA before this handoff sync:** `ecd1098b4f0358ffecfb6b1f164db8890e218f2f`
-**Observed working-tree state:** Local clone available this session (`G:\projects\Tio-World`). Working tree was clean before this cleanup; only the file listed under Implementation / Review Fixes below was changed.
-**PR / tracker:** GitHub PR #279 / GitHub #173 / Linear TNYX-222
-**Current implementation state:** Architecture correction, Settings migration, focused tests, and Core public documentation are implemented. CI-1 is resolved: Flutter CI #2642 (run `35265780486`) completed SUCCESS on exact HEAD `ecd1098b` (Analyze Flutter packages, Analyze Dart packages, Test Flutter packages, Test Dart packages all passed). A final-review pass then found one stale doc-comment gap (DOC-2, see Review Findings) in `apps/core/lib/src/ui/components/buttons/tio_button.dart` and corrected it; this is a comment-only change with no behavior/API impact.
-**Validation remaining:** Push the DOC-2 fix commit and confirm exact-head Flutter CI green for the new HEAD before moving the PR out of Draft.
-**Current blocker:** Fresh exact-head CI for the DOC-2 fix commit has not completed yet.
-**Open review finding IDs:** DOC-2 only, pending fresh exact-head CI.
+**HEAD SHA:** `0966067798dbfc326423e963373332100b1716eb`
+**Observed working-tree state:** Local clone available this session (`G:\projects\Tio-World`). Working tree clean at this HEAD.
+**PR / tracker:** GitHub PR #279 (Ready for Review) / GitHub #173 / Linear TNYX-222 (In Review)
+**Current implementation state:** Architecture correction, Settings migration, focused tests, and Core public documentation are implemented. CI-1 and DOC-2 are both resolved. Flutter CI #2643 (run `35308007688`) completed SUCCESS on exact HEAD `09660677` — Analyze Flutter packages, Analyze Dart packages, Test Flutter packages, Test Dart packages all passed. Final Codex-style review at this exact HEAD found no blocking (P0/P1/P2) findings; 0 unresolved GitHub review threads; PR is `MERGEABLE`/`CLEAN`.
+**Validation remaining:** None for this slice. Merge requires explicit owner instruction.
+**Current blocker:** None.
+**Open review finding IDs:** None open.
 
 ## Global UI / Design-System Guardrail
 
@@ -106,8 +106,9 @@ Restoring a public `TioConfirmationCard`, retaining a local `AlertDialog`, or cr
 - [x] Align Core public component documentation with the presenter-owned contract.
 - [x] Obtain exact-head green CI (Flutter CI #2642, run `35265780486`, on `ecd1098b`).
 - [x] Fix stale `TioButtonVariant.destructive` doc comment in `tio_button.dart` still describing the removed `TioConfirmationCard` routing (DOC-2).
-- [ ] Refresh PR body with final validation evidence.
-- [ ] Run final Codex-style review; keep Draft until no blocking findings and exact-head validation is green.
+- [x] Refresh PR body with final validation evidence.
+- [x] Run final Codex-style review; no blocking findings at exact HEAD `09660677`; exact-head CI green.
+- [x] Move PR #279 to Ready for Review and Linear TNYX-222 to In Review.
 
 ## 6. Quality Review
 
@@ -150,7 +151,19 @@ Final-review pass at `ecd1098b` (this session, read-only diff audit against `mai
 - Found DOC-2: `apps/core/lib/src/ui/components/buttons/tio_button.dart` enum doc comment on `TioButtonVariant` still said "`TioConfirmationCard` still routes confirm through [primary]" — stale, since this PR removes `TioConfirmationCard` and destructive confirm already routes through `TioButton.destructive` via the shared presenter. Corrected to describe the current presenter/variant relationship. Comment-only; no button behavior, styling, tokens, geometry, or API changed.
 - Local validation for the DOC-2 fix: `git diff --check` clean; `flutter analyze --no-pub` in `apps/core` → No issues found. No test rerun claimed beyond this, since no test-observable behavior changed.
 
-Fresh exact-head Flutter CI for the DOC-2 fix commit is required before the PR can leave Draft.
+Flutter CI #2643, run `35308007688`, on exact HEAD `0966067798dbfc326423e963373332100b1716eb`: SUCCESS.
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+Final Codex-style re-check at exact HEAD `09660677` (this session):
+- `git merge-base --is-ancestor origin/main HEAD`: OK.
+- `git diff --name-only origin/main...HEAD`: 12 files, all within approved TNYX-222 scope (task brief, Core confirmation presenter/button/card files and their tests, Settings logout + test, onboarding/app consumer test corrections).
+- `git diff --check origin/main...HEAD`: clean.
+- PR #279: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`.
+- Unresolved GitHub review threads: 0 (`reviewThreads` query returned an empty list).
+- No P0/P1/P2 findings remain open.
 ```
 
 ### Review Findings and Resolution
@@ -161,7 +174,7 @@ Fresh exact-head Flutter CI for the DOC-2 fix commit is required before the PR c
 | TEST-1 | P2 | Resolved | App consumer test pinned a global `TioCard` count instead of confirmation behavior | Removed card-count assertion; retained action/result assertions |
 | TEST-2 | P3 | Resolved | Settings confirm test depended on `find.text('Log Out').last` ordering | Targets destructive `FilledButton` directly |
 | CI-1 | P1 validation blocker | Resolved | Exact-head Flutter CI must pass before PR leaves Draft | Flutter CI #2642 (run `35265780486`) passed all four steps on `ecd1098b` |
-| DOC-2 | P3 | Open (fix committed, awaiting fresh CI) | `tio_button.dart` `TioButtonVariant` doc comment still described destructive confirm routing through the removed `TioConfirmationCard`/`primary` | Comment corrected to describe the current presenter/`TioButton.destructive` relationship; no behavior/API change |
+| DOC-2 | P3 | Resolved | `tio_button.dart` `TioButtonVariant` doc comment still described destructive confirm routing through the removed `TioConfirmationCard`/`primary` | Comment corrected to describe the current presenter/`TioButton.destructive` relationship; no behavior/API change; Flutter CI #2643 (run `35308007688`) green on `09660677` |
 
 ### Process Deviation
 
@@ -179,4 +192,4 @@ The reusable confirmation surface keeps its existing elevated-card background/sh
 
 ### Final Status
 
-`VALIDATION / FINAL REVIEW — PR remains Draft pending fresh exact-head CI for the DOC-2 fix commit. Do not mark Ready for Review, move Linear to In Review, or merge until that CI is confirmed green.`
+`READY FOR REVIEW — exact HEAD 09660677, Flutter CI #2643 (run 35308007688) green, no blocking review findings, 0 unresolved review threads. PR #279 marked Ready for Review and Linear TNYX-222 moved to In Review. Merge still requires explicit owner instruction; do not merge, do not mark Linear Done, and do not close GitHub #173 from this slice.`
