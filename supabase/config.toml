@@ -31,6 +31,12 @@ uri = "pg-functions://postgres/private/before_user_created_canonical_email_guard
 [functions.google-login-admission]
 verify_jwt = false
 
+# Meal-text parsing is callable only by a signed-in Supabase user. Keep the
+# platform user-JWT check enabled and re-establish user auth in-function through
+# @supabase/server. No privileged DB client is used by this function.
+[functions.nutrition-meal-text-parse]
+verify_jwt = true
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
