@@ -20,10 +20,12 @@ final class UserProfileData {
     required this.activityLevel,
     required Set<ProfileHealthCondition> healthConditions,
     String? otherHealthCondition,
+    String? countryCode,
   })  : name = _validateName(name),
         heightCm = _validateHeight(heightCm),
         healthConditions = _validateHealthConditions(healthConditions),
-        otherHealthCondition = _normalizeOtherCondition(otherHealthCondition);
+        otherHealthCondition = _normalizeOtherCondition(otherHealthCondition),
+        countryCode = _validateCountryCode(countryCode);
 
   final String name;
   final ProfileGender gender;
@@ -33,6 +35,7 @@ final class UserProfileData {
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
+  final String? countryCode;
 
   @override
   bool operator ==(Object other) =>
@@ -46,7 +49,8 @@ final class UserProfileData {
           activityLevel == other.activityLevel &&
           healthConditions.length == other.healthConditions.length &&
           healthConditions.containsAll(other.healthConditions) &&
-          otherHealthCondition == other.otherHealthCondition;
+          otherHealthCondition == other.otherHealthCondition &&
+          countryCode == other.countryCode;
 
   @override
   int get hashCode => Object.hash(
@@ -58,6 +62,7 @@ final class UserProfileData {
         activityLevel,
         Object.hashAllUnordered(healthConditions),
         otherHealthCondition,
+        countryCode,
       );
 }
 
@@ -93,4 +98,16 @@ Set<ProfileHealthCondition> _validateHealthConditions(
 String? _normalizeOtherCondition(String? value) {
   final normalized = value?.trim();
   return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+String? _validateCountryCode(String? value) {
+  if (value == null) return null;
+  if (!RegExp(r'^[A-Z]{2}$').hasMatch(value)) {
+    throw ArgumentError.value(
+      value,
+      'countryCode',
+      'must be an uppercase ISO 3166-1 alpha-2 code',
+    );
+  }
+  return value;
 }

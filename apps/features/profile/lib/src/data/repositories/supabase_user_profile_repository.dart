@@ -26,7 +26,8 @@ final class SupabaseUserProfileTableGateway implements UserProfileTableGateway {
         .from('user_profiles')
         .select(
           'name, gender, date_of_birth, height_cm, activity_level, '
-          'health_conditions, other_health_condition, unit_preferences',
+          'health_conditions, other_health_condition, unit_preferences, '
+          'country_code',
         )
         .eq('user_id', userId)
         .maybeSingle();
@@ -72,6 +73,7 @@ final class SupabaseUserProfileRepository implements UserProfileRepository {
           row['other_health_condition'],
           'other_health_condition',
         ),
+        countryCode: _parseOptionalString(row['country_code'], 'country_code'),
       );
     } on ArgumentError catch (error) {
       throw FormatException(
@@ -97,6 +99,7 @@ final class SupabaseUserProfileRepository implements UserProfileRepository {
       ],
       'other_health_condition': profile.otherHealthCondition,
       'unit_preferences': profile.unitPreferences.toJson(),
+      'country_code': profile.countryCode,
     });
   }
 
