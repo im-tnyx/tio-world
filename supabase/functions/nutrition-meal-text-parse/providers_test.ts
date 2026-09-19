@@ -70,7 +70,7 @@ test("FatSecret scales factual nutrients for explicit metric quantity", () => {
   });
 });
 
-test("FatSecret transport/token failure is unavailable", async () => {
+test("FatSecret transport/token failure is unavailable for US", async () => {
   const resolver = new FatSecretResolver({
     clientId: "test-id",
     clientSecret: "test-secret",
@@ -81,16 +81,18 @@ test("FatSecret transport/token failure is unavailable", async () => {
     await resolver.resolve(
       { foodName: "dal", quantity: 1, unit: "katori" },
       undefined,
-      { countryCode: "IN" },
+      { countryCode: "US" },
     ),
     { kind: "unavailable" },
   );
 });
 
-test("FatSecret country mapping accepts canonical uppercase shape only", () => {
-  assert.equal(fatSecretRegionForCountry("IN"), "IN");
-  assert.equal(fatSecretRegionForCountry("FR"), "FR");
-  assert.equal(fatSecretRegionForCountry("in"), null);
+test("FatSecret country mapping allows only US under Basic entitlement", () => {
+  assert.equal(fatSecretRegionForCountry("US"), "US");
+  assert.equal(fatSecretRegionForCountry("IN"), null);
+  assert.equal(fatSecretRegionForCountry("FR"), null);
+  assert.equal(fatSecretRegionForCountry("ZZ"), null);
+  assert.equal(fatSecretRegionForCountry("us"), null);
   assert.equal(fatSecretRegionForCountry("USA"), null);
   assert.equal(fatSecretRegionForCountry(undefined), null);
 });
@@ -113,7 +115,7 @@ test("FatSecret missing country context is incomplete without provider calls", a
   assert.equal(calls, 0);
 });
 
-test("FatSecret sends saved country as explicit region on search and detail", async () => {
+test("FatSecret sends US as explicit region on search and detail", async () => {
   const requests: { url: string; body: string }[] = [];
   const resolver = new FatSecretResolver({
     clientId: "test-id",
@@ -151,42 +153,36 @@ test("FatSecret sends saved country as explicit region on search and detail", as
   const result = await resolver.resolve(
     { foodName: "dal", quantity: 1, unit: "katori" },
     undefined,
-    { countryCode: "FR" },
+    { countryCode: "US" },
   );
 
   assert.equal(result.kind, "resolved");
-  assert.match(requests[1].body, /(?:^|&)region=FR(?:&|$)/);
-  assert.match(requests[2].url, /[?&]region=FR(?:&|$)/);
+  assert.match(requests[1].body, /(?:^|&)region=US(?:&|$)/);
+  assert.match(requests[2].url, /[?&]region=US(?:&|$)/);
 });
 
-test("FatSecret unsupported region is passed through and never rewritten to US", async () => {
-  const requests: { url: string; body: string }[] = [];
-  const resolver = new FatSecretResolver({
-    clientId: "test-id",
-    clientSecret: "test-secret",
-    fetchFn: async (input, init) => {
-      const url = String(input);
-      const body = init?.body instanceof URLSearchParams ? init.body.toString() : "";
-      requests.push({ url, body });
+test("FatSecret non-US countries fail closed before provider calls", async () => {
+  for (const countryCode of ["IN", "FR", "ZZ"]) {
+    let calls = 0;
+    const resolver = new FatSecretResolver({
+      clientId: "test-id",
+      clientSecret: "test-secret",
+      fetchFn: async () => {
+        calls += 1;
+        return new Response("unexpected", { status: 500 });
+      },
+    });
 
-      if (url.includes("oauth.fatsecret.com")) {
-        return Response.json({ access_token: "token", expires_in: 3600 });
-      }
-      return Response.json({ error: { code: 4, message: "unsupported region" } });
-    },
-  });
-
-  assert.deepEqual(
-    await resolver.resolve(
-      { foodName: "dal", quantity: 1, unit: "katori" },
-      undefined,
-      { countryCode: "ZZ" },
-    ),
-    { kind: "unavailable" },
-  );
-  assert.match(requests[1].body, /(?:^|&)region=ZZ(?:&|$)/);
-  assert.doesNotMatch(requests[1].body, /(?:^|&)region=US(?:&|$)/);
-  assert.equal(requests.length, 2, "provider error must stop before detail lookup");
+    assert.deepEqual(
+      await resolver.resolve(
+        { foodName: "dal", quantity: 1, unit: "katori" },
+        undefined,
+        { countryCode },
+      ),
+      { kind: "incomplete" },
+    );
+    assert.equal(calls, 0, `${countryCode} must not call FatSecret under Basic entitlement`);
+  }
 });
 
 test("Edamam compatible item measure is accepted", () => {
@@ -340,7 +336,7 @@ test("FatSecret resolver rejects materially expanded food identity", async () =>
     await resolver.resolve(
       { foodName: "milk", quantity: 100, unit: "g" },
       undefined,
-      { countryCode: "IN" },
+      { countryCode: "US" },
     ),
     { kind: "incomplete" },
   );
