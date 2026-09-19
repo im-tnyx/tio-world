@@ -15,10 +15,12 @@ final class MealParserSmokePage extends StatefulWidget {
     super.key,
     required this.repository,
     this.runFatSecretIndiaProbe,
+    this.runOpenFoodFactsProbe,
   });
 
   final MealTextParseRepository repository;
   final Future<Map<String, dynamic>> Function()? runFatSecretIndiaProbe;
+  final Future<Map<String, dynamic>> Function()? runOpenFoodFactsProbe;
 
   @override
   State<MealParserSmokePage> createState() => _MealParserSmokePageState();
@@ -30,6 +32,9 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
   List<_CapabilityStage>? _fatSecretResult;
   String? _fatSecretError;
   bool _fatSecretRunning = false;
+  List<_OpenFoodFactsResult>? _openFoodFactsResult;
+  String? _openFoodFactsError;
+  bool _openFoodFactsRunning = false;
 
   static const _cases = <String, String>{
     'Success candidate': '200 g plain yogurt',
@@ -117,6 +122,38 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
     }
   }
 
+  Future<void> _runOpenFoodFactsProbe() async {
+    final run = widget.runOpenFoodFactsProbe;
+    if (run == null || _openFoodFactsRunning) return;
+    setState(() {
+      _openFoodFactsRunning = true;
+      _openFoodFactsResult = null;
+      _openFoodFactsError = null;
+    });
+    try {
+      final payload = await run();
+      final rawResults = payload['results'];
+      if (rawResults is! List) throw const FormatException('Invalid capability result.');
+      final results = <_OpenFoodFactsResult>[];
+      for (final raw in rawResults) {
+        if (raw is! Map) throw const FormatException('Invalid capability result.');
+        final query = raw['query'];
+        final category = raw['category'];
+        if (query is! String || category is! String) {
+          throw const FormatException('Invalid capability result.');
+        }
+        results.add(_OpenFoodFactsResult(query: query, category: category));
+      }
+      if (!mounted) return;
+      setState(() => _openFoodFactsResult = results);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _openFoodFactsError = 'Open Food Facts capability probe failed safely.');
+    } finally {
+      if (mounted) setState(() => _openFoodFactsRunning = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -167,6 +204,26 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
                   '${stage.stage}: ${stage.category}'
                   '${stage.httpStatus == null ? '' : ' (${stage.httpStatus})'}',
                 ),
+            ],
+            const SizedBox(height: TioSpacing.lg),
+            TioButton.secondary(
+              label: 'Open Food Facts capability',
+              onPressed: widget.runOpenFoodFactsProbe == null || _openFoodFactsRunning
+                  ? null
+                  : () => unawaited(_runOpenFoodFactsProbe()),
+            ),
+            if (_openFoodFactsRunning) ...[
+              const SizedBox(height: TioSpacing.sm),
+              const Center(child: CircularProgressIndicator()),
+            ],
+            if (_openFoodFactsError != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              Text(_openFoodFactsError!),
+            ],
+            if (_openFoodFactsResult != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              for (final result in _openFoodFactsResult!)
+                Text('${result.query}: ${result.category}'),
             ],
             if (_controller.state.isProcessing) ...[
               const SizedBox(height: TioSpacing.lg),
@@ -236,4 +293,10 @@ final class _CapabilityStage {
   final String stage;
   final String category;
   final int? httpStatus;
+}
+
+final class _OpenFoodFactsResult {
+  const _OpenFoodFactsResult({required this.query, required this.category});
+  final String query;
+  final String category;
 }
