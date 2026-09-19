@@ -23,6 +23,7 @@ class ProfileSetupData {
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
+    this.countryCode,
     this.mobile,
     this.isMobileVerified = false,
   })  : unitPreferences = unitPreferences ?? UnitPreferences.metric,
@@ -51,6 +52,7 @@ class ProfileSetupData {
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
+  final String? countryCode;
   final String? mobile;
   final bool isMobileVerified;
 
@@ -76,6 +78,7 @@ class ProfileSetupData {
             healthConditions.length == other.healthConditions.length &&
             healthConditions.containsAll(other.healthConditions) &&
             otherHealthCondition == other.otherHealthCondition &&
+            countryCode == other.countryCode &&
             mobile == other.mobile &&
             isMobileVerified == other.isMobileVerified;
   }
@@ -97,6 +100,7 @@ class ProfileSetupData {
         activityLevel,
         Object.hashAllUnordered(healthConditions),
         otherHealthCondition,
+        countryCode,
         mobile,
         isMobileVerified,
       );
