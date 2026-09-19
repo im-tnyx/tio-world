@@ -170,7 +170,12 @@ export class EdamamResolver implements FoodNutritionResolver {
         ],
       }),
     }, signal);
-    if (response === null || !response.ok) {
+    if (response === null) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "transport_or_timeout" });
+      return { kind: "fail", result: { kind: "unavailable" } };
+    }
+    if (!response.ok) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "http_error", httpStatus: response.status });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -185,6 +190,7 @@ export class EdamamResolver implements FoodNutritionResolver {
         totalNutrients: raw as Readonly<Record<string, EdamamNutrient>>,
       };
     } catch {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "malformed_response" });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
   }
