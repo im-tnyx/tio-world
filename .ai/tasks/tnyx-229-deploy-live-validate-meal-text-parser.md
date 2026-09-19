@@ -19,19 +19,19 @@
 **Review owner:** Owner
 **Implementation ownership state:** Blocked
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-19 (test-only gate pass)
+**Repository state last verified:** 2026-09-19 (post-TNYX-234 re-audit)
 **Branch:** `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` (this brief only)
-**HEAD SHA:** audited `main` = `f0e8ca40704dcf0612c147d7a1449608c1d026fb` (= `origin/main`)
+**HEAD SHA:** audited `main` = `316d9a8229a29935d6b9e6669cfcc4eb06c06e31`
 **Observed working-tree state:** Clean `main` before this brief
 **Observed uncommitted/dirty files:** None
-**PR / tracker:** Linear TNYX-229 = In Progress; TNYX-226 = Backlog, blocked by TNYX-229; TNYX-230 and TNYX-233 merged. No open PRs.
-**Current implementation state:** Test-only gate pass complete; verdict `TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT` (§6 Test-Only Gate). S1 fix tracked as TNYX-234.
+**PR / tracker:** Linear TNYX-229 = In Progress; TNYX-226 = Backlog, blocked by TNYX-229; TNYX-230, TNYX-233, and TNYX-234 are Done/merged. No TNYX-229 PR.
+**Current implementation state:** Post-TNYX-234 test-only re-audit complete. S1 is cleared in main. Runtime remains NOT DEPLOYED.
 **Relevant execution surface:** `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/**`, hosted project `oykupyiitspujzpwwvuj`
-**Validation completed at SHA:** `f0e8ca40` (local CI-equivalent; §6)
+**Validation completed at SHA:** `316d9a82` source/config/runtime re-audit; prior parser CI remained green through TNYX-234 merge
 **Validation remaining:** Technical runtime and authenticated E2E validation — NOT RUN until deployment is authorized.
-**Current blocker:** TNYX-234 (S1 source fix) for test-only deployment; production gates stay OPEN.
-**Open review finding IDs:** TNYX-229-B1 … B5, TNYX-229-S1
-**Next exact action:** Owner answers the TNYX-234 Edamam decision and approves that slice. After TNYX-234 merges, re-run the test-only gate. Test-only deployment still needs separate explicit authorization.
+**Current blocker:** Test-only deployment still requires a synthetic normal user with intentionally saved non-US `country_code`, explicit deployment authorization, and live runtime validation. Production gates stay OPEN.
+**Open review finding IDs:** TNYX-229-B1 … B5; TNYX-229-S1 RESOLVED by TNYX-234
+**Next exact action:** Prepare a synthetic normal test account through the normal app flow and intentionally save a non-US `country_code` (for example `IN`). Then, after separate explicit deployment authorization, deploy exact current `main` with `verify_jwt=true` and run authenticated smoke validation.
 
 ## 1. Discovery
 
@@ -227,7 +227,7 @@ Authenticated E2E:                              NOT RUN
 TNYX-226 activation:                            BLOCKED
 ```
 
-**Verdict: `TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT`**
+**Verdict: `TNYX-229 TEST-ONLY GATE: SOURCE SAFETY CLEARED; DEPLOYMENT STILL REQUIRES EXPLICIT AUTHORIZATION + SYNTHETIC TEST USER`**
 
 ### Review Findings and Resolution
 
@@ -258,4 +258,44 @@ Secret presence ≠ secret validity; provider acceptance is only provable after 
 
 ### Final Status
 
-`BLOCKED` — TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT (TNYX-234)
+`BLOCKED` — source safety is cleared; deployment/runtime validation has not run and still needs explicit authorization plus a synthetic non-US test user.
+
+
+### Post-TNYX-234 re-audit (2026-09-19)
+
+Fresh AGENTS.md reconciliation after PR #286 merge:
+
+- `main` = `316d9a8229a29935d6b9e6669cfcc4eb06c06e31`.
+- TNYX-234 is Done and its fail-closed source fix is present on `main`.
+- Current `fatSecretRegionForCountry` allows only `US`; `IN`, `FR`, `ZZ`, or any other non-US/invalid value returns FatSecret `incomplete` before token/network work.
+- Parser auth still uses `createSupabaseContext(request, { auth: "user" })` and reads only the signed-in user's `user_profiles.country_code`.
+- `supabase/config.toml` still requires `verify_jwt = true`.
+- Current Supabase docs confirm that `verify_jwt=true` performs a platform-level user-JWT check before handler execution, and user-scoped Authorization context applies RLS.
+- Live Edge Function inventory still contains only `google-login-admission`; `nutrition-meal-text-parse` is NOT DEPLOYED.
+- Live `user_profiles` currently has 3 rows and all have `country_code = NULL`.
+- The connected Supabase capability still does not expose Edge Function secret inventory/rotation, so secret-name presence from earlier local CLI evidence remains historical evidence, not a fresh connector verification.
+- No deployment, secret mutation, schema mutation, provider call, or Flutter/UI change was performed.
+
+Updated gate split:
+
+```text
+TNYX-234 / S1 silent-US safety:                  CLEAR
+Parser source/auth/config readiness:             PASS
+Non-US FatSecret test behavior:                  PASS BY SOURCE (zero FatSecret network call)
+Synthetic Gemini/OpenAI test-only use:           OWNER-APPROVED for non-personal text
+Synthetic normal test user with country_code:    NOT YET PRESENT
+Live parser deployment:                          NOT RUN
+Authenticated runtime smoke:                     NOT RUN
+FatSecret credential rotation for US calls:      OPEN (not needed for non-US test path)
+FatSecret production entitlement/static egress:  OPEN
+AI production privacy/retention posture:          OPEN
+Durable nutrition storage permission:            OPEN
+TNYX-226 product activation:                     BLOCKED
+```
+
+Test-only next boundary:
+1. Owner creates/uses a synthetic normal user through the normal app flow.
+2. That user explicitly saves a non-US country such as `IN` through its own account/profile path.
+3. Reconfirm current main + live inventory.
+4. Only after separate explicit owner authorization, deploy exact current `main` with `verify_jwt=true`.
+5. Run unauthenticated denial + authenticated synthetic smoke tests.
