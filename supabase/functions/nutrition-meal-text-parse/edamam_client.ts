@@ -1,4 +1,5 @@
 import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
+import { mealParserDiagnostic } from "./diagnostics.ts";
 import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
@@ -57,7 +58,10 @@ export class EdamamResolver implements FoodNutritionResolver {
   }
 
   async resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult> {
-    if (!this.#appId || !this.#appKey) return { kind: "unavailable" };
+    if (!this.#appId || !this.#appKey) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "missing_configuration" });
+      return { kind: "unavailable" };
+    }
     if (candidate.quantity === null || candidate.unit === null) {
       return { kind: "incomplete" };
     }
@@ -112,7 +116,12 @@ export class EdamamResolver implements FoodNutritionResolver {
     const response = await this.#boundedFetch(url, {
       headers: { Accept: "application/json" },
     }, signal);
-    if (response === null || !response.ok) {
+    if (response === null) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "transport_or_timeout" });
+      return { kind: "fail", result: { kind: "unavailable" } };
+    }
+    if (!response.ok) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "http_error", httpStatus: response.status });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -128,6 +137,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       }
       return { kind: "ok", value: first as ParsedFood };
     } catch {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "malformed_response" });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
   }
