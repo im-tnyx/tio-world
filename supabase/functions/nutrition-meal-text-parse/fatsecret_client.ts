@@ -249,7 +249,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
 export function fatSecretRegionForCountry(countryCode: string | undefined): string | null {
   if (countryCode === undefined) return null;
   const trimmed = countryCode.trim();
-  return /^[A-Z]{2}$/.test(trimmed) ? trimmed : null;
+  return trimmed === "US" ? trimmed : null;
 }
 
 function toArray(value: unknown): unknown[] {
