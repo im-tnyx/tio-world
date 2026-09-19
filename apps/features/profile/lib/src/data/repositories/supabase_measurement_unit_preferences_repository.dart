@@ -42,6 +42,7 @@ class SupabaseMeasurementUnitPreferencesRepository
         activityLevel: current.activityLevel,
         healthConditions: current.healthConditions,
         otherHealthCondition: current.otherHealthCondition,
+        countryCode: current.countryCode,
       ),
     );
   }
