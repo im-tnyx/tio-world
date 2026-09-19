@@ -14,9 +14,11 @@ final class MealParserSmokePage extends StatefulWidget {
   const MealParserSmokePage({
     super.key,
     required this.repository,
+    this.runFatSecretIndiaProbe,
   });
 
   final MealTextParseRepository repository;
+  final Future<Map<String, dynamic>> Function()? runFatSecretIndiaProbe;
 
   @override
   State<MealParserSmokePage> createState() => _MealParserSmokePageState();
@@ -25,6 +27,9 @@ final class MealParserSmokePage extends StatefulWidget {
 final class _MealParserSmokePageState extends State<MealParserSmokePage> {
   late final MealTextParseController _controller;
   _SmokeResult? _result;
+  List<_CapabilityStage>? _fatSecretResult;
+  String? _fatSecretError;
+  bool _fatSecretRunning = false;
 
   static const _cases = <String, String>{
     'Success candidate': '200 g plain yogurt',
@@ -71,6 +76,47 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
     });
   }
 
+
+  Future<void> _runFatSecretIndiaProbe() async {
+    final run = widget.runFatSecretIndiaProbe;
+    if (run == null || _fatSecretRunning) return;
+    setState(() {
+      _fatSecretRunning = true;
+      _fatSecretResult = null;
+      _fatSecretError = null;
+    });
+    try {
+      final payload = await run();
+      final rawResult = payload['result'];
+      if (rawResult is! List) {
+        throw const FormatException('Invalid capability result.');
+      }
+      final stages = <_CapabilityStage>[];
+      for (final raw in rawResult) {
+        if (raw is! Map) throw const FormatException('Invalid capability stage.');
+        final stage = raw['stage'];
+        final category = raw['category'];
+        final status = raw['httpStatus'];
+        if (stage is! String || category is! String ||
+            (status != null && status is! num)) {
+          throw const FormatException('Invalid capability stage.');
+        }
+        stages.add(_CapabilityStage(
+          stage: stage,
+          category: category,
+          httpStatus: status?.toInt(),
+        ));
+      }
+      if (!mounted) return;
+      setState(() => _fatSecretResult = stages);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _fatSecretError = 'FatSecret capability probe failed safely.');
+    } finally {
+      if (mounted) setState(() => _fatSecretRunning = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -97,6 +143,30 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
                     : () => unawaited(_run(entry.key, entry.value)),
               ),
               const SizedBox(height: TioSpacing.sm),
+            ],
+
+            const SizedBox(height: TioSpacing.lg),
+            TioButton.secondary(
+              label: 'FatSecret IN capability',
+              onPressed: widget.runFatSecretIndiaProbe == null || _fatSecretRunning
+                  ? null
+                  : () => unawaited(_runFatSecretIndiaProbe()),
+            ),
+            if (_fatSecretRunning) ...[
+              const SizedBox(height: TioSpacing.sm),
+              const Center(child: CircularProgressIndicator()),
+            ],
+            if (_fatSecretError != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              Text(_fatSecretError!),
+            ],
+            if (_fatSecretResult != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              for (final stage in _fatSecretResult!)
+                Text(
+                  '${stage.stage}: ${stage.category}'
+                  '${stage.httpStatus == null ? '' : ' (${stage.httpStatus})'}',
+                ),
             ],
             if (_controller.state.isProcessing) ...[
               const SizedBox(height: TioSpacing.lg),
@@ -153,4 +223,17 @@ final class _SmokeResult {
   final MealTextParseStatus status;
   final String? message;
   final MealLoggingDraft? draft;
+}
+
+
+final class _CapabilityStage {
+  const _CapabilityStage({
+    required this.stage,
+    required this.category,
+    required this.httpStatus,
+  });
+
+  final String stage;
+  final String category;
+  final int? httpStatus;
 }
