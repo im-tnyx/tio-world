@@ -15,6 +15,7 @@ Diagnostic output is limited to static stage/provider/reason identifiers and num
 
 - Preserve the client response contract.
 - Add focused tests for redacted diagnostic behavior.
+- For Edamam non-2xx responses, classify only an allowlisted provider error category derived from a bounded JSON error envelope. Never log the raw response body/message, URL, query parameters, credentials, or meal text. This is diagnostic-only and must not change resolver outcomes.
 - No Flutter/UI or TNYX-226 work.
 - No schema/RLS/RPC/migration.
 - No provider/model selection change.
@@ -22,4 +23,4 @@ Diagnostic output is limited to static stage/provider/reason identifiers and num
 
 ## Validation
 
-Run focused parser tests and source-safety checks, then review the complete branch delta before deployment handoff.
+Run focused parser tests and source-safety checks, including Edamam 401 classification/redaction tests, then review the complete branch delta before deployment handoff.
