@@ -1655,7 +1655,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   ),
                 );
               }
-              return MealParserSmokePage(repository: repository);
+              return MealParserSmokePage(
+                repository: repository,
+                runFatSecretIndiaProbe:
+                    ref.watch(fatSecretIndiaCapabilityProbeProvider),
+              );
             },
           ),
         ),
