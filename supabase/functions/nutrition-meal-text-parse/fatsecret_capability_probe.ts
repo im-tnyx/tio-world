@@ -18,6 +18,7 @@ export interface FatSecretCapabilityResult {
   readonly stage: FatSecretCapabilityStage;
   readonly category: FatSecretCapabilityCategory;
   readonly httpStatus?: number;
+  readonly providerErrorCode?: string;
 }
 
 export async function probeFatSecretIndiaCapability(options: {
@@ -80,7 +81,12 @@ export async function probeFatSecretIndiaCapability(options: {
   try {
     const payload = await searchResponse.json() as Record<string, unknown>;
     if (payload.error !== undefined) {
-      return [...results, { stage: "search_default", category: "authorization_or_entitlement", httpStatus: searchResponse.status }];
+      return [...results, {
+        stage: "search_default",
+        category: "authorization_or_entitlement",
+        httpStatus: searchResponse.status,
+        providerErrorCode: safeProviderErrorCode(payload.error),
+      }];
     }
     const foods = payload.foods;
     const rawFood = foods !== null && typeof foods === "object"
@@ -110,7 +116,12 @@ export async function probeFatSecretIndiaCapability(options: {
   try {
     const payload = await detailResponse.json() as Record<string, unknown>;
     if (payload.error !== undefined) {
-      return [...results, { stage: "detail_default", category: "authorization_or_entitlement", httpStatus: detailResponse.status }];
+      return [...results, {
+        stage: "detail_default",
+        category: "authorization_or_entitlement",
+        httpStatus: detailResponse.status,
+        providerErrorCode: safeProviderErrorCode(payload.error),
+      }];
     }
   } catch {
     return [...results, { stage: "detail_default", category: "unavailable", httpStatus: detailResponse.status }];
@@ -125,4 +136,13 @@ function categoryForStatus(status: number): FatSecretCapabilityCategory {
   if (status === 429) return "rate_limit";
   if (status >= 400 && status < 500) return "invalid_request";
   return "unavailable";
+}
+
+
+function safeProviderErrorCode(error: unknown): string | undefined {
+  if (error === null || typeof error !== "object" || Array.isArray(error)) return undefined;
+  const value = (error as Record<string, unknown>).code;
+  if (typeof value !== "string" && typeof value !== "number") return undefined;
+  const code = String(value).trim();
+  return /^[A-Za-z0-9_.-]{1,64}$/.test(code) ? code : undefined;
 }
