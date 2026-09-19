@@ -24,13 +24,13 @@ void main() {
           currentWeightKg: 72.5,
           countryCode: 'IN',
           onSave: ({
-            required name,
-            required username,
-            required gender,
-            required dateOfBirth,
-            required heightCm,
-            required currentWeightKg,
-            required countryCode,
+            required String name,
+            required String username,
+            required String gender,
+            required DateTime dateOfBirth,
+            required double heightCm,
+            required double currentWeightKg,
+            required String countryCode,
           }) async {
             savedName = name;
           },
@@ -93,8 +93,6 @@ void main() {
     expect(find.text("6' 0\""), findsOneWidget);
     expect(find.text("5' 12\""), findsNothing);
   });
-}
-
 
   testWidgets('ProfileSettingsPage requires explicit country before save',
       (tester) async {
@@ -120,3 +118,4 @@ void main() {
 
     expect(find.text('Please select your country'), findsOneWidget);
   });
+}
