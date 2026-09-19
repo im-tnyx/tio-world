@@ -1,6 +1,6 @@
 # TNYX-234 — FatSecret fail-closed for non-US country without localization entitlement
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** TNYX-234 / Nutrition
 **Affected platforms:** Supabase Edge Function source only
 
@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT / Linear
 **Implementation owner:** ChatGPT
-**Review owner:** Pending
-**Implementation ownership state:** Active
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** main at `f0e8ca40704dcf0612c147d7a1449608c1d026fb`; TNYX-234 branch created from main; no PR yet
+**Repository state last verified:** `main@f0e8ca40704dcf0612c147d7a1449608c1d026fb`; branch head `649c6f266d15f818479cdc9d99337c6ac6f699d6`; 3 ahead / 0 behind; exact 3-file scope; PR #286 draft and mergeable
 **Branch:** `tnyx/tnyx-234-n5d-7d-fatsecret-fail-closed-for-non-us-country-without`
-**HEAD SHA:** `f0e8ca40704dcf0612c147d7a1449608c1d026fb` before implementation
+**HEAD SHA:** `649c6f266d15f818479cdc9d99337c6ac6f699d6`
 **Observed working-tree state:** API-based agent; equivalent branch/base reconciliation completed
 **Observed uncommitted/dirty files:** Not applicable through GitHub API
-**PR / tracker:** Linear TNYX-234 In Progress; blocks TNYX-229
-**Current implementation state:** Ready for smallest source/test patch
+**PR / tracker:** GitHub PR #286 draft; Linear TNYX-234 In Progress; blocks TNYX-229
+**Current implementation state:** Source + focused tests implemented and validated; no open review findings
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse/fatsecret_client.ts`, `providers_test.ts`
-**Validation completed at SHA:** Existing main parser suite previously 78/78; TNYX-234 validation not yet run
-**Validation remaining:** focused parser tests + CI
+**Validation completed at SHA:** `649c6f266d15f818479cdc9d99337c6ac6f699d6` — Supabase Functions CI #8 PASS; entrypoint type-check PASS; source/tests type-check PASS; parser tests PASS
+**Validation remaining:** External review/owner merge decision only
 **Current blocker:** None for source fix
 **Open review finding IDs:** None
-**Next exact action:** Implement non-US fail-closed before token request and update focused tests.
+**Next exact action:** Mark PR #286 Ready for Review and reconcile Linear to In Review. Do not merge or deploy without separate owner instruction.
 
 ## 1. Discovery
 
@@ -108,36 +108,44 @@ Non-visual. Missing/invalid country remains `incomplete`. Non-US is deliberately
 
 ## 5. Implementation Plan
 
-- [ ] Guard FatSecret to `US` only under current Basic scope.
-- [ ] Update country mapping tests.
-- [ ] Add zero-network-call tests for IN/FR/ZZ.
-- [ ] Keep US search/detail region assertions.
-- [ ] Validate focused/full parser suite.
-- [ ] Open draft PR with exact scope evidence.
+- [x] Guard FatSecret to `US` only under current Basic scope.
+- [x] Update country mapping tests.
+- [x] Add zero-network-call tests for IN/FR/ZZ.
+- [x] Keep US search/detail region assertions.
+- [x] Validate focused/full parser suite.
+- [x] Open draft PR with exact scope evidence.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Supabase Functions CI #8: PASS
+- Type-check parser entrypoint: PASS
+- Type-check parser source and tests: PASS
+- Run parser tests: PASS
+PR #286: mergeable=true, unresolved review threads=0
+Branch scope: 3 ahead / 0 behind; exact 3 changed files
+Live Supabase: nutrition-meal-text-parse remains NOT DEPLOYED
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| QR-1 | — | Resolved | No open code-review findings after full PR diff + CI review | `649c6f266d15f818479cdc9d99337c6ac6f699d6` | PR #286 has 0 review threads; CI #8 passed |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+`.ai/tasks/tnyx-234-fatsecret-non-us-fail-closed.md`
+`supabase/functions/nutrition-meal-text-parse/fatsecret_client.ts`
+`supabase/functions/nutrition-meal-text-parse/providers_test.ts`
 
 ### Actual Behavior
 
-Pending implementation.
+Under the current FatSecret Basic scope, only canonical `US` proceeds to FatSecret token/search/detail requests. `IN`, `FR`, `ZZ`, or any other non-US/invalid value returns FatSecret `incomplete` before any FatSecret network call, preserving existing fallback orchestration.
 
 ### Known Limitations
 
@@ -145,4 +153,4 @@ Production localization entitlement, FatSecret static-egress networking, durable
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
