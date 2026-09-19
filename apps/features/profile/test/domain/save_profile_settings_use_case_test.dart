@@ -8,6 +8,7 @@ void main() {
     dateOfBirth: DateTime(1995, 6, 5),
     heightCm: 180,
     currentWeightKg: 80,
+    countryCode: 'IN',
   );
 
   test('unchanged normalized username skips account mutation', () async {

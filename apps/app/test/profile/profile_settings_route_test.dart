@@ -69,6 +69,7 @@ void main() {
         targetWeightKg: 75,
         activityLevel: ProfileActivityLevel.active,
         healthConditions: const {ProfileHealthCondition.none},
+        countryCode: 'IN',
         mobile: '+91 9000000000',
         isMobileVerified: true,
       ),
@@ -78,6 +79,7 @@ void main() {
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('Save Changes'), findsOneWidget);
+    expect(find.text('India'), findsOneWidget);
 
     final textFields =
         tester.widgetList<TextField>(find.byType(TextField)).toList();

@@ -15,6 +15,7 @@ void main() {
         activityLevel: ProfileActivityLevel.veryActive,
         healthConditions: const {ProfileHealthCondition.hypertension},
         otherHealthCondition: 'Preserve condition',
+        countryCode: 'IN',
       );
       final profileRepository = _ProfileRepository(existing);
       final repository = SupabaseMeasurementUnitPreferencesRepository(
@@ -41,6 +42,7 @@ void main() {
       expect(saved.activityLevel, existing.activityLevel);
       expect(saved.healthConditions, existing.healthConditions);
       expect(saved.otherHealthCondition, existing.otherHealthCondition);
+      expect(saved.countryCode, 'IN');
     });
 
     test('fails closed when canonical Profile is missing', () async {

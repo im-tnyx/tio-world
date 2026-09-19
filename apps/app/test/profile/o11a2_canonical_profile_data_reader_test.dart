@@ -22,6 +22,7 @@ void main() {
         activityLevel: ProfileActivityLevel.veryActive,
         healthConditions: const {ProfileHealthCondition.hypertension},
         otherHealthCondition: 'Canonical condition',
+        countryCode: 'IN',
       );
       final reader = CanonicalProfileDataReader(
         profileRepository: _ProfileRepository(profile),
@@ -62,6 +63,7 @@ void main() {
       expect(result.activityLevel, ProfileActivityLevel.veryActive);
       expect(result.healthConditions, profile.healthConditions);
       expect(result.otherHealthCondition, 'Canonical condition');
+      expect(result.countryCode, 'IN');
       expect(result.username, 'canonical-user');
       expect(result.avatarUrl, 'https://example.com/avatar.png');
       expect(result.plan, 'plus');

@@ -22,6 +22,7 @@ void main() {
         activityLevel: ProfileActivityLevel.veryActive,
         healthConditions: const {ProfileHealthCondition.hypertension},
         otherHealthCondition: 'Preserve me',
+        countryCode: 'GB',
       );
       final profile = _ProfileRepository(existing);
       final body = _BodyRepository();
@@ -39,6 +40,7 @@ void main() {
           dateOfBirth: DateTime(1992, 3, 4),
           heightCm: 165,
           currentWeightKg: 61.5,
+          countryCode: 'IN',
         ),
       );
 
@@ -53,6 +55,7 @@ void main() {
       expect(saved.activityLevel, ProfileActivityLevel.veryActive);
       expect(saved.healthConditions, existing.healthConditions);
       expect(saved.otherHealthCondition, 'Preserve me');
+      expect(saved.countryCode, 'IN');
 
       expect(body.records, hasLength(1));
       final weight = body.records.single;
@@ -78,6 +81,7 @@ void main() {
             dateOfBirth: DateTime(2000, 1, 1),
             heightCm: 170,
             currentWeightKg: 70,
+            countryCode: 'IN',
           ),
         ),
         throwsA(isA<StateError>()),
@@ -114,6 +118,7 @@ void main() {
             dateOfBirth: DateTime(1999, 2, 3),
             heightCm: 168,
             currentWeightKg: 65,
+            countryCode: 'IN',
           ),
         ),
         throwsA(isA<StateError>()),

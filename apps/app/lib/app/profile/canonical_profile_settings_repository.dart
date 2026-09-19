@@ -40,6 +40,7 @@ final class CanonicalProfileSettingsRepository
         activityLevel: current.activityLevel,
         healthConditions: current.healthConditions,
         otherHealthCondition: current.otherHealthCondition,
+        countryCode: update.countryCode,
       ),
     );
 

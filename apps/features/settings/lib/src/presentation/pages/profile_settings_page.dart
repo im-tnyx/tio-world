@@ -13,6 +13,7 @@ class ProfileSettingsPage extends StatefulWidget {
     this.dateOfBirth,
     this.heightCm = 170.0,
     this.currentWeightKg = 70.0,
+    this.countryCode,
     this.avatarUrl,
     this.avatarFrame = TioAvatarFrame.none,
     this.plan = 'free',
@@ -29,6 +30,7 @@ class ProfileSettingsPage extends StatefulWidget {
   final DateTime? dateOfBirth;
   final double heightCm;
   final double currentWeightKg;
+  final String? countryCode;
   final String? avatarUrl;
   final TioAvatarFrame avatarFrame;
   final String plan;
@@ -42,6 +44,7 @@ class ProfileSettingsPage extends StatefulWidget {
     required DateTime dateOfBirth,
     required double heightCm,
     required double currentWeightKg,
+    required String countryCode,
   })? onSave;
 
   @override
@@ -55,6 +58,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   late DateTime _dob;
   late double _heightCm;
   late double _weightKg;
+  String? _countryCode;
 
   String _heightUnit = 'ft'; // 'cm' or 'ft'
   String _weightUnit = 'kg'; // 'kg' or 'lbs'
@@ -73,6 +77,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     _dob = widget.dateOfBirth ?? DateTime(1995, 6, 5);
     _heightCm = widget.heightCm > 0 ? widget.heightCm : 170.0;
     _weightKg = widget.currentWeightKg > 0 ? widget.currentWeightKg : 70.0;
+    _countryCode = widget.countryCode;
   }
 
   @override
@@ -208,6 +213,73 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     );
   }
 
+
+  Future<void> _showCountryPicker() async {
+    final selected = await showModalBottomSheet<_CountryOption>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.tioColors.surfaceRaised,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(TioRadius.lg)),
+      ),
+      builder: (modalContext) {
+        final colors = modalContext.tioColors;
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(modalContext).height * 0.72,
+            child: Column(
+              children: [
+                const SizedBox(height: TioSpacing.sm),
+                Container(
+                  width: TioSize.dp36,
+                  height: TioSize.dp4,
+                  decoration: BoxDecoration(
+                    color: colors.outlineStrong.withAlpha(TioAlpha.alpha50),
+                    borderRadius: BorderRadius.circular(TioSize.dp2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(TioSpacing.lg),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Select Country',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size18,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _countryOptions.length,
+                    itemBuilder: (context, index) {
+                      final option = _countryOptions[index];
+                      final selected = _countryCode == option.code;
+                      return ListTile(
+                        title: Text(option.name),
+                        subtitle: Text(option.code),
+                        trailing: selected
+                            ? Icon(Icons.check_circle_rounded, color: colors.primary)
+                            : null,
+                        onTap: () => Navigator.of(modalContext).pop(option),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected != null && mounted) {
+      setState(() => _countryCode = selected.code);
+    }
+  }
+
   Future<void> _pickHeight() async {
     final picked = await showTioHeightPickerBottomSheet(
       context: context,
@@ -242,6 +314,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       setState(() => _errorMessage = 'Please enter your full name');
       return;
     }
+    if (_countryCode == null) {
+      setState(() => _errorMessage = 'Please select your country');
+      return;
+    }
 
     setState(() {
       _isSaving = true;
@@ -256,6 +332,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         dateOfBirth: _dob,
         heightCm: _heightCm,
         currentWeightKg: _weightKg,
+        countryCode: _countryCode!,
       );
 
       if (mounted) {
@@ -439,6 +516,17 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               value: _gender,
               trailingIcon: Icons.keyboard_arrow_down_rounded,
               onTap: _showGenderPicker,
+              colors: colors,
+            ),
+
+            const SizedBox(height: TioSpacing.lg),
+
+            _CapsuleActionField(
+              label: 'COUNTRY',
+              icon: Icons.public_rounded,
+              value: _countryNameForCode(_countryCode) ?? 'Select country',
+              trailingIcon: Icons.keyboard_arrow_down_rounded,
+              onTap: _showCountryPicker,
               colors: colors,
             ),
 
@@ -802,4 +890,37 @@ class _CapsuleWithUnitField extends StatelessWidget {
       ],
     );
   }
+}
+
+
+class _CountryOption {
+  const _CountryOption(this.code, this.name);
+  final String code;
+  final String name;
+}
+
+const _countryOptions = <_CountryOption>[
+  _CountryOption('AU', 'Australia'),
+  _CountryOption('BR', 'Brazil'),
+  _CountryOption('CA', 'Canada'),
+  _CountryOption('DE', 'Germany'),
+  _CountryOption('ES', 'Spain'),
+  _CountryOption('FR', 'France'),
+  _CountryOption('GB', 'United Kingdom'),
+  _CountryOption('ID', 'Indonesia'),
+  _CountryOption('IN', 'India'),
+  _CountryOption('IT', 'Italy'),
+  _CountryOption('JP', 'Japan'),
+  _CountryOption('MX', 'Mexico'),
+  _CountryOption('NL', 'Netherlands'),
+  _CountryOption('SG', 'Singapore'),
+  _CountryOption('US', 'United States'),
+];
+
+String? _countryNameForCode(String? code) {
+  if (code == null) return null;
+  for (final option in _countryOptions) {
+    if (option.code == code) return option.name;
+  }
+  return code;
 }

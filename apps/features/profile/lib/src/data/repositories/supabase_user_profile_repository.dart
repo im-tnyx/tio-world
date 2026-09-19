@@ -73,7 +73,7 @@ final class SupabaseUserProfileRepository implements UserProfileRepository {
           row['other_health_condition'],
           'other_health_condition',
         ),
-        countryCode: _parseOptionalString(row['country_code'], 'country_code'),
+        countryCode: _parseCountryCode(row['country_code']),
       );
     } on ArgumentError catch (error) {
       throw FormatException(
@@ -127,6 +127,23 @@ String? _parseOptionalString(Object? raw, String key) {
   }
   final normalized = raw.trim();
   return normalized.isEmpty ? null : normalized;
+}
+
+String? _parseCountryCode(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! String || raw.length != 2 || raw != raw.toUpperCase()) {
+    throw const FormatException(
+      'Invalid canonical country_code: expected uppercase alpha-2 string or null.',
+    );
+  }
+  final first = raw.codeUnitAt(0);
+  final second = raw.codeUnitAt(1);
+  if (first < 65 || first > 90 || second < 65 || second > 90) {
+    throw const FormatException(
+      'Invalid canonical country_code: expected uppercase alpha-2 string or null.',
+    );
+  }
+  return raw;
 }
 
 ProfileGender _parseGender(Object? raw) {

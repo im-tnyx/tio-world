@@ -67,6 +67,7 @@ class ProfileSettingsRoute extends ConsumerWidget {
       dateOfBirth: profileData.dateOfBirth,
       heightCm: profileData.heightCm,
       currentWeightKg: profileData.currentWeightKg,
+      countryCode: profileData.countryCode,
       avatarUrl: profileData.avatarUrl,
       avatarFrame: avatarFrame,
       plan: profileData.plan,
@@ -91,6 +92,7 @@ class ProfileSettingsRoute extends ConsumerWidget {
         required dateOfBirth,
         required heightCm,
         required currentWeightKg,
+        required countryCode,
       }) async {
         final saveProfileSettings =
             ref.read(saveProfileSettingsUseCaseProvider);
@@ -112,6 +114,7 @@ class ProfileSettingsRoute extends ConsumerWidget {
             dateOfBirth: dateOfBirth,
             heightCm: heightCm,
             currentWeightKg: currentWeightKg,
+            countryCode: countryCode,
           ),
         );
         ref.invalidate(profileDataProvider);

@@ -11,6 +11,7 @@ class ProfileSettingsUpdate {
     required this.dateOfBirth,
     required this.heightCm,
     required this.currentWeightKg,
+    required this.countryCode,
   });
 
   final String name;
@@ -18,4 +19,5 @@ class ProfileSettingsUpdate {
   final DateTime dateOfBirth;
   final double heightCm;
   final double currentWeightKg;
+  final String countryCode;
 }
