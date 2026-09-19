@@ -114,3 +114,15 @@ Validation after the reachability fix:
 ## Handoff
 
 This slice does not itself clear TNYX-229 until authenticated live execution succeeds. Production provider entitlement, AI privacy/retention, and durable nutrition-storage gates remain separate.
+
+
+## FatSecret IN Capability Follow-up — 2026-09-19
+
+Owner approved extending this existing debug-only harness to invoke the separately deployed authenticated diagnostic Edge Function `tnyx-229-fatsecret-in-probe`.
+
+- Reuse the existing `SupabaseClient.functions.invoke` authenticated session path.
+- Invoke only the diagnostic function; it owns the synthetic `plain yogurt` + `region=IN` provider probe server-side.
+- Display only bounded `stage`, `category`, and optional numeric `httpStatus`.
+- Do not display/copy JWTs, provider tokens, credentials, raw provider bodies, URLs/query strings, or identity/session data.
+- This remains non-release/debug-only and introduces no product navigation.
+- No production parser routing change, persistence, schema/RLS/RPC, secret mutation, deployment, or TNYX-226 work is part of this Flutter follow-up.
