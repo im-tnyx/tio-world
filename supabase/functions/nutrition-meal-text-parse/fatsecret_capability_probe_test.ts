@@ -7,7 +7,7 @@ function json(value: unknown, status = 200): Response {
   return Response.json(value, { status });
 }
 
-test("probe validates token, IN search, and IN detail without changing production routing", async () => {
+test("probe validates token, default search, and default detail without changing production routing", async () => {
   const requests: Array<{ url: string; init?: RequestInit }> = [];
   const responses = [
     json({ access_token: "synthetic-token", expires_in: 3600 }),
@@ -25,11 +25,11 @@ test("probe validates token, IN search, and IN detail without changing productio
 
   assert.deepEqual(result.map(({ stage, category }) => ({ stage, category })), [
     { stage: "token", category: "ok" },
-    { stage: "search_in", category: "ok" },
-    { stage: "detail_in", category: "ok" },
+    { stage: "search_default", category: "ok" },
+    { stage: "detail_default", category: "ok" },
   ]);
-  assert.match(String(requests[1].init?.body), /region=IN/);
-  assert.match(requests[2].url, /region=IN/);
+  assert.doesNotMatch(String(requests[1].init?.body), /region=/);
+  assert.doesNotMatch(requests[2].url, /region=/);
 });
 
 test("probe reports bounded auth failure and never returns provider body", async () => {
@@ -42,7 +42,7 @@ test("probe reports bounded auth failure and never returns provider body", async
   assert.equal(JSON.stringify(result).includes("private provider body"), false);
 });
 
-test("probe stops safely when IN search is forbidden", async () => {
+test("probe stops safely when default search is forbidden", async () => {
   let call = 0;
   const result = await probeFatSecretIndiaCapability({
     clientId: "test-client",
@@ -56,7 +56,7 @@ test("probe stops safely when IN search is forbidden", async () => {
   });
   assert.deepEqual(result.map(({ stage, category }) => ({ stage, category })), [
     { stage: "token", category: "ok" },
-    { stage: "search_in", category: "authorization_or_entitlement" },
+    { stage: "search_default", category: "authorization_or_entitlement" },
   ]);
   assert.equal(JSON.stringify(result).includes("entitlement detail"), false);
 });
