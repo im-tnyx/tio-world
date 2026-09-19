@@ -19,19 +19,19 @@
 **Review owner:** Owner
 **Implementation ownership state:** Blocked
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-19 (evidence pass 2)
+**Repository state last verified:** 2026-09-19 (test-only gate pass)
 **Branch:** `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` (this brief only)
 **HEAD SHA:** audited `main` = `f0e8ca40704dcf0612c147d7a1449608c1d026fb` (= `origin/main`)
 **Observed working-tree state:** Clean `main` before this brief
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** Linear TNYX-229 = In Progress; TNYX-226 = Backlog, blocked by TNYX-229; TNYX-230 and TNYX-233 merged. No open PRs.
-**Current implementation state:** Evidence pass 2 complete; verdict `TNYX-229 PRE-DEPLOYMENT EVIDENCE: BLOCKED` (§6 Evidence Pass 2).
+**Current implementation state:** Test-only gate pass complete; verdict `TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT` (§6 Test-Only Gate). S1 fix tracked as TNYX-234.
 **Relevant execution surface:** `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/**`, hosted project `oykupyiitspujzpwwvuj`
 **Validation completed at SHA:** `f0e8ca40` (local CI-equivalent; §6)
 **Validation remaining:** Technical runtime and authenticated E2E validation — NOT RUN until deployment is authorized.
-**Current blocker:** Evidence gates B1–B5 in §6.
+**Current blocker:** TNYX-234 (S1 source fix) for test-only deployment; production gates stay OPEN.
 **Open review finding IDs:** TNYX-229-B1 … B5, TNYX-229-S1
-**Next exact action:** Owner supplies the evidence listed per blocker in §6 Evidence Pass 2 and decides S1. Then re-run the evidence gate. Deployment still needs separate explicit authorization.
+**Next exact action:** Owner answers the TNYX-234 Edamam decision and approves that slice. After TNYX-234 merges, re-run the test-only gate. Test-only deployment still needs separate explicit authorization.
 
 ## 1. Discovery
 
@@ -157,6 +157,78 @@ B4 detail (FatSecret docs fetched 2026-09-19):
 - `foods.search` v3 docs list scope `premier`; the OAuth guide also lists a separate `localization` scope.
 - Source (`fatsecret_client.ts:138`) requests only `scope: "basic"` but sends `region=<countryCode>` on `foods.search` (legacy `server.api`) and `food/v5`.
 
+### Test-Only Gate (2026-09-19)
+
+Owner decision frozen (2026-09-19): the app is in development/testing, and this feature has no real production users. A paid/Premier FatSecret plan is **not** required for current development. Premier/localization entitlement, static-egress architecture, durable/commercial storage permission, and production country coverage stay **production gates (OPEN)**. Technical testing uses synthetic, non-personal meal text only. Provider limitations may be recorded as expected, but TNYX-233 country rules must not be weakened: no silent country fallback.
+
+Reconciliation: `main` = `f0e8ca40`; `supabase/` unchanged; branch HEAD `0bab5854` (2 ahead / 0 behind, brief only); no PR; live functions = `google-login-admission` only.
+
+**FatSecret gate split**
+- Development/test-only blocker: S1 (below). FatSecret live calls are also blocked until the exposed credential is rotated (B1).
+- Production-only gates (OPEN, and they do not stop bounded dev testing): Premier/localization entitlement, full country coverage, static egress for the IP allowlist, and durable/commercial storage.
+
+**S1 audit — `S1: SOURCE FIX REQUIRED`**
+- The token request uses `scope: "basic"` (`fatsecret_client.ts:138`).
+- Search uses `method=foods.search` on legacy `server.api` (v1); detail uses `food/v5`. Both send `region=<countryCode>`.
+- FatSecret v1 `foods.search` docs: `region` and `language` are "Premier Exclusive"; region defaults to `US`; unentitled or unsupported behavior is not documented; the response has no field indicating region.
+- The source only fails closed when FatSecret returns an explicit `error` (covered by the `ZZ` test). If FatSecret ignores `region` under `basic`, US results pass `selectFatSecretMatch` and return as `success` for a non-US user. The invariant is therefore **not guaranteed**.
+- Edamam receives no country context. After fail-closed, a non-US user would reach Edamam; TNYX-233 approved this, and TNYX-234 asks the owner to reconfirm it.
+- Smallest fix, tracked as **TNYX-234** (Backlog, blocks TNYX-229): while the source requests only `basic`, FatSecret runs only for `US`. Any other valid country returns `incomplete` before the token request (no FatSecret network call). Edamam fallback and missing-country behavior stay unchanged. Includes focused tests. Not implemented in TNYX-229.
+
+**FatSecret credentials**
+- `FATSECRET LIVE CALL: BLOCKED UNTIL ROTATION`.
+- Current source has no FatSecret on/off switch. With credentials present and a valid country, the resolver always requests a token. Empty credentials would make it `unavailable` without a network call, but that is a secret mutation and needs separate authorization.
+- After TNYX-234, a test user with a **non-US** country never contacts FatSecret, so the parser test can proceed without rotation. A `US` test user would call FatSecret and stays blocked until rotation.
+
+**AI testing policy**
+- `AI TEST-ONLY USE: CLEAR`. The owner policy allows synthetic, non-personal text only. Source keeps `store: false` (OpenAI), has no provider keys in Flutter, and does no parser logging or persistence.
+- `AI PRODUCTION PRIVACY: OPEN`. Gemini and OpenAI account/project retention posture is still not evidenced. Gemini key-type and plan validity is unverified; if the key is rejected, the result becomes `unavailable` and falls back to OpenAI. This is an expected limitation, not a code defect.
+
+**Test user — `TEST USER PLAN: READY` (plan only; owner executes)**
+1. The owner creates a synthetic test account through the normal app sign-up. No personal data. The agent must not create accounts.
+2. The account completes the normal profile setup, so `public.users` and `user_profiles` rows exist (`user_profiles.name` is NOT NULL; the app writes the row via `SupabaseUserProfileRepository` upsert).
+3. Set the intentional country through that user's own session only: `PATCH /rest/v1/user_profiles?user_id=eq.<own id>` with `{"country_code":"<XX>"}` under `user_profiles_update_own`. Use a non-US code (e.g. `IN`) so FatSecret is not contacted after TNYX-234. No service role, no other user's row, no inference from phone/locale/timezone/IP.
+4. Keep a second synthetic user, or a temporary own-row `NULL`, for the missing-country `incomplete` case.
+
+**Test-only deploy shape (future, NOT EXECUTED; requires TNYX-234 merged and explicit test-only deployment authorization)**
+1. Deploy exact reviewed `main` with `supabase functions deploy nutrition-meal-text-parse --project-ref oykupyiitspujzpwwvuj` (no `--no-verify-jwt`).
+2. `supabase functions list`: `nutrition-meal-text-parse` ACTIVE, `verify_jwt: true`, version recorded; `google-login-admission` unchanged.
+3. No `Authorization` header → 401.
+4. Invalid JWT → 401.
+5. Synthetic test-user JWT plus publishable key.
+6. Test-user `country_code` = owner-chosen non-US code.
+7. Synthetic text only.
+8. Expected outcomes:
+   - `success` only via Edamam, if Edamam is reachable and resolves (FatSecret skipped by TNYX-234).
+   - `unrecognized` for non-food text.
+   - `incomplete` for food without an amount, and for the `NULL`-country user.
+   - `unavailable` is observed only if it happens naturally. It is not forced by mutating secrets.
+9. Confirm no DB rows are written and function logs contain no meal text or provider payloads.
+10. Every failure is exactly `{schemaVersion:1,outcome}` or `{error}`.
+11. Latency stays under 45 s (server) and 50 s (Flutter).
+FatSecret in this shape is **skipped by source (after TNYX-234)**, not bypassed by config.
+
+**Product activation:** TNYX-226 stays BLOCKED on country localization entitlement, FatSecret network architecture, durable/commercial storage, and AI production privacy.
+
+```text
+Parser source readiness:                        PASS (except S1)
+Local validation:                               PASS (78/78; unchanged source)
+Test-only deployment shape:                     DEFINED (requires TNYX-234)
+S1 silent-US-fallback safety:                   SOURCE FIX REQUIRED (TNYX-234)
+FatSecret paid/Premier required for current dev: NO (production gate, deferred)
+FatSecret live-call credential readiness:       BLOCKED UNTIL ROTATION (avoidable via non-US test after TNYX-234)
+FatSecret production entitlement:               OPEN
+Gemini/OpenAI synthetic test-only use:          CLEAR
+Gemini/OpenAI production privacy:               OPEN
+Synthetic test user plan:                       READY (owner executes)
+Durable nutrition storage:                      OPEN
+Technical runtime validation:                   NOT RUN
+Authenticated E2E:                              NOT RUN
+TNYX-226 activation:                            BLOCKED
+```
+
+**Verdict: `TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT`**
+
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -166,7 +238,7 @@ B4 detail (FatSecret docs fetched 2026-09-19):
 | TNYX-229-B3 | Blocker | Open | Gemini key type/plan/data-handling posture not evidenced (prior audit: key-type migration; unpaid tier data may be used for product improvement). | f0e8ca40 | Owner confirmation of key type and paid/unpaid plan + retention posture, or explicit acceptance for synthetic-only smoke text. |
 | TNYX-229-B4 | Blocker | Open | FatSecret reachability from hosted Edge Functions not evidenced: prior owner evidence showed a caller-IP allowlist; Supabase hosted Edge Functions have no stable egress IP. Also scope `basic` + explicit `region` (Premier-exclusive) may fail/ignore for non-US countries. | f0e8ca40 | Owner confirmation that the FatSecret IP restriction is removed/compatible, and the account tier for the chosen test country. Otherwise expect `unavailable`/`incomplete` from FatSecret and record it as provider-constrained. |
 | TNYX-229-B5 | Blocker | Open | No intentional `country_code` exists for any live user; smoke test needs one. | f0e8ca40 | Owner picks the dedicated normal test user and country, and approves setting it through that user's own session. |
-| TNYX-229-S1 | High | Open (separate fix/decision) | Source requests OAuth scope `basic` but sends `region`. Localization needs premium entitlement and a `localization`/`premier` scope. If FatSecret ignores `region` under `basic`, a non-US user could silently get US data, contradicting the TNYX-233 no-silent-US rule. Behavior when unentitled is undocumented. | f0e8ca40 | Not a TNYX-229 change. Owner decides either a bounded source fix (request the entitled scope, or fail closed for non-US without entitlement) or US-only smoke validation with this limitation recorded. |
+| TNYX-229-S1 | High | Open → TNYX-234 | Source requests OAuth scope `basic` but sends `region`. Localization needs premium entitlement and a `localization`/`premier` scope. If FatSecret ignores `region` under `basic`, a non-US user could silently get US data, contradicting the TNYX-233 no-silent-US rule. Behavior when unentitled is undocumented. | f0e8ca40 | Not a TNYX-229 change. Owner decides either a bounded source fix (request the entitled scope, or fail closed for non-US without entitlement) or US-only smoke validation with this limitation recorded. |
 
 ## 7. Final Handoff
 
@@ -186,4 +258,4 @@ Secret presence ≠ secret validity; provider acceptance is only provable after 
 
 ### Final Status
 
-`BLOCKED` — TNYX-229 PRE-DEPLOYMENT EVIDENCE: BLOCKED
+`BLOCKED` — TNYX-229 TEST-ONLY GATE: SOURCE FIX REQUIRED BEFORE DEPLOYMENT (TNYX-234)
