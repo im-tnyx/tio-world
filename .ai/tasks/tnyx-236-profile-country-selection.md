@@ -49,18 +49,24 @@ Country remains Profile-owned. Settings only hosts the existing Profile editor/n
 
 ## Implementation plan
 
-- [ ] Add country to Profile Settings update contract/composition without changing unrelated ownership.
-- [ ] Preserve current country in every partial canonical Profile rewrite.
-- [ ] Add minimal Country action field using existing visual geometry.
-- [ ] Use a bounded canonical ISO country option source; no locale/device inference.
-- [ ] Add country-specific fail-closed parsing without whitespace normalization.
-- [ ] Add focused domain/data/app/settings tests.
-- [ ] Validate focused packages/CI.
+- [x] Add country to Profile Settings update contract/composition without changing unrelated ownership.
+- [x] Preserve current country in every partial canonical Profile rewrite.
+- [x] Add minimal Country action field using existing visual geometry.
+- [x] Use a bounded canonical country option source; no locale/device inference.
+- [x] Add country-specific fail-closed parsing without whitespace normalization.
+- [x] Add focused domain/data/app/settings tests.
+- [ ] Validate focused packages/CI through Draft PR CI.
 - [ ] Draft PR only; no merge without explicit owner instruction.
 
 ## Non-goals
 
 No Supabase mutation, deployment, provider calls, backend, Add Food activation, location permission, inferred country, or broad Settings/Profile redesign.
+
+## Quality review
+
+Fresh compare against main: ahead 20, behind 0, 17 changed files. No Supabase schema/RLS/function mutation was performed. Live project remains 0 profiles with country and parser undeployed.
+
+Validation is pending GitHub Flutter CI because connector execution cannot run the repository's local Flutter commands directly.
 
 ## Handoff
 
