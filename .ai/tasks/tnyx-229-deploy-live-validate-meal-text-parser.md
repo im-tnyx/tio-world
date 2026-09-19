@@ -1,0 +1,163 @@
+# TNYX-229 — N5D-7a — Deploy and live-validate protected meal-text parser
+
+**Status:** Blocked
+**Primary owner:** Nutrition (Supabase Edge Function `nutrition-meal-text-parse`)
+**Affected platforms:** Hosted Supabase Edge Function only; no Flutter, UI, database, or `services/api` change
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** None for this pass (deployment/runtime-validation gate for already-merged source)
+**Approval status:** Readiness audit authorized by owner on 2026-09-19. **Deployment NOT authorized.**
+**Approval evidence:** Linear TNYX-229 description ("No deployment is authorized merely by creation of this issue") and the 2026-09-19 owner instruction for a final pre-deployment evidence audit only.
+**Approved product/UI/data-shape boundaries:** Deploy exactly the merged `nutrition-meal-text-parse` from `main` with `verify_jwt = true`, then run a bounded authenticated smoke validation. Nothing else.
+**Explicit non-changes:** Flutter/UI, Add Food activation (TNYX-226), Meal Editor, DB schema/RLS/RPC/migrations, `services/api`, parser redesign, service-role usage, secret creation/rotation/removal, automatic MealLog persistence.
+
+## Active Handoff
+
+**Planning owner:** Owner (Linear TNYX-229)
+**Implementation owner:** Local Claude Code agent (readiness audit only)
+**Review owner:** Owner
+**Implementation ownership state:** Blocked
+**Ownership transition:** Not applicable
+**Repository state last verified:** 2026-09-19
+**Branch:** `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` (this brief only)
+**HEAD SHA:** audited `main` = `f0e8ca40704dcf0612c147d7a1449608c1d026fb` (= `origin/main`)
+**Observed working-tree state:** Clean `main` before this brief
+**Observed uncommitted/dirty files:** None
+**PR / tracker:** Linear TNYX-229 = In Progress; TNYX-226 = Backlog, blocked by TNYX-229; TNYX-230 and TNYX-233 merged. No open PRs.
+**Current implementation state:** Pre-deployment audit complete; verdict BLOCKED (§6).
+**Relevant execution surface:** `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/**`, hosted project `oykupyiitspujzpwwvuj`
+**Validation completed at SHA:** `f0e8ca40` (local CI-equivalent; §6)
+**Validation remaining:** Technical runtime and authenticated E2E validation — NOT RUN until deployment is authorized.
+**Current blocker:** Evidence gates B1–B5 in §6.
+**Open review finding IDs:** TNYX-229-B1 … B5
+**Next exact action:** Owner supplies evidence for B1–B5 (or explicitly accepts a narrower scope for B4/B5), then gives explicit deployment authorization. Do not deploy before that.
+
+## 1. Discovery
+
+### User Outcome
+
+The merged protected parser is live behind `verify_jwt = true` and proven with a normal signed-in user session before TNYX-226 may activate Add Food text submit.
+
+### Success Criteria
+
+See Linear TNYX-229 Acceptance. This pass only proves pre-deployment readiness.
+
+### Non-Goals
+
+Deployment itself (until authorized), UI activation, any source change.
+
+## 2. Codebase Exploration
+
+### Verified Evidence (2026-09-19)
+
+- `main` = `origin/main` = `f0e8ca40`; function dir and `supabase/config.toml` are byte-identical to `6d2b5803` (last green `supabase-functions-ci` run).
+- `supabase/config.toml`: `[functions.nutrition-meal-text-parse] verify_jwt = true`.
+- Deploy payload: `index.ts` + 12 relative non-test modules, all tracked; only external import `npm:@supabase/server@1.7.0`; no `deno.json`/import map; no untracked or ignored files in the function dir.
+- Auth: `createSupabaseContext(request, { auth: "user" })`; 401 → `unauthorized`, other auth errors → sanitized `unavailable`.
+- Country: caller-scoped `data.supabase.from("user_profiles").select("country_code").maybeSingle()`; RLS `user_profiles_select_own` (`auth.uid() = user_id`) scopes the row. Invalid/missing value → `null` → `incomplete` before any provider call. No India/US default; FatSecret receives explicit `region=<countryCode>`.
+- No service-role/secret-key/admin usage; the only DB access is the RLS-scoped read above; no insert/update/rpc; no `console.*`; no secret-like literals.
+- Env contract (source-derived): `MEAL_INTERPRETER_PRIMARY`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `FATSECRET_CLIENT_ID`, `FATSECRET_CLIENT_SECRET`, `EDAMAM_APP_ID`, `EDAMAM_APP_KEY`. Matches Linear.
+- Gemini + OpenAI orchestration intact (`selectMealInterpreter`); OpenAI request keeps `store: false`.
+- Deadlines: server `DEFAULT_REQUEST_DEADLINE_MS = 45_000`; Flutter `SupabaseMealTextParseRepository` `requestTimeout = 50s`.
+- Flutter: no direct Gemini/OpenAI/FatSecret/Edamam endpoint or key reference under `apps/`.
+- Live: project `ACTIVE_HEALTHY` (`ap-south-1`); Edge Functions = `google-login-admission` only; `nutrition-meal-text-parse` NOT DEPLOYED.
+- Live data fact (TNYX-233 handoff): all existing `user_profiles` rows have `country_code IS NULL`, so any existing user would get `incomplete` without an intentional country value.
+- `FatSecretResolver` still requests OAuth scope `basic` while sending `region`; FatSecret documents localized `region` as Premier-exclusive.
+
+## 3. Clarification
+
+| Decision | Status | Rationale | Owner |
+|---|---|---|---|
+| Deploy in this pass | Not authorized | Owner instruction | Owner |
+| `MEAL_INTERPRETER_PRIMARY` absent | Accepted as Gemini default unless owner states otherwise | Source default; intentional value to be confirmed at deploy authorization | Owner |
+| Smoke-test country value | Needs owner decision | A dedicated normal test user must have an intentional `country_code`; setting it is a production data write via that user's own RLS-scoped session | Owner |
+
+## 4. Architecture Design
+
+No change. Deploy exact merged source.
+
+## 5. Implementation Plan — authenticated smoke plan (NOT EXECUTED)
+
+Run only after explicit deployment authorization. Use Supabase CLI 2.116.0 syntax discovered via `--help`.
+
+1. Re-verify `main` SHA, clean tree, function dir unchanged, live inventory.
+2. Deploy: `supabase functions deploy nutrition-meal-text-parse --project-ref oykupyiitspujzpwwvuj` (no `--no-verify-jwt`; `verify_jwt = true` from `config.toml`; `--use-api` if Docker is unavailable).
+3. Verify: `supabase functions list --project-ref oykupyiitspujzpwwvuj` shows `nutrition-meal-text-parse` ACTIVE, `verify_jwt: true`, new version, `index.ts` entrypoint; `google-login-admission` unchanged.
+4. Negative auth (publishable key as `apikey` only):
+   - no `Authorization` → expect 401 (platform JWT gate), handler not reached;
+   - malformed/invalid JWT → expect 401;
+   - no provider call may occur (check function logs show no invocation reaching provider work).
+5. Authenticated: dedicated normal test user, session obtained by normal sign-in by the owner; `Authorization: Bearer <user access token>` + `apikey: <publishable key>`. Never service role.
+6. Country: before test, confirm the test user's `user_profiles.country_code` is an intentional owner-chosen value (set only via that user's own session under `user_profiles_update_own`, with owner approval). Never infer from phone, locale, timezone, IP, language, or device.
+7. Outcome matrix (synthetic, non-personal meal text):
+   - `success`: explicit quantity + generic food (e.g. `200 g plain yogurt`);
+   - `unrecognized`: non-food text (e.g. `qwerty asdf`);
+   - `incomplete`: food without amount (e.g. `dal`), and a test user with `country_code` NULL;
+   - `unavailable`: observe only if it occurs naturally; otherwise rely on the unit-test matrix (no secret mutation to force it).
+   Confirm `success` items carry only `displayName`, `quantity`, `servingUnit`, `nutritionSnapshot` (schemaVersion 1) — provider-neutral and mappable to `MealLoggingDraft`.
+8. Errors: every non-success body is exactly `{schemaVersion:1,outcome}` or `{error}`; no provider names, IDs, URLs, stack traces.
+9. Latency: record wall-clock per call; must stay under the 45 s server deadline and the 50 s Flutter client timeout.
+10. Persistence/logging: confirm no DB rows written by the function and function logs contain no meal text or provider payloads.
+11. Evidence: record only status codes, outcome enums, latency, function version, and redacted shapes in Linear/GitHub. Never paste JWTs, keys, raw provider payloads, or personal meal text.
+
+## 6. Quality Review
+
+### Validation Run (at `f0e8ca40`, Deno 2.9.7 machine-local toolchain; commands mirror `.github/workflows/supabase-functions-ci.yml`)
+
+```text
+deno check supabase/functions/nutrition-meal-text-parse/index.ts           PASS
+deno check supabase/functions/nutrition-meal-text-parse/*.ts               PASS
+deno test --allow-read=supabase/functions/nutrition-meal-text-parse \
+          supabase/functions/nutrition-meal-text-parse                     PASS — 78 passed / 0 failed
+git diff --check                                                           PASS
+supabase-functions-ci on 6d2b5803 (function dir identical to main)         success
+```
+
+### Gate Summary
+
+| Gate | Result |
+|---|---|
+| Deployment payload readiness | PASS |
+| Local validation | PASS (78/78) |
+| Credential name presence (CLI `secrets list`, names only) | PRESENT: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `FATSECRET_CLIENT_ID`, `FATSECRET_CLIENT_SECRET`, `EDAMAM_APP_ID`, `EDAMAM_APP_KEY`. ABSENT (optional): `MEAL_INTERPRETER_PRIMARY` (→ Gemini default), `GEMINI_MODEL`, `OPENAI_MODEL`. Presence only; validity not provable without a live call. |
+| FatSecret rotation | ROTATION NOT EVIDENCED |
+| OpenAI source storage setting | `store: false` present |
+| OpenAI account/project data control | NOT EVIDENCED |
+| Smoke plan | READY (§5), pending B5 decision |
+| Technical runtime validation | NOT RUN |
+| Authenticated E2E validation | NOT RUN |
+| Country-aware localization/entitlement | OPEN |
+| Durable nutrition-storage permission | OPEN |
+| TNYX-226 activation | BLOCKED |
+| Security advisors | Baseline unchanged (5 authenticated `SECURITY DEFINER` RPC warnings + leaked-password protection disabled); none introduced by TNYX-229; out of scope |
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| TNYX-229-B1 | Blocker | Open | FatSecret credential rotation after prior exposure not evidenced. `FATSECRET_*` secret `updated_at` is unchanged since 2026-09-18 06:13Z. | f0e8ca40 | Owner confirmation (non-secret) that a new client secret was generated provider-side after the exposure and is the value now set in Supabase. |
+| TNYX-229-B2 | Blocker | Open | OpenAI org/project retention posture not evidenced; `store: false` is not zero retention (TNYX-230-R3). OpenAI is the fallback, so meal text can reach it even with Gemini primary. | f0e8ca40 | Owner statement of the org/project data-control setting (ZDR / Modified Abuse Monitoring / standard 30-day) and explicit acceptance for live validation with synthetic text. |
+| TNYX-229-B3 | Blocker | Open | Gemini key type/plan/data-handling posture not evidenced (prior audit: key-type migration; unpaid tier data may be used for product improvement). | f0e8ca40 | Owner confirmation of key type and paid/unpaid plan + retention posture, or explicit acceptance for synthetic-only smoke text. |
+| TNYX-229-B4 | Blocker | Open | FatSecret reachability from hosted Edge Functions not evidenced: prior owner evidence showed a caller-IP allowlist; Supabase hosted Edge Functions have no stable egress IP. Also scope `basic` + explicit `region` (Premier-exclusive) may fail/ignore for non-US countries. | f0e8ca40 | Owner confirmation that the FatSecret IP restriction is removed/compatible, and the account tier for the chosen test country. Otherwise expect `unavailable`/`incomplete` from FatSecret and record it as provider-constrained. |
+| TNYX-229-B5 | Blocker | Open | No intentional `country_code` exists for any live user; smoke test needs one. | f0e8ca40 | Owner picks the dedicated normal test user and country, and approves setting it through that user's own session. |
+
+## 7. Final Handoff
+
+### Changed Files
+
+```text
+.ai/tasks/tnyx-229-deploy-live-validate-meal-text-parser.md
+```
+
+### Actual Behavior
+
+No deployment, secret mutation, source change, or provider call. `nutrition-meal-text-parse` remains NOT DEPLOYED.
+
+### Known Limitations
+
+Secret presence ≠ secret validity; provider acceptance is only provable after an authorized deploy.
+
+### Final Status
+
+`BLOCKED` — TNYX-229 PRE-DEPLOYMENT GATE: BLOCKED
