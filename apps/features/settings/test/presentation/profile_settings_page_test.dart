@@ -22,6 +22,7 @@ void main() {
           dateOfBirth: DateTime(1995, 6, 5),
           heightCm: 175.0,
           currentWeightKg: 72.5,
+          countryCode: 'IN',
           onSave: ({
             required name,
             required username,
@@ -29,6 +30,7 @@ void main() {
             required dateOfBirth,
             required heightCm,
             required currentWeightKg,
+            required countryCode,
           }) async {
             savedName = name;
           },
@@ -42,6 +44,8 @@ void main() {
     expect(find.text('BIOLOGICAL SEX'), findsOneWidget);
     expect(find.text('HEIGHT'), findsOneWidget);
     expect(find.text('CURRENT WEIGHT'), findsOneWidget);
+    expect(find.text('COUNTRY'), findsOneWidget);
+    expect(find.text('India'), findsOneWidget);
 
     expect(find.text('6/5/1995'), findsOneWidget);
     expect(find.text('Male'), findsOneWidget);
@@ -81,6 +85,7 @@ void main() {
           dateOfBirth: DateTime(1995, 6, 5),
           heightCm: 182.0,
           currentWeightKg: 72.5,
+          countryCode: 'IN',
         ),
       ),
     );
@@ -89,3 +94,29 @@ void main() {
     expect(find.text("5' 12\""), findsNothing);
   });
 }
+
+
+  testWidgets('ProfileSettingsPage requires explicit country before save',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: ProfileSettingsPage(
+          name: 'Santosh',
+          dateOfBirth: DateTime(1995, 6, 5),
+          heightCm: 175,
+          currentWeightKg: 72.5,
+        ),
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Save Changes'));
+    await tester.pump();
+
+    expect(find.text('Please select your country'), findsOneWidget);
+  });
