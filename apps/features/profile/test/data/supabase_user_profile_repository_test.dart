@@ -40,6 +40,7 @@ void main() {
               'distance': 'mi',
               'volume': 'fl_oz',
             },
+            'country_code': 'IN',
           },
         ),
       );
@@ -61,6 +62,7 @@ void main() {
       );
       expect(profile.otherHealthCondition, 'Example condition');
       expect(profile.unitPreferences, UnitPreferences.imperial);
+      expect(profile.countryCode, 'IN');
     });
 
     test('rejects malformed canonical state instead of inventing defaults',
@@ -95,6 +97,14 @@ void main() {
             'volume': 'ml',
           },
         },
+        {
+          ..._validRow(),
+          'country_code': 'in',
+        },
+        {
+          ..._validRow(),
+          'country_code': 'IND',
+        },
       ];
 
       for (final row in invalidRows) {
@@ -122,6 +132,7 @@ void main() {
             ProfileHealthCondition.other,
           },
           otherHealthCondition: 'Example condition',
+          countryCode: 'IN',
         ),
       );
 
@@ -141,6 +152,7 @@ void main() {
             'distance': 'mi',
             'volume': 'fl_oz',
           },
+          'country_code': 'IN',
         }
       ]);
     });
@@ -194,6 +206,7 @@ Map<String, dynamic> _validRow() => {
         'distance': 'km',
         'volume': 'ml',
       },
+      'country_code': null,
     };
 
 class _UnusedSupabaseClient extends Fake implements SupabaseClient {}
