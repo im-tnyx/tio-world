@@ -61,6 +61,56 @@ The owner test account currently has intentionally saved `country_code = IN`. Cu
 - live owner smoke must be executed from a normal signed-in app session after the branch is run locally
 - record only outcome enum / elapsed time / redacted draft shape in Linear
 
+## Reachability Follow-up — 2026-09-19
+
+- The registered route was not practically reachable on Android: the standard
+  Flutter `--route` / Android `route` launch extra was replaced by the normal
+  `splash -> home` bootstrap redirect, and the app exposes no debug menu or
+  generic deep-link entry.
+- The bounded fix consumes only the exact
+  `/_debug/meal-parser-smoke` platform startup route in non-release builds,
+  waits for the normal authenticated bootstrap to reach `Ready`, and then
+  opens the existing harness once.
+- Unrelated startup routes remain ignored. The route registration and startup
+  selector both fail closed in release mode.
+- Launch command: `flutter run -d emulator-5554 --route=/_debug/meal-parser-smoke --dart-define-from-file=.runtime.qa.json`.
+
+## Authenticated Live Smoke — 2026-09-19
+
+The app restored the existing normal Supabase user session through the regular
+`AppSessionBootstrapController` path and reached `AppSessionBootstrapReady`
+before opening the harness. No JWT, key, credential, raw response, header, or
+sensitive session object was printed or copied.
+
+| Synthetic case | Controller status | elapsedMs | Draft shape | Sanitized message |
+|---|---|---:|---|---|
+| `200 g plain yogurt` | `failed` | 8008 | no draft | `Couldn't process that meal right now. Try again.` |
+| `qwerty asdf` | `failed` | 1425 | no draft | `Couldn't process that meal right now. Try again.` |
+| `dal` | `failed` | 3241 | no draft | `Couldn't process that meal right now. Try again.` |
+
+All three failures map to the controller's safe `unavailable` presentation.
+The client intentionally collapses transport/auth/provider/runtime details to
+that same boundary, so the exact live server-side cause cannot be derived from
+the safe harness output. The owner account country was not changed.
+
+Gate result from this run:
+
+- technical runtime validation: `FAIL`
+- authenticated end-to-end validation: `FAIL`
+- country-aware localization/entitlement gate: `OPEN`
+- durable nutrition-storage gate: `OPEN`
+- TNYX-226 activation: `BLOCKED`
+
+Validation after the reachability fix:
+
+- `cd apps/app && flutter analyze`: PASS
+- `cd apps/app && flutter test test/app/meal_parser_smoke_route_test.dart`: PASS (3 tests)
+- focused router stability + smoke-route tests: PASS (4 tests)
+- `cd apps/app && flutter test`: PASS (323 tests)
+- focused Nutrition controller/repository tests: PASS (30 tests)
+- debug build/install/start on `emulator-5554`: PASS; authenticated smoke page reached
+- live synthetic smoke outcomes: FAIL as recorded above
+
 ## Handoff
 
 This slice does not itself clear TNYX-229 until authenticated live execution succeeds. Production provider entitlement, AI privacy/retention, and durable nutrition-storage gates remain separate.

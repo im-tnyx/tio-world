@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,17 @@ import 'session/session.dart';
 import 'settings_persistence_providers.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+const debugMealParserSmokePath = '/_debug/meal-parser-smoke';
+
+@visibleForTesting
+String? debugMealParserSmokeStartupRoute({
+  required String platformRoute,
+  bool isReleaseMode = kReleaseMode,
+}) {
+  if (isReleaseMode || platformRoute != debugMealParserSmokePath) return null;
+  return debugMealParserSmokePath;
+}
 
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
@@ -276,6 +288,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appSessionBootstrapController =
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
+  final debugStartupRoute = debugMealParserSmokeStartupRoute(
+    platformRoute: PlatformDispatcher.instance.defaultRouteName,
+  );
+  var debugStartupRoutePending = debugStartupRoute != null;
 
   Future<void> clearGlassSizeForNewExplicitLogin() async {
     try {
@@ -306,6 +322,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       onboardingStatusController,
     ]),
     redirect: (context, state) {
+      if (debugStartupRoutePending &&
+          appSessionBootstrapController.state is AppSessionBootstrapReady) {
+        debugStartupRoutePending = false;
+        if (state.uri.path != debugStartupRoute) return debugStartupRoute;
+      }
+
       final bootstrapRedirect = appSessionBootstrapRedirect(
         path: state.uri.path,
         state: appSessionBootstrapController.state,
@@ -1619,7 +1641,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       if (!kReleaseMode)
         GoRoute(
-          path: '/_debug/meal-parser-smoke',
+          path: debugMealParserSmokePath,
           parentNavigatorKey: rootNavigatorKey,
           builder: (context, state) => Consumer(
             builder: (context, ref, _) {
