@@ -60,3 +60,25 @@ test("probe stops safely when default search is forbidden", async () => {
   ]);
   assert.equal(JSON.stringify(result).includes("entitlement detail"), false);
 });
+
+
+test("probe exposes only a bounded provider error code from HTTP 200 payload errors", async () => {
+  let call = 0;
+  const result = await probeFatSecretIndiaCapability({
+    clientId: "test-client",
+    clientSecret: "test-secret",
+    fetchFn: async () => {
+      call += 1;
+      return call === 1
+        ? json({ access_token: "synthetic-token" })
+        : json({ error: { code: 12, message: "private provider message" } });
+    },
+  });
+  assert.deepEqual(result[1], {
+    stage: "search_default",
+    category: "authorization_or_entitlement",
+    httpStatus: 200,
+    providerErrorCode: "12",
+  });
+  assert.equal(JSON.stringify(result).includes("private provider message"), false);
+});
