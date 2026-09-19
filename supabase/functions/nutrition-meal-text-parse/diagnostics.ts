@@ -1,4 +1,10 @@
 export type MealParserDiagnosticProvider = "gemini" | "openai" | "fatsecret" | "edamam";
+export type MealParserProviderErrorCategory =
+  | "authentication"
+  | "authorization_or_entitlement"
+  | "rate_limit"
+  | "invalid_request"
+  | "unknown";
 
 export function mealParserDiagnostic(
   stage: string,
@@ -6,7 +12,7 @@ export function mealParserDiagnostic(
     readonly provider?: MealParserDiagnosticProvider;
     readonly reason?: string;
     readonly httpStatus?: number;
-    readonly providerErrorCategory?: string;
+    readonly providerErrorCategory?: MealParserProviderErrorCategory;
   } = {},
 ): void {
   const event: Record<string, string | number> = {
