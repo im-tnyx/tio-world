@@ -131,7 +131,7 @@ String? _parseOptionalString(Object? raw, String key) {
 
 String? _parseCountryCode(Object? raw) {
   if (raw == null) return null;
-  if (raw is! String || !RegExp(r'^[A-Z]{2}
+  if (raw is! String || !RegExp(r'^[A-Z]{2}\
 ProfileGender _parseGender(Object? raw) {
   if (raw is! String) {
     throw const FormatException('Invalid canonical gender: expected string.');
