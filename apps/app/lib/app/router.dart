@@ -1659,6 +1659,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 repository: repository,
                 runFatSecretIndiaProbe:
                     ref.watch(fatSecretIndiaCapabilityProbeProvider),
+                runOpenFoodFactsProbe:
+                    ref.watch(openFoodFactsCapabilityProbeProvider),
               );
             },
           ),
