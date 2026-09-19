@@ -21,5 +21,5 @@ Deno.serve(async (request) => {
     clientSecret: env("FATSECRET_CLIENT_SECRET"),
   });
 
-  return Response.json({ countryCode: "IN", synthetic: true, result });
+  return Response.json({ dataset: "default", synthetic: true, result });
 });
