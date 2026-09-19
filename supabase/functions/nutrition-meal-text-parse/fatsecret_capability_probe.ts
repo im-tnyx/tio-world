@@ -5,7 +5,7 @@ const SEARCH_URL = "https://platform.fatsecret.com/rest/server.api";
 const FOOD_URL = "https://platform.fatsecret.com/rest/food/v5";
 const TIMEOUT_MS = 6000;
 
-export type FatSecretCapabilityStage = "token" | "search_in" | "detail_in";
+export type FatSecretCapabilityStage = "token" | "search_default" | "detail_default";
 export type FatSecretCapabilityCategory =
   | "ok"
   | "authentication"
@@ -69,19 +69,18 @@ export async function probeFatSecretIndiaCapability(options: {
       max_results: "1",
       page_number: "0",
       format: "json",
-      region: "IN",
     }),
   }, timeoutMs);
-  if (searchResponse === null) return [...results, { stage: "search_in", category: "unavailable" }];
+  if (searchResponse === null) return [...results, { stage: "search_default", category: "unavailable" }];
   if (!searchResponse.ok) {
-    return [...results, { stage: "search_in", category: categoryForStatus(searchResponse.status), httpStatus: searchResponse.status }];
+    return [...results, { stage: "search_default", category: categoryForStatus(searchResponse.status), httpStatus: searchResponse.status }];
   }
 
   let foodId = "";
   try {
     const payload = await searchResponse.json() as Record<string, unknown>;
     if (payload.error !== undefined) {
-      return [...results, { stage: "search_in", category: "authorization_or_entitlement", httpStatus: searchResponse.status }];
+      return [...results, { stage: "search_default", category: "authorization_or_entitlement", httpStatus: searchResponse.status }];
     }
     const foods = payload.foods;
     const rawFood = foods !== null && typeof foods === "object"
@@ -93,32 +92,31 @@ export async function probeFatSecretIndiaCapability(options: {
       foodId = typeof rawId === "string" || typeof rawId === "number" ? String(rawId) : "";
     }
   } catch {
-    return [...results, { stage: "search_in", category: "unavailable", httpStatus: searchResponse.status }];
+    return [...results, { stage: "search_default", category: "unavailable", httpStatus: searchResponse.status }];
   }
-  if (!foodId) return [...results, { stage: "search_in", category: "invalid_request", httpStatus: searchResponse.status }];
-  results.push({ stage: "search_in", category: "ok", httpStatus: searchResponse.status });
+  if (!foodId) return [...results, { stage: "search_default", category: "invalid_request", httpStatus: searchResponse.status }];
+  results.push({ stage: "search_default", category: "ok", httpStatus: searchResponse.status });
 
   const detailUrl = new URL(FOOD_URL);
   detailUrl.searchParams.set("food_id", foodId);
   detailUrl.searchParams.set("format", "json");
-  detailUrl.searchParams.set("region", "IN");
   const detailResponse = await fetchWithTimeout(fetchFn, detailUrl, {
     headers: { Authorization: `Bearer ${token}` },
   }, timeoutMs);
-  if (detailResponse === null) return [...results, { stage: "detail_in", category: "unavailable" }];
+  if (detailResponse === null) return [...results, { stage: "detail_default", category: "unavailable" }];
   if (!detailResponse.ok) {
-    return [...results, { stage: "detail_in", category: categoryForStatus(detailResponse.status), httpStatus: detailResponse.status }];
+    return [...results, { stage: "detail_default", category: categoryForStatus(detailResponse.status), httpStatus: detailResponse.status }];
   }
   try {
     const payload = await detailResponse.json() as Record<string, unknown>;
     if (payload.error !== undefined) {
-      return [...results, { stage: "detail_in", category: "authorization_or_entitlement", httpStatus: detailResponse.status }];
+      return [...results, { stage: "detail_default", category: "authorization_or_entitlement", httpStatus: detailResponse.status }];
     }
   } catch {
-    return [...results, { stage: "detail_in", category: "unavailable", httpStatus: detailResponse.status }];
+    return [...results, { stage: "detail_default", category: "unavailable", httpStatus: detailResponse.status }];
   }
 
-  return [...results, { stage: "detail_in", category: "ok", httpStatus: detailResponse.status }];
+  return [...results, { stage: "detail_default", category: "ok", httpStatus: detailResponse.status }];
 }
 
 function categoryForStatus(status: number): FatSecretCapabilityCategory {
