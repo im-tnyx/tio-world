@@ -73,7 +73,7 @@ final class SupabaseUserProfileRepository implements UserProfileRepository {
           row['other_health_condition'],
           'other_health_condition',
         ),
-        countryCode: _parseOptionalString(row['country_code'], 'country_code'),
+        countryCode: _parseCountryCode(row['country_code']),
       );
     } on ArgumentError catch (error) {
       throw FormatException(
@@ -127,6 +127,182 @@ String? _parseOptionalString(Object? raw, String key) {
   }
   final normalized = raw.trim();
   return normalized.isEmpty ? null : normalized;
+}
+
+String? _parseCountryCode(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! String || !RegExp(r'^[A-Z]{2}
+ProfileGender _parseGender(Object? raw) {
+  if (raw is! String) {
+    throw const FormatException('Invalid canonical gender: expected string.');
+  }
+  return switch (raw) {
+    'male' => ProfileGender.male,
+    'female' => ProfileGender.female,
+    'other' => ProfileGender.other,
+    _ => throw FormatException('Invalid canonical gender: $raw.'),
+  };
+}
+
+DateTime _parseDate(Object? raw) {
+  if (raw is! String) {
+    throw const FormatException(
+      'Invalid canonical date_of_birth: expected date string.',
+    );
+  }
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) {
+    throw FormatException('Invalid canonical date_of_birth: $raw.');
+  }
+  return DateTime(parsed.year, parsed.month, parsed.day);
+}
+
+double _parseHeight(Object? raw) {
+  if (raw is! num) {
+    throw const FormatException('Invalid canonical height_cm: expected number.');
+  }
+  final value = raw.toDouble();
+  if (!value.isFinite || value <= 0) {
+    throw FormatException('Invalid canonical height_cm: $raw.');
+  }
+  return value;
+}
+
+ProfileActivityLevel _parseActivityLevel(Object? raw) {
+  if (raw is! String) {
+    throw const FormatException(
+      'Invalid canonical activity_level: expected string.',
+    );
+  }
+  return switch (raw) {
+    'sedentary' => ProfileActivityLevel.sedentary,
+    'light' => ProfileActivityLevel.light,
+    'active' => ProfileActivityLevel.active,
+    'very_active' => ProfileActivityLevel.veryActive,
+    'dynamic' => ProfileActivityLevel.dynamic,
+    _ => throw FormatException('Invalid canonical activity_level: $raw.'),
+  };
+}
+
+Set<ProfileHealthCondition> _parseHealthConditions(Object? raw) {
+  if (raw is! List) {
+    throw const FormatException(
+      'Invalid canonical health_conditions: expected list.',
+    );
+  }
+
+  final result = <ProfileHealthCondition>{};
+  for (final value in raw) {
+    if (value is! String) {
+      throw const FormatException(
+        'Invalid canonical health_conditions: every item must be a string.',
+      );
+    }
+    final condition = switch (value) {
+      'none' => ProfileHealthCondition.none,
+      'diabetes' => ProfileHealthCondition.diabetes,
+      'hypertension' => ProfileHealthCondition.hypertension,
+      'low_blood_pressure' => ProfileHealthCondition.lowBloodPressure,
+      'other' => ProfileHealthCondition.other,
+      _ => throw FormatException(
+          'Invalid canonical health_conditions value: $value.',
+        ),
+    };
+    if (!result.add(condition)) {
+      throw FormatException(
+        'Invalid canonical health_conditions duplicate: $value.',
+      );
+    }
+  }
+  if (result.contains(ProfileHealthCondition.none) && result.length > 1) {
+    throw const FormatException(
+      'Invalid canonical health_conditions: none cannot be combined.',
+    );
+  }
+  return result;
+}
+
+UnitPreferences _parseUnitPreferences(Object? raw) {
+  if (raw is! Map) {
+    throw const FormatException(
+      'Invalid canonical unit_preferences: expected object.',
+    );
+  }
+
+  String requireUnit(String key) {
+    final value = raw[key];
+    if (value is! String) {
+      throw FormatException(
+        'Invalid canonical unit_preferences.$key: expected string.',
+      );
+    }
+    return value;
+  }
+
+  final weight = requireUnit('weight');
+  final height = requireUnit('height');
+  final distance = requireUnit('distance');
+  final volume = requireUnit('volume');
+
+  return UnitPreferences(
+    weightUnit: switch (weight) {
+      'kg' => WeightUnit.kg,
+      'lb' => WeightUnit.lb,
+      _ => throw FormatException(
+          'Invalid canonical unit_preferences.weight: $weight.',
+        ),
+    },
+    heightUnit: switch (height) {
+      'cm' => HeightUnit.cm,
+      'ft_in' => HeightUnit.ftIn,
+      _ => throw FormatException(
+          'Invalid canonical unit_preferences.height: $height.',
+        ),
+    },
+    distanceUnit: switch (distance) {
+      'km' => DistanceUnit.km,
+      'mi' => DistanceUnit.mi,
+      _ => throw FormatException(
+          'Invalid canonical unit_preferences.distance: $distance.',
+        ),
+    },
+    volumeUnit: switch (volume) {
+      'ml' => VolumeUnit.ml,
+      'fl_oz' => VolumeUnit.flOz,
+      _ => throw FormatException(
+          'Invalid canonical unit_preferences.volume: $volume.',
+        ),
+    },
+  );
+}
+
+String _activityStorage(ProfileActivityLevel level) => switch (level) {
+      ProfileActivityLevel.sedentary => 'sedentary',
+      ProfileActivityLevel.light => 'light',
+      ProfileActivityLevel.active => 'active',
+      ProfileActivityLevel.veryActive => 'very_active',
+      ProfileActivityLevel.dynamic => 'dynamic',
+    };
+
+String _healthConditionStorage(ProfileHealthCondition condition) =>
+    switch (condition) {
+      ProfileHealthCondition.none => 'none',
+      ProfileHealthCondition.diabetes => 'diabetes',
+      ProfileHealthCondition.hypertension => 'hypertension',
+      ProfileHealthCondition.lowBloodPressure => 'low_blood_pressure',
+      ProfileHealthCondition.other => 'other',
+    };
+
+String _dateOnly(DateTime value) {
+  String two(int component) => component.toString().padLeft(2, '0');
+  return '${value.year.toString().padLeft(4, '0')}-${two(value.month)}-${two(value.day)}';
+}
+).hasMatch(raw)) {
+    throw const FormatException(
+      'Invalid canonical country_code: expected uppercase alpha-2 string or null.',
+    );
+  }
+  return raw;
 }
 
 ProfileGender _parseGender(Object? raw) {
