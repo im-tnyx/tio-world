@@ -318,6 +318,25 @@ final mealTextParseRepositoryProvider =
   return null;
 });
 
+
+final fatSecretIndiaCapabilityProbeProvider =
+    Provider<Future<Map<String, dynamic>> Function()?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+
+  return () async {
+    final response = await client.functions.invoke(
+      'tnyx-229-fatsecret-in-probe',
+      method: HttpMethod.post,
+    );
+    final data = response.data;
+    if (data is! Map) {
+      throw StateError('FatSecret capability probe returned an invalid response.');
+    }
+    return Map<String, dynamic>.from(data);
+  };
+});
+
 final onboardingRemoteFinalizerProvider =
     Provider<OnboardingRemoteFinalizer>((ref) {
   final apiClient = ref.watch(authenticatedApiClientProvider);

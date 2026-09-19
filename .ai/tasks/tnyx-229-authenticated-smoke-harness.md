@@ -1,0 +1,128 @@
+# TNYX-229 — Authenticated meal-parser smoke harness
+
+**Status:** In progress
+**Primary owner:** TNYX-229 / Nutrition runtime validation
+**Affected platforms:** Flutter app composition + existing Nutrition parser adapter only
+
+## Owner Approval and Scope Boundary
+
+**Approval status:** Approved by owner via repeated `go` instruction after the exact bounded smoke-harness proposal.
+**Approved boundary:** Add a non-product, debug/test-only execution surface that reuses the existing signed-in Supabase session and existing `MealTextParseRepository` / `MealTextParseController` path to invoke the already-deployed `nutrition-meal-text-parse` function with synthetic, non-personal meal text.
+**Explicit non-changes:** No Add Food activation, no Meal Editor changes, no MealLog persistence, no schema/RLS/RPC/migration, no Edge Function source/config change, no secret change, no services/api, no auth weakening, no service-role use.
+
+## Fresh Reconciliation — 2026-09-19
+
+- `main` = `4d552e685e2928dd77a1c5e5a2ba31e8281e43e4`.
+- Live `nutrition-meal-text-parse` is ACTIVE v1 with `verify_jwt=true`.
+- Existing app composition already provides `SupabaseMealTextParseRepository` when Supabase is configured.
+- Existing repository invokes `SupabaseClient.functions.invoke('nutrition-meal-text-parse', ...)`.
+- Existing `MealTextParseController` owns normalization, duplicate suppression, safe failure mapping, and provider-neutral draft handling.
+- Current Supabase docs confirm signed-in client invocation supplies the user session JWT and user auth context remains RLS-scoped.
+- No existing dedicated non-product parser smoke surface was found on `main`.
+- Existing TNYX-229 branch was stale; this slice starts from fresh current main on `tnyx/tnyx-229-authenticated-smoke-harness`.
+
+## Frozen Architecture
+
+```text
+owner opens debug-only smoke entry
+→ current signed-in app session
+→ existing mealTextParseRepositoryProvider
+→ SupabaseMealTextParseRepository
+→ SupabaseClient.functions.invoke
+→ deployed nutrition-meal-text-parse (verify_jwt=true)
+→ existing MealTextParseController
+→ sanitized outcome / provider-neutral draft + elapsed time
+```
+
+## Implementation Rules
+
+- Debug-only/non-release entry surface. It must not become a product navigation destination.
+- Reuse the current repository/controller. Do not create a second HTTP client or manually handle JWTs.
+- Synthetic non-personal examples only.
+- Show only sanitized status/outcome, elapsed time, and provider-neutral draft shape. Never display JWTs, keys, raw provider payloads, provider URLs, stack traces, or raw logs.
+- No persistence.
+- No changes to `AppRoutes` public product route catalog unless strictly necessary; prefer a debug-only route/string owned by app composition.
+- TNYX-226 remains untouched and blocked until TNYX-229 handoff is explicitly cleared.
+
+## Smoke Matrix
+
+- success candidate: `200 g plain yogurt`
+- unrecognized candidate: `qwerty asdf`
+- incomplete candidate: `dal`
+- unavailable: observe naturally only; do not mutate secrets to force it
+
+The owner test account currently has intentionally saved `country_code = IN`. Current source must skip FatSecret for non-US and may use the configured secondary factual resolver.
+
+## Validation
+
+- focused Flutter analyze/tests for changed app surface
+- verify release builds cannot navigate to/render the harness
+- verify no source references to JWT/accessToken/service-role handling are added
+- live owner smoke must be executed from a normal signed-in app session after the branch is run locally
+- record only outcome enum / elapsed time / redacted draft shape in Linear
+
+## Reachability Follow-up — 2026-09-19
+
+- The registered route was not practically reachable on Android: the standard
+  Flutter `--route` / Android `route` launch extra was replaced by the normal
+  `splash -> home` bootstrap redirect, and the app exposes no debug menu or
+  generic deep-link entry.
+- The bounded fix consumes only the exact
+  `/_debug/meal-parser-smoke` platform startup route in non-release builds,
+  waits for the normal authenticated bootstrap to reach `Ready`, and then
+  opens the existing harness once.
+- Unrelated startup routes remain ignored. The route registration and startup
+  selector both fail closed in release mode.
+- Launch command: `flutter run -d emulator-5554 --route=/_debug/meal-parser-smoke --dart-define-from-file=.runtime.qa.json`.
+
+## Authenticated Live Smoke — 2026-09-19
+
+The app restored the existing normal Supabase user session through the regular
+`AppSessionBootstrapController` path and reached `AppSessionBootstrapReady`
+before opening the harness. No JWT, key, credential, raw response, header, or
+sensitive session object was printed or copied.
+
+| Synthetic case | Controller status | elapsedMs | Draft shape | Sanitized message |
+|---|---|---:|---|---|
+| `200 g plain yogurt` | `failed` | 8008 | no draft | `Couldn't process that meal right now. Try again.` |
+| `qwerty asdf` | `failed` | 1425 | no draft | `Couldn't process that meal right now. Try again.` |
+| `dal` | `failed` | 3241 | no draft | `Couldn't process that meal right now. Try again.` |
+
+All three failures map to the controller's safe `unavailable` presentation.
+The client intentionally collapses transport/auth/provider/runtime details to
+that same boundary, so the exact live server-side cause cannot be derived from
+the safe harness output. The owner account country was not changed.
+
+Gate result from this run:
+
+- technical runtime validation: `FAIL`
+- authenticated end-to-end validation: `FAIL`
+- country-aware localization/entitlement gate: `OPEN`
+- durable nutrition-storage gate: `OPEN`
+- TNYX-226 activation: `BLOCKED`
+
+Validation after the reachability fix:
+
+- `cd apps/app && flutter analyze`: PASS
+- `cd apps/app && flutter test test/app/meal_parser_smoke_route_test.dart`: PASS (3 tests)
+- focused router stability + smoke-route tests: PASS (4 tests)
+- `cd apps/app && flutter test`: PASS (323 tests)
+- focused Nutrition controller/repository tests: PASS (30 tests)
+- debug build/install/start on `emulator-5554`: PASS; authenticated smoke page reached
+- live synthetic smoke outcomes: FAIL as recorded above
+
+## Handoff
+
+This slice does not itself clear TNYX-229 until authenticated live execution succeeds. Production provider entitlement, AI privacy/retention, and durable nutrition-storage gates remain separate.
+
+
+## FatSecret IN Capability Follow-up — 2026-09-19
+
+Owner approved extending this existing debug-only harness to invoke the separately deployed authenticated diagnostic Edge Function `tnyx-229-fatsecret-in-probe`.
+
+- Reuse the existing `SupabaseClient.functions.invoke` authenticated session path.
+- Invoke only the diagnostic function; it owns the synthetic `plain yogurt` + `region=IN` provider probe server-side.
+- Display only bounded `stage`, `category`, and optional numeric `httpStatus`.
+- Do not display/copy JWTs, provider tokens, credentials, raw provider bodies, URLs/query strings, or identity/session data.
+- This remains non-release/debug-only and introduces no product navigation.
+- No production parser routing change, persistence, schema/RLS/RPC, secret mutation, deployment, or TNYX-226 work is part of this Flutter follow-up.

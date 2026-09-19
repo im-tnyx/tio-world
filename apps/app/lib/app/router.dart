@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,7 @@ import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'calendar_preferences.dart';
+import 'meal_parser_smoke_page.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
@@ -30,6 +33,17 @@ import 'session/session.dart';
 import 'settings_persistence_providers.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+const debugMealParserSmokePath = '/_debug/meal-parser-smoke';
+
+@visibleForTesting
+String? debugMealParserSmokeStartupRoute({
+  required String platformRoute,
+  bool isReleaseMode = kReleaseMode,
+}) {
+  if (isReleaseMode || platformRoute != debugMealParserSmokePath) return null;
+  return debugMealParserSmokePath;
+}
 
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
@@ -274,6 +288,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appSessionBootstrapController =
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
+  final debugStartupRoute = debugMealParserSmokeStartupRoute(
+    platformRoute: PlatformDispatcher.instance.defaultRouteName,
+  );
+  var debugStartupRoutePending = debugStartupRoute != null;
 
   Future<void> clearGlassSizeForNewExplicitLogin() async {
     try {
@@ -304,6 +322,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       onboardingStatusController,
     ]),
     redirect: (context, state) {
+      if (debugStartupRoutePending &&
+          appSessionBootstrapController.state is AppSessionBootstrapReady) {
+        debugStartupRoutePending = false;
+        if (state.uri.path != debugStartupRoute) return debugStartupRoute;
+      }
+
       final bootstrapRedirect = appSessionBootstrapRedirect(
         path: state.uri.path,
         state: appSessionBootstrapController.state,
@@ -1615,6 +1639,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           },
         ),
       ),
+      if (!kReleaseMode)
+        GoRoute(
+          path: debugMealParserSmokePath,
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => Consumer(
+            builder: (context, ref, _) {
+              final repository = ref.watch(mealTextParseRepositoryProvider);
+              if (repository == null) {
+                return const Scaffold(
+                  body: SafeArea(
+                    child: Center(
+                      child: Text('Meal parser is unavailable in this runtime.'),
+                    ),
+                  ),
+                );
+              }
+              return MealParserSmokePage(
+                repository: repository,
+                runFatSecretIndiaProbe:
+                    ref.watch(fatSecretIndiaCapabilityProbeProvider),
+              );
+            },
+          ),
+        ),
       GoRoute(
         path: AppRoutes.themeSettings.path,
         parentNavigatorKey: rootNavigatorKey,
