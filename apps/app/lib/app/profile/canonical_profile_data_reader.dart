@@ -123,6 +123,7 @@ final class CanonicalProfileDataReader {
       activityLevel: profile.activityLevel,
       healthConditions: profile.healthConditions,
       otherHealthCondition: profile.otherHealthCondition,
+      countryCode: profile.countryCode,
       mobile: account.mobile,
       isMobileVerified: account.isMobileVerified,
     );
