@@ -1,4 +1,5 @@
 import type { InterpretationResult, MealInterpreter } from "./types.ts";
+import { mealParserDiagnostic } from "./diagnostics.ts";
 import { fetchWithTimeout } from "./async_control.ts";
 import {
   geminiInterpretationSchema,
@@ -42,7 +43,10 @@ export class GeminiMealInterpreter implements MealInterpreter {
     mealText: string,
     signal?: AbortSignal,
   ): Promise<InterpretationResult> {
-    if (!this.#apiKey) return { kind: "unavailable" };
+    if (!this.#apiKey) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "missing_configuration" });
+      return { kind: "unavailable" };
+    }
 
     const response = await fetchWithTimeout(
       this.#fetch,
@@ -70,16 +74,27 @@ export class GeminiMealInterpreter implements MealInterpreter {
       signal,
     );
 
-    if (response === null || !response.ok) return { kind: "unavailable" };
+    if (response === null) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "transport_or_timeout" });
+      return { kind: "unavailable" };
+    }
+    if (!response.ok) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "http_error", httpStatus: response.status });
+      return { kind: "unavailable" };
+    }
 
     try {
       const envelope = (await response.json()) as GeminiEnvelope;
       const text = envelope.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof text !== "string" || text.trim().length === 0) {
+        mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "malformed_response" });
         return { kind: "unavailable" };
       }
-      return parseGeminiInterpretation(text);
+      const result = parseGeminiInterpretation(text);
+      if (result.kind === "unavailable") mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "malformed_response" });
+      return result;
     } catch {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "malformed_response" });
       return { kind: "unavailable" };
     }
   }
