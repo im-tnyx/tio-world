@@ -12,6 +12,8 @@ test("diagnostics emit only bounded metadata", () => {
       provider: "openai",
       reason: "http_error",
       httpStatus: 429,
+    providerErrorCategory: "rate_limit",
+      providerErrorCategory: "rate_limit",
     });
   } finally {
     console.info = original;
