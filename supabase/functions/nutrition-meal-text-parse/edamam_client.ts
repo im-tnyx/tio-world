@@ -1,5 +1,5 @@
 import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
-import { mealParserDiagnostic } from "./diagnostics.ts";
+import { mealParserDiagnostic, type MealParserProviderErrorCategory } from "./diagnostics.ts";
 import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
@@ -269,13 +269,6 @@ export function buildEdamamItem(
 }
 
 
-type EdamamErrorCategory =
-  | "authentication"
-  | "authorization_or_entitlement"
-  | "rate_limit"
-  | "invalid_request"
-  | "unknown";
-
 async function logEdamamHttpError(response: Response): Promise<void> {
   mealParserDiagnostic("resolver_unavailable", {
     provider: "edamam",
@@ -285,7 +278,7 @@ async function logEdamamHttpError(response: Response): Promise<void> {
   });
 }
 
-async function edamamErrorCategory(response: Response): Promise<EdamamErrorCategory> {
+async function edamamErrorCategory(response: Response): Promise<MealParserProviderErrorCategory> {
   if (response.status === 429) return "rate_limit";
 
   let code = "";
