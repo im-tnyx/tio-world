@@ -10,6 +10,7 @@ Validate the existing FatSecret credentials/Basic integration against a syntheti
 ## Scope
 
 - Add a test/diagnostic-only FatSecret capability probe owned by the server parser package.
+- Expose it only through a separately deployed temporary authenticated diagnostic Edge Function; do not add a route/mode to the production meal parser.
 - Reuse the existing server-side FatSecret credential names.
 - Probe only synthetic, non-personal food text.
 - Distinguish bounded stages: OAuth token, India-region search, food detail.
