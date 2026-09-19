@@ -21,6 +21,7 @@ import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'calendar_preferences.dart';
+import 'meal_parser_smoke_page.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
@@ -1615,6 +1616,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           },
         ),
       ),
+      if (!kReleaseMode)
+        GoRoute(
+          path: '/_debug/meal-parser-smoke',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => Consumer(
+            builder: (context, ref, _) {
+              final repository = ref.watch(mealTextParseRepositoryProvider);
+              if (repository == null) {
+                return const Scaffold(
+                  body: SafeArea(
+                    child: Center(
+                      child: Text('Meal parser is unavailable in this runtime.'),
+                    ),
+                  ),
+                );
+              }
+              return MealParserSmokePage(repository: repository);
+            },
+          ),
+        ),
       GoRoute(
         path: AppRoutes.themeSettings.path,
         parentNavigatorKey: rootNavigatorKey,
