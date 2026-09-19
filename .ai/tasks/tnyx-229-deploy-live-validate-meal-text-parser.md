@@ -19,19 +19,19 @@
 **Review owner:** Owner
 **Implementation ownership state:** Blocked
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-19
+**Repository state last verified:** 2026-09-19 (evidence pass 2)
 **Branch:** `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` (this brief only)
 **HEAD SHA:** audited `main` = `f0e8ca40704dcf0612c147d7a1449608c1d026fb` (= `origin/main`)
 **Observed working-tree state:** Clean `main` before this brief
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** Linear TNYX-229 = In Progress; TNYX-226 = Backlog, blocked by TNYX-229; TNYX-230 and TNYX-233 merged. No open PRs.
-**Current implementation state:** Pre-deployment audit complete; verdict BLOCKED (§6).
+**Current implementation state:** Evidence pass 2 complete; verdict `TNYX-229 PRE-DEPLOYMENT EVIDENCE: BLOCKED` (§6 Evidence Pass 2).
 **Relevant execution surface:** `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/**`, hosted project `oykupyiitspujzpwwvuj`
 **Validation completed at SHA:** `f0e8ca40` (local CI-equivalent; §6)
 **Validation remaining:** Technical runtime and authenticated E2E validation — NOT RUN until deployment is authorized.
 **Current blocker:** Evidence gates B1–B5 in §6.
-**Open review finding IDs:** TNYX-229-B1 … B5
-**Next exact action:** Owner supplies evidence for B1–B5 (or explicitly accepts a narrower scope for B4/B5), then gives explicit deployment authorization. Do not deploy before that.
+**Open review finding IDs:** TNYX-229-B1 … B5, TNYX-229-S1
+**Next exact action:** Owner supplies the evidence listed per blocker in §6 Evidence Pass 2 and decides S1. Then re-run the evidence gate. Deployment still needs separate explicit authorization.
 
 ## 1. Discovery
 
@@ -132,6 +132,31 @@ supabase-functions-ci on 6d2b5803 (function dir identical to main)         succe
 | TNYX-226 activation | BLOCKED |
 | Security advisors | Baseline unchanged (5 authenticated `SECURITY DEFINER` RPC warnings + leaked-password protection disabled); none introduced by TNYX-229; out of scope |
 
+### Evidence Pass 2 (2026-09-19)
+
+Reconciliation:
+- `main` = `origin/main` = `f0e8ca40704dcf0612c147d7a1449608c1d026fb`; parser source/config unchanged since the first audit.
+- Branch `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` HEAD = `76410439` before this update; 1 ahead / 0 behind `main`; the only change is this brief; no PR.
+- Live Edge Functions: `google-login-admission` only; `nutrition-meal-text-parse` NOT DEPLOYED.
+- No new owner evidence in Linear TNYX-229 since the first audit checkpoint.
+
+Secret-name metadata (names and `updated_at` only, via `supabase secrets list`): `FATSECRET_CLIENT_ID` / `FATSECRET_CLIENT_SECRET` 2026-09-18T06:13Z; `GEMINI_API_KEY` 2026-09-18T16:03Z; `OPENAI_API_KEY` 2026-09-18T16:07Z; `EDAMAM_APP_ID` / `EDAMAM_APP_KEY` 2026-09-18T16:03Z. `MEAL_INTERPRETER_PRIMARY`, `GEMINI_MODEL`, `OPENAI_MODEL` absent (optional).
+
+| Gate | Result | Basis |
+|---|---|---|
+| B1 FatSecret rotation | **NOT EVIDENCED** | No owner/provider confirmation of regeneration; Supabase timestamp alone cannot prove provider-side rotation. |
+| B2 OpenAI data control | **OPEN** | Source: `store: false` (openai_client.ts:72). Account/project posture: Unknown / not evidenced. Synthetic-live-test authorization: NOT RECORDED. |
+| B3 Gemini posture | **OPEN** | Key type, billing plan, and retention/data-use posture for the configured project/key: not evidenced. Synthetic-live-test authorization: NOT RECORDED. |
+| B4 FatSecret reachability/entitlement | **OPEN** | Network: INCOMPATIBLE on current evidence. Tier/region entitlement: UNKNOWN. Source/provider mismatch: YES (S1). |
+| B5 dedicated test user | **OPEN** | Test user identified: NO. Proposed country: owner to choose. Path: that user's own session `PATCH /rest/v1/user_profiles` under `user_profiles_update_own` (no Flutter path writes `country_code` today). Owner authorization: NOT RECORDED. |
+| Durable nutrition storage | **OPEN** | No written commercial/storage permission in tracker; FatSecret public terms limit indefinite storage to listed identifiers. |
+
+B4 detail (FatSecret docs fetched 2026-09-19):
+- OAuth 2.0 guide: tokens can only be requested from a finite set of IP addresses registered per key; CIDR ranges only on PREMIER / PREMIER Free. Earlier owner evidence showed IP-allowlist rejections. Supabase hosted Edge Functions have no stable egress IP. Network: INCOMPATIBLE unless the owner shows the restriction is lifted or covers Supabase egress.
+- Localization guide: localization is "a premium feature only made available to select accounts"; `IN` is a listed region. The account tier is not evidenced, so entitlement is UNKNOWN.
+- `foods.search` v3 docs list scope `premier`; the OAuth guide also lists a separate `localization` scope.
+- Source (`fatsecret_client.ts:138`) requests only `scope: "basic"` but sends `region=<countryCode>` on `foods.search` (legacy `server.api`) and `food/v5`.
+
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -141,6 +166,7 @@ supabase-functions-ci on 6d2b5803 (function dir identical to main)         succe
 | TNYX-229-B3 | Blocker | Open | Gemini key type/plan/data-handling posture not evidenced (prior audit: key-type migration; unpaid tier data may be used for product improvement). | f0e8ca40 | Owner confirmation of key type and paid/unpaid plan + retention posture, or explicit acceptance for synthetic-only smoke text. |
 | TNYX-229-B4 | Blocker | Open | FatSecret reachability from hosted Edge Functions not evidenced: prior owner evidence showed a caller-IP allowlist; Supabase hosted Edge Functions have no stable egress IP. Also scope `basic` + explicit `region` (Premier-exclusive) may fail/ignore for non-US countries. | f0e8ca40 | Owner confirmation that the FatSecret IP restriction is removed/compatible, and the account tier for the chosen test country. Otherwise expect `unavailable`/`incomplete` from FatSecret and record it as provider-constrained. |
 | TNYX-229-B5 | Blocker | Open | No intentional `country_code` exists for any live user; smoke test needs one. | f0e8ca40 | Owner picks the dedicated normal test user and country, and approves setting it through that user's own session. |
+| TNYX-229-S1 | High | Open (separate fix/decision) | Source requests OAuth scope `basic` but sends `region`. Localization needs premium entitlement and a `localization`/`premier` scope. If FatSecret ignores `region` under `basic`, a non-US user could silently get US data, contradicting the TNYX-233 no-silent-US rule. Behavior when unentitled is undocumented. | f0e8ca40 | Not a TNYX-229 change. Owner decides either a bounded source fix (request the entitled scope, or fail closed for non-US without entitlement) or US-only smoke validation with this limitation recorded. |
 
 ## 7. Final Handoff
 
@@ -160,4 +186,4 @@ Secret presence ≠ secret validity; provider acceptance is only provable after 
 
 ### Final Status
 
-`BLOCKED` — TNYX-229 PRE-DEPLOYMENT GATE: BLOCKED
+`BLOCKED` — TNYX-229 PRE-DEPLOYMENT EVIDENCE: BLOCKED
