@@ -61,8 +61,12 @@ export class GeminiMealInterpreter implements MealInterpreter {
             },
           ],
           generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: geminiInterpretationSchema,
+            responseFormat: {
+              text: {
+                mimeType: "application/json",
+                schema: geminiInterpretationSchema,
+              },
+            },
           },
         }),
       },
