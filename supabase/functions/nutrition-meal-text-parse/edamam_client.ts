@@ -121,7 +121,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
     if (!response.ok) {
-      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "http_error", httpStatus: response.status });
+      await logEdamamHttpError(response);
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -175,7 +175,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
     if (!response.ok) {
-      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "http_error", httpStatus: response.status });
+      await logEdamamHttpError(response);
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -266,4 +266,54 @@ export function buildEdamamItem(
     servingUnit: candidate.unit,
     nutritionSnapshot: snapshot,
   };
+}
+
+
+type EdamamErrorCategory =
+  | "authentication"
+  | "authorization_or_entitlement"
+  | "rate_limit"
+  | "invalid_request"
+  | "unknown";
+
+async function logEdamamHttpError(response: Response): Promise<void> {
+  mealParserDiagnostic("resolver_unavailable", {
+    provider: "edamam",
+    reason: "http_error",
+    httpStatus: response.status,
+    providerErrorCategory: await edamamErrorCategory(response),
+  });
+}
+
+async function edamamErrorCategory(response: Response): Promise<EdamamErrorCategory> {
+  if (response.status === 429) return "rate_limit";
+
+  let code = "";
+  try {
+    const payload = await response.clone().json() as Record<string, unknown>;
+    code = typeof payload.code === "string"
+      ? payload.code
+      : typeof payload.error === "string"
+      ? payload.error
+      : "";
+  } catch {
+    // Never log or propagate raw provider response content.
+  }
+
+  const normalized = code.toLowerCase();
+  if (normalized.includes("auth") || normalized.includes("credential")) {
+    return "authentication";
+  }
+  if (
+    normalized.includes("plan") ||
+    normalized.includes("subscription") ||
+    normalized.includes("entitlement") ||
+    normalized.includes("access")
+  ) {
+    return "authorization_or_entitlement";
+  }
+  if (response.status === 401) return "authentication";
+  if (response.status === 403) return "authorization_or_entitlement";
+  if (response.status >= 400 && response.status < 500) return "invalid_request";
+  return "unknown";
 }
