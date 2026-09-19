@@ -104,7 +104,7 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
         stages.add(_CapabilityStage(
           stage: stage,
           category: category,
-          httpStatus: status?.toInt(),
+          httpStatus: status is num ? status.toInt() : null,
         ));
       }
       if (!mounted) return;
