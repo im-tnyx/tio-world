@@ -105,6 +105,10 @@ void main() {
           ..._validRow(),
           'country_code': 'IND',
         },
+        {
+          ..._validRow(),
+          'country_code': ' IN ',
+        },
       ];
 
       for (final row in invalidRows) {
