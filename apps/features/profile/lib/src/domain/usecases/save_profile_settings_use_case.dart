@@ -59,6 +59,7 @@ class SaveProfileSettingsUseCase {
         dateOfBirth: update.dateOfBirth,
         heightCm: update.heightCm,
         currentWeightKg: update.currentWeightKg,
+        countryCode: update.countryCode,
       ),
     );
   }
