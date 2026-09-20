@@ -110,7 +110,7 @@ test("FatSecret missing country context is incomplete without provider calls", a
 
   assert.deepEqual(
     await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
-    { kind: "incomplete" },
+    { kind: "incomplete", reason: "region_unsupported" },
   );
   assert.equal(calls, 0);
 });
@@ -179,7 +179,7 @@ test("FatSecret non-US countries fail closed before provider calls", async () =>
         undefined,
         { countryCode },
       ),
-      { kind: "incomplete" },
+      { kind: "incomplete", reason: "region_unsupported" },
     );
     assert.equal(calls, 0, `${countryCode} must not call FatSecret under Basic entitlement`);
   }
@@ -224,7 +224,7 @@ test("Edamam malformed parser response returns incomplete", async () => {
 
   assert.deepEqual(
     await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
-    { kind: "incomplete" },
+    { kind: "incomplete", reason: "no_match" },
   );
 });
 
@@ -338,7 +338,7 @@ test("FatSecret resolver rejects materially expanded food identity", async () =>
       undefined,
       { countryCode: "US" },
     ),
-    { kind: "incomplete" },
+    { kind: "incomplete", reason: "no_match" },
   );
   assert.equal(calls, 2, "unsafe search result must not fetch provider detail");
 });
@@ -362,7 +362,7 @@ test("Edamam rejects materially expanded food identity before nutrients call", a
 
   assert.deepEqual(
     await resolver.resolve({ foodName: "rice", quantity: 1, unit: "serving" }),
-    { kind: "incomplete" },
+    { kind: "incomplete", reason: "name_mismatch" },
   );
   assert.equal(calls, 1, "unsafe identity must not request nutrient detail");
 });

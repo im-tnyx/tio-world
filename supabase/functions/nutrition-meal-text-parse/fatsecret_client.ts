@@ -87,11 +87,11 @@ export class FatSecretResolver implements FoodNutritionResolver {
   ): Promise<ResolverResult> {
     if (!this.#clientId || !this.#clientSecret) return { kind: "unavailable" };
     if (candidate.quantity === null || candidate.unit === null) {
-      return { kind: "incomplete" };
+      return { kind: "incomplete", reason: "missing_amount" };
     }
 
     const region = fatSecretRegionForCountry(context?.countryCode);
-    if (region === null) return { kind: "incomplete" };
+    if (region === null) return { kind: "incomplete", reason: "region_unsupported" };
 
     const token = await this.#getToken(signal);
     if (token === null) return { kind: "unavailable" };
@@ -101,14 +101,16 @@ export class FatSecretResolver implements FoodNutritionResolver {
 
     const match = selectFatSecretMatch(candidate.foodName, search.foods);
     if (match === null || match.food_id === undefined) {
-      return { kind: "incomplete" };
+      return { kind: "incomplete", reason: "no_match" };
     }
 
     const detail = await this.#getFood(String(match.food_id), token, region, signal);
     if (detail.kind !== "ok") return detail.result;
 
     const item = resolveFatSecretServing(candidate, detail.food);
-    return item === null ? { kind: "incomplete" } : { kind: "resolved", item };
+    return item === null
+      ? { kind: "incomplete", reason: "unit_mismatch" }
+      : { kind: "resolved", item };
   }
 
   async #getToken(signal?: AbortSignal): Promise<string | null> {

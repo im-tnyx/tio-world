@@ -1,4 +1,5 @@
 import type { ResponseItem } from "./contract.ts";
+import type { MealParserIncompleteReason } from "./diagnostics.ts";
 
 export interface MealCandidate {
   readonly foodName: string;
@@ -17,7 +18,7 @@ export type InterpretationResult =
 
 export type ResolverResult =
   | { readonly kind: "resolved"; readonly item: ResponseItem }
-  | { readonly kind: "incomplete" }
+  | { readonly kind: "incomplete"; readonly reason?: MealParserIncompleteReason }
   | { readonly kind: "unavailable" };
 
 export interface NutritionResolverContext {

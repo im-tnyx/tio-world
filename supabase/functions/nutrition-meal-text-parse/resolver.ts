@@ -28,7 +28,12 @@ export async function resolveWithFallback(
   if (second.kind === "resolved") return second;
 
   if (first.kind === "incomplete" || second.kind === "incomplete") {
-    return { kind: "incomplete" };
+    // The last resolver that stopped the item explains it best; the first only
+    // when the second could not answer at all. (For a country without a
+    // FatSecret region the first says so and the second says what really
+    // happened.)
+    const reason = second.kind === "incomplete" ? second.reason : first.kind === "incomplete" ? first.reason : undefined;
+    return reason === undefined ? { kind: "incomplete" } : { kind: "incomplete", reason };
   }
   return { kind: "unavailable" };
 }
