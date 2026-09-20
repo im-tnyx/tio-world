@@ -196,7 +196,11 @@ async function geminiErrorMetadata(
       const detail = asRecord(rawDetail);
       if (detail === null) continue;
 
-      if (detail["@type"] === GOOGLE_ERROR_INFO_TYPE && reason === "UNKNOWN") {
+      if (
+        detail["@type"] === GOOGLE_ERROR_INFO_TYPE &&
+        detail.domain === "googleapis.com" &&
+        reason === "UNKNOWN"
+      ) {
         const rawReason = detail.reason;
         if (
           typeof rawReason === "string" &&
