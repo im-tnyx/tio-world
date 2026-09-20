@@ -121,8 +121,7 @@ export function parseGeminiInterpretation(text: string): InterpretationResult {
   return parseInterpretationJson(text);
 }
 
-
-const GEMINI_ERROR_STATUSES: ReadonlySet<MealParserProviderErrorStatus> = new Set([
+const GEMINI_ERROR_STATUSES: ReadonlySet<MealParserProviderErrorStatus> = new Set<MealParserProviderErrorStatus>([
   "CANCELLED",
   "UNKNOWN",
   "INVALID_ARGUMENT",
