@@ -220,3 +220,41 @@ Run exactly once each, without changing secrets/config:
 Record only controller status, elapsedMs, sanitized message, and draft shape if any. Inspect only approved redacted server diagnostics if a failure/provider error is separately visible.
 
 Do not intentionally force `unavailable` by breaking credentials or configuration; that outcome already has live evidence and deterministic test coverage.
+
+
+## Final representative live outcome matrix — 2026-09-20
+
+Using the same normal signed-in session and unchanged live parser configuration after the successful `200 g plain yogurt` run, the owner executed the remaining representative cases exactly once each.
+
+| Synthetic case | Controller status | elapsedMs | Draft | Sanitized client outcome |
+|---|---|---:|---|---|
+| `200 g plain yogurt` | `succeeded` | 4803 | 1 item, `captureSource=text`, `mealName=Plain yogurt` | success |
+| `qwerty asdf` | `failed` | 4740 | none | `Couldn't understand that meal. Try editing the description.` → expected `unrecognized` |
+| `dal` | `failed` | 3294 | none | `Couldn't resolve enough meal details. Try adding amounts or serving sizes.` → expected `incomplete` |
+| `unavailable` | previously observed live | historical | none | safe unavailable message; deterministic focused tests also cover provider failure/deadline |
+
+No failure diagnostic event appeared for the new `unrecognized` or `incomplete` windows. This is consistent with semantic outcomes rather than provider/runtime failure. Do not infer interpreter/provider identity from absent success diagnostics.
+
+### Final technical handoff
+
+- deployed protected function reachable: PASS
+- `verify_jwt=true`: PASS
+- normal authenticated end-to-end path: PASS
+- representative success/unrecognized/incomplete: PASS live
+- unavailable behavior: PASS from prior live evidence + focused deterministic tests
+- provider-neutral `MealLoggingDraft` handoff: PASS
+- sanitized failure mapping: PASS
+- no parser persistence introduced: PASS
+- no TNYX-226 product UI/schema/services-api activation: PASS
+- observed success latency 4803 ms, unrecognized 4740 ms, incomplete 3294 ms; all are within the existing 45 s server / 50 s Flutter budgets, but these single runs are not performance benchmarks
+
+### Remaining source-of-truth/product gates
+
+Technical runtime validation is now PASS, but TNYX-229 should not be closed yet because the live runtime includes the Gemini request-contract fix from Draft PR #292 while PR #292 remains open/unmerged. The live bundle therefore does not yet have a fully reconciled `main` source-of-truth state.
+
+Separately, product-visible TNYX-226 activation remains BLOCKED by the already-recorded non-technical gates:
+- country-aware provider localization/entitlement/commercial coverage: OPEN
+- durable nutrition-storage permission: OPEN
+- provider privacy/retention posture as applicable: must remain documented/approved for product use
+
+No further live smoke is needed for the current representative matrix unless source/config changes.
