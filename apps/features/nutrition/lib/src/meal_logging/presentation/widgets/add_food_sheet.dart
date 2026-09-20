@@ -9,10 +9,11 @@ import '../../meal_text_parse_controller.dart';
 
 /// What the reader asked the Add Food sheet for.
 ///
-/// One value, because one path is implemented. The sheet still *shows* the
-/// natural-language, photo and food-search paths, but an unavailable path
-/// cannot be chosen, so it has nothing to return. When TNYX-62's remaining
-/// paths land they become members here rather than booleans on the caller.
+/// The two currently implemented Add Food paths.
+///
+/// Natural-language text returns only a provider-neutral draft; Quick Add
+/// returns its explicit action identity. Photo and food-search remain visible
+/// but unavailable and therefore cannot produce a result.
 enum MealDiaryAddFoodChoice { quickAdd, parsedText }
 
 @immutable
@@ -100,11 +101,11 @@ Future<MealDiaryAddFoodResult?> showMealDiaryAddFoodSheet(
 /// device review — throws that away and makes the reader read four options
 /// instead of seeing one.
 ///
-/// Only Quick Add works today. The other three are drawn as unavailable —
-/// dimmed, inert, saying so in their own copy and reported disabled to
-/// assistive technology — because the sheet is where the reader learns what
-/// logging will offer, and a row that looks live and does nothing is worse
-/// than no row at all.
+/// Natural-language text and Quick Add work today. Photo and Search remain
+/// drawn as unavailable — dimmed, inert, saying so in their own copy and
+/// reported disabled to assistive technology — because a row that looks live
+/// and does nothing is worse than no row at all. Voice remains visible as the
+/// blank-text affordance but is intentionally unavailable in this slice.
 class AddFoodSheet extends StatelessWidget {
   const AddFoodSheet({
     required this.onQuickAdd,
@@ -200,11 +201,10 @@ class AddFoodSheet extends StatelessWidget {
 /// The natural-language entry point: the primary way N5 expects meals to be
 /// logged, so it is the one element on the sheet shaped like somewhere to type.
 ///
-/// It is an outlined card rather than a real `TioInput` because it has to hold
-/// a prompt, a hint line and a microphone at once, which is not the single-line
-/// contract the generic field owns, and because there is nothing to type into
-/// yet. The parsing behind it belongs to TNYX-62; giving the field a keyboard
-/// now would collect a sentence and drop it.
+/// The accepted outlined-card composition is preserved while the centre region
+/// becomes a real text field. The permanent leading keyboard affordance only
+/// controls focus/software-keyboard visibility; the trailing Mic remains while
+/// input is blank and changes to Send only for nonblank text.
 class _DescribeMealSurface extends StatefulWidget {
   const _DescribeMealSurface({
     required this.repository,
