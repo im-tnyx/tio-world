@@ -430,7 +430,7 @@ void main() {
       expect(parser.inputs, isEmpty);
 
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-      addTearDown(() => tester.view.viewInsets = FakeViewPadding.zero);
+      addTearDown(tester.view.reset);
       await tester.pump();
 
       await tester.tap(find.byKey(_aiKeyboard));
@@ -508,7 +508,8 @@ void main() {
       await tester.pumpAndSettle();
       await _openAddFood(tester);
       await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
-      await tester.tap(find.byKey(_aiSubmit));
+      expect(find.byKey(_aiSubmit), findsOne);
+      await tester.testTextInput.receiveAction(TextInputAction.send);
       await tester.pumpAndSettle();
 
       expect(parser.inputs, ['plain yogurt']);
