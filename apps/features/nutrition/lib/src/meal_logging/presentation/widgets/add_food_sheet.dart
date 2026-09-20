@@ -324,7 +324,6 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
         _controller?.state.submittedText == _text.text.trim();
 
     final card = TioCard(
-      key: const ValueKey('add-food-ai-text'),
       variant: TioCardVariant.outlined,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -350,10 +349,12 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
           ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: KeyedSubtree(
+              key: const ValueKey('add-food-ai-text'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 TextField(
                   key: const ValueKey('add-food-ai-text-field'),
                   controller: _text,
@@ -390,7 +391,8 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
                     ),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: TioSpacing.sm),
