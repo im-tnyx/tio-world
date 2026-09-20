@@ -1,6 +1,6 @@
 # TNYX-240 — N5D-9 Natural-language meal parsing robustness (slice S1)
 
-**Status:** In progress (S1 implemented, not deployed)
+**Status:** In progress (S1 validated locally, not deployed; Draft PR pending)
 **Primary owner:** `supabase/functions/nutrition-meal-text-parse`
 **Affected platforms:** Supabase Edge Function only (no Flutter, no schema)
 
@@ -48,6 +48,15 @@ Code facts (`supabase/functions/nutrition-meal-text-parse`):
 
 ## Handoff
 
-**Implementation owner:** current session (branch `tnyx/tnyx-240-n5d-9-natural-language-meal-parsing-robustness`, from `main` `07bbf612`).
-**Next exact action:** owner reviews, deploys the function, and re-runs the input table in TNYX-240. The new `meal_incomplete` events in `function_logs` show which check stops each remaining failure and decide S2–S6.
+**Implementation owner:** current session (branch `tnyx/tnyx-240-n5d-9-natural-language-meal-parsing-robustness`).
+**Next exact action:** complete the approved Draft PR handoff. A later owner-approved deployment and live table re-run will use the new `meal_incomplete` events to decide S2–S6.
 **Open decisions for the owner:** S3 (household units), S4 (partial results UI), S5 (missing-country outcome and message).
+
+## Current reconciliation — 2026-09-20
+
+- **Current `main` anchor:** `170a18ca509876e7172a451fae1d3b6d8529e218` (PR #301 squash merge). Preserved S1 implementation commit: `77daf0944d1d0ccaf0f5e6dec94f43a0874a2adc`. It was integrated by the normal merge commit `c45beade` without a rebase or rewrite.
+- **Effective S1-owned files:** this brief; `diagnostics.ts`; `edamam_client.ts`; `fatsecret_client.ts`; `handler.ts`; `incomplete_reason_test.ts`; `interpretation_schema.ts`; `providers_test.ts`; `resolver.ts`; and `types.ts` under `supabase/functions/nutrition-meal-text-parse` unless named otherwise.
+- **Exact closed diagnostic contract:** `missing_amount`, `no_match`, `name_mismatch`, `amount_mismatch`, `unit_mismatch`, `nutrients_missing`, `region_unsupported`, `country_missing`, `no_items`, `unknown`. Each emitted event is `{ component, stage: "meal_incomplete", reason }`; no meal text, provider body, or user data is included. `unknown` is the safe compatibility fallback for an incomplete resolver result with no reason; `no_items` is the handler's defensive recognized-empty-items path.
+- **Bare-count rule:** a finite positive quantity with no unit at or below `MAX_BARE_COUNT = 50` reaches factual resolvers as `piece`; a larger bare number remains incomplete. A unit without a quantity remains incomplete. No gram weight or household-unit conversion is invented.
+- **Scope remains S1 only:** no Flutter/UI, schema/RLS/RPC, provider/model/secret, deployment, or `services/api` change. S2 Hinglish normalization, S3 household conversions, S4 partial-results UI, S5 missing-country UX, and S6 accuracy remediation remain untouched.
+- **Fresh validation on the merged tree:** `deno check supabase/functions/nutrition-meal-text-parse/index.ts` PASS; `deno test --allow-read=supabase/functions/nutrition-meal-text-parse supabase/functions/nutrition-meal-text-parse` PASS — 108 passed / 0 failed; `git diff --check origin/main...HEAD` PASS. The first non-elevated Deno test invocation hit a Windows named-pipe panic after type checking; the elevated retry completed successfully.
