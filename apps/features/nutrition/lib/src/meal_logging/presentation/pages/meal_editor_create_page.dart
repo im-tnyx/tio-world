@@ -26,6 +26,10 @@ class MealEditorCreatePage extends StatefulWidget {
     this.onBack,
     this.onMealCategoryTap,
     this.onDateTimeTap,
+    this.mealCategoryAnchorKey,
+    this.dateTimeAnchorKey,
+    this.mealCategorySemanticLabel,
+    this.dateTimeSemanticLabel,
   });
 
   final MealLoggingDraft initialDraft;
@@ -38,6 +42,10 @@ class MealEditorCreatePage extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onMealCategoryTap;
   final VoidCallback? onDateTimeTap;
+  final GlobalKey? mealCategoryAnchorKey;
+  final GlobalKey? dateTimeAnchorKey;
+  final String? mealCategorySemanticLabel;
+  final String? dateTimeSemanticLabel;
 
   @override
   State<MealEditorCreatePage> createState() => _MealEditorCreatePageState();
@@ -207,14 +215,16 @@ class _MealEditorCreatePageState extends State<MealEditorCreatePage> {
               ),
               child: MealLogActionFooter(
                 mealCategoryLabel: widget.mealCategoryLabel,
-                mealCategorySemanticLabel:
+                mealCategorySemanticLabel: widget.mealCategorySemanticLabel ??
                     'Meal type. ${widget.mealCategoryLabel}.',
                 onMealCategoryTap:
                     draftLocked ? null : widget.onMealCategoryTap,
+                mealCategoryAnchorKey: widget.mealCategoryAnchorKey,
                 dateTimeLabel: widget.dateTimeLabel,
-                dateTimeSemanticLabel:
+                dateTimeSemanticLabel: widget.dateTimeSemanticLabel ??
                     'Date and time. ${widget.dateTimeLabel}.',
                 onDateTimeTap: draftLocked ? null : widget.onDateTimeTap,
+                dateTimeAnchorKey: widget.dateTimeAnchorKey,
                 primaryLabel: 'Log Meal',
                 primarySemanticLabel: submitState?.isOutcomeUnknown == true
                     ? 'Retry Log Meal. Save status is uncertain.'

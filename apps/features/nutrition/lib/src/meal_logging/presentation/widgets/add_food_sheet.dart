@@ -1,57 +1,62 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
+
+import '../../../domain/repositories/meal_text_parse_repository.dart';
+import '../../meal_text_parse_controller.dart';
 
 /// What the reader asked the Add Food sheet for.
 ///
-/// One value, because one path is implemented. The sheet still *shows* the
-/// natural-language, photo and food-search paths, but an unavailable path
-/// cannot be chosen, so it has nothing to return. When TNYX-62's remaining
-/// paths land they become members here rather than booleans on the caller.
-enum MealDiaryAddFoodChoice { quickAdd }
+/// The two currently implemented Add Food paths.
+///
+/// Natural-language text returns only a provider-neutral draft; Quick Add
+/// returns its explicit action identity. Photo and food-search remain visible
+/// but unavailable and therefore cannot produce a result.
+enum MealDiaryAddFoodChoice { quickAdd, parsedText }
+
+@immutable
+final class MealDiaryAddFoodResult {
+  const MealDiaryAddFoodResult.quickAdd()
+      : choice = MealDiaryAddFoodChoice.quickAdd,
+        draft = null;
+
+  const MealDiaryAddFoodResult.parsedText(this.draft)
+      : choice = MealDiaryAddFoodChoice.parsedText;
+
+  final MealDiaryAddFoodChoice choice;
+  final MealLoggingDraft? draft;
+}
 
 /// Opens the Add Food sheet and reports what was chosen.
 ///
-/// Returns null when the reader backed out. Dismissal is the whole of that
-/// outcome: this sheet owns no state, writes nothing, and is not told which
-/// day the diary is on, so closing it cannot leave anything behind.
-Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
-  BuildContext context,
-) {
-  return showModalBottomSheet<MealDiaryAddFoodChoice>(
+/// Returns null when the reader backed out. Parsed text returns only a
+/// provider-neutral draft; nothing becomes durable until the later Meal Editor
+/// confirmation.
+Future<MealDiaryAddFoodResult?> showMealDiaryAddFoodSheet(
+  BuildContext context, {
+  MealTextParseRepository? mealTextParseRepository,
+}) {
+  return showModalBottomSheet<MealDiaryAddFoodResult>(
     context: context,
     isScrollControlled: true,
-    // The Meal Diary lives inside a shell branch navigator while the app bar
-    // and bottom navigation sit outside it. A sheet on the branch navigator
-    // would leave the Today action and the tabs live behind the barrier, so a
-    // reader could change the diary's day — or leave for another tab — with
-    // this sheet still open on top of it. The root navigator covers the shell.
     useRootNavigator: true,
-    // Without this the route applies `MediaQuery.removePadding(removeTop:
-    // true)`, so no inner `SafeArea` can protect the top however it is
-    // configured — and a sheet tall enough to reach the top of a short or
-    // split-screen viewport puts its title and close button under the status
-    // bar or a display cutout. Flutter's own wrapper is `SafeArea(bottom:
-    // false)`, which leaves the bottom to the inner one below rather than
-    // padding it twice.
     useSafeArea: true,
     backgroundColor: TioPalette.transparent,
-    // The route's own background is transparent, and the bottom SafeArea
-    // below reserves that much empty space beneath the sheet's own content —
-    // previously left transparent, showing the barrier through it. TioSheet
-    // already paints its own rounded-top Material (colors.surface); wrapping
-    // the whole SafeArea in another opaque box would paint a flat rectangle
-    // behind/around that rounded arc too, squaring the corners. Instead, a
-    // `Positioned` sibling fills only that already-reserved bottom strip —
-    // it does not add any height of its own, so the sheet's total size and
-    // TioSheet's own rounded painting are both exactly as before.
     builder: (sheetContext) => Stack(
       children: [
         SafeArea(
           top: false,
           child: SingleChildScrollView(
             child: AddFoodSheet(
-              onQuickAdd: () => Navigator.of(sheetContext)
-                  .pop(MealDiaryAddFoodChoice.quickAdd),
+              mealTextParseRepository: mealTextParseRepository,
+              onParsed: (draft) => Navigator.of(sheetContext).pop(
+                MealDiaryAddFoodResult.parsedText(draft),
+              ),
+              onQuickAdd: () => Navigator.of(sheetContext).pop(
+                const MealDiaryAddFoodResult.quickAdd(),
+              ),
               onDismiss: () => Navigator.of(sheetContext).pop(),
             ),
           ),
@@ -95,16 +100,18 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
 /// device review — throws that away and makes the reader read four options
 /// instead of seeing one.
 ///
-/// Only Quick Add works today. The other three are drawn as unavailable —
-/// dimmed, inert, saying so in their own copy and reported disabled to
-/// assistive technology — because the sheet is where the reader learns what
-/// logging will offer, and a row that looks live and does nothing is worse
-/// than no row at all.
+/// Natural-language text and Quick Add work today. Photo and Search remain
+/// drawn as unavailable — dimmed, inert, saying so in their own copy and
+/// reported disabled to assistive technology — because a row that looks live
+/// and does nothing is worse than no row at all. Voice remains visible as the
+/// blank-text affordance but is intentionally unavailable in this slice.
 class AddFoodSheet extends StatelessWidget {
   const AddFoodSheet({
     required this.onQuickAdd,
     required this.onDismiss,
+    required this.onParsed,
     super.key,
+    this.mealTextParseRepository,
   });
 
   /// Said in the copy, not only in the dimming, and repeated in semantics.
@@ -112,6 +119,8 @@ class AddFoodSheet extends StatelessWidget {
 
   final VoidCallback onQuickAdd;
   final VoidCallback onDismiss;
+  final ValueChanged<MealLoggingDraft> onParsed;
+  final MealTextParseRepository? mealTextParseRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +153,10 @@ class AddFoodSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: TioSpacing.sm),
-          const _DescribeMealSurface(),
+          _DescribeMealSurface(
+            repository: mealTextParseRepository,
+            onParsed: onParsed,
+          ),
           const SizedBox(height: TioSpacing.md),
           const _PhotoCard(),
           const SizedBox(height: TioSpacing.md),
@@ -188,78 +200,233 @@ class AddFoodSheet extends StatelessWidget {
 /// The natural-language entry point: the primary way N5 expects meals to be
 /// logged, so it is the one element on the sheet shaped like somewhere to type.
 ///
-/// It is an outlined card rather than a real `TioInput` because it has to hold
-/// a prompt, a hint line and a microphone at once, which is not the single-line
-/// contract the generic field owns, and because there is nothing to type into
-/// yet. The parsing behind it belongs to TNYX-62; giving the field a keyboard
-/// now would collect a sentence and drop it.
-class _DescribeMealSurface extends StatelessWidget {
-  const _DescribeMealSurface();
+/// The accepted outlined-card composition is preserved while the centre region
+/// becomes a real text field. The permanent leading keyboard affordance only
+/// controls focus/software-keyboard visibility; the trailing Mic remains while
+/// input is blank and changes to Send only for nonblank text.
+class _DescribeMealSurface extends StatefulWidget {
+  const _DescribeMealSurface({
+    required this.repository,
+    required this.onParsed,
+  });
+
+  final MealTextParseRepository? repository;
+  final ValueChanged<MealLoggingDraft> onParsed;
+
+  @override
+  State<_DescribeMealSurface> createState() => _DescribeMealSurfaceState();
+}
+
+class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
+  final _text = TextEditingController();
+  final _focusNode = FocusNode();
+  MealTextParseController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _text.addListener(_onTextChanged);
+    _bindController();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DescribeMealSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.repository, widget.repository)) {
+      _unbindController();
+      _bindController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _text
+      ..removeListener(_onTextChanged)
+      ..dispose();
+    _focusNode.dispose();
+    _unbindController();
+    super.dispose();
+  }
+
+  void _bindController() {
+    final repository = widget.repository;
+    if (repository == null) return;
+    _controller = MealTextParseController(repository: repository)
+      ..addListener(_onControllerChanged);
+  }
+
+  void _unbindController() {
+    _controller
+      ?..removeListener(_onControllerChanged)
+      ..dispose();
+    _controller = null;
+  }
+
+  void _onTextChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _isAvailable => _controller != null;
+  bool get _hasText => _text.text.trim().isNotEmpty;
+  bool get _isProcessing => _controller?.state.isProcessing ?? false;
+
+  void _toggleKeyboard() {
+    if (!_isAvailable || _isProcessing) return;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (keyboardVisible) {
+      FocusScope.of(context).unfocus();
+      return;
+    }
+    _focusNode.requestFocus();
+  }
+
+  Future<void> _submit() async {
+    final controller = _controller;
+    final text = _text.text.trim();
+    if (controller == null || !controller.canSubmit(text)) return;
+
+    FocusScope.of(context).unfocus();
+
+    final state = controller.state;
+    final draft = state.canRetry && state.submittedText == text
+        ? await controller.retry()
+        : await controller.submit(text);
+    if (!mounted || draft == null) return;
+    widget.onParsed(draft);
+  }
+
+  String _supportingText() {
+    if (!_isAvailable) {
+      return 'Describe your meal · ${AddFoodSheet.unavailable}';
+    }
+    final state = _controller!.state;
+    if (state.isProcessing) return 'Processing meal…';
+    if (state.status == MealTextParseStatus.failed &&
+        state.submittedText == _text.text.trim()) {
+      return state.message ?? MealTextParseController.unavailableMessage;
+    }
+    return 'Describe your meal';
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+    final available = _isAvailable;
+    final canSubmit = available && _hasText && !_isProcessing;
+    final supportingText = _supportingText();
+    final hasVisibleFailure = _controller?.state.status ==
+            MealTextParseStatus.failed &&
+        _controller?.state.submittedText == _text.text.trim();
 
-    return Opacity(
-      opacity: TioOpacity.opacity64,
-      child: TioCard(
-        variant: TioCardVariant.outlined,
-        child: Row(
-          children: [
-            Expanded(
-              child: Semantics(
-                key: const ValueKey('add-food-ai-text'),
-                enabled: false,
-                label: 'What did you eat? Describe your meal. '
-                    '${AddFoodSheet.unavailable}.',
-                child: ExcludeSemantics(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Decorative, and inside the excluded region on purpose:
-                      // it says what kind of surface this is, the same way a
-                      // field's leading icon does. It is not a second control,
-                      // so it gets no semantics node and no tap of its own —
-                      // typing is TNYX-62's to switch on.
-                      Padding(
-                        padding: const EdgeInsets.only(top: TioSpacing.xxs),
-                        child: Icon(
-                          Icons.keyboard_alt_outlined,
-                          size: TioSize.dp22,
-                          color: colors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(width: TioSpacing.md),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'What did you eat?',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: colors.textPrimary,
-                                fontWeight: TioFontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: TioSpacing.xxs),
-                            Text(
-                              'Describe your meal · ${AddFoodSheet.unavailable}',
-                              style: TextStyle(
-                                color: colors.textSecondary,
-                                fontSize: TioFontSize.size12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+    final card = TioCard(
+      variant: TioCardVariant.outlined,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Semantics(
+            button: true,
+            enabled: available && !_isProcessing,
+            label: 'Show or hide keyboard',
+            child: InkResponse(
+              key: const ValueKey('add-food-keyboard'),
+              onTap: available && !_isProcessing ? _toggleKeyboard : null,
+              radius: TioSize.dp24,
+              child: SizedBox(
+                width: TioSize.dp40,
+                height: TioSize.dp40,
+                child: Icon(
+                  Icons.keyboard_alt_outlined,
+                  size: TioSize.dp22,
+                  color: available ? colors.textSecondary : colors.textMuted,
                 ),
               ),
             ),
-            const SizedBox(width: TioSpacing.sm),
+          ),
+          const SizedBox(width: TioSpacing.sm),
+          Expanded(
+            child: KeyedSubtree(
+              key: const ValueKey('add-food-ai-text'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                TextField(
+                  key: const ValueKey('add-food-ai-text-field'),
+                  controller: _text,
+                  focusNode: _focusNode,
+                  enabled: available && !_isProcessing,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.send,
+                  maxLines: 3,
+                  minLines: 1,
+                  onSubmitted: (_) => unawaited(_submit()),
+                  style: textTheme.titleMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w600,
+                  ),
+                  decoration: InputDecoration.collapsed(
+                    hintText: 'What did you eat?',
+                    hintStyle: textTheme.titleMedium?.copyWith(
+                      color: available ? colors.textPrimary : colors.textMuted,
+                      fontWeight: TioFontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.xxs),
+                Semantics(
+                  liveRegion: _isProcessing || hasVisibleFailure,
+                  child: Text(
+                    supportingText,
+                    key: const ValueKey('add-food-ai-supporting-text'),
+                    style: TextStyle(
+                      color: hasVisibleFailure
+                          ? colors.danger
+                          : colors.textSecondary,
+                      fontSize: TioFontSize.size12,
+                    ),
+                  ),
+                ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: TioSpacing.sm),
+          if (_isProcessing)
+            const SizedBox(
+              key: ValueKey('add-food-ai-processing'),
+              width: TioSize.dp40,
+              height: TioSize.dp40,
+              child: Padding(
+                padding: EdgeInsets.all(TioSpacing.sm),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else if (canSubmit)
+            Semantics(
+              button: true,
+              enabled: true,
+              label: 'Process meal description',
+              child: InkResponse(
+                key: const ValueKey('add-food-submit'),
+                onTap: () => unawaited(_submit()),
+                radius: TioSize.dp24,
+                child: SizedBox(
+                  width: TioSize.dp40,
+                  height: TioSize.dp40,
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: TioSize.dp22,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
+            )
+          else
             Semantics(
               key: const ValueKey('add-food-voice'),
               button: true,
@@ -281,10 +448,12 @@ class _DescribeMealSurface extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
+
+    if (available) return card;
+    return Opacity(opacity: TioOpacity.opacity64, child: card);
   }
 }
 
