@@ -1,4 +1,5 @@
 import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
+import { mealParserDiagnostic, type MealParserProviderErrorCategory } from "./diagnostics.ts";
 import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
@@ -57,7 +58,10 @@ export class EdamamResolver implements FoodNutritionResolver {
   }
 
   async resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult> {
-    if (!this.#appId || !this.#appKey) return { kind: "unavailable" };
+    if (!this.#appId || !this.#appKey) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "missing_configuration" });
+      return { kind: "unavailable" };
+    }
     if (candidate.quantity === null || candidate.unit === null) {
       return { kind: "incomplete" };
     }
@@ -112,7 +116,12 @@ export class EdamamResolver implements FoodNutritionResolver {
     const response = await this.#boundedFetch(url, {
       headers: { Accept: "application/json" },
     }, signal);
-    if (response === null || !response.ok) {
+    if (response === null) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "transport_or_timeout" });
+      return { kind: "fail", result: { kind: "unavailable" } };
+    }
+    if (!response.ok) {
+      await logEdamamHttpError(response);
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -128,6 +137,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       }
       return { kind: "ok", value: first as ParsedFood };
     } catch {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "malformed_response" });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
   }
@@ -160,7 +170,12 @@ export class EdamamResolver implements FoodNutritionResolver {
         ],
       }),
     }, signal);
-    if (response === null || !response.ok) {
+    if (response === null) {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "transport_or_timeout" });
+      return { kind: "fail", result: { kind: "unavailable" } };
+    }
+    if (!response.ok) {
+      await logEdamamHttpError(response);
       return { kind: "fail", result: { kind: "unavailable" } };
     }
 
@@ -175,6 +190,7 @@ export class EdamamResolver implements FoodNutritionResolver {
         totalNutrients: raw as Readonly<Record<string, EdamamNutrient>>,
       };
     } catch {
+      mealParserDiagnostic("resolver_unavailable", { provider: "edamam", reason: "malformed_response" });
       return { kind: "fail", result: { kind: "unavailable" } };
     }
   }
@@ -250,4 +266,59 @@ export function buildEdamamItem(
     servingUnit: candidate.unit,
     nutritionSnapshot: snapshot,
   };
+}
+
+
+async function logEdamamHttpError(response: Response): Promise<void> {
+  mealParserDiagnostic("resolver_unavailable", {
+    provider: "edamam",
+    reason: "http_error",
+    httpStatus: response.status,
+    providerErrorCategory: await edamamErrorCategory(response),
+  });
+}
+
+async function edamamErrorCategory(response: Response): Promise<MealParserProviderErrorCategory> {
+  if (response.status === 429) return "rate_limit";
+
+  let signal = "";
+  try {
+    const payload = await response.clone().json() as Record<string, unknown>;
+    signal = [
+      typeof payload.code === "string" ? payload.code : "",
+      typeof payload.error === "string" ? payload.error : "",
+      typeof payload.message === "string" ? payload.message : "",
+    ].join(" ");
+  } catch {
+    // Never log or propagate raw provider response content.
+  }
+
+  const normalized = signal.toLowerCase();
+  if (
+    normalized.includes("quota") ||
+    normalized.includes("limit") ||
+    normalized.includes("rate")
+  ) {
+    return "rate_limit";
+  }
+  if (
+    normalized.includes("unauthorized app_id") ||
+    normalized.includes("another api") ||
+    normalized.includes("auth") ||
+    normalized.includes("credential")
+  ) {
+    return "authentication";
+  }
+  if (
+    normalized.includes("plan") ||
+    normalized.includes("subscription") ||
+    normalized.includes("entitlement") ||
+    normalized.includes("access")
+  ) {
+    return "authorization_or_entitlement";
+  }
+  if (response.status === 401) return "unknown";
+  if (response.status === 403) return "authorization_or_entitlement";
+  if (response.status >= 400 && response.status < 500) return "invalid_request";
+  return "unknown";
 }

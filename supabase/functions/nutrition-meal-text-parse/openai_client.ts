@@ -1,4 +1,5 @@
 import type { InterpretationResult, MealInterpreter } from "./types.ts";
+import { mealParserDiagnostic } from "./diagnostics.ts";
 import { fetchWithTimeout } from "./async_control.ts";
 import {
   MEAL_INTERPRETER_INSTRUCTIONS,
@@ -53,7 +54,10 @@ export class OpenAIMealInterpreter implements MealInterpreter {
     mealText: string,
     signal?: AbortSignal,
   ): Promise<InterpretationResult> {
-    if (!this.#apiKey) return { kind: "unavailable" };
+    if (!this.#apiKey) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "missing_configuration" });
+      return { kind: "unavailable" };
+    }
 
     const response = await fetchWithTimeout(
       this.#fetch,
@@ -90,14 +94,27 @@ export class OpenAIMealInterpreter implements MealInterpreter {
       signal,
     );
 
-    if (response === null || !response.ok) return { kind: "unavailable" };
+    if (response === null) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "transport_or_timeout" });
+      return { kind: "unavailable" };
+    }
+    if (!response.ok) {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "http_error", httpStatus: response.status });
+      return { kind: "unavailable" };
+    }
 
     try {
       const envelope = (await response.json()) as OpenAIResponseEnvelope;
       const text = extractStructuredText(envelope);
-      if (text === null) return { kind: "unavailable" };
-      return parseInterpretationJson(text);
+      if (text === null) {
+        mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "malformed_response" });
+        return { kind: "unavailable" };
+      }
+      const result = parseInterpretationJson(text);
+      if (result.kind === "unavailable") mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "malformed_response" });
+      return result;
     } catch {
+      mealParserDiagnostic("interpreter_unavailable", { provider: "openai", reason: "malformed_response" });
       return { kind: "unavailable" };
     }
   }
