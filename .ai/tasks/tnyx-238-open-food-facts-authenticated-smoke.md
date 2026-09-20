@@ -1,101 +1,129 @@
 # TNYX-238 — Open Food Facts authenticated smoke validation
 
-**Status:** In progress
+**Status:** Complete — PARTIAL candidate outcome
 **Primary owner:** TNYX-238 / bounded capability validation
 **Affected surface:** existing debug-only Flutter smoke harness + already-deployed synthetic Open Food Facts probe
 
-## Owner Approval and Scope
+## Scope
 
-Owner approved continuing this bounded validation slice via repeated `go` / `go next` instructions.
+Owner approved this bounded validation slice via repeated `go` / `go next` instructions.
 
-In scope:
-- reuse the existing signed-in Supabase client and debug-only smoke route;
-- invoke only `tnyx-238-open-food-facts-probe`;
-- display bounded synthetic query/category plus sanitized matched product name and complete per-100g kcal/protein/carbs/fat;
-- assess whether resolved results are nutritionally defensible;
-- reconfirm the `dahi` unavailable case;
-- record validation truthfully.
+Validated:
+- existing signed-in Supabase client + debug-only smoke route;
+- `tnyx-238-open-food-facts-probe`;
+- bounded synthetic query/category + sanitized matched product name + complete per-100g kcal/protein/carbs/fat;
+- semantic/nutrition defensibility;
+- runtime behavior for the four fixed queries.
 
-Explicit non-goals:
-- no production meal-parser routing change;
+Explicitly unchanged:
+- no production meal-parser routing;
 - no Add Food / TNYX-226 activation;
 - no persistence, schema/RLS/RPC, secrets, provider-key, or `services/api` change;
-- no raw provider payload/URL, JWT, access token, credential, identity, or user meal text exposure;
-- no deployment or merge from this slice without separate authorization.
+- no deployment/merge authorization.
 
-## Reconciled Starting State — 2026-09-20
+## Exact Tested Source State
+
+Branch:
+- `tnyx/tnyx-238-open-food-facts-smoke-action`
+
+Exact source/test head validated locally:
+- `9979985638bb3bae986f0c4ee82356774787d899`
 
 Immediate stacked base:
-- PR #289 branch: `tnyx/tnyx-229-authenticated-smoke-harness`
-- base SHA: `83392b32e7e9baf7cf88b10a7d7e390d90aabbc1`
+- PR #289 / `83392b32e7e9baf7cf88b10a7d7e390d90aabbc1`
 
-Current slice:
-- PR #295
-- branch: `tnyx/tnyx-238-open-food-facts-smoke-action`
-- current head before this docs reconciliation: `6e8fc5daa6b833b3fc892b8546580f09e6854b92`
-- stacked delta: TNYX-238 debug wiring + provenance display + focused widget coverage + this task brief
-- PR remains Draft and mergeable
-- unresolved review threads: 0
+The final task-handoff edit after validation is docs-only. Do not confuse that later docs SHA with the exact source head above that was actually analyzed, tested, and run.
 
-Live Supabase:
-- `tnyx-238-open-food-facts-probe`: ACTIVE v1, `verify_jwt=true`
-- deployed probe is synthetic-only and accepts no user meal text
-- production `nutrition-meal-text-parse` routing is unchanged
+## Executable Validation
 
-Recorded authenticated capability evidence from the prior smoke head:
-- `plain yogurt`: resolved
-- `dal`: resolved
-- `roti`: resolved
-- `dahi`: unavailable
+On exact tested source head `9979985638bb3bae986f0c4ee82356774787d899`:
 
-This evidence is PARTIAL because result category alone does not prove semantic/nutrition match quality.
+- working tree clean and expected SHA matched;
+- `flutter test test/app/meal_parser_smoke_page_test.dart`: PASS (2 tests);
+- `flutter test test/app/meal_parser_smoke_route_test.dart`: PASS (3 tests);
+- `flutter analyze`: completed with one info-level lint at `meal_parser_smoke_page.dart:154` (`unnecessary braces in string interpolation`), so no error/warning blocker but not zero-diagnostic clean;
+- normal restored signed-in session reached the debug smoke page;
+- Open Food Facts capability action invoked once;
+- no JWT/access token/key/runtime file contents exposed.
 
-## Current Validation Goal
+## Live Provenance Results
 
-Run the existing authenticated debug action once with the latest provenance-display code and record only:
+- `plain yogurt` → `resolved` | `Yogurt Greek Style` | 96.1759082217972 kcal, P 4.6g, C 3.2g, F 10g /100g
+- `dal` → `unavailable`
+- `roti` → `unavailable`
+- `dahi` → `resolved` | `Dahi Yogurt` | 65 kcal, P 4g, C 4.6g, F 3.1g /100g
 
-`query -> category | productName | kcal, protein, carbs, fat /100g`
+## Quality Assessment
 
-Then assess:
-1. whether the matched product is a defensible match for the query;
-2. whether the factual macro set is complete and plausible for that matched product;
-3. whether `dahi` remains unavailable/incomplete;
-4. whether Open Food Facts merits a separate production adapter/readiness slice.
+### dahi
 
-## Focused Test Coverage
+`Dahi Yogurt` is a plausible/defensible match for this bounded probe.
 
-Added `apps/app/test/app/meal_parser_smoke_page_test.dart` on head `6e8fc5da...`.
+Macro-derived energy:
+- protein: 4g × 4 = 16 kcal
+- carbs: 4.6g × 4 = 18.4 kcal
+- fat: 3.1g × 9 = 27.9 kcal
+- total ≈ 62.3 kcal vs reported 65 kcal
 
-The test covers:
-- resolved provenance display: query + category + sanitized product name + complete per-100g kcal/protein/carbs/fat;
-- unavailable bounded display;
-- malformed probe payload fails closed to the existing safe message;
-- no token/http detail is rendered by the synthetic fixture.
+The ~4% difference is reasonably consistent with label/rounding variation.
 
-Execution status: **AUTHORED, NOT EXECUTED** in the connected tool surface. Do not claim PASS until Flutter validation actually runs.
+### plain yogurt
 
-## CI / Review Reconciliation
+`Yogurt Greek Style` is technically complete but not defensible enough for generic production mapping.
 
-PR #295 does not auto-run Flutter CI because `.github/workflows/flutter-ci.yml` limits pull-request runs to PRs targeting `main`, while #295 is intentionally stacked on PR #289.
+Macro-derived energy:
+- protein: 4.6g × 4 = 18.4 kcal
+- carbs: 3.2g × 4 = 12.8 kcal
+- fat: 10g × 9 = 90 kcal
+- total ≈ 121.2 kcal vs reported 96.1759 kcal
 
-The earlier app head received `github-advanced-security`, but that job failed in scanner infrastructure with:
+That is about a 26% difference. The current probe cannot determine whether this is source-data inconsistency or another product-data nuance, and it has no nutrition consistency guardrail.
 
-`400 The requested model is not supported`
+The product identity is also a specific `Greek Style` yogurt rather than a strong generic `plain yogurt` match.
 
-No code finding was produced by that failure. Do not represent it as a Flutter/source validation failure.
+### dal / roti
 
-Parent PR #289 exact head previously passed Flutter CI for the underlying smoke harness. The #295-specific provenance/widget-test delta still requires executable Flutter validation and one fresh authenticated provenance run before final handoff.
+Both returned `unavailable` in the final run.
 
-Attempts to reproduce the live probe from the current assistant runtime were blocked by environment/network restrictions:
-- direct Supabase function call: DNS resolution unavailable;
-- direct Open Food Facts legacy search endpoint: blocked by web tooling/robots policy.
+The bounded UI intentionally collapses no-match, timeout, and provider/runtime errors into `unavailable`, so the exact cause is not claimed.
 
-These limitations are tooling constraints, not runtime evidence.
+## Provider / Endpoint Constraints
 
-## Handoff Rule
+Previously recorded TNYX-238 provider audit remains applicable:
+- public read access does not require a provider secret;
+- legacy full-text search rate limit: 10 requests/min/IP;
+- product read rate limit: 15 requests/min/IP;
+- Open Food Facts community data has no completeness/accuracy guarantee;
+- database reuse carries ODbL / attribution/storage implications;
+- current probe uses legacy `/cgi/search.pl`, which provides full-text search but is not the preferred new-integration direction.
 
-TNYX-238 remains `PARTIAL` until:
-1. the latest focused Flutter test/analyze validation is actually executed; and
-2. the latest normal signed-in provenance-display run is recorded and the three resolved matches are assessed.
+## Final Verdict
 
-Do not clear TNYX-229 or TNYX-226 merely because the Open Food Facts diagnostic probe returns resolved cases.
+**Open Food Facts candidate: PARTIAL**
+
+The source is useful for some packaged/branded products, but this validation does not support using the current plain-text legacy search as a generic factual resolver for common Indian home-food terms.
+
+The current probe:
+- resolves only 2/4 final queries;
+- can return a semantically loose first complete match;
+- does not perform semantic ranking/confidence;
+- does not reject internally inconsistent nutrition;
+- uses a legacy full-text search endpoint.
+
+## Adapter Recommendation
+
+Do **not** start a generic production Open Food Facts adapter slice from this evidence.
+
+A future separate slice is justified only if deliberately narrowed, such as barcode/product-identity or packaged-food use, and should include:
+- non-legacy lookup/search strategy where possible;
+- semantic/product-identity confidence guardrails;
+- nutrition consistency checks;
+- deterministic rounding/presentation;
+- explicit ODbL attribution/storage treatment;
+- rate-limit handling and fallback behavior.
+
+## Handoff
+
+TNYX-238 is complete with a `PARTIAL` candidate result.
+
+This result does **not** clear TNYX-229 or TNYX-226 and does not authorize production routing changes.
