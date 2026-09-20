@@ -32,9 +32,10 @@ Immediate stacked base:
 Current slice:
 - PR #295
 - branch: `tnyx/tnyx-238-open-food-facts-smoke-action`
-- pre-reconciliation head: `32dd9defbb36be64fd5785b1a8d81d07b5c1aa10`
-- stacked delta before this brief: 4 commits, 3 app-shell files, 0 unresolved review threads
+- current head before this docs reconciliation: `6e8fc5daa6b833b3fc892b8546580f09e6854b92`
+- stacked delta: TNYX-238 debug wiring + provenance display + focused widget coverage + this task brief
 - PR remains Draft and mergeable
+- unresolved review threads: 0
 
 Live Supabase:
 - `tnyx-238-open-food-facts-probe`: ACTIVE v1, `verify_jwt=true`
@@ -61,20 +62,40 @@ Then assess:
 3. whether `dahi` remains unavailable/incomplete;
 4. whether Open Food Facts merits a separate production adapter/readiness slice.
 
+## Focused Test Coverage
+
+Added `apps/app/test/app/meal_parser_smoke_page_test.dart` on head `6e8fc5da...`.
+
+The test covers:
+- resolved provenance display: query + category + sanitized product name + complete per-100g kcal/protein/carbs/fat;
+- unavailable bounded display;
+- malformed probe payload fails closed to the existing safe message;
+- no token/http detail is rendered by the synthetic fixture.
+
+Execution status: **AUTHORED, NOT EXECUTED** in the connected tool surface. Do not claim PASS until Flutter validation actually runs.
+
 ## CI / Review Reconciliation
 
 PR #295 does not auto-run Flutter CI because `.github/workflows/flutter-ci.yml` limits pull-request runs to PRs targeting `main`, while #295 is intentionally stacked on PR #289.
 
-The exact pre-reconciliation head did receive `github-advanced-security`, but that job failed in scanner infrastructure with:
+The earlier app head received `github-advanced-security`, but that job failed in scanner infrastructure with:
 
 `400 The requested model is not supported`
 
 No code finding was produced by that failure. Do not represent it as a Flutter/source validation failure.
 
-Parent PR #289 exact head previously passed Flutter CI, but the new #295 delta still needs focused validation or a fresh authenticated app run before final handoff.
+Parent PR #289 exact head previously passed Flutter CI for the underlying smoke harness. The #295-specific provenance/widget-test delta still requires executable Flutter validation and one fresh authenticated provenance run before final handoff.
+
+Attempts to reproduce the live probe from the current assistant runtime were blocked by environment/network restrictions:
+- direct Supabase function call: DNS resolution unavailable;
+- direct Open Food Facts legacy search endpoint: blocked by web tooling/robots policy.
+
+These limitations are tooling constraints, not runtime evidence.
 
 ## Handoff Rule
 
-TNYX-238 remains `PARTIAL` until the latest provenance-display run is recorded and the three resolved matches are assessed.
+TNYX-238 remains `PARTIAL` until:
+1. the latest focused Flutter test/analyze validation is actually executed; and
+2. the latest normal signed-in provenance-display run is recorded and the three resolved matches are assessed.
 
 Do not clear TNYX-229 or TNYX-226 merely because the Open Food Facts diagnostic probe returns resolved cases.
