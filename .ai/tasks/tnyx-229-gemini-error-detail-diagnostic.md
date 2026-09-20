@@ -1,6 +1,6 @@
 # TNYX-229 — Gemini ErrorInfo / BadRequest diagnostic refinement
 
-**Status:** In progress
+**Status:** Review ready
 **Primary owner:** ChatGPT
 **Affected platforms:** Supabase Edge Function only
 
@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned until implementation completes
-**Implementation ownership state:** Active
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@2b49fb589d3d16ee8d5d9704327854a17dbf3391`; live parser ACTIVE v29, `verify_jwt=true`, bundle SHA `c523ec4320699680c67e8bd925703ad384e5c47d72f6af1bf61d4ea0e171a50f`.
 **Branch:** `tnyx/tnyx-229-gemini-error-detail-diagnostic`
 **HEAD SHA:** `2b49fb589d3d16ee8d5d9704327854a17dbf3391` at branch creation
 **Observed working-tree state:** Not applicable through GitHub connector; branch created from exact current main.
 **Observed uncommitted/dirty files:** Not observable / not applicable to connector-only execution.
-**PR / tracker:** TNYX-229 In Progress; TNYX-226 Backlog / blocked; no PR yet.
-**Current implementation state:** Task brief created before source mutation.
+**PR / tracker:** Draft PR #297; TNYX-229 In Progress; TNYX-226 Backlog / blocked.
+**Current implementation state:** Bounded ErrorInfo/BadRequest diagnostic refinement implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
-**Validation completed at SHA:** Existing current-main validation inherited; new slice not validated yet.
-**Validation remaining:** Focused type-check/tests + complete diff review + exact-head CI.
-**Current blocker:** Reproducible Gemini `INVALID_ARGUMENT` does not yet identify credential/service reason or offending request area.
+**Validation completed at SHA:** `bed033b0a8ea191079985eeffd38063224a41934` — Supabase Functions CI #36 PASS.
+**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Current blocker:** Production observation requires separate merge/deploy authorization; source slice has no blocking implementation finding.
 **Open review finding IDs:** None.
-**Next exact action:** Add bounded `ErrorInfo.reason` and `BadRequest.fieldViolations.field` classification with explicit redaction tests.
+**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -117,19 +117,27 @@ No UI/product-visible change. Missing, malformed or unknown detail values safely
 
 ## 5. Implementation Plan
 
-- [ ] Add provider-error reason and request-field category types to diagnostics.
-- [ ] Parse Gemini error details once and preserve current status classifier.
-- [ ] Add exact ErrorInfo reason allowlist.
-- [ ] Add closed BadRequest field-category mapping for camelCase/snake_case paths.
-- [ ] Add focused redaction/malformed/unknown tests.
-- [ ] Preserve existing request-envelope regression test.
-- [ ] Create Draft PR, run CI, review complete delta, and hand off at Ready for Review.
+- [x] Add provider-error reason and request-field category types to diagnostics.
+- [x] Parse Gemini error details once and preserve current status classifier.
+- [x] Add exact ErrorInfo reason allowlist scoped to `googleapis.com`.
+- [x] Add closed BadRequest field-category mapping for camelCase/snake_case paths.
+- [x] Add focused redaction/malformed/unknown tests.
+- [x] Preserve existing request-envelope regression test.
+- [x] Create Draft PR and validate source head; final docs-only head CI remains.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet.`
+- Supabase Functions CI #35: type-checks PASS, parser tests FAIL due a test-only ambiguous assertion where raw field `model` equaled the safe output category `model`.
+- Test corrected to use raw path `model.privateProviderPath`; implementation behavior unchanged.
+- Supabase Functions CI #36 on source head `bed033b0a8ea191079985eeffd38063224a41934`: PASS.
+- Parser entrypoint type-check: PASS.
+- Parser source/tests type-check: PASS.
+- Parser tests: PASS (93 passed).
+- Complete `main...branch` delta reviewed: exactly 4 owned files.
+- Existing structured-output request-envelope test remains unchanged.
+- Review tightening: `ErrorInfo.reason` is accepted only when detail type is `google.rpc.ErrorInfo` and domain is exactly `googleapis.com`.
 
 ### Review Findings and Resolution
 
@@ -140,11 +148,18 @@ No UI/product-visible change. Missing, malformed or unknown detail values safely
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/tnyx-229-gemini-error-detail-diagnostic.md`
+- `supabase/functions/nutrition-meal-text-parse/diagnostics.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts`
 
 ### Actual Behavior
 
-Pending.
+Gemini non-2xx diagnostics retain the existing allowlisted gRPC status and now additionally emit:
+- `providerErrorReason`: only a closed set of documented `googleapis.com` infrastructure reasons, otherwise `UNKNOWN`;
+- `providerErrorField`: only `schema | response_format | generation_config | contents | model | unknown`.
+
+The provider response is parsed once from a clone. Raw message, description, metadata, raw field path and unrecognized detail values are never emitted. Runtime outcome remains `unavailable`, preserving existing OpenAI fallback.
 
 ### Known Limitations
 
