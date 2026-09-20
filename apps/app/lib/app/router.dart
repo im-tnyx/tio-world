@@ -53,6 +53,7 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         // Meal Categories screens use, handed down rather than reached for:
         // the feature cannot import this layer.
         mealCategoriesRepository: ref.watch(mealCategoriesRepositoryProvider),
+        mealTextParseRepository: ref.watch(mealTextParseRepositoryProvider),
       ),
     );
   }
