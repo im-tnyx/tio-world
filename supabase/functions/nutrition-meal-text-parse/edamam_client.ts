@@ -281,20 +281,32 @@ async function logEdamamHttpError(response: Response): Promise<void> {
 async function edamamErrorCategory(response: Response): Promise<MealParserProviderErrorCategory> {
   if (response.status === 429) return "rate_limit";
 
-  let code = "";
+  let signal = "";
   try {
     const payload = await response.clone().json() as Record<string, unknown>;
-    code = typeof payload.code === "string"
-      ? payload.code
-      : typeof payload.error === "string"
-      ? payload.error
-      : "";
+    signal = [
+      typeof payload.code === "string" ? payload.code : "",
+      typeof payload.error === "string" ? payload.error : "",
+      typeof payload.message === "string" ? payload.message : "",
+    ].join(" ");
   } catch {
     // Never log or propagate raw provider response content.
   }
 
-  const normalized = code.toLowerCase();
-  if (normalized.includes("auth") || normalized.includes("credential")) {
+  const normalized = signal.toLowerCase();
+  if (
+    normalized.includes("quota") ||
+    normalized.includes("limit") ||
+    normalized.includes("rate")
+  ) {
+    return "rate_limit";
+  }
+  if (
+    normalized.includes("unauthorized app_id") ||
+    normalized.includes("another api") ||
+    normalized.includes("auth") ||
+    normalized.includes("credential")
+  ) {
     return "authentication";
   }
   if (
@@ -305,7 +317,7 @@ async function edamamErrorCategory(response: Response): Promise<MealParserProvid
   ) {
     return "authorization_or_entitlement";
   }
-  if (response.status === 401) return "authentication";
+  if (response.status === 401) return "unknown";
   if (response.status === 403) return "authorization_or_entitlement";
   if (response.status >= 400 && response.status < 500) return "invalid_request";
   return "unknown";
