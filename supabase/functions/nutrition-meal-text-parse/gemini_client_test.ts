@@ -309,3 +309,20 @@ test("Gemini snake_case field_violations container is supported without leaking 
   assert.equal(event.providerErrorField, "schema");
   assert.equal(JSON.stringify(event).includes(rawField), false);
 });
+
+
+test("Gemini ErrorInfo reason requires the googleapis.com domain", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      status: "INVALID_ARGUMENT",
+      details: [{
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        reason: "API_KEY_INVALID",
+        domain: "example.invalid",
+      }],
+    },
+  }, { status: 400 }));
+
+  assert.equal(event.providerErrorReason, "UNKNOWN");
+  assert.equal(JSON.stringify(event).includes("example.invalid"), false);
+});
