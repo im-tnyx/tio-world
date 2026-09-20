@@ -361,6 +361,14 @@ void main() {
       final field = tester.widget<TextField>(find.byKey(_aiTextField));
       expect(field.enabled, isFalse);
       expect(field.decoration?.hintText, 'What did you eat?');
+      // The state line is the only place that says why the field is inert.
+      expect(
+        find.descendant(
+          of: find.byKey(_aiSurface),
+          matching: find.text('Not available yet'),
+        ),
+        findsOne,
+      );
       expect(find.byKey(_aiSubmit), findsNothing);
       expect(find.byKey(const ValueKey('add-food-voice')), findsOne);
 
@@ -412,6 +420,184 @@ void main() {
       expect(find.byKey(_aiSubmit), findsNothing);
       expect(parser.inputs, isEmpty);
     });
+
+    testWidgets(
+        'describe meal shows a single prompt and no themed outline on the field',
+        (tester) async {
+      final parser = _RecordingTextParseRepository();
+      await _pump(tester, mealTextParseRepository: parser);
+      await _openAddFood(tester);
+
+      // At rest the hint is the only prompt; there is no second caption.
+      expect(find.text('What did you eat?'), findsOne);
+      expect(find.text('Describe your meal'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('add-food-ai-supporting-text')),
+        findsNothing,
+      );
+
+      // The card owns the outline. TextField merges the active theme's
+      // InputDecorationTheme before building the decorator, so this is the
+      // decoration that is actually drawn, focused or not.
+      final decoration = tester
+          .widget<InputDecorator>(
+            find.descendant(
+              of: find.byKey(_aiTextField),
+              matching: find.byType(InputDecorator),
+            ),
+          )
+          .decoration;
+      for (final border in <InputBorder?>[
+        decoration.border,
+        decoration.enabledBorder,
+        decoration.focusedBorder,
+        decoration.disabledBorder,
+        decoration.errorBorder,
+        decoration.focusedErrorBorder,
+      ]) {
+        expect(border, InputBorder.none);
+      }
+      expect(decoration.filled, isFalse);
+
+      // A longer description wraps up to four lines before it scrolls.
+      final field = tester.widget<TextField>(find.byKey(_aiTextField));
+      expect(field.maxLines, 4);
+
+      // The keyboard icon paints no splash or highlight around itself.
+      final keyboard =
+          tester.widget<InkResponse>(find.byKey(const ValueKey('add-food-keyboard')));
+      expect(keyboard.splashFactory, NoSplash.splashFactory);
+      for (final state in [
+        <WidgetState>{},
+        {WidgetState.pressed},
+        {WidgetState.hovered},
+        {WidgetState.focused},
+      ]) {
+        expect(keyboard.overlayColor!.resolve(state), TioPalette.transparent);
+      }
+
+      // The mic is the voice-logging entry point, so it keeps the primary
+      // colour even while it is inert.
+      final mic = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('add-food-voice')),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(mic.color, tester.element(find.byKey(_aiSurface)).tioColors.primary);
+
+      // The prompt is drawn as a hint: muted and lighter than the text the
+      // reader types, at the same size so nothing shifts once they start.
+      final hint = field.decoration!.hintStyle!;
+      expect(hint.color, isNot(field.style!.color));
+      expect(hint.fontWeight, FontWeight.w400);
+      expect(field.style!.fontWeight, FontWeight.w600);
+      expect(hint.fontSize, field.style!.fontSize);
+    });
+
+    // The sheet must not rise with the keyboard or sink when it opens; its
+    // bottom and everything from the Photo card down stay put. Only when the
+    // keyboard would otherwise cover the describe card does the top part — the
+    // title row and the describe card, keeping their spacing — move up
+    // together, with the sheet's surface stretching upward to hold them.
+    //
+    // [navBar] is the 3-button navigation bar. While the keyboard is open it
+    // covers that bar, so Android reports the bar as `padding` only until the
+    // keyboard appears (`viewPadding` never changes). A sheet that followed
+    // `padding` would sink by the bar's height the moment the keyboard opened.
+    //
+    // [mustMove] pins the cases where the outcome is not a matter of a few
+    // pixels: `false` for a keyboard that cannot reach the card, `true` for one
+    // that certainly covers it. `null` leaves it to the invariant below.
+    void keyboardTest(
+      String name,
+      Size size,
+      double keyboard, {
+      double navBar = 0,
+      bool? mustMove,
+    }) {
+      testWidgets('describe meal stays reachable with the keyboard on $name',
+          (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        tester.view.padding = FakeViewPadding(bottom: navBar);
+        tester.view.viewPadding = FakeViewPadding(bottom: navBar);
+        addTearDown(tester.view.reset);
+        final parser = _RecordingTextParseRepository();
+        await _pump(tester, mealTextParseRepository: parser);
+        await _openAddFood(tester);
+
+        // The whole outlined card, not just the text inside it, has to end up
+        // clear of the keyboard.
+        final describeCard = find
+            .ancestor(of: find.byKey(_aiTextField), matching: find.byType(TioCard))
+            .first;
+        final title = find.text('Add Food');
+        final sheetBefore = tester.getRect(find.byKey(_sheet));
+        final photoBefore = tester.getRect(find.byKey(_photoCard));
+        final cardBefore = tester.getRect(describeCard);
+        final titleBefore = tester.getRect(title);
+
+        tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+        tester.view.padding = FakeViewPadding.zero;
+        await tester.tap(find.byKey(_aiTextField));
+        await tester.pumpAndSettle();
+
+        final sheet = tester.getRect(find.byKey(_sheet));
+        final card = tester.getRect(describeCard);
+        final titleNow = tester.getRect(title);
+        final keyboardTop = size.height - keyboard;
+
+        // The bottom of the sheet and everything from the Photo card down do
+        // not move.
+        expect(sheet.bottom, sheetBefore.bottom);
+        expect(tester.getRect(find.byKey(_photoCard)), photoBefore);
+
+        // The title row and the card keep the same distance, whatever moves.
+        expect(
+          card.top - titleNow.bottom,
+          moreOrLessEquals(cardBefore.top - titleBefore.bottom, epsilon: 0.5),
+        );
+
+        final alreadyClear = cardBefore.bottom + TioSpacing.sm <= keyboardTop;
+        if (mustMove != null) expect(alreadyClear, !mustMove);
+
+        if (alreadyClear) {
+          // Nothing needs to make room, so nothing moves.
+          expect(card, cardBefore);
+          expect(titleNow, titleBefore);
+          expect(sheet, sheetBefore);
+        } else {
+          // Exactly as much room as is missing, and no more.
+          expect(
+            card.bottom,
+            moreOrLessEquals(keyboardTop - TioSpacing.sm, epsilon: 1),
+            reason: 'the describe card must rest just above the keyboard',
+          );
+          final lift = cardBefore.top - card.top;
+          expect(lift, greaterThan(0));
+          // The title moves by the same amount and the surface stretches
+          // upward by it.
+          expect(titleBefore.top - titleNow.top, moreOrLessEquals(lift));
+          expect(sheetBefore.top - sheet.top, moreOrLessEquals(lift));
+        }
+      });
+    }
+
+    keyboardTest('a 360x800 phone with a short keyboard', const Size(360, 800),
+        200,
+        mustMove: false);
+    keyboardTest('a 360x800 phone', const Size(360, 800), 320);
+    keyboardTest(
+      'a 360x800 phone with 3-button navigation',
+      const Size(360, 800),
+      340,
+      navBar: 48,
+    );
+    keyboardTest('a 360x800 phone with a very tall keyboard',
+        const Size(360, 800), 460,
+        mustMove: true);
+    keyboardTest('a small 320x560 phone', const Size(320, 560), 260);
 
     testWidgets('keyboard affordance focuses and hides without submitting',
         (tester) async {

@@ -46,18 +46,29 @@ Future<MealDiaryAddFoodResult?> showMealDiaryAddFoodSheet(
     backgroundColor: TioPalette.transparent,
     builder: (sheetContext) => Stack(
       children: [
-        SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            child: AddFoodSheet(
-              mealTextParseRepository: mealTextParseRepository,
-              onParsed: (draft) => Navigator.of(sheetContext).pop(
-                MealDiaryAddFoodResult.parsedText(draft),
+        // The sheet stays where it is when the keyboard opens; the keyboard is
+        // drawn over its lower part. `SafeArea` would follow `padding`, which
+        // Android shrinks to zero while the keyboard covers the navigation
+        // bar, so the sheet would sink by the bar's height. The bar's height
+        // is `viewPadding`, which does not change, so it is used instead.
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewPaddingOf(sheetContext).bottom,
+          ),
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: SingleChildScrollView(
+              child: AddFoodSheet(
+                mealTextParseRepository: mealTextParseRepository,
+                onParsed: (draft) => Navigator.of(sheetContext).pop(
+                  MealDiaryAddFoodResult.parsedText(draft),
+                ),
+                onQuickAdd: () => Navigator.of(sheetContext).pop(
+                  const MealDiaryAddFoodResult.quickAdd(),
+                ),
+                onDismiss: () => Navigator.of(sheetContext).pop(),
               ),
-              onQuickAdd: () => Navigator.of(sheetContext).pop(
-                const MealDiaryAddFoodResult.quickAdd(),
-              ),
-              onDismiss: () => Navigator.of(sheetContext).pop(),
             ),
           ),
         ),
@@ -65,7 +76,7 @@ Future<MealDiaryAddFoodResult?> showMealDiaryAddFoodSheet(
           left: 0,
           right: 0,
           bottom: 0,
-          height: MediaQuery.paddingOf(sheetContext).bottom,
+          height: MediaQuery.viewPaddingOf(sheetContext).bottom,
           child: ColoredBox(
             key: const ValueKey('meal-diary-add-food-bottom-inset-fill'),
             color: sheetContext.tioColors.surface,
@@ -157,7 +168,7 @@ class AddFoodSheet extends StatelessWidget {
             repository: mealTextParseRepository,
             onParsed: onParsed,
           ),
-          const SizedBox(height: TioSpacing.md),
+          const _KeyboardGap(),
           const _PhotoCard(),
           const SizedBox(height: TioSpacing.md),
           // Intrinsic height so the two compact cards match whichever of them
@@ -299,17 +310,17 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
     widget.onParsed(draft);
   }
 
-  String _supportingText() {
-    if (!_isAvailable) {
-      return 'Describe your meal · ${AddFoodSheet.unavailable}';
-    }
+  /// The line under the field only carries state. At rest the field's own hint
+  /// is the single prompt, so there is nothing to say and no second line.
+  String? _supportingText() {
+    if (!_isAvailable) return AddFoodSheet.unavailable;
     final state = _controller!.state;
     if (state.isProcessing) return 'Processing meal…';
     if (state.status == MealTextParseStatus.failed &&
         state.submittedText == _text.text.trim()) {
       return state.message ?? MealTextParseController.unavailableMessage;
     }
-    return 'Describe your meal';
+    return null;
   }
 
   @override
@@ -336,6 +347,11 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
               key: const ValueKey('add-food-keyboard'),
               onTap: available && !_isProcessing ? _toggleKeyboard : null,
               radius: TioSize.dp24,
+              // Pressing it only shows or hides the keyboard. The splash and
+              // highlight an ink response paints around a bare icon read as a
+              // blur inside the card, so neither is drawn.
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: const WidgetStatePropertyAll(TioPalette.transparent),
               child: SizedBox(
                 width: TioSize.dp40,
                 height: TioSize.dp40,
@@ -362,35 +378,52 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
                   enabled: available && !_isProcessing,
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.send,
-                  maxLines: 3,
+                  maxLines: 4,
                   minLines: 1,
                   onSubmitted: (_) => unawaited(_submit()),
                   style: textTheme.titleMedium?.copyWith(
                     color: colors.textPrimary,
                     fontWeight: TioFontWeight.w600,
                   ),
-                  decoration: InputDecoration.collapsed(
+                  // The card owns the outline. `InputDecoration.collapsed` only
+                  // clears `border`; the theme's enabled/focused outline would
+                  // still be applied, so every border is cleared explicitly.
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    isCollapsed: true,
+                    contentPadding: EdgeInsets.zero,
                     hintText: 'What did you eat?',
+                    // Muted and regular weight, as `TioInput` draws its hint, so
+                    // the prompt reads as a placeholder and typed text does not
+                    // look like it. Same size, so nothing shifts while typing.
                     hintStyle: textTheme.titleMedium?.copyWith(
-                      color: available ? colors.textPrimary : colors.textMuted,
-                      fontWeight: TioFontWeight.w600,
+                      color: colors.textMuted,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
                 ),
-                const SizedBox(height: TioSpacing.xxs),
-                Semantics(
-                  liveRegion: _isProcessing || hasVisibleFailure,
-                  child: Text(
-                    supportingText,
-                    key: const ValueKey('add-food-ai-supporting-text'),
-                    style: TextStyle(
-                      color: hasVisibleFailure
-                          ? colors.danger
-                          : colors.textSecondary,
-                      fontSize: TioFontSize.size12,
+                if (supportingText != null) ...[
+                  const SizedBox(height: TioSpacing.xxs),
+                  Semantics(
+                    liveRegion: _isProcessing || hasVisibleFailure,
+                    child: Text(
+                      supportingText,
+                      key: const ValueKey('add-food-ai-supporting-text'),
+                      style: TextStyle(
+                        color: hasVisibleFailure
+                            ? colors.danger
+                            : colors.textSecondary,
+                        fontSize: TioFontSize.size12,
+                      ),
                     ),
                   ),
-                ),
+                ],
                 ],
               ),
             ),
@@ -443,7 +476,10 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
                   child: Icon(
                     Icons.mic_none_rounded,
                     size: TioSize.dp22,
-                    color: colors.textMuted,
+                    // The entry point for logging a meal by voice, so it keeps
+                    // the primary colour. It is still inert and reported as
+                    // unavailable to assistive technology.
+                    color: colors.primary,
                   ),
                 ),
               ),
@@ -454,6 +490,76 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
 
     if (available) return card;
     return Opacity(opacity: TioOpacity.opacity64, child: card);
+  }
+}
+
+/// The space between the describe card and the Photo card, which stretches
+/// only while the keyboard would otherwise cover the describe card.
+///
+/// The sheet is anchored to the bottom of the screen and does not move when the
+/// keyboard opens. Stretching this gap moves everything above it — the title
+/// row and the describe card, still the same distance apart — up by the amount
+/// it stretches, and the sheet's surface stretches upward with them. Everything
+/// below stays put under the keyboard. On most phones the card is already clear
+/// of the keyboard and the gap keeps its normal height.
+class _KeyboardGap extends StatefulWidget {
+  const _KeyboardGap();
+
+  @override
+  State<_KeyboardGap> createState() => _KeyboardGapState();
+}
+
+class _KeyboardGapState extends State<_KeyboardGap> {
+  /// Distance from the top of the Photo card to the bottom of the sheet. It is
+  /// fixed by the content below the gap, so it does not change while the
+  /// keyboard moves; it is measured once the sheet has finished opening.
+  double? _below;
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final navBar = MediaQuery.viewPaddingOf(context).bottom;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureBelow());
+
+    // The stretch is worked out from the keyboard's height in this same build,
+    // never from where things ended up after the last layout, so it follows
+    // the keyboard frame for frame instead of trailing it.
+    //
+    // The describe card's bottom edge sits `navBar + below + gap + extra` above
+    // the bottom of the screen and has to clear the keyboard by a small margin.
+    var extra = 0.0;
+    final below = _below;
+    if (below != null) {
+      extra = keyboard + TioSpacing.sm - navBar - below - TioSpacing.md;
+      if (extra < 0) extra = 0;
+    }
+    return SizedBox(height: TioSpacing.md + extra);
+  }
+
+  void _measureBelow() {
+    if (!mounted) return;
+    // Mid-transition the sheet is still sliding in, so positions are not final.
+    final opening = ModalRoute.of(context)?.animation;
+    if (opening != null && opening.status != AnimationStatus.completed) return;
+    // A full-height, scrolling sheet keeps the field at the top anyway, and
+    // its positions are not measured from the bottom.
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable != null &&
+        (scrollable.position.pixels != 0 ||
+            scrollable.position.maxScrollExtent > 0)) {
+      return;
+    }
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+
+    final photoTop = box.localToGlobal(Offset(0, box.size.height)).dy;
+    final sheetBottom = MediaQuery.sizeOf(context).height -
+        MediaQuery.viewPaddingOf(context).bottom;
+    final below = sheetBottom - photoTop;
+    final known = _below;
+    if (known == null || (below - known).abs() > 0.5) {
+      setState(() => _below = below);
+    }
   }
 }
 
