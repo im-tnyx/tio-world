@@ -21,8 +21,9 @@ final class MealDiaryAddFoodResult {
       : choice = MealDiaryAddFoodChoice.quickAdd,
         draft = null;
 
-  const MealDiaryAddFoodResult.parsedText(this.draft)
-      : choice = MealDiaryAddFoodChoice.parsedText;
+  const MealDiaryAddFoodResult.parsedText(MealLoggingDraft draft)
+      : choice = MealDiaryAddFoodChoice.parsedText,
+        draft = draft;
 
   final MealDiaryAddFoodChoice choice;
   final MealLoggingDraft? draft;
