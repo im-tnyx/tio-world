@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_shared/shared.dart';
 
 /// A fixed clock, for the same reason the calendar tests use one: "today" has
 /// to mean the same day on every run.
@@ -20,6 +23,9 @@ const _quickAddRow = ValueKey('add-food-quick-add');
 const _searchCard = ValueKey('add-food-search');
 const _photoCard = ValueKey('add-food-photo');
 const _aiSurface = ValueKey('add-food-ai-text');
+const _aiTextField = ValueKey('add-food-ai-text-field');
+const _aiKeyboard = ValueKey('add-food-keyboard');
+const _aiSubmit = ValueKey('add-food-submit');
 const _editor = ValueKey('quick-add-editor');
 const _logMeal = ValueKey('meal-log-footer-primary');
 const _footerCategory = ValueKey('meal-log-footer-category');
@@ -40,6 +46,10 @@ Future<MealDiaryDateController> _pump(
   TioThemeMode mode = TioThemeMode.light,
   Brightness? platformBrightness,
   DateTime Function()? quickAddClock,
+  DateTime Function()? textMealClock,
+  MealTextParseRepository? mealTextParseRepository,
+  MealCategoriesRepository? mealCategoriesRepository,
+  MealLogRepository? mealLogRepository,
 }) async {
   final controller = MealDiaryDateController(clock: () => _now);
 
@@ -54,6 +64,10 @@ Future<MealDiaryDateController> _pump(
     ProviderScope(
       overrides: [
         mealDiaryDateControllerProvider.overrideWith((ref) => controller),
+        if (mealLogRepository != null)
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(
+            mealLogRepository,
+          ),
       ],
       child: MaterialApp(
         // `builder` wraps the router/navigator itself, which is what puts
@@ -73,6 +87,9 @@ Future<MealDiaryDateController> _pump(
           body: MealDiaryPage(
             resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
             quickAddClock: quickAddClock ?? () => _now,
+            textMealClock: textMealClock ?? () => _now,
+            mealTextParseRepository: mealTextParseRepository,
+            mealCategoriesRepository: mealCategoriesRepository,
           ),
         ),
       ),
@@ -336,58 +353,30 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('describing a meal is offered but cannot be typed into',
+    testWidgets('describe meal fails closed when no parser is supplied',
         (tester) async {
       final handle = tester.ensureSemantics();
       await _pump(tester);
       await _openAddFood(tester);
 
-      const surface = ValueKey('add-food-ai-text');
-      const mic = ValueKey('add-food-voice');
+      expect(find.byKey(_aiSurface), findsOne);
+      final field = tester.widget<TextField>(find.byKey(_aiTextField));
+      expect(field.enabled, isFalse);
+      expect(field.decoration?.hintText, 'What did you eat?');
+      expect(find.byKey(_aiSubmit), findsNothing);
+      expect(find.byKey(const ValueKey('add-food-voice')), findsOne);
 
-      expect(find.byKey(surface), findsOne);
-      expect(find.text('What did you eat?'), findsOne);
-
-      // The keyboard glyph leads the surface, saying what kind of thing it is.
-      // It is decorative: one icon, and no semantics node of its own, so a
-      // screen reader hears the surface once rather than twice.
-      final keyboard = find.byIcon(Icons.keyboard_alt_outlined);
-      expect(keyboard, findsOne);
       expect(
-        tester.getRect(keyboard).left,
-        lessThan(tester.getRect(find.text('What did you eat?')).left),
-        reason: 'the glyph leads the prompt',
-      );
-      expect(
-        find.ancestor(of: keyboard, matching: find.byType(ExcludeSemantics)),
-        findsWidgets,
-        reason: 'the glyph must not reach the semantics tree on its own',
-      );
-
-      // It looks like somewhere to type and is not one: no field, no keyboard,
-      // and nothing for assistive technology to edit or invoke.
-      expect(
-        find.descendant(
-          of: find.byKey(_sheet),
-          matching: find.byType(EditableText),
-        ),
-        findsNothing,
-        reason: 'a live field here would collect a sentence and drop it',
-      );
-      expect(
-        tester.getSemantics(find.byKey(surface)),
+        tester.getSemantics(find.byKey(_aiKeyboard)),
         matchesSemantics(
+          isButton: true,
           hasEnabledState: true,
           isEnabled: false,
-          label: 'What did you eat? Describe your meal. Not available yet.',
+          label: 'Show or hide keyboard',
         ),
       );
-
-      // The microphone is present, because the reader should see that voice is
-      // coming, and separately disabled so it cannot pretend to listen.
-      expect(find.byIcon(Icons.mic_none_rounded), findsOne);
       expect(
-        tester.getSemantics(find.byKey(mic)),
+        tester.getSemantics(find.byKey(const ValueKey('add-food-voice'))),
         matchesSemantics(
           isButton: true,
           hasEnabledState: true,
@@ -396,13 +385,143 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(surface), warnIfMissed: false);
-      await tester.tap(find.byKey(mic), warnIfMissed: false);
+      await tester.tap(find.byKey(_aiTextField), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(find.byKey(_sheet), findsOne);
-      expect(find.byKey(_editor), findsNothing);
 
       handle.dispose();
+    });
+
+    testWidgets('blank keeps Mic and nonblank swaps only the right action to Send',
+        (tester) async {
+      final parser = _RecordingTextParseRepository();
+      await _pump(tester, mealTextParseRepository: parser);
+      await _openAddFood(tester);
+
+      expect(find.byKey(const ValueKey('add-food-voice')), findsOne);
+      expect(find.byKey(_aiSubmit), findsNothing);
+
+      await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('add-food-voice')), findsNothing);
+      expect(find.byKey(_aiSubmit), findsOne);
+
+      await tester.enterText(find.byKey(_aiTextField), '   ');
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('add-food-voice')), findsOne);
+      expect(find.byKey(_aiSubmit), findsNothing);
+      expect(parser.inputs, isEmpty);
+    });
+
+    testWidgets('keyboard affordance focuses and hides without submitting',
+        (tester) async {
+      final parser = _RecordingTextParseRepository();
+      await _pump(tester, mealTextParseRepository: parser);
+      await _openAddFood(tester);
+
+      final textField = tester.widget<TextField>(find.byKey(_aiTextField));
+      expect(textField.focusNode!.hasFocus, isFalse);
+
+      await tester.tap(find.byKey(_aiKeyboard));
+      await tester.pump();
+      expect(textField.focusNode!.hasFocus, isTrue);
+      expect(parser.inputs, isEmpty);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(() => tester.view.viewInsets = FakeViewPadding.zero);
+      await tester.pump();
+
+      await tester.tap(find.byKey(_aiKeyboard));
+      await tester.pump();
+      expect(textField.focusNode!.hasFocus, isFalse);
+      expect(parser.inputs, isEmpty);
+    });
+
+    testWidgets('recoverable parse failure keeps text and retries the same meal',
+        (tester) async {
+      var attempts = 0;
+      final parser = _RecordingTextParseRepository(
+        onParse: (_) async {
+          attempts += 1;
+          if (attempts == 1) {
+            throw const MealTextParseFailure(
+              MealTextParseFailureReason.incomplete,
+            );
+          }
+          return _parsedDraft();
+        },
+      );
+      final categories = InMemoryMealCategoriesRepository();
+      final logs = InMemoryMealLogRepository(
+        mealCategoriesRepository: categories,
+        clock: () => _now,
+      );
+
+      await _pump(
+        tester,
+        mealTextParseRepository: parser,
+        mealCategoriesRepository: categories,
+        mealLogRepository: logs,
+      );
+      await _openAddFood(tester);
+      await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
+      await tester.tap(find.byKey(_aiSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_sheet), findsOne);
+      expect(
+        tester.widget<TextField>(find.byKey(_aiTextField)).controller!.text,
+        '  plain yogurt  ',
+      );
+      expect(
+        find.text(MealTextParseController.incompleteMessage),
+        findsOne,
+      );
+
+      await tester.tap(find.byKey(_aiSubmit));
+      await tester.pumpAndSettle();
+
+      expect(parser.inputs, ['plain yogurt', 'plain yogurt']);
+      expect(find.byKey(const ValueKey('meal-editor-create-page')), findsOne);
+    });
+
+    testWidgets(
+        'parsed draft preserves selected diary date and logs only after editor confirmation',
+        (tester) async {
+      final parser = _RecordingTextParseRepository();
+      final categories = InMemoryMealCategoriesRepository();
+      final logs = InMemoryMealLogRepository(
+        mealCategoriesRepository: categories,
+        clock: () => _now,
+      );
+      final dates = await _pump(
+        tester,
+        mealTextParseRepository: parser,
+        mealCategoriesRepository: categories,
+        mealLogRepository: logs,
+        textMealClock: () => _now,
+      );
+
+      dates.select(_yesterday);
+      await tester.pumpAndSettle();
+      await _openAddFood(tester);
+      await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
+      await tester.tap(find.byKey(_aiSubmit));
+      await tester.pumpAndSettle();
+
+      expect(parser.inputs, ['plain yogurt']);
+      expect(find.byKey(const ValueKey('meal-editor-create-page')), findsOne);
+      expect(find.text('Breakfast'), findsOne);
+      expect(find.text('Aug 19, 10:30'), findsOne);
+
+      await tester.tap(find.byKey(_logMeal));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('meal-editor-create-page')), findsNothing);
+      expect(dates.selectedDate, _yesterday);
+      expect(find.text('Plain yogurt'), findsWidgets);
     });
 
     // The sheet used to render all four paths as one vertical list of equal
@@ -1891,3 +2010,38 @@ void main() {
     });
   });
 }
+
+
+final class _RecordingTextParseRepository implements MealTextParseRepository {
+  _RecordingTextParseRepository({this.onParse});
+
+  final Future<MealLoggingDraft> Function(String text)? onParse;
+  final List<String> inputs = [];
+
+  @override
+  Future<MealLoggingDraft> parseMealText(String text) {
+    inputs.add(text);
+    return onParse?.call(text) ?? Future.value(_parsedDraft());
+  }
+}
+
+MealLoggingDraft _parsedDraft() => MealLoggingDraft(
+      mealName: 'Plain yogurt',
+      captureSource: MealLogCaptureSource.text,
+      items: [
+        MealLoggingDraftItem(
+          displayName: 'Plain yogurt',
+          quantity: 200,
+          servingUnit: 'g',
+          consumedNutritionSnapshot: NutritionSnapshot(
+            schemaVersion: 1,
+            nutrients: const {
+              NutrientId.energy: 120,
+              NutrientId.protein: 7,
+              NutrientId.carbohydrate: 9,
+              NutrientId.fat: 6,
+            },
+          ),
+        ),
+      ],
+    );
