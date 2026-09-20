@@ -52,24 +52,18 @@ test("Gemini sends the current structured-output request envelope", async () => 
 
   const body = requestBody as {
     generationConfig?: {
-      responseFormat?: {
-        text?: {
-          mimeType?: string;
-          schema?: unknown;
-        };
-      };
-      responseMimeType?: unknown;
+      responseFormat?: unknown;
+      responseMimeType?: string;
       responseSchema?: unknown;
     };
   };
 
   assert.equal(
-    body.generationConfig?.responseFormat?.text?.mimeType,
+    body.generationConfig?.responseMimeType,
     "application/json",
   );
-  assert.ok(body.generationConfig?.responseFormat?.text?.schema);
-  assert.equal(body.generationConfig?.responseMimeType, undefined);
-  assert.equal(body.generationConfig?.responseSchema, undefined);
+  assert.ok(body.generationConfig?.responseSchema);
+  assert.equal(body.generationConfig?.responseFormat, undefined);
 });
 
 test("Gemini malformed JSON returns unavailable", () => {
