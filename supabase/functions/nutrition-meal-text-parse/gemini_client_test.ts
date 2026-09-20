@@ -155,6 +155,8 @@ test("Gemini HTTP error emits allowlisted provider status without raw message le
     reason: "http_error",
     httpStatus: 400,
     providerErrorStatus: "INVALID_ARGUMENT",
+    providerErrorReason: "UNKNOWN",
+    providerErrorField: "unknown",
   });
   const serialized = JSON.stringify(event);
   assert.equal(serialized.includes("private provider detail"), false);
@@ -172,6 +174,8 @@ test("Gemini unknown provider status is reduced to static UNKNOWN", async () => 
   }, { status: 400 }));
 
   assert.equal(event.providerErrorStatus, "UNKNOWN");
+  assert.equal(event.providerErrorReason, "UNKNOWN");
+  assert.equal(event.providerErrorField, "unknown");
   const serialized = JSON.stringify(event);
   assert.equal(serialized.includes("SOME_NEW_PROVIDER_STATUS"), false);
   assert.equal(serialized.includes("raw message"), false);
@@ -183,5 +187,142 @@ test("Gemini non-JSON HTTP error is reduced to static UNKNOWN", async () => {
   );
 
   assert.equal(event.providerErrorStatus, "UNKNOWN");
+  assert.equal(event.providerErrorReason, "UNKNOWN");
+  assert.equal(event.providerErrorField, "unknown");
   assert.equal(JSON.stringify(event).includes("private provider body"), false);
+});
+
+test("Gemini ErrorInfo reason and BadRequest field are reduced to closed diagnostics", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      code: 400,
+      status: "INVALID_ARGUMENT",
+      message: "private raw provider message",
+      details: [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          reason: "API_KEY_INVALID",
+          domain: "googleapis.com",
+          metadata: {
+            service: "generativelanguage.googleapis.com",
+            privateMetadata: "must not be logged",
+          },
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.BadRequest",
+          fieldViolations: [
+            {
+              field: "generationConfig.responseFormat.text.schema.properties.privateField",
+              description: "private field description",
+              reason: "SOME_FIELD_REASON",
+            },
+          ],
+        },
+      ],
+    },
+  }, { status: 400 }));
+
+  assert.deepEqual(event, {
+    component: "nutrition-meal-text-parse",
+    stage: "interpreter_unavailable",
+    provider: "gemini",
+    reason: "http_error",
+    httpStatus: 400,
+    providerErrorStatus: "INVALID_ARGUMENT",
+    providerErrorReason: "API_KEY_INVALID",
+    providerErrorField: "schema",
+  });
+
+  const serialized = JSON.stringify(event);
+  for (const forbidden of [
+    "private raw provider message",
+    "privateMetadata",
+    "must not be logged",
+    "generationConfig.responseFormat.text.schema.properties.privateField",
+    "private field description",
+    "SOME_FIELD_REASON",
+    "generativelanguage.googleapis.com",
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});
+
+test("Gemini ErrorInfo reason is allowlisted and arbitrary reason is never logged", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      status: "INVALID_ARGUMENT",
+      details: [{
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        reason: "SOME_NEW_PRIVATE_REASON",
+        domain: "googleapis.com",
+      }],
+    },
+  }, { status: 400 }));
+
+  assert.equal(event.providerErrorReason, "UNKNOWN");
+  assert.equal(JSON.stringify(event).includes("SOME_NEW_PRIVATE_REASON"), false);
+});
+
+test("Gemini request-field paths map camelCase and snake_case to closed categories", async () => {
+  const cases = [
+    ["generationConfig.responseFormat.text.schema.properties[0]", "schema"],
+    ["generation_config.response_format.text.mime_type", "response_format"],
+    ["generationConfig.temperature", "generation_config"],
+    ["contents[0].parts[0].text", "contents"],
+    ["model.privateProviderPath", "model"],
+    ["totallyPrivateProviderField.secretValue", "unknown"],
+  ] as const;
+
+  for (const [field, expected] of cases) {
+    const event = await captureGeminiDiagnostic(Response.json({
+      error: {
+        status: "INVALID_ARGUMENT",
+        details: [{
+          "@type": "type.googleapis.com/google.rpc.BadRequest",
+          fieldViolations: [{
+            field,
+            description: "raw description must not be logged",
+          }],
+        }],
+      },
+    }, { status: 400 }));
+
+    assert.equal(event.providerErrorField, expected);
+    const serialized = JSON.stringify(event);
+    assert.equal(serialized.includes(field), false);
+    assert.equal(serialized.includes("raw description"), false);
+  }
+});
+
+test("Gemini snake_case field_violations container is supported without leaking raw path", async () => {
+  const rawField = "generation_config.response_format.text.schema";
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      status: "INVALID_ARGUMENT",
+      details: [{
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        field_violations: [{ field: rawField }],
+      }],
+    },
+  }, { status: 400 }));
+
+  assert.equal(event.providerErrorField, "schema");
+  assert.equal(JSON.stringify(event).includes(rawField), false);
+});
+
+
+test("Gemini ErrorInfo reason requires the googleapis.com domain", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      status: "INVALID_ARGUMENT",
+      details: [{
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        reason: "API_KEY_INVALID",
+        domain: "example.invalid",
+      }],
+    },
+  }, { status: 400 }));
+
+  assert.equal(event.providerErrorReason, "UNKNOWN");
+  assert.equal(JSON.stringify(event).includes("example.invalid"), false);
 });

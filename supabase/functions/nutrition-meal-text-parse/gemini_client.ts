@@ -1,6 +1,8 @@
 import type { InterpretationResult, MealInterpreter } from "./types.ts";
 import {
   mealParserDiagnostic,
+  type MealParserProviderErrorField,
+  type MealParserProviderErrorReason,
   type MealParserProviderErrorStatus,
 } from "./diagnostics.ts";
 import { fetchWithTimeout } from "./async_control.ts";
@@ -86,11 +88,14 @@ export class GeminiMealInterpreter implements MealInterpreter {
       return { kind: "unavailable" };
     }
     if (!response.ok) {
+      const metadata = await geminiErrorMetadata(response);
       mealParserDiagnostic("interpreter_unavailable", {
         provider: "gemini",
         reason: "http_error",
         httpStatus: response.status,
-        providerErrorStatus: await geminiErrorStatus(response),
+        providerErrorStatus: metadata.status,
+        providerErrorReason: metadata.reason,
+        providerErrorField: metadata.field,
       });
       return { kind: "unavailable" };
     }
@@ -140,23 +145,109 @@ const GEMINI_ERROR_STATUSES: ReadonlySet<MealParserProviderErrorStatus> = new Se
   "UNAUTHENTICATED",
 ]);
 
-async function geminiErrorStatus(
+const GEMINI_ERROR_REASONS: ReadonlySet<MealParserProviderErrorReason> =
+  new Set<MealParserProviderErrorReason>([
+    "SERVICE_DISABLED",
+    "BILLING_DISABLED",
+    "API_KEY_INVALID",
+    "API_KEY_SERVICE_BLOCKED",
+    "API_KEY_HTTP_REFERRER_BLOCKED",
+    "API_KEY_IP_ADDRESS_BLOCKED",
+    "API_KEY_ANDROID_APP_BLOCKED",
+    "API_KEY_IOS_APP_BLOCKED",
+    "RATE_LIMIT_EXCEEDED",
+    "RESOURCE_QUOTA_EXCEEDED",
+    "UNKNOWN",
+  ]);
+
+const GOOGLE_ERROR_INFO_TYPE = "type.googleapis.com/google.rpc.ErrorInfo";
+const GOOGLE_BAD_REQUEST_TYPE = "type.googleapis.com/google.rpc.BadRequest";
+
+interface GeminiErrorMetadata {
+  readonly status: MealParserProviderErrorStatus;
+  readonly reason: MealParserProviderErrorReason;
+  readonly field: MealParserProviderErrorField;
+}
+
+async function geminiErrorMetadata(
   response: Response,
-): Promise<MealParserProviderErrorStatus> {
+): Promise<GeminiErrorMetadata> {
+  let status: MealParserProviderErrorStatus = "UNKNOWN";
+  let reason: MealParserProviderErrorReason = "UNKNOWN";
+  let field: MealParserProviderErrorField = "unknown";
+
   try {
     const payload = await response.clone().json() as Record<string, unknown>;
-    const error = payload.error;
-    if (error !== null && typeof error === "object" && !Array.isArray(error)) {
-      const status = (error as Record<string, unknown>).status;
+    const error = asRecord(payload.error);
+    if (error === null) return { status, reason, field };
+
+    const rawStatus = error.status;
+    if (
+      typeof rawStatus === "string" &&
+      GEMINI_ERROR_STATUSES.has(rawStatus as MealParserProviderErrorStatus)
+    ) {
+      status = rawStatus as MealParserProviderErrorStatus;
+    }
+
+    const details = error.details;
+    if (!Array.isArray(details)) return { status, reason, field };
+
+    for (const rawDetail of details) {
+      const detail = asRecord(rawDetail);
+      if (detail === null) continue;
+
       if (
-        typeof status === "string" &&
-        GEMINI_ERROR_STATUSES.has(status as MealParserProviderErrorStatus)
+        detail["@type"] === GOOGLE_ERROR_INFO_TYPE &&
+        detail.domain === "googleapis.com" &&
+        reason === "UNKNOWN"
       ) {
-        return status as MealParserProviderErrorStatus;
+        const rawReason = detail.reason;
+        if (
+          typeof rawReason === "string" &&
+          GEMINI_ERROR_REASONS.has(rawReason as MealParserProviderErrorReason)
+        ) {
+          reason = rawReason as MealParserProviderErrorReason;
+        }
+      }
+
+      if (detail["@type"] === GOOGLE_BAD_REQUEST_TYPE && field === "unknown") {
+        field = badRequestFieldCategory(detail);
       }
     }
   } catch {
     // Never log or propagate raw Gemini response content.
   }
-  return "UNKNOWN";
+
+  return { status, reason, field };
+}
+
+function badRequestFieldCategory(
+  detail: Readonly<Record<string, unknown>>,
+): MealParserProviderErrorField {
+  const rawViolations = Array.isArray(detail.fieldViolations)
+    ? detail.fieldViolations
+    : Array.isArray(detail.field_violations)
+    ? detail.field_violations
+    : [];
+
+  for (const rawViolation of rawViolations) {
+    const violation = asRecord(rawViolation);
+    const rawField = violation?.field;
+    if (typeof rawField !== "string") continue;
+
+    const compact = rawField.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (compact.includes("schema")) return "schema";
+    if (compact.includes("responseformat")) return "response_format";
+    if (compact.includes("generationconfig")) return "generation_config";
+    if (compact.includes("contents")) return "contents";
+    if (compact.includes("model")) return "model";
+  }
+
+  return "unknown";
+}
+
+function asRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : null;
 }
