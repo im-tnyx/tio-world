@@ -7,9 +7,12 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/daily_nutrition_summary.dart';
+import '../../../domain/repositories/detailed_meal_log_create_repository.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../domain/repositories/meal_log_range_read_repository.dart';
 import '../../../domain/repositories/meal_log_repository.dart';
+import '../../../domain/repositories/meal_text_parse_repository.dart';
+import '../../../meal_logging/presentation/pages/meal_editor_text_flow_page.dart';
 import '../../../meal_logging/quick_add_meal_log_edit_controller.dart';
 import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
 import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
@@ -53,7 +56,9 @@ class MealDiaryPage extends ConsumerStatefulWidget {
     super.key,
     this.resolvedFirstDayOfWeek,
     this.quickAddClock,
+    this.textMealClock,
     this.mealCategoriesRepository,
+    this.mealTextParseRepository,
   });
 
   /// The app-global week start, already resolved, supplied by app composition.
@@ -62,8 +67,14 @@ class MealDiaryPage extends ConsumerStatefulWidget {
   /// Canonical Meal Categories owner supplied by app composition.
   final MealCategoriesRepository? mealCategoriesRepository;
 
+  /// Provider-neutral text parser supplied by app composition.
+  final MealTextParseRepository? mealTextParseRepository;
+
   /// Testable local clock seam for a brand-new Quick Add draft.
   final DateTime Function()? quickAddClock;
+
+  /// Testable local clock seam for parsed text-meal editor context.
+  final DateTime Function()? textMealClock;
 
   @override
   ConsumerState<MealDiaryPage> createState() => _MealDiaryPageState();
@@ -119,10 +130,13 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   }
 
   Future<void> _openAddFood() async {
-    final choice = await showMealDiaryAddFoodSheet(context);
-    if (choice == null || !mounted) return;
+    final result = await showMealDiaryAddFoodSheet(
+      context,
+      mealTextParseRepository: widget.mealTextParseRepository,
+    );
+    if (result == null || !mounted) return;
 
-    switch (choice) {
+    switch (result.choice) {
       case MealDiaryAddFoodChoice.quickAdd:
         final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
         final mealCategoriesRepository = widget.mealCategoriesRepository;
@@ -138,6 +152,41 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
             mealCategoriesRepository == null) {
           return;
         }
+
+        _invalidateDiaryDate(
+          repository: mealLogRepository,
+          categoriesRepository: mealCategoriesRepository,
+          localDate: created.consumedLocalDate,
+        );
+
+      case MealDiaryAddFoodChoice.parsedText:
+        final draft = result.draft;
+        final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
+        final mealCategoriesRepository = widget.mealCategoriesRepository;
+        if (draft == null ||
+            mealLogRepository is! DetailedMealLogCreateRepository ||
+            mealCategoriesRepository == null) {
+          _showMealEditMessage(
+            "Couldn't open the meal editor right now. Try again.",
+          );
+          return;
+        }
+
+        final selectedDate =
+            ref.read(mealDiaryDateControllerProvider).selectedDate;
+        final created = await Navigator.of(context, rootNavigator: true)
+            .push<MealLogEntry>(
+          MaterialPageRoute<MealLogEntry>(
+            builder: (_) => MealEditorTextFlowPage(
+              initialDraft: draft,
+              selectedDiaryDate: selectedDate,
+              mealCategoriesRepository: mealCategoriesRepository,
+              detailedCreateRepository: mealLogRepository,
+              clock: widget.textMealClock,
+            ),
+          ),
+        );
+        if (!mounted || created == null) return;
 
         _invalidateDiaryDate(
           repository: mealLogRepository,
