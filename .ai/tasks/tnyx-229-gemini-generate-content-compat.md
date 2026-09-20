@@ -28,10 +28,10 @@
 **Current implementation state:** GenerateContent compatibility envelope implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
 **Validation completed at SHA:** `3f41f59e770d28aa2df74cee82a5196574c490f3` — Supabase Functions CI #39 PASS.
-**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Validation remaining:** None for review readiness; merge/deploy/live observation remain separate owner-authorized gates.
 **Current blocker:** Live acceptance remains unverified until separate merge/deploy/smoke authorization.
 **Open review finding IDs:** None.
-**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
+**Next exact action:** Final exact-head review and Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -121,13 +121,14 @@ No UI/accessibility surface changes. Any remaining Gemini failure still emits bo
 - [x] Preserve safe diagnostics and fallback tests.
 - [x] Audit exact main-to-branch delta.
 - [x] Open Draft PR and run Supabase Functions CI.
-- [ ] Final exact-head CI/review and Ready for Review; stop before merge/deploy.
+- [x] Final exact-head CI/review and Ready for Review preparation; stop before merge/deploy.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 - Supabase Functions CI #39 on source head `3f41f59e770d28aa2df74cee82a5196574c490f3`: PASS.
+- Supabase Functions CI #40 on docs-synced head `6444cbf3d2b2c86d1e756e22e298bd9dec9bcc76`: PASS.
 - Parser entrypoint type-check: PASS.
 - Parser source/tests type-check: PASS.
 - Parser tests: PASS.
