@@ -167,3 +167,56 @@ Do not expose JWT/access tokens, provider credentials, provider bodies/URLs, ide
 - TNYX-226 remains blocked until TNYX-229 is explicitly cleared.
 
 No new production routing, deployment, secret/config, schema/RLS/RPC, or product UI change is authorized by this reconciliation.
+
+
+## Successful authenticated production smoke — 2026-09-20
+
+After the owner created a new Edamam **Food Database API** application, directly validated its App ID/Key pair with the official parser endpoint (`HTTP 200`), and updated the matching Supabase secrets, the existing authenticated smoke harness succeeded for the first time.
+
+Fresh state:
+- harness branch head: `4523af44b709f88fcbb1a615eb725e81643e124f` before this docs-only reconciliation
+- working tree reported clean by owner
+- live `nutrition-meal-text-parse`: ACTIVE v25
+- `verify_jwt=true`
+- bundle SHA-256 unchanged: `ac1dbdd45de10311e370cc8b7c2f16fee091445262e4a4400b3d16a01a8e9553`
+- unchanged bundle hash plus successful direct Edamam credential validation is consistent with the runtime blocker being credential/config-side rather than a parser-code change
+
+Exactly one normal signed-in `Success candidate` (`200 g plain yogurt`) produced:
+- controller status: `succeeded`
+- elapsed: `4803 ms`
+- item count: `1`
+- `captureSource: text`
+- `mealName: Plain yogurt`
+- no failure message
+- no server failure diagnostic in the correlated window
+
+Evidence boundary:
+- this proves the normal authenticated app → repository → protected Edge Function → provider-neutral draft path works on the current live function;
+- it does not identify which interpreter succeeded because success diagnostics are intentionally absent;
+- for the owner account with `country_code=IN`, current routing makes Edamam the factual fallback path after the primary resolver cannot serve that market, but no success-provider event is emitted, so provider attribution should not be overstated;
+- the smoke UI does not expose nutrition values, so this run validates draft construction/reachability, not factual nutrition-value quality.
+
+### Current TNYX-229 technical gate
+
+- deployed function active with JWT verification: PASS
+- normal authenticated end-to-end success: PASS
+- provider-neutral draft readiness: PASS
+- safe failure sanitization: previously observed PASS
+- unavailable behavior: previously observed live and covered by focused tests
+- unauthenticated denial: covered by `verify_jwt=true` plus handler test returning HTTP 401
+- no persistence/UI/schema/services-api changes: PASS for this slice
+- representative live `unrecognized`: still to run
+- representative live `incomplete`: still to run
+- country-aware provider entitlement/commercial coverage: OPEN
+- durable nutrition-storage permission: OPEN
+- TNYX-226 activation: BLOCKED until the remaining live matrix is reconciled and the separate product-activation gates are explicitly decided
+
+### Next exact live matrix
+
+Run exactly once each, without changing secrets/config:
+1. `Unrecognized candidate` → synthetic `qwerty asdf`
+2. `Incomplete candidate` → synthetic `dal`
+
+Record only controller status, elapsedMs, sanitized message, and draft shape if any. Inspect only approved redacted server diagnostics if a failure/provider error is separately visible.
+
+Do not intentionally force `unavailable` by breaking credentials or configuration; that outcome already has live evidence and deterministic test coverage.
