@@ -1,5 +1,8 @@
 import type { InterpretationResult, MealInterpreter } from "./types.ts";
-import { mealParserDiagnostic } from "./diagnostics.ts";
+import {
+  mealParserDiagnostic,
+  type MealParserProviderErrorStatus,
+} from "./diagnostics.ts";
 import { fetchWithTimeout } from "./async_control.ts";
 import {
   geminiInterpretationSchema,
@@ -83,7 +86,12 @@ export class GeminiMealInterpreter implements MealInterpreter {
       return { kind: "unavailable" };
     }
     if (!response.ok) {
-      mealParserDiagnostic("interpreter_unavailable", { provider: "gemini", reason: "http_error", httpStatus: response.status });
+      mealParserDiagnostic("interpreter_unavailable", {
+        provider: "gemini",
+        reason: "http_error",
+        httpStatus: response.status,
+        providerErrorStatus: await geminiErrorStatus(response),
+      });
       return { kind: "unavailable" };
     }
 
@@ -111,4 +119,45 @@ function buildPrompt(mealText: string): string {
 /** Kept for existing callers/tests; normalization is shared across providers. */
 export function parseGeminiInterpretation(text: string): InterpretationResult {
   return parseInterpretationJson(text);
+}
+
+
+const GEMINI_ERROR_STATUSES: ReadonlySet<MealParserProviderErrorStatus> = new Set([
+  "CANCELLED",
+  "UNKNOWN",
+  "INVALID_ARGUMENT",
+  "DEADLINE_EXCEEDED",
+  "NOT_FOUND",
+  "ALREADY_EXISTS",
+  "PERMISSION_DENIED",
+  "RESOURCE_EXHAUSTED",
+  "FAILED_PRECONDITION",
+  "ABORTED",
+  "OUT_OF_RANGE",
+  "UNIMPLEMENTED",
+  "INTERNAL",
+  "UNAVAILABLE",
+  "DATA_LOSS",
+  "UNAUTHENTICATED",
+]);
+
+async function geminiErrorStatus(
+  response: Response,
+): Promise<MealParserProviderErrorStatus> {
+  try {
+    const payload = await response.clone().json() as Record<string, unknown>;
+    const error = payload.error;
+    if (error !== null && typeof error === "object" && !Array.isArray(error)) {
+      const status = (error as Record<string, unknown>).status;
+      if (
+        typeof status === "string" &&
+        GEMINI_ERROR_STATUSES.has(status as MealParserProviderErrorStatus)
+      ) {
+        return status as MealParserProviderErrorStatus;
+      }
+    }
+  } catch {
+    // Never log or propagate raw Gemini response content.
+  }
+  return "UNKNOWN";
 }
