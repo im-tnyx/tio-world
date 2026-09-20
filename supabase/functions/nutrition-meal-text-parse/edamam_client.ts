@@ -76,17 +76,22 @@ export class EdamamResolver implements FoodNutritionResolver {
     const measureLabel = parsed.value.measure?.label;
 
     // Any one of these stops the item; they are checked in order only so the
-    // diagnostic can say which one it was.
-    if (!foodId || !label || quantity === null || !measureUri || !measureLabel) {
+    // diagnostic can say which one it was. A food that was parsed but came back
+    // without an amount or a measure is not `no_match`: something was found and
+    // its amount or unit is what did not fit.
+    if (!foodId || !label) {
       return { kind: "incomplete", reason: "no_match" };
     }
     if (!isSafeFoodIdentityMatch(candidate.foodName, label)) {
       return { kind: "incomplete", reason: "name_mismatch" };
     }
-    if (!quantityMatches(candidate.quantity, quantity)) {
+    if (quantity === null || !quantityMatches(candidate.quantity, quantity)) {
       return { kind: "incomplete", reason: "amount_mismatch" };
     }
-    if (!measureIsCompatible(candidate.unit, measureLabel)) {
+    if (
+      !measureUri || !measureLabel ||
+      !measureIsCompatible(candidate.unit, measureLabel)
+    ) {
       return { kind: "incomplete", reason: "unit_mismatch" };
     }
 

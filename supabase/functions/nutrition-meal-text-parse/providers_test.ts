@@ -338,7 +338,9 @@ test("FatSecret resolver rejects materially expanded food identity", async () =>
       undefined,
       { countryCode: "US" },
     ),
-    { kind: "incomplete", reason: "no_match" },
+    // A food came back and was rejected on identity: the same condition Edamam
+    // reports as `name_mismatch`, not a search that found nothing.
+    { kind: "incomplete", reason: "name_mismatch" },
   );
   assert.equal(calls, 2, "unsafe search result must not fetch provider detail");
 });
