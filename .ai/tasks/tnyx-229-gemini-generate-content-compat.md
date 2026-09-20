@@ -1,6 +1,6 @@
 # TNYX-229 — Gemini generateContent structured-output compatibility fix
 
-**Status:** In progress
+**Status:** Review ready
 **Primary owner:** ChatGPT
 **Affected platforms:** Supabase Edge Function only
 
@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned until implementation completes
-**Implementation ownership state:** Active
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@dec0fa275cc531c8c8f412d138962ca5768131dd`; live parser ACTIVE v32, `verify_jwt=true`, bundle SHA `a17d79c84dfd9a17a719641681c33f47dd9cdce201a22d0f42b22db35e2d15ff`.
 **Branch:** `tnyx/tnyx-229-gemini-generate-content-compat`
 **HEAD SHA:** `dec0fa275cc531c8c8f412d138962ca5768131dd` at branch creation
 **Observed working-tree state:** Not applicable through GitHub connector; branch created from exact current main.
 **Observed uncommitted/dirty files:** Not observable / not applicable to connector-only execution.
-**PR / tracker:** TNYX-229 In Progress; TNYX-226 Backlog / blocked; no PR yet.
-**Current implementation state:** Task brief created before source mutation.
+**PR / tracker:** Draft PR #298; TNYX-229 In Progress; TNYX-226 Backlog / blocked.
+**Current implementation state:** GenerateContent compatibility envelope implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
-**Validation completed at SHA:** Existing main validation inherited; this slice not validated yet.
-**Validation remaining:** Focused request-envelope regression + parser type-check/tests + complete diff review + exact-head CI.
-**Current blocker:** Live Gemini rejects the current structured-output request at `response_format.text.mime_type`.
+**Validation completed at SHA:** `3f41f59e770d28aa2df74cee82a5196574c490f3` — Supabase Functions CI #39 PASS.
+**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Current blocker:** Live acceptance remains unverified until separate merge/deploy/smoke authorization.
 **Open review finding IDs:** None.
-**Next exact action:** Switch only the GenerateContent structured-output envelope to `responseMimeType/responseSchema` and update its regression test.
+**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -116,18 +116,25 @@ No UI/accessibility surface changes. Any remaining Gemini failure still emits bo
 
 ## 5. Implementation Plan
 
-- [ ] Change only Gemini structured-output request envelope.
-- [ ] Update exact request-envelope regression test.
-- [ ] Preserve safe diagnostics and fallback tests.
-- [ ] Audit exact main-to-branch delta.
-- [ ] Open Draft PR and run Supabase Functions CI.
-- [ ] Final review and Ready for Review; stop before merge/deploy.
+- [x] Change only Gemini structured-output request envelope.
+- [x] Update exact request-envelope regression test.
+- [x] Preserve safe diagnostics and fallback tests.
+- [x] Audit exact main-to-branch delta.
+- [x] Open Draft PR and run Supabase Functions CI.
+- [ ] Final exact-head CI/review and Ready for Review; stop before merge/deploy.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet.`
+- Supabase Functions CI #39 on source head `3f41f59e770d28aa2df74cee82a5196574c490f3`: PASS.
+- Parser entrypoint type-check: PASS.
+- Parser source/tests type-check: PASS.
+- Parser tests: PASS.
+- Complete `main...branch` delta reviewed: exactly 3 owned files.
+- Runtime diff is limited to replacing `responseFormat.text.mimeType/schema` with `responseMimeType/responseSchema`.
+- Request-envelope regression asserts the compatibility fields and absence of `responseFormat`.
+- Safe diagnostics/model/endpoint/prompt/schema/fallback remain unchanged.
 
 ### Review Findings and Resolution
 
@@ -138,11 +145,13 @@ No UI/accessibility surface changes. Any remaining Gemini failure still emits bo
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/tnyx-229-gemini-generate-content-compat.md`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts`
 
 ### Actual Behavior
 
-Pending.
+The Gemini interpreter now sends GenerateContent structured-output configuration through `generationConfig.responseMimeType` and `responseSchema`. The live-rejected `generationConfig.responseFormat` structure is absent. All other interpreter and fallback behavior is unchanged.
 
 ### Known Limitations
 
