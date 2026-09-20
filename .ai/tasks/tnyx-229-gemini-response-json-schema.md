@@ -28,10 +28,10 @@
 **Current implementation state:** `responseJsonSchema` compatibility change implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
 **Validation completed at SHA:** `f0902d551fcd290f055bfcca16481a08e256ed90` — Supabase Functions CI #42 PASS.
-**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Validation remaining:** None for review readiness; merge/deploy/live observation remain separate owner-authorized gates.
 **Current blocker:** Live acceptance remains unverified until separate merge/deploy/authenticated smoke.
 **Open review finding IDs:** None.
-**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
+**Next exact action:** Final exact-head review and Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -113,13 +113,14 @@ Creating a Gemini-only OpenAPI schema variant with `nullable:true` is deferred b
 - [x] Confirm `interpretation_schema.ts` is unchanged.
 - [x] Audit exact main-to-branch delta.
 - [x] Open Draft PR and run Supabase Functions CI.
-- [ ] Final exact-head CI/review and Ready for Review; stop before merge/deploy.
+- [x] Final exact-head CI/review preparation complete; stop before merge/deploy.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 - Supabase Functions CI #42 on source head `f0902d551fcd290f055bfcca16481a08e256ed90`: PASS.
+- Supabase Functions CI #43 on docs-synced head `a087d75de7a87afa54440453b004e838d3871d44`: PASS.
 - Parser entrypoint type-check: PASS.
 - Parser source/tests type-check: PASS.
 - Parser tests: PASS.
