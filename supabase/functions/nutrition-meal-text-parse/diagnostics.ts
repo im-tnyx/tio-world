@@ -45,6 +45,30 @@ export type MealParserProviderErrorField =
   | "model"
   | "unknown";
 
+/**
+ * Why a meal ended `incomplete`. A closed set so an event can never carry meal
+ * text, a provider body or user data; it says which check stopped the meal, not
+ * what the user wrote.
+ */
+export type MealParserIncompleteReason =
+  | "missing_amount"
+  | "no_match"
+  | "name_mismatch"
+  | "amount_mismatch"
+  | "unit_mismatch"
+  | "nutrients_missing"
+  | "region_unsupported"
+  | "country_missing"
+  | "no_items"
+  | "unknown";
+
+/** One event per `incomplete` meal. */
+export function mealParserIncompleteDiagnostic(
+  reason: MealParserIncompleteReason = "unknown",
+): void {
+  mealParserDiagnostic("meal_incomplete", { reason });
+}
+
 export function mealParserDiagnostic(
   stage: string,
   options: {

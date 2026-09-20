@@ -13,6 +13,7 @@ import {
   mapConcurrentOrdered,
   raceWithAbort,
 } from "./async_control.ts";
+import { mealParserIncompleteDiagnostic } from "./diagnostics.ts";
 import { resolveWithFallback } from "./resolver.ts";
 import type {
   FoodNutritionResolver,
@@ -80,6 +81,7 @@ export function createMealTextHandler(
 
       const countryCode = authentication.countryCode;
       if (countryCode === null) {
+        mealParserIncompleteDiagnostic("country_missing");
         return response(outcomeResponse("incomplete"));
       }
 
@@ -138,9 +140,18 @@ export function createMealTextHandler(
       }
 
       if (requestAbort.signal.aborted) return unavailableResponse();
-      if (sawIncomplete) return response(outcomeResponse("incomplete"));
+      if (sawIncomplete) {
+        // One event for the meal, with the reason of the first item that
+        // stopped it.
+        const stopped = resolved.find((item) => item.kind === "incomplete");
+        mealParserIncompleteDiagnostic(
+          stopped?.kind === "incomplete" ? stopped.reason : undefined,
+        );
+        return response(outcomeResponse("incomplete"));
+      }
       if (sawUnavailable) return unavailableResponse();
       if (resolvedItems.length !== interpretation.items.length || resolvedItems.length === 0) {
+        mealParserIncompleteDiagnostic("no_items");
         return response(outcomeResponse("incomplete"));
       }
 

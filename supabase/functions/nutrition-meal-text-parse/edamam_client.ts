@@ -63,7 +63,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       return { kind: "unavailable" };
     }
     if (candidate.quantity === null || candidate.unit === null) {
-      return { kind: "incomplete" };
+      return { kind: "incomplete", reason: "missing_amount" };
     }
 
     const parsed = await this.#parseCandidate(candidate, signal);
@@ -75,17 +75,24 @@ export class EdamamResolver implements FoodNutritionResolver {
     const measureUri = parsed.value.measure?.uri;
     const measureLabel = parsed.value.measure?.label;
 
+    // Any one of these stops the item; they are checked in order only so the
+    // diagnostic can say which one it was. A food that was parsed but came back
+    // without an amount or a measure is not `no_match`: something was found and
+    // its amount or unit is what did not fit.
+    if (!foodId || !label) {
+      return { kind: "incomplete", reason: "no_match" };
+    }
+    if (!isSafeFoodIdentityMatch(candidate.foodName, label)) {
+      return { kind: "incomplete", reason: "name_mismatch" };
+    }
+    if (quantity === null || !quantityMatches(candidate.quantity, quantity)) {
+      return { kind: "incomplete", reason: "amount_mismatch" };
+    }
     if (
-      !foodId ||
-      !label ||
-      quantity === null ||
-      !measureUri ||
-      !measureLabel ||
-      !isSafeFoodIdentityMatch(candidate.foodName, label) ||
-      !quantityMatches(candidate.quantity, quantity) ||
+      !measureUri || !measureLabel ||
       !measureIsCompatible(candidate.unit, measureLabel)
     ) {
-      return { kind: "incomplete" };
+      return { kind: "incomplete", reason: "unit_mismatch" };
     }
 
     const nutrients = await this.#getNutrients({
@@ -96,7 +103,9 @@ export class EdamamResolver implements FoodNutritionResolver {
     if (nutrients.kind !== "ok") return nutrients.result;
 
     const item = buildEdamamItem(candidate, label, nutrients.totalNutrients);
-    return item === null ? { kind: "incomplete" } : { kind: "resolved", item };
+    return item === null
+      ? { kind: "incomplete", reason: "nutrients_missing" }
+      : { kind: "resolved", item };
   }
 
   async #parseCandidate(
@@ -129,7 +138,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       const payload = (await response.json()) as Record<string, unknown>;
       const parsed = payload.parsed;
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        return { kind: "fail", result: { kind: "incomplete" } };
+        return { kind: "fail", result: { kind: "incomplete", reason: "no_match" } };
       }
       const first = parsed[0];
       if (first === null || typeof first !== "object" || Array.isArray(first)) {
@@ -183,7 +192,7 @@ export class EdamamResolver implements FoodNutritionResolver {
       const payload = (await response.json()) as Record<string, unknown>;
       const raw = payload.totalNutrients;
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        return { kind: "fail", result: { kind: "incomplete" } };
+        return { kind: "fail", result: { kind: "incomplete", reason: "nutrients_missing" } };
       }
       return {
         kind: "ok",

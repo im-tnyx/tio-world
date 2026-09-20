@@ -87,11 +87,11 @@ export class FatSecretResolver implements FoodNutritionResolver {
   ): Promise<ResolverResult> {
     if (!this.#clientId || !this.#clientSecret) return { kind: "unavailable" };
     if (candidate.quantity === null || candidate.unit === null) {
-      return { kind: "incomplete" };
+      return { kind: "incomplete", reason: "missing_amount" };
     }
 
     const region = fatSecretRegionForCountry(context?.countryCode);
-    if (region === null) return { kind: "incomplete" };
+    if (region === null) return { kind: "incomplete", reason: "region_unsupported" };
 
     const token = await this.#getToken(signal);
     if (token === null) return { kind: "unavailable" };
@@ -100,15 +100,26 @@ export class FatSecretResolver implements FoodNutritionResolver {
     if (search.kind !== "ok") return search.result;
 
     const match = selectFatSecretMatch(candidate.foodName, search.foods);
-    if (match === null || match.food_id === undefined) {
-      return { kind: "incomplete" };
+    if (match === null) {
+      // Foods came back but none is a safe identity match (or two tie): that is
+      // `name_mismatch`, the same condition Edamam reports. `no_match` is only
+      // for a search that found nothing.
+      return {
+        kind: "incomplete",
+        reason: search.foods.length === 0 ? "no_match" : "name_mismatch",
+      };
+    }
+    if (match.food_id === undefined) {
+      return { kind: "incomplete", reason: "no_match" };
     }
 
     const detail = await this.#getFood(String(match.food_id), token, region, signal);
     if (detail.kind !== "ok") return detail.result;
 
-    const item = resolveFatSecretServing(candidate, detail.food);
-    return item === null ? { kind: "incomplete" } : { kind: "resolved", item };
+    const serving = fatSecretServingOutcome(candidate, detail.food);
+    return serving.item === null
+      ? { kind: "incomplete", reason: serving.reason }
+      : { kind: "resolved", item: serving.item };
   }
 
   async #getToken(signal?: AbortSignal): Promise<string | null> {
@@ -297,18 +308,33 @@ export function resolveFatSecretServing(
   candidate: MealCandidate,
   food: Record<string, unknown>,
 ): ResponseItem | null {
-  if (candidate.quantity === null || candidate.unit === null) return null;
+  return fatSecretServingOutcome(candidate, food).item;
+}
+
+/**
+ * The serving item, or why there is none: no serving fits the requested unit
+ * (`unit_mismatch`) or the serving that fits carries no usable nutrients
+ * (`nutrients_missing`).
+ */
+function fatSecretServingOutcome(
+  candidate: MealCandidate,
+  food: Record<string, unknown>,
+):
+  | { readonly item: ResponseItem; readonly reason?: undefined }
+  | { readonly item: null; readonly reason: "unit_mismatch" | "nutrients_missing" } {
+  const noServing = { item: null, reason: "unit_mismatch" } as const;
+  if (candidate.quantity === null || candidate.unit === null) return noServing;
 
   const servingsContainer = food.servings;
-  if (servingsContainer === null || typeof servingsContainer !== "object") return null;
+  if (servingsContainer === null || typeof servingsContainer !== "object") return noServing;
   const servings = toArray((servingsContainer as Record<string, unknown>).serving)
     .filter((value): value is FatSecretServing =>
       value !== null && typeof value === "object" && !Array.isArray(value)
     );
-  if (servings.length === 0) return null;
+  if (servings.length === 0) return noServing;
 
   const chosen = chooseServing(candidate, servings);
-  if (chosen === null) return null;
+  if (chosen === null) return noServing;
 
   const nutrients: Partial<Record<CanonicalNutrientKey, number>> = {};
   const mappings: readonly [CanonicalNutrientKey, keyof FatSecretServing][] = [
@@ -331,7 +357,7 @@ export function resolveFatSecretServing(
   }
 
   const snapshot = canonicalSnapshot(nutrients);
-  if (snapshot === null) return null;
+  if (snapshot === null) return { item: null, reason: "nutrients_missing" };
 
   const rawName = food.food_name;
   const displayName = typeof rawName === "string" && rawName.trim()
@@ -339,10 +365,12 @@ export function resolveFatSecretServing(
     : candidate.foodName;
 
   return {
-    displayName,
-    quantity: candidate.quantity,
-    servingUnit: candidate.unit,
-    nutritionSnapshot: snapshot,
+    item: {
+      displayName,
+      quantity: candidate.quantity,
+      servingUnit: candidate.unit,
+      nutritionSnapshot: snapshot,
+    },
   };
 }
 
