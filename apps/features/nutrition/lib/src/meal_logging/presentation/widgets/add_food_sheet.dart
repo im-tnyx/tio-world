@@ -164,11 +164,12 @@ class AddFoodSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: TioSpacing.sm),
-          _DescribeMealSurface(
-            repository: mealTextParseRepository,
-            onParsed: onParsed,
+          _KeyboardLift(
+            child: _DescribeMealSurface(
+              repository: mealTextParseRepository,
+              onParsed: onParsed,
+            ),
           ),
-          const _KeyboardGap(),
           const _PhotoCard(),
           const SizedBox(height: TioSpacing.md),
           // Intrinsic height so the two compact cards match whichever of them
@@ -493,33 +494,63 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
   }
 }
 
-/// The space between the describe card and the Photo card, which stretches
-/// only while the keyboard would otherwise cover the describe card.
+/// The describe card and the space under it, which stretches only while the
+/// keyboard would otherwise cover the card.
 ///
 /// The sheet is anchored to the bottom of the screen and does not move when the
-/// keyboard opens. Stretching this gap moves everything above it — the title
+/// keyboard opens. Stretching the gap moves everything above it — the title
 /// row and the describe card, still the same distance apart — up by the amount
 /// it stretches, and the sheet's surface stretches upward with them. Everything
 /// below stays put under the keyboard. On most phones the card is already clear
 /// of the keyboard and the gap keeps its normal height.
-class _KeyboardGap extends StatefulWidget {
-  const _KeyboardGap();
+///
+/// A viewport too short for the sheet (a phone in landscape, split screen, very
+/// large text) makes the sheet scroll, and it then already fills all the height
+/// there is, so there is nothing above it to stretch into. There the sheet is
+/// scrolled instead, just far enough for the describe card to clear the
+/// keyboard and no further, and the same stretch supplies any scroll room that
+/// is missing. The title row can scroll out of view; the offset the sheet had
+/// returns when the keyboard closes. That scroll is applied after layout, so in
+/// such a viewport the card can trail the keyboard by a frame. It is applied
+/// again when the card grows or shrinks, so lines added while typing stay clear
+/// of the keyboard too.
+class _KeyboardLift extends StatefulWidget {
+  const _KeyboardLift({required this.child});
+
+  /// The describe card.
+  final Widget child;
 
   @override
-  State<_KeyboardGap> createState() => _KeyboardGapState();
+  State<_KeyboardLift> createState() => _KeyboardLiftState();
 }
 
-class _KeyboardGapState extends State<_KeyboardGap> {
-  /// Distance from the top of the Photo card to the bottom of the sheet. It is
-  /// fixed by the content below the gap, so it does not change while the
-  /// keyboard moves; it is measured once the sheet has finished opening.
+class _KeyboardLiftState extends State<_KeyboardLift> {
+  final _gapKey = GlobalKey();
+
+  /// Distance from the bottom of the gap to the bottom of the sheet. The
+  /// content below the gap fixes it, and it is measured inside the sheet, so it
+  /// does not depend on where the sheet is on screen or on the route sliding
+  /// in. It is measured after the first layout, long before a keyboard can be
+  /// open, and again whenever the width, the text size or the card change.
   double? _below;
+
+  /// Where the sheet was scrolled to before the keyboard moved it.
+  double? _restoreOffset;
+
+  /// What the last build saw, for the work that follows layout.
+  double _keyboard = 0;
+  double _screenHeight = 0;
 
   @override
   Widget build(BuildContext context) {
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     final navBar = MediaQuery.viewPaddingOf(context).bottom;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measureBelow());
+    // The content below the gap reflows with the width and the text size.
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    MediaQuery.textScalerOf(context);
+    _keyboard = keyboard;
+    _screenHeight = screenHeight;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _afterLayout());
 
     // The stretch is worked out from the keyboard's height in this same build,
     // never from where things ended up after the last layout, so it follows
@@ -533,33 +564,97 @@ class _KeyboardGapState extends State<_KeyboardGap> {
       extra = keyboard + TioSpacing.sm - navBar - below - TioSpacing.md;
       if (extra < 0) extra = 0;
     }
-    return SizedBox(height: TioSpacing.md + extra);
+    return NotificationListener<SizeChangedLayoutNotification>(
+      // The card grew or shrank, for example as lines were added. This is sent
+      // during layout, so the work waits until layout is done.
+      onNotification: (_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _afterLayout());
+        return true;
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizeChangedLayoutNotifier(child: widget.child),
+          SizedBox(key: _gapKey, height: TioSpacing.md + extra),
+        ],
+      ),
+    );
+  }
+
+  void _afterLayout() {
+    if (!mounted) return;
+    _measureBelow();
+    _scrollCardClear();
+  }
+
+  RenderBox? _gapBox() {
+    final box = _gapKey.currentContext?.findRenderObject();
+    return box is RenderBox && box.hasSize ? box : null;
   }
 
   void _measureBelow() {
-    if (!mounted) return;
-    // Mid-transition the sheet is still sliding in, so positions are not final.
-    final opening = ModalRoute.of(context)?.animation;
-    if (opening != null && opening.status != AnimationStatus.completed) return;
-    // A full-height, scrolling sheet keeps the field at the top anyway, and
-    // its positions are not measured from the bottom.
-    final scrollable = Scrollable.maybeOf(context);
-    if (scrollable != null &&
-        (scrollable.position.pixels != 0 ||
-            scrollable.position.maxScrollExtent > 0)) {
-      return;
-    }
-    final box = context.findRenderObject();
-    if (box is! RenderBox || !box.hasSize) return;
+    final box = _gapBox();
+    final sheet = _sheetBox();
+    if (box == null || sheet == null || !sheet.hasSize) return;
 
-    final photoTop = box.localToGlobal(Offset(0, box.size.height)).dy;
-    final sheetBottom = MediaQuery.sizeOf(context).height -
-        MediaQuery.viewPaddingOf(context).bottom;
-    final below = sheetBottom - photoTop;
+    // Both boxes are inside the sheet, so any slide-in transform cancels out.
+    final gapBottom =
+        box.localToGlobal(Offset(0, box.size.height), ancestor: sheet).dy;
+    final below = sheet.size.height - gapBottom;
     final known = _below;
     if (known == null || (below - known).abs() > 0.5) {
       setState(() => _below = below);
     }
+  }
+
+  /// The sheet's own box, whose bottom edge is the bottom of the content.
+  RenderBox? _sheetBox() {
+    RenderBox? sheet;
+    context.visitAncestorElements((element) {
+      if (element.widget is! TioSheet) return true;
+      final box = element.renderObject;
+      if (box is RenderBox) sheet = box;
+      return false;
+    });
+    return sheet;
+  }
+
+  /// Only a sheet that scrolls needs this; one that fits is bottom-anchored and
+  /// the stretch alone lifts it.
+  void _scrollCardClear() {
+    final position = Scrollable.maybeOf(context)?.position;
+    final gap = _gapBox();
+    if (position == null || !position.hasContentDimensions || gap == null) {
+      return;
+    }
+
+    if (_keyboard <= 0) {
+      final restore = _restoreOffset;
+      if (restore == null) return;
+      _restoreOffset = null;
+      position.jumpTo(
+        restore
+            .clamp(position.minScrollExtent, position.maxScrollExtent)
+            .toDouble(),
+      );
+      return;
+    }
+
+    // The gap sits directly under the describe card, so its top edge is the
+    // card's bottom edge. Scrolling by `d` moves the card by `d`, and stretching
+    // the gap does not move it, so the offset the card needs is worked out from
+    // where it is now: never less than the offset the sheet had, and never more
+    // than it takes to clear the keyboard. Repeating it changes nothing.
+    final restore = _restoreOffset ??= position.pixels;
+    final cardBottom = gap.localToGlobal(Offset.zero).dy;
+    final clearBottom = _screenHeight - _keyboard - TioSpacing.sm;
+    var wanted = position.pixels + cardBottom - clearBottom;
+    if (wanted < restore) wanted = restore;
+    wanted = wanted
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if ((wanted - position.pixels).abs() > 0.5) position.jumpTo(wanted);
   }
 }
 

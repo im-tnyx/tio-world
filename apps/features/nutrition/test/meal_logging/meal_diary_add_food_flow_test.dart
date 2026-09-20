@@ -599,6 +599,195 @@ void main() {
         mustMove: true);
     keyboardTest('a small 320x560 phone', const Size(320, 560), 260);
 
+    // The tests above settle before they look, so they cannot tell a sheet that
+    // clears the keyboard on the frame the keyboard arrives from one that does
+    // so a frame later. The next two pump a single frame at a time.
+    Finder describeCardOf() => find
+        .ancestor(of: find.byKey(_aiTextField), matching: find.byType(TioCard))
+        .first;
+
+    testWidgets(
+        'describe meal clears a keyboard that arrives in a single frame',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, mealTextParseRepository: _RecordingTextParseRepository());
+      await _openAddFood(tester);
+
+      final title = find.text('Add Food');
+      final photoBefore = tester.getRect(find.byKey(_photoCard));
+      final cardBefore = tester.getRect(describeCardOf());
+      final titleBefore = tester.getRect(title);
+      // Only a keyboard this tall reaches the card, so the very first frame it
+      // appears in has to move something.
+      expect(cardBefore.bottom, greaterThan(800 - 320 - TioSpacing.sm));
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+      await tester.pump();
+
+      final card = tester.getRect(describeCardOf());
+      expect(
+        card.bottom,
+        moreOrLessEquals(800 - 320 - TioSpacing.sm, epsilon: 1),
+        reason: 'the card must already be clear on the first frame',
+      );
+      expect(tester.getRect(find.byKey(_photoCard)), photoBefore);
+      expect(
+        card.top - tester.getRect(title).bottom,
+        moreOrLessEquals(cardBefore.top - titleBefore.bottom, epsilon: 0.5),
+      );
+    });
+
+    testWidgets('describe meal follows a rising keyboard frame by frame',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, mealTextParseRepository: _RecordingTextParseRepository());
+      await _openAddFood(tester);
+
+      final photoBefore = tester.getRect(find.byKey(_photoCard));
+      final restBottom = tester.getRect(describeCardOf()).bottom;
+
+      for (final keyboard in <double>[40, 120, 200, 280, 320]) {
+        tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+        await tester.pump();
+
+        // Never covered, and never lifted further than it has to be.
+        final clear = 800 - keyboard - TioSpacing.sm;
+        expect(
+          tester.getRect(describeCardOf()).bottom,
+          moreOrLessEquals(restBottom < clear ? restBottom : clear, epsilon: 1),
+          reason: 'keyboard at $keyboard',
+        );
+        expect(tester.getRect(find.byKey(_photoCard)), photoBefore);
+      }
+    });
+
+    testWidgets('describe meal re-measures when the text size changes',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 1;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await _pump(tester, mealTextParseRepository: _RecordingTextParseRepository());
+      await _openAddFood(tester);
+
+      // Larger text makes everything below the gap taller.
+      tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+      await tester.pumpAndSettle();
+      final restBottom = tester.getRect(describeCardOf()).bottom;
+      final photoBefore = tester.getRect(find.byKey(_photoCard));
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+      await tester.pump();
+
+      const clear = 800 - 320 - TioSpacing.sm;
+      expect(
+        tester.getRect(describeCardOf()).bottom,
+        moreOrLessEquals(restBottom < clear ? restBottom : clear, epsilon: 1),
+      );
+      expect(tester.getRect(find.byKey(_photoCard)), photoBefore);
+    });
+
+    // Long enough to wrap onto four lines at any width used here.
+    final fourLines = List.filled(40, 'chicken rice').join(' ');
+
+    // A viewport too short for the sheet makes it scroll. It then already
+    // fills all the height there is, so nothing can stretch upward; instead the
+    // sheet is scrolled just far enough for the card to clear the keyboard,
+    // and back again when the keyboard closes. The title row may scroll out of
+    // view there. The outer scroll view is looked up from the sheet itself, not
+    // by type, because the text field has a scrollable of its own.
+    void scrollingSheetTest(
+      String name,
+      Size size,
+      double keyboard, {
+      required bool scrollsAtRest,
+      double textScale = 1,
+    }) {
+      testWidgets('describe meal stays reachable in a short viewport: $name',
+          (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _pump(tester, mealTextParseRepository: _RecordingTextParseRepository());
+        await _openAddFood(tester);
+
+        // Looked up again each time: the scrollable replaces its position
+        // object when the window metrics change.
+        ScrollPosition scroll() =>
+            Scrollable.of(tester.element(find.byKey(_sheet))).position;
+        expect(scroll().maxScrollExtent > 0, scrollsAtRest);
+        final cardBefore = tester.getRect(describeCardOf());
+        final keyboardTop = size.height - keyboard;
+        // Without any lift the keyboard would cover the card.
+        expect(cardBefore.bottom, greaterThan(keyboardTop - TioSpacing.sm));
+
+        tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+        await tester.pumpAndSettle();
+
+        final card = tester.getRect(describeCardOf());
+        // The sheet did not rise with the keyboard: what scrolls still reaches
+        // the bottom of the screen, and it is the content that has moved.
+        expect(scroll().viewportDimension, size.height);
+        expect(scroll().pixels, greaterThan(0));
+        // The card rests just above the keyboard, and the field inside it is on
+        // screen above the keyboard. With very large text the card can be taller
+        // than the room left above the keyboard, so its own top edge may scroll
+        // off; the field is what has to stay reachable.
+        expect(
+          card.bottom,
+          moreOrLessEquals(keyboardTop - TioSpacing.sm, epsilon: 1),
+        );
+        final field = tester.getRect(find.byKey(_aiTextField));
+        expect(field.top, greaterThanOrEqualTo(0));
+        expect(field.bottom, lessThanOrEqualTo(keyboardTop));
+        // The Quick Add / Search row is still one row, inside the sheet.
+        expect(
+          tester.getRect(find.byKey(_quickAddRow)).top,
+          tester.getRect(find.byKey(_searchCard)).top,
+        );
+
+        // Lines added while typing grow the card, and it still rests just above
+        // the keyboard with the line being typed on screen.
+        await tester.enterText(find.byKey(_aiTextField), fourLines);
+        await tester.pumpAndSettle();
+        final grown = tester.getRect(describeCardOf());
+        expect(grown.height, greaterThan(card.height));
+        expect(
+          grown.bottom,
+          moreOrLessEquals(keyboardTop - TioSpacing.sm, epsilon: 1),
+        );
+        expect(
+          tester.getRect(find.byKey(_aiTextField)).bottom,
+          lessThanOrEqualTo(keyboardTop),
+        );
+        await tester.enterText(find.byKey(_aiTextField), '');
+        await tester.pumpAndSettle();
+
+        // Closing the keyboard puts everything back where it was.
+        tester.view.viewInsets = FakeViewPadding.zero;
+        await tester.pumpAndSettle();
+        expect(tester.getRect(describeCardOf()), cardBefore);
+        expect(scroll().pixels, 0);
+      });
+    }
+
+    scrollingSheetTest('an 800x300 landscape phone', const Size(800, 300), 200,
+        scrollsAtRest: true);
+    scrollingSheetTest(
+        'an 800x360 landscape phone with a tall keyboard', const Size(800, 360),
+        240,
+        scrollsAtRest: false);
+    scrollingSheetTest('an 800x360 landscape phone with large text',
+        const Size(800, 360), 240,
+        scrollsAtRest: true, textScale: 1.6);
+
     testWidgets('keyboard affordance focuses and hides without submitting',
         (tester) async {
       final parser = _RecordingTextParseRepository();
