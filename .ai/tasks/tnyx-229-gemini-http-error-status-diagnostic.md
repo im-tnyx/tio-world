@@ -17,7 +17,7 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned until implementation completes
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Repository state last verified:** GitHub `main@5e4091a45e9b9327f48be3c7658c764c0bb72d00`; connector execution has no local working-tree surface to inspect.
 **Branch:** `tnyx/tnyx-229-gemini-http-error-status-diagnostic`
 **HEAD SHA:** `5e4091a45e9b9327f48be3c7658c764c0bb72d00` at branch creation
@@ -104,10 +104,10 @@ No product-visible/UI change. Malformed/non-JSON provider errors safely map to `
 
 ## 5. Implementation Plan
 
-- [ ] Add bounded provider-error-status type/field to diagnostics.
-- [ ] Add Gemini HTTP error status classifier.
-- [ ] Add focused redaction/classification tests.
-- [ ] Preserve request-envelope regression test.
+- [x] Add bounded provider-error-status type/field to diagnostics.
+- [x] Add Gemini HTTP error status classifier.
+- [x] Add focused redaction/classification tests.
+- [x] Preserve request-envelope regression test.
 - [ ] Run CI/review and create Draft PR.
 
 ## 6. Quality Review
@@ -125,11 +125,14 @@ No product-visible/UI change. Malformed/non-JSON provider errors safely map to `
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/tnyx-229-gemini-http-error-status-diagnostic.md`
+- `supabase/functions/nutrition-meal-text-parse/diagnostics.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts`
 
 ### Actual Behavior
 
-Pending.
+Gemini non-2xx responses now emit only numeric HTTP status plus an allowlisted `providerErrorStatus`. The raw Google error message/body is never logged or returned. Provider outcome remains `unavailable`, so existing OpenAI fallback behavior is unchanged.
 
 ### Known Limitations
 
