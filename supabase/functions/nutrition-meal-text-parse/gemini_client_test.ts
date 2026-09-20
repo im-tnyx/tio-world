@@ -269,7 +269,7 @@ test("Gemini request-field paths map camelCase and snake_case to closed categori
     ["generation_config.response_format.text.mime_type", "response_format"],
     ["generationConfig.temperature", "generation_config"],
     ["contents[0].parts[0].text", "contents"],
-    ["model", "model"],
+    ["model.privateProviderPath", "model"],
     ["totallyPrivateProviderField.secretValue", "unknown"],
   ] as const;
 
