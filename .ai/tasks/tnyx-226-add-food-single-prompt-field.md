@@ -1,6 +1,6 @@
 # TNYX-226 follow-up — Add Food describe-meal field polish
 
-**Status:** In progress
+**Status:** Validated (PR #301 is Ready for Review; merge is owner-authorized)
 **Primary owner:** `apps/features/nutrition` Add Food presentation
 **Affected platforms:** Flutter phone app (Nutrition presentation only)
 
@@ -39,7 +39,7 @@
   - `_supportingText()` returns `String?`, `null` at rest, `Not available yet` when unavailable; the gap and text are only built when non-null;
   - keyboard `InkResponse`: `NoSplash.splashFactory` and a transparent `overlayColor`; mic icon `colors.primary`;
   - sheet builder: bottom padding and the bottom fill use `viewPadding.bottom`, `SafeArea(top: false, bottom: false)`;
-  - `_KeyboardGap` replaces the fixed gap between the describe card and the Photo card. It is `TioSpacing.md` at rest and stretches by exactly the missing room while the keyboard would cover the card. The stretch is computed in `build` from the current keyboard height and one measured constant (the height below the gap, measured once the sheet has finished opening), so it does not trail the keyboard.
+  - `_KeyboardGap` replaces the fixed gap between the describe card and the Photo card. It is `TioSpacing.md` at rest and stretches by exactly the missing room while the keyboard would cover the card. The stretch is computed in `build` from the current keyboard height and one measured constant (the height below the gap). That constant is measured on the first rebuild after the sheet has finished opening, which is the first keyboard frame, so the stretch follows the keyboard from the second frame on and can trail it by one frame at the start (finding F2).
 - Geometry note: at rest the field column loses the caption line, so the card is a few dp shorter; the 40dp keyboard/Mic controls now set the row height.
 
 ## Validation
@@ -50,11 +50,29 @@
   - unavailable state asserts the state line.
 - The two `the N5 hierarchy holds at …px wide` tests are unchanged (Quick Add and Search remain side by side).
 - `flutter analyze` in `apps/features/nutrition`: no issues. `flutter test`: `meal_diary_add_food_flow_test.dart` 62 passed; whole `apps/features/nutrition` 866 passed; `apps/app` 320 passed.
-- Emulator render of the real Add Food sheet: see Handoff.
+- CI: Flutter CI #2677 (`Analyze and test`) passed on source head `d2aa9add782d3452b22226e0a2155f7d5e099d75`. `flutter analyze` and the Add Food flow tests (62) were re-run on that head during review.
+- Real-device QA on that head (Android, 3-button navigation, docked Gboard): passed. One resting prompt; no inner field outline; four visible lines; keyboard toggle; Mic to Send swap; Quick Add / Search Food unchanged; the sheet does not sink and leaves no blank bottom gap; title row and describe card lift together only when needed; closing the keyboard returns the sheet. Emulator (gesture navigation, floating Gboard, so no docked keyboard): resting layout and four-line growth checked.
+- Not manually verified: TalkBack, light-theme visual check, rotation, hardware keyboard.
+- Review: 0 unresolved review threads; implementing-agent COMMENT review found no blocking source finding (not an independent approval).
+- GitHub AI scanner (`github-advanced-security`) is red for an external reason: `CAPIError: 400 The requested model is not supported` while creating its model session, before any analysis; no code-scanning analysis or alert exists. It is not a source or security finding.
+
+## Review findings
+
+Observed at source head `d2aa9add782d3452b22226e0a2155f7d5e099d75`. None blocks merge.
+
+| ID | Severity | Status | Finding |
+|---|---|---|---|
+| F1 | P2 | Deferred (owner to acknowledge) | The light-theme resting hint uses `colors.textMuted`, about 2.54:1 on the light surface (dark about 6.99:1, OLED about 8.03:1). It is the owner-approved hint treatment and matches the `TioInput` convention; recorded so it stays a known choice. |
+| F2 | P3 | Deferred | `_KeyboardGap` measures its constant on the first keyboard frame, so the stretch can trail by one frame; the cached value can go stale after rotation or a text-scale change. |
+| F3 | P3 | Deferred | The keyboard icon has no visible focus indicator (overlay is transparent in every state). |
+| F4 | P3 | Deferred | The state line's live region is now a conditionally inserted node; the TalkBack announcement is not verified. |
 
 ## Handoff
 
 **Implementation owner:** current session (branch `tnyx/tnyx-226-add-food-single-prompt-field`, from `main` `07bbf612`).
-**Next exact action:** owner reviews the rendered sheet on a device; then decides commit/PR. Not committed or pushed.
-**Open decision for the owner:** the mic is now drawn in the primary colour while still inert (no tap action, reported as unavailable to assistive technology), so it looks live. The send arrow beside it still uses the default ink splash; only the keyboard icon was asked to lose it.
+**State:** implemented, committed and pushed as one commit; PR #301 is open and Ready for Review. Source head reviewed before this docs-only reconciliation: `d2aa9add782d3452b22226e0a2155f7d5e099d75`.
+**Scope:** presentation and tests only. No backend, provider, Supabase, schema, persistence or routing change.
+**Tracker:** TNYX-226 stays `Done`; this is a bounded follow-up to PR #300. TNYX-229 remains the production-readiness gate. TNYX-240 is separate.
+**Next exact action:** merge PR #301 once exact-head CI has passed (owner authorized the merge in chat on 2026-09-20), then follow `docs/POST_MERGE_SYNC.md`. Deleting the branch is a separate owner decision.
+**Resolved:** the inert mic in the primary colour is covered by approved boundary 6. The send arrow beside it keeps the default ink splash; only the keyboard icon was asked to lose it.
 **Not changed:** `apps/features/nutrition/pubspec.lock` is touched by `flutter test` (a stale `dependency:` label on `main`) and is reverted before any commit; it is unrelated to this slice.
