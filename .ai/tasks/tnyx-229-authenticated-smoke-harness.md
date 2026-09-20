@@ -126,3 +126,44 @@ Owner approved extending this existing debug-only harness to invoke the separate
 - Do not display/copy JWTs, provider tokens, credentials, raw provider bodies, URLs/query strings, or identity/session data.
 - This remains non-release/debug-only and introduces no product navigation.
 - No production parser routing change, persistence, schema/RLS/RPC, secret mutation, deployment, or TNYX-226 work is part of this Flutter follow-up.
+
+
+## Fresh Runtime Reconciliation — 2026-09-20
+
+The earlier `ACTIVE v1` / first-smoke state above is historical and must not be treated as current runtime truth.
+
+Current verified live state:
+- production `nutrition-meal-text-parse`: ACTIVE v21
+- `verify_jwt=true`
+- live bundle SHA-256: `ac1dbdd45de10311e370cc8b7c2f16fee091445262e4a4400b3d16a01a8e9553`
+- v21 is the owner-authorized bounded Gemini request-contract deployment from Draft PR #292
+- exact underlying Flutter smoke-harness source head already CI-validated: `83392b32e7e9baf7cf88b10a7d7e390d90aabbc1`
+- Flutter CI run #2662: PASS
+- TNYX-238 is now Done with Open Food Facts candidate verdict `PARTIAL`; it does not provide a generic production resolver for common Indian home-food terms and does not clear TNYX-229/TNYX-226
+
+Latest known production-parser runtime evidence predates v21:
+- v15 authenticated `200 g plain yogurt` reached the parser but produced no draft
+- correlated diagnostics at that time showed Gemini HTTP 400 and Edamam HTTP 401/authentication
+- Gemini HTTP 400 was subsequently addressed and v21 deployed
+- there is no recorded authenticated production-parser smoke after v21 deployment
+
+### Next exact runtime gate
+
+Run exactly one existing `Success candidate` (`200 g plain yogurt`) through this normal signed-in debug harness against live v21.
+
+Record only:
+- controller `status`
+- `elapsedMs`
+- sanitized controller message
+- if a draft is returned: item count / captureSource / mealName only
+- safe server diagnostic stage/provider/reason/httpStatus only if separately visible through the approved redacted diagnostic surface
+
+Do not expose JWT/access tokens, provider credentials, provider bodies/URLs, identity/profile data, or raw meal/provider logs.
+
+### Decision rule
+
+- If the v21 authenticated request returns a provider-neutral draft, continue TNYX-229 acceptance reconciliation before considering TNYX-226.
+- If it still fails, do not guess or add another resolver. Use only the existing redacted diagnostics to identify the current failing stage/provider, then take one bounded corrective slice based on that evidence.
+- TNYX-226 remains blocked until TNYX-229 is explicitly cleared.
+
+No new production routing, deployment, secret/config, schema/RLS/RPC, or product UI change is authorized by this reconciliation.
