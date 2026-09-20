@@ -1,6 +1,6 @@
 # TNYX-229 — Redacted parser runtime diagnostics
 
-**Status:** Reconciled; validation pending
+**Status:** Review ready
 **Branch:** `tnyx/tnyx-229-redacted-runtime-diagnostics`
 
 ## Purpose
@@ -81,4 +81,15 @@ Expected post-reconciliation PR delta remains diagnostic-only:
 
 The current live v25 bundle already contains the older diagnostic implementation plus the merged Gemini runtime fix. This PR's refined Edamam classification remains source-of-truth work until separately authorized for deployment.
 
-Next gate: current-head Supabase Functions CI + complete diff review. Do not merge or deploy without separate owner authorization.
+Validation after reconciliation:
+- Supabase Functions CI #29 on source head `39a0ddc60b0d80a9ffa7e696eddf563889cafc79`: PASS
+- parser entrypoint type-check: PASS
+- parser source/tests type-check: PASS
+- parser tests: PASS
+- complete delta against current `main`: 8 diagnostic-scope files, 20 ahead / 0 behind
+- unresolved review threads at validation audit: 0
+- merged #292 Gemini request contract and focused request-shape test preserved
+
+No blocking source/scope/auth/secret-redaction finding identified in the reconciled delta.
+
+Next gate: final review readiness only. Do not merge or deploy without separate owner authorization.
