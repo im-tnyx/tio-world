@@ -232,6 +232,9 @@ class _MealEditorTextFlowPageState extends State<MealEditorTextFlowPage> {
             dateTimeLabel: dateTimeLabel,
             mealCategoryId: _selectedMealCategoryId,
             consumedLocalDateTime: _consumedLocalDateTime,
+            mealCategorySemanticLabel: _categorySemanticLabel,
+            dateTimeSemanticLabel: 'Date and time. $dateTimeLabel. '
+                'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
             detailedCreateRepository: widget.detailedCreateRepository,
             mealCategoryAnchorKey: _mealCategoryAnchorKey,
             dateTimeAnchorKey: _dateTimeAnchorKey,
