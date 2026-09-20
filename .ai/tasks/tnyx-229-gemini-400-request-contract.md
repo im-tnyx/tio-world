@@ -1,99 +1,111 @@
 # TNYX-229 Gemini HTTP 400 request-contract fix
 
-**Status:** In progress
-**Primary owner:** ChatGPT
+**Status:** Review ready  
+**Primary owner:** ChatGPT  
 **Affected platforms:** Supabase Edge Function only
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** None
-**Approval status:** Approved
-**Approval evidence:** Owner said `go` after the bounded Gemini 400 fix was proposed.
-**Approved product/UI/data-shape boundaries:** Gemini interpreter request-contract correction and focused tests only.
-**Explicit non-changes:** No Flutter/UI, Edamam, FatSecret, OpenAI behavior, schema/RLS/RPC/migration, secrets, deployment, merge, or TNYX-226.
+**Approval status:** Approved  
+**Approval evidence:** Owner said `go` after the bounded Gemini 400 correction was proposed, and later `go next` for final handoff/review readiness.  
+**Approved boundary:** Gemini interpreter structured-output request-contract correction, focused regression test, and task/review handoff only.  
+**Explicit non-changes:** No Flutter/UI, OpenAI routing, FatSecret/Edamam routing, schema/RLS/RPC/migration, secret mutation, new deployment, merge, or TNYX-226 implementation.
 
 ## Active Handoff
 
-**Planning owner:** ChatGPT
-**Implementation owner:** ChatGPT
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** GitHub current `main` source inspected with TNYX-229 In Progress.
-**Branch:** `tnyx/tnyx-229-gemini-400-request-contract`
-**HEAD SHA:** branch created from current `main`
-**Observed working-tree state:** Connector branch, no local working tree.
-**Observed uncommitted/dirty files:** Not applicable
-**PR / tracker:** TNYX-229
-**Current implementation state:** Gemini request uses legacy `responseMimeType` + `responseSchema`; live diagnostics repeatedly show Gemini HTTP 400.
-**Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
-**Validation completed at SHA:** Not yet
-**Validation remaining:** focused tests, CI, diff review
-**Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Change only Gemini structured-output request envelope to the current Gemini 3.8 generateContent `responseFormat.text` contract and assert request shape.
+**Planning owner:** ChatGPT  
+**Implementation owner:** ChatGPT  
+**Review owner:** ChatGPT  
+**Implementation ownership state:** Complete for this bounded slice  
+**Branch:** `tnyx/tnyx-229-gemini-400-request-contract`  
+**Base:** `main@4d552e685e2928dd77a1c5e5a2ba31e8281e43e4`  
+**Source/test validation head:** `bc472820d0e4338b094117e3671365746666f774`  
+**PR:** #292  
+**Tracker:** TNYX-229 remains In Progress until source-of-truth reconciliation and separate product-activation gates are resolved.  
+**Current blocker:** None for this PR's bounded source fix.  
+**Open review finding IDs:** None.  
+**Next exact action:** Mark PR #292 Ready for Review after this docs-only handoff sync and current-head review. Do not merge without separate explicit owner instruction.
 
 ## 1. Discovery
 
 ### User Outcome
 Remove the concrete Gemini HTTP 400 request-contract mismatch without widening TNYX-229.
 
-### Success Criteria
-Gemini request uses the current documented Gemini 3.8 Flash generateContent structured-output shape; focused tests assert the envelope and existing parser behavior remains unchanged.
-
-### Scope
-Gemini client request body, focused Gemini tests, this handoff.
-
-### Non-Goals
-Provider redesign, Interactions API migration, model change, prompt/schema business-rule change, deployment, UI activation.
+### Verified Evidence
+- Historical live diagnostics showed Gemini HTTP 400 with the previous structured-output request envelope.
+- The bounded correction changes only the request envelope while preserving endpoint, model, prompt, schema, parsing and sanitized failure behavior.
+- Live `nutrition-meal-text-parse` now runs as ACTIVE v25 with `verify_jwt=true`.
+- Live bundle SHA-256 remains `ac1dbdd45de10311e370cc8b7c2f16fee091445262e4a4400b3d16a01a8e9553`.
+- After the Edamam credential issue was separately corrected, authenticated production smoke no longer reproduced the Gemini HTTP 400.
 
 ## 2. Codebase Exploration
 
-### Verified Evidence
-- Source/config inspected: `gemini_client.ts`, `interpretation_schema.ts`, `composition.ts`, TNYX-229.
-- Existing pattern to follow: direct REST generateContent with server-side API key and provider-neutral parser.
-- Tests or validation already present: `gemini_client_test.ts`.
-- Current Google Gemini 3.8 legacy generateContent docs show structured output under `generationConfig.responseFormat.text` while migration docs confirm generateContent remains supported.
+### In-scope files
+- `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts`
+- `.ai/tasks/tnyx-229-gemini-400-request-contract.md`
+
+### Ownership
+The change remains entirely inside the current Supabase protected parser boundary plus its focused task handoff.
 
 ## 3. Clarification
 
-### Decisions Required or Made
-Use the current generateContent request shape rather than migrating the whole adapter to Interactions API. This is the smallest change that addresses the observed 400 contract risk.
+Use the current `generateContent` request shape rather than migrating the whole adapter to a different Gemini transport/API. This is the smallest correction for the observed request-contract defect.
 
 ## 4. Architecture Design
 
 ### Chosen Approach
-Preserve endpoint, model, prompt, schema and response parsing. Change only the structured-output envelope.
+Preserve the existing flow:
 
-### Ownership and Data Flow
 `GeminiMealInterpreter -> Gemini generateContent -> parseInterpretationJson`
 
-### Alternative Rejected
-Interactions API migration: broader transport/response change than required for this live defect.
+Only the structured-output portion of `generationConfig` changes from the legacy flat fields to `responseFormat.text`.
 
-### Failure and Accessibility States
-Existing sanitized `unavailable` behavior remains unchanged.
+### Rejected Alternative
+Broader Gemini transport/provider redesign was rejected because it would widen the live defect slice without evidence that it is required.
 
-## 5. Implementation Plan
-- [ ] Update Gemini request envelope.
-- [ ] Add request-shape regression test.
-- [ ] Run focused validation/CI and review diff.
+## 5. Implementation
+
+- [x] Replace legacy `responseMimeType` / `responseSchema` request fields with `generationConfig.responseFormat.text.mimeType/schema`.
+- [x] Add focused regression coverage asserting the outgoing request envelope.
+- [x] Preserve endpoint/model/prompt/parser/failure behavior.
+- [x] Keep all unrelated providers, Flutter, schema and product UI untouched.
 
 ## 6. Quality Review
 
-### Validation Run
-Not run yet.
+### Stack and scope audit
+- base: `main@4d552e685e2928dd77a1c5e5a2ba31e8281e43e4`
+- source/test validation head: `bc472820d0e4338b094117e3671365746666f774`
+- merge-base equals current `main`
+- ahead / behind before this docs-only sync: `3 / 0`
+- changed files before this docs-only sync: exactly 3, all owned by this slice
+- unresolved GitHub review threads: 0
+
+### Validation
+- Supabase Functions CI run #22 on source/test head `bc472820d0e4338b094117e3671365746666f774`: **PASS**
+- Live authenticated matrix on current deployed parser:
+  - `200 g plain yogurt` -> success, 1 provider-neutral draft item, `captureSource=text`
+  - `qwerty asdf` -> expected `unrecognized`
+  - `dal` -> expected `incomplete`
+  - `unavailable` -> prior live evidence plus deterministic focused tests
+- Prior Gemini HTTP 400 was not observed in the successful current live matrix.
+- Connector-only review cannot run local `git diff --check`; do not claim that command was run. The final handoff change is docs-only and source/test validation remains anchored to the CI-passed source head above.
+
+### Review finding
+No blocking source, scope, auth, secret-exposure, or response-contract regression was identified in the PR diff.
 
 ## 7. Final Handoff
 
-### Changed Files
-Pending.
-
 ### Actual Behavior
-Pending.
+The Gemini interpreter sends the corrected structured-output request envelope while retaining the existing provider-neutral parser contract and sanitized failure behavior.
 
-### Known Limitations
-Edamam 401 and provider entitlement/storage gates are separate and remain open.
+### Known Limitations / Separate Gates
+- This PR does not prove which interpreter handled a successful live request because success-provider diagnostics are intentionally absent.
+- Edamam credentials, country-aware provider entitlement/commercial coverage, durable nutrition-storage permission, and provider privacy/retention are separate TNYX-229/TNYX-226 activation concerns.
+- PR #290 diagnostic refinement remains separate and is not part of this source fix.
+- TNYX-226 remains blocked until TNYX-229 is explicitly reconciled and the separate product-activation gates are decided.
 
 ### Final Status
-`REVIEW`
+`READY_FOR_REVIEW`
+
+Do not merge without explicit owner instruction.
