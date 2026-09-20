@@ -114,3 +114,74 @@ test("Gemini timeout returns unavailable", async () => {
     kind: "unavailable",
   });
 });
+
+
+async function captureGeminiDiagnostic(
+  response: Response,
+  mealText = "200 g plain yogurt private meal text",
+): Promise<Record<string, unknown>> {
+  const original = console.info;
+  const lines: string[] = [];
+  console.info = (value?: unknown) => lines.push(String(value));
+  try {
+    const interpreter = new GeminiMealInterpreter({
+      apiKey: "private-test-api-key",
+      fetchFn: async () => response,
+    });
+    assert.deepEqual(await interpreter.interpret(mealText), {
+      kind: "unavailable",
+    });
+  } finally {
+    console.info = original;
+  }
+  assert.equal(lines.length, 1);
+  return JSON.parse(lines[0]) as Record<string, unknown>;
+}
+
+test("Gemini HTTP error emits allowlisted provider status without raw message leakage", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      code: 400,
+      status: "INVALID_ARGUMENT",
+      message: "private provider detail private-test-api-key private meal text",
+      details: [{ arbitrary: "must not be logged" }],
+    },
+  }, { status: 400 }));
+
+  assert.deepEqual(event, {
+    component: "nutrition-meal-text-parse",
+    stage: "interpreter_unavailable",
+    provider: "gemini",
+    reason: "http_error",
+    httpStatus: 400,
+    providerErrorStatus: "INVALID_ARGUMENT",
+  });
+  const serialized = JSON.stringify(event);
+  assert.equal(serialized.includes("private provider detail"), false);
+  assert.equal(serialized.includes("private-test-api-key"), false);
+  assert.equal(serialized.includes("private meal text"), false);
+  assert.equal(serialized.includes("arbitrary"), false);
+});
+
+test("Gemini unknown provider status is reduced to static UNKNOWN", async () => {
+  const event = await captureGeminiDiagnostic(Response.json({
+    error: {
+      status: "SOME_NEW_PROVIDER_STATUS",
+      message: "raw message must not be logged",
+    },
+  }, { status: 400 }));
+
+  assert.equal(event.providerErrorStatus, "UNKNOWN");
+  const serialized = JSON.stringify(event);
+  assert.equal(serialized.includes("SOME_NEW_PROVIDER_STATUS"), false);
+  assert.equal(serialized.includes("raw message"), false);
+});
+
+test("Gemini non-JSON HTTP error is reduced to static UNKNOWN", async () => {
+  const event = await captureGeminiDiagnostic(
+    new Response("private provider body", { status: 400 }),
+  );
+
+  assert.equal(event.providerErrorStatus, "UNKNOWN");
+  assert.equal(JSON.stringify(event).includes("private provider body"), false);
+});
