@@ -164,6 +164,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
         final mealCategoriesRepository = widget.mealCategoriesRepository;
         if (draft == null ||
+            mealLogRepository == null ||
             mealLogRepository is! DetailedMealLogCreateRepository ||
             mealCategoriesRepository == null) {
           _showMealEditMessage(
@@ -172,6 +173,8 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           return;
         }
 
+        final detailedCreateRepository =
+            mealLogRepository as DetailedMealLogCreateRepository;
         final selectedDate =
             ref.read(mealDiaryDateControllerProvider).selectedDate;
         final created = await Navigator.of(context, rootNavigator: true)
@@ -181,7 +184,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
               initialDraft: draft,
               selectedDiaryDate: selectedDate,
               mealCategoriesRepository: mealCategoriesRepository,
-              detailedCreateRepository: mealLogRepository,
+              detailedCreateRepository: detailedCreateRepository,
               clock: widget.textMealClock,
             ),
           ),
