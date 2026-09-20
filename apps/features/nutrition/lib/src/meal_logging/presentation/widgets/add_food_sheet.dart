@@ -22,9 +22,8 @@ final class MealDiaryAddFoodResult {
       : choice = MealDiaryAddFoodChoice.quickAdd,
         draft = null;
 
-  const MealDiaryAddFoodResult.parsedText(MealLoggingDraft draft)
-      : choice = MealDiaryAddFoodChoice.parsedText,
-        draft = draft;
+  const MealDiaryAddFoodResult.parsedText(this.draft)
+      : choice = MealDiaryAddFoodChoice.parsedText;
 
   final MealDiaryAddFoodChoice choice;
   final MealLoggingDraft? draft;
@@ -396,11 +395,11 @@ class _DescribeMealSurfaceState extends State<_DescribeMealSurface> {
           ),
           const SizedBox(width: TioSpacing.sm),
           if (_isProcessing)
-            SizedBox(
-              key: const ValueKey('add-food-ai-processing'),
+            const SizedBox(
+              key: ValueKey('add-food-ai-processing'),
               width: TioSize.dp40,
               height: TioSize.dp40,
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(TioSpacing.sm),
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
