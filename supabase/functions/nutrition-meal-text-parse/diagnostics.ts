@@ -24,6 +24,27 @@ export type MealParserProviderErrorStatus =
   | "DATA_LOSS"
   | "UNAUTHENTICATED";
 
+export type MealParserProviderErrorReason =
+  | "SERVICE_DISABLED"
+  | "BILLING_DISABLED"
+  | "API_KEY_INVALID"
+  | "API_KEY_SERVICE_BLOCKED"
+  | "API_KEY_HTTP_REFERRER_BLOCKED"
+  | "API_KEY_IP_ADDRESS_BLOCKED"
+  | "API_KEY_ANDROID_APP_BLOCKED"
+  | "API_KEY_IOS_APP_BLOCKED"
+  | "RATE_LIMIT_EXCEEDED"
+  | "RESOURCE_QUOTA_EXCEEDED"
+  | "UNKNOWN";
+
+export type MealParserProviderErrorField =
+  | "contents"
+  | "generation_config"
+  | "response_format"
+  | "schema"
+  | "model"
+  | "unknown";
+
 export function mealParserDiagnostic(
   stage: string,
   options: {
@@ -32,6 +53,8 @@ export function mealParserDiagnostic(
     readonly httpStatus?: number;
     readonly providerErrorCategory?: MealParserProviderErrorCategory;
     readonly providerErrorStatus?: MealParserProviderErrorStatus;
+    readonly providerErrorReason?: MealParserProviderErrorReason;
+    readonly providerErrorField?: MealParserProviderErrorField;
   } = {},
 ): void {
   const event: Record<string, string | number> = {
@@ -43,5 +66,7 @@ export function mealParserDiagnostic(
   if (options.httpStatus !== undefined) event.httpStatus = options.httpStatus;
   if (options.providerErrorCategory !== undefined) event.providerErrorCategory = options.providerErrorCategory;
   if (options.providerErrorStatus !== undefined) event.providerErrorStatus = options.providerErrorStatus;
+  if (options.providerErrorReason !== undefined) event.providerErrorReason = options.providerErrorReason;
+  if (options.providerErrorField !== undefined) event.providerErrorField = options.providerErrorField;
   console.info(JSON.stringify(event));
 }
