@@ -15,7 +15,7 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned until implementation completes
+**Review owner:** ChatGPT
 **Repository state last verified:** `main@1f409e3039fc3d7945e94c2c007ba23b865b2ce4`
 **Branch:** `tnyx/tnyx-226-add-food-text-activation`
 **Linear:** TNYX-226 In Progress; no hard blockers. TNYX-229 remains production release/readiness gate. TNYX-239 owns deferred Gemini 503 follow-up.
@@ -101,25 +101,53 @@ Provider selection remains server-side and invisible to Flutter.
 
 ## 5. Implementation Plan
 
-- [ ] Introduce a typed Add Food result that can carry Quick Add or parsed text draft.
-- [ ] Convert only the describe-meal surface to a stateful editable interaction.
-- [ ] Preserve leading keyboard icon; implement focus/keyboard toggle.
-- [ ] Preserve Mic for blank input; show Send for nonblank input.
-- [ ] Wire IME + visible Send to one submit function.
-- [ ] Render safe processing/failure/retry state without raw provider details.
-- [ ] Inject parser repository from app composition into Meal Diary.
-- [ ] On parsed success, derive selected-date + local-clock context and canonical category suggestion.
-- [ ] Open existing Meal Editor with canonical draft and detailed-create repository.
-- [ ] Invalidate diary state after explicit successful create.
-- [ ] Keep Quick Add behavior unchanged.
-- [ ] Update focused widget/integration tests.
-- [ ] Run Flutter CI and complete diff review.
-- [ ] Draft PR → review-ready only; no merge without separate authorization.
+- [x] Introduce a typed Add Food result that can carry Quick Add or parsed text draft.
+- [x] Convert only the describe-meal surface to a stateful editable interaction.
+- [x] Preserve leading keyboard icon; implement focus/keyboard toggle.
+- [x] Preserve Mic for blank input; show Send for nonblank input.
+- [x] Wire IME + visible Send to one submit function.
+- [x] Render safe processing/failure/retry state without raw provider details.
+- [x] Inject parser repository from app composition into Meal Diary.
+- [x] On parsed success, derive selected-date + local-clock context and canonical category suggestion.
+- [x] Open existing Meal Editor with canonical draft and detailed-create repository.
+- [x] Invalidate diary state after explicit successful create.
+- [x] Keep Quick Add behavior unchanged.
+- [x] Update focused widget/integration tests.
+- [x] Run Flutter CI and complete diff review.
+- [x] Draft PR → review-ready only; no merge without separate authorization.
 
 ## 6. Quality Review
 
-Pending.
+- Source head reviewed: `d4b4d403723c3aa313443c05d3db59965153002c`.
+- Flutter CI #2674 passed on that exact source head.
+- Flutter analyze: PASS.
+- Dart analyze: PASS.
+- Flutter tests: PASS.
+- Dart tests: PASS.
+- Prior CI failures were bounded to analyzer promotion/lint findings and widget-test assumptions; all were fixed before the passing run.
+- Final diff remains limited to eight TNYX-226-owned files.
+- No unresolved PR review threads.
+- No backend/Supabase/provider/config/secret mutation.
+- No blocking review finding.
 
 ## 7. Final Handoff
 
-Pending.
+Implementation is complete for this approved source slice and is ready for review.
+
+Validated behavior:
+- Add Food text entry activates only when a parser repository is supplied.
+- blank text keeps unavailable Mic; nonblank text exposes Send;
+- keyboard affordance changes focus/software-keyboard visibility only;
+- visible Send and IME Send converge on the same parser submit path;
+- recoverable parse failure preserves the user's text and retries through the existing controller;
+- successful parse hands only `MealLoggingDraft` into the existing Meal Editor;
+- initial editor context preserves selected Diary date plus one current-local clock snapshot;
+- existing category suggestion and existing category/date pickers remain the correction boundary;
+- persistence occurs only through explicit `Log Meal`;
+- successful create invalidates the affected diary date;
+- Quick Add remains unchanged;
+- voice/photo/search/saved/recent remain outside this slice.
+
+PR: #300.
+
+Stop gate: do not merge without separate owner authorization. No Supabase deploy/config/provider mutation belongs to this PR.
