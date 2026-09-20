@@ -1,6 +1,6 @@
 # TNYX-229 — Gemini responseJsonSchema compatibility fix
 
-**Status:** In progress
+**Status:** Review ready
 **Primary owner:** ChatGPT
 **Affected platforms:** Supabase Edge Function only
 
@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned until implementation completes
-**Implementation ownership state:** Active
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@09f3609afbd4a54a8379e29accd7b28fe00291cd`; live parser ACTIVE v35, `verify_jwt=true`, bundle SHA `ad0c2fc3a6744b2db2622c0db113b960213ba1ef98231eea0f6976e0647665ba`.
 **Branch:** `tnyx/tnyx-229-gemini-response-json-schema`
 **HEAD SHA:** `09f3609afbd4a54a8379e29accd7b28fe00291cd` at branch creation
 **Observed working-tree state:** Not applicable through GitHub connector.
 **Observed uncommitted/dirty files:** Not observable through connector-only execution.
-**PR / tracker:** TNYX-229 In Progress; TNYX-226 Backlog / blocked; no PR yet.
-**Current implementation state:** Task brief created before source mutation.
+**PR / tracker:** Draft PR #299; TNYX-229 In Progress; TNYX-226 Backlog / blocked.
+**Current implementation state:** `responseJsonSchema` compatibility change implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
-**Validation completed at SHA:** Existing main validation inherited; this slice not yet validated.
-**Validation remaining:** Focused request-envelope regression + parser type-check/tests + exact diff review + exact-head CI.
-**Current blocker:** Live authenticated smoke reaches Gemini but returns `400 INVALID_ARGUMENT` with `providerErrorField=schema` while the JSON Schema object is sent through deprecated/openapi-style `responseSchema`.
+**Validation completed at SHA:** `f0902d551fcd290f055bfcca16481a08e256ed90` — Supabase Functions CI #42 PASS.
+**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Current blocker:** Live acceptance remains unverified until separate merge/deploy/authenticated smoke.
 **Open review finding IDs:** None.
-**Next exact action:** Replace only `responseSchema` with `responseJsonSchema` in Gemini request construction and update its regression test.
+**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -108,18 +108,25 @@ Creating a Gemini-only OpenAPI schema variant with `nullable:true` is deferred b
 
 ## 5. Implementation Plan
 
-- [ ] Replace only `responseSchema` with `responseJsonSchema`.
-- [ ] Update request-envelope test to assert JSON-Schema field present and legacy fields absent.
-- [ ] Confirm `interpretation_schema.ts` is unchanged.
-- [ ] Audit exact main-to-branch delta.
-- [ ] Open Draft PR and run Supabase Functions CI.
-- [ ] Final review and Ready for Review; stop before merge/deploy.
+- [x] Replace only `responseSchema` with `responseJsonSchema`.
+- [x] Update request-envelope test to assert JSON-Schema field present and legacy fields absent.
+- [x] Confirm `interpretation_schema.ts` is unchanged.
+- [x] Audit exact main-to-branch delta.
+- [x] Open Draft PR and run Supabase Functions CI.
+- [ ] Final exact-head CI/review and Ready for Review; stop before merge/deploy.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet.`
+- Supabase Functions CI #42 on source head `f0902d551fcd290f055bfcca16481a08e256ed90`: PASS.
+- Parser entrypoint type-check: PASS.
+- Parser source/tests type-check: PASS.
+- Parser tests: PASS.
+- Complete `main...branch` delta reviewed: exactly 3 owned files.
+- Runtime diff is exactly one field: `responseSchema` → `responseJsonSchema`.
+- Request-envelope regression asserts `responseJsonSchema` present and `responseSchema` / `responseFormat` absent.
+- `interpretation_schema.ts`, OpenAI client/schema, diagnostics, model, endpoint, prompt, provider order and fallback are unchanged.
 
 ### Review Findings and Resolution
 
@@ -130,11 +137,13 @@ Creating a Gemini-only OpenAPI schema variant with `nullable:true` is deferred b
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/tnyx-229-gemini-response-json-schema.md`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client.ts`
+- `supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts`
 
 ### Actual Behavior
 
-Pending.
+Gemini GenerateContent keeps `responseMimeType = "application/json"` and now sends the existing JSON Schema through `responseJsonSchema`. The deprecated/openapi-style `responseSchema` field is absent. No schema content or provider behavior outside this request field changed.
 
 ### Known Limitations
 
