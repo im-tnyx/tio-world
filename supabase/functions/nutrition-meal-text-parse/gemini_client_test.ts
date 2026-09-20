@@ -55,6 +55,7 @@ test("Gemini sends the current structured-output request envelope", async () => 
       responseFormat?: unknown;
       responseMimeType?: string;
       responseSchema?: unknown;
+      responseJsonSchema?: unknown;
     };
   };
 
@@ -62,7 +63,8 @@ test("Gemini sends the current structured-output request envelope", async () => 
     body.generationConfig?.responseMimeType,
     "application/json",
   );
-  assert.ok(body.generationConfig?.responseSchema);
+  assert.ok(body.generationConfig?.responseJsonSchema);
+  assert.equal(body.generationConfig?.responseSchema, undefined);
   assert.equal(body.generationConfig?.responseFormat, undefined);
 });
 
