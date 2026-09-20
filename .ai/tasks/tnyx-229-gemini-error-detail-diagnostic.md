@@ -28,10 +28,10 @@
 **Current implementation state:** Bounded ErrorInfo/BadRequest diagnostic refinement implemented; source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
 **Validation completed at SHA:** `bed033b0a8ea191079985eeffd38063224a41934` — Supabase Functions CI #36 PASS.
-**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
+**Validation remaining:** None for review readiness; merge/deploy/live observation remain separate owner-authorized gates.
 **Current blocker:** Production observation requires separate merge/deploy authorization; source slice has no blocking implementation finding.
 **Open review finding IDs:** None.
-**Next exact action:** Exact final-head CI, final review, then Ready for Review. Do not merge/deploy without separate owner authorization.
+**Next exact action:** Final exact-head review and Ready for Review. Do not merge/deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -132,6 +132,7 @@ No UI/product-visible change. Missing, malformed or unknown detail values safely
 - Supabase Functions CI #35: type-checks PASS, parser tests FAIL due a test-only ambiguous assertion where raw field `model` equaled the safe output category `model`.
 - Test corrected to use raw path `model.privateProviderPath`; implementation behavior unchanged.
 - Supabase Functions CI #36 on source head `bed033b0a8ea191079985eeffd38063224a41934`: PASS.
+- Supabase Functions CI #37 on docs-synced head `d8b653045f3c574289f7b548d6afaa3315a9488a`: PASS.
 - Parser entrypoint type-check: PASS.
 - Parser source/tests type-check: PASS.
 - Parser tests: PASS (93 passed).
