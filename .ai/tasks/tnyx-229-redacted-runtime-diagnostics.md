@@ -1,6 +1,6 @@
 # TNYX-229 — Redacted parser runtime diagnostics
 
-**Status:** In progress
+**Status:** Reconciled; validation pending
 **Branch:** `tnyx/tnyx-229-redacted-runtime-diagnostics`
 
 ## Purpose
@@ -61,3 +61,24 @@ Next gate after CI/review is separate deployment authorization for only this dia
 - `rate_limit`: owner checks Edamam application usage/quota/plan;
 - `authorization_or_entitlement`: owner checks the application's plan/access;
 - `unknown`: use Edamam dashboard/support evidence rather than expanding logs or exposing raw provider text.
+
+
+## Post-#292 branch reconciliation — 2026-09-20
+
+PR #292 merged to current `main` as `16cb3696e2b296cc3dbe122511f54ac5ee3e841e`. This diagnostic branch is reconciled without history rewrite or force-push.
+
+Reconciliation rule:
+- current `main` is the tree baseline;
+- preserve the merged Gemini `generationConfig.responseFormat.text` request contract and its focused regression test;
+- overlay only this PR's reviewed redacted diagnostic changes;
+- preserve current-main files not owned by this diagnostic slice;
+- no live deployment, secret/config change, schema/RLS/RPC, Flutter UI, or TNYX-226 work.
+
+Expected post-reconciliation PR delta remains diagnostic-only:
+- this task brief
+- `diagnostics.ts` and focused diagnostic tests
+- redacted diagnostic hooks in `index.ts`, `gemini_client.ts`, `openai_client.ts`, and `edamam_client.ts`
+
+The current live v25 bundle already contains the older diagnostic implementation plus the merged Gemini runtime fix. This PR's refined Edamam classification remains source-of-truth work until separately authorized for deployment.
+
+Next gate: current-head Supabase Functions CI + complete diff review. Do not merge or deploy without separate owner authorization.
