@@ -1,6 +1,6 @@
 # TNYX-229 — Gemini HTTP error-status diagnostic refinement
 
-**Status:** In progress
+**Status:** Review ready
 **Primary owner:** ChatGPT
 **Affected platforms:** Supabase Edge Function only
 
@@ -16,21 +16,21 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned until implementation completes
-**Implementation ownership state:** Handoff pending
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
 **Repository state last verified:** GitHub `main@5e4091a45e9b9327f48be3c7658c764c0bb72d00`; connector execution has no local working-tree surface to inspect.
 **Branch:** `tnyx/tnyx-229-gemini-http-error-status-diagnostic`
 **HEAD SHA:** `5e4091a45e9b9327f48be3c7658c764c0bb72d00` at branch creation
 **Observed working-tree state:** Not applicable through GitHub connector; branch created from exact current main.
 **Observed uncommitted/dirty files:** Not observable / not applicable to connector-only execution.
-**PR / tracker:** TNYX-229 In Progress; no PR yet.
-**Current implementation state:** Task brief created before source mutation.
+**PR / tracker:** Draft PR #296; TNYX-229 In Progress.
+**Current implementation state:** Bounded diagnostic refinement implemented and source validation passed.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse`
-**Validation completed at SHA:** Existing current-main CI inherited; new slice not validated yet.
-**Validation remaining:** Focused type-check/tests + complete diff review + current-head CI.
+**Validation completed at SHA:** `d4dc853f6a5a1268238efd3a6dd8985b9c6c9012` — Supabase Functions CI #31 PASS.
+**Validation remaining:** Exact final-head CI after this docs-only handoff sync.
 **Current blocker:** Reproducible Gemini HTTP 400 lacks safe provider status detail.
 **Open review finding IDs:** None.
-**Next exact action:** Add allowlisted Gemini `error.status` diagnostic extraction and focused redaction tests without changing runtime outcome/request contract.
+**Next exact action:** Exact final-head CI, then mark PR #296 Ready for Review. Do not merge or deploy without separate owner authorization.
 
 ## 1. Discovery
 
@@ -108,13 +108,18 @@ No product-visible/UI change. Malformed/non-JSON provider errors safely map to `
 - [x] Add Gemini HTTP error status classifier.
 - [x] Add focused redaction/classification tests.
 - [x] Preserve request-envelope regression test.
-- [ ] Run CI/review and create Draft PR.
+- [x] Run CI/review and create Draft PR.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet.`
+- Supabase Functions CI #31 on source head `d4dc853f6a5a1268238efd3a6dd8985b9c6c9012`: PASS.
+- Parser entrypoint type-check: PASS.
+- Parser source/tests type-check: PASS.
+- Parser tests: PASS.
+- Complete `main...branch` delta reviewed: exactly 4 owned files.
+- Existing `generationConfig.responseFormat.text` request-envelope regression remains unchanged.
 
 ### Review Findings and Resolution
 
@@ -136,7 +141,7 @@ Gemini non-2xx responses now emit only numeric HTTP status plus an allowlisted `
 
 ### Known Limitations
 
-This slice identifies a safe provider status category; it does not itself correct the underlying Gemini 400.
+This slice identifies a safe provider status category; it does not itself correct the underlying Gemini 400. A live diagnostic observation requires a separate explicitly authorized merge/deploy after review.
 
 ### Final Status
 
