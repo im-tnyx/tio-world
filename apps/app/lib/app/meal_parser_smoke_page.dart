@@ -142,7 +142,24 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
         if (query is! String || category is! String) {
           throw const FormatException('Invalid capability result.');
         }
-        results.add(_OpenFoodFactsResult(query: query, category: category));
+        final productName = raw['productName'];
+        final per100g = raw['per100g'];
+        String? nutrition;
+        if (per100g is Map) {
+          final energy = per100g['energyKcal'];
+          final protein = per100g['proteinG'];
+          final carbs = per100g['carbsG'];
+          final fat = per100g['fatG'];
+          if (energy is num && protein is num && carbs is num && fat is num) {
+            nutrition = '${energy} kcal, P ${protein}g, C ${carbs}g, F ${fat}g /100g';
+          }
+        }
+        results.add(_OpenFoodFactsResult(
+          query: query,
+          category: category,
+          productName: productName is String ? productName : null,
+          nutrition: nutrition,
+        ));
       }
       if (!mounted) return;
       setState(() => _openFoodFactsResult = results);
@@ -223,7 +240,11 @@ final class _MealParserSmokePageState extends State<MealParserSmokePage> {
             if (_openFoodFactsResult != null) ...[
               const SizedBox(height: TioSpacing.sm),
               for (final result in _openFoodFactsResult!)
-                Text('${result.query}: ${result.category}'),
+                Text(
+                  '${result.query}: ${result.category}'
+                  '${result.productName == null ? '' : ' | ${result.productName}'}'
+                  '${result.nutrition == null ? '' : ' | ${result.nutrition}'}',
+                ),
             ],
             if (_controller.state.isProcessing) ...[
               const SizedBox(height: TioSpacing.lg),
@@ -296,7 +317,14 @@ final class _CapabilityStage {
 }
 
 final class _OpenFoodFactsResult {
-  const _OpenFoodFactsResult({required this.query, required this.category});
+  const _OpenFoodFactsResult({
+    required this.query,
+    required this.category,
+    required this.productName,
+    required this.nutrition,
+  });
   final String query;
   final String category;
+  final String? productName;
+  final String? nutrition;
 }
