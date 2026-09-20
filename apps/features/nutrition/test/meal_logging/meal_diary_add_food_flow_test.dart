@@ -465,6 +465,7 @@ void main() {
       );
       await _openAddFood(tester);
       await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
+      await tester.pump();
       await tester.tap(find.byKey(_aiSubmit));
       await tester.pumpAndSettle();
 
@@ -506,6 +507,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openAddFood(tester);
       await tester.enterText(find.byKey(_aiTextField), '  plain yogurt  ');
+      await tester.pump();
       expect(find.byKey(_aiSubmit), findsOne);
       await tester.testTextInput.receiveAction(TextInputAction.send);
       await tester.pumpAndSettle();
