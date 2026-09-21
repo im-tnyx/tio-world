@@ -1,6 +1,6 @@
 # TNYX-244 — Canonical AppBar / topbar height ownership
 
-**Status:** In progress  
+**Status:** Done  
 **Primary owner:** `apps/core`  
 **Affected platforms:** Flutter phone app
 
@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT  
 **Implementation owner:** ChatGPT  
 **Review owner:** Not assigned  
-**Implementation ownership state:** Active  
+**Implementation ownership state:** Completed  
 **Ownership transition:** Not applicable  
-**Repository state last verified:** GitHub `main` at `bf130c697e34b89c5177c4d9056b4b1e2dbade61`; no matching open PR or implementation branch existed before this branch was created. This execution surface writes directly through the GitHub connector and has no local checkout, so local `git status --short --branch` is not available; no local working-tree state is claimed.  
-**Branch:** `tnyx/tnyx-244-core-ui-canonical-appbartopbar-height-ownership`  
-**HEAD SHA:** `bc4d71a55cd1b58eb8149a568d706f23c0c0cead` at validated draft-PR checkpoint  
+**Repository state last verified:** Post-merge reconciliation verified GitHub `main` at `fa77064524f1d7aa0a7989f3d9c2de0b04c8c5bb`, the squash-merge result of PR #305. This execution surface writes directly through the GitHub connector and has no local checkout, so local working-tree state is not claimed.  
+**Branch:** `tnyx/tnyx-244-core-ui-canonical-appbartopbar-height-ownership` (merged implementation branch; remote ref may remain until branch cleanup)  
+**HEAD SHA:** `fa77064524f1d7aa0a7989f3d9c2de0b04c8c5bb` on `main` after squash merge  
 **Observed working-tree state:** Not applicable to remote GitHub connector execution  
 **Observed uncommitted/dirty files:** Not observable / not applicable  
 **PR / tracker:** GitHub #189 · Linear TNYX-244  
-**Current implementation state:** Bounded Core implementation complete; no feature production file changed.  
+**Current implementation state:** Complete and merged to `main`; no feature production file changed.  
 **Relevant execution surface:** `apps/core/lib/src/theme`, Core shell topbars, focused Core/app tests  
-**Validation completed at SHA:** Exact-head Flutter CI #2681 passed at `bc4d71a55cd1b58eb8149a568d706f23c0c0cead`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all succeeded. Review threads/comments were 0 at the same checkpoint.  
-**Validation remaining:** Re-run exact-head CI after this governance-only checkpoint commit, then final review/readiness reconciliation.  
+**Validation completed at SHA:** Exact-head Flutter CI #2682 passed at pre-merge PR head `5964d598d74abe0b5458c4cb7be090a940779c64`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all succeeded. Final diff review found no actionable findings before merge.  
+**Validation remaining:** None for the completed implementation slice. This post-merge record reconciliation is documentation-only.  
 **Current blocker:** None  
 **Open review finding IDs:** None  
-**Next exact action:** Let the governance-only checkpoint commit pass exact-head CI, then mark PR #305 Ready for Review and move TNYX-244 to In Review if review state remains clean.
+**Next exact action:** None. TNYX-244 is Done and GitHub #189 is closed. Any unrelated documentation drift, including GitHub #306, remains a separately authorized slice.  
 
 ## Global UI / Design-System Guardrail
 
@@ -209,7 +209,7 @@ Flutter CI #2681 passed at exact head bc4d71a55cd1b58eb8149a568d706f23c0c0cead:
 - Test Flutter packages: PASS
 - Test Dart packages: PASS
 
-No review threads or PR comments existed at the validated checkpoint. This task-file update is governance-only and therefore requires one fresh exact-head CI run before Ready-for-Review state.
+No actionable review findings existed at final readiness. Exact-head Flutter CI #2682 passed at `5964d598d74abe0b5458c4cb7be090a940779c64`, after which PR #305 was squash-merged to `main` as `fa77064524f1d7aa0a7989f3d9c2de0b04c8c5bb`.
 ```
 
 ### Review Findings and Resolution
@@ -242,4 +242,4 @@ This execution surface does not expose a local checkout, so local working-tree s
 
 ### Final Status
 
-`REVIEW` — implementation is validated at the previous exact head; this governance-only checkpoint must receive fresh exact-head CI before PR Ready-for-Review.
+`DONE` — PR #305 was squash-merged to `main` as `fa77064524f1d7aa0a7989f3d9c2de0b04c8c5bb`; GitHub #189 is closed and Linear TNYX-244 is Done.
