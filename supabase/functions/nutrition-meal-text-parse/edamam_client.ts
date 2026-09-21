@@ -1,5 +1,9 @@
 import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
-import { mealParserDiagnostic, type MealParserProviderErrorCategory } from "./diagnostics.ts";
+import {
+  mealParserDiagnostic,
+  type MealParserMeasureCategory,
+  type MealParserProviderErrorCategory,
+} from "./diagnostics.ts";
 import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
@@ -103,9 +107,14 @@ export class EdamamResolver implements FoodNutritionResolver {
     if (nutrients.kind !== "ok") return nutrients.result;
 
     const item = buildEdamamItem(candidate, label, nutrients.totalNutrients);
-    return item === null
-      ? { kind: "incomplete", reason: "nutrients_missing" }
-      : { kind: "resolved", item };
+    if (item === null) {
+      return { kind: "incomplete", reason: "nutrients_missing" };
+    }
+    mealParserDiagnostic("resolver_resolved", {
+      provider: "edamam",
+      measureCategory: edamamMeasureCategory(measureLabel),
+    });
+    return { kind: "resolved", item };
   }
 
   async #parseCandidate(
@@ -236,6 +245,20 @@ export function measureIsCompatible(candidateUnit: string, providerMeasure: stri
     return true;
   }
   return false;
+}
+
+export function edamamMeasureCategory(
+  providerMeasure: string,
+): MealParserMeasureCategory {
+  const normalized = normalizeUnit(providerMeasure);
+  if (
+    normalized === "piece" || normalized === "item" ||
+    normalized === "whole" || normalized === "unit"
+  ) {
+    return normalized;
+  }
+  if (["g", "kg", "ml", "l", "oz"].includes(normalized)) return "metric";
+  return "other";
 }
 
 export function buildEdamamItem(
