@@ -16,6 +16,7 @@ class TioNavigationTokens {
   static const elevation = TioElevation.none;
   static const labelTopPadding = TioSpacing.xxs;
 
+  static const topBarHeight = TioSize.dp56;
   static const topBarLeadingWidth = TioSize.dp72;
   static const planPillWidth = TioSize.dp125;
   static const planPillHeight = TioSize.dp32;

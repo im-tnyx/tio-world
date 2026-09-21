@@ -114,6 +114,7 @@ void main() {
       expect(TioNavigationTokens.itemRadius, TioRadius.lg);
       expect(TioNavigationTokens.iconSize, TioSize.dp22);
       expect(TioNavigationTokens.labelTopPadding, TioSpacing.xxs);
+      expect(TioNavigationTokens.topBarHeight, TioSize.dp56);
       expect(TioNavigationTokens.topBarLeadingWidth, TioSize.dp72);
       expect(TioNavigationTokens.planPillWidth, TioSize.dp125);
       expect(TioNavigationTokens.planPillHeight, TioSize.dp32);

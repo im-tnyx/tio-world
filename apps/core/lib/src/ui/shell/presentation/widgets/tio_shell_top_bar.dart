@@ -25,7 +25,8 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? avatarUrl;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      const Size.fromHeight(TioNavigationTokens.topBarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +34,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AppBar(
+      toolbarHeight: TioNavigationTokens.topBarHeight,
       automaticallyImplyLeading: false,
       shape: null,
       // Transparent tint/shadow intentionally suppress Material overlay effects.
