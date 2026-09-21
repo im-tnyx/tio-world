@@ -1,4 +1,11 @@
 export type MealParserDiagnosticProvider = "gemini" | "openai" | "fatsecret" | "edamam";
+export type MealParserMeasureCategory =
+  | "piece"
+  | "item"
+  | "whole"
+  | "unit"
+  | "metric"
+  | "other";
 export type MealParserProviderErrorCategory =
   | "authentication"
   | "authorization_or_entitlement"
@@ -73,6 +80,7 @@ export function mealParserDiagnostic(
   stage: string,
   options: {
     readonly provider?: MealParserDiagnosticProvider;
+    readonly measureCategory?: MealParserMeasureCategory;
     readonly reason?: string;
     readonly httpStatus?: number;
     readonly providerErrorCategory?: MealParserProviderErrorCategory;
@@ -86,6 +94,9 @@ export function mealParserDiagnostic(
     stage,
   };
   if (options.provider !== undefined) event.provider = options.provider;
+  if (options.measureCategory !== undefined) {
+    event.measureCategory = options.measureCategory;
+  }
   if (options.reason !== undefined) event.reason = options.reason;
   if (options.httpStatus !== undefined) event.httpStatus = options.httpStatus;
   if (options.providerErrorCategory !== undefined) event.providerErrorCategory = options.providerErrorCategory;
