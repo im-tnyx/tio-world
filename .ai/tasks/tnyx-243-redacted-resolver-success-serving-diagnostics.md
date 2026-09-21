@@ -1,6 +1,6 @@
 # TNYX-243 — Redacted factual resolver-success serving diagnostics
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** Nutrition / Supabase Edge Function
 **Affected platforms:** `supabase/functions/nutrition-meal-text-parse`
 
@@ -14,16 +14,17 @@
 
 ## Active Handoff
 
-**Planning owner:** Current session
-**Implementation owner:** Current session
-**Review owner:** Current review session
-**Implementation ownership state:** Paused after review-clean implementation; no further source edits are approved in this lifecycle step.
-**Repository state last verified:** PR #303 is open, mergeable, and Ready for Review; TNYX-243 is In Review. Implementation head immediately before this governance-only handoff update was `9d91b633907992bf9f1babdd3549de193cce5887`, with Supabase Functions CI #49 PASS and fresh review CLEAN.
-**Branch:** `tnyx/tnyx-243-n5d-9b1-redacted-resolver-success-serving-diagnostics`
-**PR / tracker:** PR #303 Ready for Review; TNYX-243 In Review
-**Current implementation state:** Bounded implementation and both P3 corrections are review-clean. This handoff update changes governance metadata only; production/runtime code is unchanged.
-**Validation remaining:** Require exact-head Supabase Functions CI PASS for this governance-only handoff commit before any merge decision.
-**Next exact action:** After exact-head CI PASS, stop for explicit owner merge decision. Do not merge, deploy, or run live `2 roti` validation without separate owner authorization.
+**Planning owner:** Complete
+**Implementation owner:** Complete
+**Review owner:** Complete
+**Implementation ownership state:** Closed — no active source implementation remains in TNYX-243.
+**Repository state last verified:** PR #303 merged into `main` as `f797bedd115405dc896764cd7eaef3e871d6118b`; TNYX-243 is Done in Linear.
+**Branch:** Historical implementation branch `tnyx/tnyx-243-n5d-9b1-redacted-resolver-success-serving-diagnostics`
+**PR / tracker:** PR #303 merged; TNYX-243 Done
+**Current implementation state:** The bounded diagnostic implementation and both review corrections are merged. No further source changes belong to this completed slice.
+**Post-merge runtime state:** Supabase Edge Function `nutrition-meal-text-parse` is ACTIVE v38 with `verify_jwt=true`.
+**Validation remaining:** None for TNYX-243 implementation. Parent audit TNYX-242 remains UNRESOLVED until its bounded provider-serving observation can be correlated.
+**Next exact action:** Do not reopen TNYX-243 for the parent audit. Continue any remaining factual classification only under TNYX-242 and its read-only safety boundary.
 
 ## Discovery
 
@@ -81,8 +82,10 @@ The emitted event contains no free text. It cannot include candidate food name, 
 - Pre-review baseline: `git diff --check` — PASS.
 - P3 correction adds explicit nutrients-stage transport/HTTP/malformed coverage, an abort-driven timeout case, and the remaining metric aliases accepted by `normalizeUnit(...)`.
 - Exact implementation head `9d91b633907992bf9f1babdd3549de193cce5887`: GitHub Actions `Supabase Functions CI` #49 PASS; focused diagnostics suite PASS (10 tests); full meal-text parser suite PASS (120 passed, 0 failed); fresh review CLEAN.
-- PR #303 was then moved to Ready for Review and TNYX-243 to In Review under owner authorization.
-- This final handoff edit is governance-only; its resulting exact head still requires CI PASS before any merge decision.
+- PR #303 final handoff head `11ecfbec74d75784528618b26147209ee23d10a3`: GitHub Actions `Supabase Functions CI` #50 PASS; focused diagnostics suite PASS (10 tests); full meal-text parser suite PASS (120 passed, 0 failed).
+- PR #303 merged to `main` as `f797bedd115405dc896764cd7eaef3e871d6118b`.
+- The separately authorized deployment is live as `nutrition-meal-text-parse` v38, ACTIVE, with `verify_jwt=true`.
+- TNYX-243 is Done. The remaining TNYX-242 factual classification is a parent-audit concern, not unfinished implementation in this task.
 
 ## Final Handoff
 
@@ -95,4 +98,4 @@ The emitted event contains no free text. It cannot include candidate food name, 
 
 ### Final Status
 
-REVIEW READY — implementation review is CLEAN, PR #303 is Ready for Review, and TNYX-243 is In Review. Merge, deployment, and live `2 roti` validation remain separate owner-controlled gates.
+VALIDATED — the bounded diagnostic implementation is review-clean, merged through PR #303, deployed as `nutrition-meal-text-parse` v38, and TNYX-243 is Done. Parent TNYX-242 remains UNRESOLVED pending its own bounded evidence/classification work. No further implementation is active in this task.
