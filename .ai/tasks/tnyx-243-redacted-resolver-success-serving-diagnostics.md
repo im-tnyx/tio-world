@@ -16,15 +16,14 @@
 
 **Planning owner:** Current session
 **Implementation owner:** Current session
-**Review owner:** Not assigned
-**Implementation ownership state:** Active
-**Repository state last verified:** Clean
+**Review owner:** Current review session
+**Implementation ownership state:** Active on existing Draft PR
+**Repository state last verified:** Draft PR #303 open and Draft; test correction committed at `c2217d0eac439fb5a3f803914bcdacf6b5aff5bc` before this handoff-only update.
 **Branch:** `tnyx/tnyx-243-n5d-9b1-redacted-resolver-success-serving-diagnostics`
-**HEAD SHA:** `4fc08a81531aa043f505eb188efa58ec2bfeca03`
-**PR / tracker:** TNYX-243 In Progress; no PR yet
-**Current implementation state:** Implemented locally; commit/push/Draft PR and tracker handoff pending.
-**Validation remaining:** Final post-commit branch/ahead-behind audit.
-**Next exact action:** Commit the reviewed bounded change, push, create one Draft PR, and hand off to TNYX-243.
+**PR / tracker:** Draft PR #303; TNYX-243 In Progress
+**Current implementation state:** Initial implementation is on PR #303. The two review P3 items are addressed by focused nutrients-stage failure/timeout + metric-alias coverage and this reconciled handoff metadata.
+**Validation remaining:** Verify exact-head Supabase Functions CI and perform a fresh re-review of PR #303.
+**Next exact action:** Reconcile the new PR head, require exact-head CI PASS, and re-review. Keep the PR Draft; do not merge, deploy, mark Ready for Review, or run live `2 roti` validation.
 
 ## Discovery
 
@@ -75,11 +74,13 @@ The emitted event contains no free text. It cannot include candidate food name, 
 ### Validation Run
 
 - Expected test-first failure captured: the new `edamamMeasureCategory` export was absent.
-- `deno check supabase/functions/nutrition-meal-text-parse/index.ts` — PASS.
-- `deno test --allow-read=supabase/functions/nutrition-meal-text-parse supabase/functions/nutrition-meal-text-parse/edamam_diagnostics_test.ts` — PASS (9/9).
-- `deno test --allow-read=supabase/functions/nutrition-meal-text-parse supabase/functions/nutrition-meal-text-parse` — PASS (119/119).
-- Initial sandbox test attempts hit the Windows Deno named-pipe panic; elevated reruns produced the PASS evidence above.
-- `git diff --check` — PASS.
+- Pre-review baseline: `deno check supabase/functions/nutrition-meal-text-parse/index.ts` — PASS.
+- Pre-review baseline: focused diagnostics suite — PASS (9/9).
+- Pre-review baseline: full function suite — PASS (119/119).
+- Initial sandbox test attempts hit the Windows Deno named-pipe panic; elevated reruns produced the baseline PASS evidence above.
+- Pre-review baseline: `git diff --check` — PASS.
+- P3 correction adds explicit nutrients-stage transport/HTTP/malformed coverage, an abort-driven timeout case, and the remaining metric aliases accepted by `normalizeUnit(...)`.
+- Post-correction source of truth: exact-head GitHub Actions `Supabase Functions CI` for Draft PR #303; verify it before re-review.
 
 ## Final Handoff
 
@@ -92,4 +93,4 @@ The emitted event contains no free text. It cannot include candidate food name, 
 
 ### Final Status
 
-REVIEW — implementation validated locally; no deployment performed.
+REVIEW — both P3 review items are addressed on the existing Draft PR. Exact-head CI and re-review remain required; no deployment performed.
