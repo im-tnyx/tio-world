@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable  
 **Repository state last verified:** GitHub `main` at `bf130c697e34b89c5177c4d9056b4b1e2dbade61`; no matching open PR or implementation branch existed before this branch was created. This execution surface writes directly through the GitHub connector and has no local checkout, so local `git status --short --branch` is not available; no local working-tree state is claimed.  
 **Branch:** `tnyx/tnyx-244-core-ui-canonical-appbartopbar-height-ownership`  
-**HEAD SHA:** `bf130c697e34b89c5177c4d9056b4b1e2dbade61` before this task-file commit  
+**HEAD SHA:** `fbb69d3802c5ef4bc8876f6f96421eeffcfc925e` after bounded Core implementation  
 **Observed working-tree state:** Not applicable to remote GitHub connector execution  
 **Observed uncommitted/dirty files:** Not observable / not applicable  
 **PR / tracker:** GitHub #189 · Linear TNYX-244  
-**Current implementation state:** Fresh audit complete; task brief created before production source mutation.  
+**Current implementation state:** Bounded Core implementation complete; no feature production file changed.  
 **Relevant execution surface:** `apps/core/lib/src/theme`, Core shell topbars, focused Core/app tests  
-**Validation completed at SHA:** Audit/search evidence only at `bf130c69`; no source validation yet  
+**Validation completed at SHA:** Static branch/diff review at `fbb69d38`; branch is 2 commits ahead / 0 behind audited `main`, with only the task brief plus bounded Core/tests/docs files. No executable Flutter validation has run yet.  
 **Validation remaining:** Focused tests, Core/app analyze/tests as applicable, `git diff --check`, exact-head GitHub CI  
 **Current blocker:** None  
 **Open review finding IDs:** None  
-**Next exact action:** Add the canonical topbar-height token and wire the Core theme + shell topbars without touching feature AppBar files.
+**Next exact action:** Open a draft PR to obtain exact-head GitHub CI, then resolve any review/CI findings before merge readiness.
 
 ## Global UI / Design-System Guardrail
 
@@ -177,15 +177,15 @@ No state behavior changes. Existing AppBar semantics, focus order, actions, titl
 
 ## 5. Implementation Plan
 
-- [ ] Add `TioNavigationTokens.topBarHeight = TioSize.dp56`.
-- [ ] Set `ThemeData.appBarTheme.toolbarHeight` from that token in `TioTheme`.
-- [ ] Replace both direct `kToolbarHeight` shell preferred-size references with the token.
-- [ ] Keep shell internal AppBar height aligned to the same token.
-- [ ] Extend geometry contract tests.
-- [ ] Add focused theme/AppBar regression coverage proving bare AppBar = 56dp.
-- [ ] Extend shell tests to prove preferred/actual toolbar height = canonical token.
-- [ ] Document the topbar-height ownership contract in the Core theme README.
-- [ ] Search current branch for direct production `kToolbarHeight` and feature-level `toolbarHeight` duplication.
+- [x] Add `TioNavigationTokens.topBarHeight = TioSize.dp56`.
+- [x] Set `ThemeData.appBarTheme.toolbarHeight` from that token in `TioTheme`.
+- [x] Replace both direct `kToolbarHeight` shell preferred-size references with the token.
+- [x] Keep shell internal AppBar height aligned to the same token.
+- [x] Extend geometry contract tests.
+- [x] Add focused theme/AppBar regression coverage proving bare AppBar = 56dp.
+- [x] Extend shell tests to prove preferred/actual toolbar height = canonical token.
+- [x] Document the topbar-height ownership contract in the Core theme README.
+- [x] Search current branch for direct production `kToolbarHeight` and feature-level `toolbarHeight` duplication.
 - [ ] Run applicable formatting/analyze/tests and `git diff --check`.
 - [ ] Open a bounded draft PR linked to GitHub #189 / TNYX-244 after local/source validation evidence exists.
 
@@ -194,7 +194,16 @@ No state behavior changes. Existing AppBar semantics, focus order, actions, titl
 ### Validation Run
 
 ```text
-Not run yet. No production source has been mutated before this task brief.
+Static/API validation at fbb69d3802c5ef4bc8876f6f96421eeffcfc925e:
+- base main = bf130c697e34b89c5177c4d9056b4b1e2dbade61
+- ahead / behind = 2 / 0
+- implementation commit changed 8 bounded files
+- full branch diff adds this task brief plus those 8 files
+- no feature production file changed
+- direct shell kToolbarHeight references removed in branch source
+- bare feature AppBars were not given repeated toolbarHeight values
+
+Executable Flutter validation has not run in this connector-only execution surface; exact-head GitHub CI is the required next gate.
 ```
 
 ### Review Findings and Resolution
@@ -207,11 +216,19 @@ Not run yet. No production source has been mutated before this task brief.
 
 ### Changed Files
 
-Task brief only at this checkpoint.
+- `.ai/tasks/tnyx-244-canonical-appbar-topbar-height.md`
+- `apps/core/lib/src/theme/tokens/components/tio_navigation_tokens.dart`
+- `apps/core/lib/src/theme/tio_theme.dart`
+- `apps/core/lib/src/ui/shell/presentation/widgets/tio_shell_top_bar.dart`
+- `apps/core/lib/src/ui/shell/presentation/widgets/tio_shell_status_top_bar.dart`
+- `apps/core/lib/src/theme/README.md`
+- `apps/core/test/theme/primitive_geometry_contract_test.dart`
+- `apps/core/test/theme/tio_theme_app_bar_contract_test.dart`
+- `apps/app/test/app/tio_shell_top_bar_test.dart`
 
 ### Actual Behavior
 
-No runtime behavior change yet.
+Standard phone AppBars now resolve the same existing 56dp toolbar height from a Tio-owned Core contract. Shell topbars explicitly use the same token for preferred and inner toolbar height. No intended rendered or navigation behavior changed.
 
 ### Known Limitations
 
@@ -219,4 +236,4 @@ This execution surface does not expose a local checkout, so local working-tree s
 
 ### Final Status
 
-`PARTIAL` — audit and tracker/task setup complete; bounded implementation is next.
+`PARTIAL` — bounded implementation is complete; executable validation, review, and merge gates remain.
