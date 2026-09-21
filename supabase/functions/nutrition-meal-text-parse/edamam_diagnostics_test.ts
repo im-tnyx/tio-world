@@ -87,9 +87,21 @@ test("Edamam resolver-success measure categories are closed and normalized", () 
     ["gram", "metric"],
     ["grams", "metric"],
     ["kg", "metric"],
+    ["kilogram", "metric"],
+    ["kilograms", "metric"],
     ["ml", "metric"],
+    ["milliliter", "metric"],
+    ["milliliters", "metric"],
+    ["millilitre", "metric"],
+    ["millilitres", "metric"],
     ["l", "metric"],
+    ["liter", "metric"],
+    ["liters", "metric"],
+    ["litre", "metric"],
+    ["litres", "metric"],
     ["oz", "metric"],
+    ["ounce", "metric"],
+    ["ounces", "metric"],
     ["unexpected-safe-fixture", "other"],
   ] as const;
 
@@ -101,6 +113,7 @@ test("Edamam resolver-success measure categories are closed and normalized", () 
 async function captureResolver(
   candidate: { readonly foodName: string; readonly quantity: number; readonly unit: string },
   fetchFn: typeof fetch,
+  timeoutMs?: number,
 ): Promise<{ readonly result: Awaited<ReturnType<EdamamResolver["resolve"]>>; readonly events: Record<string, unknown>[] }> {
   const original = console.info;
   const lines: string[] = [];
@@ -110,6 +123,7 @@ async function captureResolver(
       appId: "test-app-id",
       appKey: "test-app-key",
       fetchFn,
+      timeoutMs,
     });
     return {
       result: await resolver.resolve(candidate),
@@ -145,6 +159,25 @@ function successfulEdamamFetch(
       },
       ...extras,
     });
+  };
+}
+
+function parserSuccessThen(
+  secondRequest: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+): typeof fetch {
+  let calls = 0;
+  return async (input, init) => {
+    calls += 1;
+    if (calls === 1) {
+      return Response.json({
+        parsed: [{
+          food: { foodId: "food-id", label: "Roti" },
+          quantity: 2,
+          measure: { uri: "measure:whole", label: "whole" },
+        }],
+      });
+    }
+    return secondRequest(input, init);
   };
 }
 
@@ -225,9 +258,22 @@ test("Edamam failures emit no resolver-success diagnostic", async () => {
       name: "nutrients_missing",
       fetchFn: successfulEdamamFetch("Roti", "whole", { totalNutrients: "" }),
     },
-    { name: "transport", fetchFn: async () => { throw new Error("transport"); } },
-    { name: "http", fetchFn: async () => new Response("provider-body-secret-sentinel", { status: 500 }) },
-    { name: "malformed", fetchFn: async () => new Response("{", { status: 200 }) },
+    {
+      name: "nutrients_transport",
+      fetchFn: parserSuccessThen(async () => {
+        throw new Error("transport");
+      }),
+    },
+    {
+      name: "nutrients_http",
+      fetchFn: parserSuccessThen(async () =>
+        new Response("provider-body-secret-sentinel", { status: 500 })
+      ),
+    },
+    {
+      name: "nutrients_malformed",
+      fetchFn: parserSuccessThen(async () => new Response("{", { status: 200 })),
+    },
   ];
 
   for (const c of cases) {
@@ -237,4 +283,34 @@ test("Edamam failures emit no resolver-success diagnostic", async () => {
     );
     assert.equal(events.some((event) => event.stage === "resolver_resolved"), false, c.name);
   }
+});
+
+test("Edamam nutrients timeout emits no resolver-success diagnostic", async () => {
+  const fetchFn = parserSuccessThen((_input, init) =>
+    new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal;
+      if (signal?.aborted) {
+        reject(new Error("aborted"));
+        return;
+      }
+      signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    })
+  );
+
+  const { result, events } = await captureResolver(
+    { foodName: "roti", quantity: 2, unit: "piece" },
+    fetchFn,
+    5,
+  );
+
+  assert.deepEqual(result, { kind: "unavailable" });
+  assert.equal(events.some((event) => event.stage === "resolver_resolved"), false);
+  assert.equal(
+    events.some((event) =>
+      event.stage === "resolver_unavailable" &&
+      event.provider === "edamam" &&
+      event.reason === "transport_or_timeout"
+    ),
+    true,
+  );
 });
