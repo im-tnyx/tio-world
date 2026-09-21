@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable  
 **Repository state last verified:** GitHub `main` at `bf130c697e34b89c5177c4d9056b4b1e2dbade61`; no matching open PR or implementation branch existed before this branch was created. This execution surface writes directly through the GitHub connector and has no local checkout, so local `git status --short --branch` is not available; no local working-tree state is claimed.  
 **Branch:** `tnyx/tnyx-244-core-ui-canonical-appbartopbar-height-ownership`  
-**HEAD SHA:** `fbb69d3802c5ef4bc8876f6f96421eeffcfc925e` after bounded Core implementation  
+**HEAD SHA:** `bc4d71a55cd1b58eb8149a568d706f23c0c0cead` at validated draft-PR checkpoint  
 **Observed working-tree state:** Not applicable to remote GitHub connector execution  
 **Observed uncommitted/dirty files:** Not observable / not applicable  
 **PR / tracker:** GitHub #189 · Linear TNYX-244  
 **Current implementation state:** Bounded Core implementation complete; no feature production file changed.  
 **Relevant execution surface:** `apps/core/lib/src/theme`, Core shell topbars, focused Core/app tests  
-**Validation completed at SHA:** Static branch/diff review at `fbb69d38`; branch is 2 commits ahead / 0 behind audited `main`, with only the task brief plus bounded Core/tests/docs files. No executable Flutter validation has run yet.  
-**Validation remaining:** Focused tests, Core/app analyze/tests as applicable, `git diff --check`, exact-head GitHub CI  
+**Validation completed at SHA:** Exact-head Flutter CI #2681 passed at `bc4d71a55cd1b58eb8149a568d706f23c0c0cead`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all succeeded. Review threads/comments were 0 at the same checkpoint.  
+**Validation remaining:** Re-run exact-head CI after this governance-only checkpoint commit, then final review/readiness reconciliation.  
 **Current blocker:** None  
 **Open review finding IDs:** None  
-**Next exact action:** Open a draft PR to obtain exact-head GitHub CI, then resolve any review/CI findings before merge readiness.
+**Next exact action:** Let the governance-only checkpoint commit pass exact-head CI, then mark PR #305 Ready for Review and move TNYX-244 to In Review if review state remains clean.
 
 ## Global UI / Design-System Guardrail
 
@@ -186,8 +186,8 @@ No state behavior changes. Existing AppBar semantics, focus order, actions, titl
 - [x] Extend shell tests to prove preferred/actual toolbar height = canonical token.
 - [x] Document the topbar-height ownership contract in the Core theme README.
 - [x] Search current branch for direct production `kToolbarHeight` and feature-level `toolbarHeight` duplication.
-- [ ] Run applicable formatting/analyze/tests and `git diff --check`.
-- [ ] Open a bounded draft PR linked to GitHub #189 / TNYX-244 after local/source validation evidence exists.
+- [x] Run applicable exact-head analyze/tests through Flutter CI #2681; API scope/diff audit remains clean.
+- [x] Open bounded draft PR #305 linked to GitHub #189 / TNYX-244.
 
 ## 6. Quality Review
 
@@ -203,7 +203,13 @@ Static/API validation at fbb69d3802c5ef4bc8876f6f96421eeffcfc925e:
 - direct shell kToolbarHeight references removed in branch source
 - bare feature AppBars were not given repeated toolbarHeight values
 
-Executable Flutter validation has not run in this connector-only execution surface; exact-head GitHub CI is the required next gate.
+Flutter CI #2681 passed at exact head bc4d71a55cd1b58eb8149a568d706f23c0c0cead:
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+No review threads or PR comments existed at the validated checkpoint. This task-file update is governance-only and therefore requires one fresh exact-head CI run before Ready-for-Review state.
 ```
 
 ### Review Findings and Resolution
@@ -236,4 +242,4 @@ This execution surface does not expose a local checkout, so local working-tree s
 
 ### Final Status
 
-`PARTIAL` — bounded implementation is complete; executable validation, review, and merge gates remain.
+`REVIEW` — implementation is validated at the previous exact head; this governance-only checkpoint must receive fresh exact-head CI before PR Ready-for-Review.
