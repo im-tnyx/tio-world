@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../../../../theme/tokens/effects/tio_elevation.dart';
 import '../../../../theme/tokens/foundation/tio_spacing.dart';
 
@@ -30,7 +31,8 @@ class TioShellStatusTopBar extends StatelessWidget
   final Widget? center;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      const Size.fromHeight(TioNavigationTokens.topBarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +44,7 @@ class TioShellStatusTopBar extends StatelessWidget
         : '$statusLabel, $visibleDays day${visibleDays == 1 ? '' : 's'}';
 
     return AppBar(
+      toolbarHeight: TioNavigationTokens.topBarHeight,
       automaticallyImplyLeading: false,
       titleSpacing: TioSpacing.lg,
       title: Text(title),

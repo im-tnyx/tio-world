@@ -99,7 +99,14 @@ void main() {
         (planPill.decoration! as ShapeDecoration).shape,
         isA<StadiumBorder>(),
       );
+      final shellTopBar =
+          tester.widget<TioShellTopBar>(find.byType(TioShellTopBar));
       final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      expect(
+        shellTopBar.preferredSize.height,
+        TioNavigationTokens.topBarHeight,
+      );
+      expect(appBar.toolbarHeight, TioNavigationTokens.topBarHeight);
       expect(appBar.shape, isNull);
       expect(appBar.elevation, 0);
       expect(appBar.scrolledUnderElevation, 0);
@@ -209,6 +216,15 @@ void main() {
       expect(find.text(testCase.$1.label), findsWidgets);
       expect(find.byKey(testCase.$3), findsOneWidget);
       expect(find.byTooltip(testCase.$2), findsOneWidget);
+      final shellTopBar = tester.widget<TioShellStatusTopBar>(
+        find.byType(TioShellStatusTopBar),
+      );
+      final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      expect(
+        shellTopBar.preferredSize.height,
+        TioNavigationTokens.topBarHeight,
+      );
+      expect(appBar.toolbarHeight, TioNavigationTokens.topBarHeight);
       expect(find.text('TIO'), findsNothing);
       expect(find.byKey(const ValueKey('shell-plan')), findsNothing);
       expect(

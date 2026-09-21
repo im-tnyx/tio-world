@@ -437,6 +437,12 @@ The variant exposes no radius, height, fill, border-colour or label-size overrid
 
 `TioEditorSheet.bottomPadding` defaults to `TioEditorSheetTokens.bottomPadding` (the editor family's compact `12dp` bottom inset) while side and top padding retain their established value. A caller may override it only for a documented surface requirement; do not use negative layout offsets. This editor-surface inset is independent from popup-card internal padding and DateTime wheel selection geometry.
 
+### App bar and topbar height
+
+`TioNavigationTokens.topBarHeight` is the canonical phone AppBar/topbar toolbar-height contract and aliases `TioSize.dp56`. `TioTheme` installs it through `ThemeData.appBarTheme.toolbarHeight`, so ordinary feature/app `AppBar` consumers inherit the governed value instead of repeating a local `toolbarHeight`.
+
+`TioShellTopBar` and `TioShellStatusTopBar` use the same token for both their `PreferredSizeWidget` height and their inner `AppBar` toolbar height. Do not reintroduce direct `kToolbarHeight` references or per-screen 56dp aliases for standard phone AppBars. Onboarding's 48dp `OnboardingTopBar` remains a separate component contract and is not part of this role.
+
 `TioShell` exposes one optional contextual status title. A tab label names a domain while the screen inside it may be one of several, so the composition layer supplies the screen's own name and the tab label stays the fallback. Core never learns which screen a feature is currently showing.
 
 `TioShellStatusTopBar` retains ownership of the shared title and status treatment and exposes two optional generic action slots around it, so the cluster reads `[leadingAction?] [status] [trailingAction?]`. Core does not interpret either action's meaning, own its visibility or state rule, or learn what feature supplied it.
