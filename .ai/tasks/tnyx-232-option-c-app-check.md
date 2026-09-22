@@ -1,6 +1,6 @@
 # TNYX-232 / GitHub #283 — Option C: Dedicated GitHub App Required Check
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** repository governance / `.github/workflows/commit-attribution-guard.yml`
 **Affected platforms:** None (CI/governance only; no Flutter/Supabase/product runtime change)
 
@@ -16,17 +16,17 @@
 
 **Planning owner:** current session
 **Implementation owner:** current session
-**Review owner:** Not applicable (pending PR review)
-**Implementation ownership state:** Active
+**Review owner:** repository owner
+**Implementation ownership state:** Handoff pending (implementation and live validation complete)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-22 — `main` `3ebe9f7c3a526abbaed5364c9db88054cfea03b9`; rulesets `[]`; `main` protection 404; Actions policy 5216 active; PR #311 Draft at `cb507660b62f8b695b0ec397ec4018d60577fc41`
-**Branch:** `tnyx/tnyx-232-option-c-app-check` (from fresh `main`)
-**PR / tracker:** PR [#312](https://github.com/im-tnyx/tio-world/pull/312) (Ready for Review, not merged), GitHub #283 open, Linear TNYX-232 `In Review`; related PR #310 (merged), PR #311 (Draft, unchanged)
-**Current implementation state:** App registered, installed and configured (see App identity below); trusted environment holds the private-key secret and Client ID variable; workflow publishes the custom App check; workflow-scoped Actions policy active (ID 5216)
-**Validation remaining:** live custom-App check (only possible after this workflow lands on `main`); branch protection; spoof/infra validation
-**Current blocker:** none for review; merge requires separate owner exact-head authorization
+**Repository state last verified:** 2026-09-22 — `main` `298186e1d316acb503eca5dbf96fdffa6d065c83` (PR #312 squash), protected; rulesets `[]`; Actions policy 5216 active
+**Branch:** `tnyx/tnyx-232-option-c-app-check` (merged as PR #312)
+**PR / tracker:** PR [#312](https://github.com/im-tnyx/tio-world/pull/312) merged; validation PRs #313, #314, #315; GitHub #283 open; Linear TNYX-232 `In Review`
+**Current implementation state:** App-backed required check live; `main` protection applied and validated
+**Validation remaining:** none; see `.ai/tasks/tnyx-232-attribution-guard-final-validation.md`
+**Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** owner decides on exact-head merge authorization for PR #312; after merge, a disposable clean PR must show `Commit attribution guard` from App ID `5032971` before branch protection is applied
+**Next exact action:** administrative cleanup tracked in the final validation record
 
 ## App Identity and Setup (verified 2026-09-22)
 
@@ -108,13 +108,13 @@ Fail-closed: token/secret/environment unavailable or check creation failing → 
 - [x] F/G. Workflow change on this branch (runner rename, environment, pinned token action, App check create/finalize).
 - [x] H. Local/static validation and Draft PR #312.
 - [x] I. Workflow-scoped Actions policy created with API version `2026-03-10` and read back: ID `5216`, name `Allow trusted attribution guard event`, enforcement `active`, `workflow_path.include = [".github/workflows/commit-attribution-guard.yml"]`, `exclude = []`, rule `restrict_action_events` with `allowed_events = ["pull_request_target"]`. No other workflow's events are affected.
-- [ ] Owner-authorized merge of this PR (not in this pass).
-- [ ] Disposable clean PR → observe App check SUCCESS live.
-- [ ] Branch protection PUT (payload below).
-- [ ] Validation: clean, trailer, same-name spoof, Actions policy, infrastructure-failure observation.
-- [ ] PR #311 merged through the new gate; final #283 / TNYX-232 reconciliation.
+- [x] Owner-authorized exact-head squash merge of PR #312 (`298186e1d316acb503eca5dbf96fdffa6d065c83`).
+- [x] Disposable clean PR #313 → App check `106756967663` SUCCESS from App ID `5032971` (run 35730237151, attempt 2).
+- [x] Branch protection PUT applied and read back (payload below).
+- [x] Validation: clean, prohibited trailer and same-name spoof (PR #314), reverse same-name (PR #315), Actions policy, infrastructure-failure observation (attempt 1 key error left no App check).
+- [ ] PR #311 superseded by the final validation record rather than merged; final #283 / TNYX-232 reconciliation after that record lands.
 
-### Future branch protection payload (not applied)
+### Branch protection payload (applied 2026-09-22, `200 OK`)
 
 `PUT /repos/im-tnyx/tio-world/branches/main/protection`
 
@@ -130,7 +130,7 @@ Fail-closed: token/secret/environment unavailable or check creation failing → 
 }
 ```
 
-`app_id` `5032971` is the Tio Attribution Guard App. Apply only after a live App check from that ID has been observed. Never pin `15368`. This PUT also sets `allow_force_pushes=false` and `allow_deletions=false` by default, consistent with `AGENTS.md`.
+`app_id` `5032971` is the Tio Attribution Guard App; it was applied after the live App check on PR #313. Never pin `15368`. This PUT also sets `allow_force_pushes=false` and `allow_deletions=false` by default, consistent with `AGENTS.md`.
 
 ## 6. Quality Review
 
@@ -155,7 +155,7 @@ Review of workflow head `635c9933867bc592699ea4c150fa3f1a4869ac9c` (2026-09-22):
 
 ### Known Limitations
 
-- Bootstrap: `pull_request_target` loads the workflow from `main`, so this PR is judged by the current (pre-Option-C) guard; the App-backed version can only be observed live after merge.
+- Bootstrap (resolved): PR #312 itself was judged by the pre-Option-C guard; the App-backed version was first observed live on PR #313 after merge.
 - The pre-merge guard sees PR commits only. A squash message edited in the merge dialog, or squash-time co-author generation from commit author identity, is outside its view (follow-up; not verified).
 - Environment-bound jobs create deployment entries in PR timelines (cosmetic).
 - `actions/checkout@v7` is referenced by tag, as on `main` before this slice; SHA-pinning it is a possible follow-up, not changed here.
@@ -163,4 +163,4 @@ Review of workflow head `635c9933867bc592699ea4c150fa3f1a4869ac9c` (2026-09-22):
 
 ### Final Status
 
-`PARTIAL` — App setup complete and PR #312 ready for owner merge authorization; live App-check proof, branch protection and negative/spoof validation pending.
+`PASS` — App-backed required check and `main` protection validated live; details and the duplicate-name caveat in `.ai/tasks/tnyx-232-attribution-guard-final-validation.md`.
