@@ -14,24 +14,24 @@
 
 ## Active Handoff
 
-**Planning owner:** prior read-only audit pass + manual review pass (same session)
-**Implementation owner:** current session
-**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved)
-**Implementation ownership state:** Active
+**Planning owner:** prior read-only audit pass + manual review passes (same session)
+**Implementation owner:** current session (implementation complete as of this pass; this pass is docs-only handoff cleanup, not further behavior change)
+**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved; this pass only corrects stale task-brief wording, no new finding)
+**Implementation ownership state:** Handoff pending (implementation complete; awaiting owner review of PR #310)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before each correction pass
+**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before this pass
 **Branch:** `tnyx/tnyx-232-ai-attribution-guard` (existing branch throughout, no new branch created)
-**HEAD SHA:** this pass started from `d73d70431b4b0ffde87f83dc828aef55878004de` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved)
+**HEAD SHA:** current final implementation head (last code-changing commit) is `574ff1d06afd137f601f484ab921d08b6f262566` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved). This pass adds one additive docs-only commit on top of it that touches only this task-brief file; see the PR for that commit's exact SHA once pushed.
 **Observed working-tree state:** clean before this pass's edits
 **Observed uncommitted/dirty files:** none
 **PR / tracker:** existing PR [#310](https://github.com/im-tnyx/tio-world/pull/310) (Draft, not merged), GitHub #283 (open, unchanged), Linear TNYX-232 (`In Review`, unchanged)
-**Current implementation state:** PR #310 exists and is Draft, now three commits. A fresh manual review after the G1/G2/G3 correction found one further runtime blocker, G4: the fetch step wrote the resolved PR head SHA to `GITHUB_ENV` and the next step read it through the `${{ env.* }}` workflow-expression context, which is not a valid/safe way to hand a runtime-computed value across steps — on a live run this could silently resolve `HEAD_SHA` empty even on a clean PR. Fixed by giving the fetch step an `id` and using `GITHUB_OUTPUT` + `steps.<id>.outputs.*`, the correct mechanism. The task brief's earlier wording also overstated fixture coverage for the `git interpret-trailers` parser-failure branch specifically (as opposed to the invalid-ref failures it actually exercises); corrected in the G3 row rather than adding a fixture that would complicate the script for a very low-value case. A separate external "Code scanning AI findings" run (`35707161694`) failed for an unrelated infrastructure reason (`400 The requested model is not supported` for `claude-opus-5`) — not a repository code finding, no repository code was changed because of it.
-**Relevant execution surface:** `.github/workflows/commit-attribution-guard.yml`, `scripts/check_commit_attribution.sh`, `scripts/check_commit_attribution_test.sh`, `CONTRIBUTING.md`
-**Validation completed at SHA:** see Quality Review section below (updated for this correction commit)
-**Validation remaining:** the corrected `pull_request_target` workflow still cannot bootstrap-run against PR #310 itself (base branch doesn't contain it yet); a post-merge validation PR remains required to observe the fixed output-wiring running live end-to-end.
-**Current blocker:** none for the code slice; required-check/admin follow-up and post-merge live validation are separate, explicitly out-of-scope steps for this pass
-**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution)
-**Next exact action:** push this correction commit to the existing branch, report final handoff, stop before merge
+**Current implementation state:** Guard implementation, trust-boundary hardening (G1/G2/G3), and output-wiring correction (G4) are all complete and pushed to PR #310 as of commit `574ff1d0`. This pass is durable-handoff cleanup only: it corrects task-brief wording that still described the original (superseded) `pull_request` trigger design instead of the implemented `pull_request_target` trusted-base design, and refreshes the "Next exact action" line, which still described already-completed push/reconcile/report steps from the previous pass. No guard behavior, scripts, or workflow file are touched in this pass.
+**Relevant execution surface:** `.ai/tasks/tnyx-232-ai-attribution-guard.md` only for this pass (guard files unchanged: `.github/workflows/commit-attribution-guard.yml`, `scripts/check_commit_attribution.sh`, `scripts/check_commit_attribution_test.sh`, `CONTRIBUTING.md`)
+**Validation completed at SHA:** see Quality Review section below (unchanged by this docs-only pass; last re-run at `574ff1d0`)
+**Validation remaining:** the corrected `pull_request_target` workflow still cannot bootstrap-run against PR #310 itself (base branch doesn't contain it yet); a post-merge validation PR remains required to observe the fixed output-wiring running live end-to-end; hard required-check configuration remains an owner/admin follow-up.
+**Current blocker:** none; remaining steps are owner review, owner-authorized merge, and post-merge follow-ups, all explicitly out of scope for this session to perform unilaterally
+**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution); no new finding in this pass
+**Next exact action:** owner review of PR #310 → fresh exact-head merge-readiness verification → owner-authorized squash merge only if the gate remains clean
 
 ## 1. Discovery
 
@@ -142,7 +142,7 @@ Not applicable (no UI surface). CI failure state: the workflow step prints the e
 
 - [x] `scripts/check_commit_attribution.sh` — trailer parser + AI-identity matcher, exits 0/1/2.
 - [x] `scripts/check_commit_attribution_test.sh` — fixture-based PASS/FAIL/BOUNDARY suite, runs in a disposable temp repo.
-- [x] `.github/workflows/commit-attribution-guard.yml` — repository-wide `pull_request` trigger on `main`, no path filters, minimum `contents: read` permission, runs the test suite then the real check, honors `vars.AI_ATTRIBUTION_EXCEPTION_PR`.
+- [x] `.github/workflows/commit-attribution-guard.yml` — repository-wide `pull_request_target` trigger on `main`, trusted-base-controlled (workflow definition and every script it runs are loaded from `main`, never from the PR), no product path filters, minimum `contents: read` permission. The PR head is fetched and sha-verified as Git object data only (`refs/pull/<n>/head`) and is never checked out or executed. Runs the test suite then the real check, honors `vars.AI_ATTRIBUTION_EXCEPTION_PR` via the checker's fail-closed 4-argument exception contract. (Original `pull_request` + head-checkout design superseded by G1's correction.)
 - [x] `CONTRIBUTING.md` — remediation steps and owner-exception documentation appended to the existing "Commit attribution" section.
 - [x] Local validation (syntax check, fixture suite, real historical regression range, known-clean control range, `git diff --check`).
 - [x] Open Draft PR linking GitHub #283 / Linear TNYX-232 (PR #310).
