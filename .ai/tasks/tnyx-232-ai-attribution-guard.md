@@ -16,22 +16,22 @@
 
 **Planning owner:** prior read-only audit pass + manual review pass (same session)
 **Implementation owner:** current session
-**Review owner:** current session (manual review found G1/G2/G3; resolved in this correction commit)
+**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved)
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before this correction pass
-**Branch:** `tnyx/tnyx-232-ai-attribution-guard` (existing branch, no new branch created)
-**HEAD SHA:** correction pass started from `e33243226b48b1491f6d7a9c38dce35e12b5f682` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved)
+**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before each correction pass
+**Branch:** `tnyx/tnyx-232-ai-attribution-guard` (existing branch throughout, no new branch created)
+**HEAD SHA:** this pass started from `d73d70431b4b0ffde87f83dc828aef55878004de` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved)
 **Observed working-tree state:** clean before this pass's edits
 **Observed uncommitted/dirty files:** none
-**PR / tracker:** existing PR [#310](https://github.com/im-tnyx/tio-world/pull/310) (Draft, not merged), GitHub #283 (open, unchanged), Linear TNYX-232 (`In Review`, unchanged by this pass)
-**Current implementation state:** PR #310 exists and is Draft. Manual review found three findings (G1 P1, G2 P1/P2, G3 P2) against the original `pull_request`-triggered, head-checkout design. This pass replaces it with a `pull_request_target` trusted-base design, moves the exception decision into the tested checker script (fail-closed), and removes fail-open trailer-parse error handling. A separate external "Code scanning AI findings" run (`35707161694`) failed for an unrelated infrastructure reason (`400 The requested model is not supported` for `claude-opus-5`) — this is not a repository code finding and no repository code was changed because of it.
+**PR / tracker:** existing PR [#310](https://github.com/im-tnyx/tio-world/pull/310) (Draft, not merged), GitHub #283 (open, unchanged), Linear TNYX-232 (`In Review`, unchanged)
+**Current implementation state:** PR #310 exists and is Draft, now three commits. A fresh manual review after the G1/G2/G3 correction found one further runtime blocker, G4: the fetch step wrote the resolved PR head SHA to `GITHUB_ENV` and the next step read it through the `${{ env.* }}` workflow-expression context, which is not a valid/safe way to hand a runtime-computed value across steps — on a live run this could silently resolve `HEAD_SHA` empty even on a clean PR. Fixed by giving the fetch step an `id` and using `GITHUB_OUTPUT` + `steps.<id>.outputs.*`, the correct mechanism. The task brief's earlier wording also overstated fixture coverage for the `git interpret-trailers` parser-failure branch specifically (as opposed to the invalid-ref failures it actually exercises); corrected in the G3 row rather than adding a fixture that would complicate the script for a very low-value case. A separate external "Code scanning AI findings" run (`35707161694`) failed for an unrelated infrastructure reason (`400 The requested model is not supported` for `claude-opus-5`) — not a repository code finding, no repository code was changed because of it.
 **Relevant execution surface:** `.github/workflows/commit-attribution-guard.yml`, `scripts/check_commit_attribution.sh`, `scripts/check_commit_attribution_test.sh`, `CONTRIBUTING.md`
 **Validation completed at SHA:** see Quality Review section below (updated for this correction commit)
-**Validation remaining:** the corrected `pull_request_target` workflow cannot bootstrap-run against PR #310 itself, because `pull_request_target` always loads the workflow from the base branch (`main`), which does not yet contain it. A separate post-merge validation PR is required to observe it running live. This is expected bootstrap behavior, not a defect, and is not worked around by reverting to the insecure head-controlled design.
+**Validation remaining:** the corrected `pull_request_target` workflow still cannot bootstrap-run against PR #310 itself (base branch doesn't contain it yet); a post-merge validation PR remains required to observe the fixed output-wiring running live end-to-end.
 **Current blocker:** none for the code slice; required-check/admin follow-up and post-merge live validation are separate, explicitly out-of-scope steps for this pass
-**Open review finding IDs:** G1, G2, G3 — all Resolved in this correction commit (see Review Findings And Resolution)
-**Next exact action:** push correction commit to the existing branch, reconcile PR #310 body, report final handoff, stop before merge
+**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution)
+**Next exact action:** push this correction commit to the existing branch, report final handoff, stop before merge
 
 ## 1. Discovery
 
@@ -153,7 +153,9 @@ Not applicable (no UI surface). CI failure state: the workflow step prints the e
 - [x] `CONTRIBUTING.md` — small truthful update describing the trusted-base execution model.
 - [x] `.ai/tasks/tnyx-232-ai-attribution-guard.md` — Active Handoff and findings refreshed to current truth.
 - [x] Re-run local validation for the correction (fixtures, real regression range, clean range, invalid-ref + exception, `git diff --check`).
-- [ ] Push correction commit to existing branch/PR #310; reconcile PR body.
+- [x] Push correction commit to existing branch/PR #310; reconcile PR body.
+- [x] `.github/workflows/commit-attribution-guard.yml` — G4: fetch step given `id: fetch_pr_head`, switched from `GITHUB_ENV`/`${{ env.* }}` to `GITHUB_OUTPUT`/`${{ steps.fetch_pr_head.outputs.head_sha }}` for the runtime-computed PR head SHA.
+- [x] Corrected task-brief wording that overstated fixture coverage for the `git interpret-trailers` parser-failure branch specifically (G3 row).
 - [ ] Report final handoff; stop before merge and before any branch-protection/ruleset/Actions-policy mutation.
 
 ## 6. Quality Review
@@ -220,7 +222,8 @@ Separately, the external "Code scanning AI findings" GitHub check (run `35707161
 |---|---|---|---|---|---|
 | G1 | P1 | Resolved | Guard used `pull_request` + `ref: github.event.pull_request.head.sha` checkout, executing PR-controlled workflow/script code in the context that judges it — a future PR could modify the checker it is being checked against. | Found against `e33243226b48b1491f6d7a9c38dce35e12b5f682` | Fixed by converting to `pull_request_target` with `ref: github.event.pull_request.base.sha` checkout; PR head is fetched only as `refs/pull/<n>/head` object data (verified to match the event's reported head sha) and is never checked out or executed. See `.github/workflows/commit-attribution-guard.yml`. |
 | G2 | P1/P2 | Resolved | The owner-exception logic lived in untested workflow YAML and did not distinguish rc=1 (real violation) from rc=2 (technical/invocation failure), risking a technical failure being silently treated as an approved exception. | Found against `e33243226b48b1491f6d7a9c38dce35e12b5f682` | Moved into the tested `scripts/check_commit_attribution.sh` itself (new 4-argument form `<base> <head> <pr-number> <exception-pr>`), with strict ordering: validate args -> validate refs -> detect -> only then evaluate the exact-PR exception. Proven with 4 new fixtures (clean+no-exception, violation+no-exception, violation+wrong-PR-exception, violation+matching-exception) and 2 fail-closed fixtures (invalid base/head ref + matching exception -> still rc=2). All 6 pass. |
-| G3 | P2 | Resolved | `git interpret-trailers --parse` failures were effectively fail-open (a parser error could be indistinguishable from "no trailers"), which is unacceptable for a governance guard. | Found against `e33243226b48b1491f6d7a9c38dce35e12b5f682` | `set +e` / capture `trailer_rc` / `set -e` around the parse call; a non-zero `trailer_rc` now prints a concise error and exits 2 immediately, distinct from the normal "empty output, exit 0" no-trailers case. Covered indirectly by the invalid-ref fail-closed fixtures exercising the same exit-2 contract; human co-author and AI-identity boundaries remain unchanged (18/18 fixtures pass). |
+| G3 | P2 | Resolved | `git interpret-trailers --parse` failures were effectively fail-open (a parser error could be indistinguishable from "no trailers"), which is unacceptable for a governance guard. | Found against `e33243226b48b1491f6d7a9c38dce35e12b5f682` | `set +e` / capture `trailer_rc` / `set -e` around the parse call; a non-zero `trailer_rc` now prints a concise error and exits 2 immediately, distinct from the normal "empty output, exit 0" no-trailers case. **Precise validation status:** the two automated `rc=2` fixtures (`invalid base ref` / `invalid head ref` with matching exception) exercise the shared exit-2 contract and prove the exception can never bypass it, but they do so via invalid refs, not by forcing `git interpret-trailers` itself to return non-zero — no fixture actually drives that specific command to fail (it is a very robust parser; there is no clean, non-script-complicating way to make it error deterministically). The `git interpret-trailers` fail-closed branch is implemented and code-reviewed, not fixture-proven in isolation. Human co-author and AI-identity boundaries remain unchanged (18/18 fixtures pass). |
+| G4 | P1/P2 | Resolved | The fetch step wrote the resolved PR head SHA with `echo "fetched_head_sha=..." >> "$GITHUB_ENV"` and the next step read it via `${{ env.fetched_head_sha }}` in the workflow-expression context. A `GITHUB_ENV` write is a runtime shell-environment value for later steps' shells, not a workflow-expression `env.*` value; the `${{ }}` expression evaluates before the runtime write is guaranteed visible to it, so `HEAD_SHA` could resolve empty on a live run even on an otherwise clean PR, making the checker fail closed with `rc=2` for the wrong reason. | Found against `d73d70431b4b0ffde87f83dc828aef55878004de` | Fetch step given `id: fetch_pr_head`; it now writes `echo "head_sha=${fetched_head_sha}" >> "$GITHUB_OUTPUT"` instead of `GITHUB_ENV`. The checker step now reads `HEAD_SHA: ${{ steps.fetch_pr_head.outputs.head_sha }}` — a proper step-output expression reference, evaluated after the fetch step completes. No `GITHUB_ENV`/`env.*` ambiguity remains anywhere in the workflow. Trust model unchanged: `pull_request_target` -> trusted base checkout -> trusted scripts only -> PR head fetched as data -> sha-verified against event head -> never checked out -> never executed. |
 
 ## 7. Final Handoff
 
@@ -228,20 +231,23 @@ Separately, the external "Code scanning AI findings" GitHub check (run `35707161
 
 Original implementation commit: `scripts/check_commit_attribution.sh` (new), `scripts/check_commit_attribution_test.sh` (new), `.github/workflows/commit-attribution-guard.yml` (new), `CONTRIBUTING.md` (remediation section appended), `.ai/tasks/tnyx-232-ai-attribution-guard.md` (new).
 
-Correction commit (this pass, same PR #310, same branch): `scripts/check_commit_attribution.sh` (rewritten — 4-argument form, fail-closed exception, fail-closed trailer-parse errors), `scripts/check_commit_attribution_test.sh` (rewritten — adds exception-contract and fail-closed fixtures), `.github/workflows/commit-attribution-guard.yml` (rewritten — `pull_request_target`, trusted-base checkout, data-only PR head fetch), `CONTRIBUTING.md` (small truthful addition describing the trusted-base execution model), `.ai/tasks/tnyx-232-ai-attribution-guard.md` (this file, refreshed to current truth).
+Correction commit 1 (G1/G2/G3, same PR #310, same branch): `scripts/check_commit_attribution.sh` (rewritten — 4-argument form, fail-closed exception, fail-closed trailer-parse errors), `scripts/check_commit_attribution_test.sh` (rewritten — adds exception-contract and fail-closed fixtures), `.github/workflows/commit-attribution-guard.yml` (rewritten — `pull_request_target`, trusted-base checkout, data-only PR head fetch), `CONTRIBUTING.md` (small truthful addition describing the trusted-base execution model), `.ai/tasks/tnyx-232-ai-attribution-guard.md` (refreshed).
+
+Correction commit 2 (G4, this pass, same PR #310, same branch): `.github/workflows/commit-attribution-guard.yml` (fetch step given `id: fetch_pr_head`; `GITHUB_ENV`/`${{ env.* }}` replaced with `GITHUB_OUTPUT`/`${{ steps.fetch_pr_head.outputs.head_sha }}`), `.ai/tasks/tnyx-232-ai-attribution-guard.md` (G4 recorded and resolved; G3 wording corrected to not overclaim fixture coverage of the `git interpret-trailers` failure branch specifically).
 
 ### Actual Behavior
 
-Repository-wide PR guard exists, is trust-boundary-hardened (base-controlled, PR head read as data only, fail-closed exception and error handling), and is locally proven correct against 18 fixtures plus real repository history. It is not yet a required check on `main` (no branch protection/ruleset configured — confirmed absent, out of scope for this pass), and it cannot bootstrap-execute against PR #310 itself (expected `pull_request_target` behavior — the trusted version does not yet exist on `main`).
+Repository-wide PR guard exists, is trust-boundary-hardened (base-controlled, PR head read as data only, fail-closed exception and error handling, correct step-output wiring for the runtime head SHA), and is locally proven correct against 18 fixtures plus real repository history. It is not yet a required check on `main` (no branch protection/ruleset configured — confirmed absent, out of scope for this pass), and it still cannot bootstrap-execute against PR #310 itself (expected `pull_request_target` behavior — the trusted version does not yet exist on `main`).
 
 ### Known Limitations
 
 - Not yet a hard merge gate; requires a separate owner/admin action to configure `Commit attribution guard` as a required status check on `main`.
 - v1 does not scan PR title/body (deliberate, see Clarification table).
 - Direct pushes to `main` (bypassing PRs entirely) are not covered by a `pull_request_target`-only trigger; this was flagged as a known, accepted limitation in the prior audit and not expanded in this slice to avoid speculative scope growth.
-- The corrected trusted workflow has not yet had a live GitHub Actions run against a real PR (bootstrap limitation — it only becomes live once merged to `main`). A post-merge validation PR is required before any required-check configuration.
+- The corrected trusted workflow, including the G4 output-wiring fix, has not yet had a live GitHub Actions run against a real PR (bootstrap limitation — it only becomes live once merged to `main`). A post-merge validation PR is required before any required-check configuration.
 - GitHub's `pull_request_target` public-repo Actions event policy has stricter enforcement scheduled for 2026-11-02; the final admin follow-up must verify/allow this workflow remains permitted under that policy. Not changed in this pass.
+- The `git interpret-trailers` fail-closed branch (G3) is implemented but not fixture-forced to fail in isolation — see the G3 row's "Precise validation status" note.
 
 ### Final Status
 
-`REVIEW` — implementation and correction complete and locally validated (18/18 fixtures, real regression/clean/invalid-ref scenarios); PR #310 open (Draft) and awaiting review/merge decision; post-merge live validation, required-check, and Actions-event-policy follow-ups outstanding.
+`REVIEW` — implementation plus two correction passes complete and locally validated (18/18 fixtures, real regression/clean/invalid-ref scenarios, corrected output wiring manually traced end-to-end); PR #310 open (Draft) and awaiting review/merge decision; post-merge live validation, required-check, and Actions-event-policy follow-ups outstanding.

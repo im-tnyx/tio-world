@@ -38,6 +38,7 @@ jobs:
         run: bash scripts/check_commit_attribution_test.sh
 
       - name: Fetch PR head commit objects as data only
+        id: fetch_pr_head
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -51,12 +52,12 @@ jobs:
           fi
 
           echo "commit-attribution-guard: fetched PR #${PR_NUMBER} head ${fetched_head_sha} as data only (not checked out, not executed)."
-          echo "fetched_head_sha=${fetched_head_sha}" >> "$GITHUB_ENV"
+          echo "head_sha=${fetched_head_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Check PR commits for prohibited AI attribution
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ env.fetched_head_sha }}
+          HEAD_SHA: ${{ steps.fetch_pr_head.outputs.head_sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EXCEPTION_PR: ${{ vars.AI_ATTRIBUTION_EXCEPTION_PR }}
         run: |
