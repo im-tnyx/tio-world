@@ -193,9 +193,21 @@ known limitation, not a newly verified hydration guarantee.
 ## Theme Interaction And Compatibility
 
 The canonical discoverable Theme interaction is the existing **Appearance**
-bottom sheet with System, Light, Dark and OLED choices. It uses
-`AppThemeController` and device-local `SharedPreferencesAppThemePreference`
-(`app_theme_mode`).
+bottom sheet with System, Light, Dark and Tio Dark choices (TNYX-157). Dark is
+the standard pure-black appearance; Tio Dark is Tio's navy/slate appearance;
+System follows the OS (OS Light → Light, OS Dark → Dark) and never resolves to
+Tio Dark. It uses `AppThemeController` and device-local
+`SharedPreferencesAppThemePreference`.
+
+Storage: `app_theme_mode_v2` (`system`/`light`/`dark`/`tio_dark`) is canonical
+and always wins when present. When it is absent, the legacy `app_theme_mode`
+value is migrated with its old meaning (`dark` → `tio_dark`, `oled` → `dark`;
+`system`/`light` unchanged). The legacy key is kept as a temporary
+downgrade/rollback mirror holding old-meaning values only: it is retained after
+migration and mirrored best-effort after each successful selection
+(Dark → `oled`, Tio Dark → `dark`). Reset removes both keys. Because V2 always
+wins, a theme changed in a downgraded older build is not picked up after
+upgrading again.
 
 The registered `/settings/theme` route, `ThemeSettingsPage`, public export and
 route-policy references remain for compatibility. There is no App Preferences

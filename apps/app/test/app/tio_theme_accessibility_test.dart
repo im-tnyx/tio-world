@@ -126,34 +126,50 @@ void main() {
     }
   });
 
-  testWidgets('OLED mode exposes pure-black semantic background',
-      (tester) async {
-    late TioColors colors;
-    late ThemeData theme;
+  for (final testCase in const [
+    (
+      name: 'Dark mode',
+      mode: TioThemeMode.dark,
+      platformBrightness: Brightness.light,
+    ),
+    (
+      name: 'System on an OS-dark device',
+      mode: TioThemeMode.system,
+      platformBrightness: Brightness.dark,
+    ),
+  ]) {
+    testWidgets('${testCase.name} exposes pure-black semantic background',
+        (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue =
+          testCase.platformBrightness;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      late TioColors colors;
+      late ThemeData theme;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.oled),
-          child: child ?? const SizedBox.shrink(),
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: TioThemeConfig(mode: testCase.mode),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Builder(
+            builder: (context) {
+              colors = context.tioColors;
+              theme = Theme.of(context);
+              return const Scaffold(body: Text('Dark probe'));
+            },
+          ),
         ),
-        home: Builder(
-          builder: (context) {
-            colors = context.tioColors;
-            theme = Theme.of(context);
-            return const Scaffold(body: Text('OLED probe'));
-          },
-        ),
-      ),
-    );
+      );
 
-    expect(colors.background, Colors.black);
-    expect(colors.surface, const Color(0xFF050505));
-    expect(colors.textPrimary, Colors.white);
-    expect(theme.brightness, Brightness.dark);
-    expect(theme.scaffoldBackgroundColor, Colors.black);
-    expect(theme.navigationBarTheme.backgroundColor, colors.surface);
-  });
+      expect(colors.background, Colors.black);
+      expect(colors.surface, const Color(0xFF050505));
+      expect(colors.textPrimary, Colors.white);
+      expect(theme.brightness, Brightness.dark);
+      expect(theme.scaffoldBackgroundColor, Colors.black);
+      expect(theme.navigationBarTheme.backgroundColor, colors.surface);
+    });
+  }
 }
 
 double _contrastRatio(Color foreground, Color background) {

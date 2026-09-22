@@ -32,10 +32,10 @@ void main() {
       final controller = AppThemeController(preference);
       await controller.load();
 
-      await controller.select(TioThemeMode.oled);
+      await controller.select(TioThemeMode.tioDark);
 
-      expect(preference.storedMode, TioThemeMode.oled);
-      expect(controller.selectedMode, TioThemeMode.oled);
+      expect(preference.storedMode, TioThemeMode.tioDark);
+      expect(controller.selectedMode, TioThemeMode.tioDark);
       expect(controller.isSaving, isFalse);
     });
 
@@ -60,7 +60,7 @@ void main() {
       await controller.load();
 
       final darkWrite = controller.select(TioThemeMode.dark);
-      final oledWrite = controller.select(TioThemeMode.oled);
+      final tioDarkWrite = controller.select(TioThemeMode.tioDark);
       await Future<void>.delayed(Duration.zero);
 
       expect(preference.writeCalls, [TioThemeMode.dark]);
@@ -70,14 +70,14 @@ void main() {
       await darkWrite;
       await Future<void>.delayed(Duration.zero);
 
-      expect(preference.writeCalls, [TioThemeMode.dark, TioThemeMode.oled]);
+      expect(preference.writeCalls, [TioThemeMode.dark, TioThemeMode.tioDark]);
       expect(controller.isSaving, isTrue);
 
       preference.completeNextWrite();
-      await oledWrite;
+      await tioDarkWrite;
 
-      expect(controller.selectedMode, TioThemeMode.oled);
-      expect(preference.storedMode, TioThemeMode.oled);
+      expect(controller.selectedMode, TioThemeMode.tioDark);
+      expect(preference.storedMode, TioThemeMode.tioDark);
       expect(controller.isSaving, isFalse);
     });
   });

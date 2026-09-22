@@ -266,7 +266,8 @@ void main() {
       final light = await _pump(tester, selected: true);
       final lightFill = _surface(tester).color;
 
-      final dark = await _pump(tester, selected: true, mode: TioThemeMode.dark);
+      final dark =
+          await _pump(tester, selected: true, mode: TioThemeMode.tioDark);
       final darkFill = _surface(tester).color;
 
       // Compared against the canonical schemes, not against whatever the same
@@ -295,7 +296,7 @@ void main() {
       await _pump(tester, selected: false);
       final lightFill = _surface(tester).color;
 
-      await _pump(tester, selected: false, mode: TioThemeMode.dark);
+      await _pump(tester, selected: false, mode: TioThemeMode.tioDark);
       final darkFill = _surface(tester).color;
 
       expect(lightFill, TioColors.light.surface);

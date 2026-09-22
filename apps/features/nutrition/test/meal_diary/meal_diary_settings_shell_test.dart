@@ -260,9 +260,9 @@ void main() {
 
   for (final testCase in const [
     (name: 'Light', mode: TioThemeMode.light, expected: TioColors.light),
-    (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.dark),
-    (name: 'OLED', mode: TioThemeMode.oled, expected: TioColors.oled),
-    (name: 'System-dark', mode: TioThemeMode.system, expected: TioColors.dark),
+    (name: 'Tio Dark', mode: TioThemeMode.tioDark, expected: TioColors.dark),
+    (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.oled),
+    (name: 'System-dark', mode: TioThemeMode.system, expected: TioColors.oled),
   ]) {
     testWidgets('${testCase.name} inherits theme at compact width',
         (tester) async {

@@ -91,8 +91,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     icon: Icon(Icons.dark_mode_outlined),
                   ),
                   ButtonSegment(
-                    value: TioThemeMode.oled,
-                    label: Text('OLED'),
+                    value: TioThemeMode.tioDark,
+                    label: Text('Tio Dark'),
                     icon: Icon(Icons.brightness_3_outlined),
                   ),
                 ],
