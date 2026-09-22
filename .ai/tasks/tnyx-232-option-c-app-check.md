@@ -21,8 +21,8 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-22 — `main` `3ebe9f7c3a526abbaed5364c9db88054cfea03b9`; rulesets `[]`; `main` protection 404; Actions policies 0; PR #311 Draft at `cb507660b62f8b695b0ec397ec4018d60577fc41`
 **Branch:** `tnyx/tnyx-232-option-c-app-check` (from fresh `main`)
-**PR / tracker:** Draft PR (see PR), GitHub #283 open, Linear TNYX-232 `In Review`; related PR #310 (merged), PR #311 (Draft)
-**Current implementation state:** trusted environment configured; workflow publishes the custom App check; owner-only App registration/installation/private-key steps pending
+**PR / tracker:** Draft PR [#312](https://github.com/im-tnyx/tio-world/pull/312), GitHub #283 open, Linear TNYX-232 `In Review`; related PR #310 (merged), PR #311 (Draft, unchanged)
+**Current implementation state:** trusted environment configured; workflow publishes the custom App check; workflow-scoped Actions policy active (ID 5216); owner-only App registration/installation/private-key steps pending
 **Validation remaining:** owner App setup; live custom-App check (only possible after this workflow lands on `main`); branch protection; spoof/infra validation
 **Current blocker:** owner-only UI steps (register App, install on `tio-world` only, store private key as environment secret, supply Client ID and numeric App ID)
 **Open review finding IDs:** none
@@ -88,8 +88,8 @@ Fail-closed: token/secret/environment unavailable or check creation failing → 
 - [ ] D. Owner stores the private key as environment secret `ATTRIBUTION_GUARD_APP_PRIVATE_KEY` (UI or owner-run `gh secret set`); local `.pem` deleted.
 - [ ] E. Environment variable `ATTRIBUTION_GUARD_APP_CLIENT_ID`; numeric App ID recorded.
 - [x] F/G. Workflow change on this branch (runner rename, environment, pinned token action, App check create/finalize).
-- [x] H. Local/static validation and Draft PR.
-- [ ] I. Workflow-scoped `pull_request_target` Actions policy (after the Draft PR exists).
+- [x] H. Local/static validation and Draft PR #312.
+- [x] I. Workflow-scoped Actions policy created with API version `2026-03-10` and read back: ID `5216`, name `Allow trusted attribution guard event`, enforcement `active`, `workflow_path.include = [".github/workflows/commit-attribution-guard.yml"]`, `exclude = []`, rule `restrict_action_events` with `allowed_events = ["pull_request_target"]`. No other workflow's events are affected.
 - [ ] Owner-authorized merge of this PR (not in this pass).
 - [ ] Disposable clean PR → observe App check SUCCESS live.
 - [ ] Branch protection PUT (payload below).
