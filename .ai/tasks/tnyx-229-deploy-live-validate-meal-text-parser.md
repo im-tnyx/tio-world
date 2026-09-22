@@ -1,9 +1,32 @@
 # TNYX-229 — Deploy and live-validate protected meal-text parser
 
-**Status:** Validated (technical deployment/runtime scope)
-**Implementation ownership state:** Completed
+**Status:** Validated
+**Implementation ownership state:** Complete
 **Primary owner:** `supabase/functions/nutrition-meal-text-parse`
 **Affected platforms:** Supabase Edge Function only (no Flutter, no schema)
+
+`Validated` here means TNYX-229's **technical deployment/runtime scope**
+specifically: the function is deployed, JWT-protected, source-matched to
+`main`, and its authenticated/outcome/fallback contract is proven live. It
+does not mean the feature is commercially production-cleared — see
+"Remaining gates" below.
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** None
+**Approval status:** Not required
+**Approval evidence:** Not applicable — this file documents/reconciles
+already-completed, already-owner-authorized technical work (deployment and
+live validation performed in prior sessions, tracked in the six PR-specific
+briefs below). It is a governance/documentation follow-up inside an already
+approved and technically completed slice, not a new task, feature, or
+UI/data-shape change.
+**Approved product/UI/data-shape boundaries:** Not applicable — no product,
+UI, or data-shape change is made or proposed by this file.
+**Explicit non-changes:** This file does not authorize any new
+parser/runtime/provider implementation, deployment, Gemini retry/re-check,
+provider-ordering change, or commercial/licensing decision. Any such work
+requires its own separately authorized task.
 
 ## Purpose
 
@@ -21,6 +44,27 @@ ready` from its own PR review and preserved as historical evidence:
 
 None of those files is a consolidated deploy/live-validation record, and none
 existed at this path. This file is new; it does not replace or edit them.
+
+## Scope
+
+**In scope:**
+
+- consolidated TNYX-229 technical validation record;
+- current deployed runtime state;
+- source/runtime parity evidence;
+- Gemini/OpenAI fallback conclusion;
+- separation of technical vs. category-B production gates;
+- post-merge stale-branch cleanup handoff (description only).
+
+**Out of scope:**
+
+- runtime/source changes;
+- Supabase redeploy;
+- Gemini retry/re-check;
+- provider ordering changes;
+- commercial/licensing decisions;
+- TNYX-239 implementation;
+- branch deletion in this PR.
 
 ## Repository state at reconciliation
 
@@ -78,14 +122,40 @@ this; it was verified against the already-deployed bundle.
   FatSecret and Edamam calls each reached their provider), without
   retrieving or printing any secret value.
 
+### Validation checklist
+
+- [x] Deployed source matches current `main` (14/14 non-test parser files, byte-for-byte).
+- [x] `verify_jwt=true` on the deployed function.
+- [x] Authenticated success observed live.
+- [x] `unrecognized` observed live.
+- [x] `incomplete` observed live.
+- [x] `unavailable` covered by prior live evidence + deterministic tests (no retained specific example).
+- [x] Unauthenticated rejection covered by deterministic source test (no live smoke recorded).
+- [x] Provider-neutral response contract confirmed from source.
+- [x] Error sanitization confirmed from source (allowlisted diagnostic fields only).
+- [x] No raw meal text/provider payload persistence.
+- [x] OpenAI fallback live success observed when Gemini was unavailable.
+- [ ] Direct Gemini `200` observed — not yet; owned by TNYX-239.
+- [ ] Category-B commercial/provider gates cleared — not in scope of this record; remain open.
+
+**Exit criteria:** all boxes above that are in TNYX-229's technical scope are
+checked. The two unchecked items are explicitly out of this record's scope
+(Gemini direct-200 → TNYX-239; category-B gates → separate
+commercial/provider decisions) and are not exit blockers for TNYX-229's
+technical completion.
+
 ## Gemini / OpenAI state
 
-- **Gemini:** latest direct evidence is `HTTP 503 / UNAVAILABLE` (two
-  consecutive authenticated runs on the current request/schema contract,
-  `responseMimeType` + `responseJsonSchema`). Direct Gemini `200` has not yet
-  been observed. `gemini_client.ts` has not changed since that evidence was
-  recorded (through the PR #299 merge and up to current `main`), so the 503
-  evidence remains representative of the currently deployed Gemini code path.
+- **Gemini:** the deployed Gemini request code path (`gemini_client.ts`) is
+  unchanged since the last direct observations (through the PR #299 merge
+  and up to current `main`). The latest direct provider observation remains
+  the earlier `HTTP 503 / UNAVAILABLE` evidence from two consecutive
+  authenticated runs on the current request/schema contract
+  (`responseMimeType` + `responseJsonSchema`). No fresh Gemini availability
+  request was made for this reconciliation, so this record does not claim
+  Gemini is currently returning `503` or currently healthy — only that the
+  code path that produced the `503` evidence has not changed. Direct Gemini
+  `200` has not been observed.
 - **OpenAI fallback:** live success observed — when Gemini returned 503, the
   overall request still completed with a valid provider-neutral draft through
   the existing sequential fallback (`interpreter_orchestrator.ts`), with no
@@ -111,6 +181,24 @@ remain separately gated, open, and are **not** claimed as resolved:
 
 These are production/commercial/provider-account decisions, not unresolved
 parser source defects.
+
+## Active Handoff
+
+**Planning owner:** current session
+**Implementation owner:** current session (documentation-only correction)
+**Review owner:** pending PR review, not yet assigned
+**Implementation ownership state:** Complete
+**Repository state last verified:** `main` = `f3f78074ba69d46877cbd43bd193d1fde8d54581`
+**Branch:** `tnyx/tnyx-229-post-validation-reconcile`
+**HEAD SHA:** this commit — the branch tip at `git log -1` on `tnyx/tnyx-229-post-validation-reconcile` (not hardcoded here: amending this file changes its own commit hash, so a literal value would go stale the moment it is edited; the exact pushed head is also recorded on PR #308)
+**PR / tracker:** PR #308 (`docs(task): reconcile TNYX-229 technical completion`), Draft, reconciliation/review only, not merged. Linear TNYX-229 = `Done`. Linear TNYX-239 = `Backlog`, owns remaining Gemini work.
+**Current implementation state:** technical TNYX-229 implementation is complete; nothing further to implement in this slice.
+**Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse` (read-only verification only in this reconciliation).
+**Validation completed at SHA:** validation evidence in this file was gathered against deployed v38 and `main` `f3f78074ba69d46877cbd43bd193d1fde8d54581`; no source changed since.
+**Validation remaining:** none for TNYX-229's technical scope. Gemini direct-200 observation remains with TNYX-239. Category-B commercial/provider gates remain with their respective owners.
+**Current blocker:** none technical. No blocker to PR #308 review.
+**Open review finding IDs:** none open (see Findings resolved in this correction commit).
+**Next exact action:** owner-authorized review and merge of PR #308; old stale branch cleanup as separate post-merge housekeeping; TNYX-239 remains Backlog for later Gemini follow-up.
 
 ## Next action
 
