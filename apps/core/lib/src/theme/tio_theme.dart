@@ -183,12 +183,14 @@ class TioTheme extends StatelessWidget {
     Brightness systemBrightness, {
     required bool highContrast,
   }) {
+    // Dark is the standard pure-black palette (`oled`); Tio Dark is the
+    // navy/slate palette (`dark`). System never resolves to Tio Dark.
     final colors = switch (config.mode) {
       TioThemeMode.light => TioColors.light,
-      TioThemeMode.dark => TioColors.dark,
-      TioThemeMode.oled => TioColors.oled,
+      TioThemeMode.dark => TioColors.oled,
+      TioThemeMode.tioDark => TioColors.dark,
       TioThemeMode.system =>
-        systemBrightness == Brightness.dark ? TioColors.dark : TioColors.light,
+        systemBrightness == Brightness.dark ? TioColors.oled : TioColors.light,
     };
     return highContrast ? colors.highContrast : colors;
   }
@@ -196,10 +198,10 @@ class TioTheme extends StatelessWidget {
   TioShadows _resolveShadows(Brightness systemBrightness) {
     return switch (config.mode) {
       TioThemeMode.light => TioShadows.light,
-      TioThemeMode.dark => TioShadows.dark,
-      TioThemeMode.oled => TioShadows.oled,
+      TioThemeMode.dark => TioShadows.oled,
+      TioThemeMode.tioDark => TioShadows.dark,
       TioThemeMode.system => systemBrightness == Brightness.dark
-          ? TioShadows.dark
+          ? TioShadows.oled
           : TioShadows.light,
     };
   }

@@ -98,14 +98,14 @@ void main() {
 
   for (final mode in const [
     (TioThemeMode.dark, 'Dark'),
-    (TioThemeMode.oled, 'OLED'),
+    (TioThemeMode.tioDark, 'Tio Dark'),
   ]) {
     testWidgets(
         'Add Food and Quick Add resolve ${mode.$2} through the real app',
         (tester) async {
       final expected = switch (mode.$1) {
-        TioThemeMode.dark => TioColors.dark,
-        TioThemeMode.oled => TioColors.oled,
+        TioThemeMode.dark => TioColors.oled,
+        TioThemeMode.tioDark => TioColors.dark,
         _ => TioColors.light,
       };
 

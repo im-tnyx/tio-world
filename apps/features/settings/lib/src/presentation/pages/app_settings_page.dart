@@ -134,6 +134,6 @@ String _themeModeLabel(TioThemeMode mode) {
     TioThemeMode.system => 'System',
     TioThemeMode.light => 'Light',
     TioThemeMode.dark => 'Dark',
-    TioThemeMode.oled => 'OLED',
+    TioThemeMode.tioDark => 'Tio Dark',
   };
 }

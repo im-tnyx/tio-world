@@ -199,6 +199,20 @@ Text('Supporting', style: TextStyle(color: colors.onMediaSecondary));
 
 `mediaBackground`, `onMediaPrimary`, and `onMediaSecondary` are owned by the active `TioColors` light/dark/OLED scheme. Current mappings preserve existing pixels while allowing modes to diverge centrally later.
 
+#### Theme mode → palette resolution
+
+`TioThemeMode` has exactly four user-facing modes. Mode names are product semantics; the `TioColors`/`TioShadows` constants are internal palette identities and keep their historical names:
+
+| `TioThemeMode` | `TioColors` | `TioShadows` | Appearance |
+|---|---|---|---|
+| `light` | `TioColors.light` | `TioShadows.light` | Light |
+| `dark` | `TioColors.oled` | `TioShadows.oled` | standard pure-black Dark |
+| `tioDark` | `TioColors.dark` | `TioShadows.dark` | Tio's navy/slate Dark |
+| `system` + OS light | `TioColors.light` | `TioShadows.light` | Light |
+| `system` + OS dark | `TioColors.oled` | `TioShadows.oled` | pure-black Dark (never Tio Dark) |
+
+High contrast is applied after this base resolution. Resolution lives only in `TioTheme`; features read the result through `context.tioColors` / `context.tioShadows` and must not branch on the mode themselves. Wear uses `TioThemeMode.dark`.
+
 `TioPalette` is the physical color registry. Features should not normally consume palette colors directly.
 
 Prefer:

@@ -41,9 +41,15 @@ void main() {
       expectedIconBrightness: Brightness.light,
     ),
     (
-      name: 'OLED',
+      name: 'explicit Dark',
       platformBrightness: Brightness.light,
-      config: TioThemeConfig(mode: TioThemeMode.oled),
+      config: TioThemeConfig(mode: TioThemeMode.dark),
+      expectedIconBrightness: Brightness.light,
+    ),
+    (
+      name: 'explicit Tio Dark',
+      platformBrightness: Brightness.light,
+      config: TioThemeConfig(mode: TioThemeMode.tioDark),
       expectedIconBrightness: Brightness.light,
     ),
   ]) {
@@ -720,6 +726,21 @@ void main() {
             .widget<ThemeSettingsPage>(find.byType(ThemeSettingsPage))
             .currentMode,
         TioThemeMode.dark);
+    // The compatibility page offers the same four modes as the sheet.
+    final segments = tester
+        .widget<SegmentedButton<TioThemeMode>>(
+            find.byType(SegmentedButton<TioThemeMode>))
+        .segments;
+    expect(segments.map((segment) => segment.value), [
+      TioThemeMode.system,
+      TioThemeMode.light,
+      TioThemeMode.dark,
+      TioThemeMode.tioDark,
+    ]);
+    for (final label in const ['System', 'Light', 'Dark', 'Tio Dark']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('OLED'), findsNothing);
   });
 
   testWidgets('Settings retains Profile and Account owner navigation',
@@ -758,7 +779,7 @@ void main() {
     for (final theme in const [
       (mode: TioThemeMode.light, name: 'Light'),
       (mode: TioThemeMode.dark, name: 'Dark'),
-      (mode: TioThemeMode.oled, name: 'OLED'),
+      (mode: TioThemeMode.tioDark, name: 'Tio Dark'),
       (mode: TioThemeMode.system, name: 'System-dark'),
     ]) {
       testWidgets(

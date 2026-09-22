@@ -214,7 +214,7 @@ void main() {
         tester,
         value: DateTime(2026, 9, 6, 10, 30),
         maximumDate: DateTime(2026, 9, 6, 14, 30),
-        mode: TioThemeMode.oled,
+        mode: TioThemeMode.dark,
       );
 
       final theme =

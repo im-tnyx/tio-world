@@ -114,6 +114,26 @@ void main() {
       );
     });
 
+    for (final testCase in const [
+      (mode: TioThemeMode.system, label: 'System'),
+      (mode: TioThemeMode.light, label: 'Light'),
+      (mode: TioThemeMode.dark, label: 'Dark'),
+      (mode: TioThemeMode.tioDark, label: 'Tio Dark'),
+    ]) {
+      testWidgets('Theme summary reads ${testCase.label}', (tester) async {
+        await pumpPage(tester, currentThemeMode: testCase.mode);
+
+        expect(
+          find.descendant(
+            of: find.byKey(themeKey),
+            matching: find.text(testCase.label),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('OLED'), findsNothing);
+      });
+    }
+
     testWidgets('supporting text follows the live mode and theme',
         (tester) async {
       await pumpPage(

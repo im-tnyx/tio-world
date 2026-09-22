@@ -351,8 +351,8 @@ void main() {
 
   for (final testCase in const [
     (name: 'Light', mode: TioThemeMode.light, expected: TioColors.light),
-    (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.dark),
-    (name: 'OLED', mode: TioThemeMode.oled, expected: TioColors.oled),
+    (name: 'Tio Dark', mode: TioThemeMode.tioDark, expected: TioColors.dark),
+    (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.oled),
   ]) {
     testWidgets('${testCase.name} resolves the active palette', (tester) async {
       await _pump(

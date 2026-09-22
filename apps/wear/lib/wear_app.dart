@@ -26,7 +26,7 @@ class TioWearApp extends StatelessWidget {
       ),
       builder: (context, child) {
         return TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.oled),
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
           child: child ?? const SizedBox.shrink(),
         );
       },

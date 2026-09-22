@@ -2010,14 +2010,14 @@ void main() {
       expectQuickAdd(tester, TioColors.light, 'light');
     });
 
-    testWidgets('Dark resolves Dark through the real modal route',
+    testWidgets('Tio Dark resolves navy through the real modal route',
         (tester) async {
-      await _pump(tester, mode: TioThemeMode.dark);
+      await _pump(tester, mode: TioThemeMode.tioDark);
 
       // Opened the way a reader opens it, so the root-navigator hop is part of
       // what is being tested rather than bypassed by building the sheet here.
       await _openAddFood(tester);
-      expectAddFood(tester, TioColors.dark, 'dark');
+      expectAddFood(tester, TioColors.dark, 'tio dark');
       expect(
         materialOf(tester, find.byKey(_sheet)).color,
         isNot(TioColors.light.surface),
@@ -2026,7 +2026,7 @@ void main() {
 
       await tester.tap(find.byKey(_quickAddRow));
       await tester.pumpAndSettle();
-      expectQuickAdd(tester, TioColors.dark, 'dark');
+      expectQuickAdd(tester, TioColors.dark, 'tio dark');
       expect(
         materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet')))
             .color,
@@ -2034,25 +2034,25 @@ void main() {
       );
     });
 
-    // Guards today's OLED palette only. TNYX-157 may rename or remap these
-    // modes later and will update its own tests; nothing here anticipates it.
-    testWidgets('OLED resolves the current OLED palette', (tester) async {
-      await _pump(tester, mode: TioThemeMode.oled);
+    // TNYX-157: Dark is the standard pure-black palette (`TioColors.oled`).
+    testWidgets('Dark resolves the pure-black palette', (tester) async {
+      await _pump(tester, mode: TioThemeMode.dark);
       await _openAddFood(tester);
-      expectAddFood(tester, TioColors.oled, 'oled');
+      expectAddFood(tester, TioColors.oled, 'dark');
 
       await tester.tap(find.byKey(_quickAddRow));
       await tester.pumpAndSettle();
-      expectQuickAdd(tester, TioColors.oled, 'oled');
+      expectQuickAdd(tester, TioColors.oled, 'dark');
       expect(
         materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet')))
             .color,
         isNot(TioColors.dark.surfaceRaised),
-        reason: 'OLED is its own palette, not an alias of Dark',
+        reason: 'Dark (pure-black) is not an alias of Tio Dark',
       );
     });
 
-    testWidgets('System with an OS-dark device resolves Dark', (tester) async {
+    testWidgets('System with an OS-dark device resolves pure-black Dark',
+        (tester) async {
       await _pump(
         tester,
         mode: TioThemeMode.system,
@@ -2060,11 +2060,11 @@ void main() {
       );
 
       await _openAddFood(tester);
-      expectAddFood(tester, TioColors.dark, 'system+dark');
+      expectAddFood(tester, TioColors.oled, 'system+dark');
 
       await tester.tap(find.byKey(_quickAddRow));
       await tester.pumpAndSettle();
-      expectQuickAdd(tester, TioColors.dark, 'system+dark');
+      expectQuickAdd(tester, TioColors.oled, 'system+dark');
     });
 
     testWidgets('an open Add Food sheet follows a live theme change',
@@ -2079,7 +2079,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(_sheet), findsOne, reason: 'the sheet stays open');
-      expectAddFood(tester, TioColors.dark, 'after');
+      expectAddFood(tester, TioColors.oled, 'after');
     });
 
     testWidgets('an open Quick Add editor follows a live theme change',
@@ -2102,7 +2102,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(_editor), findsOne, reason: 'the editor stays open');
-      expectQuickAdd(tester, TioColors.dark, 'after');
+      expectQuickAdd(tester, TioColors.oled, 'after');
       expect(find.byKey(_dateTimePicker), findsOne);
       expect(
         _fieldText(tester, calories),
