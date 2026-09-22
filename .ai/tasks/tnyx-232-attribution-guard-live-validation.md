@@ -35,6 +35,19 @@ Clean live validation of the `Commit attribution guard` workflow (`.github/workf
 
 The `Commit attribution guard` check runs on this PR using the `pull_request_target` event, checks out only `main`'s trusted code, fetches this PR's head as Git object data only, and reports SUCCESS (no prohibited AI attribution trailer present in this PR's own commits).
 
+## Live Result
+
+GitHub Actions run [35713989929](https://github.com/im-tnyx/tio-world/actions/runs/35713989929) — event `pull_request_target`, conclusion `SUCCESS`.
+
+- `Checkout trusted base` → `git checkout ... 3ebe9f7c3a526abbaed5364c9db88054cfea03b9` (the merged base commit, not this PR's head).
+- `Run fixture regression tests (trusted base code)` → `check_commit_attribution_test: 18 passed, 0 failed`.
+- `Fetch PR head commit objects as data only` → `fetched PR #311 head eedccb9c4fdb09a4da23f9358ca3cdca9045ae38 as data only (not checked out, not executed)` — matches this PR's actual head SHA.
+- `Check PR commits for prohibited AI attribution` → `Checking commit range 3ebe9f7c3a526abbaed5364c9db88054cfea03b9..eedccb9c4fdb09a4da23f9358ca3cdca9045ae38` → `no prohibited AI attribution found`.
+
+This is direct log evidence (not inference) that the workflow definition and scripts executed came from trusted `main`, the working tree never left the base commit, and this PR's head was read only as Git object data.
+
+A separate external check, `Code scanning AI findings on PR #311` (`github-advanced-security`), failed with the same `claude-opus-5` unsupported-model infrastructure error observed on PR #310 — not a repository code finding.
+
 ## Final Status
 
-`In progress` — awaiting live GitHub Actions evidence (recorded in `.ai/tasks/tnyx-232-ai-attribution-guard.md` once observed).
+`In progress` — clean live-pass evidence collected and recorded. PR #311 left Draft/open, not merged. Deliberate FAIL/remediation validation is a separate, not-yet-authorized gate.

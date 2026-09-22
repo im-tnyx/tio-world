@@ -15,23 +15,21 @@
 ## Active Handoff
 
 **Planning owner:** prior read-only audit pass + manual review passes (same session)
-**Implementation owner:** current session (implementation complete as of this pass; this pass is docs-only handoff cleanup, not further behavior change)
-**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved; this pass only corrects stale task-brief wording, no new finding)
-**Implementation ownership state:** Handoff pending (implementation complete; awaiting owner review of PR #310)
+**Implementation owner:** current session (implementation and merge complete; live validation in progress)
+**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved)
+**Implementation ownership state:** Active (live-validation sub-slice; guard implementation itself is Complete/merged)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before this pass
-**Branch:** `tnyx/tnyx-232-ai-attribution-guard` (existing branch throughout, no new branch created)
-**HEAD SHA:** current final implementation head (last code-changing commit) is `574ff1d06afd137f601f484ab921d08b6f262566` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved). This pass adds one additive docs-only commit on top of it that touches only this task-brief file; see the PR for that commit's exact SHA once pushed.
-**Observed working-tree state:** clean before this pass's edits
-**Observed uncommitted/dirty files:** none
-**PR / tracker:** existing PR [#310](https://github.com/im-tnyx/tio-world/pull/310) (Draft, not merged), GitHub #283 (open, unchanged), Linear TNYX-232 (`In Review`, unchanged)
-**Current implementation state:** Guard implementation, trust-boundary hardening (G1/G2/G3), and output-wiring correction (G4) are all complete and pushed to PR #310 as of commit `574ff1d0`. This pass is durable-handoff cleanup only: it corrects task-brief wording that still described the original (superseded) `pull_request` trigger design instead of the implemented `pull_request_target` trusted-base design, and refreshes the "Next exact action" line, which still described already-completed push/reconcile/report steps from the previous pass. No guard behavior, scripts, or workflow file are touched in this pass.
-**Relevant execution surface:** `.ai/tasks/tnyx-232-ai-attribution-guard.md` only for this pass (guard files unchanged: `.github/workflows/commit-attribution-guard.yml`, `scripts/check_commit_attribution.sh`, `scripts/check_commit_attribution_test.sh`, `CONTRIBUTING.md`)
-**Validation completed at SHA:** see Quality Review section below (unchanged by this docs-only pass; last re-run at `574ff1d0`)
-**Validation remaining:** the corrected `pull_request_target` workflow still cannot bootstrap-run against PR #310 itself (base branch doesn't contain it yet); a post-merge validation PR remains required to observe the fixed output-wiring running live end-to-end; hard required-check configuration remains an owner/admin follow-up.
-**Current blocker:** none; remaining steps are owner review, owner-authorized merge, and post-merge follow-ups, all explicitly out of scope for this session to perform unilaterally
-**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution); no new finding in this pass
-**Next exact action:** owner review of PR #310 → fresh exact-head merge-readiness verification → owner-authorized squash merge only if the gate remains clean
+**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before each pass, including immediately before and after the PR #310 merge
+**Branch:** implementation landed via `tnyx/tnyx-232-ai-attribution-guard` (now merged, not deleted yet, kept for forensic comparison); live-validation work continues on a new branch, `tnyx/tnyx-232-attribution-guard-live-validation`
+**PR #310 (implementation):** MERGED via exact-head-guarded squash (expected head `3c0173b916f03a3c5f0780715fb5584d453357c7` verified before merge). Squash/main SHA: `3ebe9f7c3a526abbaed5364c9db88054cfea03b9`. Fresh-fetched squash commit message inspected — no prohibited AI `Co-Authored-By` trailer (GitHub did not auto-append one this time because all 4 source commits shared a single author identity, unlike PR #282's regression).
+**Post-merge sync:** local `main` fast-forwarded to `3ebe9f7c3a526abbaed5364c9db88054cfea03b9`; verified `HEAD == main == origin/main`.
+**Trusted workflow landed-on-main audit:** fresh-read from post-merge `main` confirms `.github/workflows/commit-attribution-guard.yml` has the expected `pull_request_target` trigger, `ref: github.event.pull_request.base.sha` trusted checkout, data-only `refs/pull/<n>/head` fetch with sha verification, `GITHUB_OUTPUT`/`steps.fetch_pr_head.outputs.head_sha` wiring (G4 fix present), and `permissions: contents: read`. No material mismatch found.
+**Live validation PR:** [#311](https://github.com/im-tnyx/tio-world/pull/311) (Draft), branch `tnyx/tnyx-232-attribution-guard-live-validation`, base = merged `main` (`3ebe9f7c3a526abbaed5364c9db88054cfea03b9`), head commit `eedccb9c4fdb09a4da23f9358ca3cdca9045ae38` (`test(governance): validate trusted attribution guard`, docs-only, no AI trailer).
+**Live `Commit attribution guard` result:** GitHub Actions run [35713989929](https://github.com/im-tnyx/tio-world/actions/runs/35713989929), event `pull_request_target`, conclusion `SUCCESS`. All 4 real steps succeeded (Checkout trusted base, Run fixture regression tests, Fetch PR head commit objects as data only, Check PR commits for prohibited AI attribution). Log evidence: `git checkout ... 3ebe9f7c3a526abbaed5364c9db88054cfea03b9` (the merged base, not the PR head) for the trusted checkout step; fixture suite `18 passed, 0 failed`; fetched PR head logged as `eedccb9c4fdb09a4da23f9358ca3cdca9045ae38` "as data only (not checked out, not executed)", matching the event's reported head; checker ran `Checking commit range 3ebe9f7c3a526abbaed5364c9db88054cfea03b9..eedccb9c4fdb09a4da23f9358ca3cdca9045ae38` and reported `no prohibited AI attribution found`. This is real trust-boundary evidence, not inferred: the working tree provably stayed on the trusted base commit throughout.
+**External check (separately classified):** `Code scanning AI findings on PR #311` (`github-advanced-security`, GitHub's own dynamic Copilot-based reviewer) failed with the same root cause seen on PR #310 — `COPILOT_AGENT_MODEL: sweagent-capi:claude-opus-5[ReasoningEffort=medium]` unsupported-model infrastructure error. Not a repository code finding; no repository code changed because of it.
+**Current blocker:** none for the live-validation evidence itself; a deliberate FAIL/remediation test, required-check configuration, and Actions-policy verification remain separate, explicitly-not-yet-authorized follow-up gates
+**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution); no new finding from live validation
+**Next exact action:** await separate authorization for (a) a deliberate prohibited-trailer FAIL/remediation test, (b) required-check branch-protection/ruleset configuration, and (c) `pull_request_target` Actions event-policy verification; only then final GitHub #283 / TNYX-232 reconciliation
 
 ## 1. Discovery
 
