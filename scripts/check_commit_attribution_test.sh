@@ -3,7 +3,9 @@
 #
 # Builds a disposable temporary Git repository, creates one commit per
 # fixture on top of a shared base commit, and asserts the checker's exit
-# code matches the expected PASS/FAIL outcome. Does not depend on network
+# code matches the expected outcome. Also covers the 4-argument
+# exception/error-path contract (owner exception, and fail-closed technical
+# errors that the exception must never bypass). Does not depend on network
 # access, GitHub Actions, or this repository's own history.
 #
 # Usage: check_commit_attribution_test.sh
@@ -13,7 +15,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 checker="$script_dir/check_commit_attribution.sh"
 
-if [ ! -x "$checker" ] && [ ! -f "$checker" ]; then
+if [ ! -f "$checker" ]; then
   echo "check_commit_attribution_test: error: checker script not found at ${checker}" >&2
   exit 2
 fi
@@ -38,10 +40,32 @@ base_sha="$(cd "$repo" && git commit --allow-empty -q -m "chore: base commit" &&
 pass_count=0
 fail_count=0
 
+expected_rc_for() {
+  case "$1" in
+    pass) echo 0 ;;
+    fail) echo 1 ;;
+    error) echo 2 ;;
+    *) echo "unknown expectation: $1" >&2; exit 2 ;;
+  esac
+}
+
+report() {
+  local expect="$1" expected_rc="$2" rc="$3" desc="$4" output="$5"
+  if [ "$rc" -eq "$expected_rc" ]; then
+    echo "PASS  [${expect}] ${desc}"
+    pass_count=$((pass_count + 1))
+  else
+    echo "FAIL  [expected ${expect} -> rc=${expected_rc}, got rc=${rc}] ${desc}"
+    echo "${output}" | sed 's/^/    /'
+    fail_count=$((fail_count + 1))
+  fi
+}
+
+# Two-argument identity fixtures: no PR/exception context.
 run_case() {
   local expect="$1" desc="$2" message="$3"
-  local expected_rc=0
-  [ "$expect" = "fail" ] && expected_rc=1
+  local expected_rc
+  expected_rc="$(expected_rc_for "$expect")"
 
   (cd "$repo" && git reset -q --hard "$base_sha")
   (cd "$repo" && git commit --allow-empty -q -m "$message")
@@ -51,14 +75,36 @@ run_case() {
   local output rc=0
   output="$(cd "$repo" && bash "$checker" "$base_sha" "$head_sha" 2>&1)" || rc=$?
 
-  if [ "$rc" -eq "$expected_rc" ]; then
-    echo "PASS  [${expect}] ${desc}"
-    pass_count=$((pass_count + 1))
-  else
-    echo "FAIL  [expected ${expect} -> rc=${expected_rc}, got rc=${rc}] ${desc}"
-    echo "${output}" | sed 's/^/    /'
-    fail_count=$((fail_count + 1))
-  fi
+  report "$expect" "$expected_rc" "$rc" "$desc" "$output"
+}
+
+# Four-argument exception-aware fixtures.
+run_case_ex() {
+  local expect="$1" desc="$2" message="$3" pr_number="$4" exception_pr="$5"
+  local expected_rc
+  expected_rc="$(expected_rc_for "$expect")"
+
+  (cd "$repo" && git reset -q --hard "$base_sha")
+  (cd "$repo" && git commit --allow-empty -q -m "$message")
+  local head_sha
+  head_sha="$(cd "$repo" && git rev-parse HEAD)"
+
+  local output rc=0
+  output="$(cd "$repo" && bash "$checker" "$base_sha" "$head_sha" "$pr_number" "$exception_pr" 2>&1)" || rc=$?
+
+  report "$expect" "$expected_rc" "$rc" "$desc" "$output"
+}
+
+# Invalid-ref / technical-failure fixtures: must return rc=2 even when a
+# matching exception is supplied.
+run_invalid_ref_case() {
+  local desc="$1" base_arg="$2" head_arg="$3" pr_number="$4" exception_pr="$5"
+  local expected_rc=2
+
+  local output rc=0
+  output="$(cd "$repo" && bash "$checker" "$base_arg" "$head_arg" "$pr_number" "$exception_pr" 2>&1)" || rc=$?
+
+  report "error" "$expected_rc" "$rc" "$desc" "$output"
 }
 
 # --- PASS: no trailer at all ---
@@ -108,6 +154,34 @@ run_case fail "OpenAI Codex identity" \
 # --- FAIL: AI trailer mixed among otherwise-normal human co-authors ---
 run_case fail "AI trailer mixed among human co-authors" \
   "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Jane Developer <jane@example.com>\nCo-Authored-By: Claude <noreply@anthropic.com>')"
+
+# --- Exception-contract fixtures (4-argument form) ---
+
+# clean range + no exception -> PASS
+run_case_ex pass "clean range, no exception set" \
+  "$(printf 'chore: x\n\nNo trailer here.')" "42" ""
+
+# violation + no exception -> FAIL rc=1
+run_case_ex fail "violation, no exception set" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Claude <noreply@anthropic.com>')" "42" ""
+
+# violation + different PR exception -> FAIL rc=1
+run_case_ex fail "violation, exception set for a different PR" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Claude <noreply@anthropic.com>')" "42" "43"
+
+# violation + exact matching PR exception -> PASS rc=0
+run_case_ex pass "violation, exact matching PR exception" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Claude <noreply@anthropic.com>')" "42" "42"
+
+# --- Fail-closed technical-failure fixtures: exception must NEVER apply ---
+
+# invalid base ref + exact matching exception -> FAIL rc=2, not bypassed
+run_invalid_ref_case "invalid base ref with matching exception must still fail closed (rc=2)" \
+  "not-a-real-ref" "$base_sha" "42" "42"
+
+# invalid head ref + exact matching exception -> FAIL rc=2, not bypassed
+run_invalid_ref_case "invalid head ref with matching exception must still fail closed (rc=2)" \
+  "$base_sha" "0000000000000000000000000000000000dead" "42" "42"
 
 echo
 echo "check_commit_attribution_test: ${pass_count} passed, ${fail_count} failed"

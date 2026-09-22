@@ -278,7 +278,7 @@ Branch rules:
 
 - Commit authorship must identify the human or account that actually commits the change.
 - Do not add Claude, Anthropic, Codex, OpenAI, or other AI `Co-Authored-By` or attribution trailers unless the repository owner explicitly requests them.
-- Pull requests targeting `main` are checked by the `Commit attribution guard` workflow (`.github/workflows/commit-attribution-guard.yml`), which inspects every commit in the PR's `base...head` range for prohibited AI `Co-Authored-By` trailers. Ordinary human co-author trailers are unaffected.
+- Pull requests targeting `main` are checked by the `Commit attribution guard` workflow (`.github/workflows/commit-attribution-guard.yml`), which inspects every commit in the PR's `base...head` range for prohibited AI `Co-Authored-By` trailers. Ordinary human co-author trailers are unaffected. The workflow definition and the checker scripts it runs always come from the trusted `main` branch, never from the PR itself; the PR's commits are only ever read as data, never checked out or executed, so a PR cannot modify the check it is being judged by.
 
 If `Commit attribution guard` fails on a PR:
 
