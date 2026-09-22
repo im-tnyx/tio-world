@@ -2,7 +2,7 @@
 
 ## Status
 
-READY FOR IMPLEMENTATION
+IMPLEMENTED — VALIDATION PASS / OWNER UI REVIEW PENDING
 
 ## Baseline
 
@@ -79,3 +79,20 @@ Before handoff:
 ## UI approval gate
 
 This slice may establish the functional shell and reuse the approved shared calendar. Any new Workout-specific layout/pixel treatment remains provisional until owner review. Do not declare the Workout Home design locked from this slice.
+
+## Implementation handoff
+
+- Draft PR: #320
+- Validated head: `fd33ceb8c4ee73dab430d7985df88da522314b80`
+- Branch compare at validation: 6 commits ahead / 0 behind `main`.
+- GitHub Flutter CI run 2690: PASS.
+- Analyze Flutter packages: PASS.
+- Analyze Dart packages: PASS.
+- Test Flutter packages: PASS.
+- Test Dart packages: PASS.
+- PR mergeability at validation: mergeable.
+- Review comments/reviews at validation: none.
+- Core calendar source changes: none.
+- Supabase migration/schema changes: none.
+
+Functional validation is complete. The remaining gate is owner UI review/confirmation; this slice must not be treated as design-locked before that review.
