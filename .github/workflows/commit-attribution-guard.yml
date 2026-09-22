@@ -1,0 +1,57 @@
+name: Commit attribution guard
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-attribution-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Commit attribution guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout full PR history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run fixture regression tests
+        run: bash scripts/check_commit_attribution_test.sh
+
+      - name: Check PR commits for prohibited AI attribution
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXCEPTION_PR: ${{ vars.AI_ATTRIBUTION_EXCEPTION_PR }}
+        run: |
+          echo "Checking commit range ${BASE_SHA}..${HEAD_SHA} for PR #${PR_NUMBER}."
+
+          set +e
+          bash scripts/check_commit_attribution.sh "$BASE_SHA" "$HEAD_SHA"
+          check_rc=$?
+          set -e
+
+          if [ "$check_rc" -eq 0 ]; then
+            echo "commit-attribution-guard: no prohibited AI attribution found."
+            exit 0
+          fi
+
+          if [ -n "$EXCEPTION_PR" ] && [ "$EXCEPTION_PR" = "$PR_NUMBER" ]; then
+            echo "commit-attribution-guard: prohibited AI attribution WAS detected, but an explicit owner-approved exception is active for PR #${PR_NUMBER} via the AI_ATTRIBUTION_EXCEPTION_PR repository variable."
+            echo "commit-attribution-guard: treat this exception as temporary; the owner should clear/change the AI_ATTRIBUTION_EXCEPTION_PR variable once this PR is done so it cannot silently apply to a later PR."
+            exit 0
+          fi
+
+          echo "commit-attribution-guard: FAILING. Prohibited AI Co-Authored-By attribution was found and no matching owner-approved exception (AI_ATTRIBUTION_EXCEPTION_PR) is set for PR #${PR_NUMBER}."
+          exit "$check_rc"
