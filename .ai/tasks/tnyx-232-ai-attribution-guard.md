@@ -251,3 +251,12 @@ Repository-wide PR guard exists, is trust-boundary-hardened (base-controlled, PR
 ### Final Status
 
 `REVIEW` — implementation plus two correction passes complete and locally validated (18/18 fixtures, real regression/clean/invalid-ref scenarios, corrected output wiring manually traced end-to-end); PR #310 open (Draft) and awaiting review/merge decision; post-merge live validation, required-check, and Actions-event-policy follow-ups outstanding.
+
+## 8. Superseding Decision — Option C (dedicated GitHub App required check)
+
+This section supersedes any earlier wording in this brief (including the Active Handoff "Next exact action" and the Known Limitations above) that plans to make the `github-actions`-sourced job (app ID 15368) the required `main` check. The active execution record for the hard-gate work is `.ai/tasks/tnyx-232-option-c-app-check.md`.
+
+- PR #310 merged the trusted guard (`3ebe9f7c3a526abbaed5364c9db88054cfea03b9`). Live PASS / deliberate-trailer FAIL / remediated PASS evidence was collected on PR #311 (still Draft/open; its `.ai/tasks/*` evidence lands on `main` when PR #311 merges).
+- Required status checks bind only to a check name plus an optional source app, not to a workflow path or event type. Every Actions workflow in this repository reports as `github-actions` (app 15368), so that identity cannot uniquely prove the trusted workflow produced a result. A hard gate therefore needs a distinct source identity.
+- Owner decision (locked): Option C — a dedicated custom GitHub App (Tio Attribution Guard) publishes the required `Commit attribution guard` Check Run; the Actions job is renamed `Attribution guard runner` and is not required. D1 locked: `enforce_admins = true`, so direct pushes to `main` (including post-merge docs) must go through PRs.
+- Branch protection is deferred until the custom App check has been observed live on a real PR after the App-backed workflow lands on `main`.
