@@ -1,0 +1,16 @@
+name: Attribution spoof probe
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  spoof:
+    name: Commit attribution guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Succeed deliberately
+        run: exit 0
