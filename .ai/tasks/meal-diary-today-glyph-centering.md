@@ -1,6 +1,6 @@
 # Meal Diary today glyph — centre the day number in the calendar body
 
-**Status:** In progress
+**Status:** Review — implementation complete; Light-theme contrast gap explicitly accepted by owner
 **Primary owner:** `apps/app` shell (`_mealDiaryTodayGlyph` in `router.dart`)
 **Affected platforms:** Flutter Android + iOS phone app
 
@@ -10,7 +10,7 @@ Trackers: none yet. No GitHub issue and no Linear issue exist for this slice; th
 
 **Trigger:** Unapproved product-visible UI change (Meal Diary top-bar Today icon: day number mis-positioned, plus an intentional accent-colour change for the number).
 **Approval status:** OWNER APPROVED FOR IMPLEMENTATION (2026-09-22). Publication (commit/push/PR) is a separate gate and is not authorized yet.
-**Approval evidence:** Owner reported the defect with a current screenshot and a reference screenshot (2026-09-22), confirmed "text thoda niche hota hai", and chose: **brief + plan first, then approval**; then refined the colour decision to **accent colour = the existing `info` (sky) semantic role** after seeing rendered options (an earlier "keep current colour" answer is superseded).
+**Approval evidence:** Owner reported the defect with a current screenshot and a reference screenshot (2026-09-22), confirmed "text thoda niche hota hai", and chose: **brief + plan first, then approval**; then refined the colour decision to **accent colour = the existing `info` (sky) semantic role** after seeing rendered options. After review identified that Light `sky600` is ~4.1:1 against white for the 9.5px day text, the owner rechecked the built app on a phone in both Light and Dark and explicitly accepted keeping the current colour as a known accessibility gap rather than widening this slice into a design-system colour change.
 **Approved product/UI boundaries:**
 
 - the day number is centred inside the calendar body and no longer collides with the bottom stroke;
@@ -24,16 +24,16 @@ Trackers: none yet. No GitHub issue and no Linear issue exist for this slice; th
 **Planning owner:** Claude
 **Implementation owner:** Claude
 **Review owner:** Owner
-**Implementation ownership state:** Active
-**Repository state last verified:** 2026-09-22
-**Branch:** `claude/meal-diary-today-glyph` (local only, from `main` `df0a0ce45605e13ed4471466ba056e0f2d1b338b`)
-**HEAD SHA:** `df0a0ce45605e13ed4471466ba056e0f2d1b338b` (= `origin/main`)
-**Observed working-tree state:** `router.dart` modified; `meal_diary_today_glyph.dart`, its test and this brief untracked. Nothing committed or pushed.
-**PR / tracker:** none
-**Validation completed at SHA:** working tree on base `df0a0ce` (uncommitted); see §6.
-**Validation remaining:** none locally. Owner confirmed the fix visually on the installed debug build (2026-09-22). CI would run on a future PR.
-**Current blocker:** none. Publication (commit/push/PR) not authorized yet.
-**Next exact action:** owner authorizes publication → branch `claude/meal-diary-today-glyph` commit + push + PR per `docs/PUSH_TEMPLATE.md`.
+**Implementation ownership state:** Complete; no further source/UI edits planned in this slice
+**Repository state last verified:** 2026-09-22; Draft PR #319 open on GitHub
+**Branch:** `claude/meal-diary-today-glyph` (pushed; base `main@df0a0ce45605e13ed4471466ba056e0f2d1b338b`)
+**HEAD SHA:** source/UI implementation validated at `3151a50880837bb77ca9278bbea2f0120a976a1b`; this docs-only reconciliation creates a later PR head
+**Observed working-tree state:** GitHub/PR review surface; source/UI implementation is committed and pushed. Owner also has the accepted-gap brief correction locally.
+**PR / tracker:** Draft GitHub PR #319; no GitHub issue; Linear connector was unavailable for this slice and no Linear state was invented
+**Validation completed at SHA:** source/UI head `3151a50880837bb77ca9278bbea2f0120a976a1b`; local `apps/app` analyze + 353 tests + focused 9-test suite + diff checks passed; owner visually verified the built app on phone
+**Validation remaining:** exact-head CI must be rechecked after this docs-only reconciliation commit; source/UI behavior is otherwise validated
+**Current blocker:** none. Merge still requires explicit owner authorization.
+**Next exact action:** external review/CI reconciliation on Draft PR #319; do not change the accepted colour or merge without explicit owner instruction
 
 ## Global UI / Design-System Guardrail
 
@@ -79,6 +79,7 @@ See **Explicit non-changes**.
 | No new core component for the glyph | Made | One-off app-shell composition; theme README/`apps/features/AGENTS.md` require real reuse evidence before promoting to core | Planning |
 | Keep `FittedBox(scaleDown)` | Made | Only in-widget guard against large text scale; repo has no no-scaling convention | Planning |
 | Brief + plan before code | **Owner-decided 2026-09-22** | Product-visible change | Owner |
+| Keep current Light `info` colour despite AA text-contrast miss | **Owner-accepted 2026-09-22 after device review** | `sky600` is ~4.1:1 on white for 9.5px text, below the 4.5:1 normal-text AA threshold. Owner checked Light and Dark on device and chose no colour change in this slice. A future contained option is Light `info` → `sky700` `#0369A1` (~5.93:1), which would be an `apps/core` design-system change requiring separate approval. | Owner |
 
 ## 4. Architecture Design
 
@@ -111,7 +112,7 @@ Positioned(left: dp3, right: dp3, top: dp10, bottom: dp3)   // the drawn body: x
 ### Failure and accessibility states
 
 - `ExcludeSemantics` and the `IconButton` tooltip stay as-is, so screen readers keep announcing the action, not the digits. Colour is decorative here: the date is also stated by the tooltip, so no information is conveyed by colour alone.
-- Contrast of the accent against the surface it paints on (measured): `sky400` on `#000000` 9.8:1 and on `#111827` 8.28:1 (Dark / Tio Dark); `sky600` on `#FFFFFF` 4.1:1 and on `#F8FAFC` 3.91:1 (Light). All clear the 3:1 non-text bar, and Light also clears 3:1 with margin.
+- The day number is actual rendered text at `9.5px` bold, so the applicable WCAG AA contrast bar is **4.5:1 for normal text**, not the 3:1 non-text threshold originally recorded. Measured contrast: `sky400` on `#000000` 9.8:1 and on `#111827` 8.28:1 (Dark / Tio Dark, pass); `sky600` on `#FFFFFF` 4.1:1 and on `#F8FAFC` 3.91:1 (Light, below AA). Review finding `5282021588` correctly identified this. The owner rechecked the built app on a phone in Light and Dark and explicitly accepted the current Light colour as a known gap; no source colour change is authorized in this slice. If revisited, a contained design-system option is Light `info` → `sky700` `#0369A1` (~5.93:1 on white), subject to separate owner approval.
 
 ## 5. Implementation Plan (allowlist)
 
@@ -173,7 +174,7 @@ Device evidence: debug APK built from this tree and installed on the Pixel_9 emu
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
 |---|---|---|---|---|---|
-| — | — | — | none | `df0a0ce` | — |
+| UI-1 | P2 | Accepted / documented; no source change | Light `info` (`sky600`) is ~4.1:1 on white for the 9.5px day text, below the 4.5:1 normal-text AA threshold. | `3151a508` / review `5282021588` | Owner rechecked Light and Dark on phone and accepted the current colour; PR/body and this brief now record the gap truthfully. Future remediation remains a separately approved design-system colour change. |
 
 ### Risks
 
@@ -184,8 +185,8 @@ Device evidence: debug APK built from this tree and installed on the Pixel_9 emu
 
 ### Changed Files
 
-This gate: `.ai/tasks/meal-diary-today-glyph-centering.md` only (untracked). No source change. Nothing committed or pushed.
+Source/UI implementation is committed and pushed in Draft PR #319. This final docs-only reconciliation records the owner-accepted Light-theme contrast gap; it intentionally makes no source/UI colour change.
 
 ### Final Status
 
-`REVIEW` — plan ready, awaiting owner implementation approval.
+`REVIEW` — Draft PR #319 ready for external review/CI reconciliation; merge requires explicit owner authorization.
