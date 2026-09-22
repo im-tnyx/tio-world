@@ -278,6 +278,18 @@ Branch rules:
 
 - Commit authorship must identify the human or account that actually commits the change.
 - Do not add Claude, Anthropic, Codex, OpenAI, or other AI `Co-Authored-By` or attribution trailers unless the repository owner explicitly requests them.
+- Pull requests targeting `main` are checked by the `Commit attribution guard` workflow (`.github/workflows/commit-attribution-guard.yml`), which inspects every commit in the PR's `base...head` range for prohibited AI `Co-Authored-By` trailers. Ordinary human co-author trailers are unaffected. The workflow definition and the checker scripts it runs always come from the trusted `main` branch, never from the PR itself; the PR's commits are only ever read as data, never checked out or executed, so a PR cannot modify the check it is being judged by.
+
+If `Commit attribution guard` fails on a PR:
+
+1. Identify the offending feature-branch commit(s) from the check's output.
+2. Remove the prohibited AI `Co-Authored-By` trailer(s) from those commit messages.
+3. Amend or rebase only the working feature branch — never rewrite `main`.
+4. Follow this repository's history-rewrite safety rules (see `docs/PUSH_TEMPLATE.md`).
+5. Use `git push --force-with-lease` only when the branch was already pushed and a rewrite is explicitly authorized.
+6. Push again and let the guard re-run; merge only after it passes.
+
+An explicit owner-approved exception exists for the rare case where the owner genuinely wants an AI trailer kept on one specific PR: the repository Actions variable `AI_ATTRIBUTION_EXCEPTION_PR`. When set to a PR number, the guard allows only that exact PR to pass despite a detected AI trailer, and logs that the exception was used. This variable is owner/maintainer-controlled, lives outside the PR diff, and is not something a PR author can set from inside their own PR. The owner should clear or change it once the exempted PR is done so it cannot silently apply to a later, unrelated PR.
 
 ## Pull Request Process
 

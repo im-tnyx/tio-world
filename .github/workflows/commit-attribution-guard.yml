@@ -1,0 +1,65 @@
+name: Commit attribution guard
+
+# Trusted, base-controlled guard. Runs with pull_request_target (workflow
+# definition and every executable it invokes are loaded from the base/
+# default branch), never pull_request, so a PR cannot modify the checker
+# it is being judged by. The PR head is fetched as plain Git object data
+# only (refs/pull/<n>/head) and is NEVER checked out into the working tree
+# and NEVER executed. See CONTRIBUTING.md and
+# .ai/tasks/tnyx-232-ai-attribution-guard.md for the full trust-boundary
+# rationale (GitHub #283 / TNYX-232, review finding G1).
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-attribution-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Commit attribution guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Run fixture regression tests (trusted base code)
+        run: bash scripts/check_commit_attribution_test.sh
+
+      - name: Fetch PR head commit objects as data only
+        id: fetch_pr_head
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head:refs/remotes/pull/${PR_NUMBER}/head"
+          fetched_head_sha="$(git rev-parse "refs/remotes/pull/${PR_NUMBER}/head")"
+
+          if [ "$fetched_head_sha" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "commit-attribution-guard: error: fetched PR head (${fetched_head_sha}) does not match the event's reported head (${EXPECTED_HEAD_SHA})." >&2
+            exit 2
+          fi
+
+          echo "commit-attribution-guard: fetched PR #${PR_NUMBER} head ${fetched_head_sha} as data only (not checked out, not executed)."
+          echo "head_sha=${fetched_head_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Check PR commits for prohibited AI attribution
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ steps.fetch_pr_head.outputs.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXCEPTION_PR: ${{ vars.AI_ATTRIBUTION_EXCEPTION_PR }}
+        run: |
+          echo "Checking commit range ${BASE_SHA}..${HEAD_SHA} for PR #${PR_NUMBER} with the trusted base-controlled checker."
+          bash scripts/check_commit_attribution.sh "$BASE_SHA" "$HEAD_SHA" "$PR_NUMBER" "$EXCEPTION_PR"
