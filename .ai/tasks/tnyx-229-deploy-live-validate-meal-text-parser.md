@@ -117,10 +117,12 @@ this; it was verified against the already-deployed bundle.
   contract (`handler_test.ts`: `"unauthenticated request is rejected with
   401"`); no separate live unauthenticated smoke observation was
   required/recorded.
-- Required provider configuration present server-side: established by
-  functional behavior across the live evidence trail (Gemini, OpenAI,
-  FatSecret and Edamam calls each reached their provider), without
-  retrieving or printing any secret value.
+- Provider configuration at time of validation: recorded live runs establish
+  that provider configuration was sufficient at the time of validation for
+  requests to reach Gemini, OpenAI, FatSecret, and Edamam as documented. This
+  reconciliation did not retrieve, print, or enumerate current secret values,
+  and therefore does not make a stronger claim about current secret
+  inventory than the available functional evidence supports.
 
 ### Validation checklist
 
@@ -191,13 +193,13 @@ parser source defects.
 **Repository state last verified:** `main` = `f3f78074ba69d46877cbd43bd193d1fde8d54581`
 **Branch:** `tnyx/tnyx-229-post-validation-reconcile`
 **HEAD SHA:** this commit — the branch tip at `git log -1` on `tnyx/tnyx-229-post-validation-reconcile` (not hardcoded here: amending this file changes its own commit hash, so a literal value would go stale the moment it is edited; the exact pushed head is also recorded on PR #308)
-**PR / tracker:** PR #308 (`docs(task): reconcile TNYX-229 technical completion`), Draft, reconciliation/review only, not merged. Linear TNYX-229 = `Done`. Linear TNYX-239 = `Backlog`, owns remaining Gemini work.
+**PR / tracker:** PR #308 (`docs(task): reconcile TNYX-229 technical completion`), OPEN, Ready for Review, reconciliation/review only, not merged. Linear TNYX-229 = `Done`. Linear TNYX-239 = `Backlog`, owns remaining Gemini work.
 **Current implementation state:** technical TNYX-229 implementation is complete; nothing further to implement in this slice.
 **Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse` (read-only verification only in this reconciliation).
 **Validation completed at SHA:** validation evidence in this file was gathered against deployed v38 and `main` `f3f78074ba69d46877cbd43bd193d1fde8d54581`; no source changed since.
 **Validation remaining:** none for TNYX-229's technical scope. Gemini direct-200 observation remains with TNYX-239. Category-B commercial/provider gates remain with their respective owners.
 **Current blocker:** none technical. No blocker to PR #308 review.
-**Open review finding IDs:** none open (see Findings resolved in this correction commit).
+**Open review finding IDs:** none open (P1 stale-handoff-state and P2 provider-config-evidence-wording findings resolved in this correction commit).
 **Next exact action:** owner-authorized review and merge of PR #308; old stale branch cleanup as separate post-merge housekeeping; TNYX-239 remains Backlog for later Gemini follow-up.
 
 ## Next action
