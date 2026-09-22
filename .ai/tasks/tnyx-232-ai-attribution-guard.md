@@ -1,6 +1,6 @@
 # TNYX-232 / GitHub #283 — AI Co-Authored-By Attribution Guard
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** repository governance / `.github/workflows`, `scripts/`
 **Affected platforms:** None (governance/CI tooling only; no Flutter/Supabase/product runtime change)
 
@@ -14,24 +14,24 @@
 
 ## Active Handoff
 
-**Planning owner:** prior read-only audit pass + manual review passes (same session)
-**Implementation owner:** current session (implementation complete as of this pass; this pass is docs-only handoff cleanup, not further behavior change)
-**Review owner:** current session (manual review found G1/G2/G3, then G4; all resolved; this pass only corrects stale task-brief wording, no new finding)
-**Implementation ownership state:** Handoff pending (implementation complete; awaiting owner review of PR #310)
+**Planning owner:** current session
+**Implementation owner:** current session
+**Review owner:** repository owner
+**Implementation ownership state:** Handoff pending (implementation, hard gate and live validation complete; administrative cleanup remains)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-22, fresh `git status -sb` / `git fetch` / `git switch` reconstruction before this pass
-**Branch:** `tnyx/tnyx-232-ai-attribution-guard` (existing branch throughout, no new branch created)
-**HEAD SHA:** current final implementation head (last code-changing commit) is `574ff1d06afd137f601f484ab921d08b6f262566` (fresh-verified as the current PR #310 head before this pass; base `main` still `b86bd3db4b3274c3ed6da02d5a6ea8f2afbd3b0c`, unmoved). This pass adds one additive docs-only commit on top of it that touches only this task-brief file; see the PR for that commit's exact SHA once pushed.
+**Repository state last verified:** 2026-09-22 — `main` `298186e1d316acb503eca5dbf96fdffa6d065c83`, protected (`Commit attribution guard` from App ID `5032971`, `strict=false`, `enforce_admins=true`); rulesets `[]`; Actions policy 5216 active
+**Branch:** `tnyx/tnyx-232-final-evidence` (fresh from `main`; this record only)
+**HEAD SHA:** see the final evidence pull request
 **Observed working-tree state:** clean before this pass's edits
 **Observed uncommitted/dirty files:** none
-**PR / tracker:** existing PR [#310](https://github.com/im-tnyx/tio-world/pull/310) (Draft, not merged), GitHub #283 (open, unchanged), Linear TNYX-232 (`In Review`, unchanged)
-**Current implementation state:** Guard implementation, trust-boundary hardening (G1/G2/G3), and output-wiring correction (G4) are all complete and pushed to PR #310 as of commit `574ff1d0`. This pass is durable-handoff cleanup only: it corrects task-brief wording that still described the original (superseded) `pull_request` trigger design instead of the implemented `pull_request_target` trusted-base design, and refreshes the "Next exact action" line, which still described already-completed push/reconcile/report steps from the previous pass. No guard behavior, scripts, or workflow file are touched in this pass.
-**Relevant execution surface:** `.ai/tasks/tnyx-232-ai-attribution-guard.md` only for this pass (guard files unchanged: `.github/workflows/commit-attribution-guard.yml`, `scripts/check_commit_attribution.sh`, `scripts/check_commit_attribution_test.sh`, `CONTRIBUTING.md`)
-**Validation completed at SHA:** see Quality Review section below (unchanged by this docs-only pass; last re-run at `574ff1d0`)
-**Validation remaining:** the corrected `pull_request_target` workflow still cannot bootstrap-run against PR #310 itself (base branch doesn't contain it yet); a post-merge validation PR remains required to observe the fixed output-wiring running live end-to-end; hard required-check configuration remains an owner/admin follow-up.
-**Current blocker:** none; remaining steps are owner review, owner-authorized merge, and post-merge follow-ups, all explicitly out of scope for this session to perform unilaterally
-**Open review finding IDs:** G1, G2, G3, G4 — all Resolved (see Review Findings And Resolution); no new finding in this pass
-**Next exact action:** owner review of PR #310 → fresh exact-head merge-readiness verification → owner-authorized squash merge only if the gate remains clean
+**PR / tracker:** PR #310 merged (`3ebe9f7c`), PR #312 merged (`298186e1`); PR #311 superseded by the final validation record; disposable PRs #313/#314/#315 open; GitHub #283 open; Linear TNYX-232 `In Review`
+**Current implementation state:** guard (PR #310), dedicated App-backed required check (PR #312) and classic `main` protection are live and validated; see `.ai/tasks/tnyx-232-attribution-guard-final-validation.md`
+**Relevant execution surface:** `.ai/tasks/` only for this pass
+**Validation completed at SHA:** `298186e1d316acb503eca5dbf96fdffa6d065c83` (live runs on PRs #313, #314, #315)
+**Validation remaining:** none for the security gate
+**Current blocker:** none
+**Open review finding IDs:** G1, G2, G3, G4 — all Resolved; no open finding
+**Next exact action:** owner-authorized merge of the final evidence PR, then close PR #311 (superseded) and PRs #313/#314/#315 (disposable), delete their branches, and reconcile GitHub #283 / TNYX-232
 
 ## 1. Discovery
 
@@ -250,13 +250,20 @@ Repository-wide PR guard exists, is trust-boundary-hardened (base-controlled, PR
 
 ### Final Status
 
-`REVIEW` — implementation plus two correction passes complete and locally validated (18/18 fixtures, real regression/clean/invalid-ref scenarios, corrected output wiring manually traced end-to-end); PR #310 open (Draft) and awaiting review/merge decision; post-merge live validation, required-check, and Actions-event-policy follow-ups outstanding.
+`PASS` — superseded by sections 8 and 9: the guard, the App-backed required check and `main` branch protection are validated live. Historical `REVIEW` state for PR #310 is preserved in the sections above.
 
 ## 8. Superseding Decision — Option C (dedicated GitHub App required check)
 
 This section supersedes any earlier wording in this brief (including the Active Handoff "Next exact action" and the Known Limitations above) that plans to make the `github-actions`-sourced job (app ID 15368) the required `main` check. The active execution record for the hard-gate work is `.ai/tasks/tnyx-232-option-c-app-check.md`.
 
-- PR #310 merged the trusted guard (`3ebe9f7c3a526abbaed5364c9db88054cfea03b9`). Live PASS / deliberate-trailer FAIL / remediated PASS evidence was collected on PR #311 (still Draft/open; its `.ai/tasks/*` evidence lands on `main` when PR #311 merges).
+- PR #310 merged the trusted guard (`3ebe9f7c3a526abbaed5364c9db88054cfea03b9`). Live PASS / deliberate-trailer FAIL / remediated PASS evidence was collected on PR #311; that branch diverged from `main`, so its facts are reconciled into `.ai/tasks/tnyx-232-attribution-guard-final-validation.md` and PR #311 is superseded rather than merged.
 - Required status checks bind only to a check name plus an optional source app, not to a workflow path or event type. Every Actions workflow in this repository reports as `github-actions` (app 15368), so that identity cannot uniquely prove the trusted workflow produced a result. A hard gate therefore needs a distinct source identity.
 - Owner decision (locked): Option C — a dedicated custom GitHub App (Tio Attribution Guard) publishes the required `Commit attribution guard` Check Run; the Actions job is renamed `Attribution guard runner` and is not required. D1 locked: `enforce_admins = true`, so direct pushes to `main` (including post-merge docs) must go through PRs.
 - Branch protection is deferred until the custom App check has been observed live on a real PR after the App-backed workflow lands on `main`.
+
+## 9. Final Outcome
+
+- PR #312 landed the App-backed guard (`298186e1d316acb503eca5dbf96fdffa6d065c83`). Tio Attribution Guard (App ID `5032971`) publishes the required `Commit attribution guard` check; the Actions job is `Attribution guard runner`.
+- Classic `main` protection requires `Commit attribution guard` from App ID `5032971`, `strict=false`, `enforce_admins=true`, no reviews, no rulesets.
+- Live evidence: clean App check success (PR #313); prohibited trailer makes the App check fail and the PR blocked, and a same-name `github-actions` success does not override it (PR #314); a same-name `github-actions` failure also blocks a clean PR (PR #315), which is a duplicate-name availability caveat, not a bypass.
+- Final conclusion: **security gate validated, with a duplicate-name availability caveat.** Full record: `.ai/tasks/tnyx-232-attribution-guard-final-validation.md`.
