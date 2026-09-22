@@ -15,6 +15,7 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
+import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 import 'account_setup/account_setup.dart';
@@ -40,6 +41,17 @@ TioShellPlaceholder _page(TioRouteContract route) {
 Widget _shellBranchPage(ShellBranchDefinition branch) {
   if (branch.tab == ShellTab.home) {
     return const HomePage();
+  }
+
+  if (branch.tab == ShellTab.workout) {
+    // Workout consumes the same app-global calendar preference as every other
+    // date surface. The feature owns only its selected date and navigation
+    // range; no Workout domain truth is fabricated in this shell.
+    return Consumer(
+      builder: (context, ref, _) => WorkoutHomePage(
+        resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+      ),
+    );
   }
 
   if (branch.tab == ShellTab.nutrition) {
