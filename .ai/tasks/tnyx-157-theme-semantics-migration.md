@@ -4,7 +4,7 @@
 **Primary owner:** `apps/core/lib/src/theme` (mode semantics) + `apps/app` (device-local persistence) + `apps/features/settings` (labels) + `apps/wear` (semantic rename)
 **Affected platforms:** Flutter Android + iOS phone app, Flutter Wear OS
 
-Trackers: GitHub [#213](https://github.com/im-tnyx/tio-world/issues/213) · Linear [TNYX-157](https://linear.app/tnyx/issue/TNYX-157/s0-g-theme-semantics-system-light-dark-tio-dark) (parent TNYX-118, In Progress / Low)
+Trackers: GitHub [#213](https://github.com/im-tnyx/tio-world/issues/213) · Linear [TNYX-157](https://linear.app/tnyx/issue/TNYX-157/s0-g-theme-semantics-system-light-dark-tio-dark) (parent TNYX-118, In Review / Low)
 
 ## Owner Approval and Scope Boundary
 
@@ -32,18 +32,18 @@ Trackers: GitHub [#213](https://github.com/im-tnyx/tio-world/issues/213) · Line
 **Implementation ownership state:** Active
 **Ownership transition:** NONE → Claude (owner implementation authorization 2026-09-22)
 **Repository state last verified:** 2026-09-22
-**Branch:** `tnyx/tnyx-157-theme-semantics-migration` (local only, created from `main`; not pushed)
-**HEAD SHA:** `fec4e0568f23e65c5d6bb444953f883314491a85` (= `origin/main`)
-**Observed working-tree state:** uncommitted implementation on base `fec4e05`: exactly the 23 allowlisted files (7 production, 14 tests, 2 docs) modified + this brief untracked. Nothing committed/pushed.
-**Observed uncommitted/dirty files:** §5 allowlist + `.ai/tasks/tnyx-157-theme-semantics-migration.md`
-**PR / tracker:** No PR. GitHub #213 OPEN. Linear TNYX-157 In Progress / Low / parent TNYX-118 (moved Backlog → In Progress 2026-09-22 on owner authorization).
+**Branch:** `tnyx/tnyx-157-theme-semantics-migration` (pushed; tracks `origin/tnyx/tnyx-157-theme-semantics-migration`)
+**HEAD SHA:** `71256c81b0bc5725925cf7e73a57c79059720010` (base `fec4e05` = `origin/main`; ahead 1 / behind 0)
+**Observed working-tree state:** implementation committed as `71256c8` (24 files) and pushed; only this brief has a local post-commit update (publication evidence), not yet pushed.
+**Observed uncommitted/dirty files:** `.ai/tasks/tnyx-157-theme-semantics-migration.md` (publication evidence only)
+**PR / tracker:** Draft PR #318 (head `71256c8`). GitHub #213 OPEN. Linear TNYX-157 In Review / Low / parent TNYX-118.
 **Current implementation state:** Implementation complete for the approved slice; automated validation passed (§6 Validation Run).
 **Relevant execution surface:** see §5 allowlist.
-**Validation completed at SHA:** working tree on base `fec4e0568f23e65c5d6bb444953f883314491a85` (uncommitted); see §6.
-**Validation remaining:** CI on the eventual PR head. Owner review accepted (R1 P3 deferred); owner phone QA PASS; Wear physical + downgrade QA not run.
+**Validation completed at SHA:** local validation ran on the tree committed as `71256c8` (staged hash matched the reviewed tree); CI on #318 in progress.
+**Validation remaining:** CI on #318 (Analyze and test, Build Android debug APKs pending at handoff). Owner review accepted (R1 P3 deferred); owner phone QA PASS; Wear physical + downgrade QA not run.
 **Current blocker:** none. Owner authorized the publication gate 2026-09-22: commit, push, Draft PR against `main`, Linear → In Review. Merge, Done and closing #213 are not authorized.
 **Open review finding IDs:** R1 (P3, Deferred — owner-accepted known limitation)
-**Next exact action:** Publication per `docs/PUSH_TEMPLATE.md` (single commit `refactor(theme): replace OLED mode with Dark and add Tio Dark`), then CI + PR review gate.
+**Next exact action:** CI + PR review gate on #318. Merge, Linear Done and closing #213 are not authorized yet.
 
 ## Global UI / Design-System Guardrail
 
@@ -489,6 +489,17 @@ No file outside the allowlist changed. Not committed, not pushed, no PR.
 - `melos` itself could not run locally (see §6); equivalent per-package commands were run.
 - Owner physical-phone QA: aggregate PASS (2026-09-22) for normal phone theme behavior (§6 Device QA evidence); device model/OS/text scale not provided. Legacy-upgrade rows are AUTOMATED ONLY; Wear physical QA and downgrade QA NOT RUN.
 - R1 (P3, deferred): current shadow mapping assertions cannot distinguish modes because `TioShadows.light/dark/oled` values are identical.
+
+### Publication evidence (2026-09-22)
+
+- Commit: `71256c81b0bc5725925cf7e73a57c79059720010` `refactor(theme): replace OLED mode with Dark and add Tio Dark` (no AI attribution).
+- Parent: `main` `fec4e0568f23e65c5d6bb444953f883314491a85`; ahead/behind 1/0; `git merge-base --is-ancestor origin/main HEAD` passed; `git log origin/main..HEAD` = this commit only; `git diff --name-only origin/main...HEAD` = the 24 approved files; `git diff --check origin/main...HEAD` clean. Staged diff hash matched the reviewed tree.
+- Pushed: `origin/tnyx/tnyx-157-theme-semantics-migration` = `71256c8` (no force push).
+- Draft PR: [#318](https://github.com/im-tnyx/tio-world/pull/318), base `main`, head `tnyx/tnyx-157-theme-semantics-migration`, 24 files, `Closes #213`. Mergeable; merge state `clean` once checks completed.
+- CI on head `71256c8`: Analyze and test **pass**, Build Android debug APKs **pass**, Attribution guard runner **pass**, Commit attribution guard **pass**. `github-advanced-security` **failed for an external reason** — the Copilot code-scanning agent could not start a session (`Sessions disabled: not supported for code scanning yet`, then `CAPIError: 400 The requested model is not supported`); `code-scanning/alerts` returns `no analysis found`, so no code/security finding was produced. Branch protection lists only `Commit attribution guard` as a required check, so this failure is not required and no code change was made for it.
+- PR review gate (2026-09-22): PR diff verified content-identical to the reviewed tree; P1 0 / P2 0 / P3 1 (R1 deferred); 0 reviews / 0 comments / 0 threads.
+- Linear TNYX-157: In Progress → **In Review** after the Draft PR existed; PR #318 attached; priority Low / parent TNYX-118 unchanged (the GitHub link also auto-assigned the issue to santosh). GitHub #213 OPEN (closes only on merge).
+- This publication-evidence block was added after the implementation commit and is synced to the branch by the follow-up commit `docs(ai): sync TNYX-157 publication handoff`; its CI lines describe head `71256c8`, and the sync commit re-runs the same workflows on the new head.
 
 ### Handoff gate
 
