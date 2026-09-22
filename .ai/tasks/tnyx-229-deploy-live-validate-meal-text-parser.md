@@ -187,27 +187,31 @@ parser source defects.
 ## Active Handoff
 
 **Planning owner:** current session
-**Implementation owner:** current session (documentation-only correction)
-**Review owner:** pending PR review, not yet assigned
+**Implementation owner:** current session (documentation-only, post-merge reconciliation)
+**Review owner:** PR #308 merged without a separate formal reviewer assignment; Codex automated review was unavailable (usage limit) for that PR, so a manual/Codex-style review was performed in its place.
 **Implementation ownership state:** Complete
-**Repository state last verified:** `main` = `f3f78074ba69d46877cbd43bd193d1fde8d54581`
-**Branch:** `tnyx/tnyx-229-post-validation-reconcile`
-**HEAD SHA:** this commit — the branch tip at `git log -1` on `tnyx/tnyx-229-post-validation-reconcile` (not hardcoded here: amending this file changes its own commit hash, so a literal value would go stale the moment it is edited; the exact pushed head is also recorded on PR #308)
-**PR / tracker:** PR #308 (`docs(task): reconcile TNYX-229 technical completion`), OPEN, Ready for Review, reconciliation/review only, not merged. Linear TNYX-229 = `Done`. Linear TNYX-239 = `Backlog`, owns remaining Gemini work.
+**Repository state last verified:** `main` = `23cd76de126d1bc7f4cdaeb9035e90e0adb9d4fa`
+**Branch:** `tnyx/tnyx-229-post-merge-reconcile`, branched from the SHA above
+**HEAD SHA:** this commit — the branch tip at `git log -1` on `tnyx/tnyx-229-post-merge-reconcile` (not hardcoded here: amending this file changes its own commit hash, so a literal value would go stale the moment it is edited; the exact pushed head is also recorded on this record's own PR)
+**PR / tracker:** PR #308 (`docs(task): reconcile TNYX-229 technical completion`) — **Merged**, squash/merge SHA `23cd76de126d1bc7f4cdaeb9035e90e0adb9d4fa`, now part of `main`. Linear TNYX-229 = `Done`. Linear TNYX-239 = `Backlog`, owns remaining Gemini work.
 **Current implementation state:** technical TNYX-229 implementation is complete; nothing further to implement in this slice.
-**Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse` (read-only verification only in this reconciliation).
-**Validation completed at SHA:** validation evidence in this file was gathered against deployed v38 and `main` `f3f78074ba69d46877cbd43bd193d1fde8d54581`; no source changed since.
+**Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse` (read-only verification only across all TNYX-229 reconciliation passes).
+**Validation completed at SHA:** validation evidence in this file was gathered against deployed v38 and `main` `f3f78074ba69d46877cbd43bd193d1fde8d54581` (the state immediately before PR #308 merged); the merge itself introduced no source/runtime change (docs-only PR).
 **Validation remaining:** none for TNYX-229's technical scope. Gemini direct-200 observation remains with TNYX-239. Category-B commercial/provider gates remain with their respective owners.
-**Current blocker:** none technical. No blocker to PR #308 review.
-**Open review finding IDs:** none open (P1 stale-handoff-state and P2 provider-config-evidence-wording findings resolved in this correction commit).
-**Next exact action:** owner-authorized review and merge of PR #308; old stale branch cleanup as separate post-merge housekeeping; TNYX-239 remains Backlog for later Gemini follow-up.
+**Current blocker:** none technical. No blocker remaining for TNYX-229.
+**Open review finding IDs:** none open.
+**Next exact action:** owner-authorized merge of this post-merge reconciliation record; then a fresh audit and cleanup of the now-stale `tnyx/tnyx-229-post-validation-reconcile` and `tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` branches; then return to fresh `main` for the next issue. TNYX-239 remains Backlog for later Gemini follow-up.
 
 ## Next action
 
 No further TNYX-229 parser source/deployment work is expected. Any Gemini
 follow-up (later availability re-check, retry/backoff evaluation,
 OpenAI-primary routing evaluation) belongs to TNYX-239, still `Backlog`.
-Cleanup of the old stale branch
-`tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser` is
-post-merge housekeeping only, to be done after this reconciliation lands, and
-is not performed by this change.
+
+PR #308 has merged into `main` at `23cd76de126d1bc7f4cdaeb9035e90e0adb9d4fa`.
+Remaining work is post-merge housekeeping only: land this post-merge
+reconciliation record, then clean up the two now-stale TNYX-229 branches
+(`tnyx/tnyx-229-post-validation-reconcile` and
+`tnyx/tnyx-229-n5d-7a-deploy-and-live-validate-protected-meal-text-parser`)
+once a fresh audit confirms neither holds unpreserved work, then return to
+fresh `main` to select the next issue.
