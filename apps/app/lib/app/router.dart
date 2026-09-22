@@ -21,6 +21,7 @@ import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'calendar_preferences.dart';
+import 'meal_diary_today_glyph.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
@@ -101,46 +102,6 @@ Widget _mealDiaryVisibleMonthLabel(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
-    ),
-  );
-}
-
-Widget _mealDiaryTodayGlyph(BuildContext context, DateTime localToday) {
-  final color = Theme.of(context).colorScheme.onSurface;
-
-  return ExcludeSemantics(
-    child: SizedBox(
-      key: const ValueKey('meal-diary-today-glyph'),
-      width: TioSize.dp24,
-      height: TioSize.dp24,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          SvgPicture.asset(
-            'assets/svg_icon/ic_calendar.svg',
-            package: 'tio_core',
-            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-          ),
-          Positioned(
-            left: TioSpacing.xs,
-            top: TioSpacing.md,
-            right: TioSpacing.xs,
-            bottom: TioSpacing.xxs,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                localToday.day.toString(),
-                key: const ValueKey('meal-diary-today-day-label'),
-                maxLines: 1,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: color,
-                      fontWeight: TioFontWeight.w700,
-                    ),
-              ),
-            ),
-          ),
-        ],
-      ),
     ),
   );
 }
@@ -397,9 +358,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                               isOnToday: mealDiaryDates.isOnToday,
                             ),
                             onPressed: mealDiaryDates.selectToday,
-                            icon: _mealDiaryTodayGlyph(
-                              context,
-                              mealDiaryDates.localToday,
+                            icon: MealDiaryTodayGlyph(
+                              localToday: mealDiaryDates.localToday,
                             ),
                           )
                         : null,
