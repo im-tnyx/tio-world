@@ -391,7 +391,9 @@ void main() {
     expect(todayAction, findsNothing);
 
     final today = dates.localToday;
-    final adjacentDate = DateTime(today.year, today.month, today.day - 1);
+    final visibleStart = dates.visibleFirstDate!;
+    final visibleEnd = dates.visibleLastDate!;
+    final adjacentDate = visibleStart == today ? visibleEnd : visibleStart;
     dates.select(adjacentDate);
     await tester.pumpAndSettle();
 
