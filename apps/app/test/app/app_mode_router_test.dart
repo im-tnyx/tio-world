@@ -390,15 +390,16 @@ void main() {
     final todayAction = find.byKey(const ValueKey('workout-today-action'));
     expect(todayAction, findsNothing);
 
-    await tester.fling(
-      find.byKey(const ValueKey('tio-date-calendar-week-pager')),
-      const Offset(-400, 0),
-      1200,
-    );
+    final today = dates.localToday;
+    final adjacentDate = DateTime(today.year, today.month, today.day - 1);
+    dates.select(adjacentDate);
     await tester.pumpAndSettle();
 
-    expect(dates.isOnToday, isTrue);
-    expect(dates.isTodayVisible, isFalse);
+    // Exact owner requirement: moving selection off Today reveals the same
+    // current-day calendar glyph used by Meal Diary, even when Today remains
+    // inside the visible week.
+    expect(dates.isOnToday, isFalse);
+    expect(dates.isTodayVisible, isTrue);
     expect(todayAction, findsOneWidget);
     expect(
       find.descendant(
@@ -410,10 +411,30 @@ void main() {
     expect(
       find.descendant(
         of: todayAction,
-        matching: find.text(dates.localToday.day.toString()),
+        matching: find.text(today.day.toString()),
       ),
       findsOneWidget,
     );
+
+    await tester.tap(todayAction);
+    await tester.pumpAndSettle();
+
+    expect(dates.isOnToday, isTrue);
+    expect(dates.isTodayVisible, isTrue);
+    expect(todayAction, findsNothing);
+
+    // Paging away without changing selection also reveals the action, matching
+    // the established Meal Diary viewport-aware navigation behavior.
+    await tester.fling(
+      find.byKey(const ValueKey('tio-date-calendar-week-pager')),
+      const Offset(-400, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+
+    expect(dates.isOnToday, isTrue);
+    expect(dates.isTodayVisible, isFalse);
+    expect(todayAction, findsOneWidget);
 
     await tester.tap(todayAction);
     await tester.pumpAndSettle();
