@@ -86,4 +86,4 @@ Rejected because it does not distinguish prescribed template state from performe
 - [Active decisions](../../.ai/DECISIONS.md)
 - [Module ownership](../MODULE_OWNERSHIP.md)
 - [Exercise Search](../screens/exercise-search.md)
-- [W1A0 task brief](../../.ai/tasks/tnyx-78-w1a0-workout-canonical-identities.md)
+- [W1A0 task brief (archived)](../../.ai/archive/2026-09-tnyx-78-w1a0-workout-canonical-identities.md)
