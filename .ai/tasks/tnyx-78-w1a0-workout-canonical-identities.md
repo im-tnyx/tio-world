@@ -10,7 +10,7 @@
 **Approval status:** Approved
 **Approval evidence:** Owner approved the bounded W1A0 docs-only slice on 2026-09-23 after reviewing the W1 readiness audit and explicitly accepted the recommended Q5/Q6/Q7 direction.
 **Approved product/UI/data-shape boundaries:** Record canonical Workout identity ownership, built-in Exercise catalog identity, stale shared-scaffold cleanup direction, set terminology, and explicit deferrals. Docs/governance only.
-**Explicit non-changes:** No Dart production code, JSON asset move/edit/commit, Supabase schema/data, repository implementation, UI/presentation/calendar/routing change, or Linear mutation in this slice.
+**Explicit non-changes:** No Dart production code, JSON asset move/edit/commit, Supabase schema/data, repository implementation, or UI/presentation/calendar/routing change. Linear: task status may be reconciled when the real task state changes, per AGENTS.md (done: TNYX-78 `Backlog → In Progress → In Review`); still out of scope are Linear description, acceptance or scope rewrites, relation manipulation unrelated to verified tracker reconciliation, project status spam, and marking Done before merge/completion evidence.
 
 ## Active Handoff
 
@@ -19,19 +19,19 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
+**Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; only open PR is #324; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** PR #324 marked Ready for Review at `dd00550df1d3fd8678661857f32d92f807de684d`; the brief-only checkpoint commit recording that transition follows it
+**HEAD SHA:** validated branch head `0d35927d164a923e03c4a84d96c7e48db877402a`; the brief-only W1A0-C5/C6 commit follows it (exact head on PR #324)
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
 **PR / tracker:** PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` is Ready for Review (open, not Draft, mergeable; marked 2026-09-23T17:55:14Z). Linear `TNYX-78` moved `Backlog → In Progress` while Codex fixes were active, then `In Progress → In Review` after the Ready transition, with one reconciliation comment (assignee santosh, PR #324 attached, description/relations unchanged). Merge is not authorized.
-**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C4 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
+**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C6 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `dd00550df1d3fd8678661857f32d92f807de684d` — local docs/scope/link/attribution validation, exact-head checks and PR #324 checkpoints recorded in section 6.
+**Validation completed at SHA:** `0d35927d164a923e03c4a84d96c7e48db877402a` — current evidence in section 6; earlier checkpoints live in commit history and PR #324.
 **Validation remaining:** reviewer feedback on the Ready PR. No Flutter CI result is claimed; none ran for this docs-only PR.
 **Current blocker:** None. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
-**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C4. Deferred (not open): W1A0-F1, W1A0-F2.
-**Next exact action:** audit reviewer feedback on PR #324 and await explicit owner merge authorization. Do not merge, start W1A7, or rewrite the TNYX-78 description before that.
+**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C6. Deferred (not open): W1A0-F1, W1A0-F2.
+**Next exact action:** await explicit owner merge authorization for PR #324 (then follow `docs/POST_MERGE_SYNC.md`). Do not merge, start W1A7, or rewrite the TNYX-78 description before that.
 
 ## Global UI / Design-System Guardrail
 
@@ -50,7 +50,7 @@ Create the smallest architecture decision slice needed before Workout domain cod
 - Existing unused shared Workout scaffolds are marked for isolated cleanup before new canonical IDs/entities are added.
 - Template sets use `SetPrescription`; actual performed sets use `PerformedSet`; `WorkoutSet` is retired from new design.
 - Deferred decisions name the exact later slice that must resolve them.
-- No production code, assets, Supabase, UI, or Linear state changes occur.
+- No production code, assets, Supabase, or UI changes occur; Linear changes are limited to task-status reconciliation (no description, acceptance, scope or unrelated relation rewrites).
 
 ### Scope
 
@@ -75,7 +75,7 @@ Create the smallest architecture decision slice needed before Workout domain cod
 - Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.ai/DECISIONS.md`, `docs/adr/README.md`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, current Linear TNYX-78, current Workout/shared structure from prior readiness audit.
 - Existing pattern to follow: Nutrition keeps durable pure-Dart canonical entities/value objects in `apps/shared`, while feature repositories and feature behavior remain in `apps/features/*`.
 - Tests or validation already present: W1A0 is docs-only; validation is scope/diff/link consistency rather than runtime tests.
-- Tracker state: TNYX-78 is Backlog and unblocked; open PR overlap = 0.
+- Tracker state at slice start: TNYX-78 was Backlog and unblocked; open PR overlap = 0.
 
 ## 3. Clarification
 
@@ -165,76 +165,21 @@ Not applicable; no UI/runtime behavior in this slice.
 
 ### Validation Run
 
-```text
-Remote GitHub compare vs main at bfa669b7137edcb77bec50e6d8115012205f96c9:
-- ahead: 7
-- behind: 0
-- changed files: 7
-- scope: .ai/** and docs/** only
-- no apps/**, supabase/**, JSON asset, UI, or runtime diff
-```
-
-Local `git diff --check` was not available through the GitHub connector at that checkpoint.
+Current evidence at branch head `0d35927d164a923e03c4a84d96c7e48db877402a` (the brief-only W1A0-C5/C6 commit that follows re-runs the same checks; its exact-head results are on PR #324):
 
 ```text
-Local shell review at 6e097f6fe22a5c6c04a9be07ed01a937015c56d9:
-- git diff --check origin/main...HEAD: FAIL (ADR-0011 metadata trailing whitespace)
-
-Local shell validation at content head 3f033faaf0477d6daf61ccc68e5ab4511e50f32e:
-- base: origin/main = b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD)
-- ahead / behind: 10 / 0
-- changed files: 7, all under .ai/** or docs/**
-- git diff --check origin/main...HEAD: PASS
-- relative Markdown links in the 7 changed files: 61 checked, all resolve
-- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS (no prohibited AI attribution)
-- secrets / machine-specific paths / binary files in diff: none
-- no apps/**, supabase/**, pubspec, Exercise JSON asset, UI, router, calendar or migration diff
-- untracked apps/core/assets/exercises/ preserved untouched
-
-Draft PR #324 review checkpoint at head 3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1:
-- PR: https://github.com/im-tnyx/tio-world/pull/324 (open, Draft, base main)
-- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD)
-- ahead / behind: 11 / 0; commits in PR: 11
-- mergeable: MERGEABLE; merge state: CLEAN
-- changed files: 7, all under .ai/** or docs/**
-- git diff --check origin/main...HEAD: PASS
-- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
-- relative Markdown links in the 7 changed files: 61 checked, 0 missing
-- checks: Commit attribution guard = SUCCESS; Attribution guard runner = SUCCESS (no other checks ran)
-- reviews: 0; top-level comments: 0; inline comments: 0; review threads: 0 (0 unresolved)
-- legacy apps/shared/lib/src/workout/** scaffolds still present (W1A7 not started)
-
-W1A0-R5 resolution checkpoint at content head f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6:
-- R5 commit: f5d6fca3 docs(workout): align screen ownership with ADR-0011 (docs/screens/workout.md, one bullet)
-- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 13 / 0
-- changed files: 8 (the 7 W1A0 files plus docs/screens/workout.md), all under .ai/** or docs/**
+- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 17 / 0
+- changed files: 8, all under .ai/** or docs/**; no apps/**, supabase/**, pubspec, Exercise JSON, UI, router, calendar or migration diff
 - git diff --check origin/main...HEAD: PASS
 - bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
 - relative Markdown links in the 8 changed files: 72 checked, 0 missing
-- GitHub checks observed at 03185833 (before R5): Commit attribution guard = SUCCESS (required by main protection); Attribution guard runner = SUCCESS; github-advanced-security = FAILURE (not required)
-- github-advanced-security root cause (run 35894222336): Copilot code-scanning session failed with "CAPIError: 400 The requested model is not supported" for model claude-opus-5[ReasoningEffort=medium] before any analysis; no finding or security result was produced. Classified as the external TNYX-256 tooling outage, not a branch defect.
-- reviews: 0; comments: 0; review threads: 0
-- Quick Start wording (W1A0-F1) intentionally unchanged
-
-Codex review (5294676954 at d24a8221) resolution checkpoint at content head 7b727664be1e636ac07651934e4b3c4b3c9d3643:
-- 4 Codex P2 threads recorded as W1A0-C1–C4 (section 6 table)
-- D-010 row byte-identical to origin/main (verified with diff); Q1 conflict recorded only in D-019
-- ADR-0011 adds the newer/unknown built-in ex_* client-compatibility deferral to W1B0/W3
-- Linear TNYX-78: Backlog → In Progress
-- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 15 / 0
-- changed files: 8, all under .ai/** or docs/**
-- git diff --check origin/main...HEAD: PASS
-- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
-- relative Markdown links in the 8 changed files: 72 checked, 0 missing
-
-Ready for Review checkpoint at head dd00550df1d3fd8678661857f32d92f807de684d:
-- ahead / behind: 16 / 0; changed files: 8 (.ai/** and docs/** only); git diff --check PASS; attribution script PASS
-- checks: Commit attribution guard = SUCCESS (required); Attribution guard runner = SUCCESS; github-advanced-security = FAILURE (non-required; CAPIError 400 unsupported model claude-opus-5[ReasoningEffort=medium], no analysis produced; TNYX-256)
-- 4 Codex threads replied to with fix evidence and resolved: 4 total, 0 unresolved
-- PR #324 marked Ready for Review at 2026-09-23T17:55:14Z; mergeable MERGEABLE / CLEAN
-- Linear TNYX-78: In Progress → In Review, one reconciliation comment added; description/relations unchanged
-- merge: not authorized
+- D-010 row byte-identical to origin/main
+- GitHub checks: Commit attribution guard = SUCCESS (only required check on main); Attribution guard runner = SUCCESS;
+  github-advanced-security = FAILURE (non-required; CAPIError 400 unsupported model before any analysis; external outage tracked in TNYX-256)
+- untracked owner assets apps/core/assets/exercises/ untouched
 ```
+
+Earlier intermediate checkpoints (older heads, ahead counts and PR states) are intentionally not repeated here; they remain auditable in the branch commit history and in [PR #324](https://github.com/im-tnyx/tio-world/pull/324) (checks, review threads and body).
 
 ### Review Findings and Resolution
 
@@ -245,12 +190,14 @@ Ready for Review checkpoint at head dd00550df1d3fd8678661857f32d92f807de684d:
 | W1A0-R1 | Blocking | Resolved | `git diff --check` failed on ADR-0011 metadata trailing whitespace | 6e097f6f | `35fd7d9f` uses the repository ADR list-metadata convention |
 | W1A0-R2 | Medium | Resolved | Generic `apps/shared` ownership row dropped `repository contracts`, contradicting repo-wide docs and runtime `AppPreferencesRepository` | 6e097f6f | `3f033faa` restores the generic wording; the Workout-specific split section is unchanged |
 | W1A0-R3 | Low | Resolved | ADR-0011 deferral list omitted Q11 set measurement kinds | 6e097f6f | `35fd7d9f` records the W1A3 deferral without choosing measurements |
-| W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | This brief refresh records current local validation evidence |
+| W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | `3ab78230` refreshed the handoff with local validation evidence |
 | W1A0-R5 | Low | Resolved | `docs/screens/workout.md` "Data And State Boundaries" still says Workout entities stay "in the Workout feature or `apps/shared` when they are truly cross-feature", which is weaker than ADR-0011's unconditional `apps/shared` ownership of durable Workout IDs/entities/snapshots | 3ab78230 | `f5d6fca3` aligns that one bullet with ADR-0011 and links ADR-0011 and Module ownership; Quick Start/flow wording unchanged |
-| W1A0-C1 | Low | Resolved | Codex: Active Handoff summarised findings as "F1–F4 resolved / F5 deferred", which did not match this table's IDs | d24a8221 | This brief commit uses the real IDs: R1–R5 and C1–C4 Resolved; F1/F2 Deferred |
+| W1A0-C1 | Low | Resolved | Codex: Active Handoff summarised findings as "F1–F4 resolved / F5 deferred", which did not match this table's IDs | d24a8221 | `dd00550d` uses the real IDs: R1–R5 and C1–C4 Resolved; F1/F2 Deferred |
 | W1A0-C2 | Medium | Resolved | Codex: W1A0 rewrote D-010 in place, contrary to the `.ai/DECISIONS.md` maintenance rule to retain old decisions and supersede them with a new entry | d24a8221 | `7b727664` restores the D-010 row byte-identical to `origin/main`; D-019 records the Q1 conflict separately, decides nothing, and requires the superseding lifecycle if Q1 later changes D-010 |
 | W1A0-C3 | Medium | Resolved | Codex: no stated contract for older/offline clients that receive a reference to a built-in `ex_*` absent from their bundled catalog | d24a8221 | `7b727664` adds an explicit ADR-0011 deferral to W1B0/W3; no mechanism, schema field or Supabase mirroring is chosen |
-| W1A0-C4 | Medium | Resolved | Codex: TNYX-78 still `Backlog` while W1A0 work and PR #324 are active | d24a8221 | TNYX-78 moved `Backlog → In Progress` on 2026-09-23; `In Review` follows only after PR #324 is Ready for Review |
+| W1A0-C4 | Medium | Resolved | Codex: TNYX-78 still `Backlog` while W1A0 work and PR #324 are active | d24a8221 | TNYX-78 moved `Backlog → In Progress` on 2026-09-23, then `In Review` after PR #324 became Ready for Review |
+| W1A0-C5 | Medium | Resolved | Codex: section 6 had become a transcript of every intermediate SHA/ahead-count/PR-state checkpoint, contrary to the compact `.ai/tasks` rule | 0d35927d | The W1A0-C5/C6 brief commit keeps only current exact-head evidence plus this table; earlier checkpoints are referenced via commit history and PR #324 |
+| W1A0-C6 | Low | Resolved | Codex: scope boundary and success criteria said "no Linear mutation" although TNYX-78 status was reconciled `Backlog → In Progress → In Review` | 0d35927d | The W1A0-C5/C6 brief commit allows task-status reconciliation per AGENTS.md and keeps description/acceptance/scope/unrelated-relation rewrites, project status spam and premature Done out of scope |
 
 ## 7. Final Handoff
 
