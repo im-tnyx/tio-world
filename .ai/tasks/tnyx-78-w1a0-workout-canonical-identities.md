@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** remote `main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** starts from `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; update after docs commits
+**HEAD SHA:** `bfa669b7137edcb77bec50e6d8115012205f96c9` before this handoff update
 **Observed working-tree state:** GitHub connector sees remote state only. Local audit reported unrelated untracked `apps/core/assets/exercises/`; preserve and do not stage/touch it.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` reported untracked by local audit; excluded from W1A0.
 **PR / tracker:** Linear `TNYX-78` Backlog, unblocked by completed TNYX-77; no PR yet.
-**Current implementation state:** task brief created first; docs decisions pending in this branch.
+**Current implementation state:** W1A0 docs decisions are prepared and scope-audited; ready for review. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** Not run yet.
-**Validation remaining:** docs diff review, `git diff --check` equivalent review, scope/path audit, fresh branch/main comparison.
+**Validation completed at SHA:** `bfa669b7137edcb77bec50e6d8115012205f96c9` — GitHub compare against `main` shows 7 commits ahead / 0 behind and exactly 7 changed files, all under `.ai/` or `docs/`.
+**Validation remaining:** reviewer/PR checks if a PR is opened; local `git diff --check` was not available through the GitHub connector.
 **Current blocker:** None for W1A0.
 **Open review finding IDs:** None.
-**Next exact action:** add ADR-0011 and minimal canonical-doc updates for approved decisions and deferrals.
+**Next exact action:** review W1A0 docs; if accepted, open/review the docs-only PR, then reconcile tracker/merge state before starting W1A7.
 
 ## Global UI / Design-System Guardrail
 
@@ -151,22 +151,29 @@ Not applicable; no UI/runtime behavior in this slice.
 - [x] Reconcile fresh main, PR overlap and TNYX-78 state.
 - [x] Create bounded W1A0 branch.
 - [x] Create this task brief before canonical docs changes.
-- [ ] Add ADR-0011.
-- [ ] Update ADR index.
-- [ ] Update `.ai/DECISIONS.md`.
-- [ ] Update `docs/MODULE_OWNERSHIP.md`.
-- [ ] Update `docs/screens/exercise-search.md`.
-- [ ] Add task to `.ai/tasks/README.md`.
-- [ ] Run docs/scope validation.
-- [ ] Refresh handoff with final branch HEAD and review state.
+- [x] Add ADR-0011.
+- [x] Update ADR index.
+- [x] Update `.ai/DECISIONS.md`.
+- [x] Update `docs/MODULE_OWNERSHIP.md`.
+- [x] Update `docs/screens/exercise-search.md`.
+- [x] Add task to `.ai/tasks/README.md`.
+- [x] Run docs/scope validation.
+- [x] Refresh handoff with final branch HEAD and review state.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Remote GitHub compare vs main at bfa669b7137edcb77bec50e6d8115012205f96c9:
+- ahead: 7
+- behind: 0
+- changed files: 7
+- scope: .ai/** and docs/** only
+- no apps/**, supabase/**, JSON asset, UI, or runtime diff
 ```
+
+Local `git diff --check` was not available through the GitHub connector, so no local-shell validation is claimed.
 
 ### Review Findings and Resolution
 
@@ -179,11 +186,17 @@ Not run yet.
 
 ### Changed Files
 
-Task brief only so far.
+- `.ai/DECISIONS.md`
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-78-w1a0-workout-canonical-identities.md`
+- `docs/MODULE_OWNERSHIP.md`
+- `docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md`
+- `docs/adr/README.md`
+- `docs/screens/exercise-search.md`
 
 ### Actual Behavior
 
-No runtime behavior changes.
+No runtime behavior changes. W1A0 records the approved catalog identity, shared/feature ownership split, W1A7 cleanup direction, set terminology, and explicit later-slice deferrals.
 
 ### Known Limitations
 
