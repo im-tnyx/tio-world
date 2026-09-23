@@ -182,6 +182,7 @@ Existing ADRs remain historical records and are not rewritten merely to match th
 | [0008](0008-settings-hydration-preferences-owner.md) | Superseded by 0009 | Historical account-synced Supabase preference proposal. |
 | [0009](0009-settings-local-default-glass-size.md) | Accepted | Settings owns a local-only Default Glass Size convenience preference. |
 | [0010](0010-settings-local-calendar-first-day-of-week.md) | Accepted | Settings owns the local-only app-global Calendar Preferences first-day-of-week value. |
+| [0011](0011-workout-canonical-identities-and-exercise-catalog.md) | Accepted | Workout durable identity/value-object ownership is shared; built-in Exercises use stable bundled `ex_*` catalog identities without Supabase mirroring. |
 
 ## Authoring workflow
 
