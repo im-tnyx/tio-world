@@ -48,6 +48,7 @@ Repository ownership rules and the validated Nutrition precedent place durable p
    - TrainingPlan/PlannedWorkout provenance and planless scheduling are deferred to W1A5.
    - Quick Start/ad-hoc session, PlannedWorkout→WorkoutSession cardinality, and session local-date/timezone semantics are deferred to W1A6a.
    - Persistence encoding/table/repository shapes are deferred to W1B0.
+   - Compatibility when an older or offline phone/watch client receives a Routine/Program/PlannedWorkout/WorkoutSession reference to a built-in `ex_*` ID that is absent from its bundled catalog is deferred to W1B0/W3. That later work must choose and validate an approved contract (for example minimum catalog/version compatibility, graceful unknown-ID fallback, or a sufficient reference snapshot). This ADR does not select a mechanism, does not add schema fields, and does not change the rule that built-in catalog rows are not mirrored into Supabase.
    - Physical Exercise asset path, JSON loader/schema validation, standards evaluation logic, and licensing/attribution gate are deferred to W3.
 
 ## Alternatives
