@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** PR #324 audited at `3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1`; the brief-only checkpoint commit recording this audit follows it
+**HEAD SHA:** content head `f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6` (W1A0-R5 fix); the brief-only checkpoint commit recording this evidence follows it
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
-**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable); Linear `TNYX-78` Backlog (not changed by this slice).
+**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable). Linear `TNYX-78` read-only at 2026-09-23: Backlog, assignee santosh, PR #324 attached, blockers/relations unchanged; no Linear write by this slice.
 **Current implementation state:** W1A0 docs decisions are complete; review findings F1–F4 are resolved and F5 remains intentionally deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1` — local docs/scope/link/attribution validation and PR #324 checkpoint recorded in section 6.
-**Validation remaining:** owner/reviewer review of PR #324 and checks on the checkpoint head. No Flutter CI result is claimed; none ran for this docs-only PR at the audited head.
-**Current blocker:** None for W1A0 review. Ready for Review requires explicit owner authorization.
-**Open review finding IDs:** W1A0-R5 (Low, open); W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
-**Next exact action:** owner reviews Draft PR #324 and either authorizes Ready for Review or authorizes the optional W1A0-R5 one-line docs pointer first. Do not merge, update Linear, or start W1A7 before that authorization.
+**Validation completed at SHA:** `f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6` — local docs/scope/link/attribution validation and PR #324 checkpoints recorded in section 6.
+**Validation remaining:** owner/reviewer review of PR #324 and exact-head checks on the latest head. No Flutter CI result is claimed; none ran for this docs-only PR.
+**Current blocker:** None for W1A0 review. Ready for Review requires explicit owner authorization. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
+**Open review finding IDs:** None open. W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
+**Next exact action:** owner reviews Draft PR #324 and authorizes Ready for Review. Do not merge, update Linear, or start W1A7 before that authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -202,6 +202,18 @@ Draft PR #324 review checkpoint at head 3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1
 - checks: Commit attribution guard = SUCCESS; Attribution guard runner = SUCCESS (no other checks ran)
 - reviews: 0; top-level comments: 0; inline comments: 0; review threads: 0 (0 unresolved)
 - legacy apps/shared/lib/src/workout/** scaffolds still present (W1A7 not started)
+
+W1A0-R5 resolution checkpoint at content head f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6:
+- R5 commit: f5d6fca3 docs(workout): align screen ownership with ADR-0011 (docs/screens/workout.md, one bullet)
+- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 13 / 0
+- changed files: 8 (the 7 W1A0 files plus docs/screens/workout.md), all under .ai/** or docs/**
+- git diff --check origin/main...HEAD: PASS
+- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
+- relative Markdown links in the 8 changed files: 72 checked, 0 missing
+- GitHub checks observed at 03185833 (before R5): Commit attribution guard = SUCCESS (required by main protection); Attribution guard runner = SUCCESS; github-advanced-security = FAILURE (not required)
+- github-advanced-security root cause (run 35894222336): Copilot code-scanning session failed with "CAPIError: 400 The requested model is not supported" for model claude-opus-5[ReasoningEffort=medium] before any analysis; no finding or security result was produced. Classified as the external TNYX-256 tooling outage, not a branch defect.
+- reviews: 0; comments: 0; review threads: 0
+- Quick Start wording (W1A0-F1) intentionally unchanged
 ```
 
 ### Review Findings and Resolution
@@ -214,7 +226,7 @@ Draft PR #324 review checkpoint at head 3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1
 | W1A0-R2 | Medium | Resolved | Generic `apps/shared` ownership row dropped `repository contracts`, contradicting repo-wide docs and runtime `AppPreferencesRepository` | 6e097f6f | `3f033faa` restores the generic wording; the Workout-specific split section is unchanged |
 | W1A0-R3 | Low | Resolved | ADR-0011 deferral list omitted Q11 set measurement kinds | 6e097f6f | `35fd7d9f` records the W1A3 deferral without choosing measurements |
 | W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | This brief refresh records current local validation evidence |
-| W1A0-R5 | Low | Open | `docs/screens/workout.md` "Data And State Boundaries" still says Workout entities stay "in the Workout feature or `apps/shared` when they are truly cross-feature", which is weaker than ADR-0011's unconditional `apps/shared` ownership of durable Workout IDs/entities/snapshots | 3ab78230 | Not a merge blocker (ADR-0011 and MODULE_OWNERSHIP are explicit). Optional owner-authorized one-line pointer to ADR-0011 in W1A0, otherwise align it in W1A1 docs |
+| W1A0-R5 | Low | Resolved | `docs/screens/workout.md` "Data And State Boundaries" still says Workout entities stay "in the Workout feature or `apps/shared` when they are truly cross-feature", which is weaker than ADR-0011's unconditional `apps/shared` ownership of durable Workout IDs/entities/snapshots | 3ab78230 | `f5d6fca3` aligns that one bullet with ADR-0011 and links ADR-0011 and Module ownership; Quick Start/flow wording unchanged |
 
 ## 7. Final Handoff
 
@@ -227,6 +239,7 @@ Draft PR #324 review checkpoint at head 3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1
 - `docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md`
 - `docs/adr/README.md`
 - `docs/screens/exercise-search.md`
+- `docs/screens/workout.md` (W1A0-R5 ownership alignment only)
 
 ### Actual Behavior
 
