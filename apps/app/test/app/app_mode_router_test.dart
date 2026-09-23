@@ -24,6 +24,7 @@ import 'package:tio_feature_onboarding/onboarding.dart'
         ProfileHealthCondition;
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
+import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
@@ -309,6 +310,147 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path,
         FeatureRoutes.home.path);
     expect(find.byType(HomePage), findsOneWidget);
+  });
+
+  testWidgets(
+      'Workout shell mirrors Meal Diary visible month and Today navigation',
+      (tester) async {
+    final preference = _MemoryAppModePreference(AppMode.workout);
+    final controller = AppModeController(preference);
+    await controller.load();
+    final onboardingRepository = _MemoryOnboardingStatusRepository(
+      status: OnboardingStatus.completed,
+      hasStoredContractVersion: true,
+    );
+    final onboardingStatusController = OnboardingStatusController(
+      repository: onboardingRepository,
+      appModeController: controller,
+    );
+    await onboardingStatusController.load();
+    final themeController = await _createThemeController();
+    final calendarController = CalendarPreferencesController(
+      _SettingsCalendarPreferencesRepository(),
+    );
+    await calendarController.load();
+    final container = ProviderContainer(
+      overrides: [
+        appModeControllerProvider.overrideWith((ref) => controller),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingRepository),
+        appThemeControllerProvider.overrideWith((ref) => themeController),
+        calendarPreferencesControllerProvider
+            .overrideWith((ref) => calendarController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapReady(userId: 'test-user'),
+            onboardingStatusController: onboardingStatusController,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider)
+      ..go(FeatureRoutes.workout.path);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const TioApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.workout.path,
+    );
+    expect(find.byType(WorkoutHomePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('shell-workout-streak')), findsOneWidget);
+
+    final dates = container.read(workoutDateControllerProvider);
+    final visibleMonth = find.byKey(const ValueKey('workout-visible-month'));
+    expect(visibleMonth, findsOneWidget);
+    expect(
+      tester.widget<Text>(visibleMonth).data,
+      tioCompactMonthYearLabel(
+        dates.visibleMonth,
+        localeName: 'en_US',
+      ),
+    );
+
+    final calendar =
+        tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(
+      calendar.resolvedFirstDayOfWeek,
+      calendarController.resolvedFirstDayOfWeek,
+    );
+
+    final todayAction = find.byKey(const ValueKey('workout-today-action'));
+    expect(todayAction, findsNothing);
+
+    final today = dates.localToday;
+    final visibleStart = dates.visibleFirstDate!;
+    final visibleEnd = dates.visibleLastDate!;
+    final adjacentDate = visibleStart == today ? visibleEnd : visibleStart;
+    dates.select(adjacentDate);
+    await tester.pumpAndSettle();
+
+    // Exact owner requirement: moving selection off Today reveals the same
+    // current-day calendar glyph used by Meal Diary, even when Today remains
+    // inside the visible week.
+    expect(dates.isOnToday, isFalse);
+    expect(dates.isTodayVisible, isTrue);
+    expect(todayAction, findsOneWidget);
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.byKey(const ValueKey('meal-diary-today-glyph')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.text(today.day.toString()),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(todayAction);
+    await tester.pumpAndSettle();
+
+    expect(dates.isOnToday, isTrue);
+    expect(dates.isTodayVisible, isTrue);
+    expect(todayAction, findsNothing);
+
+    // Paging away without changing selection also reveals the action, matching
+    // the established Meal Diary viewport-aware navigation behavior.
+    await tester.fling(
+      find.byKey(const ValueKey('tio-date-calendar-week-pager')),
+      const Offset(-400, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+
+    expect(dates.isOnToday, isTrue);
+    expect(dates.isTodayVisible, isFalse);
+    expect(todayAction, findsOneWidget);
+
+    await tester.tap(todayAction);
+    await tester.pumpAndSettle();
+
+    expect(dates.isOnToday, isTrue);
+    expect(dates.isTodayVisible, isTrue);
+    expect(todayAction, findsNothing);
+    expect(
+      tester.widget<Text>(visibleMonth).data,
+      tioCompactMonthYearLabel(
+        dates.localToday,
+        localeName: 'en_US',
+      ),
+    );
   });
 
   testWidgets(
