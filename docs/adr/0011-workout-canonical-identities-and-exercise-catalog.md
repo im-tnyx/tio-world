@@ -1,7 +1,7 @@
 # ADR-0011 — Workout canonical identities and bundled Exercise catalog
 
-**Status:** Accepted  
-**Date:** 2026-09-23
+- **Status:** Accepted
+- **Date:** 2026-09-23
 
 ## Context
 
@@ -43,6 +43,7 @@ Repository ownership rules and the validated Nutrition precedent place durable p
 
 6. **Explicit deferrals**
    - Curated Routine/Program namespace and revision/fork semantics are deferred to W1A3/W1A4.
+   - Set measurement kinds and `SetPrescription` fields are deferred to W1A3; this ADR does not choose any measurement.
    - Saved/Following/Owned semantics are deferred to W1A4.
    - TrainingPlan/PlannedWorkout provenance and planless scheduling are deferred to W1A5.
    - Quick Start/ad-hoc session, PlannedWorkout→WorkoutSession cardinality, and session local-date/timezone semantics are deferred to W1A6a.
