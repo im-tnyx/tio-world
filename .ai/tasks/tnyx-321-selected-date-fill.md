@@ -37,19 +37,20 @@ selected-date ownership, semantics, `TioDateFill` roles/geometry, Nutrition and 
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23
-**Branch:** `tnyx/321-selected-date-fill` (from `main` = `origin/main`)
-**HEAD SHA:** `e5211e70480735ab839237653fc230fb0df5c15e` (uncommitted work on top)
-**Observed working-tree state:** clean before this slice
-**Observed uncommitted/dirty files:** this slice only
-**PR / tracker:** GitHub #321 (not updated from this slice); no PR; Linear not readable programmatically here (only
-the Linear desktop GUI exists locally), TNYX-79 live state not re-read
-**Current implementation state:** Slice A implemented locally, uncommitted; owner visually approved the selected fill (2026-09-23) — Slice A is UI-locked
+**Branch:** `tnyx/321-selected-date-fill` (parent `main` @ `e5211e70480735ab839237653fc230fb0df5c15e`)
+**HEAD SHA:** implementation commit `b08dc1a8cbc9aee741e8166692999df7b1345578`, followed by this handoff sync
+**Observed working-tree state:** clean after commit
+**Observed uncommitted/dirty files:** none
+**PR / tracker:** PR #322 (Refs #321, Slice A only; #321 stays open for deferred Slice B). Linear not readable or
+updatable programmatically here (only the Linear desktop GUI exists locally); TNYX-79 live state not re-read
+**Current implementation state:** Slice A committed and pushed; owner visually approved the selected fill
+(2026-09-23) — Slice A is UI-locked
 **Relevant execution surface:** `apps/core/lib/src/ui/components/calendar/`
-**Validation completed at SHA:** `e5211e70` + uncommitted Slice A tree (see Validation Run)
-**Validation remaining:** full melos workspace run and GitHub CI after commit/PR (not authorized yet)
+**Validation completed at SHA:** local suites on the `b08dc1a8` tree (see Validation Run)
+**Validation remaining:** exact-head GitHub CI on PR #322
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** commit/push/PR only on explicit owner instruction; Slice B stays deferred
+**Next exact action:** watch PR #322 CI; merge only on explicit owner instruction; Slice B stays deferred
 
 Process note: the painter edit was made before this brief existed, contrary to `AGENTS.md` ordering; the brief was
 created before any further source change.
@@ -200,4 +201,4 @@ were pixel-identical.
 ### Final Status
 
 `REVIEW` — implemented and locally validated; owner visually approved the selected-date gray fill on
-2026-09-23 (Slice A UI-locked). Remaining: commit/PR and exact-head GitHub CI when authorized.
+2026-09-23 (Slice A UI-locked). Published as PR #322; remaining: exact-head GitHub CI and owner merge decision.
