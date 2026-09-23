@@ -26,9 +26,13 @@ Workout
 
 ## First-Slice Data Source
 
-The first version uses a versioned, bundled JSON exercise catalog owned by `apps/features/workout`, for example a feature asset such as `assets/exercises.json`. This is a delivery approach, not an existing file or runtime capability.
+The built-in Exercise catalog is versioned, bundled application content owned by the Workout capability. The canonical built-in identity is the record's stable `ex_*` ID. Title, slug, instructions, muscle/equipment metadata, media and standards links may evolve without redefining identity, and legacy/numeric/source IDs remain lookup metadata only.
 
-The implementation task must define and validate the JSON schema before adding data. At minimum, each record needs a stable ID, display name, primary muscle group, equipment, category, and safe instruction/reference fields. Optional media, secondary muscles, alternatives, and difficulty require the same schema and licensing review.
+The catalog is intentionally evolving. Its current exercise count is not an architecture constraint, new well-formed `ex_*` identities may be added without redesigning the domain, and identity must never be re-derived from mutable title or slug values. Once shipped, an `ex_*` ID is durable unless an explicit migration is approved.
+
+Built-in catalog rows are not mirrored into Supabase. User-created Exercises are separate user-owned dynamic data for later approved persistence work. Routine/Program/Plan/Session/Favorite/Folder contracts reference Exercises rather than cloning catalog truth, and completed sessions must eventually snapshot the performed data needed to keep history stable when catalog content changes.
+
+The exact physical asset path, loader, schema-validation implementation, standards evaluation logic, and licensing/attribution gate are deferred to the W3 Exercise catalog slice. Widgets must not read raw JSON directly.
 
 ## Target Content
 

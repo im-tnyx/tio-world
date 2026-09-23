@@ -44,7 +44,7 @@ never fabricates a number or routes to Progress.
 
 ## Data And State Boundaries
 
-- Workout entities, logging, calculations, and repository contracts stay in the Workout feature or `apps/shared` when they are truly cross-feature pure-Dart contracts. A local JSON exercise catalog is parsed through a Workout-owned data boundary, never read directly by UI widgets.
+- Durable pure-Dart Workout IDs, value objects, canonical entities, and historical snapshot contracts belong in `apps/shared`; Workout-specific repository interfaces, data sources, controllers, composition, and presentation stay in the Workout feature ([ADR-0011](../adr/0011-workout-canonical-identities-and-exercise-catalog.md), [Module ownership](../MODULE_OWNERSHIP.md)). Other Workout logging and calculation code stays in the Workout feature unless it is a truly cross-feature pure-Dart contract. A local JSON exercise catalog is parsed through a Workout-owned data boundary, never read directly by UI widgets.
 - The first Exercise Search catalog remains bundled/versioned JSON, not Supabase Storage. Use the private `workout` bucket only for a later approved user-attachment use case.
 - Profile supplies approved context only through a stable contract. Nutrition, Profile, and Home must not import Workout presentation code.
 - Muscle heatmap, radar map, and calendar use recorded workout history. With no history, show a neutral explanation and a Routine/Program browse action rather than zero-value analytics.

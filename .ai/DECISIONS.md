@@ -38,6 +38,20 @@ history or a new Progress/shared/Nutrition/Profile owner. Future +1 glass must
 consume or explicitly supersede this preference. See
 [ADR-0009](../docs/adr/0009-settings-local-default-glass-size.md).
 
+## D-019 — Active: Workout canonical identities and bundled Exercise catalog
+
+Workout durable pure-Dart identities, value objects, canonical entities and historical snapshot contracts belong in `apps/shared`. Workout-specific repository interfaces, catalog/user data sources, controllers and presentation remain in `apps/features/workout` unless a later approved cross-feature contract proves broader ownership.
+
+The built-in Exercise catalog is versioned bundled application content. Its stable `ex_*` value is the canonical built-in Exercise identity; title, slug, instructions, muscle/equipment metadata, media and standards links may evolve without redefining identity. Legacy/numeric/source IDs are lookup metadata only. Built-in catalog rows are not mirrored into Supabase. User-created Exercises remain separate user-owned dynamic data for a later approved persistence slice.
+
+The catalog is intentionally evolving: adding future well-formed `ex_*` identities must not require redesigning Workout domain contracts. Once an `ex_*` ID ships, rename/reuse/removal requires an explicit migration rather than deriving identity again from mutable title/slug content.
+
+Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. Existing unused shared Workout scaffolds are scheduled for isolated W1A7 cleanup before new W1A1 identities are introduced.
+
+D-010 is unchanged by this decision. Its standalone Quick Start prohibition conflicts with newer tracked Workout launch/scheduling flows; W1A0 records that conflict but does not decide it. Q1 (Quick Start / ad-hoc WorkoutSession) remains deferred to W1A6a. If Q1 materially changes D-010, retain D-010 as `Superseded` and add a new decision that names it.
+
+See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
+
 ## Maintenance Rules
 
 - Add a decision only when it changes product scope, module ownership, platform strategy, data flow, or a durable implementation constraint.

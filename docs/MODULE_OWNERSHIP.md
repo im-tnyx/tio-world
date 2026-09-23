@@ -10,12 +10,12 @@ This document defines where code should live in `tio-world`.
 | :--- | :--- |
 | `apps/app` | Flutter Android and iOS phone app shell, bootstrap, route composition, providers, and platform entry wiring. |
 | `apps/wear` | Flutter Wear OS companion app. |
-| `apps/shared` | Pure Dart models, entities, repository contracts, use cases, result/error types, and shared utilities. |
+| `apps/shared` | Pure Dart models, entities, repository contracts, use cases, result/error types, and shared utilities. Workout canonical IDs/entities/snapshots follow this boundary per ADR-0011. |
 | `apps/core` | Flutter design system, app shell UI, route contracts, reusable widgets, theme tokens, constants, and extensions. |
 | `apps/features/home` | Home overview, prepared section composition, and future Home-owned workflows. |
 | `apps/features/auth` | Auth feature package and session entry flows. |
 | `apps/features/onboarding` | Onboarding feature package and all onboarding screens/flows. |
-| `apps/features/workout` | Workout feature package and all workout screens/flows. |
+| `apps/features/workout` | Workout feature package: Workout-specific repository interfaces, catalog/user data sources, controllers, composition, and all workout screens/flows. |
 | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `apps/features/profile` | Profile launcher, account summary, personal info UI, and fitness hub entry points. |
 | `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, the bounded S0-B2 HydrationPreferences owner ([ADR-0008](adr/0008-settings-hydration-preferences-owner.md)), and the TNYX-72 local Calendar Preferences domain/repository. |
@@ -31,6 +31,20 @@ This document defines where code should live in `tio-world`.
 | `.ai` | Short AI orientation files. |
 
 Create missing paths only when a real implementation slice needs them.
+
+## Workout Canonical Domain Split
+
+Per [ADR-0011](adr/0011-workout-canonical-identities-and-exercise-catalog.md):
+
+- `apps/shared` owns durable pure-Dart Workout identities, value objects, canonical entities, and historical snapshot contracts that must remain stable across phone, Wear, and later approved consumers.
+- `apps/features/workout` owns Workout-specific repository interfaces, bundled-catalog/user data sources, controllers, presentation, and feature composition.
+- the built-in Exercise catalog is bundled/versioned application content owned by the Workout capability; its exact physical asset path and loader are deferred until the W3 catalog slice needs them;
+- built-in catalog rows are not duplicated into Supabase; later Supabase work owns only approved user-created/dynamic/transactional Workout data;
+- existing Profile/Targets ownership is unchanged by this decision and is not moved cosmetically;
+- legacy unused `apps/shared/lib/src/workout/**` scaffolds are non-canonical pending the isolated W1A7 cleanup slice;
+- template sets are `SetPrescription`; actual performed history uses `PerformedSet`.
+
+Do not pre-create empty Workout capability folders before a real slice requires them.
 
 ## Native-Style Module Mapping
 
