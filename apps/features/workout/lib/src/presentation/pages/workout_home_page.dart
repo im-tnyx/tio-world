@@ -1,57 +1,86 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
+
+import '../controllers/workout_date_controller.dart';
 
 /// Minimal Workout root shell for TNYX-255.
 ///
 /// This page owns date-navigation presentation state only. Domain-backed
 /// workout decorations belong to later Workout slices.
-class WorkoutHomePage extends StatefulWidget {
+class WorkoutHomePage extends ConsumerStatefulWidget {
   const WorkoutHomePage({
     super.key,
     this.resolvedFirstDayOfWeek,
-    this.clock = DateTime.now,
   });
 
   final int? resolvedFirstDayOfWeek;
-  final DateTime Function() clock;
 
   @override
-  State<WorkoutHomePage> createState() => _WorkoutHomePageState();
+  ConsumerState<WorkoutHomePage> createState() => _WorkoutHomePageState();
 }
 
-class _WorkoutHomePageState extends State<WorkoutHomePage> {
-  late DateTime _localToday;
-  late DateTime _selectedDate;
+class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
+    with WidgetsBindingObserver {
+  Timer? _midnightTimer;
 
   @override
   void initState() {
     super.initState();
-    _localToday = _dateOnly(widget.clock());
-    _selectedDate = _localToday;
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleMidnightRefresh();
+  }
+
+  @override
+  void dispose() {
+    _midnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(workoutDateControllerProvider).refreshLocalDate();
+      _scheduleMidnightRefresh();
+      return;
+    }
+
+    _midnightTimer?.cancel();
+    _midnightTimer = null;
+  }
+
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final delay =
+        ref.read(workoutDateControllerProvider).durationUntilNextLocalMidnight;
+    if (delay <= Duration.zero) return;
+
+    _midnightTimer = Timer(delay, () {
+      if (!mounted) return;
+      ref.read(workoutDateControllerProvider).refreshLocalDate();
+      _scheduleMidnightRefresh();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // TNYX-255 intentionally supplies navigation range only. A real schedule
-    // horizon belongs to W1/W2 once canonical Workout truth exists.
-    final minDate = DateTime(_localToday.year - 1, _localToday.month, _localToday.day);
-    final maxDate = DateTime(_localToday.year + 1, _localToday.month, _localToday.day);
+    final dates = ref.watch(workoutDateControllerProvider);
 
     return Align(
       alignment: Alignment.topCenter,
       child: TioDateCalendar(
-        selectedDate: _selectedDate,
-        localToday: _localToday,
-        minDate: minDate,
-        maxDate: maxDate,
+        controller: dates.calendarController,
+        selectedDate: dates.selectedDate,
+        localToday: dates.localToday,
+        minDate: dates.minDate,
+        maxDate: dates.maxDate,
         resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
-        onDateSelected: (date) {
-          setState(() => _selectedDate = _dateOnly(date));
-        },
+        onDateSelected: dates.select,
+        onVisibleDateRangeChanged: dates.updateVisibleDateRange,
       ),
     );
   }
-
-  DateTime _dateOnly(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
 }
