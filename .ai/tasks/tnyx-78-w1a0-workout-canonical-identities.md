@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** content head `3f033faaf0477d6daf61ccc68e5ab4511e50f32e`; the brief-only commit recording this evidence follows it
+**HEAD SHA:** PR #324 audited at `3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1`; the brief-only checkpoint commit recording this audit follows it
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
-**PR / tracker:** Linear `TNYX-78` Backlog (not changed by this slice); no PR existed at content head `3f033faa`; a Draft PR is the next gate.
+**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable); Linear `TNYX-78` Backlog (not changed by this slice).
 **Current implementation state:** W1A0 docs decisions are complete; review findings F1–F4 are resolved and F5 remains intentionally deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `3f033faaf0477d6daf61ccc68e5ab4511e50f32e` — local docs/scope/link/attribution validation recorded in section 6.
-**Validation remaining:** Draft PR checks and owner/reviewer review. No CI result is claimed here.
-**Current blocker:** None for W1A0.
-**Open review finding IDs:** W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
-**Next exact action:** open the docs-only Draft PR against `main`, audit its checks/reviews, and keep it Draft until the owner authorizes Ready for Review. Do not start W1A7 before W1A0 is reviewed and merged.
+**Validation completed at SHA:** `3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1` — local docs/scope/link/attribution validation and PR #324 checkpoint recorded in section 6.
+**Validation remaining:** owner/reviewer review of PR #324 and checks on the checkpoint head. No Flutter CI result is claimed; none ran for this docs-only PR at the audited head.
+**Current blocker:** None for W1A0 review. Ready for Review requires explicit owner authorization.
+**Open review finding IDs:** W1A0-R5 (Low, open); W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
+**Next exact action:** owner reviews Draft PR #324 and either authorizes Ready for Review or authorizes the optional W1A0-R5 one-line docs pointer first. Do not merge, update Linear, or start W1A7 before that authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -189,6 +189,19 @@ Local shell validation at content head 3f033faaf0477d6daf61ccc68e5ab4511e50f32e:
 - secrets / machine-specific paths / binary files in diff: none
 - no apps/**, supabase/**, pubspec, Exercise JSON asset, UI, router, calendar or migration diff
 - untracked apps/core/assets/exercises/ preserved untouched
+
+Draft PR #324 review checkpoint at head 3ab78230ecfed0b940ebbbae9a56d4a67ee60aa1:
+- PR: https://github.com/im-tnyx/tio-world/pull/324 (open, Draft, base main)
+- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD)
+- ahead / behind: 11 / 0; commits in PR: 11
+- mergeable: MERGEABLE; merge state: CLEAN
+- changed files: 7, all under .ai/** or docs/**
+- git diff --check origin/main...HEAD: PASS
+- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
+- relative Markdown links in the 7 changed files: 61 checked, 0 missing
+- checks: Commit attribution guard = SUCCESS; Attribution guard runner = SUCCESS (no other checks ran)
+- reviews: 0; top-level comments: 0; inline comments: 0; review threads: 0 (0 unresolved)
+- legacy apps/shared/lib/src/workout/** scaffolds still present (W1A7 not started)
 ```
 
 ### Review Findings and Resolution
@@ -201,6 +214,7 @@ Local shell validation at content head 3f033faaf0477d6daf61ccc68e5ab4511e50f32e:
 | W1A0-R2 | Medium | Resolved | Generic `apps/shared` ownership row dropped `repository contracts`, contradicting repo-wide docs and runtime `AppPreferencesRepository` | 6e097f6f | `3f033faa` restores the generic wording; the Workout-specific split section is unchanged |
 | W1A0-R3 | Low | Resolved | ADR-0011 deferral list omitted Q11 set measurement kinds | 6e097f6f | `35fd7d9f` records the W1A3 deferral without choosing measurements |
 | W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | This brief refresh records current local validation evidence |
+| W1A0-R5 | Low | Open | `docs/screens/workout.md` "Data And State Boundaries" still says Workout entities stay "in the Workout feature or `apps/shared` when they are truly cross-feature", which is weaker than ADR-0011's unconditional `apps/shared` ownership of durable Workout IDs/entities/snapshots | 3ab78230 | Not a merge blocker (ADR-0011 and MODULE_OWNERSHIP are explicit). Optional owner-authorized one-line pointer to ADR-0011 in W1A0, otherwise align it in W1A1 docs |
 
 ## 7. Final Handoff
 
