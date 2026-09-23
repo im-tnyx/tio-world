@@ -1,6 +1,6 @@
 # GitHub #321 Slice A — Core calendar selected-date fill
 
-**Status:** In progress
+**Status:** Validated (2026-09-23) — merged via PR #322
 **Primary owner:** `apps/core` reusable calendar (`TioDateCalendar`)
 **Affected platforms:** Android + iOS phone (every `TioDateCalendar` consumer: Meal Diary, Workout Home shell)
 
@@ -19,6 +19,7 @@ the read-only readiness audit (`READY AFTER OWNER DECISION`). Owner decisions fr
   colour changes**, so numeral colours stay exactly as today (selected Sunday keeps full `danger`).
 - D3: normal selected disk outer radius 13.0dp, zero gap to the progress band, independent of progress.
 - Pixel-identity limitation accepted as a recorded known limitation (see Known Limitations).
+- Owner later visually approved the rendered result and explicitly authorized merging PR #322 (Slice A only).
 
 **Active slice:** Slice A only.
 **Slice B (anchored compact ↔ expanded transition):** deferred, not authorized.
@@ -34,23 +35,24 @@ selected-date ownership, semantics, `TioDateFill` roles/geometry, Nutrition and 
 **Planning owner:** Owner (decisions above)
 **Implementation owner:** Claude Code session on branch `tnyx/321-selected-date-fill`
 **Review owner:** Owner visual review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23
-**Branch:** `tnyx/321-selected-date-fill` (parent `main` @ `e5211e70480735ab839237653fc230fb0df5c15e`)
-**HEAD SHA:** implementation commit `b08dc1a8cbc9aee741e8166692999df7b1345578`, followed by this handoff sync
-**Observed working-tree state:** clean after commit
+**Branch:** `tnyx/321-selected-date-fill` (merged; branch retained, not deleted)
+**HEAD SHA:** final PR head `7a07a9a88e14faf4685bf14d5a00f2df7a27f496`; squash-merged to `main` as
+`ffebc0c5f23c931661501dba3b0c622b8cdc2b38` on 2026-09-23T12:30:24Z
+**Observed working-tree state:** clean
 **Observed uncommitted/dirty files:** none
-**PR / tracker:** PR #322 (Refs #321, Slice A only; #321 stays open for deferred Slice B). Linear not readable or
-updatable programmatically here (only the Linear desktop GUI exists locally); TNYX-79 live state not re-read
-**Current implementation state:** Slice A committed and pushed; owner visually approved the selected fill
-(2026-09-23) — Slice A is UI-locked
+**PR / tracker:** PR #322 merged (Refs #321, Slice A only). GitHub #321 stays open for deferred Slice B. Linear
+reconciled through the Linear connector: TNYX-55 Done with a post-completion refinement note; TNYX-79 Backlog,
+still blocked by TNYX-78, selected-date contract updated to consume this Core behavior; TNYX-78 unchanged
+**Current implementation state:** Slice A merged; owner visually approved the selected fill (2026-09-23)
 **Relevant execution surface:** `apps/core/lib/src/ui/components/calendar/`
-**Validation completed at SHA:** local suites on the `b08dc1a8` tree (see Validation Run)
-**Validation remaining:** exact-head GitHub CI on PR #322
+**Validation completed at SHA:** exact-head CI on `7a07a9a8`; post-merge `main` CI on `ffebc0c5` (see Validation Run)
+**Validation remaining:** none for Slice A
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** watch PR #322 CI; merge only on explicit owner instruction; Slice B stays deferred
+**Next exact action:** none for Slice A. Slice B requires separate owner approval and its own task brief
 
 Process note: the painter edit was made before this brief existed, contrary to `AGENTS.md` ordering; the brief was
 created before any further source change.
@@ -154,6 +156,15 @@ apps/app                 flutter test --no-pub                             PASS 
 repo        git diff --check                                               PASS
 melos: not run; the global melos is 8.x while melos.yaml pins the CI version, so CI's per-package
 commands were run directly for the affected packages. Full melos analyze/test across every package not run.
+
+GitHub CI
+PR #322 exact head 7a07a9a8  Flutter CI "Analyze and test"                       success
+                             "Commit attribution guard" (required)               success
+                             "Attribution guard runner"                          success
+                             GitHub Advanced Security "Code scanning AI findings" failure — non-required,
+                             infrastructure error "400 The requested model is not supported" (same on #320);
+                             no code-scanning analysis or alert for the PR
+Post-merge main ffebc0c5     Flutter CI "Analyze and test" (run 35860896517)     success
 ```
 
 ### Review Findings and Resolution
@@ -200,5 +211,6 @@ were pixel-identical.
 
 ### Final Status
 
-`REVIEW` — implemented and locally validated; owner visually approved the selected-date gray fill on
-2026-09-23 (Slice A UI-locked). Published as PR #322; remaining: exact-head GitHub CI and owner merge decision.
+`PASS` — Slice A validated and merged on 2026-09-23: owner visual approval received; PR #322 final head
+`7a07a9a8` squash-merged to `main` as `ffebc0c5`; exact-head and post-merge `main` CI green. GitHub #321 remains
+open because Slice B (anchored compact ↔ expanded transition) is deferred and needs separate owner approval.
