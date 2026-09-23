@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** content head `f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6` (W1A0-R5 fix); the brief-only checkpoint commit recording this evidence follows it
+**HEAD SHA:** content head `7b727664be1e636ac07651934e4b3c4b3c9d3643` (Codex C2/C3 fixes); the brief-only commit recording this evidence follows it
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
-**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable). Linear `TNYX-78` read-only at 2026-09-23: Backlog, assignee santosh, PR #324 attached, blockers/relations unchanged; no Linear write by this slice.
-**Current implementation state:** W1A0 docs decisions are complete; review findings F1–F4 are resolved and F5 remains intentionally deferred. No runtime/source implementation was added.
+**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable). Linear `TNYX-78` reconciled `Backlog → In Progress` on 2026-09-23 while Codex review fixes are active (assignee santosh, PR #324 attached, description/relations unchanged); it moves to `In Review` only after PR #324 is Ready for Review.
+**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C4 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `f5d6fca3fdfac349dd7e8abd729a12a96c3c60f6` — local docs/scope/link/attribution validation and PR #324 checkpoints recorded in section 6.
-**Validation remaining:** owner/reviewer review of PR #324 and exact-head checks on the latest head. No Flutter CI result is claimed; none ran for this docs-only PR.
-**Current blocker:** None for W1A0 review. Ready for Review requires explicit owner authorization. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
-**Open review finding IDs:** None open. W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
-**Next exact action:** owner reviews Draft PR #324 and authorizes Ready for Review. Do not merge, update Linear, or start W1A7 before that authorization.
+**Validation completed at SHA:** `7b727664be1e636ac07651934e4b3c4b3c9d3643` — local docs/scope/link/attribution validation and PR #324 checkpoints recorded in section 6.
+**Validation remaining:** exact-head GitHub checks on the pushed head, Codex thread replies/resolution, then the Ready for Review gate. No Flutter CI result is claimed; none ran for this docs-only PR.
+**Current blocker:** None once the four Codex threads are replied to and resolved. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
+**Open review finding IDs:** None open after W1A0-C1–C4. Deferred (not open): W1A0-F1, W1A0-F2.
+**Next exact action:** push, verify the exact-head required check, reply to and resolve the four Codex threads, then mark PR #324 Ready for Review and move TNYX-78 to `In Review`. Merge is not authorized.
 
 ## Global UI / Design-System Guardrail
 
@@ -98,6 +98,7 @@ Create the smallest architecture decision slice needed before Workout domain cod
 | Q10 TrainingPlan provenance | Deferred to W1A5 | TrainingPlan slice owns it | Owner |
 | Q11 set measurement kinds | Deferred to W1A3 | SetPrescription contract owns it; do not invent RPE/etc. now | Owner |
 | Q12 scheduled workout without TrainingPlan | Deferred to W1A5 | PlannedWorkout/TrainingPlan slice owns it | Owner |
+| Newer/unknown built-in `ex_*` reference on an older/offline client (absent from its bundled catalog) | Deferred to W1B0/W3 | Later work must choose and validate a contract (minimum catalog/version, unknown-ID fallback, reference snapshot, or another approved mechanism); W1A0 selects none and keeps the no-Supabase-mirroring rule | Owner |
 
 ## 4. Architecture Design
 
@@ -214,6 +215,17 @@ W1A0-R5 resolution checkpoint at content head f5d6fca3fdfac349dd7e8abd729a12a96c
 - github-advanced-security root cause (run 35894222336): Copilot code-scanning session failed with "CAPIError: 400 The requested model is not supported" for model claude-opus-5[ReasoningEffort=medium] before any analysis; no finding or security result was produced. Classified as the external TNYX-256 tooling outage, not a branch defect.
 - reviews: 0; comments: 0; review threads: 0
 - Quick Start wording (W1A0-F1) intentionally unchanged
+
+Codex review (5294676954 at d24a8221) resolution checkpoint at content head 7b727664be1e636ac07651934e4b3c4b3c9d3643:
+- 4 Codex P2 threads recorded as W1A0-C1–C4 (section 6 table)
+- D-010 row byte-identical to origin/main (verified with diff); Q1 conflict recorded only in D-019
+- ADR-0011 adds the newer/unknown built-in ex_* client-compatibility deferral to W1B0/W3
+- Linear TNYX-78: Backlog → In Progress
+- origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 15 / 0
+- changed files: 8, all under .ai/** or docs/**
+- git diff --check origin/main...HEAD: PASS
+- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
+- relative Markdown links in the 8 changed files: 72 checked, 0 missing
 ```
 
 ### Review Findings and Resolution
@@ -227,6 +239,10 @@ W1A0-R5 resolution checkpoint at content head f5d6fca3fdfac349dd7e8abd729a12a96c
 | W1A0-R3 | Low | Resolved | ADR-0011 deferral list omitted Q11 set measurement kinds | 6e097f6f | `35fd7d9f` records the W1A3 deferral without choosing measurements |
 | W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | This brief refresh records current local validation evidence |
 | W1A0-R5 | Low | Resolved | `docs/screens/workout.md` "Data And State Boundaries" still says Workout entities stay "in the Workout feature or `apps/shared` when they are truly cross-feature", which is weaker than ADR-0011's unconditional `apps/shared` ownership of durable Workout IDs/entities/snapshots | 3ab78230 | `f5d6fca3` aligns that one bullet with ADR-0011 and links ADR-0011 and Module ownership; Quick Start/flow wording unchanged |
+| W1A0-C1 | Low | Resolved | Codex: Active Handoff summarised findings as "F1–F4 resolved / F5 deferred", which did not match this table's IDs | d24a8221 | This brief commit uses the real IDs: R1–R5 and C1–C4 Resolved; F1/F2 Deferred |
+| W1A0-C2 | Medium | Resolved | Codex: W1A0 rewrote D-010 in place, contrary to the `.ai/DECISIONS.md` maintenance rule to retain old decisions and supersede them with a new entry | d24a8221 | `7b727664` restores the D-010 row byte-identical to `origin/main`; D-019 records the Q1 conflict separately, decides nothing, and requires the superseding lifecycle if Q1 later changes D-010 |
+| W1A0-C3 | Medium | Resolved | Codex: no stated contract for older/offline clients that receive a reference to a built-in `ex_*` absent from their bundled catalog | d24a8221 | `7b727664` adds an explicit ADR-0011 deferral to W1B0/W3; no mechanism, schema field or Supabase mirroring is chosen |
+| W1A0-C4 | Medium | Resolved | Codex: TNYX-78 still `Backlog` while W1A0 work and PR #324 are active | d24a8221 | TNYX-78 moved `Backlog → In Progress` on 2026-09-23; `In Review` follows only after PR #324 is Ready for Review |
 
 ## 7. Final Handoff
 
@@ -250,6 +266,7 @@ No runtime behavior changes. W1A0 records the approved catalog identity, shared/
 - Q2b, Q1, Q3, Q4, Q8-Q12 intentionally remain deferred to their owning slices.
 - Exercise JSON catalog is still evolving and intentionally not part of this branch.
 - Asset location/licensing is not resolved by W1A0.
+- Older/offline client compatibility with newer/unknown built-in `ex_*` references is deferred to W1B0/W3 (ADR-0011).
 
 ### Final Status
 
