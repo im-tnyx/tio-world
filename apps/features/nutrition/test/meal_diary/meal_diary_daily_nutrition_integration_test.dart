@@ -184,6 +184,10 @@ void main() {
     expect(find.text('Fat'), findsOneWidget);
     expect(find.text('Fiber'), findsOneWidget);
     expect(find.text('Workout'), findsNothing);
+
+    final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(calendar.decorationBuilder!(yesterday), isNull);
   });
 
   testWidgets('target save refreshes mounted summary and calendar denominator',
@@ -234,10 +238,62 @@ void main() {
       '2200',
     );
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
-    final todayDecoration = calendar.decorationBuilder!(_today);
-    expect(todayDecoration, isNotNull);
-    expect(todayDecoration!.progress, 0);
-    expect(todayDecoration.semanticsLabel, contains('0 of 2200'));
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(calendar.decorationBuilder!(_today), isNull);
+  });
+
+  testWidgets('logged exact zero calories do not render an empty progress track',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = InMemoryNutritionTargetsRepository();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2000));
+    await mealLogs.createManual(
+      ManualMealLogCreate(
+        clientMutationId: '00000000-0000-4000-8000-000000000257',
+        mealCategoryId: 'meal_slot_1',
+        consumedAt: _now,
+        consumedLocalDate: _todayLocalDate,
+        consumedUtcOffsetMinutes: 0,
+        captureSource: MealLogCaptureSource.quickAdd,
+        manualNutritionSnapshot: NutritionSnapshot(
+          schemaVersion: 1,
+          nutrients: const {NutrientId.energy: 0},
+        ),
+      ),
+    );
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealDiaryDateControllerProvider.overrideWith((ref) => dates),
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(mealLogs),
+          mealDiaryNutritionTargetsRepositoryProvider.overrideWithValue(targets),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: MealDiaryPage(mealCategoriesRepository: categories),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
+      '0',
+    );
+    final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(calendar.decorationBuilder!(_today), isNull);
   });
 
   testWidgets('over-target calendar semantics keep the unclamped percentage',
