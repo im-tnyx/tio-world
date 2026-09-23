@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable  
 **Repository state last verified:** Remote GitHub state at `main@5270c56031a4012ba52122d64de994af2a3c85cd`; branch created from that exact SHA. Connector session cannot inspect a local working tree, so no local `git status`/clean-worktree claim is made. GitHub had no open PR at task start.  
 **Branch:** `tnyx/tnyx-257-meal-diary-positive-progress-ring`  
-**HEAD SHA:** `5270c56031a4012ba52122d64de994af2a3c85cd` before this task brief commit  
+**HEAD SHA:** source/test/docs implementation at `d8c518a77f072f681d5af8efba0f7605a2d6d0f4`; resulting handoff-metadata SHA is tracked by the PR rather than recursively embedded here  
 **Observed working-tree state:** Remote branch only; no local checkout available in this tool session.  
 **Observed uncommitted/dirty files:** Unavailable; no local-worktree claim.  
 **PR / tracker:** GitHub #317; Linear TNYX-257 (`In Progress`), parent TNYX-56, related TNYX-206.  
-**Current implementation state:** Governance/readiness complete; source edits not yet started.  
+**Current implementation state:** Implementation and focused regression updates committed. Meal Diary now suppresses calendar decoration for non-positive calorie progress; Core and domain zero truth are unchanged.  
 **Relevant execution surface:** `MealDiaryPage._calendarDecorationBuilder`, Daily Nutrition integration/recovery tests, `docs/screens/meal-diary.md`.  
 **Validation completed at SHA:** Not run yet for this slice.  
-**Validation remaining:** Focused Nutrition tests, package analyze/tests as available, exact-head GitHub CI.  
+**Validation remaining:** Exact-head GitHub CI and review. Local Flutter execution is unavailable in this connector-only session.  
 **Current blocker:** None.  
 **Open review finding IDs:** None.  
-**Next exact action:** Make the smallest Nutrition-owned caller change so non-positive progress returns no decoration, update focused regressions and canonical Meal Diary docs, then validate.
+**Next exact action:** Open the bounded PR, run exact-head CI, review the full diff, and reconcile tracker/task status from actual results.
 
 ## Global UI / Design-System Guardrail
 
@@ -133,11 +133,11 @@ Adding `hasMealLogs` / `mealLogCount` to `DailyNutritionSummary` was considered 
 
 ## 5. Implementation Plan
 
-- [ ] Suppress non-positive Meal Diary calendar progress in `_calendarDecorationBuilder`.
-- [ ] Update empty/zero integration expectations to `null`.
-- [ ] Add/retain explicit positive-progress regression.
-- [ ] Update recovery expectations so retry does not reintroduce a zero track.
-- [ ] Update canonical Meal Diary doc from “empty day may supply 0.0” to positive-only ring eligibility.
+- [x] Suppress non-positive Meal Diary calendar progress in `_calendarDecorationBuilder`.
+- [x] Update empty/zero integration expectations to `null`.
+- [x] Add/retain explicit positive-progress regression.
+- [x] Update recovery expectations so retry does not reintroduce a zero track.
+- [x] Update canonical Meal Diary doc from “empty day may supply 0.0” to positive-only ring eligibility.
 - [ ] Run focused validation and exact-head CI.
 
 ## 6. Quality Review
@@ -145,7 +145,19 @@ Adding `hasMealLogs` / `mealLogCount` to `DailyNutritionSummary` was considered 
 ### Validation Run
 
 ```text
-Not run yet.
+Committed-diff audit at source/test/docs SHA d8c518a77f072f681d5af8efba0f7605a2d6d0f4:
+- main is merge-base; branch was 3 commits ahead / 0 behind before this handoff update.
+- changed runtime/test/docs paths are limited to Meal Diary plus task governance.
+- Core calendar files are unchanged.
+- production delta is one guard: progress <= 0 returns no decoration.
+- focused regression delta covers past empty, today empty after target refresh, logged exact-zero, and recovery/retry.
+- existing positive (0.4) and over-target calendar tests remain in place.
+
+Not available in this connector-only session:
+- local git diff --check
+- local Flutter analyze/test
+
+Exact-head GitHub CI remains required.
 ```
 
 ### Review Findings and Resolution
@@ -158,15 +170,20 @@ Not run yet.
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-257-meal-diary-positive-progress-ring.md`
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart`
+- `apps/features/nutrition/test/meal_diary/meal_diary_daily_nutrition_integration_test.dart`
+- `apps/features/nutrition/test/meal_diary/meal_diary_daily_nutrition_recovery_test.dart`
+- `docs/screens/meal-diary.md`
 
 ### Actual Behavior
 
-Pending implementation.
+Meal Diary creates a calendar progress decoration only when exact `calorieProgress > 0`. Empty dates and logged dates with exact zero calories render no progress ring/track. The selected-day Daily Nutrition summary still reports known-zero `Eaten = 0`. Core retains its generic `progress: 0` known-zero semantics.
 
 ### Known Limitations
 
-None known inside the approved scope.
+Local Flutter validation could not be executed through the GitHub/Linear connector session. Exact-head CI is the validation source before review/merge readiness.
 
 ### Final Status
 
