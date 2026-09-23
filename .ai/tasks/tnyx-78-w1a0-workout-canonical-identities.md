@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** content head `7b727664be1e636ac07651934e4b3c4b3c9d3643` (Codex C2/C3 fixes); the brief-only commit recording this evidence follows it
+**HEAD SHA:** PR #324 marked Ready for Review at `dd00550df1d3fd8678661857f32d92f807de684d`; the brief-only checkpoint commit recording that transition follows it
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
-**PR / tracker:** Draft PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` (open, Draft, mergeable). Linear `TNYX-78` reconciled `Backlog → In Progress` on 2026-09-23 while Codex review fixes are active (assignee santosh, PR #324 attached, description/relations unchanged); it moves to `In Review` only after PR #324 is Ready for Review.
+**PR / tracker:** PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` is Ready for Review (open, not Draft, mergeable; marked 2026-09-23T17:55:14Z). Linear `TNYX-78` moved `Backlog → In Progress` while Codex fixes were active, then `In Progress → In Review` after the Ready transition, with one reconciliation comment (assignee santosh, PR #324 attached, description/relations unchanged). Merge is not authorized.
 **Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C4 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `7b727664be1e636ac07651934e4b3c4b3c9d3643` — local docs/scope/link/attribution validation and PR #324 checkpoints recorded in section 6.
-**Validation remaining:** exact-head GitHub checks on the pushed head, Codex thread replies/resolution, then the Ready for Review gate. No Flutter CI result is claimed; none ran for this docs-only PR.
-**Current blocker:** None once the four Codex threads are replied to and resolved. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
-**Open review finding IDs:** None open after W1A0-C1–C4. Deferred (not open): W1A0-F1, W1A0-F2.
-**Next exact action:** push, verify the exact-head required check, reply to and resolve the four Codex threads, then mark PR #324 Ready for Review and move TNYX-78 to `In Review`. Merge is not authorized.
+**Validation completed at SHA:** `dd00550df1d3fd8678661857f32d92f807de684d` — local docs/scope/link/attribution validation, exact-head checks and PR #324 checkpoints recorded in section 6.
+**Validation remaining:** reviewer feedback on the Ready PR. No Flutter CI result is claimed; none ran for this docs-only PR.
+**Current blocker:** None. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
+**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C4. Deferred (not open): W1A0-F1, W1A0-F2.
+**Next exact action:** audit reviewer feedback on PR #324 and await explicit owner merge authorization. Do not merge, start W1A7, or rewrite the TNYX-78 description before that.
 
 ## Global UI / Design-System Guardrail
 
@@ -226,6 +226,14 @@ Codex review (5294676954 at d24a8221) resolution checkpoint at content head 7b72
 - git diff --check origin/main...HEAD: PASS
 - bash scripts/check_commit_attribution.sh origin/main HEAD: PASS
 - relative Markdown links in the 8 changed files: 72 checked, 0 missing
+
+Ready for Review checkpoint at head dd00550df1d3fd8678661857f32d92f807de684d:
+- ahead / behind: 16 / 0; changed files: 8 (.ai/** and docs/** only); git diff --check PASS; attribution script PASS
+- checks: Commit attribution guard = SUCCESS (required); Attribution guard runner = SUCCESS; github-advanced-security = FAILURE (non-required; CAPIError 400 unsupported model claude-opus-5[ReasoningEffort=medium], no analysis produced; TNYX-256)
+- 4 Codex threads replied to with fix evidence and resolved: 4 total, 0 unresolved
+- PR #324 marked Ready for Review at 2026-09-23T17:55:14Z; mergeable MERGEABLE / CLEAN
+- Linear TNYX-78: In Progress → In Review, one reconciliation comment added; description/relations unchanged
+- merge: not authorized
 ```
 
 ### Review Findings and Resolution
