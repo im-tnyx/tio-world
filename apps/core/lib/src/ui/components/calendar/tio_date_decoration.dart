@@ -25,17 +25,19 @@ enum TioDateFill {
 ///
 /// ```text
 /// outermost  progress ring    progress
-/// inside     selection ring   derived from selectedDate, never supplied here
+/// inside     selection        derived from selectedDate, never supplied here
 /// centre     generic fill     fill
 /// text       date label       Today emphasis derived from localToday
 /// below      marker dots      markerCount
 /// ```
 ///
-/// The progress and selection rings are concentric and touch at their edges;
-/// there is no decorative gap between them. Selection remains slightly smaller
-/// so progress stays the outer visual boundary when both are present. Core uses
-/// the theme's semantic `progress` color for the progress arc and `primary` for
-/// selection/fill, so the two simultaneous states remain visually distinct.
+/// Selection is a tonal disk that touches the progress ring at its inner edge;
+/// there is no decorative gap between them, and the disk keeps the same size
+/// whether or not progress is present. When a [fill] is supplied it keeps the
+/// centre on a selected date and selection falls back to a thin ring, so the
+/// caller's meaning is never painted over. Core uses the theme's semantic
+/// `progress` color for the progress arc and derives selection/fill from
+/// `primary`, so simultaneous states remain visually distinct.
 @immutable
 class TioDateDecoration {
   const TioDateDecoration({
