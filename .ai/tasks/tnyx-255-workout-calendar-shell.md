@@ -2,7 +2,7 @@
 
 ## Status
 
-IMPLEMENTED — VALIDATION PASS / OWNER UI REVIEW PENDING
+IN PROGRESS — OWNER-APPROVED TOP-BAR CALENDAR PARITY
 
 ## Baseline
 
@@ -96,3 +96,25 @@ This slice may establish the functional shell and reuse the approved shared cale
 - Supabase migration/schema changes: none.
 
 Functional validation is complete. The remaining gate is owner UI review/confirmation; this slice must not be treated as design-locked before that review.
+
+
+## Owner-approved continuation — Workout calendar top-bar parity
+
+Owner approval received on 2026-09-23 to keep the shared calendar UI and add the same navigation treatment already used by Meal Diary:
+
+- centred compact visible month/year label (for example `Sep 26`), derived from the calendar viewport rather than selected date;
+- the same current-day calendar glyph on the right-side status action cluster when selection or viewport is away from Today;
+- pressing the Today action selects the current local date and jumps the shared calendar back to the current week/month;
+- when Today is selected and visible, the Today action is hidden;
+- reuse existing Core `TioDateCalendar` mechanics and the existing app-shell Today glyph treatment; do not create a Workout-specific calendar visual language.
+
+This continuation also closes the date-freshness seam required for the Today action: the Workout caller refreshes its local-day truth across midnight/app resume, following the already-audited Meal Diary pattern.
+
+Still out of scope: Workout completion/schedule dots, Rest Day, Week x/y, Training Plan behavior, history, persistence, Supabase schema, Explore/Library, or W2 selected-day domain state.
+
+### Validation additions
+
+- focused Workout date-state tests for viewport month, Today-action visibility, jump-to-Today, and local-day refresh;
+- Workout page test proves Core controller/range/week-start wiring;
+- app composition test proves `ShellTab.workout` renders the compact visible month and the same Today glyph/action behavior;
+- latest-head Flutter CI must pass before handoff.
