@@ -21,16 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; only open PR is #324; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** validated branch head `0d35927d164a923e03c4a84d96c7e48db877402a`; the brief-only W1A0-C5/C6 commit follows it (exact head on PR #324)
+**HEAD SHA:** not embedded here, because this file cannot record the SHA of the commit that contains it. The branch tip source is the live tracked branch / [PR #324](https://github.com/im-tnyx/tio-world/pull/324) head; read it with `git rev-parse HEAD` and the PR during repository reconstruction.
+**Validation anchor:** `0d35927d164a923e03c4a84d96c7e48db877402a` is where the section 6 scope/link/attribution/check evidence was recorded. Architecture/content files are unchanged after it; later commits are brief-only governance updates (W1A0-C5/C6/C7), recoverable from PR #324 commit history (`git diff --name-only 0d35927d..HEAD` should list only this brief).
 **Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
 **Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
 **PR / tracker:** PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` is Ready for Review (open, not Draft, mergeable; marked 2026-09-23T17:55:14Z). Linear `TNYX-78` moved `Backlog → In Progress` while Codex fixes were active, then `In Progress → In Review` after the Ready transition, with one reconciliation comment (assignee santosh, PR #324 attached, description/relations unchanged). Merge is not authorized.
-**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C6 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
+**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C7 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `0d35927d164a923e03c4a84d96c7e48db877402a` — current evidence in section 6; earlier checkpoints live in commit history and PR #324.
+**Validation completed at SHA:** validation anchor `0d35927d` (see above). Current validation rule: before any handoff or merge, validate the checked-out `HEAD` with `git diff --check origin/main...HEAD`, `bash scripts/check_commit_attribution.sh origin/main HEAD`, the scope/link audit, and GitHub exact-head checks on PR #324.
 **Validation remaining:** reviewer feedback on the Ready PR. No Flutter CI result is claimed; none ran for this docs-only PR.
 **Current blocker:** None. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
-**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C6. Deferred (not open): W1A0-F1, W1A0-F2.
+**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C7. Deferred (not open): W1A0-F1, W1A0-F2.
 **Next exact action:** await explicit owner merge authorization for PR #324 (then follow `docs/POST_MERGE_SYNC.md`). Do not merge, start W1A7, or rewrite the TNYX-78 description before that.
 
 ## Global UI / Design-System Guardrail
@@ -165,7 +166,7 @@ Not applicable; no UI/runtime behavior in this slice.
 
 ### Validation Run
 
-Current evidence at branch head `0d35927d164a923e03c4a84d96c7e48db877402a` (the brief-only W1A0-C5/C6 commit that follows re-runs the same checks; its exact-head results are on PR #324):
+Evidence recorded at the validation anchor `0d35927d164a923e03c4a84d96c7e48db877402a` (later brief-only commits re-run the same checks; exact-head results for the live tip are on PR #324):
 
 ```text
 - origin/main: b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD); ahead / behind: 17 / 0
@@ -198,6 +199,7 @@ Earlier intermediate checkpoints (older heads, ahead counts and PR states) are i
 | W1A0-C4 | Medium | Resolved | Codex: TNYX-78 still `Backlog` while W1A0 work and PR #324 are active | d24a8221 | TNYX-78 moved `Backlog → In Progress` on 2026-09-23, then `In Review` after PR #324 became Ready for Review |
 | W1A0-C5 | Medium | Resolved | Codex: section 6 had become a transcript of every intermediate SHA/ahead-count/PR-state checkpoint, contrary to the compact `.ai/tasks` rule | 0d35927d | The W1A0-C5/C6 brief commit keeps only current exact-head evidence plus this table; earlier checkpoints are referenced via commit history and PR #324 |
 | W1A0-C6 | Low | Resolved | Codex: scope boundary and success criteria said "no Linear mutation" although TNYX-78 status was reconciled `Backlog → In Progress → In Review` | 0d35927d | The W1A0-C5/C6 brief commit allows task-status reconciliation per AGENTS.md and keeps description/acceptance/scope/unrelated-relation rewrites, project status spam and premature Done out of scope |
+| W1A0-C7 | Low | Resolved | Codex: the `HEAD SHA` field named `0d35927d` although the tip had moved, so self-referential/stale HEAD metadata could mislead a future owner | 25de5482 | The brief no longer embeds a supposed current tip; live Git / PR #324 head is authoritative, and the validation anchor is labelled separately with a rule to validate the checked-out `HEAD` |
 
 ## 7. Final Handoff
 
