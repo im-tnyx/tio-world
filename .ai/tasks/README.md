@@ -32,7 +32,6 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
 | [Material 3 Expressive foundation](material-3-expressive.md) | In progress | `apps/core`, `apps/app` | Changing shared theme, navigation, buttons, motion, or accessibility behavior |
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |
-| [TNYX-78 W1A0 — Workout canonical identities and terminology](tnyx-78-w1a0-workout-canonical-identities.md) | In progress | Workout architecture / docs | Current W1 decision slice; read before W1A7/W1A1 Workout domain work |
 | [Supabase foundation](supabase-foundation.md) | Needs decision | `supabase/`, `apps/shared`, affected features | Starting Auth, data, RLS, Storage, or protected AI work |
 
 ## Product Onboarding execution order

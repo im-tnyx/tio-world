@@ -1,6 +1,7 @@
 # TNYX-78 W1A0 — Workout canonical identities and terminology
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-23
 **Primary owner:** Workout architecture / docs
 **Affected platforms:** Shared Dart domain architecture; Flutter phone planning only (no runtime/UI change)
 
@@ -10,29 +11,28 @@
 **Approval status:** Approved
 **Approval evidence:** Owner approved the bounded W1A0 docs-only slice on 2026-09-23 after reviewing the W1 readiness audit and explicitly accepted the recommended Q5/Q6/Q7 direction.
 **Approved product/UI/data-shape boundaries:** Record canonical Workout identity ownership, built-in Exercise catalog identity, stale shared-scaffold cleanup direction, set terminology, and explicit deferrals. Docs/governance only.
-**Explicit non-changes:** No Dart production code, JSON asset move/edit/commit, Supabase schema/data, repository implementation, or UI/presentation/calendar/routing change. Linear: task status may be reconciled when the real task state changes, per AGENTS.md (done: TNYX-78 `Backlog → In Progress → In Review`); still out of scope are Linear description, acceptance or scope rewrites, relation manipulation unrelated to verified tracker reconciliation, project status spam, and marking Done before merge/completion evidence.
+**Explicit non-changes:** No Dart production code, JSON asset move/edit/commit, Supabase schema/data, repository implementation, or UI/presentation/calendar/routing change. Linear: task status may be reconciled when the real task state changes, per AGENTS.md (done: TNYX-78 `Backlog → In Progress → In Review`, then back to `In Progress` after merge because broader W1 remains); still out of scope are Linear description, acceptance or scope rewrites, relation manipulation unrelated to verified tracker reconciliation, project status spam, and marking Done before merge/completion evidence.
 
 ## Active Handoff
 
 **Planning owner:** current architecture agent
 **Implementation owner:** current architecture agent (docs/governance only)
-**Review owner:** Not assigned
-**Implementation ownership state:** Handoff pending
+**Review owner:** Not assigned (Codex automated review on PR #324)
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; only open PR is #324; no other Workout/W1 branch or PR
-**Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** not embedded here, because this file cannot record the SHA of the commit that contains it. The branch tip source is the live tracked branch / [PR #324](https://github.com/im-tnyx/tio-world/pull/324) head; read it with `git rev-parse HEAD` and the PR during repository reconstruction.
-**Validation anchor:** `0d35927d164a923e03c4a84d96c7e48db877402a` is where the section 6 scope/link/attribution/check evidence was recorded. Architecture/content files are unchanged after it; later commits are brief-only governance updates (W1A0-C5/C6/C7), recoverable from PR #324 commit history (`git diff --name-only 0d35927d..HEAD` should list only this brief).
-**Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
-**Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
-**PR / tracker:** PR [#324](https://github.com/im-tnyx/tio-world/pull/324) against `main` is Ready for Review (open, not Draft, mergeable; marked 2026-09-23T17:55:14Z). Linear `TNYX-78` moved `Backlog → In Progress` while Codex fixes were active, then `In Progress → In Review` after the Ready transition, with one reconciliation comment (assignee santosh, PR #324 attached, description/relations unchanged). Merge is not authorized.
-**Current implementation state:** W1A0 docs decisions are complete. Review findings W1A0-R1–R5 are Resolved; Codex review findings W1A0-C1–C7 are Resolved (see section 6); W1A0-F1 (Quick Start conflict → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain intentionally Deferred. No runtime/source implementation was added.
+**Repository state last verified:** 2026-09-24 after `git fetch origin --prune`: `origin/main` = `45c194e0949d1071a09c74a2659ef7293d7fe79c` (PR #324 squash merge).
+**Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities` (merged; retained until branch deletion is separately authorized)
+**HEAD SHA:** merged PR head `9c8c8c5a322f9cf68ede8b49782b6250ab0876df`; merge commit on `main` `45c194e0949d1071a09c74a2659ef7293d7fe79c` (tree identical to the PR head).
+**Observed working-tree state:** only unrelated untracked owner assets `apps/core/assets/exercises/` existed locally; never edited, moved, staged, stashed or committed.
+**Observed uncommitted/dirty files:** Not applicable (slice complete).
+**PR / tracker:** [PR #324](https://github.com/im-tnyx/tio-world/pull/324) merged 2026-09-23T18:27:18Z (squash). Linear `TNYX-78` is `In Progress`: W1A0 is one validated sub-slice and broader W1 work remains. The Linear GitHub integration auto-set Done on merge; it was reconciled back to In Progress.
+**Current implementation state:** Validated. Canonical outcome is on `main`: [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md) and D-019 in [DECISIONS.md](../DECISIONS.md). Findings W1A0-R1–R5 and W1A0-C1–C7 are Resolved; W1A0-F1 (Quick Start → W1A6a) and W1A0-F2 (Exercise asset location/licensing → W3) remain Deferred to their owning slices. W1A7 and W1A1 have not started.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** validation anchor `0d35927d` (see above). Current validation rule: before any handoff or merge, validate the checked-out `HEAD` with `git diff --check origin/main...HEAD`, `bash scripts/check_commit_attribution.sh origin/main HEAD`, the scope/link audit, and GitHub exact-head checks on PR #324.
-**Validation remaining:** reviewer feedback on the Ready PR. No Flutter CI result is claimed; none ran for this docs-only PR.
-**Current blocker:** None. The non-required `github-advanced-security` failure is the external TNYX-256 unsupported-model outage, not a branch finding.
-**Open review finding IDs:** None. Resolved: W1A0-R1–R5, W1A0-C1–C7. Deferred (not open): W1A0-F1, W1A0-F2.
-**Next exact action:** await explicit owner merge authorization for PR #324 (then follow `docs/POST_MERGE_SYNC.md`). Do not merge, start W1A7, or rewrite the TNYX-78 description before that.
+**Validation completed at SHA:** merged head `9c8c8c5a`: `git diff --check` PASS, attribution guard PASS, 72 relative links resolve, required `Commit attribution guard` SUCCESS, exact-head Codex review with no findings, 0 unresolved review threads.
+**Validation remaining:** None.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage, not a branch finding.
+**Open review finding IDs:** None. Deferred (not open): W1A0-F1, W1A0-F2.
+**Next exact action:** None for W1A0 (archived). The next W1 slice is W1A7 stale shared Workout scaffold cleanup, which needs separate owner authorization and its own task brief.
 
 ## Global UI / Design-System Guardrail
 
@@ -161,6 +161,7 @@ Not applicable; no UI/runtime behavior in this slice.
 - [x] Add task to `.ai/tasks/README.md`.
 - [x] Run docs/scope validation.
 - [x] Refresh handoff with final branch HEAD and review state.
+- [x] Merge PR #324 (`45c194e0`) and archive this brief as Validated.
 
 ## 6. Quality Review
 
@@ -180,7 +181,7 @@ Evidence recorded at the validation anchor `0d35927d164a923e03c4a84d96c7e48db877
 - untracked owner assets apps/core/assets/exercises/ untouched
 ```
 
-Earlier intermediate checkpoints (older heads, ahead counts and PR states) are intentionally not repeated here; they remain auditable in the branch commit history and in [PR #324](https://github.com/im-tnyx/tio-world/pull/324) (checks, review threads and body).
+Final merged head `9c8c8c5a` re-ran these checks with the same results (see Active Handoff); merge commit `45c194e0` on `main` has an identical tree. Earlier intermediate checkpoints (older heads, ahead counts and PR states) are intentionally not repeated here; they remain auditable in the branch commit history and in [PR #324](https://github.com/im-tnyx/tio-world/pull/324) (checks, review threads and body).
 
 ### Review Findings and Resolution
 
@@ -227,4 +228,4 @@ No runtime behavior changes. W1A0 records the approved catalog identity, shared/
 
 ### Final Status
 
-`REVIEW`
+`PASS` — Validated and merged via PR #324 (`45c194e0`); archived 2026-09-24.
