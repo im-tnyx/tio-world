@@ -930,9 +930,9 @@ class _WeekdayHeader extends StatelessWidget {
   ///
   /// The caller resolves this from `localToday` against the range on screen,
   /// never from the selection: tapping another date does not move the emphasis,
-  /// which keeps the selection ring the only signal for selection. Paging away
-  /// from Today clears it rather than moving it to whatever now sits in that
-  /// column.
+  /// which keeps the cell's selection treatment the only signal for selection.
+  /// Paging away from Today clears it rather than moving it to whatever now
+  /// sits in that column.
   final int? todayColumn;
 
   /// Mirrors the numeral's own Today rules so the column and the date under it
@@ -1082,11 +1082,13 @@ Path _notchPath(double outerWidth, double innerWidth, double depth) {
 /// One date in either rendering.
 ///
 /// The layers are independent by construction: the numeral carries Today, the
-/// progress ring is the outer visual boundary, the smaller selection ring sits
+/// progress ring is the outer visual boundary, selection is a tonal disk
 /// directly inside it with no decorative gap, the centre carries an optional
-/// generic fill, and markers sit below. The progress ring uses the theme's
-/// semantic progress color while selection/fill retain the primary selection
-/// color, so two concentric states remain visually distinct in every theme.
+/// generic fill, and markers sit below. When a generic fill is present it keeps
+/// the centre and selection falls back to a thin ring, so feature meaning is
+/// never painted over. The progress ring uses the theme's semantic progress
+/// color while selection/fill derive from the primary color, so concentric
+/// states remain visually distinct in every theme.
 class _DateCell extends StatelessWidget {
   const _DateCell({
     required super.key,
@@ -1271,11 +1273,27 @@ class _DateCirclePainter extends CustomPainter {
     final progressRadius = outerRadius - (progressStroke / 2);
     final selectionRadius =
         progressRadius - (progressStroke / 2) - (selectionStroke / 2);
+    // The selected disk keeps the footprint the selection ring used to occupy,
+    // and never tracks progress, so it does not resize when data arrives.
+    final selectionDiskRadius = selectionRadius + (selectionStroke / 2);
     final fillRadius = isSelected
         ? selectionRadius - (selectionStroke / 2)
         : progress == null
             ? outerRadius
             : progressRadius - (progressStroke / 2);
+
+    // A caller's fill carries feature meaning, so it stays authoritative on a
+    // selected date and the thin ring below marks the selection instead.
+    // Without one, selection is a neutral tonal disk.
+    if (isSelected && fill == null && selectionDiskRadius > 0) {
+      canvas.drawCircle(
+        centre,
+        selectionDiskRadius,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = selectionAccent.withValues(alpha: TioOpacity.opacity12),
+      );
+    }
 
     if (fill != null && fillRadius > 0) {
       canvas.drawCircle(
@@ -1314,7 +1332,7 @@ class _DateCirclePainter extends CustomPainter {
       }
     }
 
-    if (isSelected && selectionRadius > 0) {
+    if (isSelected && fill != null && selectionRadius > 0) {
       canvas.drawCircle(
         centre,
         selectionRadius,

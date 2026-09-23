@@ -383,8 +383,9 @@ void main() {
 
       expect(_numeralStyle(tester, _today).fontWeight, TioFontWeight.w700);
       expect(_numeralStyle(tester, _selected).fontWeight, TioFontWeight.w400);
-      // Selection is the outer ring, not the Today treatment.
-      expect(_circle(tester, _selected), paints..circle());
+      // Selection is the tonal disk, not the Today treatment.
+      expect(_circle(tester, _selected), paints..circle(radius: 13));
+      expect(_circle(tester, _today), isNot(paints..circle()));
     });
 
     testWidgets('missing progress and a real zero render differently',
@@ -421,7 +422,8 @@ void main() {
             : null,
       );
 
-      // fill, progress track, progress arc, then the selection ring outside.
+      // A caller fill keeps the centre, so selection falls back to its thin
+      // ring: fill, progress track, progress arc, then the selection ring.
       expect(
         _circle(tester, _selected),
         paints
@@ -456,6 +458,205 @@ void main() {
         find.descendant(of: _cell(_selected), matching: find.byType(Container)),
         findsNWidgets(TioDateDecoration.maxRenderedMarkers),
       );
+    });
+  });
+
+  group('selected-date fill', () {
+    const colors = TioColors.light;
+    final disk = colors.primary.withValues(alpha: TioOpacity.opacity12);
+
+    testWidgets('a plain selected date is a tonal disk, not a ring',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+
+      expect(
+        _circle(tester, _selected),
+        paints..circle(radius: 13, style: PaintingStyle.fill, color: disk),
+      );
+      // The disk is the only shape: no thin ring, no progress track.
+      expect(_circle(tester, _selected), isNot(paints..circle()..circle()));
+      expect(
+        _circle(tester, _selected),
+        isNot(paints..circle(strokeWidth: 0.5)),
+      );
+      // The fill changes no numeral colour.
+      expect(_numeralStyle(tester, _selected).color, colors.textPrimary);
+      expect(_numeralStyle(tester, _selected).fontWeight, TioFontWeight.w400);
+
+      final unselected = DateTime(2026, 8, 17);
+      expect(_circle(tester, unselected), isNot(paints..circle()));
+      expect(_numeralStyle(tester, unselected).color, colors.textSecondary);
+
+      final node = tester.getSemantics(_cell(_selected));
+      expect(node.label, contains('August 18, 2026'));
+      expect(node.label, contains('Selected'));
+      expect(node, isSemantics(isSelected: true));
+      handle.dispose();
+    });
+
+    testWidgets('the disk sits inside positive progress at the same size',
+        (tester) async {
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == _selected
+            ? const TioDateDecoration(progress: 0.6)
+            : null,
+      );
+
+      expect(
+        _circle(tester, _selected),
+        paints
+          ..circle(radius: 13, style: PaintingStyle.fill, color: disk)
+          ..circle(radius: 14, strokeWidth: 2)
+          ..arc(color: colors.progress, strokeWidth: 2),
+      );
+      expect(
+        _circle(tester, _selected),
+        isNot(paints..circle(strokeWidth: 0.5)),
+      );
+    });
+
+    testWidgets('a known-zero progress keeps its track beside the disk',
+        (tester) async {
+      await _pump(
+        tester,
+        decorationBuilder: (date) =>
+            date == _selected ? const TioDateDecoration(progress: 0) : null,
+      );
+
+      expect(
+        _circle(tester, _selected),
+        paints
+          ..circle(radius: 13, style: PaintingStyle.fill, color: disk)
+          ..circle(radius: 14, strokeWidth: 2),
+      );
+      expect(_circle(tester, _selected), isNot(paints..arc()));
+    });
+
+    testWidgets('missing progress draws the disk and no track',
+        (tester) async {
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == _selected
+            ? const TioDateDecoration(markerCount: 1)
+            : null,
+      );
+
+      expect(
+        _circle(tester, _selected),
+        paints..circle(radius: 13, style: PaintingStyle.fill, color: disk),
+      );
+      expect(_circle(tester, _selected), isNot(paints..circle()..circle()));
+      expect(_circle(tester, _selected), isNot(paints..arc()));
+    });
+
+    testWidgets('a selected Today keeps its weight and colour',
+        (tester) async {
+      await _pump(tester, initialSelected: _today);
+
+      expect(
+        _circle(tester, _today),
+        paints..circle(radius: 13, style: PaintingStyle.fill, color: disk),
+      );
+      expect(_numeralStyle(tester, _today).color, colors.textPrimary);
+      expect(_numeralStyle(tester, _today).fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets('a selected Sunday keeps its danger numeral on the disk',
+        (tester) async {
+      final sunday = DateTime(2026, 8, 16);
+      await _pump(tester, initialSelected: sunday);
+
+      expect(
+        _circle(tester, sunday),
+        paints..circle(radius: 13, style: PaintingStyle.fill, color: disk),
+      );
+      expect(_numeralStyle(tester, sunday).color, colors.danger);
+
+      await _pump(tester);
+
+      expect(_circle(tester, sunday), isNot(paints..circle()));
+      expect(
+        _numeralStyle(tester, sunday).color,
+        colors.danger.withAlpha(TioAlpha.alpha179),
+      );
+    });
+
+    for (final (fill, fillColor) in [
+      (TioDateFill.solid, colors.primary),
+      (
+        TioDateFill.soft,
+        colors.primary.withValues(alpha: TioOpacity.opacity12),
+      ),
+    ]) {
+      testWidgets('a ${fill.name} fill stays authoritative when selected',
+          (tester) async {
+        final unselected = DateTime(2026, 8, 17);
+        await _pump(
+          tester,
+          decorationBuilder: (date) => date == _selected || date == unselected
+              ? TioDateDecoration(fill: fill)
+              : null,
+        );
+
+        // The caller's fill keeps the centre and the thin ring marks the
+        // selection, exactly as before the tonal disk existed.
+        expect(
+          _circle(tester, _selected),
+          paints
+            ..circle(radius: 12.5, style: PaintingStyle.fill, color: fillColor)
+            ..circle(radius: 12.75, strokeWidth: 0.5, color: colors.primary),
+        );
+        expect(_circle(tester, _selected), isNot(paints..circle(radius: 13)));
+
+        // The same fill on an unselected date carries no selection cue.
+        expect(
+          _circle(tester, unselected),
+          paints
+            ..circle(radius: 15, style: PaintingStyle.fill, color: fillColor),
+        );
+        expect(
+          _circle(tester, unselected),
+          isNot(paints..circle(strokeWidth: 0.5)),
+        );
+      });
+    }
+
+    testWidgets('an out-of-range selected date draws no selection',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final outOfRange = DateTime(2026, 8, 21);
+      await _pump(tester, initialSelected: outOfRange, maxDate: _today);
+
+      expect(_cell(outOfRange), findsOne);
+      expect(_circle(tester, outOfRange), isNot(paints..circle()));
+      expect(
+        find.bySemanticsLabel(RegExp('August 21, 2026')),
+        findsNothing,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a selected date shown for a neighbouring month draws nothing',
+        (tester) async {
+      final july31 = DateTime(2026, 7, 31);
+      await _pump(
+        tester,
+        initialSelected: july31,
+        minDate: DateTime(2026, 7, 1),
+      );
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+      await tester.fling(_monthPager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+
+      // August's grid starts on a Saturday, so July 31 fills its first row as
+      // an inert neighbour cell.
+      expect(_cell(DateTime(2026, 8, 15)), findsOne);
+      expect(_cell(july31), findsOne);
+      expect(_circle(tester, july31), isNot(paints..circle()));
     });
   });
 
