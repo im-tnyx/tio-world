@@ -17,21 +17,21 @@
 **Planning owner:** current architecture agent
 **Implementation owner:** current architecture agent (docs/governance only)
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** remote `main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0
+**Repository state last verified:** 2026-09-23 local shell after `git fetch origin --prune`: `origin/main` = `b2e101f948b546c5a1be72df031d6e1fc913e7ac`; open PRs = 0; no other Workout/W1 branch or PR
 **Branch:** `tnyx/tnyx-78-w1a0-workout-canonical-identities`
-**HEAD SHA:** `bfa669b7137edcb77bec50e6d8115012205f96c9` before this handoff update
-**Observed working-tree state:** GitHub connector sees remote state only. Local audit reported unrelated untracked `apps/core/assets/exercises/`; preserve and do not stage/touch it.
-**Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` reported untracked by local audit; excluded from W1A0.
-**PR / tracker:** Linear `TNYX-78` Backlog, unblocked by completed TNYX-77; no PR yet.
-**Current implementation state:** W1A0 docs decisions are prepared and scope-audited; ready for review. No runtime/source implementation was added.
+**HEAD SHA:** content head `3f033faaf0477d6daf61ccc68e5ab4511e50f32e`; the brief-only commit recording this evidence follows it
+**Observed working-tree state:** only unrelated untracked `apps/core/assets/exercises/` exists locally; it was not edited, moved, staged, stashed or committed.
+**Observed uncommitted/dirty files:** `apps/core/assets/exercises/{exercises_data.json,exercise_standard_ids.json,exercise_standards.json}` untracked owner assets; excluded from W1A0.
+**PR / tracker:** Linear `TNYX-78` Backlog (not changed by this slice); no PR existed at content head `3f033faa`; a Draft PR is the next gate.
+**Current implementation state:** W1A0 docs decisions are complete; review findings F1–F4 are resolved and F5 remains intentionally deferred. No runtime/source implementation was added.
 **Relevant execution surface:** `.ai/`, `docs/adr/`, Workout ownership/catalog docs only.
-**Validation completed at SHA:** `bfa669b7137edcb77bec50e6d8115012205f96c9` — GitHub compare against `main` shows 7 commits ahead / 0 behind and exactly 7 changed files, all under `.ai/` or `docs/`.
-**Validation remaining:** reviewer/PR checks if a PR is opened; local `git diff --check` was not available through the GitHub connector.
+**Validation completed at SHA:** `3f033faaf0477d6daf61ccc68e5ab4511e50f32e` — local docs/scope/link/attribution validation recorded in section 6.
+**Validation remaining:** Draft PR checks and owner/reviewer review. No CI result is claimed here.
 **Current blocker:** None for W1A0.
-**Open review finding IDs:** None.
-**Next exact action:** review W1A0 docs; if accepted, open/review the docs-only PR, then reconcile tracker/merge state before starting W1A7.
+**Open review finding IDs:** W1A0-F1 and W1A0-F2 remain intentionally deferred (see section 6).
+**Next exact action:** open the docs-only Draft PR against `main`, audit its checks/reviews, and keep it Draft until the owner authorizes Ready for Review. Do not start W1A7 before W1A0 is reviewed and merged.
 
 ## Global UI / Design-System Guardrail
 
@@ -173,7 +173,23 @@ Remote GitHub compare vs main at bfa669b7137edcb77bec50e6d8115012205f96c9:
 - no apps/**, supabase/**, JSON asset, UI, or runtime diff
 ```
 
-Local `git diff --check` was not available through the GitHub connector, so no local-shell validation is claimed.
+Local `git diff --check` was not available through the GitHub connector at that checkpoint.
+
+```text
+Local shell review at 6e097f6fe22a5c6c04a9be07ed01a937015c56d9:
+- git diff --check origin/main...HEAD: FAIL (ADR-0011 metadata trailing whitespace)
+
+Local shell validation at content head 3f033faaf0477d6daf61ccc68e5ab4511e50f32e:
+- base: origin/main = b2e101f948b546c5a1be72df031d6e1fc913e7ac (ancestor of HEAD)
+- ahead / behind: 10 / 0
+- changed files: 7, all under .ai/** or docs/**
+- git diff --check origin/main...HEAD: PASS
+- relative Markdown links in the 7 changed files: 61 checked, all resolve
+- bash scripts/check_commit_attribution.sh origin/main HEAD: PASS (no prohibited AI attribution)
+- secrets / machine-specific paths / binary files in diff: none
+- no apps/**, supabase/**, pubspec, Exercise JSON asset, UI, router, calendar or migration diff
+- untracked apps/core/assets/exercises/ preserved untouched
+```
 
 ### Review Findings and Resolution
 
@@ -181,6 +197,10 @@ Local `git diff --check` was not available through the GitHub connector, so no l
 |---|---|---|---|---|---|
 | W1A0-F1 | Medium | Deferred | D-010 still forbids standalone Quick Start while newer Workout trackers include ad-hoc/start-new paths | b2e101f9 | Resolve before W1A6a after explicit Q1 decision |
 | W1A0-F2 | Low | Deferred | Exercise asset location/licensing remains unresolved; local audit found untracked assets under apps/core | b2e101f9 | Resolve in W3 catalog-loader/asset slice; do not touch assets in W1A0 |
+| W1A0-R1 | Blocking | Resolved | `git diff --check` failed on ADR-0011 metadata trailing whitespace | 6e097f6f | `35fd7d9f` uses the repository ADR list-metadata convention |
+| W1A0-R2 | Medium | Resolved | Generic `apps/shared` ownership row dropped `repository contracts`, contradicting repo-wide docs and runtime `AppPreferencesRepository` | 6e097f6f | `3f033faa` restores the generic wording; the Workout-specific split section is unchanged |
+| W1A0-R3 | Low | Resolved | ADR-0011 deferral list omitted Q11 set measurement kinds | 6e097f6f | `35fd7d9f` records the W1A3 deferral without choosing measurements |
+| W1A0-R4 | Low | Resolved | Handoff metadata was stale (HEAD/ahead count/validation) | 6e097f6f | This brief refresh records current local validation evidence |
 
 ## 7. Final Handoff
 
