@@ -74,8 +74,8 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
-/// The Diary's centred month label, constrained so it cannot run under the
-/// status action cluster.
+/// Shared calendar-surface centred month label, constrained so it cannot run
+/// under the status action cluster.
 ///
 /// `TioShellStatusTopBar` centres this across the whole bar on purpose, so it
 /// stays centred on screen no matter how wide the title or actions are. That
