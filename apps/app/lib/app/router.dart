@@ -88,10 +88,11 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
 /// At a normal text scale this changes nothing — the label still renders in
 /// full. It only bites at large text scales on a narrow screen, where the
 /// alternative is the month painting across the icons.
-Widget _mealDiaryVisibleMonthLabel(
-  BuildContext context,
-  MealDiaryDateController dates,
-) {
+Widget _calendarVisibleMonthLabel(
+  BuildContext context, {
+  required DateTime visibleMonth,
+  required Key labelKey,
+}) {
   // Measured against painted glyphs, not hit boxes. The cluster's touch
   // targets reach 120dp in from the right edge, but its leftmost *painted*
   // pixel — the Today glyph, inset 12dp inside its 48dp button — starts at
@@ -106,10 +107,10 @@ Widget _mealDiaryVisibleMonthLabel(
     constraints: BoxConstraints(maxWidth: available > 0 ? available : 0),
     child: Text(
       tioCompactMonthYearLabel(
-        dates.visibleMonth,
+        visibleMonth,
         localeName: Localizations.localeOf(context).toString(),
       ),
-      key: const ValueKey('meal-diary-visible-month'),
+      key: labelKey,
       style: Theme.of(context).textTheme.titleSmall,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -118,7 +119,7 @@ Widget _mealDiaryVisibleMonthLabel(
   );
 }
 
-String _mealDiaryTodayTooltip(
+String _calendarTodayTooltip(
   BuildContext context,
   DateTime selectedDate, {
   required bool isOnToday,
@@ -326,6 +327,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               };
               final selectedTab =
                   ShellTab.fromBranchIndex(navigationShell.currentIndex);
+              final workoutDates = selectedTab == ShellTab.workout
+                  ? ref.watch(workoutDateControllerProvider)
+                  : null;
               final mealDiaryDates = selectedTab == ShellTab.nutrition
                   ? ref.watch(mealDiaryDateControllerProvider)
                   : null;
@@ -350,21 +354,42 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     selectedTab == ShellTab.nutrition ? 'Diary' : null,
                 // Where the reader currently is in the calendar, which is not
                 // the same question as what they have selected.
-                statusTopBarCenter: mealDiaryDates == null
-                    ? null
-                    : _mealDiaryVisibleMonthLabel(
+                statusTopBarCenter: workoutDates != null
+                    ? _calendarVisibleMonthLabel(
                         context,
-                        mealDiaryDates,
-                      ),
-                // Owner-locked order: [Today?] [streak] [More]. The overflow
-                // menu is the end action, so it uses the trailing slot while
-                // Today stays in the leading one.
-                statusTopBarLeadingAction:
-                    mealDiaryDates != null &&
+                        visibleMonth: workoutDates.visibleMonth,
+                        labelKey: const ValueKey('workout-visible-month'),
+                      )
+                    : mealDiaryDates != null
+                        ? _calendarVisibleMonthLabel(
+                            context,
+                            visibleMonth: mealDiaryDates.visibleMonth,
+                            labelKey:
+                                const ValueKey('meal-diary-visible-month'),
+                          )
+                        : null,
+                // Calendar surfaces share the same return-to-Today affordance.
+                // Workout currently has [Today?] [streak]; Meal Diary keeps
+                // its owner-locked [Today?] [streak] [More] order.
+                statusTopBarLeadingAction: workoutDates != null &&
+                        workoutDates.shouldShowTodayAction
+                    ? IconButton(
+                        key: const ValueKey('workout-today-action'),
+                        tooltip: _calendarTodayTooltip(
+                          context,
+                          workoutDates.selectedDate,
+                          isOnToday: workoutDates.isOnToday,
+                        ),
+                        onPressed: workoutDates.selectToday,
+                        icon: MealDiaryTodayGlyph(
+                          localToday: workoutDates.localToday,
+                        ),
+                      )
+                    : mealDiaryDates != null &&
                             mealDiaryDates.shouldShowTodayAction
                         ? IconButton(
                             key: const ValueKey('meal-diary-today-action'),
-                            tooltip: _mealDiaryTodayTooltip(
+                            tooltip: _calendarTodayTooltip(
                               context,
                               mealDiaryDates.selectedDate,
                               isOnToday: mealDiaryDates.isOnToday,
