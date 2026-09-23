@@ -58,9 +58,9 @@ void main() {
     expect(calendar.maxDate, DateTime(2027, 9, 23));
   });
 
-  testWidgets('owns selected date when the shared calendar reports selection',
+  testWidgets('owns selection and exposes the return-to-Today action',
       (tester) async {
-    await _pump(tester);
+    final dates = await _pump(tester);
 
     final calendar =
         tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
@@ -70,6 +70,13 @@ void main() {
     final updated =
         tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
     expect(updated.selectedDate, DateTime(2026, 9, 24));
+    expect(dates.shouldShowTodayAction, isTrue);
+
+    dates.selectToday();
+    await tester.pumpAndSettle();
+
+    expect(dates.selectedDate, DateTime(2026, 9, 23));
+    expect(dates.shouldShowTodayAction, isFalse);
   });
 
   testWidgets('forwards the app-global resolved week start', (tester) async {
