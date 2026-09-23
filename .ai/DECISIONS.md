@@ -13,7 +13,7 @@ This log records durable product and architecture choices. It is a concise orien
 | D-007 | Active | Wear OS future scope includes workout controls and nutrition quick actions. | Keep heavy interaction on phone: no full food search, full nutrition diary, or Meal Plan editing. After phone Meal Plan exists, Wear may show only the next planned meal status. |
 | D-008 | Active; first slice implemented | Phone UI adopts Material 3 Expressive through `apps/core`. | Theme accessibility behavior, guided `NavigationBar`, `TioAvatar`, and `TioButton` are implemented with automated coverage. Continue shared-component migration incrementally; manual device/accessibility checks remain. Do not depend on an assumed separate Flutter M3 Expressive API. Wear remains compact and watch-first. |
 | D-009 | Target, not implemented | Recovery will be an independent future `apps/features/recovery` feature. | Do not create it until a narrow first user outcome, data source, privacy/sync boundary, and non-medical scope are approved. It is not a primary App Mode tab. |
-| D-010 | Target, not implemented | Workout is Routine/Program-first and owns its training visualizations. | Do not add standalone Quick Start. Start active sessions from a selected Routine or Program session. Exercise Search is nested and reads a validated versioned local JSON catalog. Muscle heatmap, accessible training radar map, and calendar use recorded workout history; Recovery context is conditional. |
+| D-010 | Target; Quick Start clause under review | Workout is Routine/Program-first and owns its training visualizations. | Exercise Search remains nested and reads a validated versioned local JSON catalog. The older standalone Quick Start prohibition conflicts with newer tracked Workout launch/scheduling flows, so it must not guide W1A6a until Q1 is explicitly resolved. Muscle heatmap, accessible training radar map, and calendar use recorded workout history; Recovery context is conditional. |
 | D-011 | Target, not implemented | Profile-derived defaults do not change domain ownership. | Profile supplies approved context. Nutrition owns targets/overrides; Workout owns settings/defaults. Feature calculations use stable contracts and never silently replace user overrides. |
 | D-012 | Target, not implemented | Supabase is the first Auth, data, and Storage platform. | Use Supabase Auth and RLS-protected Postgres for user data. Custom protected backend code and Gemini are future upgrades, not current clients or repo modules. |
 | D-013 | Target, not implemented | Module media uses private Supabase Storage buckets. | `profile`, `nutrition`, `workout`, and `progress` hold only approved user media. Structured data remains in Postgres; each bucket needs owner-specific policies and a concrete file slice before provisioning. |
@@ -37,6 +37,18 @@ restored session. It is not a Supabase record, Water Goal, health target, loggin
 history or a new Progress/shared/Nutrition/Profile owner. Future +1 glass must
 consume or explicitly supersede this preference. See
 [ADR-0009](../docs/adr/0009-settings-local-default-glass-size.md).
+
+## D-019 — Active: Workout canonical identities and bundled Exercise catalog
+
+Workout durable pure-Dart identities, value objects, canonical entities and historical snapshot contracts belong in `apps/shared`. Workout-specific repository interfaces, catalog/user data sources, controllers and presentation remain in `apps/features/workout` unless a later approved cross-feature contract proves broader ownership.
+
+The built-in Exercise catalog is versioned bundled application content. Its stable `ex_*` value is the canonical built-in Exercise identity; title, slug, instructions, muscle/equipment metadata, media and standards links may evolve without redefining identity. Legacy/numeric/source IDs are lookup metadata only. Built-in catalog rows are not mirrored into Supabase. User-created Exercises remain separate user-owned dynamic data for a later approved persistence slice.
+
+The catalog is intentionally evolving: adding future well-formed `ex_*` identities must not require redesigning Workout domain contracts. Once an `ex_*` ID ships, rename/reuse/removal requires an explicit migration rather than deriving identity again from mutable title/slug content.
+
+Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. Existing unused shared Workout scaffolds are scheduled for isolated W1A7 cleanup before new W1A1 identities are introduced.
+
+See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
 
 ## Maintenance Rules
 
