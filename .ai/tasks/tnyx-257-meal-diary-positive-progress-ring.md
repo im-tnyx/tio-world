@@ -27,11 +27,11 @@
 **PR / tracker:** GitHub #317; Linear TNYX-257 (`In Progress`), parent TNYX-56, related TNYX-206.  
 **Current implementation state:** Implementation and focused regression updates committed. Meal Diary now suppresses calendar decoration for non-positive calorie progress; Core and domain zero truth are unchanged.  
 **Relevant execution surface:** `MealDiaryPage._calendarDecorationBuilder`, Daily Nutrition integration/recovery tests, `docs/screens/meal-diary.md`.  
-**Validation completed at SHA:** Not run yet for this slice.  
-**Validation remaining:** Exact-head GitHub CI and review. Local Flutter execution is unavailable in this connector-only session.  
+**Validation completed at SHA:** `9e9a7152b7ed935c46cf376ce6050f14912e10df` — Flutter CI #2709 / run `35925479132` passed Bootstrap, Flutter analyze, Dart analyze, all Flutter package tests, and all Dart package tests.  
+**Validation remaining:** CI for this resulting metadata-only handoff commit, then PR review/reconciliation. Runtime/source validation is green at `9e9a7152`. Local Flutter execution remains unavailable in this connector-only session.  
 **Current blocker:** None.  
 **Open review finding IDs:** None.  
-**Next exact action:** Open the bounded PR, run exact-head CI, review the full diff, and reconcile tracker/task status from actual results.
+**Next exact action:** Validate this metadata-only handoff head, then mark PR #326 Ready for Review and reconcile TNYX-257 to `In Review` if gates stay green.
 
 ## Global UI / Design-System Guardrail
 
@@ -138,7 +138,7 @@ Adding `hasMealLogs` / `mealLogCount` to `DailyNutritionSummary` was considered 
 - [x] Add/retain explicit positive-progress regression.
 - [x] Update recovery expectations so retry does not reintroduce a zero track.
 - [x] Update canonical Meal Diary doc from “empty day may supply 0.0” to positive-only ring eligibility.
-- [ ] Run focused validation and exact-head CI.
+- [x] Run source/test exact-head CI; validate this final metadata-only handoff head before review readiness.
 
 ## 6. Quality Review
 
@@ -146,18 +146,27 @@ Adding `hasMealLogs` / `mealLogCount` to `DailyNutritionSummary` was considered 
 
 ```text
 Committed-diff audit at source/test/docs SHA d8c518a77f072f681d5af8efba0f7605a2d6d0f4:
-- main is merge-base; branch was 3 commits ahead / 0 behind before this handoff update.
-- changed runtime/test/docs paths are limited to Meal Diary plus task governance.
+- main is merge-base; scoped changed paths are limited to Meal Diary plus task governance.
 - Core calendar files are unchanged.
 - production delta is one guard: progress <= 0 returns no decoration.
 - focused regression delta covers past empty, today empty after target refresh, logged exact-zero, and recovery/retry.
 - existing positive (0.4) and over-target calendar tests remain in place.
 
+Exact source/test + prior handoff head `9e9a7152b7ed935c46cf376ce6050f14912e10df`:
+- Flutter CI #2709 / run `35925479132`: PASS.
+- Bootstrap workspace: PASS.
+- Analyze Flutter packages: PASS.
+- Analyze Dart packages: PASS.
+- Test Flutter packages: PASS.
+- Test Dart packages: PASS.
+- Commit attribution guard #48: PASS.
+- Non-required `github-advanced-security` run #216 failed before analysis while creating its review request with `SessionModelError / CAPIError 400: The requested model is not supported`; no code/security finding was produced.
+
 Not available in this connector-only session:
-- local git diff --check
+- local git status / git diff --check
 - local Flutter analyze/test
 
-Exact-head GitHub CI remains required.
+The resulting task-handoff commit is metadata-only and still receives exact-head CI before review readiness.
 ```
 
 ### Review Findings and Resolution
@@ -183,8 +192,8 @@ Meal Diary creates a calendar progress decoration only when exact `calorieProgre
 
 ### Known Limitations
 
-Local Flutter validation could not be executed through the GitHub/Linear connector session. Exact-head CI is the validation source before review/merge readiness.
+Local Flutter validation could not be executed through the GitHub/Linear connector session. Runtime/source CI is green at `9e9a7152`; this final task-record-only commit still receives exact-head CI before review readiness.
 
 ### Final Status
 
-`REVIEW`
+`REVIEW` — runtime/source validation green; final metadata-only exact-head CI pending before marking PR Ready for Review.
