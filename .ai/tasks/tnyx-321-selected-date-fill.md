@@ -212,5 +212,7 @@ were pixel-identical.
 ### Final Status
 
 `PASS` — Slice A validated and merged on 2026-09-23: owner visual approval received; PR #322 final head
-`7a07a9a8` squash-merged to `main` as `ffebc0c5`; exact-head and post-merge `main` CI green. GitHub #321 remains
-open because Slice B (anchored compact ↔ expanded transition) is deferred and needs separate owner approval.
+`7a07a9a8` squash-merged to `main` as `ffebc0c5`. Exact-head: Flutter CI and the required attribution guard
+passed; the non-required GitHub Advanced Security check failed with an infrastructure error (no code-scanning
+analysis). Post-merge `main` Flutter CI passed. GitHub #321 remains open because Slice B (anchored compact ↔
+expanded transition) is deferred and needs separate owner approval.
