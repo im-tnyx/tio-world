@@ -10,7 +10,7 @@ This document defines where code should live in `tio-world`.
 | :--- | :--- |
 | `apps/app` | Flutter Android and iOS phone app shell, bootstrap, route composition, providers, and platform entry wiring. |
 | `apps/wear` | Flutter Wear OS companion app. |
-| `apps/shared` | Pure Dart models, durable entities/value objects, cross-platform contracts, use cases, result/error types, and shared utilities. Workout canonical IDs/entities/snapshots follow this boundary per ADR-0011. |
+| `apps/shared` | Pure Dart models, entities, repository contracts, use cases, result/error types, and shared utilities. Workout canonical IDs/entities/snapshots follow this boundary per ADR-0011. |
 | `apps/core` | Flutter design system, app shell UI, route contracts, reusable widgets, theme tokens, constants, and extensions. |
 | `apps/features/home` | Home overview, prepared section composition, and future Home-owned workflows. |
 | `apps/features/auth` | Auth feature package and session entry flows. |
