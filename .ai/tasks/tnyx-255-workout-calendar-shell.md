@@ -2,7 +2,7 @@
 
 ## Status
 
-IN PROGRESS — OWNER-APPROVED TOP-BAR CALENDAR PARITY
+REVIEW — IMPLEMENTATION + CI PASS / DEVICE REVIEW DEFERRED
 
 ## Baseline
 
@@ -118,3 +118,25 @@ Still out of scope: Workout completion/schedule dots, Rest Day, Week x/y, Traini
 - Workout page test proves Core controller/range/week-start wiring;
 - app composition test proves `ShellTab.workout` renders the compact visible month and the same Today glyph/action behavior;
 - latest-head Flutter CI must pass before handoff.
+
+
+## Final validation — top-bar parity continuation
+
+Validated runtime/test head: `2984084c3bcb2ba688efb2ec85e585ffc5dfe1a3`
+
+GitHub Flutter CI run 2703: PASS
+
+- workspace bootstrap: PASS;
+- Flutter analyze: PASS;
+- Dart analyze: PASS;
+- Flutter tests: PASS;
+- Dart tests: PASS;
+- source-head branch audit: 19 commits ahead / 0 behind `main`;
+- PR mergeability before handoff: mergeable;
+- Core calendar source changes: none;
+- Supabase migration/schema changes: none;
+- fake Workout completion/schedule/rest/history state: none.
+
+The Workout shell now mirrors the approved Meal Diary calendar navigation contract: centred compact visible month/year, viewport-aware return-to-Today action using the same current-day calendar glyph treatment, jump-to-Today behavior, app-global week start, and local-day refresh across midnight/app resume.
+
+Owner confirmed the existing calendar and approved this exact Meal Diary-parity top-bar direction. A later physical-device/pixel review is deferred because the owner cannot inspect the device UI at this time; do not treat that deferred check as permission to redesign the locked parity behavior.
