@@ -1,6 +1,7 @@
 # TNYX-269 W3A1 — Exercise catalog data foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-24
 **Primary owner:** `apps/features/workout` (domain/data only)
 **Affected platforms:** Workout feature package; no runtime UI, routing or rendered change
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-24 the owner approved the W3A split (after the W3A readiness audit returned `READY_FOR_OWNER_APPROVAL`) and authorized W3A1 only, through Draft PR and exact-head review. W3A2 is not authorized.
+**Approval evidence:** On 2026-09-24 the owner approved the W3A split (after the W3A readiness audit returned `READY_FOR_OWNER_APPROVAL`) and authorized W3A1 only, through Draft PR and exact-head review; Ready for Review and the PR #335 merge were separately authorized the same day. W3A2 is not authorized.
 **Approved product/UI/data-shape boundaries:** Workout-owned catalog row DTO/validation, mapping to canonical `Exercise`, `ExerciseCatalog`, repository contract, pure search/filter query and tests with synthetic fixtures.
 **Explicit non-changes:** no real asset loading/`AssetBundle` source, asset move/registration or pubspec asset change; no catalog version/envelope; no UI, presentation controller, router/route contract, Library or Workout Home entry; no media, standards, Supabase/persistence, Favorites/Custom/Folders or Exercise Detail; no `apps/core`, `apps/app` or `apps/shared` change.
 
@@ -20,22 +21,22 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Review owner:** Independent exact-head review by the task agent; Codex (supplemental)
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
-**Branch:** `tnyx/tnyx-269-w3a1-exercise-catalog-data-foundation`
-**HEAD SHA:** base `origin/main` = `74032ddb7a8ffceec367c79ec9e9e4464be4ba97`; live branch tip is authoritative
+**Branch:** `tnyx/tnyx-269-w3a1-exercise-catalog-data-foundation` (merged; retained, deletion separately gated)
+**HEAD SHA:** merged PR head `e9f2b81466e81b7f04b236e1842ffa1818f8182d` on base `74032ddb`; squash merge commit on `main` `8cd61a48d650ce832ac311af767416c03304fc26` (GitHub-verified)
 **Observed working-tree state:** clean except the protected untracked owner assets above
-**Observed uncommitted/dirty files:** protected owner assets only
-**PR / tracker:** Draft PR [#335](https://github.com/im-tnyx/tio-world/pull/335), attached only to Linear TNYX-269 (W3A1, `In Progress`) under parent TNYX-261 (`In Progress`); W3A2 = TNYX-270 (`Backlog`, blocked by TNYX-269). Live PR/tracker state is authoritative
-**Current implementation state:** Implemented, validated and independently reviewed in Draft PR #335
-**Relevant execution surface:** `apps/features/workout/lib/src/{domain,data}/exercises/**`, `apps/features/workout/test/{domain,data}/exercises/**`, barrels, this brief/index
-**Validation completed at SHA:** source `186606eae4b8c8daebc35c1ff14314d33bdedd58` (review fix R1; section 6). The following evidence-only commit changes this brief alone
-**Validation remaining:** None locally; remote checks on the live PR head are read before any Ready/merge. Codex is supplemental, not a gate
-**Current blocker:** None
-**Open review finding IDs:** None (R1 resolved, section 6)
-**Next exact action:** Owner authorization for PR #335 Ready / merge. Do not start TNYX-270.
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #335](https://github.com/im-tnyx/tio-world/pull/335) merged 2026-09-24T19:16:32Z (squash). Linear TNYX-269 `Done` (set by the GitHub integration on merge; moved to `In Review` manually at Ready). Parent TNYX-261 stays `In Progress`; W3A2 TNYX-270 stays `Backlog`.
+**Current implementation state:** Validated. The Exercise catalog data foundation is on `main`: row DTO/parser, `ExerciseCatalog` (built-in refs only), `ExerciseCatalogRepository`, `DecodedRowsExerciseCatalogRepository`, `ExerciseCatalogQuery`, `InvalidExerciseCatalogException`.
+**Relevant execution surface:** `apps/features/workout/lib/src/{domain,data}/exercises/**`, `apps/features/workout/test/{domain,data}/exercises/**`
+**Validation completed at SHA:** source validated at `186606ea` (section 6); later commits changed only this brief. Exact head `e9f2b814`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS, Codex review with no findings, 0 unresolved threads
+**Validation remaining:** None.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (5× `CAPIError 400`, no code-scanning analysis): no real security finding, not a security pass.
+**Open review finding IDs:** None (R1 resolved)
+**Next exact action:** None for W3A1 (archived). W3A2 (TNYX-270) needs licence/source/attribution evidence, asset move/registration approval, a catalog versioning decision, and visible UI / route presentation approval before a readiness audit.
 
 ## Global UI / Design-System Guardrail
 
@@ -141,4 +142,13 @@ Remote evidence at `b5a78278` (Draft PR #335, brief-only change over the source 
 
 ## 7. Final Handoff
 
-`REVIEW` — Draft PR #335. W3A1 success does not make W3A2 licensing-ready; TNYX-270 stays gated by licence/source/attribution evidence, asset move/registration, catalog versioning, and visible UI / route presentation approval.
+### Final Outcome
+
+- Workout-owned catalog foundation maps decoded rows to canonical shared `Exercise` values; the DTO stays inside the data boundary and `Exercise` has no JSON knowledge.
+- One invalid or duplicate row fails the whole catalog with row/field diagnostics; `ExerciseCatalog` holds built-in (`CatalogExerciseRef`) exercises only.
+- Search is `displayName`-only; filters are `muscleGroup`, `primaryEquipment`, `category`; archived exercises are hidden from browse.
+- No catalog asset bundled/moved/registered, no UI/routing/media/standards/persistence; owner assets untouched; synthetic fixtures only.
+
+### Final Status
+
+`Validated` — merged via PR #335 (`8cd61a48`). Archived 2026-09-24. W3A1 success does not make W3A2 licensing-ready; TNYX-270 stays gated by licence/source/attribution evidence, asset move/registration, catalog versioning, and visible UI / route presentation approval.
