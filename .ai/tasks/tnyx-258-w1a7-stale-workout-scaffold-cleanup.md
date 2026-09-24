@@ -1,6 +1,6 @@
 # TNYX-258 W1A7 — Stale shared Workout scaffold cleanup
 
-**Status:** In progress — owner-authorized deletion-only implementation
+**Status:** In progress — deletion implemented and validated locally; PR review pending
 **Primary owner:** `apps/shared` (deletion only)
 **Affected platforms:** Shared pure-Dart package consumed by phone, Wear and feature packages; no runtime/UI change
 
@@ -24,14 +24,14 @@
 **HEAD SHA:** base `origin/main` = `2725d5abab10747ce1fbd3b6a3f208042878d8fb` (unchanged since readiness); live branch tip is authoritative
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/` (unrelated; preserve)
 **Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear TNYX-258 (child of TNYX-78); PR not yet opened
-**Current implementation state:** Governance commit first; scaffold deletion follows the fresh consumer audit
+**PR / tracker:** Linear TNYX-258 `In Progress` (child of TNYX-78, which stays `In Progress`); Draft PR opened from this branch — live PR state is authoritative
+**Current implementation state:** Governance commit `dd652bb2`; deletion commit `50b8658d` removes exactly the 11 target files; no replacement code
 **Relevant execution surface:** `apps/shared/lib/workout.dart`, `apps/shared/lib/src/workout/**`, this brief, `.ai/tasks/README.md`
-**Validation completed at SHA:** readiness audit only at `2725d5ab` (see section 2)
-**Validation remaining:** all implementation validation (section 6)
+**Validation completed at SHA:** `50b8658d` (section 6)
+**Validation remaining:** exact-head PR checks and review
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Section 5 step 2 (fresh consumer audit).
+**Next exact action:** Audit exact-head PR checks/review; merge needs separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -140,14 +140,14 @@ Pure subtraction inside `apps/shared`. `shared.dart` is untouched because it nev
 
 Not applicable; no runtime or UI behavior.
 
-## 5. Implementation Plan (requires owner authorization)
+## 5. Implementation Plan
 
-- [ ] 1. Fresh reconstruction: `git fetch origin --prune`, `git status --short --branch`, confirm `origin/main` SHA; preserve `apps/core/assets/exercises/`; create `tnyx/tnyx-258-w1a7-stale-workout-scaffold-cleanup` from fresh `origin/main`; commit this brief + README row first.
-- [ ] 2. Repeat the section 2 inventory and consumer audit on the fresh base; confirm no newer W1A1+ files exist under the target paths. Any real consumer → stop as `BLOCKED`.
-- [ ] 3. `git rm` exactly the 11 target files; no other `apps/**` change.
-- [ ] 4. Re-scan for `tio_shared/workout.dart`, `src/workout`, and the six stale symbols in runtime/test code.
-- [ ] 5. Validate (section 6).
-- [ ] 6. Quality review of the diff: changed-file list = 11 deletions + task records (+ at most a minimal canonical-doc wording fix if a statement became false).
+- [x] 1. Fresh reconstruction: `git fetch origin --prune`, `git status --short --branch`, confirm `origin/main` SHA; preserve `apps/core/assets/exercises/`; create `tnyx/tnyx-258-w1a7-stale-workout-scaffold-cleanup` from fresh `origin/main`; commit this brief + README row first.
+- [x] 2. Repeat the section 2 inventory and consumer audit on the fresh base; confirm no newer W1A1+ files exist under the target paths. Any real consumer → stop as `BLOCKED`.
+- [x] 3. `git rm` exactly the 11 target files; no other `apps/**` change.
+- [x] 4. Re-scan for `tio_shared/workout.dart`, `src/workout`, and the six stale symbols in runtime/test code.
+- [x] 5. Validate (section 6).
+- [x] 6. Quality review of the diff: changed-file list = 11 deletions + task records (+ at most a minimal canonical-doc wording fix if a statement became false).
 - [ ] 7. Push and open a Draft PR per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; move TNYX-258 to `In Progress`/`In Review` as real state changes; keep TNYX-78 `In Progress`.
 
 ## 6. Quality Review
@@ -168,9 +168,25 @@ Plus the push-template scope audit (`merge-base --is-ancestor`, commit list, cha
 
 ### Validation Run
 
+Base `origin/main` `2725d5ab` (unchanged since readiness). Results at `50b8658d`:
+
 ```text
-Readiness audit only (section 2) at 2725d5ab. Implementation validation not run.
+fresh pre-delete audit: inventory 11 tracked files, 0 untracked; external runtime/test
+  consumers 0; shared.dart workout export none; wear/watchOS/config refs 0
+post-delete scan: 0 matches in code/config; remaining matches are Markdown only
+  (ADR-0011, D-019, MODULE_OWNERSHIP, archived W1A0 brief, tnyx-66/tnyx-188 Nutrition
+  briefs, this brief)
+git diff --check 2725d5ab...HEAD                          PASS
+bash scripts/check_commit_attribution.sh 2725d5ab HEAD    PASS
+merge-base --is-ancestor origin/main HEAD                 PASS
+per package, mirroring flutter-ci.yml (pub get --enforce-lockfile; flutter analyze --no-pub
+  or dart analyze .; flutter test --no-pub or dart test):
+  apps/shared, apps/core, apps/app, apps/wear, all 12 apps/features/*
+  pub get 16/16 PASS; analyze 16/16 "No issues found"; tests PASS in the 14 packages with
+  a test dir (coaching, welcome have none); tio_shared 104 tests
 ```
+
+Local melos is 8.x while `melos.yaml` targets the CI pin 2.9.0, so the equivalent per-package CI commands were run instead of `melos bootstrap/analyze/test`; Flutter CI on the PR runs the melos form. `flutter pub get` regenerated a tracked Wear `GeneratedPluginRegistrant.java` (pre-existing plugin-list drift); it was restored and is not part of this slice.
 
 ### Review Findings and Resolution
 
@@ -182,17 +198,19 @@ Readiness audit only (section 2) at 2725d5ab. Implementation validation not run.
 
 ### Changed Files
 
-Readiness: this brief and `.ai/tasks/README.md` only.
+- `.ai/tasks/tnyx-258-w1a7-stale-workout-scaffold-cleanup.md`, `.ai/tasks/README.md` (governance)
+- deleted: `apps/shared/lib/workout.dart` and the 10 files under `apps/shared/lib/src/workout/**` listed in *Target Paths*
 
 ### Actual Behavior
 
-No change. Scaffold still present on `main`.
+No runtime, UI, routing, Supabase or asset change. `tio_shared` public API (`shared.dart`) unchanged. W1A1 not started. Owner assets `apps/core/assets/exercises/` untouched.
 
 ### Known Limitations
 
 - Nutrition briefs keep historical references to the scaffold by design.
 - W1A1 (canonical Workout IDs/value objects) follows W1A7 and needs its own authorization.
+- `docs/MODULE_OWNERSHIP.md` says the scaffold is non-canonical "pending the isolated W1A7 cleanup slice"; after merge, refresh that clause in post-merge archive hygiene (not changed here to keep the slice deletion-only).
 
 ### Final Status
 
-`REVIEW` — readiness complete; awaiting "authorize W1A7 implementation".
+`REVIEW` — implementation and local validation complete; exact-head PR review and merge authorization pending. Do not mark Validated or TNYX-258 Done before merge.
