@@ -17,14 +17,14 @@
 **Planning owner:** Current task agent
 **Implementation owner:** Claude (receiving agent)
 **Review owner:** Owner (im-tnyx) deep review of `065ee279`; independent final review by Claude
-**Implementation ownership state:** Implementation complete; in review (Draft PR). Linear stays `In Progress` until the PR is marked Ready, per the TNYX-258/259 convention; the index uses the allowed `In progress` value because `.ai/tasks/README.md` has no review status
+**Implementation ownership state:** Implementation complete; in review (Draft PR). The index uses the allowed `In progress` value because `.ai/tasks/README.md` has no review status
 **Ownership transition:** Codex → Claude (unexpected takeover, 2026-09-24). Verified before any edit: clean branch at `eb4d6acf`, in sync with origin, no staged or dirty files except the protected owner assets, Draft PR #333 open on this head, TNYX-260 `In Progress`, same approved W1A2 scope, no concurrent implementation owner. No source file was changed by the takeover.
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
 **Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model`
 **HEAD SHA:** Implementation `f58097e3`, test hardening `c6e58dfb`, on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; live PR head is authoritative
 **Observed working-tree state:** Clean after implementation commit except protected untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** Protected owner assets only; they remain untouched and excluded
-**PR / tracker:** Linear TNYX-260 `In Progress` with Draft PR [#333](https://github.com/im-tnyx/tio-world/pull/333) attached; live PR state is authoritative
+**PR / tracker:** Linear TNYX-260 `In Review` (moved outside this agent at 2026-09-24T16:37Z, alongside the owner deep review) with Draft PR [#333](https://github.com/im-tnyx/tio-world/pull/333) attached; live PR and tracker state are authoritative
 **Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented, validated, independently reviewed, and in Draft PR #333
 **Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`, this brief/index
 **Validation completed at SHA:** `c6e58dfbb6c6064cb1c44dc3882a8adae0e6337d` (section 6). The following evidence-only commit changes this brief alone and is revalidated at the live PR head
