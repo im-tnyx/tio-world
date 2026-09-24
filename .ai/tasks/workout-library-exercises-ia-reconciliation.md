@@ -35,11 +35,11 @@
 **Observed uncommitted/dirty files:** none besides the owner assets
 **PR / tracker:** Linear reconciliation applied (below); Draft docs PR opened from this branch — live PR state is authoritative
 **Current implementation state:** Linear done; docs reconciled and D-020 added
-**Relevant execution surface:** `docs/screens/{library,workout,exercise-search,routine-library,README}.md`, `.ai/DECISIONS.md`, this brief, `.ai/tasks/README.md`
-**Validation completed at SHA:** docs commit (section 6)
-**Validation remaining:** exact-head PR checks and review
+**Relevant execution surface:** `docs/screens/{library,workout,exercise-search,routine-library,README}.md`, `docs/{ROADMAP,MVP_ACCEPTANCE}.md`, `.ai/DECISIONS.md`, this brief, `.ai/tasks/README.md`
+**Validation completed at SHA:** content `7d76eaa5b037a687040fca0465cfe38cad4d6bb3` (section 6); the following evidence-only commit changes this brief alone and is revalidated at the live PR head
+**Validation remaining:** exact-head PR checks and Codex re-review on the live PR head
 **Current blocker:** None
-**Open review finding IDs:** None
+**Open review finding IDs:** None (R1–R5 resolved, section 6)
 **Next exact action:** Exact-head Draft PR review; Ready/merge need separate owner authorization.
 
 ## Global UI / Design-System Guardrail
@@ -108,21 +108,31 @@ Patched: TNYX-76 (IA, `SetPrescription`/`PerformedSet`, sequencing), TNYX-79 (ta
 
 ### Validation Run
 
+At content SHA `7d76eaa5b037a687040fca0465cfe38cad4d6bb3` (earlier run at `43cccda1` is historical):
+
 ```text
 git diff --check origin/main...HEAD                          PASS
 bash scripts/check_commit_attribution.sh origin/main HEAD    PASS
-relative Markdown links in all changed/new docs              PASS
-stale-term audit (WorkoutContentTab, [ Explore ] [ Library ], WorkoutSet, Routine Library):
+relative Markdown links in all changed/new docs (14 files)   PASS
+stale-term audit (Current:, current access, Library filter/scroll, nested Exercise Search,
+  WorkoutContentTab, [ Explore ] [ Library ], WorkoutSet, Routine Library):
   no normative occurrence left; remaining hits are ADR-0011/D-019 retirements, this brief's
-  superseded notes, Routines-capability links, and ADR-0005/D-014 wording that D-020 clarifies
+  superseded notes, D-010/D-014 rows that D-020 clarifies, and start-workflow launcher lines
+  in MODULE_OWNERSHIP/UX_UI_SYSTEM that mean the Routines capability
 Flutter tests: not run (docs-only)
 ```
 
 ### Review Findings and Resolution
 
+Codex review of `43cccda1` on PR #331 (5 × P2). Fixes in `47173351` and `7d76eaa5`.
+
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | — | None | — | — |
+| R1 | P2 | Resolved | ROADMAP/MVP_ACCEPTANCE still describe only Routine Library and nested Exercise Search | `43cccda1` | Phase 3 and Workout MVP now list Library, dedicated Exercises (W3A list/search/filters, W3B detail) and builder picker |
+| R2 | P2 | Resolved | `library.md` labels an unimplemented path `Current` | `43cccda1` | `Initial target` plus "not at runtime yet"; D-020, brief and PR body use planned wording |
+| R3 | P2 | Resolved | Routines return-state named as Library filter/scroll | `43cccda1` | Routines list search/filter/scroll state; Routines browse/list state |
+| R4 | P2 | Resolved | `Validation completed at SHA` not an exact SHA | `43cccda1` | Exact content SHA recorded above |
+| R5 | P2 | Resolved | Exercise detail not gated to W3B | `43cccda1` | `exercise-search.md` Incremental Delivery; workout.md, ROADMAP, MVP and D-020 aligned |
 
 ## 7. Final Handoff
 
@@ -130,6 +140,7 @@ Flutter tests: not run (docs-only)
 
 - new `docs/screens/library.md`; `docs/screens/{exercise-search,routine-library,workout,README,home}.md`
 - `docs/MODULE_OWNERSHIP.md`, `docs/UX_UI_SYSTEM.md`, `.ai/architecture-summary.md` (Routine Library → Workout Library in promotion lines only)
+- `docs/ROADMAP.md` Phase 3 Workout items and `docs/MVP_ACCEPTANCE.md` Workout MVP (review fix R1)
 - `.ai/DECISIONS.md` (new D-020); this brief and `.ai/tasks/README.md`
 - unchanged: ADR-0005, ADR-0011, D-014, runtime, router, Supabase, owner assets
 
