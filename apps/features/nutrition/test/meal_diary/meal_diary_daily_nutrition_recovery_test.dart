@@ -67,9 +67,8 @@ void main() {
     );
 
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
-    final decoration = calendar.decorationBuilder!(DateTime(2026, 9, 13));
-    expect(decoration, isNotNull);
-    expect(decoration!.progress, 0);
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(calendar.decorationBuilder!(DateTime(2026, 9, 13)), isNull);
   });
 
   testWidgets(
@@ -97,8 +96,8 @@ void main() {
     var calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
     expect(calendar.decorationBuilder, isNotNull);
     expect(
-      calendar.decorationBuilder!(DateTime(2026, 9, 13))?.progress,
-      0,
+      calendar.decorationBuilder!(DateTime(2026, 9, 13)),
+      isNull,
     );
 
     mealLogs.failRangeReads = true;
@@ -132,8 +131,8 @@ void main() {
     calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
     expect(calendar.decorationBuilder, isNotNull);
     expect(
-      calendar.decorationBuilder!(DateTime(2026, 9, 13))?.progress,
-      0,
+      calendar.decorationBuilder!(DateTime(2026, 9, 13)),
+      isNull,
     );
   });
 

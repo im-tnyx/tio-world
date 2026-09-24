@@ -457,6 +457,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       final eaten = summary?.eatenCaloriesKcal;
       final target = summary?.targetCaloriesKcal;
       if (progress == null ||
+          progress <= 0 ||
           eaten == null ||
           target == null ||
           target <= 0) {
