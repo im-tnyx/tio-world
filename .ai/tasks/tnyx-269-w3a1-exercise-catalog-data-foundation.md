@@ -28,14 +28,14 @@
 **HEAD SHA:** base `origin/main` = `74032ddb7a8ffceec367c79ec9e9e4464be4ba97`; live branch tip is authoritative
 **Observed working-tree state:** clean except the protected untracked owner assets above
 **Observed uncommitted/dirty files:** protected owner assets only
-**PR / tracker:** Linear TNYX-269 (W3A1, `In Progress`) under parent TNYX-261 (`In Progress`); W3A2 = TNYX-270 (`Backlog`, blocked by TNYX-269)
-**Current implementation state:** Implemented and locally validated; Draft PR next
+**PR / tracker:** Draft PR [#335](https://github.com/im-tnyx/tio-world/pull/335), attached only to Linear TNYX-269 (W3A1, `In Progress`) under parent TNYX-261 (`In Progress`); W3A2 = TNYX-270 (`Backlog`, blocked by TNYX-269). Live PR/tracker state is authoritative
+**Current implementation state:** Implemented, validated and independently reviewed in Draft PR #335
 **Relevant execution surface:** `apps/features/workout/lib/src/{domain,data}/exercises/**`, `apps/features/workout/test/{domain,data}/exercises/**`, barrels, this brief/index
 **Validation completed at SHA:** source `6b66ad01c1fbde3fb2fc94f88e3856b2998a4945` (section 6; the committed tree is the validated tree). The following evidence-only commit changes this brief alone
-**Validation remaining:** remote exact-head checks and review on the Draft PR
+**Validation remaining:** None locally; remote checks on the live PR head are read before any Ready/merge. Codex is supplemental, not a gate
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Push, open the Draft PR, collect exact-head checks and review. Ready/merge need separate owner authorization.
+**Next exact action:** Owner authorization for PR #335 Ready / merge. Do not start TNYX-270.
 
 ## Global UI / Design-System Guardrail
 
@@ -98,7 +98,7 @@ apps/features/workout/test/{domain,data}/exercises/*_test.dart
 - [x] Domain: `ExerciseCatalog`, `ExerciseCatalogQuery`, repository interface, invalid-catalog exception + issues.
 - [x] Data: row DTO, parser, decoded-rows repository.
 - [x] Tests with synthetic fixtures.
-- [ ] Validate, audit scope, commit, push, Draft PR, exact-head review.
+- [x] Validate, audit scope, commit, push, Draft PR, exact-head review.
 
 ## 6. Quality Review
 
@@ -129,6 +129,8 @@ content: no owner catalog rows/titles/media URLs/legacy IDs (synthetic fixtures 
 
 `melos` was not used (local Melos 8.x does not match the CI pin); the package-scoped Flutter commands above cover the only changed package.
 
+Remote evidence at `b5a78278` (Draft PR #335, brief-only change over the source commit): Commit attribution guard, Attribution guard runner and Flutter CI `Analyze and test` succeeded; `github-advanced-security` failed with the known TNYX-256 unsupported-model outage (5× `CAPIError 400`, no code-scanning analysis) — not a security pass, no finding. Independent review of the full diff: no findings; 0 review threads. Codex (supplemental): quota-limited, no review.
+
 ## 7. Final Handoff
 
-`REVIEW` pending Draft PR. W3A1 success does not make W3A2 licensing-ready; TNYX-270 stays gated by licence/source/attribution evidence, asset move/registration, catalog versioning, and visible UI / route presentation approval.
+`REVIEW` — Draft PR #335. W3A1 success does not make W3A2 licensing-ready; TNYX-270 stays gated by licence/source/attribution evidence, asset move/registration, catalog versioning, and visible UI / route presentation approval.
