@@ -48,7 +48,9 @@ The foundation below is partially implemented. Checked items describe verified r
 
 - [ ] The user can browse/select a Routine or Program and begin an active session only from that selected context.
 - [ ] Active Workout supports the approved logging behavior, set input, rest timing, and interruption/recovery states for its scope.
-- [ ] Exercise Search is nested within the Routine/Program flow and uses a validated, versioned local JSON catalog before any remote catalog is approved.
+- [ ] A dedicated Exercises browsing surface (Library → Exercises) offers catalog/list, search and basic filters; Exercise detail becomes available only once its W3B capability is ready, with no placeholder detail destination before then.
+- [ ] A Routine/Program exercise picker context adds or replaces exercises inside the builder and never starts a session.
+- [ ] Both contexts use the same canonical Exercise and a validated, versioned local JSON catalog before any remote catalog is approved.
 - [ ] Workout data remains behind Workout-owned contracts and repositories; screens do not expose database DTOs.
 - [ ] Muscle heatmap, radar map, and calendar remain unavailable until recorded workout history exists; their empty/data-insufficient state is defined.
 

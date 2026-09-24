@@ -12,10 +12,11 @@ Give the user one canonical hub for their Workout content: Programs, Routines, T
 ## Entry Points
 
 ```text
-Current:  Bottom navigation → Workout → Workout Home → Library entry → Library
-Future:   Bottom navigation → Library (only if enabled in configurable navigation) → same Library
+Initial target:  Bottom navigation → Workout → Workout Home → Library entry → Library
+Future:          Bottom navigation → Library (only if enabled in configurable navigation) → same Library
 ```
 
+- Neither entry exists at runtime yet; the initial target is the approved first entry, not implemented behavior.
 - There is exactly one Library route/screen. Every entry point opens the same route with the same state and ownership.
 - Library is not a bottom-nav destination now. A future configurable navigation with three to six destinations may expose it only after its destination-readiness audit ([ADR-0005](../adr/0005-adaptive-navigation-and-action-entry.md), D-014, D-020).
 - The Workout Home → Library entry remains available whether or not Library is selected in bottom navigation.
@@ -34,7 +35,7 @@ Library
 - Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
 - **Programs** and **Routines** are relationship/ownership views (for example Saved/Following and Created by me) over canonical Program and Routine identities; create/edit hands off to their builders. See [Programs](programs.md) and [Routines](routine-library.md).
 - **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
-- **Exercises** opens the dedicated Exercises screen. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercise Search](exercise-search.md).
+- **Exercises** opens the dedicated Exercises screen. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
 
 ## Data And State Boundaries
 
@@ -59,7 +60,7 @@ Library                 → navigation + user relationship/collection queries + 
 ## Related
 
 - [Workout](workout.md)
-- [Exercise Search](exercise-search.md)
+- [Exercises and Exercise Picker](exercise-search.md)
 - [Routines](routine-library.md)
 - [Programs](programs.md)
 - [Module ownership](../MODULE_OWNERSHIP.md)

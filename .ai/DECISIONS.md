@@ -56,7 +56,7 @@ See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalo
 
 ## D-020 — Target, not implemented: Workout Library is one canonical route; Exercises is a dedicated capability
 
-Workout Library is one canonical Workout-owned route/screen. Current access is from a Workout Home entry; it is not a bottom-nav destination and not a Workout-local content tab. Future configurable navigation (D-014, [ADR-0005](../docs/adr/0005-adaptive-navigation-and-action-entry.md)) may promote the same route, and the Workout Home entry remains when it does not.
+Workout Library is one canonical Workout-owned route/screen. Its approved initial entry is a Workout Home entry (planned, not yet implemented); it is not a bottom-nav destination and not a Workout-local content tab. Future configurable navigation (D-014, [ADR-0005](../docs/adr/0005-adaptive-navigation-and-action-entry.md)) may promote the same route, and the Workout Home entry remains when it does not.
 
 Library sections (Programs, Routines, Plans / Training Plans, Exercises) are capability-gated and Library owns none of their truth. Exercises is a dedicated capability/screen reached from Library; the Library root does not render the Exercise catalog. Where older text says "Routine Library" for this promoted route, it means this Workout Library. D-014 and ADR-0005 are otherwise unchanged.
 

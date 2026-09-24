@@ -9,10 +9,22 @@
 
 One Exercise capability serves two presentation contexts. Both use the same canonical `Exercise`, the same Workout-owned Exercise repository/catalog data and the same search/filter primitives where appropriate; neither creates a second Exercise truth.
 
-1. **Dedicated Exercises screen** — browse, search, filter and open Exercise detail. Later W3 slices add Favorites, Custom Exercises and Folders here.
+1. **Dedicated Exercises screen** — browse, search and filter the catalog. Exercise detail is added by its own slice. Later W3 slices add Favorites, Custom Exercises and Folders here.
 2. **Exercise picker/search context** — choose, add or replace an Exercise while building or editing a Routine/Program.
 
 Neither context is a direct workout-start surface, and neither replaces the Routine/Program-first flow.
+
+## Incremental Delivery
+
+The long-term Exercises capability includes detail, but each slice ships only what exists:
+
+```text
+W3A (TNYX-261)  catalog/list, search, basic filters; no detail destination
+W3B (TNYX-262)  Exercise detail; detail navigation becomes available once W3B is ready
+W3C-W3E         Favorites, Custom Exercises, Folders
+```
+
+W3A must not ship a fake, placeholder or unimplemented detail destination. Until W3B is ready, picker mode confirms a selection from the result list.
 
 ## Entry And Exit Flow
 
@@ -23,7 +35,7 @@ Workout Home
   -> Library
   -> Exercises
   -> dedicated Exercises screen (list / search / filters)
-  -> Exercise detail
+  -> Exercise detail (once W3B is ready)
 ```
 
 Exercise picker context:
@@ -32,7 +44,7 @@ Exercise picker context:
 Routine or Program builder
   -> add / replace exercise in a selected session
   -> Exercise picker/search
-  -> exercise detail / confirm selection
+  -> confirm selection (exercise detail once W3B is ready)
   -> return to the owning Routine or Program editor
 ```
 
@@ -56,7 +68,7 @@ The exact physical asset path, loader, schema-validation implementation, standar
 - Search field with debounced, local matching by display name and approved aliases.
 - Filters such as muscle group, equipment, category, and difficulty only when the bundled schema supports them.
 - Result list with name, key metadata, and a concise visual/text cue.
-- Exercise detail with validated instructions, equipment and target area; picker mode adds selection confirmation.
+- Exercise detail (W3B) with validated instructions, equipment and target area; picker mode adds selection confirmation.
 - Empty search, no-filter-match, malformed/missing catalog, and unavailable-media fallback states.
 
 ## Data And Safety Boundaries
@@ -71,6 +83,7 @@ The exact physical asset path, loader, schema-validation implementation, standar
 
 - The dedicated Exercises screen is reached from Library → Exercises; picker mode is reached only from a Routine/Program exercise-selection context.
 - Both contexts use the same canonical Exercise and catalog repository.
+- W3A exposes no Exercise detail navigation; detail appears only once W3B is ready.
 - In picker mode, search, filter, selection, and return preserve the editor state safely.
 - The catalog supports stable IDs and schema validation, with a clear fallback when content cannot load.
 - Text labels and details remain usable without images, colour, or network access.

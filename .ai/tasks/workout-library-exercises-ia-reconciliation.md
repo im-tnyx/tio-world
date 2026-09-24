@@ -14,11 +14,11 @@
 
 ### Owner-approved IA
 
-- Library is one canonical Workout-owned route/screen. Current access: `Workout → Workout Home → Library entry → Library`. It is not a bottom-nav destination now.
+- Library is one canonical Workout-owned route/screen. Approved initial target (planned, not implemented): `Workout → Workout Home → Library entry → Library`. It is not a bottom-nav destination now.
 - A future configurable 3–6 bottom navigation (TNYX-131) may expose Library; it must open the same route/state, and the Workout Home → Library path remains when Library is not selected.
 - Workout Home offers independent Library (and later Explore) entries; the earlier Workout-local `[ Explore ] [ Library ]` content tabs are superseded.
 - Library root: Programs, Routines, Plans / Training Plans, Exercises. Sections are capability-gated; no placeholders. Library owns no Program/Routine/TrainingPlan/Exercise truth.
-- `Library → Exercises` opens a dedicated Exercises screen (catalog, search, filters, detail; later Favorites, Custom, Folders). Library does not render the Exercise catalog/list.
+- `Library → Exercises` opens a dedicated Exercises screen (W3A catalog, search, filters; W3B detail; later Favorites, Custom, Folders). Library does not render the Exercise catalog/list.
 - Exercises first, Explore later.
 
 ## Active Handoff

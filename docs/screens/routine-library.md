@@ -22,8 +22,8 @@ This document covers the Routines capability and the Routines section reached th
 
 - Routines are reached from Workout Home → Library → Routines, and from Routine/Program builders where a Routine is chosen. Library route promotion into future custom navigation is governed by [Library](library.md), not by this document.
 - Selecting a Routine creates a deliberate next step: schedule it, add it to a Program, or start that selected Routine's session. There is no global Quick Start action.
-- A user returns to the exact Library filter/scroll state after inspecting a Routine.
-- Whether entered from Library, Workout Home or a builder, Routines use the same filter/detail state and Workout-owned start command.
+- A user returns to the exact Routines list search/filter/scroll state after inspecting a Routine.
+- Whether entered from Library, Workout Home or a builder, Routines use the same Routines browse/list state (search, filter, detail) and Workout-owned start command.
 
 ## Data And States
 
@@ -36,7 +36,7 @@ This document covers the Routines capability and the Routines section reached th
 - Exercise selection is nested in Routine/Program editing and cannot start a workout by itself.
 - A selected Routine is explicit before any active-workout session begins.
 - List and detail remain usable with text-only metadata and accessible focus order.
-- Library entry points (Workout Home or a future promoted Library) change only navigation presentation, not Routine data, filters, save behavior, or active-workout ownership.
+- Library entry points (Workout Home or a future promoted Library) change only navigation presentation, not Routine data, Routines browse/list state, save behavior, or active-workout ownership.
 
 ## Related
 
