@@ -46,7 +46,7 @@ The built-in Exercise catalog is versioned bundled application content. Its stab
 
 The catalog is intentionally evolving: adding future well-formed `ex_*` identities must not require redesigning Workout domain contracts. Once an `ex_*` ID ships, rename/reuse/removal requires an explicit migration rather than deriving identity again from mutable title/slug content.
 
-Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. Existing unused shared Workout scaffolds are scheduled for isolated W1A7 cleanup before new W1A1 identities are introduced.
+Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. The unused shared Workout scaffolds were removed by the isolated W1A7 cleanup (TNYX-258) before new W1A1 identities are introduced.
 
 D-010 is unchanged by this decision. Its standalone Quick Start prohibition conflicts with newer tracked Workout launch/scheduling flows; W1A0 records that conflict but does not decide it. Q1 (Quick Start / ad-hoc WorkoutSession) remains deferred to W1A6a. If Q1 materially changes D-010, retain D-010 as `Superseded` and add a new decision that names it.
 
