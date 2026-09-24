@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Remote GitHub state verified against `main@0f0851901f3ffbd6f663a1803f9ca642ccb07095`; no matching TNYX-201 branch or open PR existed before branch creation.
 **Branch:** `tnyx/tnyx-271-a1-group-app-startup-runtime-files-under-appstartup`
-**HEAD SHA:** `0f0851901f3ffbd6f663a1803f9ca642ccb07095` at branch creation; refresh after commits.
+**HEAD SHA:** Implementation checkpoint `d0e6d6544ffa93a81d957b8d5924d9c0ebf970c6`; this task-brief refresh follows it.
 **Observed working-tree state:** Not applicable in this tool session. Changes are applied directly through the GitHub remote API, so there is no local working tree to inspect with `git status --short --branch`. Remote base/head, branch collision, open PR state, and exact file SHAs were inspected instead.
 **Observed uncommitted/dirty files:** Not applicable to remote GitHub API execution.
 **PR / tracker:** Linear TNYX-271; GitHub #337; parents TNYX-201 / GitHub #260.
-**Current implementation state:** Readiness audit complete; child trackers created/reconciled; source moves not started.
+**Current implementation state:** Approved startup trio moved to `app/startup/`; live imports/tests and the current modular-tree doc reference are updated. Exact API compare shows only the 10 task-scoped changed files.
 **Relevant execution surface:** `apps/app/lib/app/bootstrap.dart`, `apps/app/lib/app/startup_hydration.dart`, `apps/app/lib/app/supabase_runtime_config.dart`, their live imports/tests, and current canonical path documentation.
-**Validation completed at SHA:** Read-only inspection only; no implementation validation yet.
-**Validation remaining:** reference audit, focused tests, `cd apps/app && flutter analyze && flutter test`, `git diff --check`, final exact-head review.
+**Validation completed at SHA:** API scope/ancestry review at implementation checkpoint `d0e6d6544ffa93a81d957b8d5924d9c0ebf970c6`: `main@0f085190` is the merge base; branch is 13 ahead / 0 behind; complete changed-file list is task-scoped; GitHub recognizes all three source moves as renames.
+**Validation remaining:** remote CI for Flutter analyze/tests, final exact-head PR review, and whitespace/diff hygiene through available GitHub evidence. Local `flutter`/`git diff --check` cannot run in this remote-only connector session.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Move the three classified APP COMPOSITION files under `apps/app/lib/app/startup/` and update only required live references.
+**Next exact action:** Open a Draft PR using the audited parent/head evidence, then inspect exact-head CI/review state.
 
 ## Global UI / Design-System Guardrail
 
@@ -148,11 +148,11 @@ No user-visible or accessibility state changes. Import/path mistakes must fail a
 
 ## 5. Implementation Plan
 
-- [ ] Create `apps/app/lib/app/startup/` by moving the three approved files.
-- [ ] Fix relative imports in moved files.
-- [ ] Update live production/test imports.
-- [ ] Classify and update current canonical live-tree docs only if needed.
-- [ ] Confirm old live paths/imports have zero references.
+- [x] Create `apps/app/lib/app/startup/` by moving the three approved files.
+- [x] Fix relative imports in moved files.
+- [x] Update live production/test imports.
+- [x] Classify and update current canonical live-tree docs only if needed.
+- [x] Confirm known live old-path references from the readiness audit are updated; historical validated evidence remains intentionally unchanged.
 - [ ] Run focused + app validation and diff hygiene.
 - [ ] Review exact branch diff against #337 scope.
 - [ ] Reconcile Linear/GitHub/task handoff.
@@ -162,7 +162,13 @@ No user-visible or accessibility state changes. Import/path mistakes must fail a
 ### Validation Run
 
 ```text
-Not run yet.
+Remote/API validation at implementation checkpoint d0e6d654:
+- base/merge-base: main@0f0851901f3ffbd6f663a1803f9ca642ccb07095
+- ahead / behind: 13 / 0
+- changed files: 10, all TNYX-271 scoped
+- three startup source files recognized as renames
+- no UI, route, provider-contract, schema, or feature-package source diff
+- local flutter analyze/test and git diff --check: not runnable in this remote GitHub connector environment; CI still required
 ```
 
 ### Review Findings and Resolution
@@ -174,11 +180,20 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-271-app-startup-organization.md`
+- `apps/app/lib/app/network_providers.dart`
+- `apps/app/lib/app/startup/bootstrap.dart` (rename)
+- `apps/app/lib/app/startup/startup_hydration.dart` (rename + relative imports)
+- `apps/app/lib/app/startup/supabase_runtime_config.dart` (rename)
+- `apps/app/lib/main.dart`
+- `apps/app/test/app/startup_hydration_test.dart`
+- `apps/app/test/app/supabase_runtime_config_test.dart`
+- `docs/FLUTTER_MODULAR_STRUCTURE.md`
 
 ### Actual Behavior
 
-Pending. Intended behavior is unchanged.
+Runtime behavior is intentionally unchanged. Only file locations/import paths and the current modular-tree documentation were updated.
 
 ### Known Limitations
 
@@ -186,4 +201,4 @@ Remote GitHub API execution has no local working tree, so local `git status --sh
 
 ### Final Status
 
-`PARTIAL`
+`PARTIAL` — implementation and API scope review complete; remote CI and PR review are still required.
