@@ -109,25 +109,30 @@ void main() {
       expect(exercise.levels, ['future_level']);
     });
 
-    test('rejects blank scalar taxonomy values', () {
-      expect(() => createExercise(muscleGroup: ' '), throwsArgumentError);
-      expect(() => createExercise(primaryEquipment: '\t'), throwsArgumentError);
-      expect(() => createExercise(category: '\n'), throwsArgumentError);
+    test('rejects empty and whitespace-only scalar taxonomy values', () {
+      for (final value in ['', ' ', '\t', '\n']) {
+        expect(() => createExercise(muscleGroup: value), throwsArgumentError,
+            reason: value);
+        expect(
+            () => createExercise(primaryEquipment: value), throwsArgumentError,
+            reason: value);
+        expect(() => createExercise(category: value), throwsArgumentError,
+            reason: value);
+      }
     });
 
-    test('rejects blank collection taxonomy values', () {
-      expect(
-        () => createExercise(primaryMuscles: const [' ']),
-        throwsArgumentError,
-      );
-      expect(
-        () => createExercise(secondaryMuscles: const ['\t']),
-        throwsArgumentError,
-      );
-      expect(
-        () => createExercise(levels: const ['\n']),
-        throwsArgumentError,
-      );
+    test('rejects empty and whitespace-only collection taxonomy values', () {
+      for (final value in ['', ' ', '\t', '\n']) {
+        expect(
+            () => createExercise(primaryMuscles: [value]), throwsArgumentError,
+            reason: value);
+        expect(() => createExercise(secondaryMuscles: [value]),
+            throwsArgumentError,
+            reason: value);
+        expect(() => createExercise(levels: ['beginner', value]),
+            throwsArgumentError,
+            reason: value);
+      }
     });
 
     test('rejects duplicate collection taxonomy values', () {
@@ -235,6 +240,12 @@ void main() {
         createExercise(primaryEquipment: 'dumbbell'),
         createExercise(category: 'power'),
         createExercise(levels: const ['advanced']),
+        createExercise(muscleGroup: null),
+        createExercise(primaryEquipment: null),
+        createExercise(category: null),
+        createExercise(primaryMuscles: const []),
+        createExercise(secondaryMuscles: const []),
+        createExercise(levels: const []),
       ];
 
       for (final variant in variants) {
