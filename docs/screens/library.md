@@ -35,7 +35,7 @@ Library
 - Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
 - **Programs** and **Routines** are relationship/ownership views (for example Saved/Following and Created by me) over canonical Program and Routine identities; create/edit hands off to their builders. See [Programs](programs.md) and [Routines](routine-library.md).
 - **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
-- **Exercises** opens the dedicated Exercises screen. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
+- **Exercises** opens the dedicated Exercises screen. It is the first real section: W6A adds the Library route and this entry after W3A delivers the Exercises route/screen, which has no user-facing entry until then. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
 
 ## Data And State Boundaries
 

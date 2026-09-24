@@ -19,12 +19,13 @@ Neither context is a direct workout-start surface, and neither replaces the Rout
 The long-term Exercises capability includes detail, but each slice ships only what exists:
 
 ```text
-W3A (TNYX-261)  catalog/list, search, basic filters; no detail destination
+W3A (TNYX-261)  Exercises route/screen + catalog/list, search, basic filters; no detail destination
+W6A (TNYX-266)  Library route with Workout Home entry; Library -> Exercises makes W3A user-reachable
 W3B (TNYX-262)  Exercise detail; detail navigation becomes available once W3B is ready
 W3C-W3E         Favorites, Custom Exercises, Folders
 ```
 
-W3A must not ship a fake, placeholder or unimplemented detail destination. Until W3B is ready, picker mode confirms a selection from the result list.
+W3A is the capability foundation: it delivers the Exercises route, screen and catalog repository, but has no user-facing entry of its own. The user-facing `Workout Home → Library → Exercises` path arrives with W6A. W3A must not add an interim entry elsewhere (for example a temporary Workout Home shortcut) without owner approval, and must not ship a fake, placeholder or unimplemented detail destination. Until W3B is ready, picker mode confirms a selection from the result list.
 
 ## Entry And Exit Flow
 
@@ -81,7 +82,7 @@ The exact physical asset path, loader, schema-validation implementation, standar
 
 ## Acceptance Criteria
 
-- The dedicated Exercises screen is reached from Library → Exercises; picker mode is reached only from a Routine/Program exercise-selection context.
+- The dedicated Exercises screen is reached from Library → Exercises (user-facing once W6A lands); picker mode is reached only from a Routine/Program exercise-selection context.
 - Both contexts use the same canonical Exercise and catalog repository.
 - W3A exposes no Exercise detail navigation; detail appears only once W3B is ready.
 - In picker mode, search, filter, selection, and return preserve the editor state safely.
