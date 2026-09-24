@@ -1,6 +1,7 @@
 # TNYX-258 W1A7 — Stale shared Workout scaffold cleanup
 
-**Status:** In progress — deletion implemented and validated locally; PR review pending
+**Status:** Validated
+**Completion date:** 2026-09-24
 **Primary owner:** `apps/shared` (deletion only)
 **Affected platforms:** Shared pure-Dart package consumed by phone, Wear and feature packages; no runtime/UI change
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice (bounded W1 sub-slice under TNYX-78)
 **Approval status:** Approved
-**Approval evidence:** Owner authorized W1A7 readiness planning (tracker + this brief) on 2026-09-24. The W1A7 direction itself (Q6) was approved in W1A0 and recorded in ADR-0011 §5 / D-019. Owner authorized W1A7 implementation (deletion → validate → Draft PR → review readiness) on 2026-09-24; merge and W1A1 remain separately gated.
+**Approval evidence:** Owner authorized W1A7 readiness planning (tracker + this brief) on 2026-09-24. The W1A7 direction itself (Q6) was approved in W1A0 and recorded in ADR-0011 §5 / D-019. Owner authorized W1A7 implementation (deletion → validate → Draft PR → review readiness) on 2026-09-24 and the PR #327 merge separately on 2026-09-24; W1A1 remains separately gated.
 **Approved product/UI/data-shape boundaries:** Delete only the audited legacy scaffold listed under *Target Paths*. No replacement code.
 **Explicit non-changes:** no replacement models; no W1A1 IDs / `ExerciseRef`; no `SetPrescription` / `PerformedSet`; no repository redesign; no feature UI; no Supabase; no Exercise JSON/assets (`apps/core/assets/exercises/` untracked owner files are never edited, staged, moved, stashed, reset or deleted); no Quick Start decision (D-010 / W1A6a); no persistence/migrations; no historical-doc rewrite (including Nutrition briefs); no automation/integration config change.
 
@@ -17,21 +18,21 @@
 **Planning owner:** current planning agent
 **Implementation owner:** current implementation agent
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune`
-**Branch:** `tnyx/tnyx-258-w1a7-stale-workout-scaffold-cleanup` from fresh `origin/main`
-**HEAD SHA:** base `origin/main` = `2725d5abab10747ce1fbd3b6a3f208042878d8fb` (unchanged since readiness); live branch tip is authoritative
+**Branch:** `tnyx/tnyx-258-w1a7-stale-workout-scaffold-cleanup` (merged; deleted locally and on origin after merge at owner request)
+**HEAD SHA:** merged PR head `3d21d68ee332f2ed4dc48d003784b3c4bc7e0fdb` on base `2725d5ab`; squash merge commit on `main` `ec1f94c97ecb4ced499080842e5c939bf09ae594` (tree identical to the PR head)
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/` (unrelated; preserve)
-**Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear TNYX-258 `In Progress` (child of TNYX-78, which stays `In Progress`); Draft PR opened from this branch — live PR state is authoritative
-**Current implementation state:** Governance commit `dd652bb2`; deletion commit `50b8658d` removes exactly the 11 target files; no replacement code
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #327](https://github.com/im-tnyx/tio-world/pull/327) merged 2026-09-24T09:04:20Z (squash). Linear TNYX-258 `Done` (set by the GitHub integration on merge); parent TNYX-78 stays `In Progress` for the remaining W1 slices.
+**Current implementation state:** Validated. The 11 stale scaffold files are gone from `main`; `MODULE_OWNERSHIP.md` and D-019 record the removal; no replacement code.
 **Relevant execution surface:** `apps/shared/lib/workout.dart`, `apps/shared/lib/src/workout/**`, this brief, `.ai/tasks/README.md`
-**Validation completed at SHA:** `50b8658d` (section 6)
-**Validation remaining:** exact-head PR checks and review
-**Current blocker:** None
+**Validation completed at SHA:** local workspace at `50b8658d` (section 6); exact head `3d21d68e`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS, exact-head Codex review with no findings, 0 unresolved threads
+**Validation remaining:** None.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (no analysis ran), not a branch finding.
 **Open review finding IDs:** None (W1A7-C1 Resolved)
-**Next exact action:** Audit exact-head PR checks/review; merge needs separate owner authorization.
+**Next exact action:** None for W1A7 (archived). Next W1 slice is W1A1 canonical Workout IDs/value objects, which needs a fresh audit and separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -148,7 +149,7 @@ Not applicable; no runtime or UI behavior.
 - [x] 4. Re-scan for `tio_shared/workout.dart`, `src/workout`, and the six stale symbols in runtime/test code.
 - [x] 5. Validate (section 6).
 - [x] 6. Quality review of the diff: changed-file list = 11 deletions + task records (+ at most a minimal canonical-doc wording fix if a statement became false).
-- [ ] 7. Push and open a Draft PR per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; move TNYX-258 to `In Progress`/`In Review` as real state changes; keep TNYX-78 `In Progress`.
+- [x] 7. Pushed and opened Draft PR #327 per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; moved TNYX-258 `In Progress` → `In Review` as real state changed; marked Ready after exact-head gates; owner-authorized squash merge `ec1f94c9` set TNYX-258 `Done`; TNYX-78 stayed `In Progress`.
 
 ## 6. Quality Review
 
@@ -213,4 +214,4 @@ No runtime, UI, routing, Supabase or asset change. `tio_shared` public API (`sha
 
 ### Final Status
 
-`REVIEW` — implementation and local validation complete; exact-head PR review and merge authorization pending. Do not mark Validated or TNYX-258 Done before merge.
+`PASS` — Validated and merged via PR #327 (`ec1f94c9`); archived 2026-09-24.
