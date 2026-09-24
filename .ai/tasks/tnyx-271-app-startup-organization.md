@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Remote GitHub state verified against `main@0f0851901f3ffbd6f663a1803f9ca642ccb07095`; no matching TNYX-201 branch or open PR existed before branch creation.
 **Branch:** `tnyx/tnyx-271-a1-group-app-startup-runtime-files-under-appstartup`
-**HEAD SHA:** Implementation checkpoint `d0e6d6544ffa93a81d957b8d5924d9c0ebf970c6`; this task-brief refresh follows it.
+**HEAD SHA:** PR checkpoint `3fda7d52a438954f3779e3a32a58803a764a63c0`; this final handoff refresh follows it and does not modify production/test source.
 **Observed working-tree state:** Not applicable in this tool session. Changes are applied directly through the GitHub remote API, so there is no local working tree to inspect with `git status --short --branch`. Remote base/head, branch collision, open PR state, and exact file SHAs were inspected instead.
 **Observed uncommitted/dirty files:** Not applicable to remote GitHub API execution.
-**PR / tracker:** Linear TNYX-271; GitHub #337; parents TNYX-201 / GitHub #260.
+**PR / tracker:** Draft PR #338; Linear TNYX-271; GitHub #337; parents TNYX-201 / GitHub #260.
 **Current implementation state:** Approved startup trio moved to `app/startup/`; live imports/tests and the current modular-tree doc reference are updated. Exact API compare shows only the 10 task-scoped changed files.
 **Relevant execution surface:** `apps/app/lib/app/bootstrap.dart`, `apps/app/lib/app/startup_hydration.dart`, `apps/app/lib/app/supabase_runtime_config.dart`, their live imports/tests, and current canonical path documentation.
-**Validation completed at SHA:** API scope/ancestry review at implementation checkpoint `d0e6d6544ffa93a81d957b8d5924d9c0ebf970c6`: `main@0f085190` is the merge base; branch is 13 ahead / 0 behind; complete changed-file list is task-scoped; GitHub recognizes all three source moves as renames.
-**Validation remaining:** remote CI for Flutter analyze/tests, final exact-head PR review, and whitespace/diff hygiene through available GitHub evidence. Local `flutter`/`git diff --check` cannot run in this remote-only connector session.
+**Validation completed at SHA:** API scope/ancestry + full PR diff review at PR checkpoint `3fda7d52a438954f3779e3a32a58803a764a63c0`: `main@0f085190` is the merge base; branch is 14 ahead / 0 behind; complete changed-file list is 10 task-scoped files; GitHub recognizes all three source moves as renames. Required attribution guard passed. Supplemental `github-advanced-security` failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced. Flutter CI analyze stages passed and tests were still running at this checkpoint.
+**Validation remaining:** exact-head Flutter CI after this docs-only handoff refresh. Local `flutter`/`git diff --check` cannot run in this remote-only connector session; API ancestry/changed-file/full-diff evidence is recorded instead.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Open a Draft PR using the audited parent/head evidence, then inspect exact-head CI/review state.
+**Next exact action:** Inspect exact-head CI/review state on Draft PR #338. Do not mark Ready or merge without separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -92,6 +92,7 @@ Update required relative imports, production/test imports, and only current cano
 
 | Current file | Current responsibility | Canonical owner | Classification | Target | Action | Risk/tests |
 | --- | --- | --- | --- | --- | --- | --- |
+| INFRA-1 | Info | Deferred | Supplemental `github-advanced-security` failed before code analysis because configured model was unsupported. | `3fda7d52` | No source fix; log shows `400 The requested model is not supported`. Required product CI remains separate. |
 | `app/bootstrap.dart` | tiny `runApp` bootstrap wrapper | `apps/app` | APP COMPOSITION | `app/startup/bootstrap.dart` | Move | compile/import check |
 | `app/startup_hydration.dart` | startup load coordination for existing controllers | `apps/app` | APP COMPOSITION | `app/startup/startup_hydration.dart` | Move | existing startup hydration tests |
 | `app/supabase_runtime_config.dart` | client-safe runtime configuration + initialization | `apps/app` | APP COMPOSITION | `app/startup/supabase_runtime_config.dart` | Move | existing runtime-config tests |
@@ -154,21 +155,25 @@ No user-visible or accessibility state changes. Import/path mistakes must fail a
 - [x] Classify and update current canonical live-tree docs only if needed.
 - [x] Confirm known live old-path references from the readiness audit are updated; historical validated evidence remains intentionally unchanged.
 - [ ] Run focused + app validation and diff hygiene.
-- [ ] Review exact branch diff against #337 scope.
-- [ ] Reconcile Linear/GitHub/task handoff.
+- [x] Review exact branch diff against #337 scope.
+- [x] Reconcile Linear/GitHub/task handoff through Draft PR creation; final status remains In Progress while exact-head CI is pending.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Remote/API validation at implementation checkpoint d0e6d654:
+Remote/API validation at PR checkpoint 3fda7d52:
+- Draft PR: #338
 - base/merge-base: main@0f0851901f3ffbd6f663a1803f9ca642ccb07095
-- ahead / behind: 13 / 0
+- ahead / behind: 14 / 0
 - changed files: 10, all TNYX-271 scoped
-- three startup source files recognized as renames
+- complete PR diff reviewed; three startup source files recognized as renames
 - no UI, route, provider-contract, schema, or feature-package source diff
-- local flutter analyze/test and git diff --check: not runnable in this remote GitHub connector environment; CI still required
+- Commit attribution guard: PASS
+- Flutter CI: Flutter analyze PASS; Dart analyze PASS; tests still running at checkpoint
+- github-advanced-security: infrastructure/model failure before analysis (400 requested model not supported); no code finding
+- local flutter analyze/test and git diff --check: not runnable in this remote GitHub connector environment
 ```
 
 ### Review Findings and Resolution
