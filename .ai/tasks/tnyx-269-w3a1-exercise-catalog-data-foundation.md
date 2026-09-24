@@ -29,13 +29,13 @@
 **Observed working-tree state:** clean except the protected untracked owner assets above
 **Observed uncommitted/dirty files:** protected owner assets only
 **PR / tracker:** Linear TNYX-269 (W3A1, `In Progress`) under parent TNYX-261 (`In Progress`); W3A2 = TNYX-270 (`Backlog`, blocked by TNYX-269)
-**Current implementation state:** Not started
+**Current implementation state:** Implemented and locally validated; Draft PR next
 **Relevant execution surface:** `apps/features/workout/lib/src/{domain,data}/exercises/**`, `apps/features/workout/test/{domain,data}/exercises/**`, barrels, this brief/index
-**Validation completed at SHA:** None yet
-**Validation remaining:** All (section 6)
+**Validation completed at SHA:** source `6b66ad01c1fbde3fb2fc94f88e3856b2998a4945` (section 6; the committed tree is the validated tree). The following evidence-only commit changes this brief alone
+**Validation remaining:** remote exact-head checks and review on the Draft PR
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Implement the domain/data foundation and tests.
+**Next exact action:** Push, open the Draft PR, collect exact-head checks and review. Ready/merge need separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -95,9 +95,9 @@ apps/features/workout/test/{domain,data}/exercises/*_test.dart
 
 ## 5. Implementation Plan
 
-- [ ] Domain: `ExerciseCatalog`, `ExerciseCatalogQuery`, repository interface, invalid-catalog exception + issues.
-- [ ] Data: row DTO, parser, decoded-rows repository.
-- [ ] Tests with synthetic fixtures.
+- [x] Domain: `ExerciseCatalog`, `ExerciseCatalogQuery`, repository interface, invalid-catalog exception + issues.
+- [x] Data: row DTO, parser, decoded-rows repository.
+- [x] Tests with synthetic fixtures.
 - [ ] Validate, audit scope, commit, push, Draft PR, exact-head review.
 
 ## 6. Quality Review
@@ -113,8 +113,22 @@ bash scripts/check_commit_attribution.sh origin/main HEAD
 
 ### Validation Evidence
 
-Pending.
+At source SHA `6b66ad01c1fbde3fb2fc94f88e3856b2998a4945` (tracked tree identical to the validated working tree):
+
+```text
+dart format --set-exit-if-changed <14 changed Dart files>    PASS (0 changed after one format pass)
+cd apps/features/workout && flutter pub get                   PASS (no tracked drift)
+cd apps/features/workout && flutter analyze                   PASS (No issues found!)
+flutter test test/data/exercises test/domain/exercises        PASS (40 tests)
+cd apps/features/workout && flutter test                      PASS (59 tests)
+git diff --check origin/main...HEAD                           PASS
+bash scripts/check_commit_attribution.sh origin/main HEAD     PASS
+scope: only apps/features/workout lib/test + this brief/index; no assets, pubspec, core, app, shared or supabase
+content: no owner catalog rows/titles/media URLs/legacy IDs (synthetic fixtures only)
+```
+
+`melos` was not used (local Melos 8.x does not match the CI pin); the package-scoped Flutter commands above cover the only changed package.
 
 ## 7. Final Handoff
 
-Pending. W3A1 success does not make W3A2 licensing-ready.
+`REVIEW` pending Draft PR. W3A1 success does not make W3A2 licensing-ready; TNYX-270 stays gated by licence/source/attribution evidence, asset move/registration, catalog versioning, and visible UI / route presentation approval.
