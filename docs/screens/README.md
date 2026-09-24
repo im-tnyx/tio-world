@@ -49,7 +49,7 @@ The `go_router` `StatefulShellRoute` shell derives its visible guided layout and
 
 Coach becomes eligible in Phase 7. Profile launches from the Home avatar; Settings launches from Profile or an approved in-feature action.
 
-A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
+A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library (one canonical route, see [Library](library.md)) and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
 
 The first implementation uses the approved device-local App Mode preference and
 defers account sync until a Supabase profile contract exists. The routed flow
@@ -93,8 +93,9 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Login](login.md) | Implemented UI; authentication is mocked. |
 | Phone | [Home](home.md) | Route placeholder; target specification. |
 | Phone | [Workout](workout.md) | Route placeholder; target specification. |
-| Phone | [Exercise Search](exercise-search.md) | Future nested Workout Routine/Program selection screen. |
-| Phone | [Routine Library](routine-library.md) | Future nested Workout browse and editor flow. |
+| Phone | [Library](library.md) | Future canonical Workout Library route; capability-gated Programs/Routines/Plans/Exercises sections. |
+| Phone | [Exercises and Exercise Picker](exercise-search.md) | Future dedicated Exercises screen (Library → Exercises) and builder exercise picker. |
+| Phone | [Routines](routine-library.md) | Future Routines capability, reached through Library → Routines. |
 | Phone | [Programs](programs.md) | Future nested multi-week Workout program flow. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine/Program execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |

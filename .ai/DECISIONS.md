@@ -54,6 +54,14 @@ D-010 is unchanged by this decision. Its standalone Quick Start prohibition conf
 
 See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
 
+## D-020 — Target, not implemented: Workout Library is one canonical route; Exercises is a dedicated capability
+
+Workout Library is one canonical Workout-owned route/screen. Its approved initial entry is a Workout Home entry (planned, not yet implemented); it is not a bottom-nav destination and not a Workout-local content tab. Future configurable navigation (D-014, [ADR-0005](../docs/adr/0005-adaptive-navigation-and-action-entry.md)) may promote the same route, and the Workout Home entry remains when it does not.
+
+Library sections (Programs, Routines, Plans / Training Plans, Exercises) are capability-gated and Library owns none of their truth. Exercises is a dedicated capability/screen reached from Library; the Library root does not render the Exercise catalog. Where older text says "Routine Library" for this promoted route, it means this Workout Library. D-010's nested Exercise Search remains true: the dedicated Exercises screen and the builder picker are both nested Workout contexts over one Exercise capability, never a primary tab. Exercise detail ships only with its own capability slice (W3B), not with the first Exercises screen (W3A). D-010, D-014 and ADR-0005 are otherwise unchanged.
+
+See [Library](../docs/screens/library.md).
+
 ## Maintenance Rules
 
 - Add a decision only when it changes product scope, module ownership, platform strategy, data flow, or a durable implementation constraint.

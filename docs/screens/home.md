@@ -45,7 +45,7 @@ AppMode + NavigationLayout + FeatureAvailability + UserDataState
 - The guided layout uses the mode-specific cards above.
 - If an eligible feature has its own selected root destination, Home may show a compact status/next-action preview instead of a large entry section.
 - If an eligible feature is not directly selected, Home may promote its entry card so the feature remains reachable.
-- If Routine Library or Meal Plan is promoted as a future shortcut, Home reduces duplicate browse/plan hero treatment but may still show time-sensitive status.
+- If Workout Library or Meal Plan is promoted as a future shortcut, Home reduces duplicate browse/plan hero treatment but may still show time-sensitive status.
 - Active workout, failed/pending save, and other important ongoing states are not hidden because a destination was removed or reordered.
 
 Sections are reusable feature-summary components backed by prepared contracts. Home does not read a raw tab index or implement domain calculations.
