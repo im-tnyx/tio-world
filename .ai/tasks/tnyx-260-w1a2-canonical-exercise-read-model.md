@@ -21,13 +21,13 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
 **Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model`
-**HEAD SHA:** Base `f2e930c6ee1bc04590372c4986988219c8cb9952`; validated implementation is not committed yet
-**Observed working-tree state:** Intended W1A2 source/governance files plus protected untracked owner assets `apps/core/assets/exercises/`
-**Observed uncommitted/dirty files:** Six intended W1A2 files; protected owner assets remain untouched and excluded
+**HEAD SHA:** Implementation commit `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; the subsequent task-evidence commit may be the branch tip
+**Observed working-tree state:** Clean after implementation commit except protected untracked owner assets `apps/core/assets/exercises/`
+**Observed uncommitted/dirty files:** Protected owner assets only; they remain untouched and excluded
 **PR / tracker:** Linear TNYX-260 `In Progress`; no PR yet
 **Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented and locally validated
 **Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`, this brief/index
-**Validation completed at SHA:** Working tree on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; exact committed SHA pending
+**Validation completed at SHA:** `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` (same source tree validated immediately before commit)
 **Validation remaining:** Commit attribution/diff audit, remote exact-head checks, and Codex review
 **Current blocker:** None
 **Open review finding IDs:** None
@@ -143,7 +143,8 @@ bash scripts/check_commit_attribution.sh origin/main HEAD
 - `melos bootstrap`: unavailable because Melos 8.6.0 did not recognize the repository's current workspace configuration; direct package validation above was used instead.
 - `git diff --check`: PASS before commit; only Git line-ending conversion warnings were emitted.
 - Validation created no tracked drift and did not touch `apps/core/assets/exercises/`.
-- Exact committed-head diff, attribution, remote CI, and Codex review evidence remain pending.
+- Implementation commit: `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3`.
+- Exact branch-tip diff, attribution, remote CI, and Codex review evidence remain pending.
 
 ## 7. Final Handoff
 
