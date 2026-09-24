@@ -31,10 +31,10 @@
 **PR / tracker:** Draft PR [#335](https://github.com/im-tnyx/tio-world/pull/335), attached only to Linear TNYX-269 (W3A1, `In Progress`) under parent TNYX-261 (`In Progress`); W3A2 = TNYX-270 (`Backlog`, blocked by TNYX-269). Live PR/tracker state is authoritative
 **Current implementation state:** Implemented, validated and independently reviewed in Draft PR #335
 **Relevant execution surface:** `apps/features/workout/lib/src/{domain,data}/exercises/**`, `apps/features/workout/test/{domain,data}/exercises/**`, barrels, this brief/index
-**Validation completed at SHA:** source `6b66ad01c1fbde3fb2fc94f88e3856b2998a4945` (section 6; the committed tree is the validated tree). The following evidence-only commit changes this brief alone
+**Validation completed at SHA:** source `186606eae4b8c8daebc35c1ff14314d33bdedd58` (review fix R1; section 6). The following evidence-only commit changes this brief alone
 **Validation remaining:** None locally; remote checks on the live PR head are read before any Ready/merge. Codex is supplemental, not a gate
 **Current blocker:** None
-**Open review finding IDs:** None
+**Open review finding IDs:** None (R1 resolved, section 6)
 **Next exact action:** Owner authorization for PR #335 Ready / merge. Do not start TNYX-270.
 
 ## Global UI / Design-System Guardrail
@@ -129,7 +129,15 @@ content: no owner catalog rows/titles/media URLs/legacy IDs (synthetic fixtures 
 
 `melos` was not used (local Melos 8.x does not match the CI pin); the package-scoped Flutter commands above cover the only changed package.
 
-Remote evidence at `b5a78278` (Draft PR #335, brief-only change over the source commit): Commit attribution guard, Attribution guard runner and Flutter CI `Analyze and test` succeeded; `github-advanced-security` failed with the known TNYX-256 unsupported-model outage (5× `CAPIError 400`, no code-scanning analysis) — not a security pass, no finding. Independent review of the full diff: no findings; 0 review threads. Codex (supplemental): quota-limited, no review.
+Review fix R1 at `186606ea` (tracked tree identical to the validated working tree): format PASS (0 changed), `flutter analyze` PASS, focused 41 PASS, full Workout 60 PASS.
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| R1 | P2 | Resolved | `ExerciseCatalog` accepted user-created refs, mixing user-owned data into the built-in catalog | `1b949063` | [PR #335 Codex thread](https://github.com/im-tnyx/tio-world/pull/335); factory rejects non-`CatalogExerciseRef` in `186606ea`, with a test |
+
+Remote evidence at `b5a78278` (Draft PR #335, brief-only change over the source commit): Commit attribution guard, Attribution guard runner and Flutter CI `Analyze and test` succeeded; `github-advanced-security` failed with the known TNYX-256 unsupported-model outage (5× `CAPIError 400`, no code-scanning analysis) — not a security pass, no finding. Independent review of the full diff: no findings; 0 review threads. Codex (supplemental): quota-limited on the first attempt; a later owner-triggered review of `1b949063` raised R1.
 
 ## 7. Final Handoff
 
