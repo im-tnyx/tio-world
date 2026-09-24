@@ -33,14 +33,14 @@
 **HEAD SHA:** base `origin/main` = `55463c61160b1d7263465ac4e0e09e564a1055e2`; live branch tip is authoritative
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear reconciliation applied (below); docs PR not yet opened
-**Current implementation state:** Linear done; repository docs in progress
+**PR / tracker:** Linear reconciliation applied (below); Draft docs PR opened from this branch — live PR state is authoritative
+**Current implementation state:** Linear done; docs reconciled and D-020 added
 **Relevant execution surface:** `docs/screens/{library,workout,exercise-search,routine-library,README}.md`, `.ai/DECISIONS.md`, this brief, `.ai/tasks/README.md`
-**Validation completed at SHA:** none yet
-**Validation remaining:** `git diff --check`, attribution, Markdown links, stale-term audit
+**Validation completed at SHA:** docs commit (section 6)
+**Validation remaining:** exact-head PR checks and review
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Reconcile the repository docs.
+**Next exact action:** Exact-head Draft PR review; Ready/merge need separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -101,7 +101,7 @@ Patched: TNYX-76 (IA, `SetPrescription`/`PerformedSet`, sequencing), TNYX-79 (ta
 
 - [x] 1. Fresh reconstruction; confirm no competing issues/PRs.
 - [x] 2. Linear creation, relations and patches.
-- [ ] 3. Reconcile repository docs and add D-020.
+- [x] 3. Reconcile repository docs and add D-020.
 - [ ] 4. Validate; push; Draft PR; exact-head review gate. Merge needs separate owner authorization.
 
 ## 6. Quality Review
@@ -109,7 +109,13 @@ Patched: TNYX-76 (IA, `SetPrescription`/`PerformedSet`, sequencing), TNYX-79 (ta
 ### Validation Run
 
 ```text
-Not run yet.
+git diff --check origin/main...HEAD                          PASS
+bash scripts/check_commit_attribution.sh origin/main HEAD    PASS
+relative Markdown links in all changed/new docs              PASS
+stale-term audit (WorkoutContentTab, [ Explore ] [ Library ], WorkoutSet, Routine Library):
+  no normative occurrence left; remaining hits are ADR-0011/D-019 retirements, this brief's
+  superseded notes, Routines-capability links, and ADR-0005/D-014 wording that D-020 clarifies
+Flutter tests: not run (docs-only)
 ```
 
 ### Review Findings and Resolution
@@ -122,8 +128,11 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- new `docs/screens/library.md`; `docs/screens/{exercise-search,routine-library,workout,README,home}.md`
+- `docs/MODULE_OWNERSHIP.md`, `docs/UX_UI_SYSTEM.md`, `.ai/architecture-summary.md` (Routine Library → Workout Library in promotion lines only)
+- `.ai/DECISIONS.md` (new D-020); this brief and `.ai/tasks/README.md`
+- unchanged: ADR-0005, ADR-0011, D-014, runtime, router, Supabase, owner assets
 
 ### Final Status
 
-`REVIEW` — in progress.
+`REVIEW` — planning/docs complete; exact-head PR review and merge authorization pending. Next implementation-readiness audit after merge: W1A2 (TNYX-260).
