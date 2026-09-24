@@ -48,6 +48,8 @@ The catalog is intentionally evolving: adding future well-formed `ex_*` identiti
 
 Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. The unused shared Workout scaffolds were removed by the isolated W1A7 cleanup (TNYX-258) before new W1A1 identities are introduced.
 
+W1A1 (TNYX-259) identities are exactly `ExerciseRef`, `TrainingPlanId`, `PlannedWorkoutId` and `WorkoutSessionId`. `ExerciseRef` has two distinct variants: a built-in catalog reference over the stable `ex_*` value and a user-created reference over a canonical UUID; neither needs a catalog lookup to be constructed. The three root IDs are distinct UUID-backed types, separated by Dart type rather than prefixes. `RoutineId` stays with W1A3 and `ProgramId` with W1A4. These are identities only; entities, ownership fields and persistence remain with their later slices.
+
 D-010 is unchanged by this decision. Its standalone Quick Start prohibition conflicts with newer tracked Workout launch/scheduling flows; W1A0 records that conflict but does not decide it. Q1 (Quick Start / ad-hoc WorkoutSession) remains deferred to W1A6a. If Q1 materially changes D-010, retain D-010 as `Superseded` and add a new decision that names it.
 
 See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
