@@ -73,6 +73,19 @@ void main() {
     );
   });
 
+  test('rejects user-created exercises', () {
+    expect(
+      () => ExerciseCatalog([
+        Exercise(
+          ref: ExerciseRef.userCreated('3f2c8e4a-9b1d-4c7e-8a5f-1d2e3f4a5b6c'),
+          displayName: 'Synthetic Custom Lift',
+          status: ExerciseStatus.active,
+        ),
+      ]),
+      throwsArgumentError,
+    );
+  });
+
   test('exposes an unmodifiable list', () {
     final catalog = ExerciseCatalog([syntheticExercise('ex_synthetic_a', 'A')]);
 

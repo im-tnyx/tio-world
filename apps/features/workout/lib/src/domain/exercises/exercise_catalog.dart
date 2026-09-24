@@ -2,6 +2,9 @@ import 'package:tio_shared/shared.dart';
 
 /// Validated built-in Exercise catalog of canonical [Exercise] values.
 ///
+/// Only built-in exercises ([CatalogExerciseRef]) belong here; user-created
+/// exercises are separate user-owned data.
+///
 /// [all] keeps every Exercise, including archived ones, in deterministic
 /// display order: display name ignoring case, then [ExerciseRef] value.
 /// Browse and search consumers use `ExerciseCatalogQuery`, which hides
@@ -10,6 +13,13 @@ final class ExerciseCatalog {
   factory ExerciseCatalog(Iterable<Exercise> exercises) {
     final byRef = <ExerciseRef, Exercise>{};
     for (final exercise in exercises) {
+      if (exercise.ref is! CatalogExerciseRef) {
+        throw ArgumentError.value(
+          exercise.ref.value,
+          'exercises',
+          'must contain only built-in catalog exercises',
+        );
+      }
       if (byRef.containsKey(exercise.ref)) {
         throw ArgumentError.value(
           exercise.ref.value,
