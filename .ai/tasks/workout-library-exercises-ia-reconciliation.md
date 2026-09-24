@@ -36,10 +36,10 @@
 **PR / tracker:** Linear reconciliation applied (below); Draft docs PR opened from this branch — live PR state is authoritative
 **Current implementation state:** Linear done; docs reconciled and D-020 added
 **Relevant execution surface:** `docs/screens/{library,workout,exercise-search,routine-library,README}.md`, `docs/{ROADMAP,MVP_ACCEPTANCE}.md`, `.ai/DECISIONS.md`, this brief, `.ai/tasks/README.md`
-**Validation completed at SHA:** content `7d76eaa5b037a687040fca0465cfe38cad4d6bb3` (section 6); the following evidence-only commit changes this brief alone and is revalidated at the live PR head
+**Validation completed at SHA:** content `0653deaa53eb496d3ad455e0d53adecae56c04a9` (section 6); the following evidence-only commit changes this brief alone and is revalidated at the live PR head
 **Validation remaining:** exact-head PR checks and Codex re-review on the live PR head
 **Current blocker:** None
-**Open review finding IDs:** None (R1–R5 resolved, section 6)
+**Open review finding IDs:** None (R1–R6 resolved, section 6)
 **Next exact action:** Exact-head Draft PR review; Ready/merge need separate owner authorization.
 
 ## Global UI / Design-System Guardrail
@@ -108,7 +108,7 @@ Patched: TNYX-76 (IA, `SetPrescription`/`PerformedSet`, sequencing), TNYX-79 (ta
 
 ### Validation Run
 
-At content SHA `7d76eaa5b037a687040fca0465cfe38cad4d6bb3` (earlier run at `43cccda1` is historical):
+At content SHA `0653deaa53eb496d3ad455e0d53adecae56c04a9` (earlier runs at `43cccda1`, `7d76eaa5` and `816a25bb` are historical):
 
 ```text
 git diff --check origin/main...HEAD                          PASS
@@ -124,7 +124,7 @@ Flutter tests: not run (docs-only)
 
 ### Review Findings and Resolution
 
-Codex review of `43cccda1` on PR #331 (5 × P2). Fixes in `47173351` and `7d76eaa5`.
+Codex review of `43cccda1` on PR #331 (5 × P2), fixed in `47173351` and `7d76eaa5`; re-review of `816a25bb` (1 × P2), fixed in `0653deaa`.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
@@ -133,6 +133,7 @@ Codex review of `43cccda1` on PR #331 (5 × P2). Fixes in `47173351` and `7d76ea
 | R3 | P2 | Resolved | Routines return-state named as Library filter/scroll | `43cccda1` | Routines list search/filter/scroll state; Routines browse/list state |
 | R4 | P2 | Resolved | `Validation completed at SHA` not an exact SHA | `43cccda1` | Exact content SHA recorded above |
 | R5 | P2 | Resolved | Exercise detail not gated to W3B | `43cccda1` | `exercise-search.md` Incremental Delivery; workout.md, ROADMAP, MVP and D-020 aligned |
+| R6 | P2 | Resolved | W3A Exercises screen unreachable until W6A adds the Library entry | `816a25bb` | Docs state W3A is the capability foundation (route/screen, no user-facing entry, no interim entry without owner approval) and W6A delivers `Workout Home → Library → Exercises`; matches existing TNYX-261/TNYX-266 scope, no Linear change. Folding a Library entry into W3A would be an owner scope decision |
 
 ## 7. Final Handoff
 
