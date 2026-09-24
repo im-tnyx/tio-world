@@ -149,7 +149,7 @@ Not applicable; no runtime or UI behavior.
 - [x] 4. Re-scan for `tio_shared/workout.dart`, `src/workout`, and the six stale symbols in runtime/test code.
 - [x] 5. Validate (section 6).
 - [x] 6. Quality review of the diff: changed-file list = 11 deletions + task records (+ at most a minimal canonical-doc wording fix if a statement became false).
-- [ ] 7. Push and open a Draft PR per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; move TNYX-258 to `In Progress`/`In Review` as real state changes; keep TNYX-78 `In Progress`.
+- [x] 7. Pushed and opened Draft PR #327 per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; moved TNYX-258 `In Progress` → `In Review` as real state changed; marked Ready after exact-head gates; owner-authorized squash merge `ec1f94c9` set TNYX-258 `Done`; TNYX-78 stayed `In Progress`.
 
 ## 6. Quality Review
 
