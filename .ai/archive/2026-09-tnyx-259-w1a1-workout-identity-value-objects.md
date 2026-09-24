@@ -1,6 +1,7 @@
 # TNYX-259 W1A1 — Canonical Workout identity value objects
 
-**Status:** In progress — implemented and validated locally; Draft PR review pending
+**Status:** Validated
+**Completion date:** 2026-09-24
 **Primary owner:** `apps/shared`
 **Affected platforms:** Shared pure-Dart package (phone, Wear and later approved consumers); no runtime/UI change
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice (bounded W1 sub-slice under TNYX-78)
 **Approval status:** Approved
-**Approval evidence:** Owner approved D1 (root ID set) and D2 (ExerciseRef identity variants) on 2026-09-24 after the read-only W1A1 audit, and authorized tracker/task setup; owner authorized W1A1 implementation (through Draft PR and review-readiness audit) on 2026-09-24. Ready for Review, merge and later slices remain separately gated.
+**Approval evidence:** Owner approved D1 (root ID set) and D2 (ExerciseRef identity variants) on 2026-09-24 after the read-only W1A1 audit, and authorized tracker/task setup; owner authorized W1A1 implementation (through Draft PR and review-readiness audit), then Ready for Review, then the PR #329 merge, each separately on 2026-09-24. Later W1 slices remain separately gated.
 **Approved product/UI/data-shape boundaries:** D1 and D2 below, domain identity value objects only.
 **Explicit non-changes:** no `RoutineId`/`ProgramId`; no Exercise/Routine/Program/TrainingPlan/PlannedWorkout/WorkoutSession entities; no `SetPrescription`/`PerformedSet` fields; no repository interfaces, data sources or controllers; no Supabase, schema, migration, RLS or sync; no catalog loader/parser, asset/schema validation or standards logic; no Quick Start, PlannedWorkout→WorkoutSession cardinality or session timezone/local-date rules; no unknown-ID display/fallback; no UI; no ID generation; owner assets `apps/core/assets/exercises/` read-only (never edited, staged, moved, stashed, reset or deleted).
 
@@ -22,21 +23,21 @@
 **Planning owner:** current planning agent
 **Implementation owner:** current implementation agent
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune`
-**Branch:** `tnyx/tnyx-259-w1a1-workout-identity-value-objects` from fresh `origin/main`
-**HEAD SHA:** base `origin/main` = `789b0d2f5d6c4f806d3ecc1bb3498a3b52b29155`; live branch tip is authoritative
+**Branch:** `tnyx/tnyx-259-w1a1-workout-identity-value-objects` (merged; deleted locally and on origin after merge at owner request)
+**HEAD SHA:** merged PR head `a8f8b117c90214c0dc3278e00e3a58cef21a59f3` on base `789b0d2f`; squash merge commit on `main` `17de0500dd131dbdcd1985a99244ce74d77df2dc` (GitHub-verified; tree identical to the PR head)
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/`
-**Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear TNYX-259 `In Progress` (child of TNYX-78, which stays `In Progress`); Draft PR opened from this branch — live PR state is authoritative
-**Current implementation state:** Governance `1619973c`; source + tests `d9731ec5`; D-019 wording `6613c944`. No replacement entities, persistence or dependency
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #329](https://github.com/im-tnyx/tio-world/pull/329) merged 2026-09-24T10:58:29Z (squash). Linear TNYX-259 `Done` (set by the GitHub integration on merge); parent TNYX-78 stays `In Progress` for the remaining W1 slices.
+**Current implementation state:** Validated. `ExerciseRef` (`CatalogExerciseRef`/`UserCreatedExerciseRef`), `TrainingPlanId`, `PlannedWorkoutId` and `WorkoutSessionId` are on `main` and exported through `shared.dart`; D-019 records the contract. No entities, persistence or dependency.
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/lib/shared.dart`, `apps/shared/test/workout/**`, D-019 wording (see Decisions)
-**Validation completed at SHA:** `6613c944` (section 6)
-**Validation remaining:** exact-head PR checks and review
-**Current blocker:** None
+**Validation completed at SHA:** local workspace at `6613c944` (section 6); exact head `a8f8b117`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS, exact-head Codex review with no findings, 0 review threads
+**Validation remaining:** None.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (no code-scanning analysis produced), not a security pass and not a branch finding.
 **Open review finding IDs:** None
-**Next exact action:** Audit exact-head Draft PR checks/review; Ready for Review and merge need separate owner authorization.
+**Next exact action:** None for W1A1 (archived). The next W1 slice needs a fresh audit and separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -135,11 +136,11 @@ Not applicable; no UI or runtime flow.
 - [x] 4. Add the four test files (section 6 matrix).
 - [x] 5. Minimal D-019 wording naming the D1 types and D2 variants; ADR-0011 unchanged.
 - [x] 6. Validate (section 6) and review the diff for scope, purity and dependency drift.
-- [ ] 7. Push, open Draft PR per `docs/PUSH_TEMPLATE.md` / `.github/PULL_REQUEST_TEMPLATE.md`, run the exact-head review gate; merge needs separate owner authorization.
+- [x] 7. Pushed and opened Draft PR #329; exact-head CI and Codex review clean; marked Ready and moved TNYX-259 to `In Review`; owner-authorized squash merge `17de0500` set TNYX-259 `Done` while TNYX-78 stayed `In Progress`.
 
 ## 6. Quality Review
 
-### Test Matrix (planned)
+### Test Matrix
 
 - `apps/shared/test/workout/exercise_ref_test.dart`: valid catalog, unknown future `ex_*`, digit segments, lowercase and uppercase-normalized UUID; each invalid value listed above plus malformed UUID and surrounding whitespace; `parse` returns the right variant; equality/hash; catalog ≠ user-created; `value` round-trip.
 - `training_plan_id_test.dart`, `planned_workout_id_test.dart`, `workout_session_id_test.dart`: valid UUID (not only v4); blank/whitespace/malformed rejected; lowercase normalization; same value equal, different value unequal, hash consistent; different ID types with identical UUID text are not equal. Compile-time non-substitutability needs no runtime test.
@@ -203,4 +204,4 @@ No runtime, UI, routing, Supabase or asset change. New pure-Dart identity types 
 
 ### Final Status
 
-`REVIEW` — implementation and local validation complete; exact-head PR review, Ready for Review and merge are separate owner gates. Do not mark Validated before merge.
+`PASS` — Validated and merged via PR #329 (`17de0500`); archived 2026-09-24.
