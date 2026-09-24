@@ -1,6 +1,7 @@
 # Workout Library / Exercises / Explore IA reconciliation
 
-**Status:** In progress — planning/docs only
+**Status:** Validated
+**Completion date:** 2026-09-24
 **Primary owner:** Workout planning (`docs/screens/*`, `.ai/DECISIONS.md`, Linear roadmap)
 **Affected platforms:** Phone Workout planning only; no runtime/UI change
 
@@ -26,21 +27,21 @@
 **Planning owner:** current planning agent
 **Implementation owner:** current planning agent (docs/governance only)
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune`
-**Branch:** `tnyx/workout-library-exercises-ia-reconciliation` (no Linear key, so merge cannot change tracker state)
-**HEAD SHA:** base `origin/main` = `55463c61160b1d7263465ac4e0e09e564a1055e2`; live branch tip is authoritative
+**Branch:** `tnyx/workout-library-exercises-ia-reconciliation` (merged via squash in PR #331; no Linear key)
+**HEAD SHA:** merged PR head `6bda1e77a7626d8b50dfa291ae52e5cc7896820b`; squash merge commit on `main` `65353fec3875c57e05db51d90ab2eda8aa1a6b0c`
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear reconciliation applied (below); Draft docs PR opened from this branch — live PR state is authoritative
-**Current implementation state:** Linear done; docs reconciled and D-020 added
+**PR / tracker:** PR #331 merged via squash; Linear reconciliation remains as recorded below and was not changed by this archive handoff
+**Current implementation state:** Validated. Planning/docs reconciliation is on `main`; durable contract exists in D-020 and canonical screen docs; no runtime work remains in this task.
 **Relevant execution surface:** `docs/screens/{library,workout,exercise-search,routine-library,README}.md`, `docs/{ROADMAP,MVP_ACCEPTANCE}.md`, `.ai/DECISIONS.md`, this brief, `.ai/tasks/README.md`
 **Validation completed at SHA:** content `0653deaa53eb496d3ad455e0d53adecae56c04a9` (section 6); the following evidence-only commit changes this brief alone and is revalidated at the live PR head
-**Validation remaining:** exact-head PR checks and Codex re-review on the live PR head
+**Validation remaining:** None for this task. `github-advanced-security` failed before producing code-scanning analysis because of the known TNYX-256 external unsupported-model outage; this is not a security pass.
 **Current blocker:** None
 **Open review finding IDs:** None (R1–R6 resolved, section 6)
-**Next exact action:** Exact-head Draft PR review; Ready/merge need separate owner authorization.
+**Next exact action:** None for this task; next technical gate is a fresh TNYX-260 / W1A2 implementation-readiness audit.
 
 ## Global UI / Design-System Guardrail
 
@@ -102,7 +103,7 @@ Patched: TNYX-76 (IA, `SetPrescription`/`PerformedSet`, sequencing), TNYX-79 (ta
 - [x] 1. Fresh reconstruction; confirm no competing issues/PRs.
 - [x] 2. Linear creation, relations and patches.
 - [x] 3. Reconcile repository docs and add D-020.
-- [ ] 4. Validate; push; Draft PR; exact-head review gate. Merge needs separate owner authorization.
+- [x] 4. Validate; push; exact-head review gate; owner-authorized PR #331 squash merge.
 
 ## 6. Quality Review
 
@@ -120,6 +121,21 @@ stale-term audit (Current:, current access, Library filter/scroll, nested Exerci
   superseded notes, D-010/D-014 rows that D-020 clarifies, and start-workflow launcher lines
   in MODULE_OWNERSHIP/UX_UI_SYSTEM that mean the Routines capability
 Flutter tests: not run (docs-only)
+```
+
+### Final PR Evidence
+
+```text
+PR #331 state                                             MERGED
+PR head                                                   6bda1e77a7626d8b50dfa291ae52e5cc7896820b
+merge commit                                              65353fec3875c57e05db51d90ab2eda8aa1a6b0c
+merge method                                              squash
+Commit attribution guard                                  SUCCESS
+Attribution guard runner                                  SUCCESS
+Codex exact-head review (6bda1e77)                        clean
+unresolved review threads                                 0
+github-advanced-security                                  FAILURE — known TNYX-256 external unsupported-model outage;
+                                                           no code-scanning analysis was produced; not a security pass
 ```
 
 ### Review Findings and Resolution
@@ -145,6 +161,10 @@ Codex review of `43cccda1` on PR #331 (5 × P2), fixed in `47173351` and `7d76ea
 - `.ai/DECISIONS.md` (new D-020); this brief and `.ai/tasks/README.md`
 - unchanged: ADR-0005, ADR-0011, D-014, runtime, router, Supabase, owner assets
 
+### Final Scope
+
+Planning/docs only: no runtime, Flutter UI, router, Supabase, Exercise asset, W1A2 implementation, or W3A implementation change.
+
 ### Final Status
 
-`REVIEW` — planning/docs complete; exact-head PR review and merge authorization pending. Next implementation-readiness audit after merge: W1A2 (TNYX-260).
+`PASS` — planning/docs reconciliation validated and squash-merged via PR #331 (`65353fec`); archived 2026-09-24. Next technical gate is a fresh TNYX-260 / W1A2 implementation-readiness audit.
