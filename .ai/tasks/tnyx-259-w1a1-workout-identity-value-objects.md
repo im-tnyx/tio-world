@@ -1,6 +1,6 @@
 # TNYX-259 W1A1 — Canonical Workout identity value objects
 
-**Status:** In progress — owner-authorized implementation
+**Status:** In progress — implemented and validated locally; Draft PR review pending
 **Primary owner:** `apps/shared`
 **Affected platforms:** Shared pure-Dart package (phone, Wear and later approved consumers); no runtime/UI change
 
@@ -29,14 +29,14 @@
 **HEAD SHA:** base `origin/main` = `789b0d2f5d6c4f806d3ecc1bb3498a3b52b29155`; live branch tip is authoritative
 **Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** none besides the owner assets
-**PR / tracker:** Linear TNYX-259 (child of TNYX-78, which stays `In Progress`; blocked-by TNYX-258 `Done`); PR not yet opened
-**Current implementation state:** Governance commit first; implementation follows
+**PR / tracker:** Linear TNYX-259 `In Progress` (child of TNYX-78, which stays `In Progress`); Draft PR opened from this branch — live PR state is authoritative
+**Current implementation state:** Governance `1619973c`; source + tests `d9731ec5`; D-019 wording `6613c944`. No replacement entities, persistence or dependency
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/lib/shared.dart`, `apps/shared/test/workout/**`, D-019 wording (see Decisions)
-**Validation completed at SHA:** setup audit only at `789b0d2f`
-**Validation remaining:** all implementation validation (section 6)
+**Validation completed at SHA:** `6613c944` (section 6)
+**Validation remaining:** exact-head PR checks and review
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Section 5 step 2.
+**Next exact action:** Audit exact-head Draft PR checks/review; Ready for Review and merge need separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -95,7 +95,7 @@ See *Explicit non-changes*.
 
 ## 4. Architecture Design
 
-### Planned Shape (not yet implemented)
+### Implemented Shape
 
 ```text
 apps/shared/lib/src/workout/
@@ -129,12 +129,12 @@ Not applicable; no UI or runtime flow.
 
 ## 5. Implementation Plan
 
-- [ ] 1. Fresh reconstruction (`git fetch origin --prune`, `git status --short --branch`, `origin/main` SHA); preserve owner assets; create `tnyx/tnyx-259-w1a1-workout-identity-value-objects` from fresh `origin/main`; commit this brief + index row first; move TNYX-259 to `In Progress`.
-- [ ] 2. Re-verify prerequisites, absence of competing types, and the live value-object/UUID precedents.
-- [ ] 3. Implement the planned files and one `shared.dart` export; no other `apps/**` change.
-- [ ] 4. Add the four test files (section 6 matrix).
-- [ ] 5. Minimal D-019 wording naming the D1 types and D2 variants; ADR-0011 unchanged.
-- [ ] 6. Validate (section 6) and review the diff for scope, purity and dependency drift.
+- [x] 1. Fresh reconstruction (`git fetch origin --prune`, `git status --short --branch`, `origin/main` SHA); preserve owner assets; create `tnyx/tnyx-259-w1a1-workout-identity-value-objects` from fresh `origin/main`; commit this brief + index row first; move TNYX-259 to `In Progress`.
+- [x] 2. Re-verify prerequisites, absence of competing types, and the live value-object/UUID precedents.
+- [x] 3. Implement the planned files and one `shared.dart` export; no other `apps/**` change.
+- [x] 4. Add the four test files (section 6 matrix).
+- [x] 5. Minimal D-019 wording naming the D1 types and D2 variants; ADR-0011 unchanged.
+- [x] 6. Validate (section 6) and review the diff for scope, purity and dependency drift.
 - [ ] 7. Push, open Draft PR per `docs/PUSH_TEMPLATE.md` / `.github/PULL_REQUEST_TEMPLATE.md`, run the exact-head review gate; merge needs separate owner authorization.
 
 ## 6. Quality Review
@@ -159,9 +159,22 @@ Record exact results with the validated SHA; if a command cannot run, record why
 
 ### Validation Run
 
+Base `origin/main` `789b0d2f`. Results at `6613c944`:
+
 ```text
-Setup audit only at 789b0d2f. Implementation validation not run.
+git diff --check origin/main...HEAD                          PASS
+bash scripts/check_commit_attribution.sh origin/main HEAD    PASS
+dart format --set-exit-if-changed (new/changed files)        PASS
+per package, mirroring flutter-ci.yml (pub get --enforce-lockfile; dart analyze . /
+  flutter analyze --no-pub; dart test / flutter test --no-pub):
+  apps/shared, apps/core, apps/app, apps/wear, all 12 apps/features/*
+  pub get 16/16 PASS; analyze 16/16 "No issues found"; tests PASS in the 14 packages
+  with a test dir (coaching, welcome have none); tio_shared 136 (32 new Workout identity tests)
+scope scan: 0 Flutter/Supabase/feature imports in src/workout; 0 RoutineId/ProgramId/
+  SetPrescription/PerformedSet; 0 public-name collisions outside apps/shared
 ```
+
+Live precedent re-verified: `MealLogLocalDate` style (validating factory → `ArgumentError`, private `const` ctor, decode → `FormatException`, manual `==`/`hashCode`, canonical `toString`). Root IDs expose only the validating factory; `ExerciseRef.parse` is the single decode entry. Local melos is 8.x vs the CI pin 2.9.0, so the equivalent per-package commands ran; Flutter CI on the PR runs the melos form. `flutter pub get` again regenerated the tracked Wear `GeneratedPluginRegistrant.java` (pre-existing plugin-list drift); restored, not part of this slice. Pre-existing unformatted `apps/shared` files (`phone_number.dart`, `network/*`) left untouched.
 
 ### Review Findings and Resolution
 
@@ -173,11 +186,15 @@ Setup audit only at 789b0d2f. Implementation validation not run.
 
 ### Changed Files
 
-Setup: this brief and `.ai/tasks/README.md` only.
+- `.ai/tasks/tnyx-259-w1a1-workout-identity-value-objects.md`, `.ai/tasks/README.md`
+- `apps/shared/lib/shared.dart` (+1 export)
+- added `apps/shared/lib/src/workout/{workout,exercise_ref,training_plan_id,planned_workout_id,workout_session_id,workout_id_validation}.dart`
+- added `apps/shared/test/workout/{exercise_ref,training_plan_id,planned_workout_id,workout_session_id}_test.dart`
+- `.ai/DECISIONS.md` D-019: one paragraph naming the W1A1 identities
 
 ### Actual Behavior
 
-No change.
+No runtime, UI, routing, Supabase or asset change. New pure-Dart identity types are exported from `shared.dart`; nothing consumes them yet. Owner assets untouched; W1A2+ not started.
 
 ### Known Limitations
 
@@ -186,4 +203,4 @@ No change.
 
 ### Final Status
 
-`REVIEW` — setup complete; awaiting W1A1 implementation authorization.
+`REVIEW` — implementation and local validation complete; exact-head PR review, Ready for Review and merge are separate owner gates. Do not mark Validated before merge.
