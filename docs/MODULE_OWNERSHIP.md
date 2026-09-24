@@ -41,7 +41,7 @@ Per [ADR-0011](adr/0011-workout-canonical-identities-and-exercise-catalog.md):
 - the built-in Exercise catalog is bundled/versioned application content owned by the Workout capability; its exact physical asset path and loader are deferred until the W3 catalog slice needs them;
 - built-in catalog rows are not duplicated into Supabase; later Supabase work owns only approved user-created/dynamic/transactional Workout data;
 - existing Profile/Targets ownership is unchanged by this decision and is not moved cosmetically;
-- legacy unused `apps/shared/lib/src/workout/**` scaffolds are non-canonical pending the isolated W1A7 cleanup slice;
+- the legacy non-canonical `apps/shared/lib/src/workout/**` scaffolds were removed by the isolated W1A7 cleanup (TNYX-258); canonical Workout identities are introduced from W1A1 onward;
 - template sets are `SetPrescription`; actual performed history uses `PerformedSet`.
 
 Do not pre-create empty Workout capability folders before a real slice requires them.

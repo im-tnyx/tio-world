@@ -30,7 +30,7 @@
 **Validation completed at SHA:** `50b8658d` (section 6)
 **Validation remaining:** exact-head PR checks and review
 **Current blocker:** None
-**Open review finding IDs:** None
+**Open review finding IDs:** None (W1A7-C1 Resolved)
 **Next exact action:** Audit exact-head PR checks/review; merge needs separate owner authorization.
 
 ## Global UI / Design-System Guardrail
@@ -192,13 +192,14 @@ Local melos is 8.x while `melos.yaml` targets the CI pin 2.9.0, so the equivalen
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | — | None | — | — |
+| W1A7-C1 | P2 | Resolved | Codex: after merge `docs/MODULE_OWNERSHIP.md` ("pending the isolated W1A7 cleanup") and D-019 ("scheduled for … W1A7 cleanup") would be false against the runtime tree | d865f1ba | The W1A7-C1 commit rewords only those two current statements to "removed by W1A7 (TNYX-258)"; ADR-0011 (decision record) and historical briefs unchanged |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
 - `.ai/tasks/tnyx-258-w1a7-stale-workout-scaffold-cleanup.md`, `.ai/tasks/README.md` (governance)
+- `docs/MODULE_OWNERSHIP.md`, `.ai/DECISIONS.md` D-019: one-clause status wording only (W1A7-C1)
 - deleted: `apps/shared/lib/workout.dart` and the 10 files under `apps/shared/lib/src/workout/**` listed in *Target Paths*
 
 ### Actual Behavior
@@ -209,7 +210,6 @@ No runtime, UI, routing, Supabase or asset change. `tio_shared` public API (`sha
 
 - Nutrition briefs keep historical references to the scaffold by design.
 - W1A1 (canonical Workout IDs/value objects) follows W1A7 and needs its own authorization.
-- `docs/MODULE_OWNERSHIP.md` says the scaffold is non-canonical "pending the isolated W1A7 cleanup slice"; after merge, refresh that clause in post-merge archive hygiene (not changed here to keep the slice deletion-only).
 
 ### Final Status
 
