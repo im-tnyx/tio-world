@@ -15,23 +15,23 @@
 ## Active Handoff
 
 **Planning owner:** Current task agent
-**Implementation owner:** Current task agent
+**Implementation owner:** Claude (receiving agent)
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
-**Ownership transition:** Not applicable
+**Ownership transition:** Codex → Claude (unexpected takeover, 2026-09-24). Verified before any edit: clean branch at `eb4d6acf`, in sync with origin, no staged or dirty files except the protected owner assets, Draft PR #333 open on this head, TNYX-260 `In Progress`, same approved W1A2 scope, no concurrent implementation owner. No source file was changed by the takeover.
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
 **Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model`
-**HEAD SHA:** Implementation commit `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; the subsequent task-evidence commit may be the branch tip
+**HEAD SHA:** Implementation commit `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; live PR head is authoritative
 **Observed working-tree state:** Clean after implementation commit except protected untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** Protected owner assets only; they remain untouched and excluded
-**PR / tracker:** Linear TNYX-260 `In Progress`; no PR yet
-**Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented and locally validated
+**PR / tracker:** Linear TNYX-260 `In Progress` with Draft PR [#333](https://github.com/im-tnyx/tio-world/pull/333) attached; live PR state is authoritative
+**Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented, validated, and in Draft PR #333
 **Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`, this brief/index
-**Validation completed at SHA:** `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` (same source tree validated immediately before commit)
-**Validation remaining:** Commit attribution/diff audit, remote exact-head checks, and Codex review
+**Validation completed at SHA:** `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (source tree identical to `f58097e3`; section 6). The following evidence-only commit changes this brief alone and is revalidated at the live PR head
+**Validation remaining:** exact-head checks and Codex re-review on the live PR head
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Commit only the six intended files, push normally, create the Draft PR, and collect exact-head checks/review.
+**Next exact action:** Owner authorization for PR #333 Ready / merge. Archive, branch deletion and TNYX-261 remain separately gated.
 
 ## Global UI / Design-System Guardrail
 
@@ -102,7 +102,7 @@ Collection tokens are nonblank and unique, duplicates are rejected without silen
 - [x] Export both from `workout.dart`.
 - [x] Add focused pure-Dart tests.
 - [x] Confirm D-019 needs no restatement; implementation introduced no new durable architecture decision.
-- [ ] Validate, audit scope, commit, push, create Draft PR, and collect exact-head checks/review.
+- [x] Validate, audit scope, commit, push, create Draft PR, and collect exact-head checks/review.
 
 ### Expected Files
 
@@ -144,8 +144,32 @@ bash scripts/check_commit_attribution.sh origin/main HEAD
 - `git diff --check`: PASS before commit; only Git line-ending conversion warnings were emitted.
 - Validation created no tracked drift and did not touch `apps/core/assets/exercises/`.
 - Implementation commit: `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3`.
-- Exact branch-tip diff, attribution, remote CI, and Codex review evidence remain pending.
+- Implementation commit validated above; the Codex run recorded it as the validation SHA.
+
+Rerun by the receiving agent at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (earlier `f58097e3` evidence is historical):
+
+```text
+dart format --set-exit-if-changed <four Dart files>     PASS (0 changed)
+dart pub get --enforce-lockfile                         PASS
+dart analyze .                                          PASS (No issues found!)
+dart test test/workout/exercise_test.dart               PASS (18 tests)
+dart test                                               PASS (154 tests)
+git diff --check origin/main...HEAD                     PASS
+bash scripts/check_commit_attribution.sh origin/main HEAD  PASS
+scope: no apps/features, apps/core, supabase, docs or pubspec change   PASS
+```
+
+Remote exact-head evidence at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (Draft PR #333):
+
+```text
+Commit attribution guard   success
+Attribution guard runner   success
+Flutter CI / Analyze and test   success
+github-advanced-security   failure: 5x CAPIError 400 unsupported model, no code-scanning analysis
+                           = known TNYX-256 external outage; non-required; not a security pass
+Codex review               "Didn't find any major issues"; reviewed eb4d6acff7; 0 threads
+```
 
 ## 7. Final Handoff
 
-Pending Draft PR, exact-head checks, and Codex review. Ready for Review, merge, archive, branch deletion, and TNYX-261 remain separately gated.
+`REVIEW` — Draft PR #333 with exact-head checks and Codex review recorded. Ready for Review, merge, archive, branch deletion, and TNYX-261 remain separately gated.
