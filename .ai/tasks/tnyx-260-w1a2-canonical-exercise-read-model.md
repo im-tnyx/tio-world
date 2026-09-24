@@ -16,22 +16,22 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Claude (receiving agent)
-**Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Review owner:** Owner (im-tnyx) deep review of `065ee279`; independent final review by Claude
+**Implementation ownership state:** Implementation complete; in review (Draft PR). Linear stays `In Progress` until the PR is marked Ready, per the TNYX-258/259 convention; the index uses the allowed `In progress` value because `.ai/tasks/README.md` has no review status
 **Ownership transition:** Codex → Claude (unexpected takeover, 2026-09-24). Verified before any edit: clean branch at `eb4d6acf`, in sync with origin, no staged or dirty files except the protected owner assets, Draft PR #333 open on this head, TNYX-260 `In Progress`, same approved W1A2 scope, no concurrent implementation owner. No source file was changed by the takeover.
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
 **Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model`
-**HEAD SHA:** Implementation commit `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3` on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; live PR head is authoritative
+**HEAD SHA:** Implementation `f58097e3`, test hardening `c6e58dfb`, on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; live PR head is authoritative
 **Observed working-tree state:** Clean after implementation commit except protected untracked owner assets `apps/core/assets/exercises/`
 **Observed uncommitted/dirty files:** Protected owner assets only; they remain untouched and excluded
 **PR / tracker:** Linear TNYX-260 `In Progress` with Draft PR [#333](https://github.com/im-tnyx/tio-world/pull/333) attached; live PR state is authoritative
-**Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented, validated, and in Draft PR #333
+**Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented, validated, independently reviewed, and in Draft PR #333
 **Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`, this brief/index
-**Validation completed at SHA:** `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (source tree identical to `f58097e3`; section 6). The following evidence-only commit changes this brief alone and is revalidated at the live PR head
-**Validation remaining:** exact-head checks and Codex re-review on the live PR head
+**Validation completed at SHA:** `c6e58dfbb6c6064cb1c44dc3882a8adae0e6337d` (section 6). The following evidence-only commit changes this brief alone and is revalidated at the live PR head
+**Validation remaining:** None required locally; remote checks on the live PR head are read before any Ready/merge. Codex is supplemental, not a repository gate
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Owner authorization for PR #333 Ready / merge. Archive, branch deletion and TNYX-261 remain separately gated.
+**Open review finding IDs:** None (F1 and F2 resolved, section 6)
+**Next exact action:** Owner authorization for PR #333 Ready / merge. Do not retry Codex as a gate. Archive, branch deletion and TNYX-261 remain separately gated; TNYX-261 stays blocked until this PR merges.
 
 ## Global UI / Design-System Guardrail
 
@@ -146,7 +146,7 @@ bash scripts/check_commit_attribution.sh origin/main HEAD
 - Implementation commit: `f58097e3fe57fa4f2fdd1e8e4bba54441afc0aa3`.
 - Implementation commit validated above; the Codex run recorded it as the validation SHA.
 
-Rerun by the receiving agent at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (earlier `f58097e3` evidence is historical):
+Rerun by the receiving agent at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (historical):
 
 ```text
 dart format --set-exit-if-changed <four Dart files>     PASS (0 changed)
@@ -159,7 +159,7 @@ bash scripts/check_commit_attribution.sh origin/main HEAD  PASS
 scope: no apps/features, apps/core, supabase, docs or pubspec change   PASS
 ```
 
-Remote exact-head evidence at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (Draft PR #333):
+Remote evidence at `eb4d6acff77719b9df2cf8095ae6be366b641a4f` (historical):
 
 ```text
 Commit attribution guard   success
@@ -170,6 +170,28 @@ github-advanced-security   failure: 5x CAPIError 400 unsupported model, no code-
 Codex review               "Didn't find any major issues"; reviewed eb4d6acff7; 0 threads
 ```
 
+At `065ee279` (brief-only change over `eb4d6acf`): attribution guard, attribution runner and Flutter CI succeeded; GHAS again the TNYX-256 outage. Codex retry was unavailable (usage quota); Codex is supplemental and this is not a code blocker. The owner deep review found no source defect and one governance finding (F1).
+
+Validation at test-hardening SHA `c6e58dfbb6c6064cb1c44dc3882a8adae0e6337d`:
+
+```text
+dart format --set-exit-if-changed <four Dart files>     PASS (0 changed)
+dart pub get --enforce-lockfile                         PASS
+dart analyze .                                          PASS (No issues found!)
+dart test test/workout/exercise_test.dart               PASS (18 tests)
+dart test                                               PASS (154 tests)
+git diff --check origin/main...HEAD                     PASS
+bash scripts/check_commit_attribution.sh origin/main HEAD  PASS
+scope: only the six expected files; no pubspec, assets, features, supabase or docs change
+```
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| F1 | P2 | Resolved | Handoff still listed pending exact-head checks/Codex, unassigned review owner and stale next action | `065ee279` | [PR #333 thread](https://github.com/im-tnyx/tio-world/pull/333); handoff block refreshed in this commit |
+| F2 | P3 | Resolved | Tests asserted only whitespace (not empty-string) taxonomy rejection and no null/empty-vs-present inequality | `065ee279` | Independent review; covered in `c6e58dfb`, contract unchanged |
+
 ## 7. Final Handoff
 
-`REVIEW` — Draft PR #333 with exact-head checks and Codex review recorded. Ready for Review, merge, archive, branch deletion, and TNYX-261 remain separately gated.
+`REVIEW` — Draft PR #333; independent exact-head review clean after F1/F2. Codex reviewed `eb4d6acf` clean; the later retry was quota-limited and is supplemental only. Ready for Review, merge, archive, branch deletion, and TNYX-261 remain separately gated.
