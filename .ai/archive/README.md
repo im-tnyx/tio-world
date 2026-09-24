@@ -26,3 +26,4 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
 | 2026-09-24 | [TNYX-78 W1A0 — Workout canonical identities and terminology](2026-09-tnyx-78-w1a0-workout-canonical-identities.md) | Validated; merged via PR #324 (`45c194e0`) | [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md) |
+| 2026-09-24 | [TNYX-258 W1A7 — Stale shared Workout scaffold cleanup](2026-09-tnyx-258-w1a7-stale-workout-scaffold-cleanup.md) | Validated; merged via PR #327 (`ec1f94c9`) | [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md), [MODULE_OWNERSHIP.md](../../docs/MODULE_OWNERSHIP.md) |
