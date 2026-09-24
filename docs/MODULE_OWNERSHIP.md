@@ -116,7 +116,7 @@ Do not pre-create empty Workout capability folders before a real slice requires 
 - TNYX-72 assigns `CalendarPreferences`, its repository contract and device-local `SharedPreferencesAsync` adapter to Settings. `apps/app` owns only controller construction, startup hydration, route registration and resolution of the saved enum to a `DateTime.monday`..`DateTime.sunday` value. All calendar consumers receive that resolved value through app composition; Nutrition does not persist or resolve it, and no feature may create a parallel week-start preference. V1 has no Automatic/System value and no Supabase/remote sync. Core's nullable `resolvedFirstDayOfWeek` remains a generic locale-fallback seam when a caller supplies no resolved value.
 - Recovery will own readiness and rest calculations/presentation when its first vertical slice is approved. No other feature calculates Recovery locally.
 - Coaching may read workout, nutrition, progress, recovery, and profile data through clear contracts.
-- Promoting Routine Library or Meal Plan into a future custom navigation slot does not create a new feature owner or duplicate the route/screen.
+- Promoting Workout Library or Meal Plan into a future custom navigation slot does not create a new feature owner or duplicate the route/screen.
 - Watch apps own their own UI and platform integrations.
 - Supabase owns the planned first Auth, data, private Storage, migrations, and RLS boundary. A future backend owns protected Gemini/AI orchestration, advanced integrations, and long-running work only when needed.
 

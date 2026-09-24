@@ -67,7 +67,7 @@ one Riverpod controller own the internal flow. Draft mode, confirmed App Mode, a
 completion status remain separate; see
 [Onboarding Flow Architecture](../docs/ONBOARDING_ARCHITECTURE.md).
 
-A final-stage custom navigation layer keeps Home first, supports three to six eligible destinations, and may promote implemented feature routes such as Routine Library or Meal Plan as shortcuts. Home sections and feature action entries adapt through shared layout/composition contracts while business logic remains feature-owned.
+A final-stage custom navigation layer keeps Home first, supports three to six eligible destinations, and may promote implemented feature routes such as Workout Library or Meal Plan as shortcuts. Home sections and feature action entries adapt through shared layout/composition contracts while business logic remains feature-owned.
 
 Profile should open from avatar/account entry.
 

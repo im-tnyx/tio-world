@@ -120,7 +120,7 @@ Root destinations and promoted shortcuts remain distinct:
 | Kind | Examples | Behavior |
 | :--- | :--- | :--- |
 | Root destination | Home, Workout, Nutrition, Progress, future You, Coach, future Social | Primary surface with stable route ownership and navigation state. |
-| Promoted shortcut | Routine Library, Meal Plan | Opens the existing owner route; it does not create a new module, screen copy, or business workflow. |
+| Promoted shortcut | Workout Library, Meal Plan | Opens the existing owner route; it does not create a new module, screen copy, or business workflow. |
 
 On compact phones, six saved selections require an approved responsive treatment; some selections may live behind an accessible overflow/More control. Wider surfaces may show all eligible destinations through a suitable navigation rail or bar. The saved preference and feature reachability must remain stable across layouts.
 
