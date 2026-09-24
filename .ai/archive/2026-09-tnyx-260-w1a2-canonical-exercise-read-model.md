@@ -1,6 +1,7 @@
 # TNYX-260 W1A2 — Canonical Exercise read model
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-24
 **Primary owner:** `apps/shared`
 **Affected platforms:** Shared pure-Dart contract for phone, Wear, and later approved Workout consumers; no runtime/UI change
 
@@ -8,30 +9,30 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** Owner approved the bounded W1A2 contract and authorized implementation through Draft PR plus exact-head checks/review on 2026-09-24.
+**Approval evidence:** Owner approved the bounded W1A2 contract and authorized implementation through Draft PR plus exact-head checks/review on 2026-09-24; Ready for Review and the PR #333 merge were separately authorized the same day.
 **Approved product/UI/data-shape boundaries:** One canonical pure-Dart `Exercise` and `ExerciseStatus` in `apps/shared`, Workout barrel export, focused tests, this task brief/index, validation, normal push, Draft PR, and exact-head checks/review.
 **Explicit non-changes:** No Ready for Review or merge; no TNYX-78 completion or TNYX-261/W3A work; no catalog loader/parser/DTO/repository; no asset registration or Exercise asset modification; no licensing/media/standards work; no Supabase/persistence; no UI/router/navigation; no Favorites/Folders/Custom Exercise persistence or Exercise Detail; no unrelated cleanup.
 
 ## Active Handoff
 
 **Planning owner:** Current task agent
-**Implementation owner:** Claude (receiving agent)
-**Review owner:** Owner (im-tnyx) deep review of `065ee279`; independent final review by Claude
-**Implementation ownership state:** Implementation complete; in review (Draft PR). The index uses the allowed `In progress` value because `.ai/tasks/README.md` has no review status
-**Ownership transition:** Codex → Claude (unexpected takeover, 2026-09-24). Verified before any edit: clean branch at `eb4d6acf`, in sync with origin, no staged or dirty files except the protected owner assets, Draft PR #333 open on this head, TNYX-260 `In Progress`, same approved W1A2 scope, no concurrent implementation owner. No source file was changed by the takeover.
+**Implementation owner:** Codex, then Claude after an unexpected takeover at `eb4d6acf` (verified clean; no source change by the takeover)
+**Review owner:** Owner (im-tnyx) deep reviews of `065ee279` and `3c9f24d4`; independent final review by Claude
+**Implementation ownership state:** Complete
+**Ownership transition:** Codex → Claude (unexpected takeover, 2026-09-24)
 **Repository state last verified:** 2026-09-24 after `git fetch origin --prune` and `git pull --ff-only origin main`
-**Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model`
-**HEAD SHA:** Implementation `f58097e3`, test hardening `c6e58dfb`, on base `f2e930c6ee1bc04590372c4986988219c8cb9952`; live PR head is authoritative
-**Observed working-tree state:** Clean after implementation commit except protected untracked owner assets `apps/core/assets/exercises/`
-**Observed uncommitted/dirty files:** Protected owner assets only; they remain untouched and excluded
-**PR / tracker:** Linear TNYX-260 `In Review` (moved outside this agent at 2026-09-24T16:37Z, alongside the owner deep review) with Draft PR [#333](https://github.com/im-tnyx/tio-world/pull/333) attached; live PR and tracker state are authoritative
-**Current implementation state:** Canonical pure-Dart contract, Workout barrel exports, and focused tests implemented, validated, independently reviewed, and in Draft PR #333
-**Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`, this brief/index
-**Validation completed at SHA:** `c6e58dfbb6c6064cb1c44dc3882a8adae0e6337d` (section 6). The following evidence-only commit changes this brief alone and is revalidated at the live PR head
-**Validation remaining:** None required locally; remote checks on the live PR head are read before any Ready/merge. Codex is supplemental, not a repository gate
-**Current blocker:** None
-**Open review finding IDs:** None (F1 and F2 resolved, section 6)
-**Next exact action:** Owner authorization for PR #333 Ready / merge. Do not retry Codex as a gate. Archive, branch deletion and TNYX-261 remain separately gated; TNYX-261 stays blocked until this PR merges.
+**Branch:** `tnyx/tnyx-260-w1a2-canonical-exercise-read-model` (merged; retained on origin and locally, deletion separately gated)
+**HEAD SHA:** merged PR head `3c9f24d4e7aa966fde8ede76d8a5340fc6f316f5` on base `f2e930c6`; squash merge commit on `main` `a30c148e200dbbdbbff9c5f3947315880603123f` (GitHub-verified)
+**Observed working-tree state:** clean except untracked owner assets `apps/core/assets/exercises/`
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #333](https://github.com/im-tnyx/tio-world/pull/333) merged 2026-09-24T17:21:23Z (squash). Linear TNYX-260 `Done` (set by the GitHub integration on merge; the Ready transition had briefly moved it `In Review` → `In Progress`). Parent TNYX-78 stays `In Progress`; TNYX-261 stays `Backlog`.
+**Current implementation state:** Validated. `Exercise` and `ExerciseStatus` are on `main` and exported through the Workout barrel.
+**Relevant execution surface:** `apps/shared/lib/src/workout/{exercise,exercise_status,workout}.dart`, `apps/shared/test/workout/exercise_test.dart`
+**Validation completed at SHA:** source validated at `c6e58dfb` (section 6); later commits changed only this brief. Exact head `3c9f24d4`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS, 0 unresolved review threads
+**Validation remaining:** None.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (5× `CAPIError 400`, no code-scanning analysis produced): no real security finding, not a security pass.
+**Open review finding IDs:** None (F1 and F2 resolved)
+**Next exact action:** None for W1A2 (archived). TNYX-261/W3A needs a fresh readiness audit and separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -189,9 +190,23 @@ scope: only the six expected files; no pubspec, assets, features, supabase or do
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| F1 | P2 | Resolved | Handoff still listed pending exact-head checks/Codex, unassigned review owner and stale next action | `065ee279` | [PR #333 thread](https://github.com/im-tnyx/tio-world/pull/333); handoff block refreshed in this commit |
+| F1 | P2 | Resolved | Handoff still listed pending exact-head checks/Codex, unassigned review owner and stale next action | `065ee279` | [PR #333 thread](https://github.com/im-tnyx/tio-world/pull/333); handoff refreshed in `e5b3a78b` |
 | F2 | P3 | Resolved | Tests asserted only whitespace (not empty-string) taxonomy rejection and no null/empty-vs-present inequality | `065ee279` | Independent review; covered in `c6e58dfb`, contract unchanged |
 
 ## 7. Final Handoff
 
-`REVIEW` — Draft PR #333; independent exact-head review clean after F1/F2. Codex reviewed `eb4d6acf` clean; the later retry was quota-limited and is supplemental only. Ready for Review, merge, archive, branch deletion, and TNYX-261 remain separately gated.
+### Final Outcome
+
+- Canonical `Exercise` lives once in `apps/shared`; `ExerciseStatus` = `active | archived`.
+- `ExerciseRef` remains the identity boundary; catalog and user-created refs share one `Exercise` type with no origin, owner or user field.
+- No JSON coupling, catalog loader/parser, persistence, UI, dependency or W3A implementation; owner Exercise assets untouched.
+
+### Review Truth
+
+- Independent exact-head review of `3c9f24d4`: clean. Owner final deep review of `3c9f24d4`: PASS with no P1/P2/P3 findings.
+- Codex (supplemental, not a required merge gate): reviewed `eb4d6acf` clean; later attempts, including on Ready, were unavailable because of a usage quota.
+- GHAS: known TNYX-256 outage; no code-scanning analysis produced; real security finding NO; security pass claimed NO.
+
+### Final Status
+
+`Validated` — merged via PR #333 (`a30c148e`). Archived 2026-09-24.
