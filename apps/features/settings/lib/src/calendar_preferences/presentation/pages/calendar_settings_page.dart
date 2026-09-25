@@ -55,7 +55,7 @@ class CalendarSettingsPage extends StatelessWidget {
     final localeName = Localizations.localeOf(context).toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar')),
+      appBar: const TioAppBar(title: Text('Calendar')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TioSpacing.xl),

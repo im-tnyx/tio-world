@@ -51,7 +51,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     final colors = context.tioColors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Theme')),
+      appBar: const TioAppBar(title: Text('Theme')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TioSpacing.xl),

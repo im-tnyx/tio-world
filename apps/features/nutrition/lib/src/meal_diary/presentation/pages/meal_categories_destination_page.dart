@@ -218,7 +218,7 @@ class _MealCategoriesDestinationPageState
     return Scaffold(
       key: const ValueKey('meal-categories-destination-page'),
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,

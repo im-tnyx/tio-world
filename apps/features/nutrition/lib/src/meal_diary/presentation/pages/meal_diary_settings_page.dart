@@ -26,7 +26,7 @@ class MealDiarySettingsPage extends ConsumerWidget {
     return Scaffold(
       key: const ValueKey('meal-diary-settings-page'),
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,

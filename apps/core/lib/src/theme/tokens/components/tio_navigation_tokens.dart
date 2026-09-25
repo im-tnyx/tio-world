@@ -17,6 +17,10 @@ class TioNavigationTokens {
   static const labelTopPadding = TioSpacing.xxs;
 
   static const topBarHeight = TioSize.dp56;
+  static const topBarTitleGap = TioSpacing.sm;
+  // Flutter centres the 24dp leading icon in a 56dp slot, leaving 16dp
+  // between the icon and the slot edge.
+  static const topBarTitleSpacing = topBarTitleGap - TioSpacing.lg;
   static const topBarLeadingWidth = TioSize.dp72;
   static const planPillWidth = TioSize.dp125;
   static const planPillHeight = TioSize.dp32;

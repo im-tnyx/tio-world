@@ -120,7 +120,7 @@ class ProfilePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
