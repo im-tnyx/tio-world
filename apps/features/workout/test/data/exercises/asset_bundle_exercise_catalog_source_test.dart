@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
@@ -36,16 +37,29 @@ final class StringAssetBundle extends AssetBundle {
   @override
   Future<ByteData> load(String key) async {
     final value = assets[key];
-    if (value == null) throw StateError('Missing test asset: $key');
+    if (value == null) throw FlutterError('Missing test asset: $key');
     return ByteData.sublistView(Uint8List.fromList(utf8.encode(value)));
   }
 
   @override
   Future<String> loadString(String key, {bool cache = true}) async {
     final value = assets[key];
-    if (value == null) throw StateError('Missing test asset: $key');
+    if (value == null) throw FlutterError('Missing test asset: $key');
     return value;
   }
+}
+
+final class ThrowingAssetBundle extends AssetBundle {
+  ThrowingAssetBundle(this.error);
+
+  final Object error;
+
+  @override
+  Future<ByteData> load(String key) async => throw error;
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async =>
+      throw error;
 }
 
 void main() {
@@ -78,9 +92,21 @@ void main() {
       source.load(),
       throwsA(
         isA<MissingExerciseCatalogAssetException>()
-            .having((error) => error.assetKey, 'assetKey', testAssetKey),
+            .having((error) => error.assetKey, 'assetKey', testAssetKey)
+            .having((error) => error.cause, 'cause', isA<FlutterError>())
+            .having((error) => error.stackTrace, 'stackTrace', isNotNull),
       ),
     );
+  });
+
+  test('does not misclassify unexpected bundle failures as missing', () {
+    final failure = StateError('Unexpected bundle failure');
+    final source = AssetBundleExerciseCatalogSource(
+      ThrowingAssetBundle(failure),
+      assetKey: testAssetKey,
+    );
+
+    expect(source.load(), throwsA(same(failure)));
   });
 
   test('reports malformed JSON as an invalid document', () {

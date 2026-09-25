@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/exercises/exercise_catalog.dart';
@@ -41,10 +42,11 @@ final class AssetBundleExerciseCatalogSource
     final String source;
     try {
       source = await _assetBundle.loadString(assetKey);
-    } on Object catch (error) {
+    } on FlutterError catch (error, stackTrace) {
       throw MissingExerciseCatalogAssetException(
         assetKey: assetKey,
         cause: error,
+        stackTrace: stackTrace,
       );
     }
 

@@ -3,10 +3,12 @@ final class MissingExerciseCatalogAssetException implements Exception {
   const MissingExerciseCatalogAssetException({
     required this.assetKey,
     required this.cause,
+    required this.stackTrace,
   });
 
   final String assetKey;
   final Object cause;
+  final StackTrace stackTrace;
 
   @override
   String toString() =>
