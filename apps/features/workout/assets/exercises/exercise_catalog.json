@@ -1,0 +1,2440 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": 1,
+  "exercises": [
+    {
+      "id": "ex_cable_one_arm_lateral_raise",
+      "title": "Cable One Arm Lateral Raise",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "lateral_deltoid"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_overhead_triceps_extension",
+      "title": "Cable Overhead Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_standing_rear_delt_row",
+      "title": "Cable Standing Rear Delt Row",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "brachialis",
+        "lateral_deltoid",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_shoulder_press",
+      "title": "Lever Seated Shoulder Press",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_front_raise",
+      "title": "Cable Front Raise",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_standing_lateral_raise",
+      "title": "Dumbbell Standing Lateral Raise",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "lateral_deltoid"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_rear_delt_fly",
+      "title": "Dumbbell Rear Delt Fly",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_shoulder_press",
+      "title": "Dumbbell Seated Shoulder Press",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_seated_dumbbell_arnold_press",
+      "title": "Seated Dumbbell Arnold Press",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_arnold_press_flat_bench",
+      "title": "Dumbbell Seated Arnold Press on Flat Bench",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "lateral_deltoid",
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "serratus_anterior",
+        "trapezius",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_seated_overhead_press_flat_bench",
+      "title": "Barbell Seated Overhead Press on Flat Bench",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_standing_overhead_press",
+      "title": "Dumbbell Standing Overhead Press",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "levator_scapulae",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_arm_circles",
+      "title": "Arm Circles",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "lateral_deltoid",
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "middle_trapezius",
+        "rotator_cuff",
+        "rhomboids"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_neck_side_stretch",
+      "title": "Neck Side Stretch",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "stretch",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_chin_tuck",
+      "title": "Chin Tuck",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_assisted_chin_tuck",
+      "title": "Assisted Chin Tuck",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "assistance"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_roll_neck_rotation_lying_on_floor",
+      "title": "Roll Neck Rotation Lying on Floor",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "foam_roller"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_roll_neck_decompress_lying_on_floor",
+      "title": "Roll Neck Decompress Lying on Floor",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "foam_roller"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_side_neck_stretch",
+      "title": "Side Neck Stretch",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "stretch",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_forward_neck_stretch",
+      "title": "Forward Neck Stretch",
+      "muscleGroup": "neck",
+      "primaryMuscles": [
+        "neck"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "stretch",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_elbow_touch_and_lift",
+      "title": "Elbow Touch and Lift",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "lateral_deltoid",
+        "serratus_anterior"
+      ],
+      "secondaryMuscles": [
+        "trapezius",
+        "rhomboids",
+        "rotator_cuff"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_bent_arm_lift",
+      "title": "Bent Arm Lift",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "biceps",
+        "brachialis",
+        "brachioradialis",
+        "anterior_deltoid",
+        "lateral_deltoid"
+      ],
+      "secondaryMuscles": [
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_one_arm_shoulder_press_v2",
+      "title": "Dumbbell One-Arm Shoulder Press (Version 2)",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_one_arm_lateral_raise",
+      "title": "Dumbbell One-Arm Lateral Raise",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "lateral_deltoid"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_smith_seated_shoulder_press",
+      "title": "Smith Seated Shoulder Press",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "smith_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_standing_military_press_without_rack",
+      "title": "Barbell Standing Military Press (Without Rack)",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "lateral_deltoid",
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "pectoralis_major",
+        "serratus_anterior",
+        "upper_trapezius",
+        "levator_scapulae"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_military_press_plate_loaded",
+      "title": "Lever Military Press (Plate-Loaded)",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "pectoralis_major",
+        "serratus_anterior",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_bench_press",
+      "title": "Barbell Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_incline_bench_press",
+      "title": "Barbell Incline Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_bench_press",
+      "title": "Dumbbell Incline Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_squeeze_bench_press",
+      "title": "Dumbbell Squeeze Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major",
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_squeeze_press",
+      "title": "Dumbbell Incline Squeeze Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major",
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_biceps_curl",
+      "title": "Dumbbell Incline Biceps Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps",
+        "brachialis"
+      ],
+      "secondaryMuscles": [
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_supinating_biceps_curl",
+      "title": "Dumbbell Incline Supinating Biceps Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_hammer_curl",
+      "title": "Dumbbell Incline Hammer Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps",
+        "brachioradialis"
+      ],
+      "secondaryMuscles": [
+        "brachialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_incline_inner_biceps_curl",
+      "title": "Dumbbell Incline Inner Biceps Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_overhead_triceps_extension",
+      "title": "Dumbbell Seated Overhead Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_lying_triceps_extension",
+      "title": "Dumbbell Lying Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_bench_dip_on_floor",
+      "title": "Bench Dip on Floor",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "pectoralis_major",
+        "shoulder_stabilizers"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_triceps_floor_dip",
+      "title": "Triceps Floor Dip",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "pectoralis_major",
+        "shoulder_stabilizers"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_alternating_biceps_curl",
+      "title": "Dumbbell Seated Alternating Biceps Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_standing_alternating_biceps_curl",
+      "title": "Dumbbell Standing Alternating Biceps Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_decline_bench_press",
+      "title": "Dumbbell Decline Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_decline_twist_fly",
+      "title": "Dumbbell Decline Twist Fly",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "anterior_deltoid",
+        "upper_pectoralis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_decline_triceps_extension",
+      "title": "Dumbbell Decline Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_lying_one_arm_supinated_triceps_extension",
+      "title": "Dumbbell Lying One-Arm Supinated Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_standing_overhead_triceps_extension",
+      "title": "Dumbbell Standing Overhead Triceps Extension",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_triceps_kickback",
+      "title": "Dumbbell Seated Triceps Kickback",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_pullover",
+      "title": "Dumbbell Pullover",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "latissimus_dorsi",
+        "teres_major",
+        "rear_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_straight_arm_pullover",
+      "title": "Dumbbell Straight-Arm Pullover",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "latissimus_dorsi",
+        "teres_major",
+        "rear_deltoid",
+        "triceps",
+        "shoulder_stabilizers"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_walking_on_treadmill",
+      "title": "Walking on Treadmill",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "calves"
+      ],
+      "secondaryMuscles": [
+        "hip_flexors",
+        "tibialis_anterior",
+        "core"
+      ],
+      "equipment": {
+        "primary": "treadmill"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_run_on_treadmill",
+      "title": "Run on Treadmill",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "calves"
+      ],
+      "secondaryMuscles": [
+        "hip_flexors",
+        "adductors",
+        "tibialis_anterior",
+        "core"
+      ],
+      "equipment": {
+        "primary": "treadmill"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_walking_on_incline_treadmill",
+      "title": "Walking on Incline Treadmill",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "glutes",
+        "hamstrings",
+        "calves"
+      ],
+      "secondaryMuscles": [
+        "quadriceps",
+        "hip_flexors",
+        "core"
+      ],
+      "equipment": {
+        "primary": "treadmill"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_leg_extension",
+      "title": "Lever Leg Extension",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_fly",
+      "title": "Lever Seated Fly",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "anterior_deltoid",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_straight_back_seated_row",
+      "title": "Cable Straight-Back Seated Row",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "lower_trapezius",
+        "upper_trapezius",
+        "levator_scapulae"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis",
+        "rear_deltoid",
+        "pectoralis_major"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_walking_on_stepmill",
+      "title": "Walking on Stepmill",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "glutes",
+        "hamstrings",
+        "quadriceps",
+        "calves"
+      ],
+      "secondaryMuscles": [
+        "hip_flexors",
+        "adductors",
+        "core"
+      ],
+      "equipment": {
+        "primary": "stepmill"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_split_squat",
+      "title": "Dumbbell Split Squat",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "glutes",
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_bulgarian_split_squat",
+      "title": "Dumbbell Bulgarian Split Squat",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "glutes",
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_split_squat",
+      "title": "Barbell Split Squat",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "glutes",
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_hip_thrust",
+      "title": "Barbell Hip Thrust",
+      "muscleGroup": "hips",
+      "primaryMuscles": [
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "hamstrings",
+        "quadriceps"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_alternating_hammer_curl",
+      "title": "Dumbbell Seated Alternating Hammer Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_seated_lateral_raise",
+      "title": "Dumbbell Seated Lateral Raise",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "lateral_deltoid"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_bench_press",
+      "title": "Dumbbell Bench Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_lying_leg_curl",
+      "title": "Lever Lying Leg Curl",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "hamstrings"
+      ],
+      "secondaryMuscles": [
+        "calves",
+        "knee_flexors"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_leg_curl",
+      "title": "Lever Seated Leg Curl",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "hamstrings"
+      ],
+      "secondaryMuscles": [
+        "calves"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_push_up",
+      "title": "Push-Up",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "upper_pectoralis",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_reverse_fly_parallel_grip",
+      "title": "Lever Seated Reverse Fly (Parallel Grip)",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_reverse_fly_pronated_grip",
+      "title": "Lever Seated Reverse Fly (Pronated Grip)",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "rear_deltoid"
+      ],
+      "secondaryMuscles": [
+        "lateral_deltoid",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_curl",
+      "title": "Barbell Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps",
+        "brachialis"
+      ],
+      "secondaryMuscles": [
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_rope_pushdown",
+      "title": "Cable Rope Pushdown",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_wall_push_up",
+      "title": "Wall Push-Up",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_hip_abduction",
+      "title": "Lever Seated Hip Abduction",
+      "muscleGroup": "hips",
+      "primaryMuscles": [
+        "gluteus_medius",
+        "gluteus_minimus"
+      ],
+      "secondaryMuscles": [
+        "gluteus_maximus",
+        "tensor_fasciae_latae"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_hip_abduction_v2",
+      "title": "Lever Seated Hip Abduction (Version 2)",
+      "muscleGroup": "hips",
+      "primaryMuscles": [
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "hip_abductors"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_chest_press_plate_loaded",
+      "title": "Lever Chest Press (Plate-Loaded)",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "upper_pectoralis",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_chest_press_weight_stack",
+      "title": "Lever Chest Press (Weight Stack)",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "upper_pectoralis",
+        "triceps"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_calf_raise_plate_loaded",
+      "title": "Lever Seated Calf Raise (Plate-Loaded)",
+      "muscleGroup": "calves",
+      "primaryMuscles": [
+        "soleus",
+        "gastrocnemius"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_ez_barbell_curl",
+      "title": "EZ Barbell Curl",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "ez_bar"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_floor_crunch",
+      "title": "Floor Crunch",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "obliques"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_standing_calf_raise",
+      "title": "Lever Standing Calf Raise",
+      "muscleGroup": "calves",
+      "primaryMuscles": [
+        "gastrocnemius"
+      ],
+      "secondaryMuscles": [
+        "soleus"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_pec_deck_fly",
+      "title": "Lever Pec Deck Fly",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major"
+      ],
+      "secondaryMuscles": [
+        "upper_pectoralis",
+        "serratus_anterior"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_w_to_y_superman",
+      "title": "W to Y Superman",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "rear_deltoid",
+        "erector_spinae",
+        "lower_trapezius"
+      ],
+      "secondaryMuscles": [
+        "hamstrings",
+        "latissimus_dorsi",
+        "middle_trapezius",
+        "rhomboids",
+        "upper_trapezius",
+        "levator_scapulae"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_preacher_curl_plate_loaded",
+      "title": "Lever Preacher Curl (Plate-Loaded)",
+      "muscleGroup": "upper_arms",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_front_plank",
+      "title": "Front Plank",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "obliques",
+        "anterior_deltoid",
+        "serratus_anterior",
+        "glutes",
+        "quadriceps",
+        "hip_stabilizers",
+        "calves"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lever_seated_row",
+      "title": "Lever Seated Row",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "lower_trapezius",
+        "upper_trapezius",
+        "levator_scapulae"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis",
+        "rear_deltoid",
+        "pectoralis_major"
+      ],
+      "equipment": {
+        "primary": "lever_machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_low_to_high_fly",
+      "title": "Cable Low-to-High Fly",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major",
+        "upper_pectoralis"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "anterior_deltoid"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_downward_punch",
+      "title": "Downward Punch",
+      "muscleGroup": "shoulders",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "lateral_deltoid",
+        "rear_deltoid",
+        "pectoralis_major",
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "serratus_anterior",
+        "middle_trapezius",
+        "rhomboids",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_lying_raised_shoulders_windshield_wiper",
+      "title": "Lying Raised-Shoulders Windshield Wiper",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "obliques",
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "core_stabilizers",
+        "hip_flexors",
+        "adductors",
+        "glutes",
+        "lower_back_stabilizers"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_half_squat_torso_punches",
+      "title": "Half Squat Torso Punches",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "anterior_deltoid",
+        "glutes",
+        "pectoralis_major",
+        "quadriceps",
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "calves",
+        "hamstrings",
+        "obliques",
+        "rectus_abdominis"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_obliques_twist_high_knee_and_kick",
+      "title": "Obliques Twist High Knee and Kick",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "obliques",
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "quadriceps"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_russian_twist_chop",
+      "title": "Russian Twist Chop",
+      "muscleGroup": "waist",
+      "primaryMuscles": [
+        "obliques",
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "lower_back_stabilizers",
+        "hip_flexors"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_celebratory_hip_thrust",
+      "title": "Celebratory Hip Thrust",
+      "muscleGroup": "hips",
+      "primaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "lower_back",
+        "quadriceps"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "mobility",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_rope_pull_side_step",
+      "title": "Rope Pull Side Step",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "gluteus_medius",
+        "obliques",
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "hip_flexors",
+        "adductors",
+        "anterior_deltoid",
+        "lower_back",
+        "glutes",
+        "hamstrings",
+        "rectus_abdominis"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_step_jack_inner_biceps_curl",
+      "title": "Step Jack Inner Biceps Curl",
+      "muscleGroup": "cardio",
+      "primaryMuscles": [
+        "biceps",
+        "glutes",
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "brachialis",
+        "brachioradialis",
+        "anterior_deltoid",
+        "gastrocnemius",
+        "gluteus_medius",
+        "gluteus_minimus",
+        "hamstrings",
+        "soleus"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "cardio",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_lying_one_arm_press",
+      "title": "Dumbbell Lying One-Arm Press",
+      "muscleGroup": "chest",
+      "primaryMuscles": [
+        "pectoralis_major",
+        "upper_pectoralis"
+      ],
+      "secondaryMuscles": [
+        "anterior_deltoid",
+        "triceps",
+        "core_stabilizers"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_barbell_seated_good_morning",
+      "title": "Barbell Seated Good Morning",
+      "muscleGroup": "hips",
+      "primaryMuscles": [
+        "erector_spinae",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "hamstrings",
+        "core"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_lat_pulldown",
+      "title": "Cable Lat Pulldown",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi"
+      ],
+      "secondaryMuscles": [
+        "upper_back",
+        "biceps",
+        "brachialis",
+        "brachioradialis",
+        "rear_deltoid",
+        "forearms"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_bench_assisted_pull_up",
+      "title": "Bench-Assisted Pull-Up",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "brachialis",
+        "brachioradialis",
+        "rear_deltoid",
+        "teres_major",
+        "middle_trapezius",
+        "rhomboids",
+        "lower_trapezius"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_cable_reverse_grip_lat_pulldown",
+      "title": "Cable Reverse-Grip Lat Pulldown",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "brachialis",
+        "brachioradialis",
+        "rear_deltoid",
+        "teres_major",
+        "middle_trapezius",
+        "rhomboids",
+        "lower_trapezius",
+        "upper_trapezius"
+      ],
+      "equipment": {
+        "primary": "cable"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_bent_over_reverse_grip_row",
+      "title": "Dumbbell Bent-Over Reverse-Grip Row",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "latissimus_dorsi",
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major"
+      ],
+      "secondaryMuscles": [
+        "rear_deltoid",
+        "biceps",
+        "brachialis",
+        "brachioradialis"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    },
+    {
+      "id": "ex_dumbbell_bent_over_row",
+      "title": "Dumbbell Bent-Over Row",
+      "muscleGroup": "back",
+      "primaryMuscles": [
+        "upper_back",
+        "latissimus_dorsi"
+      ],
+      "secondaryMuscles": [
+        "middle_trapezius",
+        "rhomboids",
+        "teres_major",
+        "rear_deltoid",
+        "biceps",
+        "brachialis",
+        "brachioradialis",
+        "forearms"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false
+    }
+  ]
+}
