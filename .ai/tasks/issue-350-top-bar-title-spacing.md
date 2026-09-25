@@ -36,30 +36,30 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Codex auto-review on PR #354 (findings F1–F3); task agent self-review
+**Review owner:** Codex auto-review on PR #354 (findings F1–F7); task agent self-review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-26 on `tnyx/issue-350-top-bar-title-spacing` (first commit `a62ae8db` on `main` `48d91f46`)
+**Repository state last verified:** 2026-09-26 on `tnyx/issue-350-top-bar-title-spacing`, which is ahead of `main` `48d91f46` with no uncommitted changes
 **Branch:** `tnyx/issue-350-top-bar-title-spacing`
-**HEAD SHA:** `a62ae8db` plus uncommitted rework
-**Observed working-tree state:** Only this slice's files modified
-**Observed uncommitted/dirty files:** This slice's files only
+**HEAD SHA:** The PR #354 head that contains this record. The implementation last changed at `a7b42530` (F6); later commits only touch this brief.
+**Observed working-tree state:** Clean; everything is committed and pushed
+**Observed uncommitted/dirty files:** None
 **PR / tracker:**
 - GitHub #350 and PR #354.
 - No Linear issue: the workspace hit its free issue limit on 2026-09-25, and the Linear MCP connector is unauthorized in this session.
 **Current implementation state:**
-- `TioAppBar` rework for F1–F3 is implemented.
+- `TioAppBar` rework for F1–F6 is implemented and committed.
 - The theme no longer installs `titleSpacing`.
 - All 31 standard AppBars are migrated.
 **Relevant execution surface:**
 - `apps/core/lib/src/ui/components/navigation/tio_app_bar.dart`
 - `apps/core/lib/src/theme`
 - the 27 migrated screen files
-**Validation completed at SHA:** Local runs on the working tree (see Validation Run)
-**Validation remaining:** CI and Codex re-review at the new PR head
+**Validation completed at SHA:** `a7b42530`. The local package runs (see Validation Run) were on the tree committed as `a7b42530`, and CI passed at `a7b42530` (Analyze and test, Attribution guard runner, Commit attribution guard).
+**Validation remaining:** CI and Codex review at the final PR head (brief-only change since `a7b42530`)
 **Current blocker:** None
-**Open review finding IDs:** F6 (fixed in the working tree; thread still to be answered). F1–F5 are fixed, and their threads are answered and resolved.
-**Next exact action:** Commit, push, answer the Codex threads, and re-request review.
+**Open review finding IDs:** None. F1–F6 are fixed in code, with their threads answered and resolved. F7 (stale handoff) is fixed by this record.
+**Next exact action:** Merge PR #354 once the final head passes the gate: matching head, green CI, 0 unresolved threads, Codex clean. Then run the post-merge sync and archive this brief.
 
 ## Global UI / Design-System Guardrail
 
@@ -209,7 +209,8 @@ TioAppBar rework (final working tree):
 | F3 | P2 | Fixed | Negative spacing widens the trailing bound; long titles without actions clip past the edge | `a62ae8db` | Title end padding keeps the 16dp trailing inset; tests with and without actions and leading |
 | F4 | P2 | Fixed | With −8dp `titleSpacing`, the title box overlaps the leading slot and takes the back button's taps in the 48–52dp strip (and could focus the Exercises search field) | `db563158` | `TioAppBar` lays the title out after the leading slot and applies the negative spacing as a paint-only shift (`Transform.translate`, `transformHitTests: false`, RTL-mirrored). The test "leaves the leading button its whole tap target" fails on `db563158` and passes now; there is also an RTL gap test. The paint-only shift was replaced for F5 |
 | F5 | P2 | Fixed | The paint-only shift from the F4 fix separates an interactive title's hit coordinates from its painted position (the Exercises search caret lands about 8dp off, and an invisible 8dp strip past the field hits it) | `b5ae7bbe` | Back to a real −8dp `titleSpacing` (hits match paint), plus a private `_LeadingTapClearance` that makes only the title's first 8dp (the overlap with the leading slot) ignore pointers, RTL-mirrored. The test "hits an interactive title where it is painted" fails on `b5ae7bbe` (12 vs 20) and passes now; the RTL test also taps the back button |
-| F6 | P2 | Fixed in working tree | `_LeadingTapClearance` only changed pointer hit testing; the title's semantics rect still overlapped the back button's by 8dp, so TalkBack/VoiceOver touch exploration could pick the title or search field there | `f1727c11` | The clearance also clips its child's semantics (`describeSemanticsClip`, RTL-aware), and `TioAppBar` adds AppBar's header semantics inside it (`excludeHeaderSemantics: true` plus the same `header`/`namesRoute`). The two accessibility-bounds tests (text and interactive title) fail on `f1727c11` (48 vs ≥52) and pass now; a header-semantics test was added |
+| F6 | P2 | Fixed | `_LeadingTapClearance` only changed pointer hit testing; the title's semantics rect still overlapped the back button's by 8dp, so TalkBack/VoiceOver touch exploration could pick the title or search field there | `f1727c11` | The clearance also clips its child's semantics (`describeSemanticsClip`, RTL-aware), and `TioAppBar` adds AppBar's header semantics inside it (`excludeHeaderSemantics: true` plus the same `header`/`namesRoute`). The two accessibility-bounds tests (text and interactive title) fail on `f1727c11` (48 vs ≥52) and pass now; a header-semantics test was added |
+| F7 | P2 | Fixed | The Active Handoff still named `a62ae8db`, listed uncommitted rework and gave commit as the next action | `a7b42530` | Handoff refreshed to the committed state, the validation anchor `a7b42530` and resolved findings |
 
 ## 7. Final Handoff
 
