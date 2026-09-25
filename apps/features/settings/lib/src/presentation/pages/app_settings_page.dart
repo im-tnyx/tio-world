@@ -27,7 +27,7 @@ class AppSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('App Preferences')),
+      appBar: const TioAppBar(title: Text('App Preferences')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TioSpacing.xl),

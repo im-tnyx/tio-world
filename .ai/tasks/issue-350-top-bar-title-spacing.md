@@ -1,8 +1,8 @@
-# #350 — Universal top-bar title gap token
+# #350 — Universal top-bar title gap (`TioAppBar`)
 
 **Status:** In progress
 **Primary owner:** `apps/core`
-**Affected platforms:** Flutter phone app
+**Affected platforms:** Flutter phone app (Android and iOS)
 
 ## Owner Approval and Scope Boundary
 
@@ -10,21 +10,25 @@
 **Approval status:** Approved
 **Approval evidence:**
 - 2026-09-25: while reviewing the Library and Exercises screens, the owner called the back-button-to-title gap the biggest top-bar issue. They asked for one universal token, checked on every screen, as a separate task.
-- 2026-09-26: the owner answered "GO" to the #350 proposal (one token installed through the theme).
+- 2026-09-26: the owner answered "GO" to the #350 proposal (one token).
 - 2026-09-26: after seeing the 16dp result the owner asked for a smaller gap. From a rendered 16/12/8dp comparison they chose **8dp**.
+- 2026-09-26: after Codex review of PR #354 (findings F1–F3 below) the owner chose:
+  - **A — a core `TioAppBar` with 8dp**, over a theme-only 12dp variant, from a rendered comparison;
+  - **iOS titles start-aligned like Android**.
 
 **Approved product/UI/data-shape boundaries:**
-- On standard AppBars with a leading back/close button, the visible icon-to-title gap drops from 32dp to 8dp: the title starts at 48dp instead of 72dp.
-- The value lives in one token installed through `TioTheme`.
-- The Exercises search field pads its end so it stays out of the close action's slot.
+- On standard top bars with a leading back/close button, the visible icon-to-title gap drops from 32dp to 8dp, so the title starts at 48dp instead of 72dp.
+- The gap lives in one token.
+- On iOS the standard bars' titles become start-aligned instead of centered.
+- Standard screens use `TioAppBar`.
 
 **Explicit non-changes:**
 - Top-bar height (56dp, TNYX-244/#346).
 - Back-icon position (16dp from the edge).
-- `TioShellTopBar` and `TioShellStatusTopBar`, which have their own leading width and an explicit `TioSpacing.lg` title inset.
-- `OnboardingTopBar`.
+- The title's trailing inset: 16dp before actions or the edge, as on `main`.
+- A leading-less bar's 16dp title inset.
+- `TioShellTopBar`, `TioShellStatusTopBar` and `OnboardingTopBar`.
 - Colors, typography, icons and actions.
-- Per-screen `titleSpacing`.
 - Navigation, persistence and backend.
 - #24 (compact input).
 
@@ -32,22 +36,30 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Not assigned
+**Review owner:** Codex auto-review on PR #354 (findings F1–F3); task agent self-review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-26; branch created from `main` at `48d91f469882aeeef16f1d24bbdc8d36263d3906` with a clean tree
+**Repository state last verified:** 2026-09-26 on `tnyx/issue-350-top-bar-title-spacing` (first commit `a62ae8db` on `main` `48d91f46`)
 **Branch:** `tnyx/issue-350-top-bar-title-spacing`
-**HEAD SHA:** `48d91f46` plus uncommitted slice changes
+**HEAD SHA:** `a62ae8db` plus uncommitted rework
 **Observed working-tree state:** Only this slice's files modified
 **Observed uncommitted/dirty files:** This slice's files only
-**PR / tracker:** GitHub #350. No Linear issue exists: the workspace hit its free issue limit on 2026-09-25, and the Linear MCP connector is unauthorized in this session.
-**Current implementation state:** Implementation and local validation are complete.
-**Relevant execution surface:** `apps/core/lib/src/theme`, `apps/core/test/theme`, `apps/features/workout/lib/src/presentation/library/exercises/exercises_page.dart`
+**PR / tracker:**
+- GitHub #350 and PR #354.
+- No Linear issue: the workspace hit its free issue limit on 2026-09-25, and the Linear MCP connector is unauthorized in this session.
+**Current implementation state:**
+- `TioAppBar` rework for F1–F3 is implemented.
+- The theme no longer installs `titleSpacing`.
+- All 31 standard AppBars are migrated.
+**Relevant execution surface:**
+- `apps/core/lib/src/ui/components/navigation/tio_app_bar.dart`
+- `apps/core/lib/src/theme`
+- the 27 migrated screen files
 **Validation completed at SHA:** Local runs on the working tree (see Validation Run)
-**Validation remaining:** CI at the PR head
+**Validation remaining:** CI and Codex re-review at the new PR head
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Commit, push and open the PR linked to #350.
+**Open review finding IDs:** F1, F2, F3 (fixed in the working tree; threads still to be answered)
+**Next exact action:** Commit, push, answer the Codex threads, and re-request review.
 
 ## Global UI / Design-System Guardrail
 
@@ -55,30 +67,38 @@ Read before implementation:
 - `apps/core/lib/src/theme/README.md` (App bar and topbar height)
 - `.ai/tasks/tnyx-244-canonical-appbar-topbar-height.md`
 
-This is an approved visual change limited to the leading-to-title gap. Everything else on each top bar must render unchanged.
+This is an approved visual change, limited to:
+- the leading-to-title gap;
+- iOS title alignment on standard bars.
+
+Everything else on each top bar must render unchanged.
 
 ## 1. Discovery
 
 ### User Outcome
 
-On every standard top bar the back button and the title sit close together, and one token controls the gap.
+On every standard top bar the back button and the title sit close together, and one token controls the gap. It works on every platform and in every route context.
 
 ### Success Criteria
 
 - `TioNavigationTokens.topBarTitleGap` is `TioSpacing.sm` (8dp).
-- `TioNavigationTokens.topBarTitleSpacing` derives from the gap: `gap - TioSpacing.lg`, which is -8dp.
-- `TioTheme` installs the spacing through `appBarTheme.titleSpacing`, and no screen sets its own `titleSpacing`.
-- A standard AppBar with a back button keeps its icon at 16dp and draws the title 8dp after the icon.
+- `topBarTitleSpacing` is derived from it: `gap - TioSpacing.lg`, which is -8dp.
+- `TioAppBar` applies the derived spacing only when a leading widget exists (explicit, or implied by a poppable route or a drawer).
+- Without a leading widget the title stays 16dp from the edge.
+- The title always stays 16dp clear of the actions or the trailing edge.
+- `centerTitle` is false, so iOS matches Android.
+- Every standard screen uses `TioAppBar`. `TioTheme` installs no `titleSpacing`, and no screen sets one.
 - Shell top bars are unchanged.
 
 ### Scope
 
-- `apps/core/lib/src/theme/tokens/components/tio_navigation_tokens.dart`
-- `apps/core/lib/src/theme/tio_theme.dart`
-- `apps/core/lib/src/theme/README.md`
-- `apps/core/test/theme/primitive_geometry_contract_test.dart`
-- `apps/core/test/theme/tio_theme_app_bar_contract_test.dart`
-- `apps/features/workout/lib/src/presentation/library/exercises/exercises_page.dart` (search-field end padding)
+- Core:
+  - `apps/core/lib/src/ui/components/navigation/{tio_app_bar.dart,navigation.dart}`
+  - `apps/core/lib/src/theme/tokens/components/tio_navigation_tokens.dart`
+  - `apps/core/lib/src/theme/README.md`
+  - `apps/core/test/ui/components/tio_app_bar_test.dart`
+  - `apps/core/test/theme/primitive_geometry_contract_test.dart`
+- The 27 screen files whose 31 `AppBar(` calls become `TioAppBar(`: app router, profile settings route, and the auth, workout, settings, nutrition and profile pages. The only change in each is the constructor name.
 
 ### Non-Goals
 
@@ -88,13 +108,12 @@ See Explicit non-changes.
 
 ### Verified Evidence
 
-- Before this slice `TioTheme` set only `appBarTheme.toolbarHeight`. `titleSpacing` fell back to Flutter's 16dp, so with the 56dp leading slot the title started at 72dp: 32dp after the 24dp icon, which spans 16–40dp.
+- Before this slice the title started at 72dp: `TioTheme` set only `appBarTheme.toolbarHeight`, so `titleSpacing` fell back to Flutter's 16dp after the 56dp leading slot. That is 32dp after the 24dp icon, which spans 16–40dp.
 - `apps/**/lib` on `48d91f46` has 33 production `AppBar(` call sites in 29 files:
-  - 2 are the Core shell wrappers. Both set `automaticallyImplyLeading: false`. `TioShellStatusTopBar` sets `titleSpacing: TioSpacing.lg` explicitly, and `TioShellTopBar` has no title, so neither is affected.
-  - 28 standard AppBars pass an explicit leading widget: `BackButton`, or an `IconButton` on Forgot Password.
-  - 3 standard AppBars are title-only (App Preferences, Theme, Calendar). They are pushed routes, so Flutter adds an implied `BackButton`.
-- No production AppBar sets `titleSpacing`, `leadingWidth` or `centerTitle`, and no standard AppBar exists without a leading widget.
-- The only AppBar title that fills its slot is the Exercises search field. Every other title is `Text`.
+  - 2 are the Core shell wrappers, and they are unchanged.
+  - The other 31 standard AppBars use only `title`, `leading`, `automaticallyImplyLeading`, `actions`, `backgroundColor`, `elevation` and `scrolledUnderElevation`. That is exactly the `TioAppBar` API.
+- Title-only bars (App Preferences, Theme, Calendar) have no leading widget when opened directly on a route that cannot pop. The router tests do this: `app_mode_router_test.dart` sets `initialPath` and calls `router.go(AppRoutes.themeSettings.path)`.
+- On iOS, Flutter centres an AppBar title when the bar has fewer than two actions, unless `centerTitle` is set.
 
 ## 3. Clarification
 
@@ -102,11 +121,11 @@ See Explicit non-changes.
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Visible gap 8dp (`TioSpacing.sm`) | Made | Chosen from a rendered 16/12/8dp comparison after the 16dp draft | Owner |
-| Token expresses the visible gap; the theme spacing is derived from it | Made | A later change is one readable dp value | Task agent |
-| Install once through `ThemeData.appBarTheme.titleSpacing` | Made | Same one-owner pattern as `topBarHeight` (TNYX-244) | Owner ("GO") |
-| Exercises search field pads its end by `-topBarTitleSpacing` | Made | Negative spacing also widens the title slot on the trailing side. Without the padding the field reached 8dp into the close action's slot, 4dp from the X icon | Task agent, visible in renders |
-| AppBar without a leading widget | Made | None exists. The README requires such a bar to use `TioShellStatusTopBar` or pass an explicit governed `titleSpacing` | Task agent, documented for owner review |
+| Visible gap 8dp (`TioSpacing.sm`) | Made | Chosen from a rendered 16/12/8dp comparison | Owner |
+| Core `TioAppBar` instead of a theme-wide `titleSpacing` | Made | A theme value cannot depend on whether a leading widget exists, and it widens the trailing side (F1, F3). Chosen over a theme-only 12dp variant (48dp leading slot) from a render | Owner |
+| iOS titles start-aligned | Made | Consistent gap on both platforms (F2) | Owner |
+| Token expresses the visible gap; `titleSpacing` is derived | Made | A later change is one readable dp value | Task agent |
+| Keep `main`'s 16dp trailing inset | Made | The only intended change is on the leading side | Task agent |
 
 ## 4. Architecture Design
 
@@ -119,59 +138,71 @@ TioNavigationTokens.topBarTitleGap
     ↓  − TioSpacing.lg (icon inset inside Flutter's 56dp leading slot)
 TioNavigationTokens.topBarTitleSpacing (−8dp)
     ↓
-TioTheme.appBarTheme.titleSpacing
+TioAppBar
+  - titleSpacing: −8dp with a leading widget, 16dp without
+  - title end padding: 16dp − titleSpacing, which keeps the 16dp trailing inset
+  - centerTitle: false
     ↓
-all standard AppBar consumers
+every standard screen
 ```
 
 ### Ownership and Data Flow
 
-Core token → Core theme → every feature/app AppBar through `Theme`. The one feature change is the Exercises search field's end padding, which is expressed with the same token.
+Core token → core `TioAppBar` → feature and app screens through `package:tio_core/core.dart`. The screens only swap the constructor.
 
 ### Alternative Rejected
 
-- **Per-screen `titleSpacing`:** duplicates one invariant across 27 files.
-- **Shrinking `leadingWidth`:** moves the back icon toward the screen edge and shrinks the leading slot below its 56dp width.
+- **Theme-wide negative `titleSpacing`:** the first version of this PR. Codex found three problems with it: F1, leading-less titles past the edge; F2, no effect on iOS centred titles; F3, a widened trailing bound.
+- **Theme-only 48dp leading slot with 12dp gap:** moves the icon 4dp toward the edge, still puts leading-less titles on the edge, and the owner preferred 8dp.
+- **Per-screen `titleSpacing`:** repeats one invariant across 27 files.
 
 ### Failure and Accessibility States
 
-- No semantics, focus-order or hit-target change; the leading slot stays 56dp.
-- A text title long enough to ellipsize can end up to 8dp further right than before. That point is still inside the trailing action's 12dp icon padding.
+No semantics, focus-order or hit-target change. The leading slot stays 56dp, and the title keeps `AppBar`'s ellipsis and header semantics.
 
 ## 5. Implementation Plan
 
-- [x] Add `topBarTitleGap` and the derived `topBarTitleSpacing`.
-- [x] Install the spacing in `TioTheme`.
-- [x] Extend the geometry contract test, and add a test for the icon position and the gap.
-- [x] Document the contract in the Core theme README.
-- [x] Pad the end of the Exercises search field.
-- [x] Render the baseline, the 16dp draft, the gap options and the 8dp result.
-- [x] Analyze and test `core`, `app`, `workout`, `settings`, `nutrition`, `profile` and `auth`.
-- [ ] Commit, push, open the PR.
+- [x] `topBarTitleGap` token and the derived `topBarTitleSpacing`.
+- [x] `TioAppBar` with the leading-aware spacing, the trailing inset and `centerTitle: false`.
+- [x] Remove the theme-wide `titleSpacing` and revert the Exercises end padding.
+- [x] Migrate the 31 standard AppBars.
+- [x] `TioAppBar` tests:
+  - height;
+  - gap with an explicit leading widget and with an implied back button;
+  - leading-less inset;
+  - trailing inset with and without actions and leading;
+  - all `TargetPlatform`s.
+- [x] README contract.
+- [x] Analyze/test all affected packages; renders.
+- [ ] Commit, push, reply to the Codex threads, re-request review.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Temporary renders (uncommitted harnesses, deleted after use), 390dp, light + dark:
-- Library at 8dp: title moved from x=72 to x=48; back icon, actions, body unchanged
-- Exercises at 8dp: same title move; search/filter actions unchanged
-- Exercises search at 8dp: field x=48..342, close icon x=354..378 (8dp left gap, 12dp to the X); height unchanged
-- Gap options 16/12/8dp rendered for the owner's choice
+First version (theme-wide -8dp), superseded:
+- analyze clean, all package tests passed
 
-At the final 8dp working tree:
-flutter analyze --no-pub: No issues found in core, app, workout, settings, nutrition, profile, auth
-flutter test --no-pub: all passed
-  core 326, app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
-git diff --check: clean
+TioAppBar rework (final working tree):
+- flutter analyze --no-pub: No issues found in core, app, workout, settings, nutrition, profile, auth
+- flutter test --no-pub, all passed:
+  - core 339, including tio_app_bar_test 14 over all TargetPlatforms
+  - app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
+- git diff --check: clean
+- Temporary renders (harness deleted), 390dp, light + dark:
+  - Library: title at x=48, 8dp after the back icon; back icon, action and body unchanged
+  - Exercises search: field x=48..326, back icon 16..40, close icon 354..378; trailing edge same as main
+  - Leading-less bar: title at x=16
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | | | | |
+| F1 | P2 | Fixed in working tree | Theme-wide −8dp spacing puts titles of leading-less bars (title-only pages opened directly) past the start edge | `a62ae8db` | `TioAppBar` applies it only with a leading widget; test "insets the title from the edge without a leading widget" |
+| F2 | P2 | Fixed in working tree | On iOS, short titles are centred, so the gap does not apply | `a62ae8db` | `centerTitle: false` (owner); test over all `TargetPlatform`s |
+| F3 | P2 | Fixed in working tree | Negative spacing widens the trailing bound; long titles without actions clip past the edge | `a62ae8db` | Title end padding keeps the 16dp trailing inset; tests with and without actions and leading |
 
 ## 7. Final Handoff
 
@@ -181,13 +212,17 @@ See Scope, plus this brief and the `.ai/tasks/README.md` row.
 
 ### Actual Behavior
 
-- Every standard AppBar draws its title 8dp after the back/close icon.
-- The value is governed by `TioNavigationTokens.topBarTitleGap`.
+- Every standard screen uses `TioAppBar`.
+- With a back/close icon, the title starts 8dp after it on every platform.
+- Without one, the title is inset 16dp.
+- The trailing inset is unchanged.
+- `TioNavigationTokens.topBarTitleGap` governs the gap.
 
 ### Known Limitations
 
-- The 31 standard AppBars were not each rendered on their own. The check relies on:
-  - the structural inventory above: every one inherits the theme value through the same 56dp leading slot, with no overrides;
+- The 31 screens were not each rendered on their own. The check relies on:
+  - `TioAppBar` geometry tests;
+  - the constructor-only migration;
   - renders of the Library and Exercises bars.
 
 ### Final Status

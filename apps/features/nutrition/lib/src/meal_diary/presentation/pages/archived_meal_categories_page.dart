@@ -68,7 +68,7 @@ class _ArchivedMealCategoriesPageState
     return Scaffold(
       key: const ValueKey('archived-meal-categories-page'),
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,

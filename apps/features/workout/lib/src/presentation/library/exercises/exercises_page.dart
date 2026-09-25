@@ -39,35 +39,27 @@ class ExercisesPage extends ConsumerWidget {
     return Scaffold(
       key: const ValueKey('exercises-page'),
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: state.isSearching
-            ? Padding(
-                // The negative theme title spacing also widens the title slot
-                // on the trailing side; keep the field out of the close
-                // action's slot.
-                padding: const EdgeInsetsDirectional.only(
-                  end: -TioNavigationTokens.topBarTitleSpacing,
+            ? TioInput(
+                key: const ValueKey('exercises-search'),
+                hint: 'Search exercises',
+                value: state.query.text,
+                autofocus: true,
+                // Compact enough to sit inside the standard top bar.
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: TioInputTokens.horizontalPadding,
+                  vertical: TioSpacing.sm,
                 ),
-                child: TioInput(
-                  key: const ValueKey('exercises-search'),
-                  hint: 'Search exercises',
-                  value: state.query.text,
-                  autofocus: true,
-                  // Compact enough to sit inside the standard top bar.
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: TioInputTokens.horizontalPadding,
-                    vertical: TioSpacing.sm,
-                  ),
-                  leading:
-                      Icon(Icons.search_rounded, color: colors.textSecondary),
-                  keyboardType: TextInputType.text,
-                  textInputAction: TextInputAction.search,
-                  onChanged: controller.setSearchText,
-                ),
+                leading:
+                    Icon(Icons.search_rounded, color: colors.textSecondary),
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.search,
+                onChanged: controller.setSearchText,
               )
             : Text(
                 'Exercises',

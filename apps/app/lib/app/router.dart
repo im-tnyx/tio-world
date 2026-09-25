@@ -1159,7 +1159,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             if (wellnessAsync.isLoading && wellnessAsync.valueOrNull == null) {
               return Scaffold(
                 backgroundColor: context.tioColors.background,
-                appBar: AppBar(
+                appBar: TioAppBar(
                   backgroundColor: context.tioColors.background,
                   elevation: TioElevation.none,
                   scrolledUnderElevation: TioElevation.none,
@@ -1187,7 +1187,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               final colors = context.tioColors;
               return Scaffold(
                 backgroundColor: colors.background,
-                appBar: AppBar(
+                appBar: TioAppBar(
                   backgroundColor: colors.background,
                   elevation: TioElevation.none,
                   scrolledUnderElevation: TioElevation.none,
@@ -1282,7 +1282,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             if (bodyAsync.isLoading && bodyAsync.valueOrNull == null) {
               return Scaffold(
                 backgroundColor: colors.background,
-                appBar: AppBar(
+                appBar: TioAppBar(
                   backgroundColor: colors.background,
                   elevation: TioElevation.none,
                   scrolledUnderElevation: TioElevation.none,
@@ -1307,7 +1307,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             if (bodyAsync.hasError && bodyAsync.valueOrNull == null) {
               return Scaffold(
                 backgroundColor: colors.background,
-                appBar: AppBar(
+                appBar: TioAppBar(
                   backgroundColor: colors.background,
                   elevation: TioElevation.none,
                   scrolledUnderElevation: TioElevation.none,

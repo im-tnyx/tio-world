@@ -78,7 +78,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         // Intentional framework-transparent app bar; not a palette role.
         backgroundColor: Colors.transparent,
         elevation: TioElevation.none,
