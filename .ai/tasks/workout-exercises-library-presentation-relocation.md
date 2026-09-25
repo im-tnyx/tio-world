@@ -1,6 +1,6 @@
 # Workout Exercises Presentation Library Relocation
 
-**Status:** In review
+**Status:** Validated
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter phone app (Android + iOS)
 
@@ -31,7 +31,7 @@
 **Validation completed at SHA:** Implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains.
 **Validation remaining:** Exact-head remote CI and review completion on PR #352 after this documentation-only review remediation is pushed.
 **Current blocker:** None.
-**Open review finding IDs:** PR #352 P2 `discussion_r4106520881` identified the stale pre-push next action; addressed by this post-commit handoff refresh and pending thread resolution after push.
+**Open review finding IDs:** PR #352 P2 `discussion_r4106520881` is resolved. P2 `discussion_r4106574732` (stale planned wording in D-020) and P2 `discussion_r4106574739` (unsupported task status) are addressed by the current documentation-only remediation and pending thread resolution after push.
 **Next exact action:** Verify exact-head PR #352 CI and review state. Merge and external tracker updates require separate authorization.
 
 ## Global UI / Design-System Guardrail
