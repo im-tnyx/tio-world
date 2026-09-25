@@ -93,7 +93,7 @@ See **Explicit non-changes**.
 - `ExerciseCatalogParser` and `ExerciseCatalogRowDto` already own consumed-row validation, duplicate-ref rejection and canonical mapping.
 - The owner source is a bare array of 101 rows. All rows contain the approved consumed fields; source/media/instruction/standards/provider metadata must be removed from the production asset.
 - `apps/features/workout/pubspec.yaml` currently has no asset registration.
-- Current main is `f5bf3c4f`; no competing TNYX-270 branch or open PR exists.
+- At task start, `main` was `f5bf3c4f`, and no competing TNYX-270 branch or open PR existed.
 
 ## 3. Clarification
 
@@ -145,7 +145,7 @@ Distinct typed failures cover missing asset, invalid JSON/document and unsupport
 ### Validation Run
 
 ```text
-G:\dev\flutter-sdk\bin\dart.bat format <5 W3A2a Dart files>       PASS (5 files; final pass clean)
+dart format <5 W3A2a Dart files>                                   PASS (5 files; final pass clean)
 cd apps/features/workout && flutter analyze                        PASS (No issues found)
 cd apps/features/workout && flutter test test/data/exercises test/domain/exercises
                                                                     PASS (60 tests)

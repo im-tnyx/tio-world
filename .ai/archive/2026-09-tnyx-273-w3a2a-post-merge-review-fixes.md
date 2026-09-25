@@ -17,7 +17,7 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Independent exact-head review by the task agent plus owner-account reviews; Codex (supplemental; usage-limited, no review)
+**Review owner:** Exact-head self-review by the task agent (not independent), plus separate owner-account reviews on PR #340 that raised R6/R7; Codex (supplemental; usage-limited, no review)
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-25 after the post-merge sync; GitHub `main`, `origin/main` and local `main` all at `359e24ffcc29c57a242c435351e5ac8c35c0ab7e`
@@ -64,7 +64,7 @@ W3A2b, UI/routing, Library, Supabase, catalog content/schema, media/icons/standa
 
 ### Verified Evidence
 
-- Source/config inspected: `asset_bundle_exercise_catalog_source.dart` catches every `FlutterError` as missing (current `main`). Flutter 3.44.6 `asset_bundle.dart`: `PlatformAssetBundle.load` throws `FlutterError.fromParts([ErrorSummary('Unable to load asset: "<key>".'), ErrorDescription('The asset does not exist or has empty data.')])` for absent/empty assets; `NetworkAssetBundle` (HTTP status) and `loadBuffer` failures reuse the same summary with a different description. No typed not-found exception exists.
+- Source/config inspected: `asset_bundle_exercise_catalog_source.dart` caught every `FlutterError` as missing (pre-fix base `a023730f`). Flutter 3.44.6 `asset_bundle.dart`: `PlatformAssetBundle.load` throws `FlutterError.fromParts([ErrorSummary('Unable to load asset: "<key>".'), ErrorDescription('The asset does not exist or has empty data.')])` for absent/empty assets; `NetworkAssetBundle` (HTTP status) and `loadBuffer` failures reuse the same summary with a different description. No typed not-found exception exists.
 - Existing pattern to follow: typed source exceptions in `exercise_catalog_source_exceptions.dart` with `assetKey`/`cause`/`stackTrace`.
 - Tests or validation already present: decoder and source tests from W3A2a, including real registered package-asset tests.
 
