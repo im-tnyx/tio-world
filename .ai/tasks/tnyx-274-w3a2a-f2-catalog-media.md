@@ -8,7 +8,7 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner approved TNYX-274 ("go follow agent.md") after narrowing it to media only, and recorded the decisions in Linear TNYX-274 and GitHub #342: remote provider URLs are owner-approved and owner-maintained; the list thumbnail is YES (in TNYX-272); media follows the user's gender with default/other/text-only fallback; full URLs are kept as curated; there is one catalog file.
+**Approval evidence:** On 2026-09-25 the owner approved TNYX-274 ("go follow agent.md") after narrowing it to media only, and authorized the Draft → Ready transition and review gate the same day (merge not authorized). Decisions are recorded in Linear TNYX-274 and GitHub #342: remote provider URLs are owner-approved and owner-maintained; the list thumbnail is YES (in TNYX-272); media follows the user's gender with default/other/text-only fallback; full URLs are kept as curated; there is one catalog file.
 **Approved product/UI/data-shape boundaries:** add the curated `media` object to each row of the existing Workout catalog asset exactly as in the owner source; keep `schemaVersion` 1 (additive optional field), bump `catalogVersion`; parse/validate media; add the canonical media value and gender selection rule to `Exercise` in `apps/shared`; tests; docs.
 **Explicit non-changes:** no UI or rendering (phone list = TNYX-272, phone video = W3B/TNYX-262, watch = later slices); no other curated fields; no move to a shared catalog package or ADR boundary change (deferred); no Supabase; no router, Library or Workout Home change; no merge or branch deletion.
 
@@ -24,14 +24,14 @@
 **HEAD SHA:** Current branch head (see Git/PR)
 **Observed working-tree state:** owner asset directories under `apps/core/assets/` remain untracked and untouched (read-only source)
 **Observed uncommitted/dirty files:** owner asset directories only
-**PR / tracker:** Linear TNYX-274 `In Progress` (parent TNYX-270 `In Progress`; blocks TNYX-272 `Backlog`); GitHub #342
-**Current implementation state:** Implemented and validated locally; Draft PR stage
+**PR / tracker:** PR #343 Ready for Review (owner-authorized); Linear TNYX-274 `In Review` (parent TNYX-270 `In Progress`; blocks TNYX-272 `Backlog`); GitHub #342
+**Current implementation state:** Implemented and validated; PR #343 in review
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/shared/test/workout/`, `apps/features/workout/{assets/exercises,lib/src/data/exercises,test/data/exercises}`, `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`
-**Validation completed at SHA:** working tree on base `3eee0357` before the implementation commit, 2026-09-25 (see section 6)
-**Validation remaining:** exact-head CI (attribution guard, Analyze and test) and exact-head review on the Draft PR
+**Validation completed at SHA:** exact-head CI PASS on implementation commit `67ce4e2f` (Commit attribution guard, Attribution guard runner, Analyze and test). GHAS failed before analysis (`CAPIError 400` unsupported model, TNYX-256 outage; no security pass claimed). Local validation ran on the working tree before that commit (section 6).
+**Validation remaining:** None. For later brief-only commits, their exact-head checks are shown on PR #343; this brief does not self-reference its own commit.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Inspect Draft PR exact-head CI; Ready and merge need separate owner authorization.
+**Next exact action:** Complete the Ready-triggered review gate (Codex / owner-account reviews, head match + 0 unresolved threads); merge needs separate owner authorization.
 
 ## Global UI / Design-System Guardrail
 
