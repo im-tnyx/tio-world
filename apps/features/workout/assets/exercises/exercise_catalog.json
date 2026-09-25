@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 1,
+  "catalogVersion": 2,
   "exercises": [
     {
       "id": "ex_cable_one_arm_lateral_raise",
@@ -23,7 +23,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01921201-Cable-One-Arm-Lateral-Raise_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01921101-Cable-One-Arm-Lateral-Raise_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22311201-Cable-One-Arm-Lateral-Raise-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22311101-Cable-One-Arm-Lateral-Raise-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_overhead_triceps_extension",
@@ -43,7 +57,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01941201-Cable-Overhead-Triceps-Extension-(rope-attachment)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01941101-Cable-Overhead-Triceps-Extension-(rope-attachment)_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22481201-Cable-Overhead-Triceps-Extension-(rope-attachment)-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22481101-Cable-Overhead-Triceps-Extension-(rope-attachment)-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_standing_rear_delt_row",
@@ -71,7 +99,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02331201-Cable-Standing-Rear-Delt-Row-(with-rope)_Shoulder_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02331101-Cable-Standing-Rear-Delt-Row-(with-rope)_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/28821201-Cable-Standing-Rear-Delt-Row-(with-rope)-(female)_shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28821101-Cable-Standing-Rear-Delt-Row-(with-rope)-(female)_shoulder_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_shoulder_press",
@@ -96,7 +138,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/14541201-Lever-Seated-Shoulder-Press_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/14541101-Lever-Seated-Shoulder-Press_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/28831201-Lever-Seated-Shoulder-Press-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28831101-Lever-Seated-Shoulder-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_front_raise",
@@ -120,7 +176,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01621201-Cable-Front-Raise_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01621101-Cable-Front-Raise_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22301201-Cable-Front-Raise-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22301101-Cable-Front-Raise-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_standing_lateral_raise",
@@ -143,7 +213,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03341201-Dumbbell-Lateral-Raise_shoulder-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03341101-Dumbbell-Lateral-Raise_shoulder-AFIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22341201-Dumbbell-Standing-Lateral-Raise-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22341101-Dumbbell-Standing-Lateral-Raise-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_rear_delt_fly",
@@ -169,7 +253,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03801201-Dumbbell-Rear-Lateral-Raise_Shoulders-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03801101-Dumbbell-Rear-Lateral-Raise_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24871201-Dumbbell-Rear-Delt-Fly-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24871101-Dumbbell-Rear-Delt-Fly-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_shoulder_press",
@@ -194,7 +292,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04051201-Dumbbell-Seated-Shoulder-Press_Shoulders-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04051101-Dumbbell-Seated-Shoulder-Press_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22371201-Dumbbell-Seated-Shoulder-Press-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22371101-Dumbbell-Seated-Shoulder-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_seated_dumbbell_arnold_press",
@@ -218,7 +330,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/21371201-Dumbbell-Arnold-Press_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/21371101-Dumbbell-Arnold-Press_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23861201-Dumbbell-Arnold-Press-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23861101-Dumbbell-Arnold-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_arnold_press_flat_bench",
@@ -243,7 +369,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02871201-Dumbbell-Arnold-Press-II_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02871101-Dumbbell-Arnold-Press-II_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/69931201-Dumbbel-Seated-Arnold-Press-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/69931201-Dumbbel-Seated-Arnold-Press-(female)_Shoulders_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_seated_overhead_press_flat_bench",
@@ -266,7 +406,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00911201-Barbell-Seated-Overhead-Press_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00911101-Barbell-Seated-Overhead-Press_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/26041201-Barbell-Seated-Overhead-Press-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26041101-Barbell-Seated-Overhead-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_standing_overhead_press",
@@ -292,7 +446,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04261201-Dumbbell-Standing-Overhead-Press_shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04261101-Dumbbell-Standing-Overhead-Press_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23801201-Dumbbell-Standing-Overhead-Press-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23801101-Dumbbell-Standing-Overhead-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_arm_circles",
@@ -318,7 +486,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/39051201-Arm-Circles_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/39051301-Arm-Circles_Shoulders_720_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02541201-Circles-Arm-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02541101-Circles-Arm_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_neck_side_stretch",
@@ -340,7 +522,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/14031201-Neck-Side-Stretch_Neck.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/14031101-Neck-Side-Stretch_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/42891201-Neck-Side-Stretch-(female)_Neck.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/42891101-Neck-Side-Stretch-(female)_Neck_small.png"
+        }
+      }
     },
     {
       "id": "ex_chin_tuck",
@@ -360,7 +556,22 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "videoFallbackGender": "female",
+        "male": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31491101-Chin-Tuck_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/31511201-Chin-Tuck-(female)_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31511101-Chin-Tuck-(female)_Neck_small.png"
+        }
+      }
     },
     {
       "id": "ex_assisted_chin_tuck",
@@ -380,7 +591,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "image",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31501101-Assisted-Chin-Tuck_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31521101-Assisted-Chin-Tuck-(female)_Neck_small.png"
+        }
+      }
     },
     {
       "id": "ex_roll_neck_rotation_lying_on_floor",
@@ -400,7 +625,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/53711201-Roll-Neck-Rotation-Lying-on-Floor_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/53711101-Roll-Neck-Rotation-Lying-on-Floor_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/54101201-Roll-Neck-Rotation-Lying-on-Floor-(female)_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/54101101-Roll-Neck-Rotation-Lying-on-Floor-(female)_Neck_small.png"
+        }
+      }
     },
     {
       "id": "ex_roll_neck_decompress_lying_on_floor",
@@ -420,7 +659,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/53721201-Roll-Neck-Decompress-Lying-on-Floor_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/53721101-Roll-Neck-Decompress-Lying-on-Floor_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/54111201-Roll-Neck-Decompress-Lying-on-Floor-(female)_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/54111101-Roll-Neck-Decompress-Lying-on-Floor-(female)_Neck_small.png"
+        }
+      }
     },
     {
       "id": "ex_side_neck_stretch",
@@ -440,7 +693,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/07131201-Side-Neck-Stretch_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/07131101-Side-Neck-Stretch_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73061201-Standing-Side-Neck-Stretch-(female)_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73061201-Standing-Side-Neck-Stretch-(female)_Neck_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_forward_neck_stretch",
@@ -460,7 +727,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/18361201-Forward-Flexion-Neck-Stretch_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/18361101-Forward-Flexion-Neck-Stretch_Neck_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73081201-Forward-Neck-Stretch-(female)_Neck_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73081201-Forward-Neck-Stretch-(female)_Neck_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_elbow_touch_and_lift",
@@ -486,7 +767,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/68981201-Elbow-Touch-and-Lift-(male)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/68981201-Elbow-Touch-and-Lift-(male)_Shoulders_GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/55721201-Elbow-Touch-and-Lift-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/55721201-Elbow-Touch-and-Lift-(female)_Shoulders_.png"
+        }
+      }
     },
     {
       "id": "ex_bent_arm_lift",
@@ -512,7 +807,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/66901201-Bent-Arm-Lift-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/66901201-Bent-Arm-Lift-(female)_Shoulders__GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73691201-Bent-Arm-Lift-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73691201-Bent-Arm-Lift-(female)_Shoulders_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_one_arm_shoulder_press_v2",
@@ -537,7 +846,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03601201-Dumbbell-One-Arm-Shoulder-Press-(VERSION-2)_Should.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03601101-Dumbbell-One-Arm-Shoulder-Press-II_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23811201-Dumbbell-One-Arm-Shoulder-Press-(version-2)-(femal.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23811101-Dumbbell-One-Arm-Shoulder-Press-(version-2)-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_one_arm_lateral_raise",
@@ -560,7 +883,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03551201-Dumbbell-One-Arm-Lateral-Raise_Shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03551101-Dumbbell-One-Arm-Lateral-Raise_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/25911201-Dumbbell-One-Arm-Lateral-Raise-(female)_Shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25911101-Dumbbell-One-Arm-Lateral-Raise-(female)_shoulder_small.png"
+        }
+      }
     },
     {
       "id": "ex_smith_seated_shoulder_press",
@@ -585,7 +922,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/07651201-Smith-Seated-Shoulder-Press_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/07651101-Smith-Seated-Shoulder-Press_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/36201201-Smith-Seated-Shoulder-Press-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36201101-Smith-Seated-Shoulder-Press-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_standing_military_press_without_rack",
@@ -611,7 +962,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/11651201-Barbell-Standing-Military-Press-(without-rack)_Shoulders_without-weight.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/11651101-Barbell-Standing-Military-Press-(without-rack)_Shoulders-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/70051201-Barbell-Standing-Military-Press-(without-rack)-(fe.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/70051201-Barbell-Standing-Military-Press-(without-rack)-(fe_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_lever_military_press_plate_loaded",
@@ -636,7 +1001,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05871201-Lever-Military-Press-(plate-loaded)_shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05871101-Lever-Military-Press-(plate-loaded)_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/31011201-Lever-Military-Press-(plate-loaded)-(female)_shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31011101-Lever-Military-Press-(plate-loaded)-(female)_shoulder_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_bench_press",
@@ -659,7 +1038,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00251201-Barbell-Bench-Press_Chest-FIX2_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00251101-Barbell-Bench-Press_Chest-FIX2_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24401201-Barbell-Bench-Press-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24401101-Barbell-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_incline_bench_press",
@@ -682,7 +1075,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00471201-Barbell-Incline-Bench-Press_Chest-FIX2_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00471101-Barbell-Incline-Bench-Press_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23881201-Barbell-Incline-Bench-Press-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23881101-Barbell-Incline-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_bench_press",
@@ -705,7 +1112,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03141201-Dumbbell-Incline-Bench-Press_Chest-FIX2_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03141101-Dumbbell-Incline-Bench-Press_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24411201-Dumbbell-Incline-Bench-Press-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24411101-Dumbbell-Incline-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_squeeze_bench_press",
@@ -728,7 +1149,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/36811201-Dumbbell-Squeeze-Bench-Press_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36811101-Dumbbell-Squeeze-Bench-Press_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/79901201-Dumbbell-Squeeze-Bench-Press-(female)_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/79901101-Dumbbell-Squeeze-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_squeeze_press",
@@ -751,7 +1186,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/50671201-Dumbbell-Incline-Squeeze-Press_Upper-Arms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/50671101-Dumbbell-Incline-Squeeze-Press_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/80001201-Dumbbell-Incline-Squeeze-Press-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/80001101-Dumbbell-Incline-Squeeze-Press-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_biceps_curl",
@@ -774,7 +1223,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03171201-Dumbbell-Incline-Curl-II_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03171101-Dumbbell-Incline-Curl-II_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/37641201-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/37641101-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_supinating_biceps_curl",
@@ -797,7 +1260,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03151201-Dumbbell-Incline-Biceps-Curl_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03151101-Dumbbell-Incline-Biceps-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24931201-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24931101-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_hammer_curl",
@@ -820,7 +1297,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03201201-Dumbbell-Incline-Hammer-Curl_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03201101-Dumbbell-Incline-Hammer-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24941201-Dumbbell-Incline-Hammer-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24941101-Dumbbell-Incline-Hammer-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_incline_inner_biceps_curl",
@@ -843,7 +1334,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03221201-Dumbbell-Incline-Inner-Biceps-Curl_Upper-Arms-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03221101-Dumbbell-Incline-Inner-Biceps-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25211101-Dumbbell-Incline-Inner-Biceps-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_overhead_triceps_extension",
@@ -863,7 +1368,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03891201-Dumbbell-Seated-Bench-Extension_Upper-Arms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03891101-Dumbbell-Seated-Bench-Extension_Upper-Arms-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24881201-Dumbbell-Seated-Triceps-Extension-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24881101-Dumbbell-Seated-Triceps-Extension-(female)_Upper-Arms-FIX_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_lying_triceps_extension",
@@ -883,7 +1402,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03511201-Dumbbell-Lying-Triceps-Extension_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03511101-Dumbbell-Lying-Triceps-Extension_Upper-Arms-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22511201-Dumbbell-Lying-Triceps-Extension-(female)_Upper-Arms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22511101-Dumbbell-Lying-Triceps-Extension-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_bench_dip_on_floor",
@@ -907,7 +1440,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/13991201-Bench-dip-on-floor_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/13991101-Bench-dip-on-floor_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/25461201-Bench-dip-on-floor-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25461101-Bench-dip-on-floor-(female)_Upper-Arms-FIX_small.png"
+        }
+      }
     },
     {
       "id": "ex_triceps_floor_dip",
@@ -931,7 +1478,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/08151201-Triceps-Dips-Floor_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/08151101-Triceps-Dips-Floor_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/51101201-Triceps-Dip-Floor-(female)_Upper-Arms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/51101101-Triceps-Dip-Floor-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_alternating_biceps_curl",
@@ -954,7 +1515,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/11961201-Dumbbell-Alternate-Biceps-Curl_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/11961101-Dumbbell-Alternate-Biceps-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/37611201-Dumbbell-Seated-Alternate-Biceps-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/37611101-Dumbbell-Seated-Alternate-Biceps-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_standing_alternating_biceps_curl",
@@ -977,7 +1552,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02851201-Dumbbell-Alternate-Biceps-Curl_Upper-Arms-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02851101-Dumbbell-Alternate-Biceps-Curl_Upper-Arms-AFIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/25841201-Dumbbell-Alternate-Biceps-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25841101-Dumbbell-Alternate-Biceps-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_decline_bench_press",
@@ -1000,7 +1589,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03011201-Dumbbell-Decline-Bench-Press_Chest-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03011101-Dumbbell-Decline-Bench-Press_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24521201-Dumbbell-Decline-Bench-Press-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24521101-Dumbbell-Decline-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_decline_twist_fly",
@@ -1023,7 +1626,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03071201-Dumbbell-Decline-Twist-Fly_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03071101-Dumbbell-Decline-Twist-Fly_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/25851201-Dumbbell-Decline-Twist-Fly-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25851101-Dumbbell-Decline-Twist-Fly-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_decline_triceps_extension",
@@ -1043,7 +1660,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03061201-Dumbbell-Decline-Triceps-Extension_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03061101-Dumbbell-Decline-Triceps-Extension_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26731101-Dumbbell-Decline-Triceps-Extension-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_lying_one_arm_supinated_triceps_extension",
@@ -1063,7 +1694,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03461201-Dumbbell-Lying-One-Arm-Supinated-Triceps-Extension_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03461101-Dumbbell-Lying-One-Arm-Supinated-Triceps-Extension_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25871101-Dumbbell-Lying-One-Arm-Supinated-Triceps-Extension-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_standing_overhead_triceps_extension",
@@ -1083,7 +1728,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04301201-Dumbbell-Standing-Triceps-Extension_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04301101-Dumbbell-Standing-Triceps-Extension_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23901201-Dumbbell-Standing-Triceps-Extension-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23901101-Dumbbell-Standing-Triceps-Extension-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_triceps_kickback",
@@ -1103,7 +1762,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03941201-Dumbbell-Seated-Kickback_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03941101-Dumbbell-Seated-Kickback_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/34211201-Dumbbell-Seated-Kickback-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/34211101-Dumbbell-Seated-Kickback-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_pullover",
@@ -1128,7 +1801,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03751201-Dumbbell-Pullover_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03751101-Dumbbell-Pullover_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": null
+        }
+      }
     },
     {
       "id": "ex_dumbbell_straight_arm_pullover",
@@ -1153,7 +1840,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04331201-Dumbbell-Straight-Arm-Pullover_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04331101-Dumbbell-Straight-Arm-Pullover_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22411201-Dumbbell-Straight-Arm-Pullover-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22411101-Dumbbell-Straight-Arm-Pullover-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_walking_on_treadmill",
@@ -1180,7 +1881,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22591201-Walking-on-Treadmill_Cardio.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22591101-Walking-on-Treadmill_Cardio_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22601201-Walking-on-Treadmill_Cardio.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22601101-Walking-on-Treadmill-(female)_Cardio_small.png"
+        }
+      }
     },
     {
       "id": "ex_run_on_treadmill",
@@ -1208,7 +1923,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06841201-Run-(equipment)_Cardio.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06841101-Run-(equipment)_Cardio_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/21971201-Run-on-Treadmill-(female)_Cardio.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/21971101-Run-on-Treadmill-(female)_Cardio_small.png"
+        }
+      }
     },
     {
       "id": "ex_walking_on_incline_treadmill",
@@ -1234,7 +1963,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/36661201-Walking-on-Incline-Treadmill_Cardio_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36661101-Walking-on-Incline-Treadmill_Cardio_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": null
+        }
+      }
     },
     {
       "id": "ex_lever_leg_extension",
@@ -1254,7 +1997,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05851201-Lever-Leg-Extension_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05851101-Lever-Leg-Extension_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22561201-Lever-Leg-Extension-(female)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22561101-Lever-Leg-Extension-(female)_Thighs_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_fly",
@@ -1278,7 +2035,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05961201-Lever-Seated-Fly_Chest-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05961101-Lever-Seated-Fly_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22551201-Lever-Seated-Fly-(female)_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22551101-Lever-Seated-Fly-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_straight_back_seated_row",
@@ -1309,7 +2080,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02391201-Cable-Straight-Back-Seated-Row_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02391101-Cable-Straight-Back-Seated-Row_Back_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30691201-Cable-Straight-Back-Seated-Row-(female)_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30691101-Cable-Straight-Back-Seated-Row-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_walking_on_stepmill",
@@ -1336,7 +2121,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23111201-Walking-on-Stepmill_Cardio.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23111101-Walking-on-Stepmill_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24901201-Walking-on-Stepmill-(female)_Thighs_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24901101-Walking-on-Stepmill-(female)_Thighs_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_split_squat",
@@ -1360,7 +2159,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/29601201-Dumbbell-Split-Squat_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/29601101-Dumbbell-Split-Squat_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/29591201-Dumbbell-Split-Squat-(female)_Thighs_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/29591101-Dumbbell-Split-Squat-(female)_Thighs-FIX_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_bulgarian_split_squat",
@@ -1383,7 +2196,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04101201-Dumbbell-Single-Leg-Split-Squat_Thighs_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04101101-Dumbbell-Single-Leg-Split-Squat_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22901201-Dumbbell-Bulgarian-Split-Squat-(female)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22901101-Dumbbell-Bulgarian-Split-Squat-(female)_Thighs_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_split_squat",
@@ -1407,7 +2234,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30301201-Barbell-Split-Squat_Thighs_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30301101-Barbell-Split-Squat_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23701201-Barbell-Split-Squat-(female)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23701101-Barbell-Split-Squat-(female)_Thighs_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_hip_thrust",
@@ -1430,7 +2271,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/10601201-Barbell-Hip-Thrust_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/10601101-Barbell-Hip-Thrust_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22161201-Barbell-Hip-Thrust-(female)_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22161101-Barbell-Hip-Thrust-(female)_Hips_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_alternating_hammer_curl",
@@ -1453,7 +2308,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/16481201-Dumbbell-Alternate-Seated-Hammer-Curl_Upper-Arms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/16481101-Dumbbell-Alternate-Seated-Hammer-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26431101-Dumbbell-Alternate-Seated-Hammer-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_seated_lateral_raise",
@@ -1476,7 +2345,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03951201-Dumbbell-Seated-Lateral-Raise_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03951101-Dumbbell-Seated-Lateral-Raise-II_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22361201-Dumbbell-Seated-Lateral-Raise-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22361101-Dumbbell-Seated-Lateral-Raise-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_bench_press",
@@ -1499,7 +2382,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02891201-Dumbbell-Bench-Press_Chest-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02891101-Dumbbell-Bench-Press_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22541201-Dumbbell-Bench-Press-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22541101-Dumbbell-Bench-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_lying_leg_curl",
@@ -1522,7 +2419,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05861201-Lever-Lying-Leg-Curl_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05861101-Lever-Lying-Leg-Curl_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22231201-Lever-Lying-Leg-Curl-(female)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22231101-Lever-Lying-Leg-Curl-(female)_Thighs_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_leg_curl",
@@ -1544,7 +2455,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05991201-Lever-Seated-Leg-Curl_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05991101-Lever-Seated-Leg-Curl_Thighs-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22571201-Lever-Seated-Leg-Curl-(female)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22571101-Lever-Seated-Leg-Curl-(female)_Thighs-FIX_small.png"
+        }
+      }
     },
     {
       "id": "ex_push_up",
@@ -1568,7 +2493,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06621201-Push-up-m_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06621101-Push-up-m_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06651201-Push-up-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06651101-Push-up-w_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_reverse_fly_parallel_grip",
@@ -1594,7 +2533,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06011201-Lever-Seated-Reverse-Fly-(parallel-grip)_shoulder.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06011101-Lever-Seated-Reverse-Fly-(parallel-grip)_shoulder_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/28221201-Lever-Seated-Reverse-Fly-(female)_Shoulders.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28221101-Lever-Seated-Reverse-Fly-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_reverse_fly_pronated_grip",
@@ -1620,7 +2573,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06021201-Lever-Seated-Reverse-Fly_Shoulders.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/06021201-Lever-Seated-Reverse-Fly_Shoulders_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06021101-Lever-Seated-Reverse-Fly_Shoulders_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/28221201-Lever-Seated-Reverse-Fly-(female)_Shoulders-FIX2_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/28221201-Lever-Seated-Reverse-Fly-(female)_Shoulders-FIX2_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28221101-Lever-Seated-Reverse-Fly-(female)_Shoulders_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_curl",
@@ -1643,7 +2610,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00311201-Barbell-Curl_Upper-Arms_without-weight.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00311101-Barbell-Curl_Upper-Arms-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/35921201-Barbell-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/35921101-Barbell-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_rope_pushdown",
@@ -1663,7 +2644,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02001201-Cable-Pushdown-(with-rope-attachment)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02001101-Cable-Pushdown-(with-rope-attachment)_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24381201-Cable-Pushdown-(with-rope-attachment)-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24381101-Cable-Pushdown-(with-rope-attachment)-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_wall_push_up",
@@ -1685,7 +2680,21 @@
         "intermediate"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06581201-Push-up-(wall)-II_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06581101-Push-up-(wall)-II_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/26141201-Push-up-(wall)-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26141101-Push-up-(wall)-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_hip_abduction",
@@ -1709,7 +2718,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05971201-Lever-Seated-Hip-Abduction_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05971101-Lever-Seated-Hip-Abduction_Hips-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/36111201-Lever-Seated-Hip-Abduction-(female)_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36111101-Lever-Seated-Hip-Abduction-(female)_Hips_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_hip_abduction_v2",
@@ -1731,7 +2754,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "female",
+        "male": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/18691101-Lever-Seated-Hip-Abduction-(VERSION-2)_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/25531201-Lever-Seated-Hip-Abduction-(VERSION-2)-(female)_Hips_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25531101-Lever-Seated-Hip-Abduction-(VERSION-2)-(female)_Hips_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_chest_press_plate_loaded",
@@ -1755,7 +2792,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05761201-Lever-Chest-Press-(plate-loaded)_Chest-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05761101-Lever-Chest-Press-(plate-loaded)_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24561201-Lever-Chest-Press-(plate-loaded)-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24561101-Lever-Chest-Press-(plate-loaded)-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_chest_press_weight_stack",
@@ -1779,7 +2830,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05771201-Lever-Chest-Press_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05771101-Lever-Chest-Press_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24571101-Lever-Chest-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_calf_raise_plate_loaded",
@@ -1800,7 +2865,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/05941201-Lever-Seated-Calf-Raise-(plate-loaded).mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05941101-Lever-Seated-Calf-Raise-(plate-loaded)_Calf_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/31061201-Lever-Seated-Calf-Raise-(plate-loaded)-(female)_Calves.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31061101-Lever-Seated-Calf-Raise-(plate-loaded)-(female)_Calves_small.png"
+        }
+      }
     },
     {
       "id": "ex_ez_barbell_curl",
@@ -1823,7 +2902,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04471201-EZ-Barbell-Curl_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04471101-EZ-Barbell-Curl_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22381201-EZ-Barbell-Curl-(female)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22381101-EZ-Barbell-Curl-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_floor_crunch",
@@ -1845,7 +2938,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02741201-Crunch-Floor-(male)_waist.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02741101-Crunch-Floor-m_waist_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02751201-Crunch-Floor-(female)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02751101-Crunch-Floor-w_waist_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_standing_calf_raise",
@@ -1867,7 +2974,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06051201-Lever-Standing-Calf-Raise_Calves.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06051101-Lever-Standing-Calf-Raise_Calf_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22111201-Lever-Standing-Calf-Raise-(female)_Calves.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22111101-Lever-Standing-Calf-Raise-(female)_Calves_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_pec_deck_fly",
@@ -1890,7 +3011,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/10301201-Lever-Pec-Deck-Fly_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/10301101-Lever-Pec-Deck-Fly_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24271201-Lever-Pec-Deck-Fly-(female)_Chest.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24271101-Lever-Pec-Deck-Fly-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_w_to_y_superman",
@@ -1919,7 +3054,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/55351201-W-to-Y-Superman_Hips_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/55351201-W-to-Y-Superman_Hips_.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/55451201-W-to-Y-Superman-(female)_Hips_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/55451201-W-to-Y-Superman-(female)_Hips_.png"
+        }
+      }
     },
     {
       "id": "ex_lever_preacher_curl_plate_loaded",
@@ -1942,7 +3091,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/18721201-Lever-Preacher-Curl-(plate-loaded)_Upper-Arms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/18721101-Lever-Preacher-Curl-(plate-loaded)_Upper-Arms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31031101-Lever-Preacher-Curl-(plate-loaded)-(female)_Upper-Arms_small.png"
+        }
+      }
     },
     {
       "id": "ex_front_plank",
@@ -1970,7 +3133,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04631201-Front-Plank-m_waist.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04631101-Front-Plank_waist-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04651201-Front-Plank-(female)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04651101-Front-Plank_Waist_small.png"
+        }
+      }
     },
     {
       "id": "ex_lever_seated_row",
@@ -2001,7 +3178,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/13501201-Lever-Seated-Row_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/13501101-Lever-Seated-Row_Back_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22461201-Lever-Seated-Row-(female)_Back_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22461101-Lever-Seated-Row-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_low_to_high_fly",
@@ -2025,7 +3216,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01791201-Cable-Low-Fly_Chest-FIX2_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01791101-Cable-Low-Fly_Chest-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22521201-Cable-Low-Fly-(female)_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22521101-Cable-Low-Fly-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_downward_punch",
@@ -2055,7 +3260,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73701201-Downward-Punch-(male)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73701201-Downward-Punch-(male)_Shoulders_GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/51091201-Downward-Punch-(female)_Shoulders_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/51091201-Downward-Punch-(female)_Shoulders_.png"
+        }
+      }
     },
     {
       "id": "ex_lying_raised_shoulders_windshield_wiper",
@@ -2081,7 +3300,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/77761201-Lying-Raised-Shoulders-Windshield-Wiper-(male)_Wai.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/77761201-Lying-Raised-Shoulders-Windshield-Wiper-(male)_Wai_GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/78091201-Lying-Raised-Shoulders-Windshield-Wiper-(female)_W.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/78091201-Lying-Raised-Shoulders-Windshield-Wiper-(female)_W_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_half_squat_torso_punches",
@@ -2111,7 +3344,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/59531201-Half-Squat-Torso-Punches-(male)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59531201-Half-Squat-Torso-Punches-(male)_Waist__GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/59551201-Half-Squat-Torso-Punches-(female)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59551201-Half-Squat-Torso-Punches-(female)_Waist__GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_obliques_twist_high_knee_and_kick",
@@ -2135,7 +3382,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/59521201-Obliques-Twist-High-Knee-and-Kick-(male)_Plyometri.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59521201-Obliques-Twist-High-Knee-and-Kick-(male)_Plyometri_GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/59601201-Obliques-Twist-High-Knee-and-Kick-(female)_Plyomet.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59601201-Obliques-Twist-High-Knee-and-Kick-(female)_Plyomet_GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_russian_twist_chop",
@@ -2158,7 +3419,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73771201-Russian-Twist-Chop-(male)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73771201-Russian-Twist-Chop-(male)_Waist_GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/59381201-Russian-Twist-Chop-(female)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59381201-Russian-Twist-Chop-(female)_Waist__GREEN.png"
+        }
+      }
     },
     {
       "id": "ex_celebratory_hip_thrust",
@@ -2183,7 +3458,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/60781201-Celebratory-Hip-Thrust-(male)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/60781201-Celebratory-Hip-Thrust-(male)_Waist__GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/57671201-Celebratory-Hip-Thrust-(female)_Waist_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/57671201-Celebratory-Hip-Thrust-(female)_Waist_.png"
+        }
+      }
     },
     {
       "id": "ex_rope_pull_side_step",
@@ -2213,7 +3502,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/60791201-Rope-Pull-Side-Step-(male)_Plyometrics_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/60791201-Rope-Pull-Side-Step-(male)_Plyometrics__GREEN.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/56811201-Rope-Pull-Side-Step-(female)_Plyometrics_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": null
+        }
+      }
     },
     {
       "id": "ex_step_jack_inner_biceps_curl",
@@ -2244,7 +3547,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/56451201-Stepjack-Inner-Biceps-Curl-(male)_Plyometrics_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/56451201-Stepjack-Inner-Biceps-Curl-(male)_Plyometrics_.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/56291201-Stepjack-Inner-Biceps-Curl-(female)_Plyometrics_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/56291201-Stepjack-Inner-Biceps-Curl-(female)_Plyometrics_.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_lying_one_arm_press",
@@ -2268,7 +3585,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/03431201-Dumbbell-Lying-One-Arm-Press_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/03431101-Dumbbell-Lying-One-Arm-Press_Chest_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/26801201-Dumbbell-Lying-One-Arm-Press-(female)_Chest_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26801101-Dumbbell-Lying-One-Arm-Press-(female)_Chest_small.png"
+        }
+      }
     },
     {
       "id": "ex_barbell_seated_good_morning",
@@ -2291,7 +3622,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00901201-Barbell-Seated-Good-morning_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00901101-Barbell-Seated-Good-morning_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/26021201-Barbell-Seated-Good-Morning-(female)_Hips_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26021101-Barbell-Seated-Good-morning-(female)_Hips_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_lat_pulldown",
@@ -2318,7 +3663,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01501201-Cable-Bar-Lateral-Pulldown_Back.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/01501201-Cable-Bar-Lateral-Pulldown_Back_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01501101-Cable-Bar-Lateral-Pulldown_Back_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/22911201-Cable-Wide-Grip-Lat-Pulldown-(female)_Back.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/22471201-Cable-Bar-Lateral-Pulldown-(female)_Back-FIX_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22911101-Cable-Wide-Grip-Lat-Pulldown-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_bench_assisted_pull_up",
@@ -2346,7 +3705,21 @@
         "intermediate"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30191201-Bench-Pull-ups_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30191101-Bench-Pull-ups_Back_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30201201-Bench-Pull-ups-(female)_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30201101-Bench-Pull-ups-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_cable_reverse_grip_lat_pulldown",
@@ -2376,7 +3749,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02081201-Cable-Reverse-grip-Straight-Back-Seated-High-Row_Back.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/02081201-Cable-Reverse-grip-Straight-Back-Seated-High-Row_Back_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02081101-Cable-Reverse-grip-Straight-Back-Seated-High-Row_Back-AFIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24911201-Cable-Reverse-Grip-Pulldown-(female)_Back.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/24911201-Cable-Reverse-Grip-Pulldown-(female)_Back_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24911101-Cable-Reverse-Grip-Pulldown-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_bent_over_reverse_grip_row",
@@ -2404,7 +3791,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/37991201-Dumbbell-Bent-Over-Reverse-Row_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/37991101-Dumbbell-Bent-Over-Reverse-Row_Back_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/23271201-Dumbbell-Reverse-Grip-Row-(female)_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23271101-Dumbbell-Reverse-Grip-Row-(female)_Back_small.png"
+        }
+      }
     },
     {
       "id": "ex_dumbbell_bent_over_row",
@@ -2434,7 +3835,21 @@
         "advanced"
       ],
       "isArchived": false,
-      "isCustom": false
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/02931201-Dumbbell-Bent-Over-Row_Back-FIX_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/02931201-Dumbbell-Bent-Over-Row_Back_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02931101-Dumbbell-Bent-Over-Row_Back-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/24821201-Dumbbell-Bent-Over-Row-(female)_Back.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/24821201-Dumbbell-Bent-Over-Row-(female)_Back_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24821101-Dumbbell-Bent-Over-Row-(female)_Back_small.png"
+        }
+      }
     }
   ]
 }

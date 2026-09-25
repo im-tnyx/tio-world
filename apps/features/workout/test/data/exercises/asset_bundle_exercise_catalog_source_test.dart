@@ -227,7 +227,23 @@ void main() {
       }
     });
 
-    test('contains only the approved sanitized document fields', () async {
+    test('maps curated media with an image for every viewer', () async {
+      final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
+
+      for (final exercise in catalog.all) {
+        final media = exercise.media;
+        expect(media, isNotNull, reason: exercise.ref.value);
+        for (final gender in [null, ...ExerciseMediaGender.values]) {
+          expect(
+            media!.urlFor(ExerciseMediaKind.image, gender: gender)?.scheme,
+            'https',
+            reason: '${exercise.ref.value} / ${gender?.name ?? 'default'}',
+          );
+        }
+      }
+    });
+
+    test('contains only the approved document fields', () async {
       final source = await rootBundle.loadString(exerciseCatalogAssetKey);
       final decoded = jsonDecode(source) as Map<String, dynamic>;
       final exercises = decoded['exercises'] as List<dynamic>;
@@ -240,7 +256,7 @@ void main() {
             'exercises',
           ]));
       expect(decoded['schemaVersion'], 1);
-      expect(decoded['catalogVersion'], 1);
+      expect(decoded['catalogVersion'], 2);
       expect(exercises, isNotEmpty);
 
       const allowedRowKeys = {
@@ -254,7 +270,11 @@ void main() {
         'levels',
         'isArchived',
         'isCustom',
+        'media',
       };
+      const allowedMediaKeys = {'type', 'defaultGender', 'male', 'female'};
+      const optionalMediaKeys = {'videoFallbackGender'};
+      const variantKeys = {'imageUrl', 'thumbnailUrl', 'videoUrl'};
       for (final row in exercises.cast<Map<String, dynamic>>()) {
         expect(row.keys, unorderedEquals(allowedRowKeys),
             reason: '${row['id']}');
@@ -263,15 +283,36 @@ void main() {
           unorderedEquals(['primary']),
           reason: '${row['id']}.equipment',
         );
+        final media = row['media'] as Map<String, dynamic>;
+        expect(
+          media.keys.toSet().difference(optionalMediaKeys),
+          unorderedEquals(allowedMediaKeys),
+          reason: '${row['id']}.media',
+        );
+        for (final gender in ['male', 'female']) {
+          final variant = media[gender] as Map<String, dynamic>;
+          expect(variant.keys, unorderedEquals(variantKeys),
+              reason: '${row['id']}.media.$gender');
+          for (final value in variant.values) {
+            if (value == null) continue;
+            expect(Uri.parse(value as String).scheme, 'https',
+                reason: '${row['id']}.media.$gender');
+          }
+        }
       }
 
+      // Remote media URLs are owner-approved inside `media` only.
+      final withoutMedia = exercises
+          .cast<Map<String, dynamic>>()
+          .map((row) => Map.of(row)..remove('media'))
+          .toList();
+      final nonMediaSource =
+          jsonEncode({...decoded, 'exercises': withoutMedia});
       expect(source, isNot(contains('http://')));
-      expect(source, isNot(contains('https://')));
+      expect(nonMediaSource, isNot(contains('https://')));
       expect(source.toLowerCase(), isNot(contains('youtube')));
-      expect(source.toLowerCase(), isNot(contains('apilyfta')));
-      expect(source.toLowerCase(), isNot(contains('cloudfront')));
       final forbiddenKey = RegExp(
-        r'"(?:media|source|legacyExerciseIds|localizedInstructions|standards|goals|tracking)"\s*:',
+        r'"(?:source|legacyExerciseIds|localizedInstructions|localizedTitles|standards|goals|tracking)"\s*:',
       );
       expect(forbiddenKey.hasMatch(source), isFalse);
     });

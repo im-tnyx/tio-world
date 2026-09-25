@@ -80,7 +80,6 @@ void main() {
     test('ignore unknown and deferred keys', () {
       final row = syntheticRow()
         ..['slug'] = 'synthetic-alpha'
-        ..['media'] = {'type': 'none'}
         ..['futureField'] = 42;
 
       expect(
@@ -273,6 +272,96 @@ void main() {
         repository.load(),
         throwsA(isA<InvalidExerciseCatalogException>()),
       );
+    });
+  });
+
+  group('media', () {
+    Map<String, Object?> syntheticMedia() => {
+          'type': 'video',
+          'defaultGender': 'male',
+          'male': <String, Object?>{
+            'imageUrl': 'https://media.example/alpha-m.png',
+            'thumbnailUrl': null,
+            'videoUrl': 'https://media.example/alpha-m.mp4',
+          },
+          'female': <String, Object?>{
+            'imageUrl': 'https://media.example/alpha-f.png',
+            'thumbnailUrl': null,
+            'videoUrl': null,
+          },
+        };
+
+    Map<String, Object?> withMedia(Map<String, Object?> media) =>
+        withField('media', media);
+
+    test('is optional', () {
+      expect(parser.parse([syntheticRow()]).all.single.media, isNull);
+    });
+
+    test('maps per-gender URLs into canonical ExerciseMedia', () {
+      final media =
+          parser.parse([withMedia(syntheticMedia())]).all.single.media!;
+
+      expect(media.type, ExerciseMediaType.video);
+      expect(media.defaultGender, ExerciseMediaGender.male);
+      expect(media.videoFallbackGender, isNull);
+      expect(
+          media.male.imageUrl, Uri.parse('https://media.example/alpha-m.png'));
+      expect(media.female.videoUrl, isNull);
+      expect(
+        media.urlFor(ExerciseMediaKind.video,
+            gender: ExerciseMediaGender.female),
+        Uri.parse('https://media.example/alpha-m.mp4'),
+      );
+    });
+
+    test('reads the optional videoFallbackGender', () {
+      final media = parser
+          .parse(
+              [withMedia(syntheticMedia()..['videoFallbackGender'] = 'female')])
+          .all
+          .single
+          .media!;
+
+      expect(media.videoFallbackGender, ExerciseMediaGender.female);
+    });
+
+    test('rejects a non-object media value', () {
+      expectSingleIssue(
+          withField('media', 'https://media.example/a.png'), 'media');
+    });
+
+    test('rejects a missing or unknown defaultGender', () {
+      expectSingleIssue(withMedia(syntheticMedia()..remove('defaultGender')),
+          'media.defaultGender');
+      expectSingleIssue(
+          withMedia(syntheticMedia()..['defaultGender'] = 'other'),
+          'media.defaultGender');
+    });
+
+    test('rejects an unknown media type', () {
+      expectSingleIssue(
+          withMedia(syntheticMedia()..['type'] = 'gif'), 'media.type');
+    });
+
+    test('rejects a missing gender variant', () {
+      expectSingleIssue(
+          withMedia(syntheticMedia()..remove('female')), 'media.female');
+    });
+
+    test('rejects a non-string URL', () {
+      final media = syntheticMedia();
+      (media['male']! as Map<String, Object?>)['imageUrl'] = 42;
+
+      expectSingleIssue(withMedia(media), 'media.male.imageUrl');
+    });
+
+    test('rejects a non-https URL through the canonical contract', () {
+      final media = syntheticMedia();
+      (media['female']! as Map<String, Object?>)['videoUrl'] =
+          'http://media.example/alpha-f.mp4';
+
+      expectSingleIssue(withMedia(media), 'media.female.videoUrl');
     });
   });
 }
