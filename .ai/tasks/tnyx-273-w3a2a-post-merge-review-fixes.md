@@ -27,10 +27,10 @@
 **PR / tracker:** PR #340 Ready for Review (owner-authorized); Linear TNYX-273 `In Review` (parent TNYX-270 `In Progress`; TNYX-272 `Backlog`). Source PR #339 merged as `a023730f`; its R4/R5 threads point to #340 and stay unresolved until #340 merges.
 **Current implementation state:** R4/R5 implemented and validated; PR #340 in review
 **Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
-**Validation completed at SHA:** exact-head CI on fix commit `45e43df8`: Commit attribution guard, Attribution guard runner and Analyze and test PASS. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
-**Validation remaining:** exact-head CI on the governance-only R6 commit
+**Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on fix commit `45e43df8` and on governance-only R6 commit `2f02840a`. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
+**Validation remaining:** None within this slice. For any later brief-only commit, its exact-head checks are shown on PR #340; this brief does not self-reference its own commit.
 **Current blocker:** None
-**Open review finding IDs:** None (R4/R5/R6 resolved; PR #339 threads stay unresolved until this fix merges)
+**Open review finding IDs:** None (R4/R5/R6/R7 resolved; PR #339 threads stay unresolved until this fix merges)
 **Next exact action:** Explicit owner authorization to squash merge PR #340. After the merge: verify TNYX-273 is Done, resolve the PR #339 R4/R5 threads, and archive the W3A2a brief and this brief before TNYX-272 starts.
 
 ## Global UI / Design-System Guardrail
@@ -125,6 +125,7 @@ asset / pubspec / apps/app / apps/core changes                      0 files
 | R4 | P2 | Resolved | Canonical docs still describe the catalog asset path/loader/schema as deferred and unshippable | `8f18c652` (PR #339) | `MODULE_OWNERSHIP.md` and `exercise-search.md` now describe the shipped asset, registration, envelope decoder, AssetBundle source and W3A1 parser; W3A2b/W6A/media/standards stay pending or out of scope |
 | R5 | P2 | Resolved | Every `FlutterError` mapped to `MissingExerciseCatalogAssetException` | `8f18c652` (PR #339) | Missing only for Flutter's exact not-found diagnostics for this key; other `FlutterError` → `ExerciseCatalogAssetLoadException`; real `rootBundle` missing-key test plus 3 non-missing tests |
 | R6 | P2 | Resolved | Brief/Linear disagreed with the live Ready state (Ready listed as out of scope, CI listed as remaining, TNYX-273 `In Progress`) | `45e43df8` (PR #340 review) | Owner-authorized Ready recorded, CI evidence recorded, TNYX-273 moved to `In Review`; governance-only change |
+| R7 | P3 | Resolved | Brief still listed exact-head CI as remaining after `2f02840a` passed it | `2f02840a` (PR #340 review) | Evidence now tied to the exact SHAs `45e43df8`/`2f02840a`; later brief-only heads defer to PR checks, so the line does not self-reference |
 
 ## 7. Final Handoff
 
