@@ -9,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner explicitly authorized W3A2a implementation, Draft PR creation and a subsequent independent exact-head review. Ready for Review and the PR #339 squash merge were separately authorized the same day. The owner also attested that catalog/source rights and provenance evidence is retained externally and must not be committed to the repository.
+**Approval evidence:** On 2026-09-25 the owner explicitly authorized W3A2a implementation, Draft PR creation and a subsequent independent exact-head review (actually performed as a task-agent self-review; see Review owner). Ready for Review and the PR #339 squash merge were separately authorized the same day. The owner also attested that catalog/source rights and provenance evidence is retained externally and must not be committed to the repository.
 **Approved product/UI/data-shape boundaries:** Workout-owned sanitized/versioned catalog asset; Workout pubspec asset registration; document decoder; injected `AssetBundle` production source composed with the W3A1 repository/parser; production-asset validation tests; focused task/Linear governance; Draft PR.
 **Explicit non-changes (initial implementation scope; later lifecycle actions were separately authorized as recorded above):** no Exercises page, visible UI, controller/presentation state, route contract/router wiring, Library or Workout Home entry, Exercise Detail, Favorites, Custom Exercises, Folders, Supabase, standards, remote media, icons, branch deletion, Ready transition or merge. W3A2b remains separate.
 
