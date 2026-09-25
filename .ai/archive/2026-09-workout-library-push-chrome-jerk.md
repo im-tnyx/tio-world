@@ -1,6 +1,7 @@
 # Workout Library push jerk — show Library/Exercises above the shell
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** `apps/app` (router)
 **Affected platforms:** Flutter phone app
 
@@ -17,21 +18,21 @@
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
 **Review owner:** Codex auto-review on PR #355; task agent self-review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-26. The branch has `main` `03bb578a` (PR #354, `TioAppBar`) merged in by merge commit `0dad39f9`, with no history rewrite. The only conflict was the `.ai/tasks/README.md` rows, and both rows were kept. The tree has no uncommitted changes.
-**Branch:** `tnyx/workout-library-push-chrome-jerk`
-**HEAD SHA:** The PR #355 head that contains this record. The implementation last changed at `8b6538e1`, and the base sync is `0dad39f9`.
-**Observed working-tree state:** Clean; everything is committed and pushed
-**Observed uncommitted/dirty files:** None
+**Repository state last verified:** 2026-09-26, after the PR #355 post-merge sync. GitHub `main`, `origin/main` and local `main` are all at `bea89d16198fde9e1a425c7ed3c34f5a256f07cd`.
+**Branch:** `tnyx/workout-library-push-chrome-jerk` (merged and deleted locally and remotely at the owner's request)
+**HEAD SHA:** Merged PR head `b86787b3b84bdf6a02ab0a67fe4e555f754f9d7f`. It was squash-merged to `main` as `bea89d16198fde9e1a425c7ed3c34f5a256f07cd`; the merge tree `59557677` is identical to the reviewed head.
+**Observed working-tree state:** Not applicable (slice complete)
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
 **PR / tracker:** PR #355. The fix came from an owner report in chat; no GitHub issue existed (searched). No Linear issue: the workspace hit its free issue limit and the connector is unauthorized.
 **Current implementation state:** Fix, regression test and docs are complete and committed. They are validated alone and together with `main` (`TioAppBar`).
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/test/app/workout_exercises_route_test.dart`
 **Validation completed at SHA:** `0dad39f9`, the tree combined with `main` `03bb578a`: `apps/app` and `apps/features/workout` analyze/test. Earlier runs at `8b6538e1` covered `apps/app` alone.
-**Validation remaining:** CI and Codex review at the final PR head
+**Validation remaining:** None
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Mark PR #355 Ready, then merge it once the final head passes the gate: matching head, green CI, 0 unresolved threads, Codex clean. Then run the post-merge sync and archive this brief.
+**Next exact action:** None for this slice.
 
 ## 1. Discovery
 
@@ -146,4 +147,4 @@ Verified with widget tests and the owner's device check.
 
 ### Final Status
 
-`IN PROGRESS`
+`PASS`: merged via PR #355 (`bea89d16`) on 2026-09-25T20:39:02Z (UTC). The gate was a matching head `b86787b3`, green CI (Analyze and test, Attribution guard runner, Commit attribution guard), 0 threads, and a Codex 👍 ("Didn't find any major issues"). The owner confirmed the fix on device. Linear was not updated: no issue exists (free issue limit), and the connector is unauthorized.
