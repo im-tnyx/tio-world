@@ -1,4 +1,4 @@
-/// The bundled Exercise catalog asset could not be loaded.
+/// Flutter reported the bundled Exercise catalog asset as absent or empty.
 final class MissingExerciseCatalogAssetException implements Exception {
   const MissingExerciseCatalogAssetException({
     required this.assetKey,
@@ -13,6 +13,24 @@ final class MissingExerciseCatalogAssetException implements Exception {
   @override
   String toString() =>
       'MissingExerciseCatalogAssetException: could not load $assetKey: $cause';
+}
+
+/// Loading the bundled Exercise catalog asset failed for a reason other than
+/// a reported missing asset.
+final class ExerciseCatalogAssetLoadException implements Exception {
+  const ExerciseCatalogAssetLoadException({
+    required this.assetKey,
+    required this.cause,
+    required this.stackTrace,
+  });
+
+  final String assetKey;
+  final Object cause;
+  final StackTrace stackTrace;
+
+  @override
+  String toString() =>
+      'ExerciseCatalogAssetLoadException: could not load $assetKey: $cause';
 }
 
 /// The bundled Exercise catalog document is malformed or violates its
