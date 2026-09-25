@@ -17,7 +17,7 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Exact-head self-review by the task agent (not independent), plus separate owner-account reviews on PR #340 that raised R6/R7; Codex (supplemental; usage-limited, no review)
+**Review owner:** Exact-head self-review by the task agent (not independent), plus separate owner-account reviews on PR #340 that raised R6/R7, with a final owner-account deep review of exact head `48ddbfa6` that was CLEAN (PASS, no P1/P2/P3). Codex (supplemental): the Ready-triggered automated review was unavailable because of the usage limit, and no Codex PASS is claimed
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-25 after the post-merge sync; GitHub `main`, `origin/main` and local `main` all at `359e24ffcc29c57a242c435351e5ac8c35c0ab7e`
@@ -32,7 +32,7 @@
 **Validation remaining:** None.
 **Current blocker:** None
 **Open review finding IDs:** None (R4/R5/R6/R7 resolved; PR #339 threads resolved after merge)
-**Next exact action:** None for W3A2a-F1 (archived). W3A2b (TNYX-272) needs explicit owner approval to start.
+**Next exact action:** None for W3A2a-F1 (archived). Next work is TNYX-272 — W3A2b — Exercises screen & route (`Backlog`, not started), which needs explicit owner approval before implementation. The user-facing Library / Workout Home entry remains W6A (TNYX-266).
 
 ## Global UI / Design-System Guardrail
 

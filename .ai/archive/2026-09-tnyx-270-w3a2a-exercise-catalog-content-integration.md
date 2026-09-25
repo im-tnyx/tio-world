@@ -49,7 +49,7 @@ apps/core/assets/musclemap/
 **Validation remaining:** None. Exact head `8f18c652`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS.
 **Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (`CAPIError 400`, no analysis): no real security finding, not a security pass.
 **Open review finding IDs:** None (R1/R2/R3 resolved in PR #339; R4/R5 resolved by TNYX-273 / PR #340)
-**Next exact action:** None for W3A2a (archived). W3A2b (TNYX-272) needs explicit owner approval to start; its UI contract and route intent are recorded in Linear.
+**Next exact action:** None for W3A2a (archived). Next work is TNYX-272 — W3A2b — Exercises screen & route (`Backlog`, not started). It needs explicit owner approval before implementation; its UI contract and route intent are recorded in Linear. The user-facing Library / Workout Home entry remains W6A (TNYX-266).
 
 ## Global UI / Design-System Guardrail
 
