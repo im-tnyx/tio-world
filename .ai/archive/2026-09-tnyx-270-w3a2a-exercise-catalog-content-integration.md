@@ -1,6 +1,7 @@
 # TNYX-270 W3A2a — Exercise catalog content/source integration
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/features/workout` (catalog data/source boundary)
 **Affected platforms:** Flutter consumers of the Workout feature package; no UI or routing change
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner explicitly authorized W3A2a implementation, Draft PR creation and a subsequent independent exact-head review. This approval records authorized gates, not completion of those gates. The owner also attested that catalog/source rights and provenance evidence is retained externally and must not be committed to the repository.
+**Approval evidence:** On 2026-09-25 the owner explicitly authorized W3A2a implementation, Draft PR creation and a subsequent independent exact-head review. Ready for Review and the PR #339 squash merge were separately authorized the same day. The owner also attested that catalog/source rights and provenance evidence is retained externally and must not be committed to the repository.
 **Approved product/UI/data-shape boundaries:** Workout-owned sanitized/versioned catalog asset; Workout pubspec asset registration; document decoder; injected `AssetBundle` production source composed with the W3A1 repository/parser; production-asset validation tests; focused task/Linear governance; Draft PR.
 **Explicit non-changes:** no Exercises page, visible UI, controller/presentation state, route contract/router wiring, Library or Workout Home entry, Exercise Detail, Favorites, Custom Exercises, Folders, Supabase, standards, remote media, icons, branch deletion, Ready transition or merge. W3A2b remains separate.
 
@@ -33,22 +34,22 @@ apps/core/assets/musclemap/
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Independent exact-head reviewer on PR #339; Codex supplemental only
-**Implementation ownership state:** Complete; no implementation-source edits remain
+**Review owner:** Independent exact-head review by the task agent; Codex (supplemental)
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; local `main` and `origin/main` both at `f5bf3c4f8aefd176bf393e0bdad8d98ab01abb45`
-**Branch:** `tnyx/tnyx-270-w3a2a-exercise-catalog-content-integration`
-**HEAD SHA:** Current PR #339 head (see Git/PR; this brief does not self-reference its own commit); last source-changing/remediation SHA: the R3 doc-contract remediation commit after `9399cb7c`
-**Observed working-tree state:** tracked implementation tree clean; protected owner asset directories remain untracked
-**Observed uncommitted/dirty files:** protected owner asset directories listed above
-**PR / tracker:** PR #339 (Draft, base `f5bf3c4f`); Linear TNYX-270 `In Progress` pending Ready transition; TNYX-261 `In Progress`; TNYX-269 `Done`.
-**Current implementation state:** Complete within W3A2a. The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` and R3 from `9399cb7c` are remediated and validated.
-**Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,lib/src/domain/exercises/exercise_catalog_repository.dart (doc only),test/data/exercises,pubspec.yaml}` and this task brief/index
+**Repository state last verified:** 2026-09-25 after the PR #340 post-merge sync; GitHub `main`, `origin/main` and local `main` all at `359e24ffcc29c57a242c435351e5ac8c35c0ab7e`
+**Branch:** `tnyx/tnyx-270-w3a2a-exercise-catalog-content-integration` (merged; retained, deletion separately gated)
+**HEAD SHA:** merged PR head `8f18c6520ffbcf69c05e9873513f7832db901c39` on base `f5bf3c4f`; squash merge commit on `main` `a023730fa49303f2698dd9676b2c7adddf76759f` (GitHub-verified; merge tree identical to reviewed head)
+**Observed working-tree state:** Not applicable (slice complete); protected owner asset directories remain untracked and untouched
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #339](https://github.com/im-tnyx/tio-world/pull/339) merged 2026-09-25T07:17:54Z (squash). The GitHub integration moved Linear TNYX-270 to `Done`; it was manually reconciled back to `In Progress` because TNYX-270 is the W3A2 umbrella and W3A2b (TNYX-272, `Backlog`) remains open. Post-merge fixes landed through TNYX-273 / PR #340 (`359e24ff`, `Done`). Parent TNYX-261 stays `In Progress`.
+**Current implementation state:** Validated. On `main`: The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` and R3 from `9399cb7c` are remediated and validated.
+**Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,lib/src/domain/exercises/exercise_catalog_repository.dart (doc only),test/data/exercises,pubspec.yaml}`
 **Validation completed at SHA:** R3 doc-contract remediation (working tree on `9399cb7c`) on 2026-09-25 — Dart format PASS (3 files, 0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); `git diff --check` PASS. Previously at source-remediation SHA `315f8176` — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit; commit-attribution guard PASS.
-**Validation remaining:** exact-head CI `Analyze and test` on the R3 remediation head
-**Current blocker:** None within the approved W3A2a boundary
-**Open review finding IDs:** None (R1/R2/R3 resolved)
-**Next exact action:** After exact-head CI passes, mark PR #339 Ready for Review; merge requires separate explicit owner authorization.
+**Validation remaining:** None. Exact head `8f18c652`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS.
+**Current blocker:** None. The non-required `github-advanced-security` failure was the external TNYX-256 unsupported-model outage (`CAPIError 400`, no analysis): no real security finding, not a security pass.
+**Open review finding IDs:** None (R1/R2/R3 resolved in PR #339; R4/R5 resolved by TNYX-273 / PR #340)
+**Next exact action:** None for W3A2a (archived). W3A2b (TNYX-272) needs explicit owner approval to start; its UI contract and route intent are recorded in Linear.
 
 ## Global UI / Design-System Guardrail
 
@@ -162,6 +163,8 @@ git diff --cached --check                                           PASS
 | R1 | P1 | Resolved | Task brief approval/head/review wording was stale and self-contradictory | `8462ec7c` | Handoff now distinguishes authorized gates from completed state, delegates the self-referential current head to Git/PR, and records source-remediation SHA `315f8176` plus the publication blocker |
 | R2 | P2 | Resolved | Catching `Object` mislabeled unexpected bundle/programming failures as a missing asset and discarded stack context | `8462ec7c` | Catch narrowed to `FlutterError`, stack retained, unexpected-failure propagation test added; focused/full tests and analyze pass |
 | R3 | P3 | Resolved | W3A1 docs still called the asset source/document envelope a "later asset slice", and the `ExerciseCatalogRepository.load()` contract omitted the source/document failures the production source now throws | `9399cb7c` | Comment-only update to the decoded-rows repository, parser and repository contract docs; no behavior change; analyze and focused/full tests rerun |
+| R4 | P2 | Resolved | Canonical docs still called the catalog asset path/loader/schema deferred and unshippable | `8f18c652` | Codex thread posted after Ready and still unresolved when PR #339 was merged: the merge gate checked the head but not the review-thread count. Fixed by TNYX-273 / PR #340 (`359e24ff`); thread resolved after that merge |
+| R5 | P2 | Resolved | Every `FlutterError` was mapped to `MissingExerciseCatalogAssetException` | `8f18c652` | Same merge-gate miss. Fixed by TNYX-273 / PR #340: missing only for Flutter's exact not-found diagnostics for this key; other `FlutterError` → `ExerciseCatalogAssetLoadException`; thread resolved after merge |
 
 ## 7. Final Handoff
 
@@ -183,6 +186,13 @@ Workout can load its registered offline package asset through an injected `Asset
 
 W3A2a adds no visible UI or route. W3A2b remains separately gated.
 
+### Final Outcome
+
+- The sanitized, versioned catalog (`schemaVersion` 1, `catalogVersion` 1) ships as a Workout-owned package asset. It contains only approved text fields and no media, instructions, standards, icons or provider metadata.
+- Flow: injected `AssetBundle` → document decoder → existing W3A1 parser/repository → canonical `ExerciseCatalog`. There is no second parser, and widgets do not read JSON.
+- Owner source assets under `apps/core/assets/` were read only and are untouched. Catalog rights are owner-attested, with evidence retained outside the repository (no independent legal verification).
+- Process lesson: a merge gate must require both the expected head and 0 unresolved review threads, and must wait for the Ready-triggered Codex review.
+
 ### Final Status
 
-`REVIEW`
+`Validated` — merged via PR #339 (`a023730f`), with post-merge fixes via PR #340 (`359e24ff`). Archived 2026-09-25. TNYX-270 remains `In Progress` until W3A2b (TNYX-272) is complete.
