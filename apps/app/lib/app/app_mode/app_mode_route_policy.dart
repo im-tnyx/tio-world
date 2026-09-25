@@ -14,12 +14,29 @@ List<ShellTab> guidedShellTabs(AppMode mode) {
   return shellTabsForDestinations(mode.guidedDestinations);
 }
 
+/// The main tab root that owns [path]: the path itself for a tab root, the
+/// root for a destination nested inside that tab (such as
+/// `/workout/exercises`), otherwise [path] unchanged.
+///
+/// Nested destinations follow their tab's onboarding and App Mode gating, so
+/// a deep link cannot reach a screen whose tab the current mode hides.
+String _owningShellPath(String path) {
+  for (final branch in shellBranchRegistry) {
+    final root = branch.route.path;
+    if (path == root) return root;
+    if (root != '/' && path.startsWith('$root/')) return root;
+  }
+  return path;
+}
+
 String? appModeRedirect({
   required String path,
   required AppMode? selectedMode,
   required OnboardingStatus onboardingStatus,
   List<AppDestination>? activeDestinations,
 }) {
+  final shellPath = _owningShellPath(path);
+
   final modeRequiredPaths = <String>{
     FeatureRoutes.home.path,
     FeatureRoutes.workout.path,
@@ -38,19 +55,21 @@ String? appModeRedirect({
   final onboardingComplete = onboardingStatus == OnboardingStatus.completed;
 
   if (!onboardingComplete) {
-    return modeRequiredPaths.contains(path) ? AppRoutes.onboarding.path : null;
+    return modeRequiredPaths.contains(shellPath)
+        ? AppRoutes.onboarding.path
+        : null;
   }
 
-  if (path == AppRoutes.onboarding.path) return FeatureRoutes.home.path;
+  if (shellPath == AppRoutes.onboarding.path) return FeatureRoutes.home.path;
 
   final isShellPath =
-      shellBranchRegistry.any((branch) => branch.route.path == path);
+      shellBranchRegistry.any((branch) => branch.route.path == shellPath);
 
   if (selectedMode == null) {
     final compatibilityPaths = missingModeCompatibilityShellTabs
         .map((tab) => tab.route.path)
         .toSet();
-    if (isShellPath && !compatibilityPaths.contains(path)) {
+    if (isShellPath && !compatibilityPaths.contains(shellPath)) {
       return FeatureRoutes.home.path;
     }
     return null;
@@ -64,7 +83,7 @@ String? appModeRedirect({
       ? FeatureRoutes.home.path
       : allowedTabs.first.route.path;
 
-  if (isShellPath && !allowedPaths.contains(path)) {
+  if (isShellPath && !allowedPaths.contains(shellPath)) {
     return fallbackPath;
   }
 

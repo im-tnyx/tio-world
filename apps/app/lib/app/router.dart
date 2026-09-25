@@ -74,6 +74,27 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
+/// Destinations nested inside a main tab's own navigator.
+///
+/// They keep the branch's back stack, so a direct deep link still lands with
+/// the tab root beneath it. Paths are relative to the branch root.
+List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
+  if (branch.tab != ShellTab.workout) return const [];
+
+  return [
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutExercises),
+      builder: (context, state) => const ExercisesPage(),
+    ),
+  ];
+}
+
+String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
+  final prefix = '${branch.route.path}/';
+  assert(route.path.startsWith(prefix), '${route.path} is not under $prefix');
+  return route.path.substring(prefix.length);
+}
+
 /// Shared calendar-surface centred month label, constrained so it cannot run
 /// under the status action cluster.
 ///
@@ -211,6 +232,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.measurementUnitsSettings,
     AppRoutes.themeSettings,
     AppRoutes.calendarSettings,
+    AppRoutes.workoutExercises,
     AppRoutes.login,
     AppRoutes.emailLogin,
     AppRoutes.emailSignup,
@@ -419,6 +441,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: branch.route.path,
                 builder: (context, state) => _shellBranchPage(branch),
+                routes: _shellBranchChildRoutes(branch),
               ),
             ],
           );

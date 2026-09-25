@@ -166,6 +166,17 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Dedicated Exercises screen, nested under the Workout branch.
+  ///
+  /// An internal destination only: the user-facing Workout Home → Library →
+  /// Exercises entry belongs to the Library slice.
+  static const workoutExercises = TioRouteContract(
+    path: '/workout/exercises',
+    title: 'Exercises',
+    description: 'Browse, search and filter the built-in exercise catalog.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

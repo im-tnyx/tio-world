@@ -10,6 +10,7 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
+import 'package:tio_feature_workout/workout.dart';
 
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
@@ -21,6 +22,7 @@ import 'app/meal_log_repository_provider.dart';
 import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
+import 'app/profile/exercise_media_gender.dart';
 import 'app/startup/startup_hydration.dart';
 import 'app/startup/supabase_runtime_config.dart';
 
@@ -133,6 +135,11 @@ Future<void> main() async {
             reader: reader,
           ).watch();
         }),
+        exerciseViewerMediaGenderProvider.overrideWith(
+          (ref) => exerciseMediaGenderForProfile(
+            ref.watch(profileDataProvider).valueOrNull?.gender,
+          ),
+        ),
         appThemeControllerProvider.overrideWith((ref) => appThemeController),
         calendarPreferencesControllerProvider
             .overrideWith((ref) => calendarPreferencesController),
