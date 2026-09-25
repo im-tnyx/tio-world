@@ -1,6 +1,7 @@
 # TNYX-272 — W3A2b Exercises screen & route
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/features/workout` (presentation), with route contract in `apps/core` and router wiring in `apps/app`
 **Affected platforms:** Phone (Android + iOS). Wear OS / watchOS: none.
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice (product-visible UI + route)
 **Approval status:** Approved
-**Approval evidence:** Owner instruction "Start TNYX-272 — W3A2b Exercises screen & route" (2026-09-25), plus the Linear TNYX-272 approved UI/route contract and its owner contract update (list thumbnail, 2026-09-25). Owner top-bar revision (2026-09-25, after the first Draft PR commit, with the Tnyx-hub Exercise library top bar as reference): search is a top-bar icon, the field is not always open, and filter is also a top-bar icon.
+**Approval evidence:** Owner instruction "Start TNYX-272 — W3A2b Exercises screen & route" (2026-09-25), plus the Linear TNYX-272 approved UI/route contract and its owner contract update (list thumbnail, 2026-09-25). Owner top-bar revision (2026-09-25, after the first Draft PR commit, with the Tnyx-hub Exercise library top bar as reference): search is a top-bar icon, the field is not always open, and filter is also a top-bar icon. The owner then said "to fir merge kar skte h", which authorized Ready, the review gate, the squash merge and the post-merge sync; "go follow AGENTS.md" authorized this archive and the close-out.
 **Approved product/UI/data-shape boundaries:**
 
 - Route `/workout/exercises` as `AppRoutes.workoutExercises`, nested in the Workout branch; standard AppBar/back; bottom navigation hidden; direct deep link follows `/workout` behavior; no `/explore/...` route; no temporary production entry.
@@ -20,28 +21,28 @@
 
 ## Active Handoff
 
-**Planning owner:** Claude (this session)
-**Implementation owner:** Claude (this session)
-**Review owner:** Codex review on the PR; owner final review
-**Implementation ownership state:** Active
+**Planning owner:** Current task agent
+**Implementation owner:** Current task agent
+**Review owner:** Exact-head self-review by the task agent (not independent). The Codex review of `098c17a5` found no major issues (13:59Z). After Ready, Codex gave 👍 (no suggestions) on the final head `6b6e38e8` (14:49Z). No owner-account review was posted before merge.
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-25, local `main` = `origin/main` = GitHub `main` = `18bef68a`
-**Branch:** `tnyx/tnyx-272-w3a2b-exercises-screen-route` (from `18bef68a`)
-**HEAD SHA:** see PR head (implementation committed on top of `18bef68a`)
-**Observed working-tree state:** clean except owner-untracked `apps/core/assets/{exercises,ic_body_part,ic_equipment,musclemap}/`
-**Observed uncommitted/dirty files:** none after commit. During implementation (2026-09-25, ~18:53 IST) the four owner-untracked folders `apps/core/assets/{exercises,ic_body_part,ic_equipment,musclemap}/` disappeared from the working tree. No command in this task targeted that path. They are not in the Recycle Bin, and the cause is not established. They were never staged; reported to the owner, not restored.
-**PR / tracker:** Linear TNYX-272 (In Progress); Draft PR (see Final Handoff)
-**Current implementation state:** Implementation and local validation complete; Draft PR handoff
-**Relevant execution surface:** `apps/features/workout/lib/src/presentation/explore/exercises/`, `apps/core/lib/src/routing/routes/app_routes.dart`, `apps/app/lib/app/router.dart`, `apps/app/lib/app/app_mode/app_mode_route_policy.dart`
-**Validation completed at SHA:** working tree = committed head (see Validation Run)
-**Validation remaining:** GitHub CI on the PR head; owner review
-**Current blocker:** none
-**Open review finding IDs:** none
-**Next exact action:** owner review of the Draft PR; Ready/merge only on a separate owner instruction
+**Repository state last verified:** 2026-09-25 after the PR #345 post-merge sync; GitHub `main`, `origin/main` and local `main` all at `38fa740a6caa6be1ea60d902b2a0d86f452176aa`
+**Branch:** `tnyx/tnyx-272-w3a2b-exercises-screen-route` (merged; deletion requested with this close-out)
+**HEAD SHA:** merged PR head `6b6e38e8bdb8e36c14cc8585123769f2e8aea576` on base `18bef68a`; squash merge commit on `main` `38fa740a6caa6be1ea60d902b2a0d86f452176aa` (merge tree `85d71faf` identical to the reviewed head)
+**Observed working-tree state:** Not applicable (slice complete)
+**Observed uncommitted/dirty files:** Not applicable. During implementation (2026-09-25, ~18:53 IST) the four owner-untracked folders `apps/core/assets/{exercises,ic_body_part,ic_equipment,musclemap}/` disappeared from the working tree. No command in this task targeted that path. They were not in the Recycle Bin, and the cause was not established. They were never staged; this was reported to the owner and nothing was restored.
+**PR / tracker:** [PR #345](https://github.com/im-tnyx/tio-world/pull/345) merged 2026-09-25T14:49:49Z (squash, `--match-head-commit`). CI at the head: Analyze and test, Attribution guard runner and Commit attribution guard all passed. Linear TNYX-272 went In Progress → In Review (at Ready) → Done (GitHub integration on merge). Follow-ups: 46dp search field → GitHub #24 (duplicate #347 closed); top-bar height → TNYX-275 / #346 closed (one universal 56dp token); Recent Performed section deferred until workout history (comment on TNYX-80); grid/list view not decided.
+**Current implementation state:** Validated. On `main`, `/workout/exercises` renders the Exercises screen as described below, and it has no user-facing entry until W6A (TNYX-266).
+**Relevant execution surface:** `apps/features/workout/lib/src/presentation/explore/exercises/`, `apps/core/lib/src/routing/routes/app_routes.dart`, `apps/app/lib/app/router.dart`, `apps/app/lib/app/app_mode/app_mode_route_policy.dart`, `apps/app/lib/app/profile/exercise_media_gender.dart`, `apps/app/lib/main.dart`
+**Validation completed at SHA:** local runs on the committed tree (see Validation Run); CI green on `6b6e38e8`
+**Validation remaining:** None
+**Current blocker:** None
+**Open review finding IDs:** None
+**Next exact action:** None for this slice. The next planned slice is W6A (TNYX-266), which needs owner approval of its visual design first.
 
 ## Global UI / Design-System Guardrail
 
-Read `.ai/tasks/design-system-token-consolidation.md` guardrails, `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Consume `package:tio_core/core.dart`: `TioInput` (search), `TioButton` (filter action and sheet actions), `showTioEditorSheet` / `TioEditorSheet` (filter sheet), `TioGroupCard` (list grouping), governed `TioSpacing` / `TioRadius` / `TioSize` / typography and `context.tioColors`. No feature token bag; no new core component (no reuse evidence yet).
+Read `.ai/tasks/design-system-token-consolidation.md` guardrails, `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Consume `package:tio_core/core.dart`: `TioInput` (top-bar search field), Material `IconButton` top-bar actions, `TioButton` (sheet actions), `showTioEditorSheet` / `TioEditorSheet` (filter sheet), governed `TioSpacing` / `TioRadius` / `TioSize` / typography and `context.tioColors`. No feature token bag; no new core component (no reuse evidence yet).
 
 ## 1. Discovery
 
@@ -110,7 +111,7 @@ ExercisesController (ChangeNotifier): load, map failures, hold query + media gen
         ↓ ExerciseCatalogQuery.apply
 ExercisesState (immutable): status, items (Exercise + thumbnail Uri + metadata label), filter options
         ↓
-ExercisesPage → search TioInput / filter sheet / rows / state messages
+ExercisesPage → top bar (search icon/field, filter icon) / filter sheet / rows / state messages
 ```
 
 ### Ownership and Data Flow
@@ -125,7 +126,7 @@ ExercisesPage → search TioInput / filter sheet / rows / state messages
 
 ### Failure and Accessibility States
 
-Loading spinner with semantics label; text messages for empty / no-match / missing / malformed / unexpected, announced as live regions; thumbnails excluded from semantics; rows expose name + metadata as text, no button semantics; filter action reports the active filter count in its semantics value.
+Loading spinner with semantics label; text messages for empty / no-match / missing / malformed / unexpected, announced as live regions; thumbnails excluded from semantics; rows expose name + metadata as text, no button semantics; the filter icon's tooltip reports the active filter count.
 
 ## 5. Implementation Plan
 
@@ -175,6 +176,8 @@ Visual check: a temporary, uncommitted render test produced PNGs of the page and
 - `apps/app/test/app/workout_exercises_route_test.dart`.
 - `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`, this brief, `.ai/tasks/README.md`.
 
+The PR carried five commits (`098c17a5` initial slice, `ff5c06ce` owner top-bar revision, `1237eb5c` / `6bc6c354` / `6b6e38e8` brief follow-up records), squashed into `38fa740a`.
+
 ### Actual Behavior
 
 The behavior matches the approved contract recorded in the Owner Approval section and `docs/screens/exercise-search.md#dedicated-exercises-screen-w3a2b`. Nothing links to `/workout/exercises` yet.
@@ -190,4 +193,4 @@ The behavior matches the approved contract recorded in the Owner Approval sectio
 
 ### Final Status
 
-`REVIEW`: implementation and local validation are complete; the Draft PR awaits CI and owner review.
+`PASS`: merged via PR #345 (`38fa740a`) after green CI, a clean Codex review at the exact head, 0 unresolved threads and a matching head.
