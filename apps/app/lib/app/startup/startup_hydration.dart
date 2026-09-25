@@ -1,9 +1,9 @@
 import 'package:tio_feature_nutrition/nutrition.dart';
 
-import 'app_mode/app_mode_controller.dart';
-import 'app_theme_controller.dart';
-import 'calendar_preferences_controller.dart';
-import 'onboarding/onboarding_status_controller.dart';
+import '../app_mode/app_mode_controller.dart';
+import '../app_theme_controller.dart';
+import '../calendar_preferences_controller.dart';
+import '../onboarding/onboarding_status_controller.dart';
 
 Future<void> hydrateStartupControllers({
   required AppModeController appModeController,

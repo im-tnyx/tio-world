@@ -14,15 +14,15 @@ import 'package:tio_feature_settings/settings.dart';
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
 import 'app/app_theme.dart';
-import 'app/bootstrap.dart';
+import 'app/startup/bootstrap.dart';
 import 'app/calendar_preferences.dart';
 import 'app/google_identity_link_controller.dart';
 import 'app/meal_log_repository_provider.dart';
 import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
-import 'app/startup_hydration.dart';
-import 'app/supabase_runtime_config.dart';
+import 'app/startup/startup_hydration.dart';
+import 'app/startup/supabase_runtime_config.dart';
 
 void _installSafeDebugPrintPolicy() {
   final upstreamDebugPrint = debugPrint;

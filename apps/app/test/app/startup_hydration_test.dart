@@ -5,7 +5,7 @@ import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/calendar_preferences.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
-import 'package:tio_app/app/startup_hydration.dart';
+import 'package:tio_app/app/startup/startup_hydration.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';

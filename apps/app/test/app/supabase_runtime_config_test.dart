@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/network_providers.dart';
-import 'package:tio_app/app/supabase_runtime_config.dart';
+import 'package:tio_app/app/startup/supabase_runtime_config.dart';
 
 const _legacyAnonKey =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.signature';

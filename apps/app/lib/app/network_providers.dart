@@ -11,7 +11,7 @@ import 'package:tio_shared/shared.dart';
 
 import 'hydration_preferences_session_boundary.dart';
 import 'profile/canonical_profile_data_reader.dart';
-import 'supabase_runtime_config.dart';
+import 'startup/supabase_runtime_config.dart';
 
 final supabaseConfigProvider = Provider<SupabaseRuntimeConfig>((ref) {
   return SupabaseRuntimeConfig.fromEnvironment();

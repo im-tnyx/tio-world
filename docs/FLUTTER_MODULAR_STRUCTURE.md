@@ -36,7 +36,10 @@ tio-world/
 │  │  │  ├─ main.dart
 │  │  │  └─ app/
 │  │  │     ├─ app.dart
-│  │  │     ├─ bootstrap.dart
+│  │  │     ├─ startup/
+│  │  │     │  ├─ bootstrap.dart
+│  │  │     │  ├─ startup_hydration.dart
+│  │  │     │  └─ supabase_runtime_config.dart
 │  │  │     └─ router.dart
 │  │  ├─ android/
 │  │  ├─ ios/
