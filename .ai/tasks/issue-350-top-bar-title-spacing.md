@@ -58,7 +58,7 @@
 **Validation completed at SHA:** Local runs on the working tree (see Validation Run)
 **Validation remaining:** CI and Codex re-review at the new PR head
 **Current blocker:** None
-**Open review finding IDs:** F5 (fixed in the working tree; thread still to be answered). F1–F4 are fixed, and their threads are answered and resolved.
+**Open review finding IDs:** F6 (fixed in the working tree; thread still to be answered). F1–F5 are fixed, and their threads are answered and resolved.
 **Next exact action:** Commit, push, answer the Codex threads, and re-request review.
 
 ## Global UI / Design-System Guardrail
@@ -139,7 +139,7 @@ TioNavigationTokens.topBarTitleGap
 TioNavigationTokens.topBarTitleSpacing (−8dp)
     ↓
 TioAppBar
-  - with a leading widget: titleSpacing −8dp; the title's first 8dp ignores pointers, so the leading tap target is intact and hits match paint
+  - with a leading widget: titleSpacing −8dp; the title's first 8dp is cleared for pointers and accessibility bounds, so the leading target is intact and hits match paint
   - without one: titleSpacing 16dp
   - title end padding: 16dp − titleSpacing, which keeps the 16dp trailing inset
   - centerTitle: false
@@ -191,6 +191,7 @@ TioAppBar rework (final working tree):
   - core 339 (341 after the F4 fix), including tio_app_bar_test (16 after F4) over all TargetPlatforms
   - after F4, all seven packages were re-run: analyze clean, all tests passed
   - after F5, all seven packages were re-run: analyze clean; core 342 (tio_app_bar_test 17), app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
+  - after F6, all seven packages were re-run: analyze clean; core 345 (tio_app_bar_test 20), app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
   - app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
 - git diff --check: clean
 - Temporary renders (harness deleted), 390dp, light + dark:
@@ -207,7 +208,8 @@ TioAppBar rework (final working tree):
 | F2 | P2 | Fixed | On iOS, short titles are centred, so the gap does not apply | `a62ae8db` | `centerTitle: false` (owner); test over all `TargetPlatform`s |
 | F3 | P2 | Fixed | Negative spacing widens the trailing bound; long titles without actions clip past the edge | `a62ae8db` | Title end padding keeps the 16dp trailing inset; tests with and without actions and leading |
 | F4 | P2 | Fixed | With −8dp `titleSpacing`, the title box overlaps the leading slot and takes the back button's taps in the 48–52dp strip (and could focus the Exercises search field) | `db563158` | `TioAppBar` lays the title out after the leading slot and applies the negative spacing as a paint-only shift (`Transform.translate`, `transformHitTests: false`, RTL-mirrored). The test "leaves the leading button its whole tap target" fails on `db563158` and passes now; there is also an RTL gap test. The paint-only shift was replaced for F5 |
-| F5 | P2 | Fixed in working tree | The paint-only shift from the F4 fix separates an interactive title's hit coordinates from its painted position (the Exercises search caret lands about 8dp off, and an invisible 8dp strip past the field hits it) | `b5ae7bbe` | Back to a real −8dp `titleSpacing` (hits match paint), plus a private `_LeadingTapClearance` that makes only the title's first 8dp (the overlap with the leading slot) ignore pointers, RTL-mirrored. The test "hits an interactive title where it is painted" fails on `b5ae7bbe` (12 vs 20) and passes now; the RTL test also taps the back button |
+| F5 | P2 | Fixed | The paint-only shift from the F4 fix separates an interactive title's hit coordinates from its painted position (the Exercises search caret lands about 8dp off, and an invisible 8dp strip past the field hits it) | `b5ae7bbe` | Back to a real −8dp `titleSpacing` (hits match paint), plus a private `_LeadingTapClearance` that makes only the title's first 8dp (the overlap with the leading slot) ignore pointers, RTL-mirrored. The test "hits an interactive title where it is painted" fails on `b5ae7bbe` (12 vs 20) and passes now; the RTL test also taps the back button |
+| F6 | P2 | Fixed in working tree | `_LeadingTapClearance` only changed pointer hit testing; the title's semantics rect still overlapped the back button's by 8dp, so TalkBack/VoiceOver touch exploration could pick the title or search field there | `f1727c11` | The clearance also clips its child's semantics (`describeSemanticsClip`, RTL-aware), and `TioAppBar` adds AppBar's header semantics inside it (`excludeHeaderSemantics: true` plus the same `header`/`namesRoute`). The two accessibility-bounds tests (text and interactive title) fail on `f1727c11` (48 vs ≥52) and pass now; a header-semantics test was added |
 
 ## 7. Final Handoff
 

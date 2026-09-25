@@ -54,20 +54,37 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: automaticallyImplyLeading,
       titleSpacing: titleSpacing,
       centerTitle: false,
+      // The header semantics AppBar would add around the title are added
+      // below instead, inside the clearance, so they are clipped with it.
+      excludeHeaderSemantics: true,
       title: title == null
           ? null
           // A negative spacing lays the title over the end of the leading
-          // slot; that strip stays with the leading button's tap target.
-          : _LeadingTapClearance(
+          // slot; that strip stays with the leading button, for pointers
+          // and for accessibility.
+          : _LeadingClearance(
               extent: math.max(TioSpacing.none, -titleSpacing),
               textDirection: Directionality.of(context),
-              // AppBar applies titleSpacing on both sides of the title; the
-              // end padding restores the standard inset on the trailing side.
-              child: Padding(
-                padding: EdgeInsetsDirectional.only(
-                  end: TioSpacing.lg - titleSpacing,
+              child: Semantics(
+                // Same header semantics as AppBar's.
+                namesRoute: switch (Theme.of(context).platform) {
+                  TargetPlatform.android ||
+                  TargetPlatform.fuchsia ||
+                  TargetPlatform.linux ||
+                  TargetPlatform.windows =>
+                    true,
+                  TargetPlatform.iOS || TargetPlatform.macOS => null,
+                },
+                header: true,
+                // AppBar applies titleSpacing on both sides of the title;
+                // the end padding restores the standard inset on the
+                // trailing side.
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    end: TioSpacing.lg - titleSpacing,
+                  ),
+                  child: title,
                 ),
-                child: title,
               ),
             ),
       actions: actions,
@@ -78,11 +95,12 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Ignores pointers on the first [extent] of its child's start side, so a
-/// title laid out over the leading slot never takes the leading button's
-/// taps. Elsewhere the child is hit exactly where it is painted.
-class _LeadingTapClearance extends SingleChildRenderObjectWidget {
-  const _LeadingTapClearance({
+/// Keeps the first [extent] of its child's start side clear, so a title
+/// laid out over the leading slot never takes the leading button's taps or
+/// its accessibility bounds. Elsewhere the child is hit exactly where it is
+/// painted.
+class _LeadingClearance extends SingleChildRenderObjectWidget {
+  const _LeadingClearance({
     required this.extent,
     required this.textDirection,
     required super.child,
@@ -92,13 +110,13 @@ class _LeadingTapClearance extends SingleChildRenderObjectWidget {
   final TextDirection textDirection;
 
   @override
-  _RenderLeadingTapClearance createRenderObject(BuildContext context) =>
-      _RenderLeadingTapClearance(extent, textDirection);
+  _RenderLeadingClearance createRenderObject(BuildContext context) =>
+      _RenderLeadingClearance(extent, textDirection);
 
   @override
   void updateRenderObject(
     BuildContext context,
-    _RenderLeadingTapClearance renderObject,
+    _RenderLeadingClearance renderObject,
   ) {
     renderObject
       ..extent = extent
@@ -106,18 +124,37 @@ class _LeadingTapClearance extends SingleChildRenderObjectWidget {
   }
 }
 
-class _RenderLeadingTapClearance extends RenderProxyBox {
-  _RenderLeadingTapClearance(this.extent, this.textDirection);
+class _RenderLeadingClearance extends RenderProxyBox {
+  _RenderLeadingClearance(this._extent, this._textDirection);
 
-  double extent;
-  TextDirection textDirection;
+  double _extent;
+  set extent(double value) {
+    if (value == _extent) return;
+    _extent = value;
+    markNeedsSemanticsUpdate();
+  }
+
+  TextDirection _textDirection;
+  set textDirection(TextDirection value) {
+    if (value == _textDirection) return;
+    _textDirection = value;
+    markNeedsSemanticsUpdate();
+  }
+
+  /// The part of the child outside the cleared strip.
+  Rect get _uncleared {
+    final cleared = math.min(_extent, size.width);
+    return _textDirection == TextDirection.rtl
+        ? Rect.fromLTRB(0, 0, size.width - cleared, size.height)
+        : Rect.fromLTRB(cleared, 0, size.width, size.height);
+  }
 
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    final fromStart = textDirection == TextDirection.rtl
-        ? size.width - position.dx
-        : position.dx;
-    if (fromStart < extent) return false;
+    if (!_uncleared.contains(position)) return false;
     return super.hitTest(result, position: position);
   }
+
+  @override
+  Rect? describeSemanticsClip(RenderObject? child) => _uncleared;
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
@@ -104,6 +105,51 @@ void main() {
     tapDown = null;
     await tester.tapAt(Offset(title.right + 4, title.center.dy));
     expect(tapDown, isNull);
+  });
+
+  for (final interactive in [false, true]) {
+    testWidgets(
+        'keeps the title out of the back button accessibility bounds '
+        '(${interactive ? 'interactive' : 'text'} title)', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(
+        tester,
+        TioAppBar(
+          leading: const BackButton(),
+          title: interactive
+              ? const TextField(key: ValueKey('title'))
+              : const Text('Title', key: ValueKey('title')),
+        ),
+      );
+
+      final back = tester.getSemantics(find.byType(BackButton));
+      final title = tester.getSemantics(find.byKey(const ValueKey('title')));
+      expect(identical(back.parent, title.parent), isTrue);
+      Rect inParent(SemanticsNode node) => node.transform == null
+          ? node.rect
+          : MatrixUtils.transformRect(node.transform!, node.rect);
+      expect(
+        inParent(title).left,
+        greaterThanOrEqualTo(inParent(back).right),
+      );
+      expect(title.getSemanticsData().flagsCollection.isHeader, isTrue);
+      handle.dispose();
+    });
+  }
+
+  testWidgets('keeps the AppBar header semantics on the title',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pump(
+      tester,
+      const TioAppBar(leading: BackButton(), title: Text('Title')),
+    );
+
+    expect(
+      tester.getSemantics(find.text('Title')),
+      matchesSemantics(label: 'Title', isHeader: true, namesRoute: true),
+    );
+    handle.dispose();
   });
 
   testWidgets('mirrors the gap in right-to-left layouts', (tester) async {
