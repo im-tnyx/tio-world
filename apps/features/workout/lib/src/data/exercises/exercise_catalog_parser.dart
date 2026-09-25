@@ -8,9 +8,9 @@ import 'exercise_catalog_row_dto.dart';
 /// [Exercise] values.
 ///
 /// Accepts already-decoded rows; the bundled catalog document and version
-/// format are owned by the later asset slice. Every row is checked so the
-/// failure lists all issues, and any invalid or duplicate row fails the
-/// whole catalog with [InvalidExerciseCatalogException].
+/// envelope are owned by `ExerciseCatalogDocumentDecoder`. Every row is
+/// checked so the failure lists all issues, and any invalid or duplicate row
+/// fails the whole catalog with [InvalidExerciseCatalogException].
 final class ExerciseCatalogParser {
   const ExerciseCatalogParser();
 

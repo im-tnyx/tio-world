@@ -33,22 +33,22 @@ apps/core/assets/musclemap/
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Independent exact-head reviewer after Draft PR creation; Codex supplemental only
+**Review owner:** Independent exact-head reviewer on PR #339; Codex supplemental only
 **Implementation ownership state:** Complete; no implementation-source edits remain
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; local `main` and `origin/main` both at `f5bf3c4f8aefd176bf393e0bdad8d98ab01abb45`
 **Branch:** `tnyx/tnyx-270-w3a2a-exercise-catalog-content-integration`
-**HEAD SHA:** Current branch head (this brief-only handoff finalization commit); last source-changing/remediation SHA: `315f8176`
+**HEAD SHA:** Current PR #339 head (see Git/PR; this brief does not self-reference its own commit); last source-changing/remediation SHA: the R3 doc-contract remediation commit after `9399cb7c`
 **Observed working-tree state:** tracked implementation tree clean; protected owner asset directories remain untracked
 **Observed uncommitted/dirty files:** protected owner asset directories listed above
-**PR / tracker:** Linear TNYX-270 `In Progress`; TNYX-261 `In Progress`; TNYX-269 `Done`; branch published through source-remediation SHA `315f8176`. Draft PR creation is pending explicit in-chat confirmation required by the GitHub connector.
-**Current implementation state:** Complete within W3A2a. The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` are remediated and validated.
-**Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,test/data/exercises,pubspec.yaml}` and this task brief/index
-**Validation completed at SHA:** source-remediation SHA `315f8176` on 2026-09-25 — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit; commit-attribution guard PASS.
-**Validation remaining:** Draft PR creation, CI and final exact-PR-head review
+**PR / tracker:** PR #339 (Draft, base `f5bf3c4f`); Linear TNYX-270 `In Progress` pending Ready transition; TNYX-261 `In Progress`; TNYX-269 `Done`.
+**Current implementation state:** Complete within W3A2a. The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` and R3 from `9399cb7c` are remediated and validated.
+**Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,lib/src/domain/exercises/exercise_catalog_repository.dart (doc only),test/data/exercises,pubspec.yaml}` and this task brief/index
+**Validation completed at SHA:** R3 doc-contract remediation (working tree on `9399cb7c`) on 2026-09-25 — Dart format PASS (3 files, 0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); `git diff --check` PASS. Previously at source-remediation SHA `315f8176` — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit; commit-attribution guard PASS.
+**Validation remaining:** exact-head CI `Analyze and test` on the R3 remediation head
 **Current blocker:** None within the approved W3A2a boundary
-**Open review finding IDs:** None (R1/R2 resolved; final brief-only exact-head re-review pending)
-**Next exact action:** Obtain the explicit in-chat GitHub publication confirmation required by the connector, then create the Draft PR and inspect CI at its exact head.
+**Open review finding IDs:** None (R1/R2/R3 resolved)
+**Next exact action:** After exact-head CI passes, mark PR #339 Ready for Review; merge requires separate explicit owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -137,7 +137,7 @@ Distinct typed failures cover missing asset, invalid JSON/document and unsupport
 - [x] Add injected `AssetBundle` source and compose it with the W3A1 repository/parser.
 - [x] Add decoder/source/real-asset tests, including negative cases.
 - [x] Audit protected assets, content leakage and W3A2a-only scope.
-- [ ] Validate, commit, push, create Draft PR and run exact-head independent review.
+- [x] Validate, commit, push, create Draft PR (#339) and run exact-head independent review.
 
 ## 6. Quality Review
 
@@ -161,6 +161,7 @@ git diff --cached --check                                           PASS
 |---|---|---|---|---|---|
 | R1 | P1 | Resolved | Task brief approval/head/review wording was stale and self-contradictory | `8462ec7c` | Handoff now distinguishes authorized gates from completed state, delegates the self-referential current head to Git/PR, and records source-remediation SHA `315f8176` plus the publication blocker |
 | R2 | P2 | Resolved | Catching `Object` mislabeled unexpected bundle/programming failures as a missing asset and discarded stack context | `8462ec7c` | Catch narrowed to `FlutterError`, stack retained, unexpected-failure propagation test added; focused/full tests and analyze pass |
+| R3 | P3 | Resolved | W3A1 docs still called the asset source/document envelope a "later asset slice", and the `ExerciseCatalogRepository.load()` contract omitted the source/document failures the production source now throws | `9399cb7c` | Comment-only update to the decoded-rows repository, parser and repository contract docs; no behavior change; analyze and focused/full tests rerun |
 
 ## 7. Final Handoff
 
@@ -170,6 +171,7 @@ git diff --cached --check                                           PASS
 - `.ai/tasks/tnyx-270-w3a2a-exercise-catalog-content-integration.md`
 - `apps/features/workout/assets/exercises/exercise_catalog.json`
 - `apps/features/workout/lib/src/data/exercises/`
+- `apps/features/workout/lib/src/domain/exercises/exercise_catalog_repository.dart` (doc contract only)
 - `apps/features/workout/pubspec.yaml`
 - `apps/features/workout/test/data/exercises/`
 
