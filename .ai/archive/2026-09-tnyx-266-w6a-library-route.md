@@ -1,6 +1,7 @@
 # TNYX-266 — W6A Canonical Library route & capability-gated root
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/features/workout` (Library page, Workout Home entry), with the route contract in `apps/core` and router wiring in `apps/app`
 **Affected platforms:** Phone (Android + iOS). Wear OS / watchOS: none.
 
@@ -8,7 +9,7 @@
 
 **Trigger:** New independently scoped product task/feature slice (product-visible UI + route)
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner asked for a Library screen reached from the Workout tab. After reviewing the proposed design, with the Tnyx-hub Library as reference, the owner replied "NEXT GO". The approved design is the one proposed: a Library card on Workout Home, and a Library screen with only the Exercises row, without sub-tabs. Owner addition (2026-09-25, after the first Draft PR commit): the Library top bar has a search icon that opens Exercises with the search field focused.
+**Approval evidence:** On 2026-09-25 the owner asked for a Library screen reached from the Workout tab. After reviewing the proposed design, with the Tnyx-hub Library as reference, the owner replied "NEXT GO". The approved design is the one proposed: a Library card on Workout Home, and a Library screen with only the Exercises row, without sub-tabs. Owner addition (2026-09-25, after the first Draft PR commit): the Library top bar has a search icon that opens Exercises with the search field focused. After the owner's "ab pr check kare", the instruction "go follow agent.md" (with `POST_MERGE_SYNC.md`) authorized the merge, the post-merge sync and this archive.
 **Approved product/UI/data-shape boundaries:**
 
 - Workout Home: one Library entry below the calendar, a `TioGroupCard` holding a `TioSettingsNavigationRow` (folder icon, `Library`, `Browse exercises`, chevron).
@@ -23,22 +24,22 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Codex review on the PR; owner final review
-**Implementation ownership state:** Active
+**Review owner:** Exact-head self-review by the task agent (not independent). After Ready, Codex gave 👍 (no suggestions) on the final head `a67bacb5` (15:31Z). No owner-account review was posted before merge.
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-25, local `main` = `origin/main` = GitHub `main` = `d916d820`
-**Branch:** `tnyx/tnyx-266-w6a-canonical-library-route-capability-gated-root` (from `d916d820`)
-**HEAD SHA:** see PR head (committed on top of `d916d820`)
-**Observed working-tree state:** clean
-**Observed uncommitted/dirty files:** none
-**PR / tracker:** Linear TNYX-266 (In Progress); Draft PR (see Final Handoff)
-**Current implementation state:** Implementation and local validation complete; Draft PR handoff
-**Relevant execution surface:** `apps/features/workout/lib/src/presentation/{library,pages}/`, `apps/core/lib/src/routing/routes/app_routes.dart`, `apps/app/lib/app/router.dart`
-**Validation completed at SHA:** working tree = committed head (see Validation Run)
-**Validation remaining:** GitHub CI on the PR head; owner review
-**Current blocker:** none
-**Open review finding IDs:** none
-**Next exact action:** owner review of the Draft PR; Ready/merge only on a separate owner instruction
+**Repository state last verified:** 2026-09-25 after the PR #349 post-merge sync; GitHub `main`, `origin/main` and local `main` all at `a98bce82b3962fd927c2bf49e349360dd2676ae3`
+**Branch:** `tnyx/tnyx-266-w6a-canonical-library-route-capability-gated-root` (merged; retained, deletion not requested)
+**HEAD SHA:** merged PR head `a67bacb586c9319e96cf2386a3614b48cee02015` on base `d916d820`; squash merge commit on `main` `a98bce82b3962fd927c2bf49e349360dd2676ae3` (merge tree `3e3a4cd6` identical to the reviewed head)
+**Observed working-tree state:** Not applicable (slice complete)
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #349](https://github.com/im-tnyx/tio-world/pull/349) merged 2026-09-25T15:41:07Z (squash, `--match-head-commit`). CI at the head: Analyze and test, Attribution guard runner and Commit attribution guard all passed; 0 unresolved threads, no reviews or comments. Linear TNYX-266 went In Progress → In Review (at Ready) → Done (GitHub integration on merge). Follow-ups: universal top-bar title spacing token → GitHub #350 (no Linear issue; workspace limit); Exercises folder move `presentation/explore/exercises` → `presentation/library/exercises` (owner suggestion, pending decision); Explore scope and Coaches direction recorded on TNYX-82.
+**Current implementation state:** Validated. On `main`, the path is Workout Home → Library → Exercises, and the Library search icon opens Exercises with its search field focused.
+**Relevant execution surface:** `apps/features/workout/lib/src/presentation/{library,pages,explore/exercises}/`, `apps/core/lib/src/routing/routes/app_routes.dart`, `apps/app/lib/app/router.dart`
+**Validation completed at SHA:** local runs on the committed tree (see Validation Run); CI green on `a67bacb5`
+**Validation remaining:** None
+**Current blocker:** None
+**Open review finding IDs:** None
+**Next exact action:** None for this slice.
 
 ## Global UI / Design-System Guardrail
 
@@ -159,4 +160,4 @@ Visual check: a temporary, uncommitted render test produced PNGs of Workout Home
 
 ### Final Status
 
-`REVIEW`: implementation and local validation are complete; the Draft PR awaits CI and owner review.
+`PASS`: merged via PR #349 (`a98bce82`) after green CI, a clean Codex review at the exact head, 0 unresolved threads and a matching head.
