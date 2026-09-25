@@ -82,21 +82,68 @@ void main() {
     expect(catalog.all.single.displayName, 'Synthetic Alpha Lift');
   });
 
-  test('reports a missing asset distinctly', () {
+  test('reports a missing asset from the real bundle distinctly', () {
+    const unregisteredKey =
+        'packages/tio_feature_workout/assets/exercises/unregistered.json';
     final source = AssetBundleExerciseCatalogSource(
-      StringAssetBundle(const {}),
-      assetKey: testAssetKey,
+      rootBundle,
+      assetKey: unregisteredKey,
     );
 
     expect(
       source.load(),
       throwsA(
         isA<MissingExerciseCatalogAssetException>()
-            .having((error) => error.assetKey, 'assetKey', testAssetKey)
+            .having((error) => error.assetKey, 'assetKey', unregisteredKey)
             .having((error) => error.cause, 'cause', isA<FlutterError>())
             .having((error) => error.stackTrace, 'stackTrace', isNotNull),
       ),
     );
+  });
+
+  group('non-missing FlutterError', () {
+    Matcher isAssetLoadFailure(FlutterError cause) => throwsA(
+          isA<ExerciseCatalogAssetLoadException>()
+              .having((error) => error.assetKey, 'assetKey', testAssetKey)
+              .having((error) => error.cause, 'cause', same(cause))
+              .having((error) => error.stackTrace, 'stackTrace', isNotNull),
+        );
+
+    test('is reported as a generic asset load failure', () {
+      final failure = FlutterError('Unexpected framework failure');
+      final source = AssetBundleExerciseCatalogSource(
+        ThrowingAssetBundle(failure),
+        assetKey: testAssetKey,
+      );
+
+      expect(source.load(), isAssetLoadFailure(failure));
+    });
+
+    test('with the load-failure summary but another reason is not missing', () {
+      final failure = FlutterError.fromParts([
+        ErrorSummary('Unable to load asset: "$testAssetKey".'),
+        IntProperty('HTTP status code', 500),
+      ]);
+      final source = AssetBundleExerciseCatalogSource(
+        ThrowingAssetBundle(failure),
+        assetKey: testAssetKey,
+      );
+
+      expect(source.load(), isAssetLoadFailure(failure));
+    });
+
+    test('reporting another missing key is not this catalog missing', () {
+      final failure = FlutterError.fromParts([
+        ErrorSummary('Unable to load asset: "other.json".'),
+        ErrorDescription('The asset does not exist or has empty data.'),
+      ]);
+      final source = AssetBundleExerciseCatalogSource(
+        ThrowingAssetBundle(failure),
+        assetKey: testAssetKey,
+      );
+
+      expect(source.load(), isAssetLoadFailure(failure));
+    });
   });
 
   test('does not misclassify unexpected bundle failures as missing', () {

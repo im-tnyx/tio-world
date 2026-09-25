@@ -43,7 +43,14 @@ final class AssetBundleExerciseCatalogSource
     try {
       source = await _assetBundle.loadString(assetKey);
     } on FlutterError catch (error, stackTrace) {
-      throw MissingExerciseCatalogAssetException(
+      if (_isMissingAsset(error)) {
+        throw MissingExerciseCatalogAssetException(
+          assetKey: assetKey,
+          cause: error,
+          stackTrace: stackTrace,
+        );
+      }
+      throw ExerciseCatalogAssetLoadException(
         assetKey: assetKey,
         cause: error,
         stackTrace: stackTrace,
@@ -51,5 +58,25 @@ final class AssetBundleExerciseCatalogSource
     }
 
     return _decoder.decode(source).exercises;
+  }
+
+  /// Whether [error] is Flutter's absent-asset report for [assetKey].
+  ///
+  /// Flutter has no typed not-found error: `PlatformAssetBundle` reports an
+  /// absent (or empty) asset as a `FlutterError` with exactly this summary and
+  /// description, while other bundle failures reuse the summary with a
+  /// different description. Any other shape stays a generic load failure.
+  bool _isMissingAsset(FlutterError error) {
+    var hasSummary = false;
+    var hasDescription = false;
+    for (final node in error.diagnostics) {
+      final text = node.toDescription();
+      if (node is ErrorSummary) {
+        hasSummary |= text == 'Unable to load asset: "$assetKey".';
+      } else if (node is ErrorDescription) {
+        hasDescription |= text == 'The asset does not exist or has empty data.';
+      }
+    }
+    return hasSummary && hasDescription;
   }
 }

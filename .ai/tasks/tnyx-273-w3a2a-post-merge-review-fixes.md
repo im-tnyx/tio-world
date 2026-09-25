@@ -1,0 +1,151 @@
+# TNYX-273 W3A2a-F1 — Post-merge catalog integration review fixes
+
+**Status:** In progress
+**Primary owner:** `apps/features/workout` (catalog data/source boundary) + canonical docs
+**Affected platforms:** Flutter consumers of the Workout feature package; no UI or routing change
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** None — review-finding fixes inside the already approved W3A2a scope
+**Approval status:** Approved
+**Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR only.
+**Approved product/UI/data-shape boundaries:** reconcile stale W3A2a docs; narrow missing-asset exception classification; exception-boundary tests; reply to PR #339 threads after the Draft PR exists.
+**Explicit non-changes:** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, Ready transition, merge or branch deletion.
+
+## Active Handoff
+
+**Planning owner:** Current task agent
+**Implementation owner:** Current task agent
+**Review owner:** Independent exact-head reviewer; Codex supplemental only
+**Implementation ownership state:** Complete; no implementation-source edits remain
+**Ownership transition:** Not applicable
+**Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; `origin/main` = local `main` = `a023730fa49303f2698dd9676b2c7adddf76759f`
+**Branch:** `tnyx/tnyx-273-w3a2a-f1-post-merge-catalog-integration-review-fixes` (from `origin/main`)
+**HEAD SHA:** Current branch head (see Git/PR)
+**Observed working-tree state:** protected owner asset directories under `apps/core/assets/` remain untracked and untouched
+**Observed uncommitted/dirty files:** protected owner asset directories only
+**PR / tracker:** Linear TNYX-273 `In Progress` (parent TNYX-270 `In Progress`; TNYX-272 `Backlog`). Source PR #339 merged as `a023730f`.
+**Current implementation state:** R4/R5 implemented and validated; Draft PR stage
+**Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
+**Validation completed at SHA:** working tree on `a023730f` before the fix commit, 2026-09-25 — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
+**Validation remaining:** exact-head CI (attribution guard, Analyze and test)
+**Current blocker:** None
+**Open review finding IDs:** None (R4/R5 resolved in this branch; PR #339 threads stay unresolved until this fix merges)
+**Next exact action:** Owner decides Ready + merge for the follow-up PR; then archive the W3A2a and this brief before TNYX-272 starts.
+
+## Global UI / Design-System Guardrail
+
+No production UI or visual change is in scope.
+
+## 1. Discovery
+
+### User Outcome
+
+Canonical docs describe the shipped W3A2a catalog boundary truthfully, and the catalog source reports "missing asset" only when Flutter actually reported the asset as absent.
+
+### Success Criteria
+
+- R4: no canonical doc claims the asset path/loader/schema are deferred or unshippable; W3A2b/W6A/media/standards remain described as pending/out of scope.
+- R5: non-missing `FlutterError` never becomes `MissingExerciseCatalogAssetException`; raw framework errors are wrapped in a typed source failure.
+
+### Scope
+
+Source PR #339 (merge `a023730f`) findings:
+
+- **R4 (P2)** stale docs — `docs/MODULE_OWNERSHIP.md:41`, `docs/screens/exercise-search.md:65`.
+- **R5 (P2)** `FlutterError` over-classification in `AssetBundleExerciseCatalogSource`.
+
+### Non-Goals
+
+W3A2b, UI/routing, Library, Supabase, catalog content/schema, media/icons/standards. ADR-0011 is a point-in-time decision record ("deferred to W3") and is not rewritten.
+
+## 2. Codebase Exploration
+
+### Verified Evidence
+
+- Source/config inspected: `asset_bundle_exercise_catalog_source.dart` catches every `FlutterError` as missing (current `main`). Flutter 3.44.6 `asset_bundle.dart`: `PlatformAssetBundle.load` throws `FlutterError.fromParts([ErrorSummary('Unable to load asset: "<key>".'), ErrorDescription('The asset does not exist or has empty data.')])` for absent/empty assets; `NetworkAssetBundle` (HTTP status) and `loadBuffer` failures reuse the same summary with a different description. No typed not-found exception exists.
+- Existing pattern to follow: typed source exceptions in `exercise_catalog_source_exceptions.dart` with `assetKey`/`cause`/`stackTrace`.
+- Tests or validation already present: decoder and source tests from W3A2a, including real registered package-asset tests.
+
+## 3. Clarification
+
+### Decisions Required or Made
+
+| Decision | Status | Rationale | Owner |
+|---|---|---|---|
+| Missing = exact Flutter not-found diagnostics for this key; other `FlutterError` → new `ExerciseCatalogAssetLoadException` | Made | Only supported runtime signal; wording drift degrades to generic load failure, never to a false "missing"; real `rootBundle` test detects drift | Agent |
+| Non-`FlutterError` failures keep propagating unchanged | Made | Preserves W3A2a R2 decision: programming errors must not be relabelled | Agent |
+
+## 4. Architecture Design
+
+### Chosen Approach
+
+`AssetBundle.loadString` → on `FlutterError`: missing-asset diagnostics → `MissingExerciseCatalogAssetException`; otherwise → `ExerciseCatalogAssetLoadException`. Decoder/parser boundaries unchanged.
+
+### Ownership and Data Flow
+
+```text
+Workout asset → injected AssetBundle source → document decoder → W3A1 parser → ExerciseCatalog
+```
+
+### Alternative Rejected
+
+- Single generic load exception for every `FlutterError`: drops the approved "missing catalog" distinction.
+- Summary-only matching: also matches HTTP/buffer failures.
+
+### Failure and Accessibility States
+
+Source failures: missing asset, generic asset load failure, invalid document, unsupported schema, invalid rows.
+
+## 5. Implementation Plan
+
+- [x] R5: narrow classification, add `ExerciseCatalogAssetLoadException`, update repository contract doc.
+- [x] R5 tests: real missing asset, non-missing `FlutterError`s, unchanged valid/malformed behavior.
+- [x] R4: reconcile the two stale docs.
+- [x] Validate, commit, push, Draft PR, reply to PR #339 threads.
+
+## 6. Quality Review
+
+### Validation Run
+
+```text
+dart format <touched Dart files>                                   PASS (0 changed)
+cd apps/features/workout && flutter analyze                        PASS (No issues found)
+cd apps/features/workout && flutter test test/data/exercises test/domain/exercises
+                                                                    PASS (63 tests)
+cd apps/features/workout && flutter test                            PASS (82 tests)
+git diff --check                                                    PASS
+asset / pubspec / apps/app / apps/core changes                      0 files
+```
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| R4 | P2 | Resolved | Canonical docs still describe the catalog asset path/loader/schema as deferred and unshippable | `8f18c652` (PR #339) | `MODULE_OWNERSHIP.md` and `exercise-search.md` now describe the shipped asset, registration, envelope decoder, AssetBundle source and W3A1 parser; W3A2b/W6A/media/standards stay pending or out of scope |
+| R5 | P2 | Resolved | Every `FlutterError` mapped to `MissingExerciseCatalogAssetException` | `8f18c652` (PR #339) | Missing only for Flutter's exact not-found diagnostics for this key; other `FlutterError` → `ExerciseCatalogAssetLoadException`; real `rootBundle` missing-key test plus 3 non-missing tests |
+
+## 7. Final Handoff
+
+### Changed Files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-273-w3a2a-post-merge-review-fixes.md`
+- `apps/features/workout/lib/src/data/exercises/asset_bundle_exercise_catalog_source.dart`
+- `apps/features/workout/lib/src/data/exercises/exercise_catalog_source_exceptions.dart`
+- `apps/features/workout/lib/src/domain/exercises/exercise_catalog_repository.dart` (doc contract only)
+- `apps/features/workout/test/data/exercises/asset_bundle_exercise_catalog_source_test.dart`
+- `docs/MODULE_OWNERSHIP.md`
+- `docs/screens/exercise-search.md`
+
+### Actual Behavior
+
+Source failures are distinguishable as missing asset, generic asset load failure, invalid document, unsupported schema and invalid rows. Non-`FlutterError` failures still propagate unchanged. Catalog content and the valid/malformed load behavior are unchanged.
+
+### Known Limitations
+
+Missing-asset detection depends on Flutter's diagnostic text because no typed not-found error exists. If that text drifts, failures degrade to `ExerciseCatalogAssetLoadException`, and the real-bundle test fails in CI.
+
+### Final Status
+
+`REVIEW`
