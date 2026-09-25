@@ -1,6 +1,7 @@
 # #350 — Universal top-bar title gap (`TioAppBar`)
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** `apps/core`
 **Affected platforms:** Flutter phone app (Android and iOS)
 
@@ -37,13 +38,13 @@
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
 **Review owner:** Codex auto-review on PR #354 (findings F1–F7); task agent self-review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-26 on `tnyx/issue-350-top-bar-title-spacing`, which is ahead of `main` `48d91f46` with no uncommitted changes
-**Branch:** `tnyx/issue-350-top-bar-title-spacing`
-**HEAD SHA:** The PR #354 head that contains this record. The implementation last changed at `a7b42530` (F6); later commits only touch this brief.
-**Observed working-tree state:** Clean; everything is committed and pushed
-**Observed uncommitted/dirty files:** None
+**Repository state last verified:** 2026-09-26, after the PR #355 post-merge sync. GitHub `main`, `origin/main` and local `main` are all at `bea89d16198fde9e1a425c7ed3c34f5a256f07cd`.
+**Branch:** `tnyx/issue-350-top-bar-title-spacing` (merged and deleted locally and remotely at the owner's request)
+**HEAD SHA:** Merged PR head `ebaf1ad89316492fff3c9b5b764d056631bcf592`. It was squash-merged to `main` as `03bb578a6f5a15f62c7fc5508253655baad02125`; the merge tree `6341dbcf` is identical to the reviewed head.
+**Observed working-tree state:** Not applicable (slice complete)
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
 **PR / tracker:**
 - GitHub #350 and PR #354.
 - No Linear issue: the workspace hit its free issue limit on 2026-09-25, and the Linear MCP connector is unauthorized in this session.
@@ -55,11 +56,11 @@
 - `apps/core/lib/src/ui/components/navigation/tio_app_bar.dart`
 - `apps/core/lib/src/theme`
 - the 27 migrated screen files
-**Validation completed at SHA:** `a7b42530`. The local package runs (see Validation Run) were on the tree committed as `a7b42530`, and CI passed at `a7b42530` (Analyze and test, Attribution guard runner, Commit attribution guard).
-**Validation remaining:** CI and Codex review at the final PR head (brief-only change since `a7b42530`)
+**Validation completed at SHA:** `a7b42530`: local package runs (see Validation Run) and CI. The final head `ebaf1ad8` changed only this brief; CI passed there too (Analyze and test, Attribution guard runner, Commit attribution guard).
+**Validation remaining:** None
 **Current blocker:** None
 **Open review finding IDs:** None. F1–F6 are fixed in code, with their threads answered and resolved. F7 (stale handoff) is fixed by this record.
-**Next exact action:** Merge PR #354 once the final head passes the gate: matching head, green CI, 0 unresolved threads, Codex clean. Then run the post-merge sync and archive this brief.
+**Next exact action:** None for this slice.
 
 ## Global UI / Design-System Guardrail
 
@@ -175,7 +176,8 @@ No semantics, focus-order or hit-target change. The leading slot stays 56dp, and
   - all `TargetPlatform`s.
 - [x] README contract.
 - [x] Analyze/test all affected packages; renders.
-- [ ] Commit, push, reply to the Codex threads, re-request review.
+- [x] Commit, push, reply to the Codex threads, re-request review.
+- [x] Merge PR #354, post-merge sync, delete the branch.
 
 ## 6. Quality Review
 
@@ -235,4 +237,4 @@ See Scope, plus this brief and the `.ai/tasks/README.md` row.
 
 ### Final Status
 
-`IN PROGRESS`
+`PASS`: merged via PR #354 (`03bb578a`) on 2026-09-25T20:28:19Z (UTC). The gate was a matching head `ebaf1ad8`, green CI, 0 unresolved threads, and Codex "Didn't find any major issues" after findings F1–F7 were fixed. GitHub #350 closed on merge. Linear was not updated: no issue exists (free issue limit), and the connector is unauthorized.
