@@ -39,7 +39,7 @@ class ExercisesPage extends ConsumerWidget {
     return Scaffold(
       key: const ValueKey('exercises-page'),
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,

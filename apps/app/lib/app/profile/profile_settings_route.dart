@@ -132,7 +132,7 @@ class _ProfileSettingsLoadingPage extends StatelessWidget {
     final colors = context.tioColors;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
@@ -165,7 +165,7 @@ class _ProfileSettingsUnavailablePage extends StatelessWidget {
     final colors = context.tioColors;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
+      appBar: TioAppBar(
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,

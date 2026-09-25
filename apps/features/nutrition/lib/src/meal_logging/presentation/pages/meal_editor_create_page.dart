@@ -133,7 +133,7 @@ class _MealEditorCreatePageState extends State<MealEditorCreatePage> {
       child: Scaffold(
         key: const ValueKey('meal-editor-create-page'),
         backgroundColor: colors.background,
-        appBar: AppBar(
+        appBar: TioAppBar(
           backgroundColor: colors.background,
           elevation: TioElevation.none,
           scrolledUnderElevation: TioElevation.none,
