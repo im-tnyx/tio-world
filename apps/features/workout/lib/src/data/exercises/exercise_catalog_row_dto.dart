@@ -6,8 +6,9 @@ import '../../domain/exercises/invalid_exercise_catalog_exception.dart';
 ///
 /// Data-boundary only: presentation and other consumers see canonical
 /// [Exercise] values. Unknown row keys are ignored. Presence and type are
-/// checked here; value rules such as blank or duplicate taxonomy come from
-/// the canonical [Exercise] contract.
+/// checked here; value rules such as blank or duplicate taxonomy and https
+/// media URLs come from the canonical [Exercise] and [ExerciseMedia]
+/// contracts. `media` is optional.
 final class ExerciseCatalogRowDto {
   const ExerciseCatalogRowDto._({
     required this.rowIndex,
@@ -20,7 +21,8 @@ final class ExerciseCatalogRowDto {
     required this.category,
     required this.levels,
     required this.isArchived,
-  });
+    required _MediaFields? media,
+  }) : _media = media;
 
   final int rowIndex;
   final String id;
@@ -32,6 +34,7 @@ final class ExerciseCatalogRowDto {
   final String category;
   final List<String> levels;
   final bool isArchived;
+  final _MediaFields? _media;
 
   /// JSON paths for canonical [Exercise] argument names that differ.
   static const _pathByArgument = {
@@ -105,6 +108,9 @@ final class ExerciseCatalogRowDto {
     if (isCustom == true) {
       problem('isCustom', 'must be false for a built-in catalog row');
     }
+    final media = row.containsKey('media')
+        ? _MediaFields.read(row['media'], problem)
+        : null;
 
     if (issues.length != issueCount) return null;
     return ExerciseCatalogRowDto._(
@@ -118,6 +124,7 @@ final class ExerciseCatalogRowDto {
       category: category!,
       levels: levels!,
       isArchived: isArchived!,
+      media: media,
     );
   }
 
@@ -140,6 +147,14 @@ final class ExerciseCatalogRowDto {
       return null;
     }
 
+    final ExerciseMedia? exerciseMedia;
+    try {
+      exerciseMedia = _media?.toMedia();
+    } on _MediaUrlError catch (error) {
+      problem(error.path, error.message);
+      return null;
+    }
+
     try {
       return Exercise(
         ref: ref,
@@ -151,6 +166,7 @@ final class ExerciseCatalogRowDto {
         category: category,
         levels: levels,
         status: isArchived ? ExerciseStatus.archived : ExerciseStatus.active,
+        media: exerciseMedia,
       );
     } on ArgumentError catch (error) {
       final argument = error.name ?? 'row';
@@ -168,4 +184,130 @@ final class ExerciseCatalogRowDto {
         const (List<dynamic>) => 'a list',
         _ => 'an object',
       };
+}
+
+/// Presence/type-checked `media` object of one catalog row.
+final class _MediaFields {
+  const _MediaFields({
+    required this.type,
+    required this.defaultGender,
+    required this.videoFallbackGender,
+    required this.urls,
+  });
+
+  final ExerciseMediaType type;
+  final ExerciseMediaGender defaultGender;
+  final ExerciseMediaGender? videoFallbackGender;
+  final Map<ExerciseMediaGender, Map<String, Uri?>> urls;
+
+  static const _urlKeys = ['imageUrl', 'thumbnailUrl', 'videoUrl'];
+
+  static _MediaFields? read(
+    Object? value,
+    void Function(String path, String problem) problem,
+  ) {
+    if (value is! Map) {
+      problem('media', 'must be an object');
+      return null;
+    }
+    var valid = true;
+
+    T? enumValue<T extends Enum>(List<T> values, String key, bool required) {
+      if (!value.containsKey(key) || value[key] == null) {
+        if (required) {
+          problem('media.$key', 'is required');
+          valid = false;
+        }
+        return null;
+      }
+      final raw = value[key];
+      for (final candidate in values) {
+        if (candidate.name == raw) return candidate;
+      }
+      problem(
+        'media.$key',
+        'must be one of ${values.map((v) => v.name).join(', ')}',
+      );
+      valid = false;
+      return null;
+    }
+
+    final type = enumValue(ExerciseMediaType.values, 'type', true);
+    final defaultGender =
+        enumValue(ExerciseMediaGender.values, 'defaultGender', true);
+    final videoFallbackGender =
+        enumValue(ExerciseMediaGender.values, 'videoFallbackGender', false);
+
+    final urls = <ExerciseMediaGender, Map<String, Uri?>>{};
+    for (final gender in ExerciseMediaGender.values) {
+      final variant = value[gender.name];
+      if (variant is! Map) {
+        problem('media.${gender.name}', 'must be an object');
+        valid = false;
+        continue;
+      }
+      final variantUrls = <String, Uri?>{};
+      for (final key in _urlKeys) {
+        final raw = variant[key];
+        final path = 'media.${gender.name}.$key';
+        if (raw == null) {
+          variantUrls[key] = null;
+        } else if (raw is! String) {
+          problem(path, 'must be a string or null');
+          valid = false;
+        } else {
+          final uri = Uri.tryParse(raw);
+          if (uri == null) {
+            problem(path, 'must be a valid URL');
+            valid = false;
+          } else {
+            variantUrls[key] = uri;
+          }
+        }
+      }
+      urls[gender] = variantUrls;
+    }
+
+    if (!valid) return null;
+    return _MediaFields(
+      type: type!,
+      defaultGender: defaultGender!,
+      videoFallbackGender: videoFallbackGender,
+      urls: urls,
+    );
+  }
+
+  /// Builds canonical media, or throws [_MediaUrlError] with its JSON path.
+  ExerciseMedia toMedia() {
+    ExerciseMediaVariant variant(ExerciseMediaGender gender) {
+      final values = urls[gender]!;
+      try {
+        return ExerciseMediaVariant(
+          imageUrl: values['imageUrl'],
+          thumbnailUrl: values['thumbnailUrl'],
+          videoUrl: values['videoUrl'],
+        );
+      } on ArgumentError catch (error) {
+        throw _MediaUrlError(
+          'media.${gender.name}.${error.name}',
+          '${error.message}',
+        );
+      }
+    }
+
+    return ExerciseMedia(
+      type: type,
+      defaultGender: defaultGender,
+      videoFallbackGender: videoFallbackGender,
+      male: variant(ExerciseMediaGender.male),
+      female: variant(ExerciseMediaGender.female),
+    );
+  }
+}
+
+final class _MediaUrlError {
+  const _MediaUrlError(this.path, this.message);
+
+  final String path;
+  final String message;
 }

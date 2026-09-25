@@ -1,11 +1,12 @@
+import 'exercise_media.dart';
 import 'exercise_ref.dart';
 import 'exercise_status.dart';
 
 /// Canonical pure-Dart read model for one Exercise.
 ///
-/// [ref] carries catalog or user-created identity. Catalog parsing,
-/// persistence, ownership, localized instructions, media and standards remain
-/// outside this domain contract.
+/// [ref] carries catalog or user-created identity. [media] carries optional
+/// per-gender media URLs. Catalog parsing, persistence, ownership, localized
+/// instructions and standards remain outside this domain contract.
 final class Exercise {
   Exercise({
     required this.ref,
@@ -17,6 +18,7 @@ final class Exercise {
     String? category,
     List<String> levels = const [],
     required this.status,
+    this.media,
   })  : displayName = _requireNonBlankText(displayName, 'displayName'),
         muscleGroup = _validateOptionalTaxonomy(muscleGroup, 'muscleGroup'),
         primaryMuscles = _validateTaxonomyList(
@@ -60,6 +62,9 @@ final class Exercise {
 
   /// Canonical active/archive lifecycle state.
   final ExerciseStatus status;
+
+  /// Optional per-gender media; null when the source provides none.
+  final ExerciseMedia? media;
 
   static String _requireNonBlankText(String value, String name) {
     if (value.trim().isEmpty) {
@@ -118,7 +123,8 @@ final class Exercise {
           other.primaryEquipment == primaryEquipment &&
           other.category == category &&
           _listsEqual(other.levels, levels) &&
-          other.status == status;
+          other.status == status &&
+          other.media == media;
 
   @override
   int get hashCode => Object.hash(
@@ -131,5 +137,6 @@ final class Exercise {
         category,
         Object.hashAll(levels),
         status,
+        media,
       );
 }

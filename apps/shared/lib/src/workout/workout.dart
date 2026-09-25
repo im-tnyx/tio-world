@@ -1,4 +1,5 @@
 export 'exercise.dart';
+export 'exercise_media.dart';
 export 'exercise_ref.dart';
 export 'exercise_status.dart';
 export 'planned_workout_id.dart';
