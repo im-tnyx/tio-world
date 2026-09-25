@@ -1,6 +1,7 @@
 # TNYX-273 W3A2a-F1 — Post-merge catalog integration review fixes
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/features/workout` (catalog data/source boundary) + canonical docs
 **Affected platforms:** Flutter consumers of the Workout feature package; no UI or routing change
 
@@ -8,30 +9,30 @@
 
 **Trigger:** None — review-finding fixes inside the already approved W3A2a scope
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR (#340). A later owner prompt on the same day authorized the Draft → Ready transition and the exact-head pre-merge gate, but not merge.
+**Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR (#340). A later owner prompt on the same day authorized the Draft → Ready transition and the exact-head pre-merge gate; the PR #340 squash merge, post-merge reconciliation and brief archive were then separately authorized the same day.
 **Approved product/UI/data-shape boundaries:** reconcile stale W3A2a docs; narrow missing-asset exception classification; exception-boundary tests; reply to PR #339 threads after the Draft PR exists.
-**Explicit non-changes:** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, merge, PR #339 thread resolution before merge, brief archive or branch deletion.
+**Explicit non-changes (initial implementation scope; later lifecycle actions were separately authorized as recorded above):** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, merge, PR #339 thread resolution before merge, brief archive or branch deletion.
 
 ## Active Handoff
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Independent exact-head reviewer; Codex supplemental only
-**Implementation ownership state:** Complete; no implementation-source edits remain
+**Review owner:** Exact-head self-review by the task agent (not independent), plus separate owner-account reviews on PR #340 that raised R6/R7, with a final owner-account deep review of exact head `48ddbfa6` that was CLEAN (PASS, no P1/P2/P3). Codex (supplemental): the Ready-triggered automated review was unavailable because of the usage limit, and no Codex PASS is claimed
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; `origin/main` = local `main` = `a023730fa49303f2698dd9676b2c7adddf76759f`
-**Branch:** `tnyx/tnyx-273-w3a2a-f1-post-merge-catalog-integration-review-fixes` (from `origin/main`)
-**HEAD SHA:** Current branch head (see Git/PR)
-**Observed working-tree state:** protected owner asset directories under `apps/core/assets/` remain untracked and untouched
-**Observed uncommitted/dirty files:** protected owner asset directories only
-**PR / tracker:** PR #340 Ready for Review (owner-authorized); Linear TNYX-273 `In Review` (parent TNYX-270 `In Progress`; TNYX-272 `Backlog`). Source PR #339 merged as `a023730f`; its R4/R5 threads point to #340 and stay unresolved until #340 merges.
-**Current implementation state:** R4/R5 implemented and validated; PR #340 in review
+**Repository state last verified:** 2026-09-25 after the post-merge sync; GitHub `main`, `origin/main` and local `main` all at `359e24ffcc29c57a242c435351e5ac8c35c0ab7e`
+**Branch:** `tnyx/tnyx-273-w3a2a-f1-post-merge-catalog-integration-review-fixes` (merged; retained, deletion separately gated)
+**HEAD SHA:** merged PR head `48ddbfa6d302012d262d5e2715b69b7ef4375649` on base `a023730f`; squash merge commit on `main` `359e24ffcc29c57a242c435351e5ac8c35c0ab7e` (GitHub-verified; merge tree identical to reviewed head)
+**Observed working-tree state:** Not applicable (slice complete)
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #340](https://github.com/im-tnyx/tio-world/pull/340) merged 2026-09-25T08:34:33Z (squash). Linear TNYX-273 `Done` (set by the GitHub integration on merge; moved to `In Review` manually at Ready). Parent TNYX-270 stays `In Progress`; TNYX-272 stays `Backlog`. The PR #339 R4/R5 threads were replied to and resolved after this merge.
+**Current implementation state:** Validated. Canonical docs match the shipped W3A2a boundary, and source failures are distinguishable as missing asset, generic asset load failure, invalid document, unsupported schema and invalid rows.
 **Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
-**Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on fix commit `45e43df8` and on governance-only R6 commit `2f02840a`. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
-**Validation remaining:** None within this slice. For any later brief-only commit, its exact-head checks are shown on PR #340; this brief does not self-reference its own commit.
+**Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on fix commit `45e43df8`, on governance-only commits `2f02840a` and `48ddbfa6`, and on merged head `48ddbfa6`, with 0 unresolved review threads at merge. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
+**Validation remaining:** None.
 **Current blocker:** None
-**Open review finding IDs:** None (R4/R5/R6/R7 resolved; PR #339 threads stay unresolved until this fix merges)
-**Next exact action:** Explicit owner authorization to squash merge PR #340. After the merge: verify TNYX-273 is Done, resolve the PR #339 R4/R5 threads, and archive the W3A2a brief and this brief before TNYX-272 starts.
+**Open review finding IDs:** None (R4/R5/R6/R7 resolved; PR #339 threads resolved after merge)
+**Next exact action:** None for W3A2a-F1 (archived). Planned sequence, reconciled with Linear/GitHub on 2026-09-25 after this slice was archived: (1) TNYX-274 — W3A2a-F2 catalog media follow-up (GitHub #342). This is a later, separately planned follow-up and not part of W3A2a or W3A2a-F1. It restores catalog image/video media; is `Backlog`, High priority; needs explicit owner approval before implementation; and renders no UI itself. (2) TNYX-272 — W3A2b — Exercises screen & route: `Backlog`, blocked by TNYX-274, and needs its own explicit owner approval after TNYX-274 lands. Its UI contract (now including the list thumbnail) and route intent are recorded in Linear. Phone video stays with W3B (TNYX-262), and watch media rendering stays with future watch slices. The user-facing Library / Workout Home entry remains W6A (TNYX-266).
 
 ## Global UI / Design-System Guardrail
 
@@ -63,7 +64,7 @@ W3A2b, UI/routing, Library, Supabase, catalog content/schema, media/icons/standa
 
 ### Verified Evidence
 
-- Source/config inspected: `asset_bundle_exercise_catalog_source.dart` catches every `FlutterError` as missing (current `main`). Flutter 3.44.6 `asset_bundle.dart`: `PlatformAssetBundle.load` throws `FlutterError.fromParts([ErrorSummary('Unable to load asset: "<key>".'), ErrorDescription('The asset does not exist or has empty data.')])` for absent/empty assets; `NetworkAssetBundle` (HTTP status) and `loadBuffer` failures reuse the same summary with a different description. No typed not-found exception exists.
+- Source/config inspected: `asset_bundle_exercise_catalog_source.dart` caught every `FlutterError` as missing (pre-fix base `a023730f`). Flutter 3.44.6 `asset_bundle.dart`: `PlatformAssetBundle.load` throws `FlutterError.fromParts([ErrorSummary('Unable to load asset: "<key>".'), ErrorDescription('The asset does not exist or has empty data.')])` for absent/empty assets; `NetworkAssetBundle` (HTTP status) and `loadBuffer` failures reuse the same summary with a different description. No typed not-found exception exists.
 - Existing pattern to follow: typed source exceptions in `exercise_catalog_source_exceptions.dart` with `assetKey`/`cause`/`stackTrace`.
 - Tests or validation already present: decoder and source tests from W3A2a, including real registered package-asset tests.
 
@@ -150,4 +151,4 @@ Missing-asset detection depends on Flutter's diagnostic text because no typed no
 
 ### Final Status
 
-`REVIEW`
+`Validated` — merged via PR #340 (`359e24ff`). Archived 2026-09-25.
