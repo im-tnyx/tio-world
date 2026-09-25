@@ -19,20 +19,19 @@
 **Review owner:** Codex automated review on PR #352; remediation by Codex
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** PR #352 is open from the tracked branch; before this review remediation, local `HEAD` and the upstream branch matched implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`, one commit ahead of `origin/main`.
-**Branch:** `tnyx/workout-library-exercises-presentation`
+**Repository state last verified:** PR #352 merged into `main` as squash commit `7f672f20e1ba38e4566c7133c3183d39ed14abba` on 2026-09-25T17:13:46Z. Reviewed head was `72aeb99ba477f272c438772aca55b6b900121025`.
+**Branch:** `tnyx/workout-library-exercises-presentation` (merged)
 **Base SHA:** `549e5eac9b0c5c96de9e992927b8a2db910ff46b`
+**Merge commit SHA:** `7f672f20e1ba38e4566c7133c3183d39ed14abba`
 **Implementation commit SHA:** `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`
-**Observed pre-commit working-tree state:** Task-scoped relocation, export, canonical docs, decision record, and task-governance changes only.
-**Observed pre-commit changed files:** Eleven 100%-similarity source/test renames plus the public export, three canonical/governance docs, this task brief, and its active-task index entry.
-**Delivery authorization:** On 2026-09-25 the owner explicitly authorized committing, pushing, and creating PR #352. Merge and external tracker mutation remain unauthorized. Related planning: TNYX-80, TNYX-82, TNYX-83; TNYX-262 remains deferred by owner direction.
-**Current implementation state:** Production and mirrored test subtrees moved under Library; public export and canonical placement text updated; no runtime source content changed inside moved files.
-**Relevant execution surface:** `apps/features/workout/lib/src/presentation/{explore,library}/`, mirrored Workout presentation tests, public presentation barrel, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, and `.ai/DECISIONS.md`.
-**Validation completed at SHA:** Implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains.
-**Validation remaining:** Exact-head remote CI and review completion on PR #352 after this documentation-only review remediation is pushed.
+**Delivery authorization:** Owner authorized commit, push, PR #352 creation, and merge. External tracker reconciliation authorized post-merge.
+**Current implementation state:** Merged. Production and mirrored test subtrees moved under Library; public export and canonical placement text updated; no runtime source content changed inside moved files.
+**Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, mirrored Workout presentation tests, public presentation barrel, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, and `.ai/DECISIONS.md`.
+**Validation completed at SHA:** Implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains. Exact-head CI on `72aeb99b`: Analyze and test SUCCESS; Attribution guard SUCCESS; Commit attribution guard SUCCESS.
+**Validation remaining:** None.
 **Current blocker:** None.
-**Open review finding IDs:** PR #352 P2 `discussion_r4106520881` is resolved. P2 `discussion_r4106574732` (stale planned wording in D-020) and P2 `discussion_r4106574739` (unsupported task status) are addressed by the current documentation-only remediation and pending thread resolution after push.
-**Next exact action:** Verify exact-head PR #352 CI and review state. Merge and external tracker updates require separate authorization.
+**Open review finding IDs:** All three PR #352 review threads resolved before merge: `discussion_r4106520881` (P2, stale handoff), `discussion_r4106574732` (P2, D-020 planned wording), `discussion_r4106574739` (P2, unsupported task status).
+**Next exact action:** Archive this task brief. TNYX-262 Exercise Detail is the next independent feature slice, requiring separate approval.
 
 ## Global UI / Design-System Guardrail
 
@@ -183,4 +182,4 @@ TNYX-262 and later Exercise capabilities remain unimplemented. Exact-head PR CI 
 
 ### Final Status
 
-`REVIEW`
+`PASS`
