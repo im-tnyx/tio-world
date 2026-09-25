@@ -1,6 +1,6 @@
 # Workout Exercises Presentation Library Relocation
 
-**Status:** Validated
+**Status:** In review
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter phone app (Android + iOS)
 
@@ -16,22 +16,23 @@
 
 **Planning owner:** Codex
 **Implementation owner:** Codex
-**Review owner:** Not assigned
+**Review owner:** Codex automated review on PR #352; remediation by Codex
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified before task commit:** Clean `main` and `origin/main` at `549e5eac9b0c5c96de9e992927b8a2db910ff46b`; no matching open GitHub PR/issue or Linear child issue was found.
+**Repository state last verified:** PR #352 is open from the tracked branch; before this review remediation, local `HEAD` and the upstream branch matched implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`, one commit ahead of `origin/main`.
 **Branch:** `tnyx/workout-library-exercises-presentation`
 **Base SHA:** `549e5eac9b0c5c96de9e992927b8a2db910ff46b`
+**Implementation commit SHA:** `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`
 **Observed pre-commit working-tree state:** Task-scoped relocation, export, canonical docs, decision record, and task-governance changes only.
 **Observed pre-commit changed files:** Eleven 100%-similarity source/test renames plus the public export, three canonical/governance docs, this task brief, and its active-task index entry.
-**Delivery authorization:** On 2026-09-25 the owner explicitly authorized committing and pushing this branch. PR creation, merge, and external tracker mutation remain unauthorized. Related planning: TNYX-80, TNYX-82, TNYX-83; TNYX-262 remains deferred by owner direction.
+**Delivery authorization:** On 2026-09-25 the owner explicitly authorized committing, pushing, and creating PR #352. Merge and external tracker mutation remain unauthorized. Related planning: TNYX-80, TNYX-82, TNYX-83; TNYX-262 remains deferred by owner direction.
 **Current implementation state:** Production and mirrored test subtrees moved under Library; public export and canonical placement text updated; no runtime source content changed inside moved files.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/{explore,library}/`, mirrored Workout presentation tests, public presentation barrel, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, and `.ai/DECISIONS.md`.
-**Validation completed at SHA:** Uncommitted task worktree based on `549e5eac`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains.
-**Validation remaining:** Required remote CI if this work is later committed and published in a PR.
+**Validation completed at SHA:** Implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains.
+**Validation remaining:** Exact-head remote CI and review completion on PR #352 after this documentation-only review remediation is pushed.
 **Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Commit and push the validated branch; PR creation, external tracker update, and merge require separate authorization.
+**Open review finding IDs:** PR #352 P2 `discussion_r4106520881` identified the stale pre-push next action; addressed by this post-commit handoff refresh and pending thread resolution after push.
+**Next exact action:** Verify exact-head PR #352 CI and review state. Merge and external tracker updates require separate authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -178,8 +179,8 @@ Exercises presentation and its tests now live below the Library presentation hie
 
 ### Known Limitations
 
-TNYX-262 and later Exercise capabilities remain unimplemented. PR-specific remote CI is not part of this authorized commit/push handoff. Flutter test output retains the existing `uses-material-design` package warning; all tests pass and this slice changes no pubspec.
+TNYX-262 and later Exercise capabilities remain unimplemented. Exact-head PR CI remains required after review remediation. Flutter test output retains the existing `uses-material-design` package warning; all tests pass and this slice changes no pubspec.
 
 ### Final Status
 
-`PASS`
+`REVIEW`
