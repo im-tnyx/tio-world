@@ -45,21 +45,29 @@ class ExercisesPage extends ConsumerWidget {
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: state.isSearching
-            ? TioInput(
-                key: const ValueKey('exercises-search'),
-                hint: 'Search exercises',
-                value: state.query.text,
-                autofocus: true,
-                // Compact enough to sit inside the standard top bar.
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: TioInputTokens.horizontalPadding,
-                  vertical: TioSpacing.sm,
+            ? Padding(
+                // The negative theme title spacing also widens the title slot
+                // on the trailing side; keep the field out of the close
+                // action's slot.
+                padding: const EdgeInsetsDirectional.only(
+                  end: -TioNavigationTokens.topBarTitleSpacing,
                 ),
-                leading:
-                    Icon(Icons.search_rounded, color: colors.textSecondary),
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.search,
-                onChanged: controller.setSearchText,
+                child: TioInput(
+                  key: const ValueKey('exercises-search'),
+                  hint: 'Search exercises',
+                  value: state.query.text,
+                  autofocus: true,
+                  // Compact enough to sit inside the standard top bar.
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: TioInputTokens.horizontalPadding,
+                    vertical: TioSpacing.sm,
+                  ),
+                  leading:
+                      Icon(Icons.search_rounded, color: colors.textSecondary),
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.search,
+                  onChanged: controller.setSearchText,
+                ),
               )
             : Text(
                 'Exercises',

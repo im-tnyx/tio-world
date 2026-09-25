@@ -67,6 +67,7 @@ class TioTheme extends StatelessWidget {
             : const PageTransitionsTheme(),
         appBarTheme: const AppBarThemeData(
           toolbarHeight: TioNavigationTokens.topBarHeight,
+          titleSpacing: TioNavigationTokens.topBarTitleSpacing,
         ),
         cardTheme: CardThemeData(
           color: colors.surface,
