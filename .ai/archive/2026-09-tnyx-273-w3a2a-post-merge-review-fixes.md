@@ -32,7 +32,7 @@
 **Validation remaining:** None.
 **Current blocker:** None
 **Open review finding IDs:** None (R4/R5/R6/R7 resolved; PR #339 threads resolved after merge)
-**Next exact action:** None for W3A2a-F1 (archived). Next work is TNYX-272 — W3A2b — Exercises screen & route (`Backlog`, not started), which needs explicit owner approval before implementation. The user-facing Library / Workout Home entry remains W6A (TNYX-266).
+**Next exact action:** None for W3A2a-F1 (archived). Planned sequence, reconciled with Linear/GitHub on 2026-09-25 after this slice was archived: (1) TNYX-274 — W3A2a-F2 catalog media follow-up (GitHub #342). This is a later, separately planned follow-up and not part of W3A2a or W3A2a-F1. It restores catalog image/video media; is `Backlog`, High priority; needs explicit owner approval before implementation; and renders no UI itself. (2) TNYX-272 — W3A2b — Exercises screen & route: `Backlog`, blocked by TNYX-274, and needs its own explicit owner approval after TNYX-274 lands. Its UI contract (now including the list thumbnail) and route intent are recorded in Linear. Phone video stays with W3B (TNYX-262), and watch media rendering stays with future watch slices. The user-facing Library / Workout Home entry remains W6A (TNYX-266).
 
 ## Global UI / Design-System Guardrail
 
