@@ -24,7 +24,7 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 
 ## W6A Runtime
 
-- `/workout/library` is a child of the Workout branch route: the bottom navigation and root top bar are hidden (`ChromePolicy.noBottomBar`), and the page has an AppBar with back and the title `Library`. A direct deep link lands with `/workout` beneath it and follows `/workout` onboarding and App Mode gating.
+- `/workout/library` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath does not jump while Library slides in or out. The page has an AppBar with back and the title `Library`. A direct deep link lands with `/workout` beneath it and follows `/workout` onboarding and App Mode gating.
 - Workout Home → Library and Library → Exercises use `push`, so back retraces Exercises → Library → Workout Home. The app shell supplies both callbacks (`WorkoutHomePage.onLibraryPressed`, `LibraryPage.onExercisesPressed`); Workout presentation does not import route paths.
 - The Library top bar has one search icon (tooltip `Search exercises`). It pushes `/workout/exercises?search=true`, which opens Exercises with its top-bar search field already active and focused; back returns to Library.
 - There are no sub-tabs, grid/list toggle, placeholders, or Create/Favorites/Custom rows until their capabilities exist.

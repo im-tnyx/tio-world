@@ -201,6 +201,49 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets(
+      'opening Library leaves Workout Home and its chrome still while it '
+      'slides in', (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+    // The page transition may slide Workout Home sideways, but its vertical
+    // geometry and the shell chrome around it must not jump.
+    (double, double) vertical(Finder finder) {
+      final rect = tester.getRect(finder);
+      return (rect.top, rect.bottom);
+    }
+
+    final home = find.byType(WorkoutHomePage);
+    final nav = find.byType(NavigationBar);
+    final homeSpan = vertical(home);
+    final navSpan = vertical(nav);
+
+    Future<void> expectStillMidTransition() async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(LibraryPage), findsOneWidget);
+      expect(vertical(home), homeSpan);
+      expect(vertical(nav), navSpan);
+      expect(find.byType(TioShellStatusTopBar), findsOneWidget);
+    }
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await expectStillMidTransition();
+
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(TioShellStatusTopBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await expectStillMidTransition();
+
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsNothing);
+    expect(vertical(home), homeSpan);
+  });
+
   testWidgets('Library search opens Exercises with the search field active',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -245,12 +288,20 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
 
     await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    // Workout Home is revealed with its chrome already in place.
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(TioShellStatusTopBar), findsOneWidget);
+
     await tester.pumpAndSettle();
     expect(
       router.routeInformationProvider.value.uri.path,
       FeatureRoutes.workout.path,
     );
     expect(find.byType(WorkoutHomePage), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 
   testWidgets('a mode without Workout cannot deep link into Library',
