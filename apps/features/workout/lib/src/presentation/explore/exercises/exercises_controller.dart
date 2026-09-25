@@ -16,16 +16,23 @@ import 'exercises_state.dart';
 /// `ExerciseMedia.urlFor`; this controller only composes their results into
 /// [ExercisesState].
 class ExercisesController extends ChangeNotifier {
+  /// With [startSearching], the top-bar search field is open from the first
+  /// frame, as when Library's search action opens this screen.
   ExercisesController({
     required ExerciseCatalogRepository repository,
     ExerciseMediaGender? mediaGender,
+    bool startSearching = false,
   })  : _repository = repository,
-        _mediaGender = mediaGender;
+        _mediaGender = mediaGender,
+        _state = ExercisesState(
+          status: ExercisesStatus.loading,
+          isSearching: startSearching,
+        );
 
   final ExerciseCatalogRepository _repository;
   ExerciseMediaGender? _mediaGender;
   ExerciseCatalog? _catalog;
-  ExercisesState _state = const ExercisesState.loading();
+  ExercisesState _state;
   bool _disposed = false;
 
   ExercisesState get state => _state;

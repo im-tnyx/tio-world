@@ -6,6 +6,7 @@ import 'package:tio_feature_workout/workout.dart';
 Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onExercisesPressed,
+  VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
   await tester.pumpWidget(
@@ -14,7 +15,10 @@ Future<void> _pump(
         config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: LibraryPage(onExercisesPressed: onExercisesPressed ?? () {}),
+      home: LibraryPage(
+        onExercisesPressed: onExercisesPressed ?? () {},
+        onSearchPressed: onSearchPressed ?? () {},
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -58,6 +62,24 @@ void main() {
     // The root never renders the Exercise catalog itself.
     expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(TabBar), findsNothing);
+  });
+
+  testWidgets('the top-bar search icon opens Exercises search', (tester) async {
+    var searched = 0;
+    await _pump(tester, onSearchPressed: () => searched++);
+
+    final search = find.byKey(const ValueKey('library-search'));
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: search),
+      findsOneWidget,
+    );
+    final button = tester.widget<IconButton>(search);
+    expect(button.tooltip, 'Search exercises');
+    expect((button.icon as Icon).icon, Icons.search_rounded);
+
+    await tester.tap(search);
+    await tester.pump();
+    expect(searched, 1);
   });
 
   testWidgets('Exercises hands off to the owning route', (tester) async {

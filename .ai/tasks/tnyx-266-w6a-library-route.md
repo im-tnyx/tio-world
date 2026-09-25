@@ -8,13 +8,14 @@
 
 **Trigger:** New independently scoped product task/feature slice (product-visible UI + route)
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner asked for a Library screen reached from the Workout tab. After reviewing the proposed design, with the Tnyx-hub Library as reference, the owner replied "NEXT GO". The approved design is the one proposed: a Library card on Workout Home, and a Library screen with only the Exercises row, without sub-tabs.
+**Approval evidence:** On 2026-09-25 the owner asked for a Library screen reached from the Workout tab. After reviewing the proposed design, with the Tnyx-hub Library as reference, the owner replied "NEXT GO". The approved design is the one proposed: a Library card on Workout Home, and a Library screen with only the Exercises row, without sub-tabs. Owner addition (2026-09-25, after the first Draft PR commit): the Library top bar has a search icon that opens Exercises with the search field focused.
 **Approved product/UI/data-shape boundaries:**
 
 - Workout Home: one Library entry below the calendar, a `TioGroupCard` holding a `TioSettingsNavigationRow` (folder icon, `Library`, `Browse exercises`, chevron).
 - Library screen at `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch; AppBar with back and the title `Library`; bottom navigation hidden; deep link follows `/workout` gating.
 - The Library root shows only ready sections. Today that is one `Exercises` row (fitness icon, `Browse all exercises`, chevron) that opens `/workout/exercises`. There are no Programs/Routines/Plans placeholders, sub-tabs, grid/list toggle, Create/Favorites/Custom rows, or catalog list on the root.
 - Library → Exercises pushes onto the Workout stack, so back from Exercises returns to Library.
+- The Library top bar has a search icon (`Search exercises`). It opens Exercises with the search field active and focused (`/workout/exercises?search=true`).
 
 **Explicit non-changes:** No Programs/Routines/Plans sections (W6B/W6C), no configurable bottom-nav Library (TNYX-131), no Exercise Detail, no Exercises screen changes, no Supabase, no Wear OS/watchOS UI, and no new core component or token.
 
@@ -83,6 +84,7 @@ See Explicit non-changes above.
 | `push` is used for Home → Library and Library → Exercises | Made | Back from Exercises returns to Library; a deep link to `/workout/exercises` still lands on `/workout` beneath it | Engineering |
 | Workout Home body becomes scrollable (calendar + entry) | Made | Month mode plus the entry must not overflow on compact heights | Engineering |
 | The entry has no top padding and does not overlap the calendar | Made | The calendar reserves a 42dp transparent band for its expansion-handle hit target; interactive content must not overlap it (the same rule as Meal Diary) | Engineering |
+| Library search opens Exercises via the `?search=true` query parameter; the `exercisesControllerProvider` family argument starts the controller in search mode, so the field is focused from the first frame without flicker | Made | The query parameter is deep-linkable; opening search after the first frame would flash the title and notify during build | Engineering |
 | Tests assert rendered pages and chrome after `push`, not the reported URL | Made | go_router keeps the reported URL at the branch root for imperative pushes (default `optionURLReflectsImperativeAPIs`), while the shell still hides the bottom navigation on the pushed pages | Engineering |
 
 ## 4. Architecture Design
@@ -117,9 +119,9 @@ The Library page is stateless, and its section list is a fixed "ready capabiliti
 Local, Windows, repository Flutter SDK, on the committed tree (2026-09-25); per-package commands matching CI:
 
 ```text
-apps/features/workout     flutter analyze --no-pub → No issues found; flutter test --no-pub → 154 passed
+apps/features/workout     flutter analyze --no-pub → No issues found; flutter test --no-pub → 157 passed (rerun after the Library search addition)
 apps/core                 flutter analyze --no-pub → No issues found; flutter test --no-pub → 325 passed
-apps/app                  flutter analyze --no-pub → No issues found; flutter test --no-pub → 377 passed
+apps/app                  flutter analyze --no-pub → No issues found; flutter test --no-pub → 379 passed (rerun after the Library search addition)
 apps/features/onboarding  flutter analyze --no-pub → No issues found; flutter test --no-pub → 450 passed
 git diff --check                                  → clean
 ```
@@ -146,6 +148,7 @@ Visual check: a temporary, uncommitted render test produced PNGs of Workout Home
 
 - The Workout tab shows the Library entry below the calendar, and tapping it opens Library.
 - Library shows one `Exercises` row, which opens the Exercises screen; back returns to Library, then to Workout Home.
+- The Library top-bar search icon opens Exercises with its search field focused.
 - The bottom navigation is hidden on Library and Exercises.
 - `/workout/library` deep links follow `/workout` gating.
 

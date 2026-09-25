@@ -9,9 +9,16 @@ import 'package:tio_core/core.dart';
 /// TrainingPlan truth: each section hands off to its owning route, which the
 /// app shell supplies.
 class LibraryPage extends StatelessWidget {
-  const LibraryPage({required this.onExercisesPressed, super.key});
+  const LibraryPage({
+    required this.onExercisesPressed,
+    required this.onSearchPressed,
+    super.key,
+  });
 
   final VoidCallback onExercisesPressed;
+
+  /// Opens Exercises with its search field active and focused.
+  final VoidCallback onSearchPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +40,15 @@ class LibraryPage extends StatelessWidget {
             fontSize: TioFontSize.size20,
           ),
         ),
+        actions: [
+          IconButton(
+            key: const ValueKey('library-search'),
+            tooltip: 'Search exercises',
+            color: colors.textPrimary,
+            onPressed: onSearchPressed,
+            icon: const Icon(Icons.search_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(

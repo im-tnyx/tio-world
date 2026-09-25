@@ -20,6 +20,7 @@ Future<void> _pumpPage(
   ExerciseMediaGender? mediaGender,
   TioThemeMode mode = TioThemeMode.light,
   bool settle = true,
+  bool startSearching = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -32,7 +33,7 @@ Future<void> _pumpPage(
           config: TioThemeConfig(mode: mode),
           child: child ?? const SizedBox.shrink(),
         ),
-        home: const ExercisesPage(),
+        home: ExercisesPage(startSearching: startSearching),
       ),
     ),
   );
@@ -262,6 +263,37 @@ void main() {
         _iconButton(tester, 'exercises-search-close').tooltip,
         'Close search',
       );
+
+      await tester.enterText(field, 'press');
+      await tester.pumpAndSettle();
+      expect(_row('ex_synthetic_press'), findsOneWidget);
+      expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+
+    _testWidgets('startSearching opens with the search field focused',
+        (tester) async {
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        startSearching: true,
+      );
+
+      final field = find.byKey(const ValueKey('exercises-search'));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: field),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Exercises'),
+        ),
+        findsNothing,
+      );
+      final editable = tester.widget<EditableText>(
+        find.descendant(of: field, matching: find.byType(EditableText)),
+      );
+      expect(editable.focusNode.hasFocus, isTrue);
 
       await tester.enterText(field, 'press');
       await tester.pumpAndSettle();

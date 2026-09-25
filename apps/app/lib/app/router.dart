@@ -89,14 +89,26 @@ List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
       builder: (context, state) => LibraryPage(
         onExercisesPressed: () =>
             context.push(AppRoutes.workoutExercises.path),
+        onSearchPressed: () => context.push(
+          Uri(
+            path: AppRoutes.workoutExercises.path,
+            queryParameters: const {_exercisesSearchParameter: 'true'},
+          ).toString(),
+        ),
       ),
     ),
     GoRoute(
       path: _childPath(branch, AppRoutes.workoutExercises),
-      builder: (context, state) => const ExercisesPage(),
+      builder: (context, state) => ExercisesPage(
+        startSearching:
+            state.uri.queryParameters[_exercisesSearchParameter] == 'true',
+      ),
     ),
   ];
 }
+
+/// `/workout/exercises?search=true` opens Exercises with search active.
+const _exercisesSearchParameter = 'search';
 
 String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
   final prefix = '${branch.route.path}/';

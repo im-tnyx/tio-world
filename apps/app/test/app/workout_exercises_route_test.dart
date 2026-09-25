@@ -201,6 +201,40 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
+  testWidgets('Library search opens Exercises with the search field active',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('library-search')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    final field = find.byKey(const ValueKey('exercises-search'));
+    expect(field, findsOneWidget);
+    final editable = tester.widget<EditableText>(
+      find.descendant(of: field, matching: find.byType(EditableText)),
+    );
+    expect(editable.focusNode.hasFocus, isTrue);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+  });
+
+  testWidgets('the search deep link opens Exercises in search mode',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go('$_exercisesPath?search=true');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('exercises-search')), findsOneWidget);
+  });
+
   testWidgets('a direct Library deep link lands above Workout Home',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
