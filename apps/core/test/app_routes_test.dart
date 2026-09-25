@@ -49,4 +49,20 @@ void main() {
       ChromePolicy.fullScreen,
     );
   });
+
+  test('Exercises route nests under the Workout branch without bottom nav',
+      () {
+    expect(AppRoutes.workoutExercises.path, '/workout/exercises');
+    expect(
+      AppRoutes.workoutExercises.path
+          .startsWith('${FeatureRoutes.workout.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.workoutExercises.title, 'Exercises');
+    expect(
+      AppRoutes.workoutExercises.chromePolicy,
+      ChromePolicy.noBottomBar,
+    );
+    expect(AppRoutes.workoutExercises.chromePolicy.showsBottomNav, isFalse);
+  });
 }
