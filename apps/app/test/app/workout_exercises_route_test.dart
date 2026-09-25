@@ -20,8 +20,17 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 const _exercisesPath = '/workout/exercises';
+const _libraryPath = '/workout/library';
 
 void main() {
+  test('Library hides the bottom navigation and root top bar', () {
+    final policy = shellChromePolicyForPath(_libraryPath);
+
+    expect(policy, ChromePolicy.noBottomBar);
+    expect(policy.showsRootTopBar, isFalse);
+    expect(AppRoutes.workoutLibrary.path, _libraryPath);
+  });
+
   test('Exercises hides the bottom navigation and root top bar', () {
     final policy = shellChromePolicyForPath(_exercisesPath);
 
@@ -45,6 +54,10 @@ void main() {
 
           expect(
             redirect(_exercisesPath),
+            redirect(FeatureRoutes.workout.path),
+          );
+          expect(
+            redirect(_libraryPath),
             redirect(FeatureRoutes.workout.path),
           );
           const nutritionOnly = [AppDestination.home, AppDestination.nutrition];
@@ -134,15 +147,89 @@ void main() {
         container.read(appModeControllerProvider).selectedMode, AppMode.hybrid);
   });
 
-  testWidgets('Workout Home offers no direct Exercises entry', (tester) async {
+  testWidgets('Workout Home reaches Exercises only through Library',
+      (tester) async {
     final (_, router) = await _app(tester, AppMode.workout);
     router.go(FeatureRoutes.workout.path);
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutHomePage), findsOneWidget);
+    // One Library entry; no direct Exercises shortcut on Workout Home.
+    expect(
+      find.byKey(const ValueKey('workout-home-library-entry')),
+      findsOneWidget,
+    );
     expect(find.text('Exercises'), findsNothing);
-    expect(find.text('Library'), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
+  });
+
+  testWidgets(
+      'Workout Home → Library → Exercises, and back through the same stack',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+    // Imperative push keeps the reported URL at the branch root (go_router's
+    // default), so the assertions follow the rendered pages and chrome.
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(WorkoutHomePage), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(TioShellStatusTopBar), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.byType(LibraryPage), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.workout.path,
+    );
+    expect(find.byType(WorkoutHomePage), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('a direct Library deep link lands above Workout Home',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.workout.path,
+    );
+    expect(find.byType(WorkoutHomePage), findsOneWidget);
+  });
+
+  testWidgets('a mode without Workout cannot deep link into Library',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.nutrition);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryPage), findsNothing);
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.home.path,
+    );
   });
 
   testWidgets('a mode without Workout cannot deep link into Exercises',

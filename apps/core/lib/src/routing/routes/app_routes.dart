@@ -166,10 +166,20 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Canonical Workout Library, nested under the Workout branch.
+  ///
+  /// Reached from Workout Home. Its root lists only ready capability sections;
+  /// a future bottom-nav Library must reuse this same route.
+  static const workoutLibrary = TioRouteContract(
+    path: '/workout/library',
+    title: 'Library',
+    description: 'Browse your workout collections and the exercise catalog.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Dedicated Exercises screen, nested under the Workout branch.
   ///
-  /// An internal destination only: the user-facing Workout Home → Library →
-  /// Exercises entry belongs to the Library slice.
+  /// Opened from Library → Exercises, or directly by deep link.
   static const workoutExercises = TioRouteContract(
     path: '/workout/exercises',
     title: 'Exercises',

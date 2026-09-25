@@ -16,6 +16,7 @@ Future<WorkoutDateController> _pump(
   WidgetTester tester, {
   int resolvedFirstDayOfWeek = DateTime.monday,
   _MutableClock? clock,
+  VoidCallback? onLibraryPressed,
 }) async {
   final resolvedClock = clock ?? _MutableClock(DateTime(2026, 9, 23, 14, 30));
   final dates = WorkoutDateController(clock: resolvedClock.call);
@@ -33,6 +34,7 @@ Future<WorkoutDateController> _pump(
         home: Scaffold(
           body: WorkoutHomePage(
             resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
+            onLibraryPressed: onLibraryPressed ?? () {},
           ),
         ),
       ),
@@ -44,6 +46,36 @@ Future<WorkoutDateController> _pump(
 }
 
 void main() {
+  testWidgets('shows the Library entry below the calendar', (tester) async {
+    var opened = 0;
+    await _pump(tester, onLibraryPressed: () => opened++);
+
+    final entry = find.byKey(const ValueKey('workout-home-library-entry'));
+    expect(entry, findsOneWidget);
+    expect(
+      find.descendant(of: entry, matching: find.text('Library')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: entry, matching: find.text('Browse exercises')),
+      findsOneWidget,
+    );
+    // The entry sits below the calendar, including its handle band, and never
+    // overlaps the handle's hit target.
+    expect(
+      tester.getTopLeft(entry).dy,
+      greaterThanOrEqualTo(
+        tester.getBottomLeft(find.byType(TioDateCalendar)).dy,
+      ),
+    );
+    // Library is the only Workout Home entry: no direct Exercises shortcut.
+    expect(find.text('Exercises'), findsNothing);
+
+    await tester.tap(entry);
+    await tester.pump();
+    expect(opened, 1);
+  });
+
   testWidgets('starts on local today with no Workout decorations', (tester) async {
     final dates = await _pump(tester);
 

@@ -50,6 +50,7 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
     return Consumer(
       builder: (context, ref, _) => WorkoutHomePage(
         resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+        onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
       ),
     );
   }
@@ -82,6 +83,14 @@ List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
   if (branch.tab != ShellTab.workout) return const [];
 
   return [
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutLibrary),
+      // Library → Exercises pushes, so back from Exercises returns here.
+      builder: (context, state) => LibraryPage(
+        onExercisesPressed: () =>
+            context.push(AppRoutes.workoutExercises.path),
+      ),
+    ),
     GoRoute(
       path: _childPath(branch, AppRoutes.workoutExercises),
       builder: (context, state) => const ExercisesPage(),
@@ -232,6 +241,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.measurementUnitsSettings,
     AppRoutes.themeSettings,
     AppRoutes.calendarSettings,
+    AppRoutes.workoutLibrary,
     AppRoutes.workoutExercises,
     AppRoutes.login,
     AppRoutes.emailLogin,
