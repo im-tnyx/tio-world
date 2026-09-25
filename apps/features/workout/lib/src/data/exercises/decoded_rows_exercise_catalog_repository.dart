@@ -4,9 +4,9 @@ import 'exercise_catalog_parser.dart';
 
 /// [ExerciseCatalogRepository] over already-decoded catalog rows.
 ///
-/// Production-neutral: the bundled asset source that decodes the approved
-/// catalog document is added by the later asset slice. Each [load] reads and
-/// validates the rows again.
+/// Production-neutral: `AssetBundleExerciseCatalogSource` supplies rows
+/// decoded from the bundled catalog document. Each [load] reads and validates
+/// the rows again.
 final class DecodedRowsExerciseCatalogRepository
     implements ExerciseCatalogRepository {
   const DecodedRowsExerciseCatalogRepository(
