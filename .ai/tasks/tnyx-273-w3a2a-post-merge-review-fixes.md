@@ -8,9 +8,9 @@
 
 **Trigger:** None — review-finding fixes inside the already approved W3A2a scope
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR only.
+**Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR (#340). A later owner prompt on the same day authorized the Draft → Ready transition and the exact-head pre-merge gate, but not merge.
 **Approved product/UI/data-shape boundaries:** reconcile stale W3A2a docs; narrow missing-asset exception classification; exception-boundary tests; reply to PR #339 threads after the Draft PR exists.
-**Explicit non-changes:** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, Ready transition, merge or branch deletion.
+**Explicit non-changes:** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, merge, PR #339 thread resolution before merge, brief archive or branch deletion.
 
 ## Active Handoff
 
@@ -24,14 +24,14 @@
 **HEAD SHA:** Current branch head (see Git/PR)
 **Observed working-tree state:** protected owner asset directories under `apps/core/assets/` remain untracked and untouched
 **Observed uncommitted/dirty files:** protected owner asset directories only
-**PR / tracker:** Linear TNYX-273 `In Progress` (parent TNYX-270 `In Progress`; TNYX-272 `Backlog`). Source PR #339 merged as `a023730f`.
-**Current implementation state:** R4/R5 implemented and validated; Draft PR stage
+**PR / tracker:** PR #340 Ready for Review (owner-authorized); Linear TNYX-273 `In Review` (parent TNYX-270 `In Progress`; TNYX-272 `Backlog`). Source PR #339 merged as `a023730f`; its R4/R5 threads point to #340 and stay unresolved until #340 merges.
+**Current implementation state:** R4/R5 implemented and validated; PR #340 in review
 **Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
-**Validation completed at SHA:** working tree on `a023730f` before the fix commit, 2026-09-25 — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
-**Validation remaining:** exact-head CI (attribution guard, Analyze and test)
+**Validation completed at SHA:** exact-head CI on fix commit `45e43df8`: Commit attribution guard, Attribution guard runner and Analyze and test PASS. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
+**Validation remaining:** exact-head CI on the governance-only R6 commit
 **Current blocker:** None
-**Open review finding IDs:** None (R4/R5 resolved in this branch; PR #339 threads stay unresolved until this fix merges)
-**Next exact action:** Owner decides Ready + merge for the follow-up PR; then archive the W3A2a and this brief before TNYX-272 starts.
+**Open review finding IDs:** None (R4/R5/R6 resolved; PR #339 threads stay unresolved until this fix merges)
+**Next exact action:** Explicit owner authorization to squash merge PR #340. After the merge: verify TNYX-273 is Done, resolve the PR #339 R4/R5 threads, and archive the W3A2a brief and this brief before TNYX-272 starts.
 
 ## Global UI / Design-System Guardrail
 
@@ -124,6 +124,7 @@ asset / pubspec / apps/app / apps/core changes                      0 files
 |---|---|---|---|---|---|
 | R4 | P2 | Resolved | Canonical docs still describe the catalog asset path/loader/schema as deferred and unshippable | `8f18c652` (PR #339) | `MODULE_OWNERSHIP.md` and `exercise-search.md` now describe the shipped asset, registration, envelope decoder, AssetBundle source and W3A1 parser; W3A2b/W6A/media/standards stay pending or out of scope |
 | R5 | P2 | Resolved | Every `FlutterError` mapped to `MissingExerciseCatalogAssetException` | `8f18c652` (PR #339) | Missing only for Flutter's exact not-found diagnostics for this key; other `FlutterError` → `ExerciseCatalogAssetLoadException`; real `rootBundle` missing-key test plus 3 non-missing tests |
+| R6 | P2 | Resolved | Brief/Linear disagreed with the live Ready state (Ready listed as out of scope, CI listed as remaining, TNYX-273 `In Progress`) | `45e43df8` (PR #340 review) | Owner-authorized Ready recorded, CI evidence recorded, TNYX-273 moved to `In Review`; governance-only change |
 
 ## 7. Final Handoff
 
