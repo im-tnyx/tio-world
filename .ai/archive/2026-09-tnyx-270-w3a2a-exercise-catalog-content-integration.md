@@ -89,10 +89,12 @@ See **Explicit non-changes**.
 
 ### Verified Evidence
 
+Recorded at task start, on base `f5bf3c4f`:
+
 - `DecodedRowsExerciseCatalogRepository` already accepts an async `List<Object?>` reader and delegates to `ExerciseCatalogParser`.
 - `ExerciseCatalogParser` and `ExerciseCatalogRowDto` already own consumed-row validation, duplicate-ref rejection and canonical mapping.
 - The owner source is a bare array of 101 rows. All rows contain the approved consumed fields; source/media/instruction/standards/provider metadata must be removed from the production asset.
-- `apps/features/workout/pubspec.yaml` currently has no asset registration.
+- `apps/features/workout/pubspec.yaml` had no asset registration before this slice.
 - At task start, `main` was `f5bf3c4f`, and no competing TNYX-270 branch or open PR existed.
 
 ## 3. Clarification
@@ -128,7 +130,7 @@ Registering the raw owner JSON under `apps/core` or reading it directly from wid
 
 ### Failure States
 
-Distinct typed failures cover missing asset, invalid JSON/document and unsupported schema. Existing `InvalidExerciseCatalogException` remains the row/catalog failure.
+As shipped in PR #339: distinct typed failures covered missing asset, invalid JSON/document and unsupported schema, and the existing `InvalidExerciseCatalogException` remained the row/catalog failure. TNYX-273 / PR #340 later narrowed missing-asset classification and added `ExerciseCatalogAssetLoadException` for other `FlutterError`s.
 
 ## 5. Implementation Plan
 
