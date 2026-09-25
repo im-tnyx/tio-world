@@ -112,7 +112,10 @@ Route test file (26 tests) passes with the fix.
 The new jerk test fails without the fix (Expected (56.0, 538.0), Actual (0.0, 600.0)).
 apps/app: flutter analyze --no-pub → No issues found; flutter test --no-pub → 380 passed
 git diff --check: clean
-Owner device check (2026-09-26, chat): pending. The owner described the symptom as the calendar showing under the system status bar for a moment, which matches the reproduced relayout. A later message reported it still happening, possibly on a build without the router change (route changes need a hot restart). Re-check pending.
+Owner device check (2026-09-26, chat):
+- The owner described the symptom as the calendar showing under the system status bar for a moment, which matches the reproduced relayout.
+- One interim message still reported the jerk, most likely on a build without the router change (route changes need a hot restart).
+- After a restart the owner confirmed: "sahi h chek kiya".
 Shell state trace with the fix (temporary test, deleted): isBottomNavVisible/isRootTopBarVisible stay true for every frame of the push and after settling
 Temporary settled-geometry comparison, identical before and after:
 - Library: page 0,0-800,600; AppBar 0,0-800,80; Exercises row 16,92-784,164
@@ -137,7 +140,7 @@ Library and Exercises open above the shell; Workout Home and its chrome stay sti
 
 ### Known Limitations
 
-Verified with widget tests; the owner's device re-check is pending.
+Verified with widget tests and the owner's device check.
 
 ### Final Status
 
