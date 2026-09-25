@@ -34,21 +34,21 @@ apps/core/assets/musclemap/
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
 **Review owner:** Independent exact-head reviewer after Draft PR creation; Codex supplemental only
-**Implementation ownership state:** Active (review findings in remediation)
+**Implementation ownership state:** Complete; no implementation-source edits remain
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; local `main` and `origin/main` both at `f5bf3c4f8aefd176bf393e0bdad8d98ab01abb45`
 **Branch:** `tnyx/tnyx-270-w3a2a-exercise-catalog-content-integration`
-**HEAD SHA:** `8462ec7c` (first implementation commit; review fixes currently uncommitted)
-**Observed working-tree state:** clean tracked tree before this brief; protected owner asset directories untracked
+**HEAD SHA:** Current branch head (this brief-only handoff finalization commit); last source-changing/remediation SHA: `315f8176`
+**Observed working-tree state:** tracked implementation tree clean; protected owner asset directories remain untracked
 **Observed uncommitted/dirty files:** protected owner asset directories listed above
-**PR / tracker:** Linear TNYX-270 `In Progress`; TNYX-261 `In Progress`; TNYX-269 `Done`; branch pushed. Draft PR creation is pending explicit in-chat confirmation required by the GitHub connector.
-**Current implementation state:** Sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` are remediated and locally validated.
+**PR / tracker:** Linear TNYX-270 `In Progress`; TNYX-261 `In Progress`; TNYX-269 `Done`; branch published through source-remediation SHA `315f8176`. Draft PR creation is pending explicit in-chat confirmation required by the GitHub connector.
+**Current implementation state:** Complete within W3A2a. The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` are remediated and validated.
 **Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,test/data/exercises,pubspec.yaml}` and this task brief/index
-**Validation completed at SHA:** review-fix working tree on 2026-09-25 — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit.
-**Validation remaining:** rerun validation after review fixes, commit, attribution guard, push, Draft PR, CI and final exact-head review
+**Validation completed at SHA:** source-remediation SHA `315f8176` on 2026-09-25 — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit; commit-attribution guard PASS.
+**Validation remaining:** Draft PR creation, CI and final exact-PR-head review
 **Current blocker:** None within the approved W3A2a boundary
-**Open review finding IDs:** None (R1/R2 resolved locally; final exact-head re-review pending)
-**Next exact action:** Commit and push the validated review fixes, then obtain the explicit GitHub publication confirmation required to create the Draft PR.
+**Open review finding IDs:** None (R1/R2 resolved; final brief-only exact-head re-review pending)
+**Next exact action:** Obtain the explicit in-chat GitHub publication confirmation required by the connector, then create the Draft PR and inspect CI at its exact head.
 
 ## Global UI / Design-System Guardrail
 
@@ -159,14 +159,19 @@ git diff --cached --check                                           PASS
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| R1 | P1 | Resolved | Task brief approval/head/review wording was stale and self-contradictory | `8462ec7c` | Handoff now distinguishes authorized gates from completed state and records the actual head/blocker |
+| R1 | P1 | Resolved | Task brief approval/head/review wording was stale and self-contradictory | `8462ec7c` | Handoff now distinguishes authorized gates from completed state, delegates the self-referential current head to Git/PR, and records source-remediation SHA `315f8176` plus the publication blocker |
 | R2 | P2 | Resolved | Catching `Object` mislabeled unexpected bundle/programming failures as a missing asset and discarded stack context | `8462ec7c` | Catch narrowed to `FlutterError`, stack retained, unexpected-failure propagation test added; focused/full tests and analyze pass |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending final exact-head list after commit.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-270-w3a2a-exercise-catalog-content-integration.md`
+- `apps/features/workout/assets/exercises/exercise_catalog.json`
+- `apps/features/workout/lib/src/data/exercises/`
+- `apps/features/workout/pubspec.yaml`
+- `apps/features/workout/test/data/exercises/`
 
 ### Actual Behavior
 
