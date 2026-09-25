@@ -16,22 +16,22 @@
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Not assigned
+**Review owner:** Codex auto-review on PR #355; task agent self-review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-26; branch created from `main` at `48d91f469882aeeef16f1d24bbdc8d36263d3906` with a clean tree
+**Repository state last verified:** 2026-09-26. The branch has `main` `03bb578a` (PR #354, `TioAppBar`) merged in by merge commit `0dad39f9`, with no history rewrite. The only conflict was the `.ai/tasks/README.md` rows, and both rows were kept. The tree has no uncommitted changes.
 **Branch:** `tnyx/workout-library-push-chrome-jerk`
-**HEAD SHA:** `48d91f46` plus uncommitted slice changes
-**Observed working-tree state:** Only this slice's files modified
-**Observed uncommitted/dirty files:** This slice's files only
-**PR / tracker:** Owner report in chat; no GitHub issue existed (searched). No Linear issue: the workspace hit its free issue limit and the connector is unauthorized.
-**Current implementation state:** Fix, regression test and docs complete; locally validated
+**HEAD SHA:** The PR #355 head that contains this record. The implementation last changed at `8b6538e1`, and the base sync is `0dad39f9`.
+**Observed working-tree state:** Clean; everything is committed and pushed
+**Observed uncommitted/dirty files:** None
+**PR / tracker:** PR #355. The fix came from an owner report in chat; no GitHub issue existed (searched). No Linear issue: the workspace hit its free issue limit and the connector is unauthorized.
+**Current implementation state:** Fix, regression test and docs are complete and committed. They are validated alone and together with `main` (`TioAppBar`).
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/test/app/workout_exercises_route_test.dart`
-**Validation completed at SHA:** Local runs on the working tree (see Validation Run)
-**Validation remaining:** CI at the PR head
+**Validation completed at SHA:** `0dad39f9`, the tree combined with `main` `03bb578a`: `apps/app` and `apps/features/workout` analyze/test. Earlier runs at `8b6538e1` covered `apps/app` alone.
+**Validation remaining:** CI and Codex review at the final PR head
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Commit, push, open the PR.
+**Next exact action:** Mark PR #355 Ready, then merge it once the final head passes the gate: matching head, green CI, 0 unresolved threads, Codex clean. Then run the post-merge sync and archive this brief.
 
 ## 1. Discovery
 
@@ -101,7 +101,8 @@ No semantics or focus change. Back and Android system back pop the root navigato
 - [x] Settled-geometry comparison before and after (temporary test, deleted).
 - [x] Router comment and route docs updated.
 - [x] `apps/app` analyze/tests.
-- [ ] Commit, push, PR.
+- [x] Commit, push, PR #355.
+- [x] Merge `main` (`03bb578a`, `TioAppBar`) into the branch and re-validate the combined tree.
 
 ## 6. Quality Review
 
@@ -111,6 +112,7 @@ No semantics or focus change. Back and Android system back pop the root navigato
 Route test file (26 tests) passes with the fix.
 The new jerk test fails without the fix (Expected (56.0, 538.0), Actual (0.0, 600.0)).
 apps/app: flutter analyze --no-pub → No issues found; flutter test --no-pub → 380 passed
+After merging main 03bb578a (TioAppBar) at 0dad39f9: apps/app analyze clean, 380 passed; apps/features/workout analyze clean, 157 passed; diff vs main limited to this slice's 6 files
 git diff --check: clean
 Owner device check (2026-09-26, chat):
 - The owner described the symptom as the calendar showing under the system status bar for a moment, which matches the reproduced relayout.
