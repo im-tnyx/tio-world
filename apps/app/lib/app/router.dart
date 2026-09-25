@@ -75,16 +75,19 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
-/// Destinations nested inside a main tab's own navigator.
+/// Full-screen destinations nested under a main tab's route.
 ///
-/// They keep the branch's back stack, so a direct deep link still lands with
-/// the tab root beneath it. Paths are relative to the branch root.
+/// They are shown on the root navigator, above the shell, so they cover its
+/// chrome rather than making the shell hide it mid-transition, which would
+/// relayout the tab underneath. A direct deep link still lands with the tab
+/// root beneath them. Paths are relative to the branch root.
 List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
   if (branch.tab != ShellTab.workout) return const [];
 
   return [
     GoRoute(
       path: _childPath(branch, AppRoutes.workoutLibrary),
+      parentNavigatorKey: rootNavigatorKey,
       // Library → Exercises pushes, so back from Exercises returns here.
       builder: (context, state) => LibraryPage(
         onExercisesPressed: () =>
@@ -99,6 +102,7 @@ List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
     ),
     GoRoute(
       path: _childPath(branch, AppRoutes.workoutExercises),
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => ExercisesPage(
         startSearching:
             state.uri.queryParameters[_exercisesSearchParameter] == 'true',
