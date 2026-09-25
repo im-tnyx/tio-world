@@ -79,15 +79,46 @@ void main() {
     expect(titleTaps, 1);
   });
 
+  testWidgets('hits an interactive title where it is painted',
+      (tester) async {
+    Offset? tapDown;
+    await _pump(
+      tester,
+      TioAppBar(
+        leading: const BackButton(),
+        title: GestureDetector(
+          key: const ValueKey('title'),
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) => tapDown = details.localPosition,
+          child: const SizedBox(height: 40, width: double.infinity),
+        ),
+      ),
+    );
+
+    final title = tester.getRect(find.byKey(const ValueKey('title')));
+    const inside = Offset(20, 10);
+    await tester.tapAt(title.topLeft + inside);
+    expect(tapDown, inside);
+
+    // Nothing past the painted title reaches it.
+    tapDown = null;
+    await tester.tapAt(Offset(title.right + 4, title.center.dy));
+    expect(tapDown, isNull);
+  });
+
   testWidgets('mirrors the gap in right-to-left layouts', (tester) async {
+    var backTaps = 0;
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => Directionality(
           textDirection: TextDirection.rtl,
           child: TioTheme(child: child!),
         ),
-        home: const Scaffold(
-          appBar: TioAppBar(leading: BackButton(), title: Text('Title')),
+        home: Scaffold(
+          appBar: TioAppBar(
+            leading: BackButton(onPressed: () => backTaps++),
+            title: const Text('Title'),
+          ),
         ),
       ),
     );
@@ -96,6 +127,9 @@ void main() {
       tester.getTopLeft(_backIcon).dx - tester.getTopRight(find.text('Title')).dx,
       TioNavigationTokens.topBarTitleGap,
     );
+    final back = tester.getRect(find.byType(BackButton));
+    await tester.tapAt(Offset(back.left + 1, back.center.dy));
+    expect(backTaps, 1);
   });
 
   testWidgets('keeps the gap for an implied back button', (tester) async {

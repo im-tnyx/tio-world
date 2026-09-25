@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../../../theme/tokens/foundation/tio_spacing.dart';
@@ -44,35 +45,28 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
         (automaticallyImplyLeading &&
             ((Scaffold.maybeOf(context)?.hasDrawer ?? false) ||
                 (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)));
-    final spacing =
+    final titleSpacing =
         hasLeading ? TioNavigationTokens.topBarTitleSpacing : TioSpacing.lg;
-    // A negative spacing would lay the title over the leading slot, where it
-    // would take the leading button's taps. The title keeps its box after
-    // the slot and is only painted closer to the icon.
-    final layoutSpacing = math.max(TioSpacing.none, spacing);
-    final paintShift = math.min(TioSpacing.none, spacing);
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
     final title = this.title;
 
     return AppBar(
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
-      titleSpacing: layoutSpacing,
+      titleSpacing: titleSpacing,
       centerTitle: false,
-      // AppBar applies titleSpacing on both sides of the title; the end
-      // padding restores the standard inset on the trailing side.
       title: title == null
           ? null
-          : Padding(
-              padding: EdgeInsetsDirectional.only(
-                end: math.max(
-                  TioSpacing.none,
-                  TioSpacing.lg - layoutSpacing + paintShift,
+          // A negative spacing lays the title over the end of the leading
+          // slot; that strip stays with the leading button's tap target.
+          : _LeadingTapClearance(
+              extent: math.max(TioSpacing.none, -titleSpacing),
+              textDirection: Directionality.of(context),
+              // AppBar applies titleSpacing on both sides of the title; the
+              // end padding restores the standard inset on the trailing side.
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                  end: TioSpacing.lg - titleSpacing,
                 ),
-              ),
-              child: Transform.translate(
-                offset: Offset(isRtl ? -paintShift : paintShift, 0),
-                transformHitTests: false,
                 child: title,
               ),
             ),
@@ -81,5 +75,49 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: elevation,
       scrolledUnderElevation: scrolledUnderElevation,
     );
+  }
+}
+
+/// Ignores pointers on the first [extent] of its child's start side, so a
+/// title laid out over the leading slot never takes the leading button's
+/// taps. Elsewhere the child is hit exactly where it is painted.
+class _LeadingTapClearance extends SingleChildRenderObjectWidget {
+  const _LeadingTapClearance({
+    required this.extent,
+    required this.textDirection,
+    required super.child,
+  });
+
+  final double extent;
+  final TextDirection textDirection;
+
+  @override
+  _RenderLeadingTapClearance createRenderObject(BuildContext context) =>
+      _RenderLeadingTapClearance(extent, textDirection);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderLeadingTapClearance renderObject,
+  ) {
+    renderObject
+      ..extent = extent
+      ..textDirection = textDirection;
+  }
+}
+
+class _RenderLeadingTapClearance extends RenderProxyBox {
+  _RenderLeadingTapClearance(this.extent, this.textDirection);
+
+  double extent;
+  TextDirection textDirection;
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final fromStart = textDirection == TextDirection.rtl
+        ? size.width - position.dx
+        : position.dx;
+    if (fromStart < extent) return false;
+    return super.hitTest(result, position: position);
   }
 }
