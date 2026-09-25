@@ -14,7 +14,10 @@ import 'widgets/exercise_list_row.dart';
 /// Renders [ExercisesController] state and forwards user intent to it; it
 /// never reads the catalog or its JSON itself.
 class ExercisesPage extends ConsumerWidget {
-  const ExercisesPage({super.key});
+  const ExercisesPage({super.key, this.startSearching = false});
+
+  /// Opens with the top-bar search field active and focused.
+  final bool startSearching;
 
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
@@ -28,7 +31,7 @@ class ExercisesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.tioColors;
-    final controller = ref.watch(exercisesControllerProvider);
+    final controller = ref.watch(exercisesControllerProvider(startSearching));
     final state = controller.state;
     final canBrowse =
         state.status == ExercisesStatus.ready && state.hasActiveExercises;

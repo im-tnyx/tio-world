@@ -50,6 +50,7 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
     return Consumer(
       builder: (context, ref, _) => WorkoutHomePage(
         resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+        onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
       ),
     );
   }
@@ -83,11 +84,31 @@ List<RouteBase> _shellBranchChildRoutes(ShellBranchDefinition branch) {
 
   return [
     GoRoute(
+      path: _childPath(branch, AppRoutes.workoutLibrary),
+      // Library → Exercises pushes, so back from Exercises returns here.
+      builder: (context, state) => LibraryPage(
+        onExercisesPressed: () =>
+            context.push(AppRoutes.workoutExercises.path),
+        onSearchPressed: () => context.push(
+          Uri(
+            path: AppRoutes.workoutExercises.path,
+            queryParameters: const {_exercisesSearchParameter: 'true'},
+          ).toString(),
+        ),
+      ),
+    ),
+    GoRoute(
       path: _childPath(branch, AppRoutes.workoutExercises),
-      builder: (context, state) => const ExercisesPage(),
+      builder: (context, state) => ExercisesPage(
+        startSearching:
+            state.uri.queryParameters[_exercisesSearchParameter] == 'true',
+      ),
     ),
   ];
 }
+
+/// `/workout/exercises?search=true` opens Exercises with search active.
+const _exercisesSearchParameter = 'search';
 
 String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
   final prefix = '${branch.route.path}/';
@@ -232,6 +253,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.measurementUnitsSettings,
     AppRoutes.themeSettings,
     AppRoutes.calendarSettings,
+    AppRoutes.workoutLibrary,
     AppRoutes.workoutExercises,
     AppRoutes.login,
     AppRoutes.emailLogin,

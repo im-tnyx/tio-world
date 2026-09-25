@@ -65,4 +65,14 @@ void main() {
     );
     expect(AppRoutes.workoutExercises.chromePolicy.showsBottomNav, isFalse);
   });
+
+  test('Library route nests under the Workout branch without bottom nav', () {
+    expect(AppRoutes.workoutLibrary.path, '/workout/library');
+    expect(
+      AppRoutes.workoutLibrary.path.startsWith('${FeatureRoutes.workout.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.workoutLibrary.title, 'Library');
+    expect(AppRoutes.workoutLibrary.chromePolicy, ChromePolicy.noBottomBar);
+  });
 }

@@ -19,11 +19,14 @@ final exerciseCatalogRepositoryProvider = Provider<ExerciseCatalogRepository>(
 final exerciseViewerMediaGenderProvider =
     Provider<ExerciseMediaGender?>((ref) => null);
 
-final exercisesControllerProvider =
-    ChangeNotifierProvider.autoDispose<ExercisesController>((ref) {
+/// Exercises screen controller. The family argument opens the screen with its
+/// search field already active (Library's search action).
+final exercisesControllerProvider = ChangeNotifierProvider.autoDispose
+    .family<ExercisesController, bool>((ref, startSearching) {
   final controller = ExercisesController(
     repository: ref.watch(exerciseCatalogRepositoryProvider),
     mediaGender: ref.read(exerciseViewerMediaGenderProvider),
+    startSearching: startSearching,
   );
   // A profile that loads after the screen opens re-resolves thumbnails
   // without reloading the catalog or clearing the search.

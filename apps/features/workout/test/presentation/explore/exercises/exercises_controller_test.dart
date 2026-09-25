@@ -372,6 +372,26 @@ void main() {
   });
 
   group('search mode', () {
+    test('startSearching opens search from the first state', () async {
+      final repository = FakeExerciseCatalogRepository(
+        catalog: syntheticCatalog(),
+        hold: true,
+      );
+      final controller = ExercisesController(
+        repository: repository,
+        startSearching: true,
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.state.isSearching, isTrue);
+      final loading = controller.load();
+      expect(controller.state.isSearching, isTrue);
+      repository.release();
+      await loading;
+      expect(controller.state.status, ExercisesStatus.ready);
+      expect(controller.state.isSearching, isTrue);
+    });
+
     test('opening search keeps the rows and query', () async {
       final controller = await loadedController();
 

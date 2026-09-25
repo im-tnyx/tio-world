@@ -102,7 +102,7 @@ Goal: first usable health and fitness app flow.
   - [x] Add mid-flow Auth checkpoint (`AuthLandingPage` "Let's get you in") with 1-Tap Google Sign-In and dedicated Email Sign Up (`EmailSignupPage` "Create Account")
   - [x] Add validated save/resume and idempotent completion persisting canonical owner data (`height_cm`, `current_weight_kg`, `date_of_birth: DATE`) to Supabase Postgres
 - [x] User profile basics & Account deletion RPC (`delete_user_account`)
-- [ ] Workout Library in `apps/features/workout`: one canonical route reached from a planned Workout Home entry, with capability-gated Programs, Routines, Plans / Training Plans and Exercises sections ([Library](screens/library.md))
+- [ ] Workout Library in `apps/features/workout`: one canonical route reached from the Workout Home entry, with capability-gated Programs, Routines, Plans / Training Plans and Exercises sections ([Library](screens/library.md)); W6A route, entry and Exercises section done, Programs/Routines/Plans pending
 - [ ] Program and Routine browse/select flow through Library; start an active workout only from the selected Routine or Program session
 - [ ] Dedicated Exercises capability backed first by a validated, versioned local JSON catalog in `apps/features/workout`: catalog/list, search and basic filters first (W3A), Exercise detail once W3B is ready
 - [ ] Routine/Program builder Exercise picker/search mode over the same canonical Exercise catalog
