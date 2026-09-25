@@ -34,7 +34,7 @@ apps/core/assets/musclemap/
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Independent exact-head review by the task agent; Codex (supplemental)
+**Review owner:** Exact-head self-review by the task agent (same agent as planning/implementation owner, so not independent); Codex (supplemental), whose Ready-triggered review raised R4/R5
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-25 after the PR #340 post-merge sync; GitHub `main`, `origin/main` and local `main` all at `359e24ffcc29c57a242c435351e5ac8c35c0ab7e`
@@ -43,7 +43,7 @@ apps/core/assets/musclemap/
 **Observed working-tree state:** Not applicable (slice complete); protected owner asset directories remain untracked and untouched
 **Observed uncommitted/dirty files:** Not applicable (slice complete)
 **PR / tracker:** [PR #339](https://github.com/im-tnyx/tio-world/pull/339) merged 2026-09-25T07:17:54Z (squash). The GitHub integration moved Linear TNYX-270 to `Done`; it was manually reconciled back to `In Progress` because TNYX-270 is the W3A2 umbrella and W3A2b (TNYX-272, `Backlog`) remains open. Post-merge fixes landed through TNYX-273 / PR #340 (`359e24ff`, `Done`). Parent TNYX-261 stays `In Progress`.
-**Current implementation state:** Validated. On `main`: The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Independent review findings R1/R2 from `8462ec7c` and R3 from `9399cb7c` are remediated and validated.
+**Current implementation state:** Validated. On `main`: The sanitized/versioned production asset, Workout pubspec registration, document decoder, typed source/document failures, injected `AssetBundle` source and production-path tests are implemented. Self-review findings R1/R2 from `8462ec7c` and R3 from `9399cb7c` are remediated and validated.
 **Relevant execution surface:** `apps/features/workout/{assets,lib/src/data/exercises,lib/src/domain/exercises/exercise_catalog_repository.dart (doc only),test/data/exercises,pubspec.yaml}`
 **Validation completed at SHA:** R3 doc-contract remediation (working tree on `9399cb7c`) on 2026-09-25 — Dart format PASS (3 files, 0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); `git diff --check` PASS. Previously at source-remediation SHA `315f8176` — Dart format PASS; Workout `flutter analyze` PASS; focused Exercise tests PASS (60); full Workout tests PASS (79); exact registered production asset load/mapping and sanitization tests PASS; protected-source SHA-256 values unchanged from the provenance audit; commit-attribution guard PASS.
 **Validation remaining:** None. Exact head `8f18c652`: Commit attribution guard SUCCESS (only required check), Attribution guard runner SUCCESS, Analyze and test SUCCESS.
@@ -138,7 +138,7 @@ Distinct typed failures cover missing asset, invalid JSON/document and unsupport
 - [x] Add injected `AssetBundle` source and compose it with the W3A1 repository/parser.
 - [x] Add decoder/source/real-asset tests, including negative cases.
 - [x] Audit protected assets, content leakage and W3A2a-only scope.
-- [x] Validate, commit, push, create Draft PR (#339) and run exact-head independent review.
+- [x] Validate, commit, push, create Draft PR (#339) and run exact-head self-review.
 
 ## 6. Quality Review
 
