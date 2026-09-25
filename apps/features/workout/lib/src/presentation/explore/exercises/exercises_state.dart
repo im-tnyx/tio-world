@@ -77,6 +77,7 @@ final class ExercisesState {
     this.items = const [],
     this.hasActiveExercises = false,
     this.filterOptions = const {},
+    this.isSearching = false,
   });
 
   const ExercisesState.loading() : this(status: ExercisesStatus.loading);
@@ -94,6 +95,9 @@ final class ExercisesState {
 
   /// Selectable values per dimension, drawn from active Exercises.
   final Map<ExerciseFilterDimension, List<ExerciseFilterOption>> filterOptions;
+
+  /// Whether the top bar shows the search field instead of the title.
+  final bool isSearching;
 
   bool get isEmptyCatalog =>
       status == ExercisesStatus.ready && !hasActiveExercises;

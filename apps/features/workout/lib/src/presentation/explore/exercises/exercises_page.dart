@@ -41,58 +41,63 @@ class ExercisesPage extends ConsumerWidget {
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
-        title: Text(
-          'Exercises',
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: TioFontWeight.w800,
-            fontSize: TioFontSize.size20,
-          ),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.sm,
-                TioSpacing.lg,
-                TioSpacing.none,
-              ),
-              child: TioInput(
+        title: state.isSearching
+            ? TioInput(
                 key: const ValueKey('exercises-search'),
                 hint: 'Search exercises',
                 value: state.query.text,
-                enabled: canBrowse,
+                autofocus: true,
+                // Compact enough to sit inside the standard top bar.
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: TioInputTokens.horizontalPadding,
+                  vertical: TioSpacing.sm,
+                ),
+                leading:
+                    Icon(Icons.search_rounded, color: colors.textSecondary),
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.search,
                 onChanged: controller.setSearchText,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.sm,
-                TioSpacing.lg,
-                TioSpacing.sm,
-              ),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TioButton.secondary(
-                  key: const ValueKey('exercises-filter'),
-                  label: 'Filter exercises',
-                  semanticLabel: _filterSemanticLabel(state.activeFilterCount),
-                  enabled: canBrowse,
-                  onPressed: () => _openFilters(context, controller),
+              )
+            : Text(
+                'Exercises',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioFontSize.size20,
                 ),
               ),
-            ),
-            Expanded(child: _body(state)),
-          ],
-        ),
+        actions: state.isSearching
+            ? [
+                IconButton(
+                  key: const ValueKey('exercises-search-close'),
+                  tooltip: 'Close search',
+                  color: colors.textPrimary,
+                  onPressed: controller.closeSearch,
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ]
+            : [
+                IconButton(
+                  key: const ValueKey('exercises-search-open'),
+                  tooltip: 'Search exercises',
+                  color: colors.textPrimary,
+                  onPressed: canBrowse ? controller.openSearch : null,
+                  icon: const Icon(Icons.search_rounded),
+                ),
+                IconButton(
+                  key: const ValueKey('exercises-filter'),
+                  tooltip: _filterSemanticLabel(state.activeFilterCount),
+                  color: state.activeFilterCount > 0
+                      ? colors.primary
+                      : colors.textPrimary,
+                  onPressed: canBrowse
+                      ? () => _openFilters(context, controller)
+                      : null,
+                  icon: const Icon(Icons.filter_list),
+                ),
+              ],
       ),
+      body: SafeArea(child: _body(state)),
     );
   }
 

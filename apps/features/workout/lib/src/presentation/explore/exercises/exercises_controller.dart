@@ -34,7 +34,11 @@ class ExercisesController extends ChangeNotifier {
 
   Future<void> load() async {
     _catalog = null;
-    _emit(ExercisesState(status: ExercisesStatus.loading, query: _state.query));
+    _emit(ExercisesState(
+      status: ExercisesStatus.loading,
+      query: _state.query,
+      isSearching: _state.isSearching,
+    ));
 
     final ExerciseCatalog catalog;
     try {
@@ -64,6 +68,28 @@ class ExercisesController extends ChangeNotifier {
       primaryEquipment: query.primaryEquipment,
       category: query.category,
     ));
+  }
+
+  /// Shows the top-bar search field.
+  void openSearch() {
+    if (_state.isSearching) return;
+    _emit(_copyWith(isSearching: true));
+  }
+
+  /// Hides the search field and clears its text.
+  void closeSearch() {
+    if (!_state.isSearching) return;
+    final query = _state.query;
+    final cleared = ExerciseCatalogQuery(
+      muscleGroup: query.muscleGroup,
+      primaryEquipment: query.primaryEquipment,
+      category: query.category,
+    );
+    if (_catalog == null) {
+      _emit(ExercisesState(status: _state.status, query: cleared));
+      return;
+    }
+    _emitReady(query: cleared, isSearching: false);
   }
 
   /// Replaces every filter at once, as the filter sheet's Show results does.
@@ -113,13 +139,26 @@ class ExercisesController extends ChangeNotifier {
   void _setQuery(ExerciseCatalogQuery query) {
     if (query == _state.query) return;
     if (_catalog == null) {
-      _emit(ExercisesState(status: _state.status, query: query));
+      _emit(ExercisesState(
+        status: _state.status,
+        query: query,
+        isSearching: _state.isSearching,
+      ));
       return;
     }
     _emitReady(query: query);
   }
 
-  void _emitReady({ExerciseCatalogQuery? query}) {
+  ExercisesState _copyWith({required bool isSearching}) => ExercisesState(
+        status: _state.status,
+        query: _state.query,
+        items: _state.items,
+        hasActiveExercises: _state.hasActiveExercises,
+        filterOptions: _state.filterOptions,
+        isSearching: isSearching,
+      );
+
+  void _emitReady({ExerciseCatalogQuery? query, bool? isSearching}) {
     final catalog = _catalog!;
     final effectiveQuery = query ?? _state.query;
     final active = const ExerciseCatalogQuery().apply(catalog);
@@ -127,6 +166,7 @@ class ExercisesController extends ChangeNotifier {
     _emit(ExercisesState(
       status: ExercisesStatus.ready,
       query: effectiveQuery,
+      isSearching: isSearching ?? _state.isSearching,
       hasActiveExercises: active.isNotEmpty,
       filterOptions: {
         ExerciseFilterDimension.muscle:
@@ -158,8 +198,8 @@ class ExercisesController extends ChangeNotifier {
     return List<ExerciseFilterOption>.unmodifiable(options);
   }
 
-  void _emitFailure(ExercisesStatus status) =>
-      _emit(ExercisesState(status: status, query: _state.query));
+  void _emitFailure(ExercisesStatus status) => _emit(
+      ExercisesState(status: status, query: const ExerciseCatalogQuery()));
 
   void _emit(ExercisesState state) {
     if (_disposed) return;

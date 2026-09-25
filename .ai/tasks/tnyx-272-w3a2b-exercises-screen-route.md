@@ -8,11 +8,11 @@
 
 **Trigger:** New independently scoped product task/feature slice (product-visible UI + route)
 **Approval status:** Approved
-**Approval evidence:** Owner instruction "Start TNYX-272 — W3A2b Exercises screen & route" (2026-09-25), plus the Linear TNYX-272 approved UI/route contract and its owner contract update (list thumbnail, 2026-09-25).
+**Approval evidence:** Owner instruction "Start TNYX-272 — W3A2b Exercises screen & route" (2026-09-25), plus the Linear TNYX-272 approved UI/route contract and its owner contract update (list thumbnail, 2026-09-25). Owner top-bar revision (2026-09-25, after the first Draft PR commit, with the Tnyx-hub Exercise library top bar as reference): search is a top-bar icon, the field is not always open, and filter is also a top-bar icon.
 **Approved product/UI/data-shape boundaries:**
 
 - Route `/workout/exercises` as `AppRoutes.workoutExercises`, nested in the Workout branch; standard AppBar/back; bottom navigation hidden; direct deep link follows `/workout` behavior; no `/explore/...` route; no temporary production entry.
-- Screen title `Exercises`; full-width `Search exercises` input; one `Filter exercises` action opening a bottom sheet with Muscle / Equipment / Category single-select filters, `Clear all`, `Show results`.
+- Top bar: back, title `Exercises`, search icon, filter icon. The search icon swaps the title for a `Search exercises` field with a close action (clears the text), and the field is never open by default. The filter icon (primary color while filters are active) opens a bottom sheet with Muscle / Equipment / Category single-select filters, `Clear all`, `Show results`. Reference-only extras (create `+`, category icon row) are excluded.
 - Row: thumbnail (canonical `ExerciseMedia.urlFor`, image then thumbnail kind), name, `Primary equipment • Muscle group`; text-only when media is unusable; no icon, chevron, favorite/folder action, video or tap behavior.
 - States: loading, empty catalog, search/filter no-match, missing catalog, malformed catalog, unexpected failure; no Retry for bundled-asset failures.
 
@@ -97,6 +97,7 @@ See Explicit non-changes above.
 | Filter sheet edits a draft; `Show results` applies, `Clear all` clears the draft | Made | Standard sheet semantics inside approved controls | Engineering |
 | Unsupported schema version shown as malformed catalog | Made | Both mean this app version cannot read its bundled catalog | Engineering |
 | No Retry on any failure state | Made | All failures come from the bundled asset; no approved Retry control | Owner contract |
+| Search and filter move into the top bar as icons; search field opens on demand with autofocus and a clear-on-close action; filter icon hidden while searching | Made | Owner top-bar revision matching the Tnyx-hub reference; search-mode state lives in the controller (`isSearching`) | Owner |
 
 ## 4. Architecture Design
 
@@ -143,7 +144,7 @@ Local, Windows, repository Flutter SDK, on the committed tree (2026-09-25). The 
 
 ```text
 apps/features/workout   flutter analyze --no-pub  → No issues found
-apps/features/workout   flutter test --no-pub     → 142 passed (50 new under test/presentation/explore)
+apps/features/workout   flutter test --no-pub     → 148 passed (56 new under test/presentation/explore; rerun after the top-bar revision)
 apps/core               flutter analyze --no-pub  → No issues found
 apps/core               flutter test --no-pub     → 324 passed
 apps/app                flutter analyze --no-pub  → No issues found
@@ -181,7 +182,7 @@ The behavior matches the approved contract recorded in the Owner Approval sectio
 ### Known Limitations
 
 - No user-facing entry until W6A (by design).
-- The filter action's visible label does not show the active count; the count is exposed through the semantics label only (no approved visible indicator).
+- The active filter count is not shown as a number; the filter icon turns primary while any filter is active, and its tooltip carries the count.
 - Thumbnails depend on provider URLs and the network. When offline or on failure, the row is text-only.
 - Unsupported catalog schema versions share the malformed-catalog copy.
 

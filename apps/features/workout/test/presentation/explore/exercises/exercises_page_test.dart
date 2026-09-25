@@ -50,6 +50,16 @@ Future<void> _openFilters(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+IconButton _iconButton(WidgetTester tester, String key) =>
+    tester.widget<IconButton>(find.byKey(ValueKey(key)));
+
+Future<void> _search(WidgetTester tester, String text) async {
+  await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const ValueKey('exercises-search')), text);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _showResults(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('exercise-filter-show-results')));
   await tester.pumpAndSettle();
@@ -92,18 +102,9 @@ void main() {
 
       expect(find.byKey(const ValueKey('exercises-loading')), findsOneWidget);
       expect(find.bySemanticsLabel(ExercisesPage.loadingLabel), findsOneWidget);
-      expect(
-        tester
-            .widget<TioInput>(find.byKey(const ValueKey('exercises-search')))
-            .enabled,
-        isFalse,
-      );
-      expect(
-        tester
-            .widget<TioButton>(find.byKey(const ValueKey('exercises-filter')))
-            .enabled,
-        isFalse,
-      );
+      expect(find.byKey(const ValueKey('exercises-search')), findsNothing);
+      expect(_iconButton(tester, 'exercises-search-open').onPressed, isNull);
+      expect(_iconButton(tester, 'exercises-filter').onPressed, isNull);
 
       repository.release();
       await tester.pumpAndSettle();
@@ -130,11 +131,7 @@ void main() {
         repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
       );
 
-      await tester.enterText(
-        find.byKey(const ValueKey('exercises-search')),
-        'zzz',
-      );
-      await tester.pumpAndSettle();
+      await _search(tester, 'zzz');
 
       expect(_message(ExercisesPage.noMatchMessage), findsOneWidget);
       expect(find.byKey(const ValueKey('exercises-list')), findsNothing);
@@ -177,14 +174,9 @@ void main() {
         expect(_message(entry.value.$2), findsOneWidget);
         expect(find.textContaining('Retry'), findsNothing);
         expect(find.textContaining('Try again'), findsNothing);
-        // The only button on the page is the disabled filter action.
-        expect(find.byType(TioButton), findsOneWidget);
-        expect(
-          tester
-              .widget<TioButton>(find.byKey(const ValueKey('exercises-filter')))
-              .enabled,
-          isFalse,
-        );
+        expect(find.byType(TioButton), findsNothing);
+        expect(_iconButton(tester, 'exercises-search-open').onPressed, isNull);
+        expect(_iconButton(tester, 'exercises-filter').onPressed, isNull);
       });
     }
   });
@@ -203,15 +195,39 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(BackButton), findsOneWidget);
-      expect(find.text('Search exercises'), findsOneWidget);
-      expect(find.text('Filter exercises'), findsOneWidget);
-
-      final searchWidth =
-          tester.getSize(find.byKey(const ValueKey('exercises-search'))).width;
+      // Search and filter are top-bar icons; no search field until opened.
+      expect(find.byKey(const ValueKey('exercises-search')), findsNothing);
+      expect(find.byType(TioButton), findsNothing);
+      final actions = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byType(IconButton),
+      );
       expect(
-          searchWidth,
-          tester.view.physicalSize.width / tester.view.devicePixelRatio -
-              TioSpacing.lg * 2);
+        [
+          for (final button in tester.widgetList<IconButton>(actions))
+            if (button.key is ValueKey<String>) button.key,
+        ],
+        const [
+          ValueKey('exercises-search-open'),
+          ValueKey('exercises-filter'),
+        ],
+      );
+      expect(
+        _iconButton(tester, 'exercises-search-open').tooltip,
+        'Search exercises',
+      );
+      expect(
+        _iconButton(tester, 'exercises-filter').tooltip,
+        'Filter exercises',
+      );
+      expect(
+        (_iconButton(tester, 'exercises-search-open').icon as Icon).icon,
+        Icons.search_rounded,
+      );
+      expect(
+        (_iconButton(tester, 'exercises-filter').icon as Icon).icon,
+        Icons.filter_list,
+      );
 
       expect(_row('ex_synthetic_curl'), findsOneWidget);
       expect(find.text('Synthetic Curl'), findsOneWidget);
@@ -219,6 +235,94 @@ void main() {
       expect(find.text('EZ bar • Chest'), findsOneWidget);
       expect(find.text('Upper arms'), findsOneWidget);
       expect(find.text('Synthetic Archived Curl'), findsNothing);
+    });
+
+    _testWidgets('search icon swaps the title for a search field',
+        (tester) async {
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+      await tester.pumpAndSettle();
+
+      final appBar = find.byType(AppBar);
+      expect(
+        find.descendant(of: appBar, matching: find.text('Exercises')),
+        findsNothing,
+      );
+      final field = find.byKey(const ValueKey('exercises-search'));
+      expect(find.descendant(of: appBar, matching: field), findsOneWidget);
+      expect(find.text('Search exercises'), findsOneWidget);
+      expect(tester.widget<TioInput>(field).autofocus, isTrue);
+      expect(find.byKey(const ValueKey('exercises-search-open')), findsNothing);
+      expect(find.byKey(const ValueKey('exercises-filter')), findsNothing);
+      expect(
+        _iconButton(tester, 'exercises-search-close').tooltip,
+        'Close search',
+      );
+
+      await tester.enterText(field, 'press');
+      await tester.pumpAndSettle();
+      expect(_row('ex_synthetic_press'), findsOneWidget);
+      expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+
+    _testWidgets('closing search clears the text and restores the title',
+        (tester) async {
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+      );
+      await _search(tester, 'press');
+
+      await tester.tap(find.byKey(const ValueKey('exercises-search-close')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('exercises-search')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Exercises'),
+        ),
+        findsOneWidget,
+      );
+      expect(_row('ex_synthetic_curl'), findsOneWidget);
+      expect(_row('ex_synthetic_press'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TioInput>(find.byKey(const ValueKey('exercises-search')))
+            .value,
+        '',
+      );
+    });
+
+    _testWidgets('the filter icon turns primary while filters are active',
+        (tester) async {
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+      );
+      final context = tester.element(find.byType(ExercisesPage));
+      expect(
+        _iconButton(tester, 'exercises-filter').color,
+        context.tioColors.textPrimary,
+      );
+
+      await _openFilters(tester);
+      await tester.tap(find.byKey(
+        const ValueKey('exercise-filter-category-strength'),
+      ));
+      await _showResults(tester);
+
+      expect(
+        _iconButton(tester, 'exercises-filter').color,
+        context.tioColors.primary,
+      );
     });
 
     _testWidgets('rows have no icon, chevron, action or tap behavior',
@@ -452,9 +556,7 @@ void main() {
       expect(_row('ex_synthetic_curl'), findsNothing);
       expect(_row('ex_synthetic_press'), findsNothing);
       expect(
-        tester
-            .widget<TioButton>(find.byKey(const ValueKey('exercises-filter')))
-            .semanticLabel,
+        _iconButton(tester, 'exercises-filter').tooltip,
         'Filter exercises, 2 filters active',
       );
     });
@@ -473,9 +575,7 @@ void main() {
       expect(_row('ex_synthetic_press'), findsOneWidget);
       expect(_row('ex_synthetic_curl'), findsNothing);
       expect(
-        tester
-            .widget<TioButton>(find.byKey(const ValueKey('exercises-filter')))
-            .semanticLabel,
+        _iconButton(tester, 'exercises-filter').tooltip,
         'Filter exercises, 1 filter active',
       );
     });
@@ -502,16 +602,12 @@ void main() {
         tester,
         repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
       );
-      await tester.enterText(
-        find.byKey(const ValueKey('exercises-search')),
-        'curl',
-      );
-      await tester.pumpAndSettle();
       await _openFilters(tester);
       await tester.tap(find.byKey(
         const ValueKey('exercise-filter-category-stretch'),
       ));
       await _showResults(tester);
+      await _search(tester, 'curl');
 
       expect(_message(ExercisesPage.noMatchMessage), findsOneWidget);
     });
@@ -553,9 +649,7 @@ void main() {
 
       expect(_row('ex_synthetic_curl'), findsOneWidget);
       expect(
-        tester
-            .widget<TioButton>(find.byKey(const ValueKey('exercises-filter')))
-            .semanticLabel,
+        _iconButton(tester, 'exercises-filter').tooltip,
         'Filter exercises',
       );
     });

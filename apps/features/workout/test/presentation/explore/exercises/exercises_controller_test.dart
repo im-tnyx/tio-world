@@ -371,6 +371,46 @@ void main() {
     await expectLater(loading, completes);
   });
 
+  group('search mode', () {
+    test('opening search keeps the rows and query', () async {
+      final controller = await loadedController();
+
+      controller.openSearch();
+
+      expect(controller.state.isSearching, isTrue);
+      expect(refsOf(controller.state), hasLength(3));
+    });
+
+    test('closing search clears only the text', () async {
+      final controller = await loadedController();
+      controller
+        ..applyFilters(muscleGroup: 'upper_arms')
+        ..openSearch()
+        ..setSearchText('curl');
+      expect(refsOf(controller.state), ['ex_synthetic_curl']);
+
+      controller.closeSearch();
+
+      expect(controller.state.isSearching, isFalse);
+      expect(controller.state.query.text, '');
+      expect(controller.state.query.muscleGroup, 'upper_arms');
+      expect(refsOf(controller.state),
+          ['ex_synthetic_curl', 'ex_synthetic_stretch']);
+    });
+
+    test('open and close are no-ops when already in that mode', () async {
+      final controller = await loadedController();
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.closeSearch();
+      controller.openSearch();
+      controller.openSearch();
+
+      expect(notifications, 1);
+    });
+  });
+
   test('taxonomy labels', () {
     expect(exerciseTaxonomyLabel('upper_arms'), 'Upper arms');
     expect(exerciseTaxonomyLabel('lever_machine'), 'Lever machine');
