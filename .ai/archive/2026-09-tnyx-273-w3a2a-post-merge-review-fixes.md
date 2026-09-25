@@ -11,7 +11,7 @@
 **Approval status:** Approved
 **Approval evidence:** On 2026-09-25 the owner explicitly authorized this bounded follow-up for the two valid post-merge findings on PR #339, through Draft PR (#340). A later owner prompt on the same day authorized the Draft → Ready transition and the exact-head pre-merge gate; the PR #340 squash merge, post-merge reconciliation and brief archive were then separately authorized the same day.
 **Approved product/UI/data-shape boundaries:** reconcile stale W3A2a docs; narrow missing-asset exception classification; exception-boundary tests; reply to PR #339 threads after the Draft PR exists.
-**Explicit non-changes:** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, merge, PR #339 thread resolution before merge, brief archive or branch deletion.
+**Explicit non-changes (initial implementation scope; later lifecycle actions were separately authorized as recorded above):** no W3A2b (TNYX-272), Exercises UI, route/router, Library, Workout Home, Supabase, catalog schema/content change, media, icons, standards, merge, PR #339 thread resolution before merge, brief archive or branch deletion.
 
 ## Active Handoff
 
