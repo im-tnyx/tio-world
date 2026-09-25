@@ -51,6 +51,53 @@ void main() {
     );
   });
 
+  testWidgets('leaves the leading button its whole tap target',
+      (tester) async {
+    var backTaps = 0;
+    var titleTaps = 0;
+    await _pump(
+      tester,
+      TioAppBar(
+        leading: BackButton(onPressed: () => backTaps++),
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => titleTaps++,
+          child: const Text('Title'),
+        ),
+      ),
+    );
+
+    // The title is painted within the back button's tap target.
+    final back = tester.getRect(find.byType(BackButton));
+    expect(tester.getTopLeft(find.text('Title')).dx, lessThan(back.right));
+
+    await tester.tapAt(Offset(back.right - 1, back.center.dy));
+    expect(backTaps, 1);
+    expect(titleTaps, 0);
+
+    await tester.tap(find.text('Title'));
+    expect(titleTaps, 1);
+  });
+
+  testWidgets('mirrors the gap in right-to-left layouts', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: TioTheme(child: child!),
+        ),
+        home: const Scaffold(
+          appBar: TioAppBar(leading: BackButton(), title: Text('Title')),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getTopLeft(_backIcon).dx - tester.getTopRight(find.text('Title')).dx,
+      TioNavigationTokens.topBarTitleGap,
+    );
+  });
+
   testWidgets('keeps the gap for an implied back button', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

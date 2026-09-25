@@ -58,7 +58,7 @@
 **Validation completed at SHA:** Local runs on the working tree (see Validation Run)
 **Validation remaining:** CI and Codex re-review at the new PR head
 **Current blocker:** None
-**Open review finding IDs:** F1, F2, F3 (fixed in the working tree; threads still to be answered)
+**Open review finding IDs:** F4 (fixed in the working tree; thread still to be answered). F1–F3 are fixed in `db563158`, and their threads are answered and resolved.
 **Next exact action:** Commit, push, answer the Codex threads, and re-request review.
 
 ## Global UI / Design-System Guardrail
@@ -83,7 +83,7 @@ On every standard top bar the back button and the title sit close together, and 
 
 - `TioNavigationTokens.topBarTitleGap` is `TioSpacing.sm` (8dp).
 - `topBarTitleSpacing` is derived from it: `gap - TioSpacing.lg`, which is -8dp.
-- `TioAppBar` applies the derived spacing only when a leading widget exists (explicit, or implied by a poppable route or a drawer).
+- `TioAppBar` applies the derived spacing only when a leading widget exists (explicit, or implied by a poppable route or a drawer). It applies it as a paint-only shift, so the leading button keeps its whole tap target.
 - Without a leading widget the title stays 16dp from the edge.
 - The title always stays 16dp clear of the actions or the trailing edge.
 - `centerTitle` is false, so iOS matches Android.
@@ -139,7 +139,8 @@ TioNavigationTokens.topBarTitleGap
 TioNavigationTokens.topBarTitleSpacing (−8dp)
     ↓
 TioAppBar
-  - titleSpacing: −8dp with a leading widget, 16dp without
+  - with a leading widget: title laid out after the 56dp slot and painted −8dp closer (paint-only, so the leading tap target is intact)
+  - without one: titleSpacing 16dp
   - title end padding: 16dp − titleSpacing, which keeps the 16dp trailing inset
   - centerTitle: false
     ↓
@@ -187,7 +188,8 @@ First version (theme-wide -8dp), superseded:
 TioAppBar rework (final working tree):
 - flutter analyze --no-pub: No issues found in core, app, workout, settings, nutrition, profile, auth
 - flutter test --no-pub, all passed:
-  - core 339, including tio_app_bar_test 14 over all TargetPlatforms
+  - core 339 (341 after the F4 fix), including tio_app_bar_test (16 after F4) over all TargetPlatforms
+  - after F4, all seven packages were re-run: analyze clean, all tests passed
   - app 379, workout 157, settings 236, nutrition 873, profile 68, auth 159
 - git diff --check: clean
 - Temporary renders (harness deleted), 390dp, light + dark:
@@ -200,9 +202,10 @@ TioAppBar rework (final working tree):
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| F1 | P2 | Fixed in working tree | Theme-wide −8dp spacing puts titles of leading-less bars (title-only pages opened directly) past the start edge | `a62ae8db` | `TioAppBar` applies it only with a leading widget; test "insets the title from the edge without a leading widget" |
-| F2 | P2 | Fixed in working tree | On iOS, short titles are centred, so the gap does not apply | `a62ae8db` | `centerTitle: false` (owner); test over all `TargetPlatform`s |
-| F3 | P2 | Fixed in working tree | Negative spacing widens the trailing bound; long titles without actions clip past the edge | `a62ae8db` | Title end padding keeps the 16dp trailing inset; tests with and without actions and leading |
+| F1 | P2 | Fixed | Theme-wide −8dp spacing puts titles of leading-less bars (title-only pages opened directly) past the start edge | `a62ae8db` | `TioAppBar` applies it only with a leading widget; test "insets the title from the edge without a leading widget" |
+| F2 | P2 | Fixed | On iOS, short titles are centred, so the gap does not apply | `a62ae8db` | `centerTitle: false` (owner); test over all `TargetPlatform`s |
+| F3 | P2 | Fixed | Negative spacing widens the trailing bound; long titles without actions clip past the edge | `a62ae8db` | Title end padding keeps the 16dp trailing inset; tests with and without actions and leading |
+| F4 | P2 | Fixed in working tree | With −8dp `titleSpacing`, the title box overlaps the leading slot and takes the back button's taps in the 48–52dp strip (and could focus the Exercises search field) | `db563158` | `TioAppBar` lays the title out after the leading slot and applies the negative spacing as a paint-only shift (`Transform.translate`, `transformHitTests: false`, RTL-mirrored). The test "leaves the leading button its whole tap target" fails on `db563158` and passes now; there is also an RTL gap test |
 
 ## 7. Final Handoff
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../theme/tokens/components/tio_navigation_tokens.dart';
@@ -42,14 +44,20 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
         (automaticallyImplyLeading &&
             ((Scaffold.maybeOf(context)?.hasDrawer ?? false) ||
                 (ModalRoute.of(context)?.impliesAppBarDismissal ?? false)));
-    final titleSpacing =
+    final spacing =
         hasLeading ? TioNavigationTokens.topBarTitleSpacing : TioSpacing.lg;
+    // A negative spacing would lay the title over the leading slot, where it
+    // would take the leading button's taps. The title keeps its box after
+    // the slot and is only painted closer to the icon.
+    final layoutSpacing = math.max(TioSpacing.none, spacing);
+    final paintShift = math.min(TioSpacing.none, spacing);
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     final title = this.title;
 
     return AppBar(
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
-      titleSpacing: titleSpacing,
+      titleSpacing: layoutSpacing,
       centerTitle: false,
       // AppBar applies titleSpacing on both sides of the title; the end
       // padding restores the standard inset on the trailing side.
@@ -57,9 +65,16 @@ class TioAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? null
           : Padding(
               padding: EdgeInsetsDirectional.only(
-                end: TioSpacing.lg - titleSpacing,
+                end: math.max(
+                  TioSpacing.none,
+                  TioSpacing.lg - layoutSpacing + paintShift,
+                ),
               ),
-              child: title,
+              child: Transform.translate(
+                offset: Offset(isRtl ? -paintShift : paintShift, 0),
+                transformHitTests: false,
+                child: title,
+              ),
             ),
       actions: actions,
       backgroundColor: backgroundColor,
