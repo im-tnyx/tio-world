@@ -186,7 +186,7 @@ The behavior matches the approved contract recorded in the Owner Approval sectio
 - Thumbnails depend on provider URLs and the network. When offline or on failure, the row is text-only.
 - Unsupported catalog schema versions share the malformed-catalog copy.
 - The top-bar search field renders 48dp (the standard `TioInput` minimum). The owner wants 46dp through a reusable `TioInput` variant; this belongs to the existing reusable field system issue GitHub #24 (requirement added there; the duplicate #347 was closed).
-- The owner questioned the 56dp top-bar height. The token stays single and unchanged here; the review is a separate slice: Linear TNYX-275 / GitHub #346.
+- Top-bar height: owner decision (2026-09-25) keeps one universal token, `topBarHeight = TioSize.dp56`, for the whole app; any future change is made only in that token. No change was needed, and Linear TNYX-275 / GitHub #346 are closed.
 
 ### Final Status
 
