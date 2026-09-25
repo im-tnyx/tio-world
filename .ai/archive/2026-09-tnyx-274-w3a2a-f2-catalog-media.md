@@ -1,6 +1,7 @@
 # TNYX-274 W3A2a-F2 — Exercise catalog media (image/video URLs)
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/shared` (canonical media value + selection rule) and `apps/features/workout` (catalog asset + row parser)
 **Affected platforms:** Flutter consumers of `tio_shared` / `tio_feature_workout`; no UI or routing change
 
@@ -8,30 +9,30 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** On 2026-09-25 the owner approved TNYX-274 ("go follow agent.md") after narrowing it to media only, and authorized the Draft → Ready transition and review gate the same day (merge not authorized). Decisions are recorded in Linear TNYX-274 and GitHub #342: remote provider URLs are owner-approved and owner-maintained; the list thumbnail is YES (in TNYX-272); media follows the user's gender with default/other/text-only fallback; full URLs are kept as curated; there is one catalog file.
+**Approval evidence:** On 2026-09-25 the owner approved TNYX-274 ("go follow agent.md") after narrowing it to media only, and authorized the Draft → Ready transition and review gate, then the PR #343 squash merge, post-merge sync and brief archive, the same day. Decisions are recorded in Linear TNYX-274 and GitHub #342: remote provider URLs are owner-approved and owner-maintained; the list thumbnail is YES (in TNYX-272); media follows the user's gender with default/other/text-only fallback; full URLs are kept as curated; there is one catalog file.
 **Approved product/UI/data-shape boundaries:** add the curated `media` object to each row of the existing Workout catalog asset exactly as in the owner source; keep `schemaVersion` 1 (additive optional field), bump `catalogVersion`; parse/validate media; add the canonical media value and gender selection rule to `Exercise` in `apps/shared`; tests; docs.
-**Explicit non-changes:** no UI or rendering (phone list = TNYX-272, phone video = W3B/TNYX-262, watch = later slices); no other curated fields; no move to a shared catalog package or ADR boundary change (deferred); no Supabase; no router, Library or Workout Home change; no merge or branch deletion.
+**Explicit non-changes (initial implementation scope; later lifecycle actions were separately authorized as recorded above):** no UI or rendering (phone list = TNYX-272, phone video = W3B/TNYX-262, watch = later slices); no other curated fields; no move to a shared catalog package or ADR boundary change (deferred); no Supabase; no router, Library or Workout Home change.
 
 ## Active Handoff
 
 **Planning owner:** Current task agent
 **Implementation owner:** Current task agent
-**Review owner:** Exact-head self-review by the task agent (not independent); owner-account reviews and Codex when available
-**Implementation ownership state:** Complete; no implementation-source edits remain
+**Review owner:** Exact-head self-review by the task agent (not independent). The Ready-triggered Codex review gave 👍 (no suggestions) at 11:27Z; no owner-account review was posted before merge.
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-25 after `git fetch --prune origin`; `origin/main` = `3eee03573b5fe4f1e958ef0ffb5cd98305632b7b`
-**Branch:** `tnyx/tnyx-274-w3a2a-f2-add-exercise-media-imagevideo-urls-to-bundled` (from `origin/main`)
-**HEAD SHA:** Current branch head (see Git/PR)
-**Observed working-tree state:** owner asset directories under `apps/core/assets/` remain untracked and untouched (read-only source)
-**Observed uncommitted/dirty files:** owner asset directories only
-**PR / tracker:** PR #343 Ready for Review (owner-authorized); Linear TNYX-274 `In Review` (parent TNYX-270 `In Progress`; blocks TNYX-272 `Backlog`); GitHub #342
-**Current implementation state:** Implemented and validated; PR #343 in review
+**Repository state last verified:** 2026-09-25 after the PR #343 post-merge sync; GitHub `main`, `origin/main` and local `main` all at `bb2961eb2d85d1a9b2a27c59637b582e627a4301`
+**Branch:** `tnyx/tnyx-274-w3a2a-f2-add-exercise-media-imagevideo-urls-to-bundled` (merged; retained, deletion separately gated)
+**HEAD SHA:** merged PR head `a5a62259059794aa66000245832b92687126dbc7` on base `3eee0357`; squash merge commit on `main` `bb2961eb2d85d1a9b2a27c59637b582e627a4301` (GitHub-verified; merge tree identical to reviewed head)
+**Observed working-tree state:** Not applicable (slice complete); owner asset directories under `apps/core/assets/` remain untracked and untouched
+**Observed uncommitted/dirty files:** Not applicable (slice complete)
+**PR / tracker:** [PR #343](https://github.com/im-tnyx/tio-world/pull/343) merged 2026-09-25T11:42:08Z (squash). Linear TNYX-274 `Done` (set by the GitHub integration on merge; moved to `In Review` manually at Ready). GitHub #342 closed as completed. Parent TNYX-270 stays `In Progress`; TNYX-272 is `Backlog` and its blocker is now done.
+**Current implementation state:** Validated. On `main`: every catalog row carries curated per-gender `media` (`catalogVersion` 2, `schemaVersion` 1), and `Exercise.media` with `ExerciseMedia.urlFor(kind, gender:)` lives in `apps/shared`.
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/shared/test/workout/`, `apps/features/workout/{assets/exercises,lib/src/data/exercises,test/data/exercises}`, `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`
-**Validation completed at SHA:** exact-head CI PASS on implementation commit `67ce4e2f` (Commit attribution guard, Attribution guard runner, Analyze and test). GHAS failed before analysis (`CAPIError 400` unsupported model, TNYX-256 outage; no security pass claimed). Local validation ran on the working tree before that commit (section 6).
-**Validation remaining:** None. For later brief-only commits, their exact-head checks are shown on PR #343; this brief does not self-reference its own commit.
+**Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on implementation commit `67ce4e2f` and on merged head `a5a62259`, with 0 review threads at merge. GHAS failed before analysis (`CAPIError 400` unsupported model, TNYX-256 outage; no real security finding, not a security pass). Local per-package validation: section 6.
+**Validation remaining:** None.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Complete the Ready-triggered review gate (Codex / owner-account reviews, head match + 0 unresolved threads); merge needs separate owner authorization.
+**Next exact action:** None for TNYX-274 (archived). Next work is TNYX-272 — W3A2b — Exercises screen & route (`Backlog`, list thumbnail YES via `ExerciseMedia.urlFor`), which needs explicit owner approval before implementation. Phone video stays with W3B (TNYX-262), and watch media rendering and the shared catalog package move stay with later slices. The Library / Workout Home entry remains W6A (TNYX-266).
 
 ## Global UI / Design-System Guardrail
 
@@ -153,4 +154,4 @@ No UI yet (TNYX-272 renders the list thumbnail). Mapping profile gender to `Exer
 
 ### Final Status
 
-`REVIEW`
+`Validated` — merged via PR #343 (`bb2961eb`). Archived 2026-09-25. TNYX-270 remains `In Progress` until TNYX-272 is complete.
