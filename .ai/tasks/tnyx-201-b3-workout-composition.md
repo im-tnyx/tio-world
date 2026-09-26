@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub main `c47094f85ba3e02ccce999a12efe5c8398ee2cd4`; no open TNYX-201 implementation PR/branch existed before B3 branch creation.
 **Branch:** `tnyx/tnyx-201-b3-workout-composition`
-**HEAD SHA:** `d8061f530e40bc7bc1a2ea0dc12c156c73bb15cd` at pre-PR scope-audit checkpoint; this handoff update is documentation-only
+**HEAD SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550`; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365 active child; GitHub #357 remains planning-only
+**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365; Draft PR #366; GitHub #357 remains planning-only
 **Current implementation state:** B3 source extraction complete. The two Workout providers now live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/workout_providers.dart`, Product Onboarding completion provider consumer
-**Validation completed at SHA:** None
-**Validation remaining:** GitHub CI on the final PR head; review-thread audit; final exact-head scope audit.
+**Validation completed at SHA:** `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` — Flutter CI #2771 / run `36218676430`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
+**Validation remaining:** Exact-head CI after this documentation-only handoff update, then final review-thread/scope audit and review-state reconciliation.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Open Draft PR from the audited four-file branch and obtain exact-head CI validation.
+**Next exact action:** Revalidate the final documentation-only head, then mark PR #366 ready for review and reconcile TNYX-201/#365 without merging.
 
 ## Global UI / Design-System Guardrail
 
@@ -129,7 +129,7 @@ Moving Body/Wellness next was rejected for B3 because `bodySetupRepositoryProvid
 - [x] remove now-unused Workout import from `network_providers.dart`
 - [x] preserve all existing consumers
 - [x] audit exact branch delta
-- [ ] obtain focused/app validation and CI
+- [x] obtain focused/app validation and CI
 - [ ] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
@@ -137,7 +137,12 @@ Moving Body/Wellness next was rejected for B3 because `bodySetupRepositoryProvid
 ### Validation Run
 
 ```text
-Not run yet.
+Flutter CI #2771 / run 36218676430 @ 5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
 ```
 
 ### Review Findings and Resolution
@@ -160,7 +165,7 @@ No product/runtime behavior change is intended. Existing consumers continue impo
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI will provide executable validation.
+Local Flutter tooling is unavailable in this connector-only session; GitHub CI provides executable validation. This final handoff commit is documentation-only and needs one exact-head CI rerun before review readiness is claimed.
 
 ### Final Status
 
