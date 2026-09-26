@@ -22,17 +22,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@ee649c6d404337a248072e3ab3040e5b84c2dadc`
 **Branch:** `tnyx/tnyx-201-c3c-health-goals-hub-route`
-**HEAD SHA:** branch created from `ee649c6d404337a248072e3ab3040e5b84c2dadc`; task brief is the first branch mutation
+**HEAD SHA:** `e8740a1f3e8967912342f2a1f376eecb97194266` source-implementation checkpoint before this handoff update
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #395 / #357 / #260; Linear TNYX-201
-**Current implementation state:** Planning and tracker activation complete; source not yet mutated
+**Current implementation state:** Health & Goals hub route registration moved into existing `settings_routes.dart`; root duplicate removed; downstream Daily Wellness and Body & Weight blocks untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`, existing `apps/app/test/app/app_mode_router_test.dart`
-**Validation completed at SHA:** Fresh current-main read-only route/reference/ownership audit only
-**Validation remaining:** parent-to-head scope audit, `git diff --check` equivalent, exact-head Flutter CI/analyze/tests, independent review
+**Validation completed at SHA:** `e8740a1f3e8967912342f2a1f376eecb97194266` API scope/invariant audit: base ancestor, 5 ahead / 0 behind, exactly 4 owned paths, root Health & Goals registration 0, Settings module registration 1, root Daily Wellness 1, root Body & Weight 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0, no trailing-whitespace/conflict findings in changed file contents
+**Validation remaining:** exact-head PR diff whitespace check, Flutter CI/analyze/tests, independent review
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Move the single Health & Goals hub `GoRoute` verbatim into `buildSettingsRoutes(...)`, then validate the exact branch head
+**Next exact action:** Open the focused Draft PR, validate exact-head CI/diff/review, then reconcile review state
 
 ## Global UI / Design-System Guardrail
 
@@ -101,11 +101,11 @@ No failure, loading, accessibility or visible presentation behavior changes in t
 
 ## 5. Implementation Plan
 
-- [ ] add the existing Health & Goals hub registration to `settings_routes.dart`
-- [ ] remove only the duplicate root Health & Goals block
-- [ ] verify Daily Wellness and Body & Weight blocks are unchanged
-- [ ] verify route/reference count and one-router authority
-- [ ] audit exact parent-to-head changed files
+- [x] add the existing Health & Goals hub registration to `settings_routes.dart`
+- [x] remove only the duplicate root Health & Goals block
+- [x] verify Daily Wellness and Body & Weight registrations remain root-owned
+- [x] verify route/reference count and one-router authority
+- [x] audit exact parent-to-head changed files
 - [ ] run exact-head CI/analyze/tests and whitespace validation
 - [ ] request independent review
 
@@ -126,11 +126,14 @@ Not run yet.
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c3c-health-goals-hub-route.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/settings_routes.dart`
 
 ### Actual Behavior
 
-Pending implementation.
+Health & Goals opens the same `HealthGoalsSettingsPage` and navigates to the same Daily Wellness and Body & Weight destinations. Only route-registration ownership moved from root `router.dart` to the existing Settings route module.
 
 ### Known Limitations
 
@@ -138,4 +141,4 @@ Downstream Daily Wellness and Body & Weight route composition remains root-owned
 
 ### Final Status
 
-`PARTIAL` — implementation and exact-head validation pending.
+`REVIEW` — bounded source implementation is complete; exact-head CI/review remain.
