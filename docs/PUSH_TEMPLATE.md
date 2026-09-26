@@ -147,8 +147,11 @@ For those scopes:
 
 - run the task-specific migration/RLS/security validation and inspect Supabase Security Advisor when relevant;
 - inspect repository security/code-scanning checks when available;
-- verify from current branch/ruleset configuration whether a failing check is actually required for merge;
-- classify failures explicitly as a concrete security finding/completed analysis, a required merge-check failure, an external scanner/infrastructure failure before meaningful analysis, or a supplemental/non-required check;
+- record **merge-gate requirement** separately: verify from current branch/ruleset configuration whether the check is required or supplemental/non-required;
+- record **analysis outcome/cause** separately: distinguish a concrete security finding/completed analysis from an external scanner/infrastructure failure before meaningful analysis;
+- combine both axes in the PR report when a check does not pass (for example, `required + infrastructure failure` or `supplemental + concrete finding`);
+- treat any failed/incomplete required check as merge-blocking until it passes or an authorized owner/admin changes the policy, including when the cause is scanner infrastructure;
+- treat a concrete finding as a real security finding even when its check is supplemental/non-required;
 - never report an infrastructure failure as a security pass or as proof of a product vulnerability;
 - never weaken branch protection or suppress a real finding merely to make a PR mergeable.
 
