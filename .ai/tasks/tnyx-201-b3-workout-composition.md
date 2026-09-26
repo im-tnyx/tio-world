@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub main `c47094f85ba3e02ccce999a12efe5c8398ee2cd4`; no open TNYX-201 implementation PR/branch existed before B3 branch creation.
 **Branch:** `tnyx/tnyx-201-b3-workout-composition`
-**HEAD SHA:** `c47094f85ba3e02ccce999a12efe5c8398ee2cd4` before this brief commit
+**HEAD SHA:** `d8061f530e40bc7bc1a2ea0dc12c156c73bb15cd` at pre-PR scope-audit checkpoint; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365 active child; GitHub #357 remains planning-only
-**Current implementation state:** Readiness audit complete; source extraction not started
+**Current implementation state:** B3 source extraction complete. The two Workout providers now live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/workout_providers.dart`, Product Onboarding completion provider consumer
 **Validation completed at SHA:** None
-**Validation remaining:** focused app tests, Flutter analyze/test, scope audit, whitespace/diff hygiene, CI
+**Validation remaining:** GitHub CI on the final PR head; review-thread audit; final exact-head scope audit.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Extract the two Workout providers unchanged and preserve the network_providers.dart compatibility surface.
+**Next exact action:** Open Draft PR from the audited four-file branch and obtain exact-head CI validation.
 
 ## Global UI / Design-System Guardrail
 
@@ -123,12 +123,12 @@ Moving Body/Wellness next was rejected for B3 because `bodySetupRepositoryProvid
 
 ## 5. Implementation Plan
 
-- [ ] create `composition/workout_providers.dart`
-- [ ] remove only the two approved provider definitions from `network_providers.dart`
-- [ ] re-export the new composition file
-- [ ] remove now-unused Workout import from `network_providers.dart`
-- [ ] preserve all existing consumers
-- [ ] audit exact branch delta
+- [x] create `composition/workout_providers.dart`
+- [x] remove only the two approved provider definitions from `network_providers.dart`
+- [x] re-export the new composition file
+- [x] remove now-unused Workout import from `network_providers.dart`
+- [x] preserve all existing consumers
+- [x] audit exact branch delta
 - [ ] obtain focused/app validation and CI
 - [ ] reconcile GitHub/Linear/task state for review
 
@@ -149,11 +149,14 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b3-workout-composition.md`
+- `apps/app/lib/app/composition/workout_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
 
 ### Actual Behavior
 
-Pending. No product/runtime behavior change is intended.
+No product/runtime behavior change is intended. Existing consumers continue importing the same provider symbols through `network_providers.dart`; only ownership location changed. `network_providers.dart` dropped from 294 to 274 lines.
 
 ### Known Limitations
 
