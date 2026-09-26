@@ -6,7 +6,6 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 import 'composition/auth_providers.dart';
-import 'composition/hydration_preferences_providers.dart';
 import 'composition/runtime_providers.dart';
 import 'profile/canonical_profile_data_reader.dart';
 
