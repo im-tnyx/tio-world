@@ -44,7 +44,7 @@ Same paths/deep links, root navigator, Settings callbacks, Nutrition visibility 
 
 ## Implementation checklist
 
-- [ ] verify branch/worktree state before source mutation
+- [x] verify branch/worktree state before source mutation (GitHub/API equivalent: base/merge-base `main@42d4435e`, 6 ahead / 0 behind, exactly 4 owned paths before fix)
 - [x] create `routing/routes/settings_routes.dart`
 - [x] replace only four recorded root route registrations with builder assembly
 - [x] audit references/imports and one-router authority
@@ -65,3 +65,11 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 - extracted module contains exactly the four frozen route paths
 - `AppRoutes.appSettings` and `AppRoutes.measurementUnitsSettings` remain in root router
 - next gate: PR exact-head Flutter CI and review; local CLI validation is not claimed from connector-only execution
+
+## CI correction checkpoint
+
+- Flutter CI #2800 / run `36238809064` failed in `Analyze Flutter packages` only.
+- Exact finding: unused `package:tio_shared/shared.dart` import in `apps/app/lib/app/router.dart` after Settings routes moved to their owned module.
+- Narrow fix commit: `90e95db2ed946aa98e343ae79d90744531ef34bd`; removed only that stale import, with no behavior or scope change.
+- Bootstrap had passed before the analyzer finding; later analyze/test steps were skipped by fail-fast.
+- next gate: fresh exact-head CI on the corrected branch, then independent review/thread audit.
