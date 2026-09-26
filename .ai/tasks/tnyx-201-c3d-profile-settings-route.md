@@ -17,22 +17,22 @@
 
 **Planning owner:** current C3d planning/reconciliation session
 **Implementation owner:** current C3d implementation session
-**Review owner:** None yet
-**Implementation ownership state:** Active
+**Review owner:** Codex exact-head review + primary integration review
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@a23bb6bbbd0ca9043dc626b12b9af4f3b9fb88de`
 **Branch:** `tnyx/tnyx-201-c3d-profile-settings-route`
-**HEAD SHA:** `744891a8f6d51a777c9782cd89863521b9aad1b4` source-implementation checkpoint before this handoff update
+**HEAD SHA:** `20f8ab9417db863724089373ffdbf3fa15f83d25` validated source/docs head before this final handoff update
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #398 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Profile Settings registration moved into new `profile_routes.dart`; root duplicate/direct import removed; Profile/Profile Avatar routes untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, new `apps/app/lib/app/routing/routes/profile_routes.dart`, existing `apps/app/lib/app/profile/profile_settings_route.dart`, route/profile tests
-**Validation completed at SHA:** `744891a8f6d51a777c9782cd89863521b9aad1b4` API scope/invariant audit: 4 ahead / 0 behind, exactly 4 owned paths; root Profile Settings registration 0, profile module registration 1, root Profile 1, root Profile Avatar 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0, no trailing-whitespace/conflict findings; moved `GoRoute` equivalent ignoring indentation
-**Validation remaining:** exact PR diff audit, exact-head Flutter CI/analyze/tests, independent review
+**Validation completed at SHA:** `20f8ab9417db863724089373ffdbf3fa15f83d25`: Flutter CI #2813 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); Commit attribution guard PASS; Attribution guard runner PASS; API scope audit 5 ahead / 0 behind with exactly 4 owned paths; PR diff trailing whitespace 0 and conflict markers 0; moved `GoRoute` equivalent ignoring indentation; root Profile Settings registration 0, profile module registration 1, root Profile 1, root Profile Avatar 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0; Codex exact-head review found no major issues; unresolved review threads 0; supplemental GHAS failed before analysis because its configured model returned `400 The requested model is not supported` (known TNYX-256 external outage, no security finding produced)
+**Validation remaining:** final governance-only head revalidation after this handoff commit
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Open focused Draft PR, validate exact-head CI/diff/review, then reconcile review state
+**Next exact action:** Revalidate the final governance-only head, then mark PR #399 Ready for Review; do not merge without explicit owner instruction
 
 ## Global UI / Design-System Guardrail
 
@@ -111,15 +111,28 @@ No failure/loading/accessibility/UI behavior changes. Existing `ProfileSettingsR
 - [x] verify Profile/Profile Avatar registrations remain root-owned
 - [x] verify one-router authority and route reference count
 - [x] audit exact parent-to-head changed files
-- [ ] run exact-head CI/analyze/tests and diff validation
-- [ ] request independent review
+- [x] run exact-head CI/analyze/tests and diff validation
+- [x] request independent review
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Validated source/docs head: 20f8ab9417db863724089373ffdbf3fa15f83d25
+Flutter CI #2813: PASS
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+Commit attribution guard: PASS
+Attribution guard runner: PASS
+API ancestry/scope: 5 ahead / 0 behind; exactly 4 owned paths
+PR diff: trailing whitespace 0; conflict markers 0
+Codex exact-head review: no major issues
+Unresolved review threads: 0
+Supplemental GHAS: failed before analysis with unsupported-model 400; known TNYX-256 external outage, no finding produced
 ```
 
 ### Review Findings and Resolution
@@ -146,4 +159,4 @@ Profile and Profile Avatar route composition stays root-owned by design for late
 
 ### Final Status
 
-`REVIEW` — bounded implementation is complete; exact-head CI/review remain.
+`REVIEW` — bounded implementation is validated and ready for final governance-only head revalidation / Ready for Review transition.
