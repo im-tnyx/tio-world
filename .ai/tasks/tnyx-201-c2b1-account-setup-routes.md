@@ -16,13 +16,13 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@edc86745aa28ce631ad11be0399bc87ee3fbc127` after C2a archive PR #382.
 **Branch:** `tnyx/tnyx-201-c2b1-account-setup-routes`
-**HEAD SHA:** source checkpoint `764e182586072fc5ee18e2d460c6198aa7eeee4b`; subsequent handoff update is documentation-only.
+**HEAD SHA:** validated source/review checkpoint `b587a5994c7d13935a7185a2958ad947e3141068`; this handoff reconciliation is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2b1 child #383; TNYX-202/#261 explicitly separate.
 **Current blocker:** None.
-**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
+**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #384 ready for review and reconcile TNYX-201 to In Review.
 
 ## 1. Discovery
 
@@ -78,13 +78,45 @@ apps/app/lib/app/router.dart  # single GoRouter owner + lifecycle callbacks
 - [x] remove now-unused Account Setup imports from root router
 - [x] keep Product Onboarding block untouched
 - [x] audit route/reference preservation + one-router authority
-- [ ] obtain exact-head CI
-- [ ] whitespace/conflict audit
+- [x] obtain exact-head CI
+- [x] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Source checkpoint `764e1825`; exact-head GitHub CI pending. Static audit confirms exact four-file scope, preserved Account Setup/username route references, one root `goRouterProvider` / `GoRouter(...)`, zero `GoRouter(...)` constructions in the new module, and byte-for-byte unchanged Product Onboarding + congratulations block.
+```text
+Initial CI #2793 / run 36233670653 @ a1750f18077fec6bca454cdc89c261ea9ffb05f5
+- Bootstrap workspace: PASS
+- Flutter analyze: FAIL
+- finding: root callback still referenced `accountSetupRepositoryProvider` after its import was removed
+- fix: commit `b587a5994c7d13935a7185a2958ad947e3141068` restores the narrow direct `account_setup/account_setup_providers.dart` import
+
+Validated source head CI #2794 / run 36233752458 @ b587a5994c7d13935a7185a2958ad947e3141068
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+
+API-mode scope / behavior-preservation audit
+- base ancestor: PASS
+- ahead / behind: 6 / 0
+- changed files: exactly 4 C2b1-owned paths
+- trailing whitespace / conflict markers: 0 findings
+- Account Setup / username route reference counts: unchanged vs base
+- Product Onboarding + congratulations block: byte-for-byte unchanged
+- root lifecycle operation reference counts: unchanged vs base
+- root goRouterProvider definitions: 1
+- root GoRouter(...) constructions: 1
+- Account Setup route module GoRouter(...) constructions: 0
+- review threads: 0 at validated source checkpoint
+
+Non-required GHAS failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
+```
+
+This handoff update is documentation-only and requires one final exact-head CI recheck.
 
 ## 6. Final Handoff
 
@@ -108,4 +140,4 @@ Source checkpoint `764e1825`; exact-head GitHub CI pending. Static audit confirm
 
 ### Final status
 
-`IMPLEMENTED — VALIDATION PENDING`
+`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
