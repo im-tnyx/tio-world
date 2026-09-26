@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub main `d9edb55be00a7b2a520e3d1cba7fdfa37bd0252d`; B3 merged/archived and B4 is the sole active #260 source slice.
 **Branch:** `tnyx/tnyx-201-b4-onboarding-composition`
-**HEAD SHA:** `d9edb55be00a7b2a520e3d1cba7fdfa37bd0252d` before this brief commit
+**HEAD SHA:** `3989a9801ad336c9fb73fe40e94382a867222f23` at pre-PR scope-audit checkpoint; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #368 active child; TNYX-202/#261 separate and out of scope; #357 planning-only
-**Current implementation state:** Readiness audit complete; source extraction not started
+**Current implementation state:** B4 source extraction complete. The four app-owned Onboarding composition symbols now live in `app/composition/onboarding_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/onboarding_providers.dart`, `apps/app/lib/main.dart`, `apps/app/lib/app/onboarding/onboarding_completion_use_case_provider.dart`
 **Validation completed at SHA:** None
-**Validation remaining:** focused app tests, Flutter analyze/test, scope audit, whitespace/diff hygiene, CI
+**Validation remaining:** GitHub CI on the final PR head; review-thread audit; final exact-head scope audit.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Extract the four approved app-owned Onboarding composition symbols unchanged and preserve the `network_providers.dart` compatibility surface.
+**Next exact action:** Open Draft PR from the audited four-file branch and obtain exact-head CI validation.
 
 ## Global UI / Design-System Guardrail
 
@@ -125,12 +125,12 @@ Moving OnboardingController/provider definitions from `apps/features/onboarding`
 
 ## 5. Implementation Plan
 
-- [ ] create `composition/onboarding_providers.dart`
-- [ ] move only the four approved symbols unchanged
-- [ ] re-export the new composition module from `network_providers.dart`
-- [ ] remove now-unused Onboarding import from `network_providers.dart`
-- [ ] preserve all existing consumers
-- [ ] audit exact branch delta
+- [x] create `composition/onboarding_providers.dart`
+- [x] move only the four approved symbols unchanged
+- [x] re-export the new composition module from `network_providers.dart`
+- [x] remove now-unused Onboarding import from `network_providers.dart`
+- [x] preserve all existing consumers
+- [x] audit exact branch delta
 - [ ] obtain focused/app validation and CI
 - [ ] reconcile GitHub/Linear/task state for review
 
@@ -151,11 +151,14 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b4-onboarding-composition.md`
+- `apps/app/lib/app/composition/onboarding_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
 
 ### Actual Behavior
 
-Pending. No product/runtime behavior change is intended.
+No product/runtime behavior change is intended. Existing consumers continue importing the same Onboarding symbols through `network_providers.dart`; only composition ownership location changed. `network_providers.dart` dropped from 274 to 232 lines.
 
 ### Known Limitations
 
