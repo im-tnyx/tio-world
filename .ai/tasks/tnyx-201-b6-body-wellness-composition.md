@@ -19,10 +19,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@804b1087ff57c70ee3b87ea157b9b37ae0f6d4b9` after B5 archive PR #373.
 **Branch:** `tnyx/tnyx-201-b6-body-wellness-composition`
-**HEAD SHA:** branch created from `804b1087ff57c70ee3b87ea157b9b37ae0f6d4b9`; source mutation not yet applied.
+**HEAD SHA:** source checkpoint `a0fa67d1f59504d4291ba15e5b5ba4c5ab4e731b`; subsequent handoff update is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #374 B6 child; TNYX-154 separate; #357 planning-only.
 **Current blocker:** None.
-**Next exact action:** Move the approved Body/Wellness provider group unchanged into `app/composition/body_wellness_providers.dart` and preserve `network_providers.dart` compatibility.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
 
 ## 1. Discovery
 
@@ -87,20 +87,38 @@ apps/app/lib/app/composition/
 
 ## 5. Implementation Plan
 
-- [ ] create `composition/body_wellness_providers.dart`
-- [ ] move exactly five public providers unchanged
-- [ ] move private adapter unchanged
-- [ ] re-export module from `network_providers.dart`
-- [ ] preserve all existing consumer imports/overrides
-- [ ] audit parent-to-head scope
+- [x] create `composition/body_wellness_providers.dart`
+- [x] move exactly five public providers unchanged
+- [x] move private adapter unchanged
+- [x] re-export module from `network_providers.dart`
+- [x] preserve all existing consumer imports/overrides
+- [x] audit parent-to-head scope
 - [ ] obtain exact-head CI
 - [ ] run/record `git diff --check`
 - [ ] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
-Pending.
+Source checkpoint `a0fa67d1`; exact-head GitHub CI pending.
 
 ## 7. Final Handoff
 
-Pending implementation and validation.
+### Changed files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b6-body-wellness-composition.md`
+- `apps/app/lib/app/composition/body_wellness_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
+
+### Source checkpoint
+
+- base: `main@804b1087ff57c70ee3b87ea157b9b37ae0f6d4b9`
+- source checkpoint: `a0fa67d1f59504d4291ba15e5b5ba4c5ab4e731b`
+- exact branch scope: four B6-owned files
+- `network_providers.dart`: 166 → 88 lines
+- new Body/Wellness module: 83 source lines
+- no consumer, feature-package, router, UI, backend or schema paths changed
+
+### Final status
+
+`IMPLEMENTED — VALIDATION PENDING`
