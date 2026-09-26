@@ -27,11 +27,11 @@
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365; PR #366 ready for review; GitHub #357 remains planning-only
 **Current implementation state:** B3 source extraction complete. The two Workout providers now live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/workout_providers.dart`, Product Onboarding completion provider consumer
-**Validation completed at SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` passed Flutter CI #2771 / run `36218676430`; review checkpoint `beb62a26f77dd582ed08cee49f93ac1cd7298be8` passed exact-head Flutter CI #2772 / run `36219154979`, including bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests.
-**Validation remaining:** No implementation validation remains. Live PR checks remain the merge gate; do not rerun CI solely because this handoff text is corrected unless repository automation does so automatically.
+**Validation completed at SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` passed Flutter CI #2771; review checkpoint `beb62a26f77dd582ed08cee49f93ac1cd7298be8` passed CI #2772; documentation-review fix checkpoint `e9a4028943b6a73a61ccb0be813e4256d8463406` passed exact-head Flutter CI #2773 / run `36221452562`, including bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests.
+**Validation remaining:** None for B3 implementation/review. This final handoff record is documentation-only; any automatically triggered CI on this documentation commit is a repository gate, not a new implementation requirement.
 **Current blocker:** None
-**Open review finding IDs:** `PRRT_kwDOTOXwB86mOCSv` — P2 stale final handoff; addressed by this documentation-only correction and pending thread recheck/resolution.
-**Next exact action:** Recheck the live review thread and PR checks, resolve the addressed P2 finding when verified, then stop at the merge decision. No next implementation slice starts before B3 is merged/post-merge reconciled.
+**Open review finding IDs:** None. Codex P2 thread `PRRT_kwDOTOXwB86mOCSv` was addressed in `e9a40289`, replied to, and resolved after verification.
+**Next exact action:** Stop at the merge decision for PR #366. No next implementation slice starts before B3 is merged and post-merge reconciled.
 
 ## Global UI / Design-System Guardrail
 
@@ -149,6 +149,7 @@ Flutter CI #2771 / run 36218676430 @ 5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 | --- | --- | --- | --- | --- | --- |
+| `PRRT_kwDOTOXwB86mOCSv` | P2 | Resolved | Final handoff still described completed exact-head validation/reconciliation as pending | `beb62a26` | Fixed in `e9a40289`; reply comment `4110339888`; thread resolved; CI #2773 passed |
 
 ## 7. Final Handoff
 
