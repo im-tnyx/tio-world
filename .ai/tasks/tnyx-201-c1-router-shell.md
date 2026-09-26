@@ -16,13 +16,13 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@3dbd2ecf208267346676f43d81d6d53a1112a8af` after B6 archive PR #376.
 **Branch:** `tnyx/tnyx-201-c1-router-shell`
-**HEAD SHA:** source checkpoint `850c0d65b041cfba272444f331facb21fd10ef0d`; subsequent handoff update is documentation-only.
+**HEAD SHA:** validated source/review checkpoint `f5df76e375254d9d4a802e70fd068b7afd2a1882`; this handoff reconciliation is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C1 child #377.
 **Current blocker:** None.
-**Next exact action:** Open Draft PR, run exact-head CI, then complete shell behavior/scope/review audit.
+**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #378 ready for review and reconcile TNYX-201 to In Review.
 
 ## 1. Discovery
 
@@ -93,13 +93,40 @@ apps/app/lib/app/
 - [x] keep `rootNavigatorKey`, chrome policy and `goRouterProvider` in root
 - [x] preserve existing test imports
 - [x] audit parent-to-head scope
-- [ ] obtain exact-head CI
-- [ ] record whitespace/conflict audit
+- [x] obtain exact-head CI
+- [x] record whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 6. Quality Review
 
-Source checkpoint `850c0d65`; exact-head CI pending. Static ownership audit confirms one root `goRouterProvider`/`GoRouter(...)`, one root `shellChromePolicyForPath`, and one extracted `StatefulShellRoute.indexedStack`.
+```text
+Flutter CI #2786 / run 36228547519 @ f5df76e375254d9d4a802e70fd068b7afd2a1882
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+API-mode scope / behavior-preservation audit
+- base ancestor: PASS
+- ahead / behind: 6 / 0
+- changed files: exactly 4 C1-owned paths
+- trailing whitespace / conflict markers: 0 findings after cleanup commit f5df76e3
+- root goRouterProvider definitions: 1
+- root GoRouter(...) constructions: 1
+- root shellChromePolicyForPath definitions: 1
+- shell GoRouter(...) constructions: 0
+- extracted StatefulShellRoute.indexedStack definitions: 1
+- baseline vs current combined source AppRoutes.* references: 0 count differences
+- baseline vs current combined source FeatureRoutes.* references: 0 count differences
+- baseline vs current combined source shell ValueKey(...) references: 0 count differences
+- baseline vs current combined source ShellTab.* references: 0 count differences
+- review threads: 0 at validated source checkpoint
+
+Non-required GHAS failed before code analysis because the configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
+```
+
+This handoff update is documentation-only and requires one final exact-head CI recheck.
 
 ## 7. Final Handoff
 
@@ -122,4 +149,4 @@ Source checkpoint `850c0d65`; exact-head CI pending. Static ownership audit conf
 
 ### Final status
 
-`IMPLEMENTED — VALIDATION PENDING`
+`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
