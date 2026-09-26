@@ -3,15 +3,14 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
-import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 import 'composition/auth_providers.dart';
 import 'composition/runtime_providers.dart';
-import 'hydration_preferences_session_boundary.dart';
 import 'profile/canonical_profile_data_reader.dart';
 
 export 'composition/auth_providers.dart';
+export 'composition/hydration_preferences_providers.dart';
 export 'composition/runtime_providers.dart';
 
 /// Canonical common Profile owner used by Supabase production composition.
@@ -62,25 +61,6 @@ final wellnessTargetsRepositoryProvider =
 final wellnessTargetsDataProvider =
     FutureProvider<WellnessTargetsData?>((ref) async {
   final repository = ref.watch(wellnessTargetsRepositoryProvider);
-  return repository.read();
-});
-
-/// Settings-owned, device-local Default Glass Size preference.
-final hydrationPreferencesRepositoryProvider =
-    Provider<HydrationPreferencesRepository>(
-  (ref) => SharedPreferencesHydrationPreferencesRepository(),
-);
-
-final hydrationPreferencesSessionBoundaryProvider =
-    Provider<HydrationPreferencesSessionBoundary>(
-  (ref) => HydrationPreferencesSessionBoundary(
-    ref.watch(hydrationPreferencesRepositoryProvider),
-  ),
-);
-
-final hydrationPreferencesDataProvider =
-    FutureProvider.autoDispose<HydrationPreferences>((ref) async {
-  final repository = ref.watch(hydrationPreferencesRepositoryProvider);
   return repository.read();
 });
 
