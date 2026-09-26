@@ -1,8 +1,9 @@
 # TNYX-201 C3d — Profile Settings Route Registration Extraction
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
+**Completed:** 2026-09-26
 **Tracker:** GitHub #398; parent #357 / #260; Linear TNYX-201
 
 ## Owner Approval and Scope Boundary
@@ -16,23 +17,23 @@
 ## Active Handoff
 
 **Planning owner:** current C3d planning/reconciliation session
-**Implementation owner:** current C3d implementation session
-**Review owner:** Codex exact-head review + primary integration review
+**Implementation owner:** None active; bounded source implementation is complete
+**Review owner:** None active; exact-head review completed before merge
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub/API at `main@a23bb6bbbd0ca9043dc626b12b9af4f3b9fb88de`
-**Branch:** `tnyx/tnyx-201-c3d-profile-settings-route`
-**HEAD SHA:** `20f8ab9417db863724089373ffdbf3fa15f83d25` validated source/docs head before this final handoff update
+**Repository state last verified:** `main@9f8d9efc47da8d6d16277644023936dafbb2c3c2` after PR #399 squash merge
+**Branch:** source `tnyx/tnyx-201-c3d-profile-settings-route`; archive `tnyx/tnyx-201-c3d-archive`
+**HEAD SHA:** exact reviewed final head `56d2d4e0778ddd27c28eb839dd4e742f9ef9160e`; merged as `9f8d9efc47da8d6d16277644023936dafbb2c3c2`
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #398 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Profile Settings registration moved into new `profile_routes.dart`; root duplicate/direct import removed; Profile/Profile Avatar routes untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, new `apps/app/lib/app/routing/routes/profile_routes.dart`, existing `apps/app/lib/app/profile/profile_settings_route.dart`, route/profile tests
-**Validation completed at SHA:** `20f8ab9417db863724089373ffdbf3fa15f83d25`: Flutter CI #2813 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); Commit attribution guard PASS; Attribution guard runner PASS; API scope audit 5 ahead / 0 behind with exactly 4 owned paths; PR diff trailing whitespace 0 and conflict markers 0; moved `GoRoute` equivalent ignoring indentation; root Profile Settings registration 0, profile module registration 1, root Profile 1, root Profile Avatar 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0; Codex exact-head review found no major issues; unresolved review threads 0; supplemental GHAS failed before analysis because its configured model returned `400 The requested model is not supported` (known TNYX-256 external outage, no security finding produced)
-**Validation remaining:** final governance-only head revalidation after this handoff commit
+**Validation completed at SHA:** `56d2d4e0778ddd27c28eb839dd4e742f9ef9160e`: Flutter CI #2814 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); Commit attribution guard PASS; Attribution guard runner PASS; API scope audit 6 ahead / 0 behind with exactly 4 owned paths; PR diff trailing whitespace 0 and conflict markers 0; moved `GoRoute` equivalent ignoring indentation; root Profile Settings registration 0, profile module registration 1, root Profile 1, root Profile Avatar 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0; Codex exact-head review found no major issues; unresolved review threads 0; supplemental GHAS failed before analysis because its configured model returned `400 The requested model is not supported` (known TNYX-256 external outage, no security finding produced)
+**Validation remaining:** None for C3d. Archive reconciliation is docs-only.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Revalidate the final governance-only head, then mark PR #399 Ready for Review; do not merge without explicit owner instruction
+**Next exact action:** None for C3d. PR #399 is merged and this brief is archived; no next source slice is authorized by this archive.
 
 ## Global UI / Design-System Guardrail
 
@@ -119,8 +120,8 @@ No failure/loading/accessibility/UI behavior changes. Existing `ProfileSettingsR
 ### Validation Run
 
 ```text
-Validated source/docs head: 20f8ab9417db863724089373ffdbf3fa15f83d25
-Flutter CI #2813: PASS
+Validated final reviewed head: 56d2d4e0778ddd27c28eb839dd4e742f9ef9160e
+Flutter CI #2814: PASS
 - Bootstrap workspace: PASS
 - Analyze Flutter packages: PASS
 - Analyze Dart packages: PASS
@@ -128,7 +129,7 @@ Flutter CI #2813: PASS
 - Test Dart packages: PASS
 Commit attribution guard: PASS
 Attribution guard runner: PASS
-API ancestry/scope: 5 ahead / 0 behind; exactly 4 owned paths
+API ancestry/scope before merge: 6 ahead / 0 behind; exactly 4 owned paths
 PR diff: trailing whitespace 0; conflict markers 0
 Codex exact-head review: no major issues
 Unresolved review threads: 0
@@ -159,4 +160,22 @@ Profile and Profile Avatar route composition stays root-owned by design for late
 
 ### Final Status
 
-`REVIEW` — bounded implementation is validated and ready for final governance-only head revalidation / Ready for Review transition.
+`VALIDATED — MERGED VIA PR #399 (9f8d9efc)`
+
+
+## Final Merge Validation
+
+- exact final reviewed head: `56d2d4e0778ddd27c28eb839dd4e742f9ef9160e`
+- Flutter CI #2814 / run `36249754950`: full PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- final Codex review: no major issues
+- unresolved review threads: 0
+- exact PR diff: trailing whitespace 0; conflict markers 0
+- non-required GHAS: failed before analysis because configured Copilot model returned `400 The requested model is not supported`; known TNYX-256 external outage, no code-scanning finding produced
+- PR #399 squash-merged on 2026-09-26 as `9f8d9efc47da8d6d16277644023936dafbb2c3c2`
+- GitHub #398 closed as completed
+
+## Archive Handoff
+
+C3d is complete. Profile Settings route registration is now owned by `routing/routes/profile_routes.dart`. The Profile and Profile Avatar mixed workflow routes remain intentionally root-owned. A future source slice requires a fresh current-main audit and explicit owner authorization.
