@@ -29,9 +29,9 @@
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
 **Validation completed at SHA:** `9ac87c3086b40d3b098ee926417b763528282aa5` — Flutter CI #2801 full PASS
 **Validation remaining:** Fresh exact-head Flutter CI after governance-only correction; fresh review-thread audit
-**Current blocker:** Three Codex governance findings on the task brief
-**Open review finding IDs:** C3A-R1, C3A-R2, C3A-R3
-**Next exact action:** Correct this task brief, reply/resolve the validated governance findings, then re-audit exact-head CI and threads before any merge decision.
+**Current blocker:** None; prior Codex governance findings are resolved. Exact-head CI and fresh thread audit remain gates, not blockers.
+**Open review finding IDs:** None
+**Next exact action:** Complete exact-head CI, then re-audit review threads/checks before any merge decision.
 
 ## Outcome
 
@@ -119,6 +119,9 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| C3A-R1 | P2 | Resolved in governance correction | Task brief used unsupported `In review` status while task index used `In progress`. | `b5e7bea3` | Status normalized to allowed `In progress`. |
-| C3A-R2 | P1 | Resolved with recorded deviation | Source-implementation approval evidence was not explicit enough in the pre-implementation brief. | `b5e7bea3` | Current owner approval is explicit; the earlier recording gap is documented and not backdated. No new source implementation is performed by this correction. |
-| C3A-R3 | P2 | Resolved in governance correction | Active ownership/handoff state was missing. | `b5e7bea3` | Added compact `Active Handoff` with implementation complete and review ownership active. |
+| C3A-R1 | P2 | Resolved | Task brief used unsupported `In review` status while task index used `In progress`. | `b5e7bea3` | Status normalized to allowed `In progress`. |
+| C3A-R2 | P1 | Resolved | Source-implementation approval evidence was not explicit enough in the pre-implementation brief. | `b5e7bea3` | Current owner approval is explicit; the earlier recording gap is documented and not backdated. No new source implementation is performed by this correction. |
+| C3A-R3 | P2 | Resolved | Active ownership/handoff state was missing. | `b5e7bea3` | Added compact `Active Handoff` with implementation complete and review ownership active. |
+
+| C3A-R4 | P1 | Resolved | Active Handoff still listed R1–R3 as blockers/open after their resolution. | `3ddc8727` | Blocker/open-ID fields now reflect the resolved state; remaining CI/thread audit is recorded as the next gate. |
+| C3A-R5 | P1 | Resolved | Finding rows used non-contract status phrases instead of exact `Open` / `Resolved` / `Deferred`. | `3ddc8727` | Status cells normalized to exact `Resolved`; qualifiers remain in evidence text. |
