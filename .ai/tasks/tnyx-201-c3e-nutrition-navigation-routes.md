@@ -18,10 +18,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@2c143408be79ab969ad39e13e72e0234766e1f05`
 **Branch:** `tnyx/tnyx-201-c3e-nutrition-navigation-routes`
-**Current implementation state:** task activated; source not yet mutated
-**Validation remaining:** parent-to-head scope audit, exact PR diff audit, exact-head Flutter CI, independent review
+**Current implementation state:** two navigation-only Nutrition route registrations moved into new `nutrition_routes.dart`; mixed Nutrition routes and shell shortcut untouched
+**Validation remaining:** exact PR diff audit, exact-head Flutter CI, independent review
 **Current blocker:** None
-**Next exact action:** create `buildNutritionRoutes(...)`, move only the two navigation-only registrations, then validate
+**Next exact action:** open focused Draft PR, validate exact-head diff/CI/review, then reconcile review state
 
 ## Discovery
 
@@ -58,18 +58,18 @@ Root `router.dart` assembles `buildNutritionRoutes(rootNavigatorKey: ...)`; new 
 
 ## Implementation Plan
 
-- [ ] add `nutrition_routes.dart`
-- [ ] replace two root registrations with `...buildNutritionRoutes(...)`
-- [ ] preserve registration position/order
-- [ ] verify mixed Nutrition registrations remain root-owned
-- [ ] verify shell shortcut unchanged
-- [ ] verify one-router authority
+- [x] add `nutrition_routes.dart`
+- [x] replace two root registrations with `...buildNutritionRoutes(...)`
+- [x] preserve registration position/order
+- [x] verify mixed Nutrition registrations remain root-owned
+- [x] verify shell shortcut unchanged
+- [x] verify one-router authority
 - [ ] validate exact-head scope/diff/CI/review
 
 ## Quality Review
 
-Pending.
+API scope/invariant audit at source checkpoint: 4 ahead / 0 behind; exactly 4 owned paths; root target registrations 0/0; module registrations 1/1; mixed Nutrition routes remain root-owned; shell Meal Diary Settings shortcut count 1; root `GoRouter(...)` 1; module `GoRouter(...)` 0; source trailing whitespace 0; conflict markers 0; both moved `GoRoute` blocks equivalent ignoring indentation.
 
 ## Final Handoff
 
-`PARTIAL` — implementation and validation pending.
+`REVIEW` — bounded implementation is complete; exact-head PR/CI/review remain.
