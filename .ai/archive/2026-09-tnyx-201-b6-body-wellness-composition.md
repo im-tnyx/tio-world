@@ -1,6 +1,7 @@
 # TNYX-201 B6 — Body + Wellness Composition Split
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app composition root
 **Affected platforms:** Flutter phone app
 
@@ -17,12 +18,12 @@
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
-**Repository state last verified:** `main@804b1087ff57c70ee3b87ea157b9b37ae0f6d4b9` after B5 archive PR #373.
-**Branch:** `tnyx/tnyx-201-b6-body-wellness-composition`
-**HEAD SHA:** validated review checkpoint `e7ad38bda7ba297217ae618637c7b37c1e56e90d`; this handoff reconciliation is documentation-only.
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #374 B6 child; TNYX-154 separate; #357 planning-only.
+**Repository state last verified:** 2026-09-26 after PR #375 squash merge; GitHub `main` is `91e6758bd5ba72617a1e5cf84d39c89ec8c1be58`.
+**Branch:** `tnyx/tnyx-201-b6-body-wellness-composition` (merged via PR #375; branch cleanup remains optional and was not performed without a separate request).
+**HEAD SHA:** final reviewed PR head `2fc15ef06c69028f5a8eeaf8c47697d63511a339`; squash-merged to `main` as `91e6758bd5ba72617a1e5cf84d39c89ec8c1be58`.
+**PR / tracker:** PR #375 merged; GitHub #374 closed by merge; Linear TNYX-201 / GitHub #260 remain the umbrella for later separately authorized work; TNYX-154 remains separate; #357 remains planning-only pending fresh next-slice audit.
 **Current blocker:** None.
-**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #375 ready for review and reconcile TNYX-201 to In Review.
+**Next exact action:** None for B6. Fresh post-merge audit decides whether Slice B is complete or whether a separately authorized Profile composition slice is still warranted before router #357.
 
 ## 1. Discovery
 
@@ -95,7 +96,7 @@ apps/app/lib/app/composition/
 - [x] audit parent-to-head scope
 - [x] obtain exact-head CI
 - [x] record API-mode equivalent parent/head whitespace/conflict audit
-- [ ] reconcile GitHub/Linear/task state for review
+- [x] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
@@ -118,7 +119,7 @@ API-mode equivalent scope/whitespace validation
 Non-required GHAS failed before code analysis because the configured model returned `400 The requested model is not supported`; no code-scanning finding was produced.
 ```
 
-This handoff update is documentation-only and requires one final exact-head CI recheck.
+Final reviewed head `2fc15ef06c69028f5a8eeaf8c47697d63511a339` was revalidated by Flutter CI #2783 / run `36227524389`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Commit attribution guard and Attribution guard runner passed. Non-required GHAS failed before code analysis because the configured model was unsupported; no code-scanning finding was produced.
 
 ## 7. Final Handoff
 
@@ -140,4 +141,4 @@ This handoff update is documentation-only and requires one final exact-head CI r
 
 ### Final status
 
-`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
+`PASS`: merged via PR #375 as `91e6758bd5ba72617a1e5cf84d39c89ec8c1be58` on 2026-09-26T07:53:14Z (UTC). Exact final head `2fc15ef06c69028f5a8eeaf8c47697d63511a339` passed Flutter CI #2783 and attribution guards; API-mode whitespace/conflict audit was clean; 0 unresolved review threads remained.
