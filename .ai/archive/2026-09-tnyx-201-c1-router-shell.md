@@ -1,6 +1,7 @@
 # TNYX-201 C1 — Router Shell Extraction
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
 
@@ -17,12 +18,12 @@
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
-**Repository state last verified:** `main@3dbd2ecf208267346676f43d81d6d53a1112a8af` after B6 archive PR #376.
-**Branch:** `tnyx/tnyx-201-c1-router-shell`
-**HEAD SHA:** validated source/review checkpoint `f5df76e375254d9d4a802e70fd068b7afd2a1882`; this handoff reconciliation is documentation-only.
-**PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C1 child #377.
+**Repository state last verified:** 2026-09-26 after PR #378 squash merge; GitHub `main` is `85a14875ddfe9948c7308c10791612b33e70ad8c`.
+**Branch:** `tnyx/tnyx-201-c1-router-shell` (merged via PR #378; branch cleanup remains optional and was not performed without a separate request).
+**HEAD SHA:** final reviewed PR head `9e889e9debeeebecf661d850026a4c31201166ef`; squash-merged to `main` as `85a14875ddfe9948c7308c10791612b33e70ad8c`.
+**PR / tracker:** PR #378 merged; GitHub #377 closed by merge; #357 / #260 / Linear TNYX-201 remain parent planning/acceptance trackers.
 **Current blocker:** None.
-**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #378 ready for review and reconcile TNYX-201 to In Review.
+**Next exact action:** None for C1. Fresh post-merge audit decides the next bounded router slice under #357.
 
 ## 1. Discovery
 
@@ -95,7 +96,7 @@ apps/app/lib/app/
 - [x] audit parent-to-head scope
 - [x] obtain exact-head CI
 - [x] record whitespace/conflict audit
-- [ ] reconcile review handoff
+- [x] reconcile review handoff
 
 ## 6. Quality Review
 
@@ -126,7 +127,7 @@ API-mode scope / behavior-preservation audit
 Non-required GHAS failed before code analysis because the configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
 ```
 
-This handoff update is documentation-only and requires one final exact-head CI recheck.
+Final reviewed head `9e889e9debeeebecf661d850026a4c31201166ef` was revalidated by Flutter CI #2787 / run `36229082683`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Attribution guards passed. Non-required GHAS failed before code analysis because the configured Copilot model was unsupported; no code-scanning finding was produced.
 
 ## 7. Final Handoff
 
@@ -149,4 +150,4 @@ This handoff update is documentation-only and requires one final exact-head CI r
 
 ### Final status
 
-`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
+`PASS`: merged via PR #378 as `85a14875ddfe9948c7308c10791612b33e70ad8c` on 2026-09-26T08:37:50Z (UTC). Exact final head `9e889e9debeeebecf661d850026a4c31201166ef` passed Flutter CI #2787 and attribution guards; whitespace/conflict audit was clean; one root router authority remained; 0 unresolved review threads remained.
