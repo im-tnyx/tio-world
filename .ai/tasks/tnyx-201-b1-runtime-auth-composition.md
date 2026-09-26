@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub API compare: branch identical to main at e838083376551c4f27885656aa2d027a4216a4db before this brief
 **Branch:** tnyx/tnyx-201-b1-runtime-auth-composition
-**HEAD SHA:** e838083376551c4f27885656aa2d027a4216a4db before task-brief commit
+**HEAD SHA:** e0f1738df286f5ebee71165f8966fc6697030cf2 at validated runtime-code checkpoint; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as the equivalent safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #359 active implementation tracker; GitHub #357 remains planning-only Slice C
-**Current implementation state:** Discovery, exploration and architecture boundary completed; source extraction not started
+**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #359; Draft PR #360; GitHub #357 remains planning-only Slice C
+**Current implementation state:** B1 source extraction complete. Runtime/API and Auth/session composition are split into `app/composition/`; `network_providers.dart` remains the compatibility surface and owns the remaining feature composition.
 **Relevant execution surface:** apps/app/lib/app/network_providers.dart; new apps/app/lib/app/composition/*
-**Validation completed at SHA:** None
-**Validation remaining:** focused provider tests, cd apps/app && flutter analyze && flutter test, git diff --check, CI/PR checks
-**Current blocker:** Dedicated Linear child could not be created because workspace free issue limit was reached; TNYX-201 is the live Linear status tracker. Local Flutter execution is not available in this connector-only session, so CI/another execution environment must provide runtime validation.
+**Validation completed at SHA:** `e0f1738df286f5ebee71165f8966fc6697030cf2` — Flutter CI #2763 / run 36214859548: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
+**Validation remaining:** Exact-head CI rerun after this documentation-only handoff update; final API scope/whitespace audit; review readiness.
+**Current blocker:** No code blocker. Dedicated Linear child could not be created because the workspace free issue limit was reached, so TNYX-201 is the live Linear tracker. Local Flutter execution is unavailable in this connector-only session; GitHub CI supplies runtime validation.
 **Open review finding IDs:** None
-**Next exact action:** Extract the approved runtime and Auth provider groups into two app/composition files and retain network_providers.dart as compatibility re-export + remaining feature composition.
+**Next exact action:** Revalidate the documentation-only final head, reconcile PR #360 / TNYX-201 / #359 to In Review, and stop before merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -151,21 +151,28 @@ No product-visible failure or accessibility state changes are allowed. Existing 
 
 ## 5. Implementation Plan
 
-- [ ] create composition/runtime_providers.dart
-- [ ] create composition/auth_providers.dart
-- [ ] remove only the approved moved definitions from network_providers.dart
-- [ ] import/re-export composition files from network_providers.dart
-- [ ] keep all current consumers source-compatible
-- [ ] review exact branch delta for scope
-- [ ] run/obtain focused + app validation
-- [ ] open/update PR only after scope audit
+- [x] create composition/runtime_providers.dart
+- [x] create composition/auth_providers.dart
+- [x] remove only the approved moved definitions from network_providers.dart
+- [x] import/re-export composition files from network_providers.dart
+- [x] keep all current consumers source-compatible
+- [x] review exact branch delta for scope
+- [x] run/obtain focused + app validation
+- [x] open/update PR only after scope audit
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Flutter CI #2763 / run 36214859548 @ e0f1738df286f5ebee71165f8966fc6697030cf2
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+Initial CI #2762 failed only on one stale unused import in network_providers.dart; commit e0f1738d removed it and #2763 passed completely.
 ```
 
 ### Review Findings and Resolution
@@ -178,15 +185,19 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b1-runtime-auth-composition.md`
+- `apps/app/lib/app/composition/runtime_providers.dart`
+- `apps/app/lib/app/composition/auth_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
 
 ### Actual Behavior
 
-Pending.
+No product/runtime behavior is intentionally changed. Existing `network_providers.dart` consumers keep the same provider symbols via re-exports. `network_providers.dart` dropped from 494 to 314 lines after extracting runtime/API and Auth/session composition.
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; validation must come from CI or a compatible execution environment before completion can be claimed.
+Local Flutter tooling is unavailable in this connector-only session. GitHub Flutter CI #2763 passed the full workspace analyze/test workflow at the validated runtime-code checkpoint. A final exact-head rerun is required after this documentation-only handoff update.
 
 ### Final Status
 
