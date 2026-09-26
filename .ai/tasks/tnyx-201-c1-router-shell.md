@@ -19,10 +19,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@3dbd2ecf208267346676f43d81d6d53a1112a8af` after B6 archive PR #376.
 **Branch:** `tnyx/tnyx-201-c1-router-shell`
-**HEAD SHA:** branch created from `3dbd2ecf208267346676f43d81d6d53a1112a8af`; source mutation not yet applied.
+**HEAD SHA:** source checkpoint `850c0d65b041cfba272444f331facb21fd10ef0d`; subsequent handoff update is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C1 child #377.
 **Current blocker:** None.
-**Next exact action:** Extract only shell-owned route composition into `app/routing/shell/shell_route.dart`, preserving `router.dart` as the single public router owner.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete shell behavior/scope/review audit.
 
 ## 1. Discovery
 
@@ -85,22 +85,41 @@ apps/app/lib/app/
 
 ## 5. Implementation Plan
 
-- [ ] create `routing/shell/shell_route.dart`
-- [ ] move shell branch/page/child-route helpers unchanged
-- [ ] move shell top-bar calendar helpers unchanged
-- [ ] move shell action handler unchanged
-- [ ] replace inline `StatefulShellRoute.indexedStack` with shell factory call
-- [ ] keep `rootNavigatorKey`, chrome policy and `goRouterProvider` in root
-- [ ] preserve existing test imports
-- [ ] audit parent-to-head scope
+- [x] create `routing/shell/shell_route.dart`
+- [x] move shell branch/page/child-route helpers unchanged
+- [x] move shell top-bar calendar helpers unchanged
+- [x] move shell action handler unchanged
+- [x] replace inline `StatefulShellRoute.indexedStack` with shell factory call
+- [x] keep `rootNavigatorKey`, chrome policy and `goRouterProvider` in root
+- [x] preserve existing test imports
+- [x] audit parent-to-head scope
 - [ ] obtain exact-head CI
 - [ ] record whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 6. Quality Review
 
-Pending.
+Source checkpoint `850c0d65`; exact-head CI pending. Static ownership audit confirms one root `goRouterProvider`/`GoRouter(...)`, one root `shellChromePolicyForPath`, and one extracted `StatefulShellRoute.indexedStack`.
 
 ## 7. Final Handoff
 
-Pending implementation and validation.
+### Changed files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c1-router-shell.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/shell/shell_route.dart`
+
+### Source checkpoint
+
+- base: `main@3dbd2ecf208267346676f43d81d6d53a1112a8af`
+- source checkpoint: `850c0d65b041cfba272444f331facb21fd10ef0d`
+- exact branch scope: four C1-owned files
+- `router.dart`: 1738 → 1461 lines
+- new shell module: 304 source lines
+- root `goRouterProvider`, root navigator key and chrome policy preserved
+- no non-shell route group, feature source, UI contract, backend or schema path changed
+
+### Final status
+
+`IMPLEMENTED — VALIDATION PENDING`
