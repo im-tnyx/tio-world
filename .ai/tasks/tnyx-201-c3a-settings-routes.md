@@ -1,9 +1,37 @@
 # TNYX-201 C3a — Settings Route Registration Extraction
 
-**Status:** In review
+**Status:** In progress
 **Primary owner:** apps/app routing composition
 **Tracker:** GitHub #389; parent #357 / #260; Linear TNYX-201
-**Approval:** Owner authorized planning/preparation via chat on 2026-09-26. Source implementation remains bounded to this recorded slice.
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product task/feature slice
+**Approval status:** Approved
+**Approval evidence:** Owner instructed “Go next” for the current #260/router continuation in project chat on 2026-09-26 and has now explicitly instructed continuation of the latest PR under `AGENTS.md`. The pre-implementation task brief did not record source-implementation approval clearly enough; that governance gap is recorded here rather than backdated.
+**Approved product/UI/data-shape boundaries:** C3a is limited to extracting Settings root, App Mode, Calendar and Theme route registration into `app/routing/routes/settings_routes.dart` with behavior preserved.
+**Explicit non-changes:** No Profile, Measurement Units, Nutrition, Wellness, Body, Account, `AppOnboardingController`, `CalendarPreferencesController` ownership, UI, persistence, API, Supabase or schema change.
+
+## Active Handoff
+
+**Planning owner:** TNYX-201 / GitHub #260 + #357 planning lane
+**Implementation owner:** None active; bounded source implementation is complete on the PR branch
+**Review owner:** Current PR review/reconciliation session
+**Implementation ownership state:** Complete
+**Ownership transition:** Not applicable
+**Repository state last verified:** GitHub PR #390 exact branch/head review
+**Branch:** `tnyx/tnyx-201-c3a-settings-routes`
+**HEAD SHA:** `b5e7bea3db4b9505432f212f02e7f95e06b2483c` before this governance-only correction
+**Observed working-tree state:** Connector/API review only; no local working tree claimed
+**Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
+**PR / tracker:** PR #390; GitHub #389 / #357 / #260; Linear TNYX-201
+**Current implementation state:** Four frozen Settings routes extracted; source diff independently reviewed as behavior-preserving
+**Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
+**Validation completed at SHA:** `9ac87c3086b40d3b098ee926417b763528282aa5` — Flutter CI #2801 full PASS
+**Validation remaining:** Fresh exact-head Flutter CI after governance-only correction; fresh review-thread audit
+**Current blocker:** Three Codex governance findings on the task brief
+**Open review finding IDs:** C3A-R1, C3A-R2, C3A-R3
+**Next exact action:** Correct this task brief, reply/resolve the validated governance findings, then re-audit exact-head CI and threads before any merge decision.
 
 ## Outcome
 
@@ -85,3 +113,12 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 - review-thread audit at validated head: 0 unresolved threads; 0 submitted reviews
 - non-required GHAS: failed before analysis with `400 The requested model is not supported`; no code-scanning finding was produced
 - this handoff commit is documentation-only; next gate is exact-final-head CI plus fresh review/thread audit before any merge decision
+
+
+## Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| C3A-R1 | P2 | Resolved in governance correction | Task brief used unsupported `In review` status while task index used `In progress`. | `b5e7bea3` | Status normalized to allowed `In progress`. |
+| C3A-R2 | P1 | Resolved with recorded deviation | Source-implementation approval evidence was not explicit enough in the pre-implementation brief. | `b5e7bea3` | Current owner approval is explicit; the earlier recording gap is documented and not backdated. No new source implementation is performed by this correction. |
+| C3A-R3 | P2 | Resolved in governance correction | Active ownership/handoff state was missing. | `b5e7bea3` | Added compact `Active Handoff` with implementation complete and review ownership active. |
