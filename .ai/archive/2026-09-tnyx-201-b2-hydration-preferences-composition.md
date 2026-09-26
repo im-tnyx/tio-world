@@ -1,6 +1,7 @@
 # TNYX-201 B2 — HydrationPreferences Composition Split
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app composition root
 **Affected platforms:** Flutter phone app
 
@@ -19,19 +20,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub main `509c9ba55388ab1c2eecc77a4b9d4e78b7688283`; no active TNYX-201 implementation branch/PR existed before branch creation.
-**Branch:** `tnyx/tnyx-201-b2-hydration-preferences-composition`
-**HEAD SHA:** runtime/source checkpoint `304c18a63b40a60b73789a25ff5ca47f26d191fc`; this handoff update is documentation-only
+**Repository state last verified:** 2026-09-26 after PR #363 squash merge; GitHub `main` is `05dd852bbfe6fefd6f6817b983f66db0ee059c20`.
+**Branch:** `tnyx/tnyx-201-b2-hydration-preferences-composition` (merged via PR #363; remote branch still exists at this archive checkpoint because the current connector exposes no branch-delete action).
+**HEAD SHA:** final reviewed PR head `3b99f1a6bd48286d6a0aeace9434277e060acd75`; squash-merged to `main` as `05dd852bbfe6fefd6f6817b983f66db0ee059c20`.
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #362; Draft PR #363; GitHub #357 remains planning-only
-**Current implementation state:** B2 source extraction complete. The three HydrationPreferences providers now live in `app/composition/hydration_preferences_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
+**PR / tracker:** PR #363 merged; GitHub #362 closed by merge; Linear TNYX-201 / GitHub #260 remain the open umbrella; GitHub #357 remains planning-only Slice C.
+**Current implementation state:** Complete and merged. The three HydrationPreferences providers live in `app/composition/hydration_preferences_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, `apps/app/lib/app/hydration_preferences_session_boundary.dart`, new `apps/app/lib/app/composition/hydration_preferences_providers.dart`
-**Validation completed at SHA:** `304c18a63b40a60b73789a25ff5ca47f26d191fc` — Flutter CI #2768 / run `36217231609`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Initial CI #2767 failed only on one unused import in `network_providers.dart`; commit `304c18a6` removed it.
-**Validation remaining:** Exact-head CI after this documentation-only handoff update, then final review-thread/scope audit and review-state reconciliation.
+**Validation completed at SHA:** exact reviewed head `3b99f1a6bd48286d6a0aeace9434277e060acd75` — Flutter CI #2769 / run `36217727528`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Runtime/source checkpoint `304c18a6` also passed full CI #2768 after removing the one stale unused import found by CI #2767.
+**Validation remaining:** None for B2.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Revalidate the final documentation-only head, then mark PR #363 ready for review and reconcile TNYX-201/#362 without merging.
+**Next exact action:** None for B2. Any later provider group or router work requires a fresh current-head audit and separate owner authorization under #260/TNYX-201.
 
 ## Global UI / Design-System Guardrail
 
@@ -128,7 +129,7 @@ Bundling Wellness targets with HydrationPreferences was rejected because canonic
 - [x] preserve all existing consumers
 - [x] audit exact branch delta
 - [x] obtain focused/app validation and CI
-- [ ] reconcile GitHub/Linear/task state for review
+- [x] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
@@ -161,12 +162,12 @@ Initial CI #2767 failed only because `network_providers.dart` still imported the
 
 ### Actual Behavior
 
-No product/runtime behavior change is intended. Existing consumers continue importing the same provider symbols through `network_providers.dart`; only ownership location changed. `network_providers.dart` dropped from 314 to 295 lines.
+No product/runtime behavior change is intended. Existing consumers continue importing the same provider symbols through `network_providers.dart`; only ownership location changed. `network_providers.dart` dropped from 314 to 294 lines after the unused-import cleanup.
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI provides executable validation. This final handoff commit is documentation-only and needs one exact-head CI rerun before review readiness is claimed.
+Local Flutter tooling was unavailable in this connector-only session, so GitHub CI supplied executable validation. The B2 source branch still exists remotely at this archive checkpoint because the current GitHub connector does not expose branch deletion.
 
 ### Final Status
 
-`REVIEW`
+`PASS`: merged via PR #363 as `05dd852bbfe6fefd6f6817b983f66db0ee059c20` on 2026-09-26T04:34:40Z (UTC). Exact review head `3b99f1a6` passed Flutter CI #2769 with 0 unresolved review threads; GitHub #362 closed on merge. TNYX-201/#260 remain open for later separately authorized slices.
