@@ -19,10 +19,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@cb9c3845be0889ca3f56894123286834a1219d1f` after C1 archive PR #379.
 **Branch:** `tnyx/tnyx-201-c2a-auth-routes`
-**HEAD SHA:** branch created from `cb9c3845be0889ca3f56894123286834a1219d1f`; source mutation not yet applied.
+**HEAD SHA:** source checkpoint `49e86352d2dcec5d7420b084e80c40aebbccf6f8`; subsequent handoff update is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2a child #380.
 **Current blocker:** None.
-**Next exact action:** Extract the six approved Auth/pre-auth routes into `app/routing/routes/auth_routes.dart` and preserve root router authority.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
 
 ## 1. Discovery
 
@@ -66,21 +66,40 @@ apps/app/lib/app/router.dart  # single GoRouter owner/assembly
 
 ## 4. Implementation Plan
 
-- [ ] create `routing/routes/auth_routes.dart`
-- [ ] move exactly six Auth/pre-auth GoRoutes
-- [ ] inject root navigator key, pending mode preference and explicit-login callback
-- [ ] preserve backend-user-state assignment and auth providers
-- [ ] replace inline block with spread route-group factory
-- [ ] keep Account Setup/Onboarding untouched
-- [ ] audit route/reference preservation
+- [x] create `routing/routes/auth_routes.dart`
+- [x] move exactly six Auth/pre-auth GoRoutes
+- [x] inject root navigator key, pending mode preference and explicit-login callback
+- [x] preserve backend-user-state assignment and auth providers
+- [x] replace inline block with spread route-group factory
+- [x] keep Account Setup/Onboarding untouched
+- [x] audit route/reference preservation
 - [ ] obtain exact-head CI
 - [ ] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Pending.
+Source checkpoint `49e86352`; exact-head GitHub CI pending. Static audit: exact four-file scope, base ancestor, all six Auth route reference counts preserved, one root `goRouterProvider` / `GoRouter(...)`, zero `GoRouter(...)` constructions in `auth_routes.dart`.
 
 ## 6. Final Handoff
 
-Pending implementation and validation.
+### Changed files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c2a-auth-routes.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/auth_routes.dart`
+
+### Source checkpoint
+
+- base: `main@cb9c3845be0889ca3f56894123286834a1219d1f`
+- source checkpoint: `49e86352d2dcec5d7420b084e80c40aebbccf6f8`
+- exact branch scope: four C2a-owned files
+- `router.dart`: 1461 → 1351 lines
+- new Auth route module: 135 source lines
+- six Auth/pre-auth route reference counts unchanged vs base
+- Account Setup / Onboarding route source unchanged
+
+### Final status
+
+`IMPLEMENTED — VALIDATION PENDING`
