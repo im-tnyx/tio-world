@@ -21,14 +21,14 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub API compare: branch identical to main at e838083376551c4f27885656aa2d027a4216a4db before this brief
 **Branch:** tnyx/tnyx-201-b1-runtime-auth-composition
-**HEAD SHA:** e0f1738df286f5ebee71165f8966fc6697030cf2 at validated runtime-code checkpoint; this handoff update is documentation-only
+**HEAD SHA:** 6afe30c7b787f491daf225df597f7da7ee01ebbe at exact-head CI checkpoint before this final evidence-only update
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as the equivalent safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #359; Draft PR #360; GitHub #357 remains planning-only Slice C
 **Current implementation state:** B1 source extraction complete. Runtime/API and Auth/session composition are split into `app/composition/`; `network_providers.dart` remains the compatibility surface and owns the remaining feature composition.
 **Relevant execution surface:** apps/app/lib/app/network_providers.dart; new apps/app/lib/app/composition/*
-**Validation completed at SHA:** `e0f1738df286f5ebee71165f8966fc6697030cf2` — Flutter CI #2763 / run 36214859548: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
-**Validation remaining:** Exact-head CI rerun after this documentation-only handoff update; final API scope/whitespace audit; review readiness.
+**Validation completed at SHA:** `6afe30c7b787f491daf225df597f7da7ee01ebbe` — Flutter CI #2764 / run 36215363918: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Runtime-code checkpoint `e0f1738df286f5ebee71165f8966fc6697030cf2` also passed full CI in #2763.
+**Validation remaining:** Exact-head CI rerun after this final evidence-only documentation update; then review-state reconciliation only.
 **Current blocker:** No code blocker. Dedicated Linear child could not be created because the workspace free issue limit was reached, so TNYX-201 is the live Linear tracker. Local Flutter execution is unavailable in this connector-only session; GitHub CI supplies runtime validation.
 **Open review finding IDs:** None
 **Next exact action:** Revalidate the documentation-only final head, reconcile PR #360 / TNYX-201 / #359 to In Review, and stop before merge.
@@ -172,7 +172,14 @@ Flutter CI #2763 / run 36214859548 @ e0f1738df286f5ebee71165f8966fc6697030cf2
 - Test Flutter packages: PASS
 - Test Dart packages: PASS
 
-Initial CI #2762 failed only on one stale unused import in network_providers.dart; commit e0f1738d removed it and #2763 passed completely.
+Flutter CI #2764 / run 36215363918 @ 6afe30c7b787f491daf225df597f7da7ee01ebbe
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+Initial CI #2762 failed only on one stale unused import in network_providers.dart; commit e0f1738d removed it and both later full CI runs passed.
 ```
 
 ### Review Findings and Resolution
@@ -197,7 +204,7 @@ No product/runtime behavior is intentionally changed. Existing `network_provider
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session. GitHub Flutter CI #2763 passed the full workspace analyze/test workflow at the validated runtime-code checkpoint. A final exact-head rerun is required after this documentation-only handoff update.
+Local Flutter tooling is unavailable in this connector-only session. GitHub Flutter CI #2763 passed the runtime-code checkpoint and #2764 passed the documentation handoff head. This final evidence-only update requires one exact-head rerun before review readiness is claimed.
 
 ### Final Status
 
