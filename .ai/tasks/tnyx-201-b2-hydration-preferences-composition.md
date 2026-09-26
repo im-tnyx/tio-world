@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub main `509c9ba55388ab1c2eecc77a4b9d4e78b7688283`; no active TNYX-201 implementation branch/PR existed before branch creation.
 **Branch:** `tnyx/tnyx-201-b2-hydration-preferences-composition`
-**HEAD SHA:** `0b511f1da85c8624e3149903c1645835591f6a98` at pre-PR scope-audit checkpoint; this handoff update is documentation-only
+**HEAD SHA:** runtime/source checkpoint `304c18a63b40a60b73789a25ff5ca47f26d191fc`; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #362 active child; GitHub #357 remains planning-only
+**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #362; Draft PR #363; GitHub #357 remains planning-only
 **Current implementation state:** B2 source extraction complete. The three HydrationPreferences providers now live in `app/composition/hydration_preferences_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, `apps/app/lib/app/hydration_preferences_session_boundary.dart`, new `apps/app/lib/app/composition/hydration_preferences_providers.dart`
-**Validation completed at SHA:** None
-**Validation remaining:** GitHub CI on the final PR head; review-thread audit; final exact-head scope audit.
+**Validation completed at SHA:** `304c18a63b40a60b73789a25ff5ca47f26d191fc` — Flutter CI #2768 / run `36217231609`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Initial CI #2767 failed only on one unused import in `network_providers.dart`; commit `304c18a6` removed it.
+**Validation remaining:** Exact-head CI after this documentation-only handoff update, then final review-thread/scope audit and review-state reconciliation.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Open Draft PR from the audited four-file branch and obtain exact-head CI validation.
+**Next exact action:** Revalidate the final documentation-only head, then mark PR #363 ready for review and reconcile TNYX-201/#362 without merging.
 
 ## Global UI / Design-System Guardrail
 
@@ -127,7 +127,7 @@ Bundling Wellness targets with HydrationPreferences was rejected because canonic
 - [x] remove now-unused Settings/session-boundary imports from `network_providers.dart`
 - [x] preserve all existing consumers
 - [x] audit exact branch delta
-- [ ] obtain focused/app validation and CI
+- [x] obtain focused/app validation and CI
 - [ ] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
@@ -135,7 +135,14 @@ Bundling Wellness targets with HydrationPreferences was rejected because canonic
 ### Validation Run
 
 ```text
-Not run yet.
+Flutter CI #2768 / run 36217231609 @ 304c18a63b40a60b73789a25ff5ca47f26d191fc
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+Initial CI #2767 failed only because `network_providers.dart` still imported the new composition file while using it only as an export. Commit 304c18a6 removed that stale import; no provider logic changed.
 ```
 
 ### Review Findings and Resolution
@@ -158,7 +165,7 @@ No product/runtime behavior change is intended. Existing consumers continue impo
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI will provide executable validation.
+Local Flutter tooling is unavailable in this connector-only session; GitHub CI provides executable validation. This final handoff commit is documentation-only and needs one exact-head CI rerun before review readiness is claimed.
 
 ### Final Status
 
