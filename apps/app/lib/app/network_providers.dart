@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 
@@ -10,6 +9,7 @@ import 'profile/canonical_profile_data_reader.dart';
 export 'composition/auth_providers.dart';
 export 'composition/hydration_preferences_providers.dart';
 export 'composition/onboarding_providers.dart';
+export 'composition/nutrition_providers.dart';
 export 'composition/runtime_providers.dart';
 export 'composition/workout_providers.dart';
 
@@ -130,72 +130,6 @@ final profileAccountRepositoryProvider =
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
     return SupabaseProfileAccountRepository(client: supabaseClient);
-  }
-  return null;
-});
-
-/// Canonical Nutrition Profile owner used by Product Onboarding completion.
-final nutritionProfileRepositoryProvider =
-    Provider<NutritionProfileRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseNutritionProfileRepository(client: supabaseClient);
-  }
-  return InMemoryNutritionProfileRepository();
-});
-
-/// Canonical Meal Categories owner for future Nutrition consumers.
-final mealCategoriesRepositoryProvider =
-    Provider<MealCategoriesRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseMealCategoriesRepository(client: supabaseClient);
-  }
-  return InMemoryMealCategoriesRepository();
-});
-
-/// Canonical Nutrition Profile read model for post-onboarding Settings.
-///
-/// A missing canonical row resolves to an all-null profile so first-time
-/// editing works without a separate setup workflow.
-final nutritionProfileDataProvider =
-    FutureProvider<NutritionProfileData>((ref) async {
-  final repository = ref.watch(nutritionProfileRepositoryProvider);
-  return await repository.read() ?? const NutritionProfileData();
-});
-
-/// Canonical Nutrition Targets read model for post-onboarding Settings.
-///
-/// A missing canonical row resolves to an all-null target set so first-time
-/// editing works without a separate setup workflow.
-final nutritionTargetsDataProvider =
-    FutureProvider<NutritionTargetsData>((ref) async {
-  final repository = ref.watch(nutritionTargetsRepositoryProvider);
-  return await repository.read() ?? const NutritionTargetsData();
-});
-
-/// Canonical Nutrition Targets owner used by Product Onboarding completion.
-final nutritionTargetsRepositoryProvider =
-    Provider<NutritionTargetsRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseNutritionTargetsRepository(client: supabaseClient);
-  }
-  return InMemoryNutritionTargetsRepository();
-});
-
-/// Natural-language meal-text parsing capability (TNYX-225).
-///
-/// Unlike other Nutrition owners above, this capability has no safe
-/// in-memory/offline fallback: parsing requires the protected
-/// `nutrition-meal-text-parse` Edge Function, so it resolves to `null` when
-/// no Supabase client is available rather than fabricating a fake parser.
-/// TNYX-226 decides how/when the Add Food UI consumes this capability.
-final mealTextParseRepositoryProvider =
-    Provider<MealTextParseRepository?>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseMealTextParseRepository(client: supabaseClient);
   }
   return null;
 });
