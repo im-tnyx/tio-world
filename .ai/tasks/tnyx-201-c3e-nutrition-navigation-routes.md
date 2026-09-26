@@ -1,6 +1,6 @@
 # TNYX-201 C3e — Nutrition Navigation Route Extraction
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
 **Tracker:** GitHub #401; parent #357 / #260; Linear TNYX-201
@@ -8,7 +8,7 @@
 ## Owner Approval and Scope Boundary
 
 **Approval status:** Approved
-**Approval evidence:** Owner said `Go` on 2026-09-26 after fresh current-main audit.
+**Approval evidence:** Owner said `Go` on 2026-09-26 after fresh current-main audit and later authorized governance reconciliation and continuation on 2026-09-26.
 **Approved boundary:** Move only `AppRoutes.nutritionSettings` and `AppRoutes.mealDiarySettings` registrations into new `routing/routes/nutrition_routes.dart`, preserving paths, `rootNavigatorKey`, destination pages and callbacks exactly.
 **Explicit non-changes:** Meal Categories/Archived Meal Categories; Nutrition Profile/Targets/Macros/Additional Goals; `_NutritionLoadFailure`; shell More-menu shortcut; Profile/Wellness/Body/Units/Account; UI; persistence/API/Supabase/schema.
 
@@ -16,12 +16,13 @@
 
 **Implementation owner:** current C3e implementation session
 **Implementation ownership state:** Complete
-**Repository state last verified:** `main@2c143408be79ab969ad39e13e72e0234766e1f05`
+**Repository base last verified:** `main@2c143408be79ab969ad39e13e72e0234766e1f05`
 **Branch:** `tnyx/tnyx-201-c3e-nutrition-navigation-routes`
-**Current implementation state:** implementation complete and validated at source/docs head `32dc360a4819770c196f7e0af0a27f42d061a4b6`; mixed Nutrition routes and shell shortcut untouched
-**Validation remaining:** final governance-only head revalidation after this handoff update
-**Current blocker:** None
-**Next exact action:** revalidate final governance-only head, then mark PR #402 Ready for Review; do not merge without explicit owner instruction
+**Validated source/docs head:** `65105180d2f5c11c36e7c879affb1916e254241b`
+**Current implementation state:** implementation complete; only the two approved navigation-only registrations moved; mixed Nutrition routes and the Meal Diary shell shortcut remain untouched.
+**Validation remaining:** if this handoff reconciliation creates a newer docs-only branch head, verify that current-head required checks complete successfully and that no source scope changed before merge.
+**Current blocker:** None in product/source scope. Supplemental GitHub AI code scanning remains affected by tracked non-required TNYX-256 infrastructure outage.
+**Next exact action:** verify the current branch head and merge gates. Merge only when current-head required checks are satisfied and no new review/scope blocker exists; then follow `docs/POST_MERGE_SYNC.md` and reconcile Linear/GitHub/archive state before starting another source slice.
 
 ## Discovery
 
@@ -65,11 +66,14 @@ Root `router.dart` assembles `buildNutritionRoutes(rootNavigatorKey: ...)`; new 
 - [x] verify shell shortcut unchanged
 - [x] verify one-router authority
 - [x] validate source/docs exact-head scope/diff/CI/review
+- [x] reconcile final review-ready state with GitHub and Linear
 
 ## Quality Review
 
-Validated source/docs head `32dc360a4819770c196f7e0af0a27f42d061a4b6`: Flutter CI #2816 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); Commit attribution guard PASS; Attribution guard runner PASS; Codex exact-head review found no major issues; unresolved review threads 0; exact PR diff trailing whitespace 0 and conflict markers 0; API scope 5 ahead / 0 behind with exactly 4 owned paths; root target registrations 0/0; module registrations 1/1; mixed Nutrition routes remain root-owned; shell Meal Diary Settings shortcut count 1; root `GoRouter(...)` 1; module `GoRouter(...)` 0; both moved `GoRoute` blocks equivalent ignoring indentation; supplemental GHAS failed before analysis with `400 The requested model is not supported` (known TNYX-256 external outage, no security finding produced).
+Validated exact head `65105180d2f5c11c36e7c879affb1916e254241b`: Flutter CI #2817 / `Analyze and test` full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); Commit attribution guard PASS; Attribution guard runner PASS; Codex exact-head review found no major issues; unresolved review threads 0; exact PR diff trailing whitespace 0 and conflict markers 0; API scope 6 ahead / 0 behind with exactly 4 owned paths; root target registrations 0/0; module registrations 1/1; mixed Nutrition routes remain root-owned; shell Meal Diary Settings shortcut unchanged; root `GoRouter(...)` 1; module `GoRouter(...)` 0; both moved `GoRoute` blocks equivalent ignoring indentation.
+
+Supplemental `github-advanced-security` failed before repository analysis at `Processing Request (Linux)` because GitHub's configured Copilot model returned `400 The requested model is not supported`. This is tracked separately as TNYX-256, is not a code/security finding, is not a security pass, and is not a required branch-protection context for `main`.
 
 ## Final Handoff
 
-`REVIEW` — bounded implementation is validated; final governance-only head revalidation remains.
+`REVIEW` — bounded implementation is complete and review-ready. Source/docs validation is complete at `65105180d2f5c11c36e7c879affb1916e254241b`. Any newer branch head created only to reconcile this handoff must still satisfy current-head required merge gates before merge. After merge, run the repository post-merge sync/archive/tracker flow before authorizing another source slice.
