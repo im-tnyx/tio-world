@@ -1,6 +1,7 @@
 # TNYX-201 B3 — Workout Composition Split
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app composition root
 **Affected platforms:** Flutter phone app
 
@@ -19,19 +20,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub main `c47094f85ba3e02ccce999a12efe5c8398ee2cd4`; no open TNYX-201 implementation PR/branch existed before B3 branch creation.
-**Branch:** `tnyx/tnyx-201-b3-workout-composition`
-**HEAD SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550`; this handoff update is documentation-only
+**Repository state last verified:** 2026-09-26 after PR #366 squash merge; GitHub `main` is `18413a401fef8b88ef7fb1f00f052111cb071eac`.
+**Branch:** `tnyx/tnyx-201-b3-workout-composition` (merged via PR #366; remote branch still exists at this archive checkpoint because the current connector exposes no branch-delete action).
+**HEAD SHA:** final reviewed PR head `391425a7a8556becfa7451bc8bdf9ead3b18830e`; squash-merged to `main` as `18413a401fef8b88ef7fb1f00f052111cb071eac`.
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365; PR #366 ready for review; GitHub #357 remains planning-only
-**Current implementation state:** B3 source extraction complete. The two Workout providers now live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
+**PR / tracker:** PR #366 merged; GitHub #365 closed by merge; Linear TNYX-201 / GitHub #260 remain the open umbrella; GitHub #357 remains planning-only Slice C.
+**Current implementation state:** Complete and merged. The two Workout providers live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/workout_providers.dart`, Product Onboarding completion provider consumer
-**Validation completed at SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` passed Flutter CI #2771; review checkpoint `beb62a26f77dd582ed08cee49f93ac1cd7298be8` passed CI #2772; documentation-review fix checkpoint `e9a4028943b6a73a61ccb0be813e4256d8463406` passed exact-head Flutter CI #2773 / run `36221452562`, including bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests.
-**Validation remaining:** None for B3 implementation/review. This final handoff record is documentation-only; any automatically triggered CI on this documentation commit is a repository gate, not a new implementation requirement.
+**Validation completed at SHA:** final reviewed head `391425a7a8556becfa7451bc8bdf9ead3b18830e` — Flutter CI #2774 / run `36221981092`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Earlier full runs #2771, #2772 and #2773 also passed at their checkpoints.
+**Validation remaining:** None for B3.
 **Current blocker:** None
 **Open review finding IDs:** None. Codex P2 thread `PRRT_kwDOTOXwB86mOCSv` was addressed in `e9a40289`, replied to, and resolved after verification.
-**Next exact action:** Stop at the merge decision for PR #366. No next implementation slice starts before B3 is merged and post-merge reconciled.
+**Next exact action:** None for B3. Any later provider group or router work requires a fresh current-head audit and separate owner authorization under #260/TNYX-201.
 
 ## Global UI / Design-System Guardrail
 
@@ -130,7 +131,7 @@ Moving Body/Wellness next was rejected for B3 because `bodySetupRepositoryProvid
 - [x] preserve all existing consumers
 - [x] audit exact branch delta
 - [x] obtain focused/app validation and CI
-- [ ] reconcile GitHub/Linear/task state for review
+- [x] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
@@ -166,8 +167,8 @@ No product/runtime behavior change is intended. Existing consumers continue impo
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI supplies executable validation. Runtime/source validation is complete. This correction changes handoff documentation only and does not invalidate the already-green runtime/source checkpoint; live PR checks remain authoritative for the merge gate.
+Local Flutter tooling was unavailable in this connector-only session, so GitHub CI supplied executable validation. The B3 source branch still exists remotely at this archive checkpoint because the current GitHub connector does not expose branch deletion.
 
 ### Final Status
 
-`REVIEW`
+`PASS`: merged via PR #366 as `18413a401fef8b88ef7fb1f00f052111cb071eac` on 2026-09-26T06:01:17Z (UTC). Exact review head `391425a7` passed Flutter CI #2774; Codex's single P2 handoff-governance finding was fixed/replied/resolved; 0 unresolved review threads remained. TNYX-201/#260 stay open for later separately authorized slices.
