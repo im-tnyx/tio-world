@@ -12,7 +12,6 @@ import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
-import 'package:tio_shared/shared.dart';
 
 import 'account_setup/account_setup_providers.dart';
 import 'app_mode/app_mode.dart';
