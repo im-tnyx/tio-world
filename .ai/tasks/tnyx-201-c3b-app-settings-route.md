@@ -16,23 +16,23 @@
 ## Active Handoff
 
 **Planning owner:** current C3b planning/reconciliation session
-**Implementation owner:** current C3b implementation session
-**Review owner:** Unassigned until implementation checkpoint
-**Implementation ownership state:** Active
+**Implementation owner:** None active; bounded source implementation is complete
+**Review owner:** current PR review/reconciliation session
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`
 **Branch:** `tnyx/tnyx-201-c3b-app-settings-route`
-**HEAD SHA:** `a0ddad620a70938956996893f0a5cfc64c76730f` source implementation checkpoint before this task update
+**HEAD SHA:** `c66d433fce7661d6270d6cb4712aafa229dc7301` validated source/review checkpoint before this documentation-only reconciliation
 **Observed working-tree state:** Connector/API execution only; no local working tree claimed
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #392 / #357 / #260; Linear TNYX-201
 **Current implementation state:** App Settings hub registration moved verbatim into existing `settings_routes.dart`; root duplicate removed
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
-**Validation completed at SHA:** None for C3b
-**Validation remaining:** exact-head Flutter CI, independent review, review-thread audit
+**Validation completed at SHA:** `c66d433fce7661d6270d6cb4712aafa229dc7301` — Flutter CI #2807 full PASS; attribution guards PASS; fresh Codex review found no major issues; 0 unresolved threads
+**Validation remaining:** Final exact-head CI/review after this documentation-only reconciliation
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Open focused PR, run exact-head CI, then independently review diff/threads before merge.
+**Next exact action:** Validate the final documentation-only head, reconcile PR/Linear to merge-ready state, then merge only if all exact-head gates remain clean.
 
 ## 1. Discovery
 
@@ -99,28 +99,33 @@ No failure/accessibility behavior changes. Existing App Settings behavior is mov
 - [x] remove only the duplicate root App Settings route block
 - [x] audit imports and route references
 - [x] verify one-router authority
-- [ ] run exact-head CI
-- [ ] independent review and tracker reconciliation
+- [x] run exact-head CI
+- [x] independent review
+- [ ] final exact-head docs-only validation and tracker reconciliation
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Implementation checkpoint before CI:
+Source/review checkpoint `c66d433fce7661d6270d6cb4712aafa229dc7301`:
 
-- base: `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`
-- source checkpoint: `a0ddad620a70938956996893f0a5cfc64c76730f`
-- compare: 4 commits ahead / 0 behind
-- exactly 4 owned paths: task brief, task index, `router.dart`, `settings_routes.dart`
-- source delta: 28 lines removed from root + same 28 lines added to Settings route builder
-- root `AppRoutes.appSettings` references: 1 (chrome-policy list only)
-- `settings_routes.dart` `AppRoutes.appSettings` references: 2 (Settings navigation callback + route registration)
-- root `GoRouter(...)`: 1
-- route-module `GoRouter(...)`: 0
-- root `goRouterProvider`: 1
-- `buildSettingsRoutes(...)` root assembly calls: 1
+- Flutter CI #2807 / run `36243812138`: PASS
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- fresh Codex review: no major issues
+- unresolved review threads: 0
+- route move audit: App Settings block textually identical apart from indentation
+- changed paths: exactly 4 C3b-owned paths
+- trailing whitespace/conflict markers: 0
+- root `GoRouter(...)`: 1; route-module `GoRouter(...)`: 0
+- non-required GHAS failed before analysis because the configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced
 
-Exact-head Flutter CI has not run yet.
+Initial CI #2806 failed only because `calendar_preferences.dart` became an unused root import after the route move. Narrow fix `c66d433f` removed only that stale import and the corrected exact-head run passed.
 
 ### Review Findings and Resolution
 
@@ -138,7 +143,7 @@ Exact-head Flutter CI has not run yet.
 
 ### Actual Behavior
 
-Expected behavior is unchanged: App Settings still reads current App Mode, Theme and Calendar preference state and navigates to the same App Mode, Measurement Units and Calendar destinations. Only registration ownership moved to the existing Settings route module; exact-head CI/review remains required.
+App Settings still reads current App Mode, Theme and Calendar preference state and navigates to the same App Mode, Measurement Units and Calendar destinations. Only registration ownership moved to the existing Settings route module. Measurement Units/Profile/Nutrition/Wellness/Body/Account blocks remain root-owned and untouched.
 
 ### Known Limitations
 
@@ -146,4 +151,4 @@ Profile and Measurement Units mixed ownership/composition remain intentionally d
 
 ### Final Status
 
-`REVIEW`
+`REVIEW` — source implementation is validated; final docs-only exact-head gate remains before merge.
