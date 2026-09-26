@@ -184,13 +184,14 @@ Inspect applicable security evidence whenever a task or PR touches any of these 
 For those scopes:
 
 1. Run or inspect the task-specific security validation that actually applies, including migration/RLS/security tests, Supabase Security Advisor when relevant, and repository security/code-scanning checks when available.
-2. Classify a failing security check from evidence, not from the word `failure` alone:
-   - **Concrete security finding / completed analysis:** treat the reported code/config/security problem as a real finding and resolve or explicitly disposition it according to severity and repository policy.
-   - **Required merge-check failure:** if the repository's current branch/ruleset configuration marks the check required, merge remains blocked until it passes or an authorized owner/admin explicitly changes that policy.
-   - **External scanner/infrastructure failure:** if the scanner fails before meaningful analysis because of a service/model/platform/tooling problem, record and track it separately; it is neither a security pass nor evidence of a product-code vulnerability.
-   - **Supplemental/non-required security check:** inspect and report it, but do not automatically block otherwise valid unrelated work solely because an external non-required scanner is unavailable.
-3. Verify required-vs-supplemental status from current repository branch/ruleset configuration; never infer it from a check name.
-4. Do not weaken branch protection, suppress a real finding, or add unrelated product/runtime work to silence a security tool.
+2. Record **merge-gate requirement** independently from the check result/cause:
+   - **Required:** if the repository's current branch/ruleset configuration marks the check required, any failed or incomplete check remains merge-blocking until it passes or an authorized owner/admin explicitly changes that policy.
+   - **Supplemental/non-required:** the check is not automatically merge-blocking by required-status alone, but any concrete finding it reports still requires normal security disposition according to severity and repository policy.
+3. Record **analysis outcome/cause** independently from requiredness:
+   - **Concrete security finding / completed analysis:** treat the reported code/config/security problem as a real finding and resolve or explicitly disposition it. A finding remains real even when the producing check is supplemental/non-required.
+   - **External scanner/infrastructure failure before meaningful analysis:** record and track the outage separately; it is neither a security pass nor evidence of a product-code vulnerability. If that scanner is required, the infrastructure failure still blocks merge because requiredness is a separate axis.
+4. Report both axes together when a security check does not pass, for example `required + infrastructure failure` or `supplemental + concrete finding`. Verify required-vs-supplemental status from current repository branch/ruleset configuration; never infer it from a check name.
+5. Do not weaken branch protection, suppress a real finding, or add unrelated product/runtime work to silence a security tool.
 
 Pure UI/layout work, docs-only changes, or unrelated refactors that do not touch a security-sensitive server/data boundary do not automatically require Supabase-specific security validation. Normal repository-required CI and the changed-area validation rules below still apply.
 
