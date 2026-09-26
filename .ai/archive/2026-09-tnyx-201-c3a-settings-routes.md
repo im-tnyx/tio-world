@@ -1,8 +1,10 @@
 # TNYX-201 C3a — Settings Route Registration Extraction
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** apps/app routing composition
+**Affected platforms:** Flutter phone app
 **Tracker:** GitHub #389; parent #357 / #260; Linear TNYX-201
+**Completed:** 2026-09-26
 
 ## Owner Approval and Scope Boundary
 
@@ -15,23 +17,23 @@
 ## Active Handoff
 
 **Planning owner:** TNYX-201 / GitHub #260 + #357 planning lane
-**Implementation owner:** None active; bounded source implementation is complete on the PR branch
-**Review owner:** Current PR review/reconciliation session
+**Implementation owner:** None active; source implementation is merged
+**Review owner:** None; exact-head review completed before merge
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub PR #390 exact branch/head review
-**Branch:** `tnyx/tnyx-201-c3a-settings-routes`
-**HEAD SHA:** `b5e7bea3db4b9505432f212f02e7f95e06b2483c` before this governance-only correction
-**Observed working-tree state:** Connector/API review only; no local working tree claimed
+**Repository state last verified:** `main@31109dac2fecc335c190d4c28fca12e7d8bf9483` after PR #390 squash merge
+**Branch:** source `tnyx/tnyx-201-c3a-settings-routes`; archive `tnyx/tnyx-201-c3a-archive`
+**HEAD SHA:** exact reviewed source head `a8d00e24c32e2d67e316e365f262edf221b8604c`; merged as `31109dac2fecc335c190d4c28fca12e7d8bf9483`
+**Observed working-tree state:** Connector/API post-merge sync only; no local working tree claimed
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** PR #390; GitHub #389 / #357 / #260; Linear TNYX-201
-**Current implementation state:** Four frozen Settings routes extracted; source diff independently reviewed as behavior-preserving
+**Current implementation state:** Four frozen Settings routes are merged and validated; no UI/business/persistence/API/Supabase/schema behavior changed
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
-**Validation completed at SHA:** `9ac87c3086b40d3b098ee926417b763528282aa5` — Flutter CI #2801 full PASS
-**Validation remaining:** Fresh exact-head Flutter CI after governance-only correction; fresh review-thread audit
-**Current blocker:** None; prior Codex governance findings are resolved. Exact-head CI and fresh thread audit remain gates, not blockers.
+**Validation completed at SHA:** `a8d00e24c32e2d67e316e365f262edf221b8604c` — Flutter CI #2804 full PASS; attribution guards PASS; fresh Codex review found no major issues; 0 unresolved threads
+**Validation remaining:** None for C3a. Archive reconciliation is docs-only.
+**Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Complete exact-head CI, then re-audit review threads/checks before any merge decision.
+**Next exact action:** None for C3a. Source PR #390 is merged and this brief is archived; no next source slice is authorized by this archive.
 
 ## Outcome
 
@@ -78,7 +80,7 @@ Same paths/deep links, root navigator, Settings callbacks, Nutrition visibility 
 - [x] audit references/imports and one-router authority
 - [x] run focused app validation (Flutter CI #2801 source/review head)
 - [x] run required broader validation (full monorepo Flutter/Dart analyze + tests in CI #2801)
-- [ ] review exact head and reconcile trackers
+- [x] review exact head and reconcile trackers
 
 ## Exit criteria
 
@@ -86,7 +88,7 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 
 ## Implementation checkpoint
 
-- branch compare: 5 commits ahead / 0 behind from `main@42d4435e`
+- final branch compare: 11 commits ahead / 0 behind from `main@42d4435e`
 - effective paths: 4
 - one `GoRouter(...)` remains in root router
 - one `buildSettingsRoutes(...)` assembly point
@@ -125,3 +127,33 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 
 | C3A-R4 | P1 | Resolved | Active Handoff still listed R1–R3 as blockers/open after their resolution. | `3ddc8727` | Blocker/open-ID fields now reflect the resolved state; remaining CI/thread audit is recorded as the next gate. |
 | C3A-R5 | P1 | Resolved | Finding rows used non-contract status phrases instead of exact `Open` / `Resolved` / `Deferred`. | `3ddc8727` | Status cells normalized to exact `Resolved`; qualifiers remain in evidence text. |
+
+
+## Final Merge Validation
+
+- exact reviewed head: `a8d00e24c32e2d67e316e365f262edf221b8604c`
+- Flutter CI #2804 / run `36240901871`: PASS for bootstrap, Flutter analyze, Dart analyze, Flutter tests, and Dart tests
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- fresh Codex review on exact head: no major issues
+- unresolved review threads before merge: 0
+- non-required GHAS: failed before analysis because configured Copilot model `claude-opus-5` was unsupported; no code-scanning finding was produced
+- PR #390 squash-merged on 2026-09-26 as `31109dac2fecc335c190d4c28fca12e7d8bf9483`
+- GitHub #389 closed as completed
+
+## Final Handoff
+
+### Changed files in source PR
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c3a-settings-routes.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/settings_routes.dart`
+
+### Actual behavior
+
+Settings root, App Mode Settings, Calendar Settings and Theme Settings route registration now live in the app-owned Settings route module. Root `router.dart` remains the single `GoRouter` owner and still injects the existing controllers/callbacks. Route paths, navigation behavior, Settings feature ownership, Calendar preference ownership, visible UI, persistence and API/Supabase behavior are unchanged.
+
+### Final status
+
+`VALIDATED — MERGED VIA PR #390 (31109dac)`
