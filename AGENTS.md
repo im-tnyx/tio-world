@@ -169,6 +169,31 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Supabase is active current infrastructure, not future work; a current Supabase schema/RLS/RPC change is allowed when a concrete active feature genuinely needs it and the bounded task approves it. Do not add Docker/local-database CI, paid Supabase environments, or extra RPC-hardening/verification infrastructure merely for speculative future-safety.
 - `services/api` remains architecture-only (ADR-0007) until a separately approved implementation slice starts it. Documenting or planning it does not authorize writing backend code.
 
+## Security-Sensitive Change Validation
+
+Inspect applicable security evidence whenever a task or PR touches any of these security-sensitive boundaries:
+
+- `supabase/functions/**` Edge Functions
+- Supabase Auth, sessions, login/signup/admission, or account-linking behavior
+- migrations, tables, RLS policies, grants, RPCs, triggers, views, `SECURITY DEFINER`, or other privileged database code
+- secrets, tokens, API keys, service credentials, signing/authentication material, or server-held provider credentials
+- OAuth or external account/provider integrations
+- server-side AI/provider calls or external APIs that use protected credentials
+- future approved protected service code under `services/api`
+
+For those scopes:
+
+1. Run or inspect the task-specific security validation that actually applies, including migration/RLS/security tests, Supabase Security Advisor when relevant, and repository security/code-scanning checks when available.
+2. Classify a failing security check from evidence, not from the word `failure` alone:
+   - **Concrete security finding / completed analysis:** treat the reported code/config/security problem as a real finding and resolve or explicitly disposition it according to severity and repository policy.
+   - **Required merge-check failure:** if the repository's current branch/ruleset configuration marks the check required, merge remains blocked until it passes or an authorized owner/admin explicitly changes that policy.
+   - **External scanner/infrastructure failure:** if the scanner fails before meaningful analysis because of a service/model/platform/tooling problem, record and track it separately; it is neither a security pass nor evidence of a product-code vulnerability.
+   - **Supplemental/non-required security check:** inspect and report it, but do not automatically block otherwise valid unrelated work solely because an external non-required scanner is unavailable.
+3. Verify required-vs-supplemental status from current repository branch/ruleset configuration; never infer it from a check name.
+4. Do not weaken branch protection, suppress a real finding, or add unrelated product/runtime work to silence a security tool.
+
+Pure UI/layout work, docs-only changes, or unrelated refactors that do not touch a security-sensitive server/data boundary do not automatically require Supabase-specific security validation. Normal repository-required CI and the changed-area validation rules below still apply.
+
 ## Git And Push Workflow
 
 Before commit, push, or PR creation:
@@ -204,7 +229,7 @@ flutter analyze
 flutter test
 ```
 
-For Supabase changes, use the feature task's documented migration/RLS/security checks. For a future protected backend, use the selected runtime's documented commands; do not assume a backend toolchain before its first service slice is approved.
+For Supabase or other security-sensitive server/data changes, apply the Security-Sensitive Change Validation rule above and run the feature task's documented migration/RLS/security checks. For a future protected service under `services/api`, use the selected runtime's documented commands; do not assume a backend toolchain before its first service slice is approved.
 
 For docs-only changes, at minimum run:
 
