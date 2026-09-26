@@ -45,9 +45,9 @@ Same paths/deep links, root navigator, Settings callbacks, Nutrition visibility 
 ## Implementation checklist
 
 - [ ] verify branch/worktree state before source mutation
-- [ ] create `routing/routes/settings_routes.dart`
-- [ ] replace only four recorded root route registrations with builder assembly
-- [ ] audit references/imports and one-router authority
+- [x] create `routing/routes/settings_routes.dart`
+- [x] replace only four recorded root route registrations with builder assembly
+- [x] audit references/imports and one-router authority
 - [ ] run focused app validation
 - [ ] run required broader validation
 - [ ] review exact head and reconcile trackers
@@ -55,3 +55,13 @@ Same paths/deep links, root navigator, Settings callbacks, Nutrition visibility 
 ## Exit criteria
 
 No unrelated route block moves, no UI/business/persistence change, validation passes, review findings resolved, and post-merge archive completed before the next source slice.
+
+## Implementation checkpoint
+
+- branch compare: 5 commits ahead / 0 behind from `main@42d4435e`
+- effective paths: 4
+- one `GoRouter(...)` remains in root router
+- one `buildSettingsRoutes(...)` assembly point
+- extracted module contains exactly the four frozen route paths
+- `AppRoutes.appSettings` and `AppRoutes.measurementUnitsSettings` remain in root router
+- next gate: PR exact-head Flutter CI and review; local CLI validation is not claimed from connector-only execution
