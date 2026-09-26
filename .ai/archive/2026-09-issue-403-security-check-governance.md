@@ -96,7 +96,9 @@ Runtime/source paths: 0
 Trailing whitespace: 0
 Conflict markers: 0
 Missing-final-newline markers: 0
-Repository workflows/status checks: none triggered for docs-only exact head
+Commit attribution guard: PASS
+Attribution guard runner: PASS
+Supplemental github-advanced-security: FAILURE; tracked separately under TNYX-256 and not recorded as a security pass
 Codex exact-head re-review: no major issues
 Unresolved review threads before merge: 0
 PR #405 squash merge: aede3c675d803ae81dc205c7114aad6d91394a1c
@@ -108,6 +110,7 @@ GitHub #403: closed completed
 | ID | Severity | Status | Finding | Resolution |
 |---|---|---|---|---|
 | `PR405-P2-TWO-AXIS` | P2 | Resolved | Required-vs-supplemental gate status and finding-vs-infrastructure outcome were expressed as one mutually exclusive taxonomy | Reworked both governance docs to use independent merge-gate and analysis-outcome axes; validated at `44e258193f067189af0b817517b3d14d8a3410de`; Codex re-reviewed exact final head `515ea739a5` and found no major issues |
+| `PR406-P2-ATTRIBUTION-EVIDENCE` | P2 | Resolved | Archive incorrectly said no repository workflow/status checks triggered for PR #405, omitting the required attribution guard result | Verified exact source head `515ea739a5059f05b4e77922e8dfbf3058f3b704` check-runs: `Commit attribution guard` SUCCESS and `Attribution guard runner` SUCCESS; archive corrected. Supplemental `github-advanced-security` was FAILURE and remains separate under TNYX-256 rather than being represented as a security pass. |
 
 ## Final Handoff
 
