@@ -17,20 +17,20 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** GitHub `main@eb7b041b5a078d6e0e846792d3587a521de7024d`; B4 merged and archived via PRs #369/#370.
 **Branch:** `tnyx/tnyx-201-b5-nutrition-composition`
-**HEAD SHA:** source checkpoint `4a6ad75dcc23997a7048544a83b823e6722a6fc4`; subsequent handoff update is documentation-only.
+**HEAD SHA:** validated review checkpoint `796dd778030046a01300e2928f89f8cc984e4a30`; this handoff reconciliation is documentation-only.
 **Observed working-tree state:** No local repository worktree is available in this connector session; branch/main refs and GitHub file blobs are used as repository-state evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session.
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #371 B5 child; TNYX-153 related Nutrition package restructure is separate; #357 router remains planning-only.
 **Current implementation state:** Source extraction complete. Six Nutrition composition symbols now live in `app/composition/nutrition_providers.dart`; `network_providers.dart` re-exports them and retains Profile/Wellness/Body composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/nutrition_providers.dart`, existing app consumers/tests.
-**Validation completed at SHA:** None yet for B5.
-**Validation remaining:** exact-head workspace analyze/test, `git diff --check`, scope/review-thread audit.
+**Validation completed at SHA:** review checkpoint `796dd778030046a01300e2928f89f8cc984e4a30` — Flutter CI #2779 / run `36224251418`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. `git diff --check HEAD` also returned exit 0 in an isolated git repo reconstructed from the exact GitHub PR diff hunks.
+**Validation remaining:** exact-head CI for this documentation-only handoff update, then final review-thread/scope audit. If green, live PR/Linear state is authoritative and no further task-brief-only commit is required.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
+**Next exact action:** Revalidate the documentation-only final head; if green, mark PR #372 ready for review and reconcile TNYX-201 to In Review.
 
 ## Global UI / Design-System Guardrail
 
@@ -118,15 +118,27 @@ apps/app/lib/app/composition/
 - [x] remove now-unused Nutrition import from `network_providers.dart`
 - [x] preserve all existing consumer imports
 - [x] audit exact branch delta
-- [ ] obtain exact-head CI
-- [ ] run/record `git diff --check`
+- [x] obtain exact-head CI
+- [x] run/record `git diff --check`
 - [ ] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Source checkpoint `4a6ad75d`; GitHub CI pending on final PR head.
+```text
+Flutter CI #2779 / run 36224251418 @ 796dd778030046a01300e2928f89f8cc984e4a30
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+Isolated exact-PR-hunk git repository
+- git diff --check HEAD: PASS (exit 0)
+```
+
+The upcoming handoff update is documentation-only and requires one final exact-head CI recheck.
 
 ### Review Findings and Resolution
 
@@ -153,4 +165,4 @@ Source checkpoint `4a6ad75d`; GitHub CI pending on final PR head.
 
 ### Final Status
 
-`IMPLEMENTED — VALIDATION PENDING`
+`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
