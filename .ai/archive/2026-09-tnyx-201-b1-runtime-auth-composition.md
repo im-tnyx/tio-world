@@ -1,6 +1,7 @@
 # TNYX-201 B1 — Runtime/Auth Composition Split
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app composition root
 **Affected platforms:** Flutter phone app
 
@@ -19,19 +20,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub API compare: branch identical to main at e838083376551c4f27885656aa2d027a4216a4db before this brief
-**Branch:** tnyx/tnyx-201-b1-runtime-auth-composition
-**HEAD SHA:** 6afe30c7b787f491daf225df597f7da7ee01ebbe at exact-head CI checkpoint before this final evidence-only update
+**Repository state last verified:** 2026-09-26 after PR #360 squash merge; GitHub `main` is `ad3f69e3a2f04078a081eed39ac2887b9429bafa`.
+**Branch:** `tnyx/tnyx-201-b1-runtime-auth-composition` (merged via PR #360; remote branch still exists at this archive checkpoint because the current connector exposes no branch-delete action).
+**HEAD SHA:** reviewed PR head `d9161c78efd0bbc56d5871e7320261dec9a35ce2`; squash-merged to `main` as `ad3f69e3a2f04078a081eed39ac2887b9429bafa`.
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as the equivalent safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #359; Draft PR #360; GitHub #357 remains planning-only Slice C
-**Current implementation state:** B1 source extraction complete. Runtime/API and Auth/session composition are split into `app/composition/`; `network_providers.dart` remains the compatibility surface and owns the remaining feature composition.
+**PR / tracker:** PR #360 merged; GitHub #359 closed by merge; Linear TNYX-201 / GitHub #260 remain the open umbrella; GitHub #357 remains planning-only Slice C.
+**Current implementation state:** Complete and merged. Runtime/API and Auth/session composition live under `app/composition/`; `network_providers.dart` remains the compatibility surface and owns the remaining feature composition for later bounded Slice B work.
 **Relevant execution surface:** apps/app/lib/app/network_providers.dart; new apps/app/lib/app/composition/*
-**Validation completed at SHA:** `6afe30c7b787f491daf225df597f7da7ee01ebbe` — Flutter CI #2764 / run 36215363918: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Runtime-code checkpoint `e0f1738df286f5ebee71165f8966fc6697030cf2` also passed full CI in #2763.
-**Validation remaining:** Exact-head CI rerun after this final evidence-only documentation update; then review-state reconciliation only.
-**Current blocker:** No code blocker. Dedicated Linear child could not be created because the workspace free issue limit was reached, so TNYX-201 is the live Linear tracker. Local Flutter execution is unavailable in this connector-only session; GitHub CI supplies runtime validation.
+**Validation completed at SHA:** exact reviewed head `d9161c78efd0bbc56d5871e7320261dec9a35ce2` — Flutter CI #2765 / run `36215867476`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. Earlier full runs #2763 and #2764 also passed after the one unused-import fix.
+**Validation remaining:** None for B1.
+**Current blocker:** None. A dedicated Linear child could not be created because the workspace free issue limit was reached, so TNYX-201 remained the live Linear tracker.
 **Open review finding IDs:** None
-**Next exact action:** Revalidate the documentation-only final head, reconcile PR #360 / TNYX-201 / #359 to In Review, and stop before merge.
+**Next exact action:** None for B1. Any later provider group or router work requires a fresh current-head audit and separate owner authorization under #260/TNYX-201.
 
 ## Global UI / Design-System Guardrail
 
@@ -204,8 +205,8 @@ No product/runtime behavior is intentionally changed. Existing `network_provider
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session. GitHub Flutter CI #2763 passed the runtime-code checkpoint and #2764 passed the documentation handoff head. This final evidence-only update requires one exact-head rerun before review readiness is claimed.
+Local Flutter tooling was unavailable in this connector-only session, so GitHub CI supplied the executable validation. The B1 source branch still exists remotely at this archive checkpoint because the current GitHub connector does not expose branch deletion.
 
 ### Final Status
 
-`REVIEW`
+`PASS`: merged via PR #360 as `ad3f69e3a2f04078a081eed39ac2887b9429bafa` on 2026-09-26T04:00:46Z (UTC). Exact review head `d9161c78` passed Flutter CI #2765 with 0 unresolved review threads; GitHub #359 closed on merge. TNYX-201/#260 remain open for later separately authorized slices.

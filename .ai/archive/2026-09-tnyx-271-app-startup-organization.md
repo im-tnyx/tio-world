@@ -1,6 +1,7 @@
 # TNYX-271 — App startup path organization
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-25
 **Primary owner:** `apps/app` startup/composition root
 **Affected platforms:** Flutter phone app (Android + iOS)
 
@@ -17,21 +18,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** Remote GitHub state verified against `main@0f0851901f3ffbd6f663a1803f9ca642ccb07095`; no matching TNYX-201 branch or open PR existed before branch creation.
-**Branch:** `tnyx/tnyx-271-a1-group-app-startup-runtime-files-under-appstartup`
-**HEAD SHA:** PR checkpoint `3fda7d52a438954f3779e3a32a58803a764a63c0`; this final handoff refresh follows it and does not modify production/test source.
+**Repository state last verified:** 2026-09-26 archive reconciliation. PR #338 is merged, GitHub #337 is closed, Linear TNYX-271 is Done, and current `main` is `ad3f69e3a2f04078a081eed39ac2887b9429bafa`.
+**Branch:** `tnyx/tnyx-271-a1-group-app-startup-runtime-files-under-appstartup` (merged via PR #338; remote branch no longer exists).
+**HEAD SHA:** final PR head `34f1780d25443171a0de5264c4cd18141bd0d822`; squash-merged to `main` as `f5bf3c4f8aefd176bf393e0bdad8d98ab01abb45`.
 **Observed working-tree state:** Not applicable in this tool session. Changes are applied directly through the GitHub remote API, so there is no local working tree to inspect with `git status --short --branch`. Remote base/head, branch collision, open PR state, and exact file SHAs were inspected instead.
 **Observed uncommitted/dirty files:** Not applicable to remote GitHub API execution.
-**PR / tracker:** Draft PR #338; Linear TNYX-271; GitHub #337; parents TNYX-201 / GitHub #260.
-**Current implementation state:** Approved startup trio moved to `app/startup/`; live imports/tests and the current modular-tree doc reference are updated. Exact API compare shows only the 10 task-scoped changed files.
+**PR / tracker:** PR #338 merged; Linear TNYX-271 is Done; GitHub #337 closed; parents TNYX-201 / GitHub #260 remain open for later slices.
+**Current implementation state:** Complete and merged. The startup trio lives under `app/startup/`; live imports/tests and the modular-tree reference are reconciled.
 **Relevant execution surface:** `apps/app/lib/app/bootstrap.dart`, `apps/app/lib/app/startup_hydration.dart`, `apps/app/lib/app/supabase_runtime_config.dart`, their live imports/tests, and current canonical path documentation.
-**Validation completed at SHA:** API scope/ancestry + full PR diff review at PR checkpoint `3fda7d52a438954f3779e3a32a58803a764a63c0`: `main@0f085190` is the merge base; branch is 14 ahead / 0 behind; complete changed-file list is 10 task-scoped files; GitHub recognizes all three source moves as renames. Required attribution guard passed. Supplemental `github-advanced-security` failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced. Flutter CI analyze stages passed and tests were still running at this checkpoint.
-**Validation remaining:** exact-head Flutter CI after this docs-only handoff refresh. Local `flutter`/`git diff --check` cannot run in this remote-only connector session; API ancestry/changed-file/full-diff evidence is recorded instead.
+**Validation completed at SHA:** final PR head `34f1780d25443171a0de5264c4cd18141bd0d822` — Flutter CI #2727 / run `36050640590` completed successfully; API scope review confirmed only the 10 task-scoped files and 0 unresolved review threads. Required attribution guard had passed; supplemental GHAS infrastructure/model failure produced no code-scanning finding.
+**Validation remaining:** None.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Inspect exact-head CI/review state on Draft PR #338. Do not mark Ready or merge without separate owner authorization.
+**Next exact action:** None for A1.
 
 ## Global UI / Design-System Guardrail
 
@@ -154,7 +155,7 @@ No user-visible or accessibility state changes. Import/path mistakes must fail a
 - [x] Update live production/test imports.
 - [x] Classify and update current canonical live-tree docs only if needed.
 - [x] Confirm known live old-path references from the readiness audit are updated; historical validated evidence remains intentionally unchanged.
-- [ ] Run focused + app validation and diff hygiene.
+- [x] Run focused + app validation and diff hygiene.
 - [x] Review exact branch diff against #337 scope.
 - [x] Reconcile Linear/GitHub/task handoff through Draft PR creation; final status remains In Progress while exact-head CI is pending.
 
@@ -206,4 +207,4 @@ Remote GitHub API execution has no local working tree, so local `git status --sh
 
 ### Final Status
 
-`PARTIAL` — implementation and API scope review complete; remote CI and PR review are still required.
+`PASS`: merged via PR #338 as `f5bf3c4f8aefd176bf393e0bdad8d98ab01abb45` on 2026-09-25T05:44:19Z (UTC). Final PR head `34f1780d` passed Flutter CI #2727, 0 unresolved review threads remained, GitHub #337 closed, and Linear TNYX-271 is Done.
