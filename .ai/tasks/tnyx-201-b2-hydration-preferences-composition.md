@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub main `509c9ba55388ab1c2eecc77a4b9d4e78b7688283`; no active TNYX-201 implementation branch/PR existed before branch creation.
 **Branch:** `tnyx/tnyx-201-b2-hydration-preferences-composition`
-**HEAD SHA:** `509c9ba55388ab1c2eecc77a4b9d4e78b7688283` before this brief commit
+**HEAD SHA:** `0b511f1da85c8624e3149903c1645835591f6a98` at pre-PR scope-audit checkpoint; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #362 active child; GitHub #357 remains planning-only
-**Current implementation state:** Readiness audit complete; source extraction not started
+**Current implementation state:** B2 source extraction complete. The three HydrationPreferences providers now live in `app/composition/hydration_preferences_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, `apps/app/lib/app/hydration_preferences_session_boundary.dart`, new `apps/app/lib/app/composition/hydration_preferences_providers.dart`
 **Validation completed at SHA:** None
-**Validation remaining:** focused app tests, Flutter analyze/test, scope audit, whitespace/diff hygiene, CI
+**Validation remaining:** GitHub CI on the final PR head; review-thread audit; final exact-head scope audit.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Extract the three HydrationPreferences providers unchanged and preserve the network_providers.dart compatibility surface.
+**Next exact action:** Open Draft PR from the audited four-file branch and obtain exact-head CI validation.
 
 ## Global UI / Design-System Guardrail
 
@@ -121,12 +121,12 @@ Bundling Wellness targets with HydrationPreferences was rejected because canonic
 
 ## 5. Implementation Plan
 
-- [ ] create `composition/hydration_preferences_providers.dart`
-- [ ] remove only the three approved provider definitions from `network_providers.dart`
-- [ ] import/re-export the new composition file
-- [ ] remove now-unused Settings/session-boundary imports from `network_providers.dart`
-- [ ] preserve all existing consumers
-- [ ] audit exact branch delta
+- [x] create `composition/hydration_preferences_providers.dart`
+- [x] remove only the three approved provider definitions from `network_providers.dart`
+- [x] import/re-export the new composition file
+- [x] remove now-unused Settings/session-boundary imports from `network_providers.dart`
+- [x] preserve all existing consumers
+- [x] audit exact branch delta
 - [ ] obtain focused/app validation and CI
 - [ ] reconcile GitHub/Linear/task state for review
 
@@ -147,11 +147,14 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b2-hydration-preferences-composition.md`
+- `apps/app/lib/app/composition/hydration_preferences_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
 
 ### Actual Behavior
 
-Pending. No product/runtime behavior change is intended.
+No product/runtime behavior change is intended. Existing consumers continue importing the same provider symbols through `network_providers.dart`; only ownership location changed. `network_providers.dart` dropped from 314 to 295 lines.
 
 ### Known Limitations
 
