@@ -179,7 +179,7 @@ StatefulShellRoute buildAppShellRoute({
   return StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
             final chromePolicy = chromePolicyForPath(state.uri.path);
-  
+
             return Consumer(
               builder: (context, ref, child) {
                 final modeState = ref.watch(appModeControllerProvider);
@@ -192,10 +192,10 @@ StatefulShellRoute buildAppShellRoute({
                         modeState.activeDestinations ??
                             selectedMode.guidedDestinations,
                       );
-  
+
                 final profileAsync = ref.watch(profileDataProvider);
                 final profileData = profileAsync.valueOrNull;
-  
+
                 final planTier = switch (profileData?.plan.toLowerCase()) {
                   'plus' => ShellPlanTier.plus,
                   'pro' || 'premium' => ShellPlanTier.premium,
@@ -209,7 +209,7 @@ StatefulShellRoute buildAppShellRoute({
                 final mealDiaryDates = selectedTab == ShellTab.nutrition
                     ? ref.watch(mealDiaryDateControllerProvider)
                     : null;
-  
+
                 return TioShell(
                   key: ValueKey(
                       'shell-${profileData?.avatarUrl}-${profileData?.plan}'),
