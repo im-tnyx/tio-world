@@ -22,17 +22,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@a23bb6bbbd0ca9043dc626b12b9af4f3b9fb88de`
 **Branch:** `tnyx/tnyx-201-c3d-profile-settings-route`
-**HEAD SHA:** branch created from `a23bb6bbbd0ca9043dc626b12b9af4f3b9fb88de`; task brief is the first branch mutation
+**HEAD SHA:** `744891a8f6d51a777c9782cd89863521b9aad1b4` source-implementation checkpoint before this handoff update
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #398 / #357 / #260; Linear TNYX-201
-**Current implementation state:** Planning/tracker activation complete; source not yet mutated
+**Current implementation state:** Profile Settings registration moved into new `profile_routes.dart`; root duplicate/direct import removed; Profile/Profile Avatar routes untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, new `apps/app/lib/app/routing/routes/profile_routes.dart`, existing `apps/app/lib/app/profile/profile_settings_route.dart`, route/profile tests
-**Validation completed at SHA:** Fresh current-main read-only route/ownership/test audit only
-**Validation remaining:** parent-to-head scope audit, diff whitespace/conflict audit, exact-head Flutter CI/analyze/tests, independent review
+**Validation completed at SHA:** `744891a8f6d51a777c9782cd89863521b9aad1b4` API scope/invariant audit: 4 ahead / 0 behind, exactly 4 owned paths; root Profile Settings registration 0, profile module registration 1, root Profile 1, root Profile Avatar 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0, no trailing-whitespace/conflict findings; moved `GoRoute` equivalent ignoring indentation
+**Validation remaining:** exact PR diff audit, exact-head Flutter CI/analyze/tests, independent review
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Create `buildProfileRoutes(...)` with the single existing Profile Settings registration, remove only the duplicate root block/import, then validate exact head
+**Next exact action:** Open focused Draft PR, validate exact-head CI/diff/review, then reconcile review state
 
 ## Global UI / Design-System Guardrail
 
@@ -105,12 +105,12 @@ No failure/loading/accessibility/UI behavior changes. Existing `ProfileSettingsR
 
 ## 5. Implementation Plan
 
-- [ ] add `profile_routes.dart` with the existing registration
-- [ ] assemble `buildProfileRoutes(...)` in root router
-- [ ] remove only root Profile Settings block and obsolete direct import
-- [ ] verify Profile/Profile Avatar blocks are unchanged
-- [ ] verify one-router authority and route reference count
-- [ ] audit exact parent-to-head changed files
+- [x] add `profile_routes.dart` with the existing registration
+- [x] assemble `buildProfileRoutes(...)` in root router
+- [x] remove only root Profile Settings block and obsolete direct import
+- [x] verify Profile/Profile Avatar registrations remain root-owned
+- [x] verify one-router authority and route reference count
+- [x] audit exact parent-to-head changed files
 - [ ] run exact-head CI/analyze/tests and diff validation
 - [ ] request independent review
 
@@ -131,11 +131,14 @@ Not run yet.
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c3d-profile-settings-route.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/profile_routes.dart`
 
 ### Actual Behavior
 
-Pending implementation.
+`AppRoutes.profileSettings` still resolves through the same `rootNavigatorKey` to the same `const ProfileSettingsRoute()`. Only route-registration ownership moved; Profile and Profile Avatar composition remain unchanged.
 
 ### Known Limitations
 
@@ -143,4 +146,4 @@ Profile and Profile Avatar route composition stays root-owned by design for late
 
 ### Final Status
 
-`PARTIAL` — implementation and exact-head validation pending.
+`REVIEW` — bounded implementation is complete; exact-head CI/review remain.
