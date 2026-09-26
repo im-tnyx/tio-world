@@ -1,8 +1,9 @@
 # TNYX-201 C3c — Health & Goals Hub Route Registration Extraction
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
+**Completed:** 2026-09-26
 **Tracker:** GitHub #395; parent #357 / #260; Linear TNYX-201
 
 ## Owner Approval and Scope Boundary
@@ -16,23 +17,23 @@
 ## Active Handoff
 
 **Planning owner:** current C3c planning/reconciliation session
-**Implementation owner:** current C3c implementation session
-**Review owner:** Codex exact-head review + primary integration review
+**Implementation owner:** None active; bounded source implementation is complete
+**Review owner:** None active; exact-head review completed before merge
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub/API at `main@ee649c6d404337a248072e3ab3040e5b84c2dadc`
-**Branch:** `tnyx/tnyx-201-c3c-health-goals-hub-route`
-**HEAD SHA:** `36076e5f886b7c6b45160e7e0433b600ad82d52c` validated source/docs head before this final handoff update
+**Repository state last verified:** `main@8232a01db6109102c333e9c4022adf95479e958a` after PR #396 squash merge
+**Branch:** source `tnyx/tnyx-201-c3c-health-goals-hub-route`; archive `tnyx/tnyx-201-c3c-archive`
+**HEAD SHA:** exact reviewed final head `d5798a0801817c614828916371f376cdd2b8ea5d`; merged as `8232a01db6109102c333e9c4022adf95479e958a`
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #395 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Health & Goals hub route registration moved into existing `settings_routes.dart`; root duplicate removed; downstream Daily Wellness and Body & Weight blocks untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`, existing `apps/app/test/app/app_mode_router_test.dart`
-**Validation completed at SHA:** `36076e5f886b7c6b45160e7e0433b600ad82d52c`: Flutter CI #2810 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); API scope audit 6 ahead / 0 behind with exactly 4 owned paths; PR diff trailing whitespace 0 and conflict markers 0; moved route block equivalent ignoring indentation; root Health & Goals registration 0, Settings module registration 1, root Daily Wellness 1, root Body & Weight 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0; Codex exact-head review found no major issues; unresolved review threads 0
-**Validation remaining:** final governance-only head revalidation after this handoff commit
+**Validation completed at SHA:** `d5798a0801817c614828916371f376cdd2b8ea5d` — Flutter CI #2811 full PASS; Commit attribution guard PASS; Attribution guard runner PASS; exact-head Codex review found no major issues; 0 unresolved review threads; exact PR diff trailing whitespace 0 and conflict markers 0; root Health & Goals registration 0, Settings module registration 1, root Daily Wellness 1, root Body & Weight 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0
+**Validation remaining:** None for C3c. Archive reconciliation is docs-only.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Revalidate the final governance-only head, then mark PR #396 Ready for Review; do not merge without explicit owner instruction
+**Next exact action:** None for C3c. PR #396 is merged and this brief is archived; no next source slice is authorized by this archive.
 
 ## Global UI / Design-System Guardrail
 
@@ -114,14 +115,14 @@ No failure, loading, accessibility or visible presentation behavior changes in t
 ### Validation Run
 
 ```text
-Validated source/docs head: 36076e5f886b7c6b45160e7e0433b600ad82d52c
-Flutter CI #2810: PASS
+Validated final reviewed head: d5798a0801817c614828916371f376cdd2b8ea5d
+Flutter CI #2811: PASS
 - Bootstrap workspace: PASS
 - Analyze Flutter packages: PASS
 - Analyze Dart packages: PASS
 - Test Flutter packages: PASS
 - Test Dart packages: PASS
-API ancestry/scope: 6 ahead / 0 behind; exactly 4 owned paths
+API ancestry/scope before merge: 7 ahead / 0 behind; exactly 4 owned paths
 PR diff: trailing whitespace 0; conflict markers 0
 Codex exact-head review: no major issues
 Unresolved review threads: 0
@@ -151,4 +152,22 @@ Downstream Daily Wellness and Body & Weight route composition remains root-owned
 
 ### Final Status
 
-`REVIEW` — bounded implementation is validated and ready for final governance-only head revalidation / Ready for Review transition.
+`VALIDATED — MERGED VIA PR #396 (8232a01d)`
+
+
+## Final Merge Validation
+
+- exact final reviewed head: `d5798a0801817c614828916371f376cdd2b8ea5d`
+- Flutter CI #2811 / run `36246855751`: full PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- final Codex review: no major issues
+- unresolved review threads: 0
+- exact PR diff: trailing whitespace 0; conflict markers 0
+- non-required GHAS: failed before analysis because configured Copilot model returned `400 The requested model is not supported`; known TNYX-256 external outage, no code-scanning finding produced
+- PR #396 squash-merged on 2026-09-26 as `8232a01db6109102c333e9c4022adf95479e958a`
+- GitHub #395 closed as completed
+
+## Archive Handoff
+
+C3c is complete. Health & Goals navigation-hub route registration is now owned by the existing Settings route module. Daily Wellness and Body & Weight mixed route blocks remain intentionally root-owned for later ownership-safe work. A future source slice requires a fresh current-main audit and explicit owner authorization.
