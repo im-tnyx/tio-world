@@ -16,13 +16,13 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@b09e8fbca2295082fdaa68059309ad976d08e9af` after C2b1 archive PR #385.
 **Branch:** `tnyx/tnyx-201-c2b2-onboarding-routes`
-**HEAD SHA:** source checkpoint `8cccf6ba0fa8c9f876aaf368aebdc2fd0833f1ef`; subsequent handoff update is documentation-only.
+**HEAD SHA:** validated source/review checkpoint `5045ef5b60748da60068cb751f1bf4dbdf86b651`; this handoff reconciliation is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2b2 child #386; TNYX-202/#261 and TNYX-159/#215 context-only.
 **Current blocker:** None.
-**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
+**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #387 ready for review and reconcile TNYX-201 to In Review.
 
 ## 1. Discovery
 
@@ -81,13 +81,40 @@ apps/app/lib/app/router.dart  # single GoRouter owner + Product Onboarding polic
 - [x] keep root workflow/policy block semantically unchanged
 - [x] keep `AppOnboardingController` and feature source untouched
 - [x] audit route/workflow reference preservation + one-router authority
-- [ ] obtain exact-head CI
-- [ ] whitespace/conflict audit
+- [x] obtain exact-head CI
+- [x] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Source checkpoint `8cccf6ba`; exact-head GitHub CI pending. Static audit confirms exact four-file scope, preserved Onboarding/Congratulations route references, unchanged root workflow-operation reference counts, zero workflow-policy symbols in the new module, one root `goRouterProvider` / `GoRouter(...)`, and zero `GoRouter(...)` constructions in `onboarding_routes.dart`.
+```text
+Validated source/review head CI #2797 / run 36237157142 @ 5045ef5b60748da60068cb751f1bf4dbdf86b651
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+
+API-mode scope / behavior-preservation audit
+- base ancestor: PASS
+- ahead / behind: 5 / 0
+- changed files: exactly 4 C2b2-owned paths
+- trailing whitespace / conflict markers: 0 findings
+- Onboarding / Congratulations route reference counts: unchanged vs base
+- root Product Onboarding workflow-operation reference counts: unchanged vs base
+- workflow-policy symbols in `onboarding_routes.dart`: 0
+- root goRouterProvider definitions: 1
+- root GoRouter(...) constructions: 1
+- Onboarding route module GoRouter(...) constructions: 0
+- AppOnboardingController / feature source: untouched
+- review threads: 0 at validated source checkpoint
+
+Non-required GHAS failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
+```
+
+This handoff update is documentation-only and requires one final exact-head CI recheck.
 
 ## 6. Final Handoff
 
@@ -111,4 +138,4 @@ Source checkpoint `8cccf6ba`; exact-head GitHub CI pending. Static audit confirm
 
 ### Final status
 
-`IMPLEMENTED — VALIDATION PENDING`
+`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
