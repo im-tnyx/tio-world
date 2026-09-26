@@ -24,14 +24,14 @@
 **HEAD SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550`; this handoff update is documentation-only
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365; Draft PR #366; GitHub #357 remains planning-only
+**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #365; PR #366 ready for review; GitHub #357 remains planning-only
 **Current implementation state:** B3 source extraction complete. The two Workout providers now live in `app/composition/workout_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/workout_providers.dart`, Product Onboarding completion provider consumer
-**Validation completed at SHA:** `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` — Flutter CI #2771 / run `36218676430`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
-**Validation remaining:** Exact-head CI after this documentation-only handoff update, then final review-thread/scope audit and review-state reconciliation.
+**Validation completed at SHA:** runtime/source checkpoint `5edce0e9afb7ce1c84c0d7d2a825b7ca78dd9550` passed Flutter CI #2771 / run `36218676430`; review checkpoint `beb62a26f77dd582ed08cee49f93ac1cd7298be8` passed exact-head Flutter CI #2772 / run `36219154979`, including bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests.
+**Validation remaining:** No implementation validation remains. Live PR checks remain the merge gate; do not rerun CI solely because this handoff text is corrected unless repository automation does so automatically.
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Revalidate the final documentation-only head, then mark PR #366 ready for review and reconcile TNYX-201/#365 without merging.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86mOCSv` — P2 stale final handoff; addressed by this documentation-only correction and pending thread recheck/resolution.
+**Next exact action:** Recheck the live review thread and PR checks, resolve the addressed P2 finding when verified, then stop at the merge decision. No next implementation slice starts before B3 is merged/post-merge reconciled.
 
 ## Global UI / Design-System Guardrail
 
@@ -165,7 +165,7 @@ No product/runtime behavior change is intended. Existing consumers continue impo
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI provides executable validation. This final handoff commit is documentation-only and needs one exact-head CI rerun before review readiness is claimed.
+Local Flutter tooling is unavailable in this connector-only session; GitHub CI supplies executable validation. Runtime/source validation is complete. This correction changes handoff documentation only and does not invalidate the already-green runtime/source checkpoint; live PR checks remain authoritative for the merge gate.
 
 ### Final Status
 
