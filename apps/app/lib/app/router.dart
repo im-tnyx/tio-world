@@ -16,7 +16,6 @@ import 'package:tio_feature_splash/splash.dart';
 import 'account_setup/account_setup_providers.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
-import 'calendar_preferences.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
@@ -1155,34 +1154,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   context.go(AppRoutes.auth.path);
                 }
               },
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.appSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final currentMode = appModeController.selectedMode;
-            if (currentMode == null) return const SizedBox.shrink();
-            final calendar = ref.watch(calendarPreferencesControllerProvider);
-
-            return AppSettingsPage(
-              currentMode: currentMode,
-              currentThemeMode: appThemeController.selectedMode,
-              currentFirstDayOfWeek: calendar.firstDayOfWeek,
-              onAppModePressed: () =>
-                  context.push(AppRoutes.appModeSettings.path),
-              onThemePressed: () => showThemeSelectionBottomSheet(
-                context: context,
-                currentMode: appThemeController.selectedMode,
-                onThemeSelected: (mode) => appThemeController.select(mode),
-              ),
-              onMeasurementUnitsPressed: () =>
-                  context.push(AppRoutes.measurementUnitsSettings.path),
-              onCalendarPressed: () =>
-                  context.push(AppRoutes.calendarSettings.path),
             );
           },
         ),
