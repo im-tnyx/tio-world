@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_account_setup/account_setup.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
@@ -15,7 +14,7 @@ import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_shared/shared.dart';
 
-import 'account_setup/account_setup.dart';
+import 'account_setup/account_setup_providers.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'calendar_preferences.dart';
@@ -24,6 +23,7 @@ import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
 import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
+import 'routing/routes/account_setup_routes.dart';
 import 'routing/routes/auth_routes.dart';
 import 'routing/shell/shell_route.dart';
 import 'session/session.dart';
@@ -222,46 +222,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pendingAppModePreference: pendingAppModePreference,
         onExplicitLoginSuccess: clearGlassSizeForNewExplicitLogin,
       ),
-      GoRoute(
-        path: AppRoutes.accountSetup.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final usernameRepository = ref.read(profileAccountRepositoryProvider);
-          final setupRepository = ref.read(accountSetupRepositoryProvider);
-          if (usernameRepository == null || setupRepository == null) {
-            return const SplashScreen(
-              failureMessage: 'Account setup is unavailable right now.',
-            );
-          }
-          final authState = ref.read(authSessionStateProvider).valueOrNull;
-          final currentPhone = authState is AuthSessionAuthenticated
-              ? authState.session.phone?.trim()
-              : null;
-          return AccountSetupFlowPage(
-            usernameRepository: usernameRepository,
-            accountSetupRepository: setupRepository,
-            hasTrustedPhoneIdentity:
-                currentPhone != null && currentPhone.isNotEmpty,
-            onExitRequested: () async {
-              await signOutAndClearGlassSize();
-              await appSessionBootstrapController.refresh();
-            },
-            onCompleted: () async {
-              final pendingMode = await pendingAppModePreference.read();
-              if (pendingMode != null) {
-                await appModeController.select(pendingMode);
-                await pendingAppModePreference.clear();
-              }
-              ref.invalidate(profileDataProvider);
-              await appSessionBootstrapController.refresh();
-            },
-          );
+      ...buildAccountSetupRoutes(
+        rootNavigatorKey: rootNavigatorKey,
+        profileAccountRepository: () =>
+            ref.read(profileAccountRepositoryProvider),
+        accountSetupRepository: () => ref.read(accountSetupRepositoryProvider),
+        authSessionState: () => ref.read(authSessionStateProvider).valueOrNull,
+        onExitRequested: () async {
+          await signOutAndClearGlassSize();
+          await appSessionBootstrapController.refresh();
         },
-      ),
-      GoRoute(
-        path: AppRoutes.usernameSetup.path,
-        parentNavigatorKey: rootNavigatorKey,
-        redirect: (context, state) => AppRoutes.accountSetup.path,
+        onCompleted: () async {
+          final pendingMode = await pendingAppModePreference.read();
+          if (pendingMode != null) {
+            await appModeController.select(pendingMode);
+            await pendingAppModePreference.clear();
+          }
+          ref.invalidate(profileDataProvider);
+          await appSessionBootstrapController.refresh();
+        },
       ),
       GoRoute(
         path: AppRoutes.onboarding.path,
