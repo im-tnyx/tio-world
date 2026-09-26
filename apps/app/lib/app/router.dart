@@ -1159,34 +1159,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           },
         ),
       ),
-      GoRoute(
-        path: AppRoutes.appSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final currentMode = appModeController.selectedMode;
-            if (currentMode == null) return const SizedBox.shrink();
-            final calendar = ref.watch(calendarPreferencesControllerProvider);
-
-            return AppSettingsPage(
-              currentMode: currentMode,
-              currentThemeMode: appThemeController.selectedMode,
-              currentFirstDayOfWeek: calendar.firstDayOfWeek,
-              onAppModePressed: () =>
-                  context.push(AppRoutes.appModeSettings.path),
-              onThemePressed: () => showThemeSelectionBottomSheet(
-                context: context,
-                currentMode: appThemeController.selectedMode,
-                onThemeSelected: (mode) => appThemeController.select(mode),
-              ),
-              onMeasurementUnitsPressed: () =>
-                  context.push(AppRoutes.measurementUnitsSettings.path),
-              onCalendarPressed: () =>
-                  context.push(AppRoutes.calendarSettings.path),
-            );
-          },
-        ),
-      ),
     ],
   );
   ref.onDispose(router.dispose);
