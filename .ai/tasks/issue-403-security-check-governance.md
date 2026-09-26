@@ -16,16 +16,16 @@
 
 **Planning owner:** current #403 governance session
 **Implementation owner:** current #403 governance session
-**Review owner:** none yet
-**Implementation ownership state:** Active
+**Review owner:** pending independent PR review
+**Implementation ownership state:** Complete
 **Repository base last verified:** `main@399f4fddcabbece0588778afe41d62a77e25123c`
 **Branch:** `tnyx/issue-403-security-check-governance`
 **Observed working-tree state:** connector/API execution only; no local working tree is available to inspect
 **Overlap audit:** no open PR overlaps `AGENTS.md`, `docs/PUSH_TEMPLATE.md`, or this task brief. One planned TNYX-193 P2 overlap exists in the stale `docs/PUSH_TEMPLATE.md` `backend/*` reference; #403 owns that single correction so P2 must not duplicate it.
 **Linear mirror status:** dedicated issue creation was attempted but blocked by the workspace free-issue limit. TNYX-193 carries a visibility/overlap comment; TNYX-256 remains the separate GHAS unsupported-model outage tracker.
-**Validation remaining:** exact branch diff audit, docs whitespace/conflict check, repository-required checks if triggered, independent exact-head review.
+**Validation remaining:** exact current-head PR patch scan, repository-required checks if triggered, independent exact-head review.
 **Current blocker:** none
-**Next exact action:** implement the bounded documentation rule in `AGENTS.md` and `docs/PUSH_TEMPLATE.md`, then validate exact-head scope and request review.
+**Next exact action:** validate exact current PR head, request independent review, and resolve any governance finding before merge.
 
 ## 1. Discovery
 
@@ -68,17 +68,28 @@ Future agents should know exactly when security evidence must be inspected for l
 
 ## 5. Implementation Plan
 
-- [ ] add security-sensitive scope decision rule to `AGENTS.md`
-- [ ] align `docs/PUSH_TEMPLATE.md` validation/failure classification
-- [ ] correct stale protected-server path to `services/api`
-- [ ] keep runtime, Supabase, CI workflow and branch protection untouched
-- [ ] run exact docs-only diff audit and review
+- [x] add security-sensitive scope decision rule to `AGENTS.md`
+- [x] align `docs/PUSH_TEMPLATE.md` validation/failure classification
+- [x] correct stale protected-server path to `services/api`
+- [x] keep runtime, Supabase, CI workflow and branch protection untouched
+- [ ] run exact docs-only PR patch audit and independent review
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Pending exact-head validation.
+Implementation head before final handoff update: `6ab39d90ec66dc97512ae6fcd7a606f03433f055`.
+
+Connector/API branch audit:
+- base `main@399f4fddcabbece0588778afe41d62a77e25123c`
+- 4 ahead / 0 behind before this handoff update
+- exactly 4 owned governance paths
+- runtime/source paths: 0
+- trailing-whitespace scan: 0
+- conflict-marker scan: 0
+- `AGENTS.md` security-sensitive gate present
+- `docs/PUSH_TEMPLATE.md` aligned and contains no `backend/*` protected-server reference
+- GitHub PR #405 opened; exact-current-head patch scan/review still required
 
 ### Review Findings and Resolution
 
@@ -97,7 +108,7 @@ Expected:
 
 ### Actual Behavior
 
-Pending implementation.
+Future agents now receive an explicit security-sensitive scope trigger, applicable validation expectations, required-vs-supplemental verification rule, and evidence-based failure classification. Push/PR guidance mirrors that rule and uses canonical `services/api` for future protected service code.
 
 ### Known Limitations
 
@@ -105,4 +116,4 @@ GitHub-managed AI code-scanning availability is not fixed by this slice; TNYX-25
 
 ### Final Status
 
-`REVIEW` pending implementation and exact-head validation.
+`REVIEW` — bounded docs implementation is complete; exact-current-head patch audit and independent review remain before merge.
