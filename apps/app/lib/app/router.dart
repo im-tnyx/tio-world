@@ -20,10 +20,10 @@ import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
 import 'profile/profile_completion.dart';
-import 'profile/profile_settings_route.dart';
 import 'routing/routes/account_setup_routes.dart';
 import 'routing/routes/auth_routes.dart';
 import 'routing/routes/onboarding_routes.dart';
+import 'routing/routes/profile_routes.dart';
 import 'routing/routes/settings_routes.dart';
 import 'routing/shell/shell_route.dart';
 import 'session/session.dart';
@@ -979,10 +979,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           },
         ),
       ),
-      GoRoute(
-        path: AppRoutes.profileSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const ProfileSettingsRoute(),
+      ...buildProfileRoutes(
+        rootNavigatorKey: rootNavigatorKey,
       ),
       GoRoute(
         path: AppRoutes.accountSettings.path,
