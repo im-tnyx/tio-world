@@ -25,6 +25,7 @@ import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
 import 'routing/routes/account_setup_routes.dart';
 import 'routing/routes/auth_routes.dart';
+import 'routing/routes/onboarding_routes.dart';
 import 'routing/shell/shell_route.dart';
 import 'session/session.dart';
 import 'settings_persistence_providers.dart';
@@ -159,6 +160,122 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ref.read(authSessionRepositoryProvider).signOut,
       );
 
+  OnboardingControllerSeed buildOnboardingSeed() {
+    final selectedMode = appModeController.selectedMode;
+    return OnboardingControllerSeed(
+      entryPath: onboardingStatusController.entryPath,
+      draft: selectedMode == null
+          ? null
+          : OnboardingDraft(
+              selectedMode: selectedMode,
+              currentStepId: OnboardingStepId.profileBasics,
+            ),
+    );
+  }
+
+  Future<void> handleOnboardingExit() async {
+    await signOutAndClearGlassSize();
+    await appSessionBootstrapController.refresh();
+  }
+
+  Future<bool> handleOnboardingAuthRequired(BuildContext context) async {
+    final sessionState =
+        await ref.read(authSessionRepositoryProvider).currentSessionState;
+    if (sessionState is AuthSessionAuthenticated) {
+      return true;
+    }
+
+    final authProductState = ref.read(authProductStateProvider);
+    final hasDurableProfileOwner = ref.read(userProfileRepositoryProvider) != null;
+    if (authProductState.isAuthUnavailable && !hasDurableProfileOwner) {
+      return true;
+    }
+
+    if (!context.mounted) return false;
+    final result = await context.push<bool>(AppRoutes.emailSignup.path);
+    return result ?? false;
+  }
+
+  Future<void> handleOnboardingFinish(
+    BuildContext context,
+    OnboardingDraft draft,
+  ) async {
+    debugPrint(
+        '[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
+    try {
+      final authRepository = ref.read(authSessionRepositoryProvider);
+      final hasDurableProfileOwner =
+          ref.read(userProfileRepositoryProvider) != null;
+      var sessionState = await authRepository.currentSessionState;
+
+      if (hasDurableProfileOwner &&
+          sessionState is! AuthSessionAuthenticated) {
+        debugPrint(
+          '[Router] Auth session is not ready. Pushing Signup...',
+        );
+        if (!context.mounted) return;
+        await context.push<bool>(AppRoutes.emailSignup.path);
+        sessionState = await authRepository.currentSessionState;
+        if (sessionState is! AuthSessionAuthenticated) {
+          debugPrint(
+            '[Router] User still not authenticated after signup sheet.',
+          );
+          throw StateError(
+            'Sign in is required to save your setup to Supabase.',
+          );
+        }
+        debugPrint(
+          '[Router] Auth succeeded! userId=${sessionState.session.userId}',
+        );
+      }
+
+      final completeOnboarding =
+          ref.read(appCompleteOnboardingUseCaseFactoryProvider)();
+      if (completeOnboarding == null) {
+        throw StateError(
+          'Product Onboarding completion is unavailable right now.',
+        );
+      }
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: onboardingStatusController.entryPath,
+        mode: draft.selectedMode,
+        workoutIntroChoice: draft.workoutIntroChoice,
+      );
+
+      debugPrint('[Router] Executing completeOnboarding...');
+      await completeOnboarding(
+        draft: draft,
+        flowPlan: flowPlan,
+      );
+      debugPrint('[Router] completeOnboarding SUCCESS!');
+      final finalSessionState = await authRepository.currentSessionState;
+      final completedUserId = finalSessionState is AuthSessionAuthenticated
+          ? finalSessionState.session.userId
+          : null;
+      if (context.mounted) {
+        context.go(
+          AppRoutes.congratulations.path,
+          extra: {
+            'userName': draft.profile.name,
+            'isWelcomeBack': false,
+          },
+        );
+      }
+      onboardingStatusController.markCompleted();
+      if (completedUserId != null && completedUserId.isNotEmpty) {
+        appSessionBootstrapController
+            .markReadyAfterOnboardingCompletion(completedUserId);
+      }
+    } catch (e, st) {
+      debugPrint('[Router] onFinishRequested EXCEPTION: $e');
+      debugPrint('[Router] onFinishRequested StackTrace:\n$st');
+      rethrow;
+    }
+  }
+
+  void handleCongratulationsContinue(BuildContext context) {
+    context.go(FeatureRoutes.home.path);
+  }
   late final GoRouter router;
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
@@ -242,137 +359,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           await appSessionBootstrapController.refresh();
         },
       ),
-      GoRoute(
-        path: AppRoutes.onboarding.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final selectedMode = appModeController.selectedMode;
-          return OnboardingFlowPage(
-            seed: OnboardingControllerSeed(
-              entryPath: onboardingStatusController.entryPath,
-              draft: selectedMode == null
-                  ? null
-                  : OnboardingDraft(
-                      selectedMode: selectedMode,
-                      currentStepId: OnboardingStepId.profileBasics,
-                    ),
-            ),
-            onExitRequested: () async {
-              await signOutAndClearGlassSize();
-              await appSessionBootstrapController.refresh();
-            },
-            onAuthRequired: () async {
-              final sessionState = await ref
-                  .read(authSessionRepositoryProvider)
-                  .currentSessionState;
-              if (sessionState is AuthSessionAuthenticated) {
-                return true;
-              }
-
-              final authProductState = ref.read(authProductStateProvider);
-              final hasDurableProfileOwner =
-                  ref.read(userProfileRepositoryProvider) != null;
-              if (authProductState.isAuthUnavailable &&
-                  !hasDurableProfileOwner) {
-                return true;
-              }
-
-              if (!context.mounted) return false;
-              final result =
-                  await context.push<bool>(AppRoutes.emailSignup.path);
-              return result ?? false;
-            },
-            onFinishRequested: (draft) async {
-              debugPrint(
-                  '[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
-              try {
-                final authRepository = ref.read(authSessionRepositoryProvider);
-                final hasDurableProfileOwner =
-                    ref.read(userProfileRepositoryProvider) != null;
-                var sessionState = await authRepository.currentSessionState;
-
-                if (hasDurableProfileOwner &&
-                    sessionState is! AuthSessionAuthenticated) {
-                  debugPrint(
-                    '[Router] Auth session is not ready. Pushing Signup...',
-                  );
-                  if (!context.mounted) return;
-                  await context.push<bool>(AppRoutes.emailSignup.path);
-                  sessionState = await authRepository.currentSessionState;
-                  if (sessionState is! AuthSessionAuthenticated) {
-                    debugPrint(
-                      '[Router] User still not authenticated after signup sheet.',
-                    );
-                    throw StateError(
-                      'Sign in is required to save your setup to Supabase.',
-                    );
-                  }
-                  debugPrint(
-                    '[Router] Auth succeeded! userId=${sessionState.session.userId}',
-                  );
-                }
-
-                final completeOnboarding =
-                    ref.read(appCompleteOnboardingUseCaseFactoryProvider)();
-                if (completeOnboarding == null) {
-                  throw StateError(
-                    'Product Onboarding completion is unavailable right now.',
-                  );
-                }
-                final flowPlan = const BuildOnboardingFlowUseCase()(
-                  entryPath: onboardingStatusController.entryPath,
-                  mode: draft.selectedMode,
-                  workoutIntroChoice: draft.workoutIntroChoice,
-                );
-
-                debugPrint('[Router] Executing completeOnboarding...');
-                await completeOnboarding(
-                  draft: draft,
-                  flowPlan: flowPlan,
-                );
-                debugPrint('[Router] completeOnboarding SUCCESS!');
-                final finalSessionState =
-                    await authRepository.currentSessionState;
-                final completedUserId =
-                    finalSessionState is AuthSessionAuthenticated
-                        ? finalSessionState.session.userId
-                        : null;
-                if (context.mounted) {
-                  context.go(
-                    AppRoutes.congratulations.path,
-                    extra: {
-                      'userName': draft.profile.name,
-                      'isWelcomeBack': false,
-                    },
-                  );
-                }
-                onboardingStatusController.markCompleted();
-                if (completedUserId != null && completedUserId.isNotEmpty) {
-                  appSessionBootstrapController
-                      .markReadyAfterOnboardingCompletion(completedUserId);
-                }
-              } catch (e, st) {
-                debugPrint('[Router] onFinishRequested EXCEPTION: $e');
-                debugPrint('[Router] onFinishRequested StackTrace:\n$st');
-                rethrow;
-              }
-            },
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.congratulations.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>?;
-          final userName = extra?['userName'] as String?;
-          final isWelcomeBack = extra?['isWelcomeBack'] as bool? ?? false;
-          return CongratulationsScreen(
-            userName: userName,
-            isWelcomeBack: isWelcomeBack,
-            onContinue: () => context.go(FeatureRoutes.home.path),
-          );
-        },
+      ...buildOnboardingRoutes(
+        rootNavigatorKey: rootNavigatorKey,
+        seed: buildOnboardingSeed,
+        onExitRequested: handleOnboardingExit,
+        onAuthRequired: handleOnboardingAuthRequired,
+        onFinishRequested: handleOnboardingFinish,
+        onCongratulationsContinue: handleCongratulationsContinue,
       ),
       GoRoute(
         path: AppRoutes.profile.path,
