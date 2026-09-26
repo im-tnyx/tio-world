@@ -16,13 +16,13 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@cb9c3845be0889ca3f56894123286834a1219d1f` after C1 archive PR #379.
 **Branch:** `tnyx/tnyx-201-c2a-auth-routes`
-**HEAD SHA:** source checkpoint `49e86352d2dcec5d7420b084e80c40aebbccf6f8`; subsequent handoff update is documentation-only.
+**HEAD SHA:** validated source/review checkpoint `44ae55a0bf0b7ebab9902d7ee0487df4a7f3f52f`; this handoff reconciliation is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2a child #380.
 **Current blocker:** None.
-**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
+**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #381 ready for review and reconcile TNYX-201 to In Review.
 
 ## 1. Discovery
 
@@ -73,13 +73,42 @@ apps/app/lib/app/router.dart  # single GoRouter owner/assembly
 - [x] replace inline block with spread route-group factory
 - [x] keep Account Setup/Onboarding untouched
 - [x] audit route/reference preservation
-- [ ] obtain exact-head CI
-- [ ] whitespace/conflict audit
+- [x] obtain exact-head CI
+- [x] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Source checkpoint `49e86352`; exact-head GitHub CI pending. Static audit: exact four-file scope, base ancestor, all six Auth route reference counts preserved, one root `goRouterProvider` / `GoRouter(...)`, zero `GoRouter(...)` constructions in `auth_routes.dart`.
+```text
+Initial CI #2789 / run 36230634296 @ c73314bb9b3f4719463927368e41956f01c4cd6b
+- Bootstrap workspace: PASS
+- Flutter analyze: FAIL
+- finding: `PreAuthAppModeRoute` direct defining-file import missing after extraction
+- fix: commit `44ae55a0bf0b7ebab9902d7ee0487df4a7f3f52f` imports `account_setup/pre_auth_app_mode_route.dart`
+
+Validated source head CI #2790 / run 36230720003 @ 44ae55a0bf0b7ebab9902d7ee0487df4a7f3f52f
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+
+API-mode scope / behavior-preservation audit
+- base ancestor: PASS
+- ahead / behind: 7 / 0
+- changed files: exactly 4 C2a-owned paths
+- trailing whitespace / conflict markers: 0 findings
+- all six Auth/pre-auth route reference counts: unchanged vs base
+- root goRouterProvider definitions: 1
+- root GoRouter(...) constructions: 1
+- auth module GoRouter(...) constructions: 0
+- Account Setup / Onboarding route source: untouched
+- review threads: 0 at validated source checkpoint
+
+Non-required GHAS failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
+```
+
+This handoff update is documentation-only and requires one final exact-head CI recheck.
 
 ## 6. Final Handoff
 
@@ -102,4 +131,4 @@ Source checkpoint `49e86352`; exact-head GitHub CI pending. Static audit: exact 
 
 ### Final status
 
-`IMPLEMENTED — VALIDATION PENDING`
+`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
