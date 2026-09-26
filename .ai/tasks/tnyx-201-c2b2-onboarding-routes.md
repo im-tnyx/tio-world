@@ -19,10 +19,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@b09e8fbca2295082fdaa68059309ad976d08e9af` after C2b1 archive PR #385.
 **Branch:** `tnyx/tnyx-201-c2b2-onboarding-routes`
-**HEAD SHA:** branch created from `b09e8fbca2295082fdaa68059309ad976d08e9af`; source mutation not yet applied.
+**HEAD SHA:** source checkpoint `8cccf6ba0fa8c9f876aaf368aebdc2fd0833f1ef`; subsequent handoff update is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2b2 child #386; TNYX-202/#261 and TNYX-159/#215 context-only.
 **Current blocker:** None.
-**Next exact action:** Extract only `AppRoutes.onboarding` + `AppRoutes.congratulations` registration/page mounting into `app/routing/routes/onboarding_routes.dart`, injecting seed/workflow/navigation callbacks from root.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
 
 ## 1. Discovery
 
@@ -72,23 +72,43 @@ apps/app/lib/app/router.dart  # single GoRouter owner + Product Onboarding polic
 
 ## 4. Implementation Plan
 
-- [ ] create `routing/routes/onboarding_routes.dart`
-- [ ] move `AppRoutes.onboarding` registration/page mounting
-- [ ] move `AppRoutes.congratulations` registration/page mounting
-- [ ] inject already-built seed from root
-- [ ] inject exit/Auth/completion callbacks with route `BuildContext`
-- [ ] inject Congratulations continue navigation callback
-- [ ] keep root workflow/policy block semantically unchanged
-- [ ] keep `AppOnboardingController` and feature source untouched
-- [ ] audit route/workflow reference preservation + one-router authority
+- [x] create `routing/routes/onboarding_routes.dart`
+- [x] move `AppRoutes.onboarding` registration/page mounting
+- [x] move `AppRoutes.congratulations` registration/page mounting
+- [x] inject already-built seed from root
+- [x] inject exit/Auth/completion callbacks with route `BuildContext`
+- [x] inject Congratulations continue navigation callback
+- [x] keep root workflow/policy block semantically unchanged
+- [x] keep `AppOnboardingController` and feature source untouched
+- [x] audit route/workflow reference preservation + one-router authority
 - [ ] obtain exact-head CI
 - [ ] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Pending.
+Source checkpoint `8cccf6ba`; exact-head GitHub CI pending. Static audit confirms exact four-file scope, preserved Onboarding/Congratulations route references, unchanged root workflow-operation reference counts, zero workflow-policy symbols in the new module, one root `goRouterProvider` / `GoRouter(...)`, and zero `GoRouter(...)` constructions in `onboarding_routes.dart`.
 
 ## 6. Final Handoff
 
-Pending implementation and validation.
+### Changed files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c2b2-onboarding-routes.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/onboarding_routes.dart`
+
+### Source checkpoint
+
+- base: `main@b09e8fbca2295082fdaa68059309ad976d08e9af`
+- source checkpoint: `8cccf6ba0fa8c9f876aaf368aebdc2fd0833f1ef`
+- exact branch scope: four C2b2-owned files
+- `router.dart`: 1330 → 1323 lines
+- new Onboarding route module: 43 source lines
+- Onboarding/Congratulations route reference counts unchanged vs base
+- Product Onboarding workflow-operation counts remain unchanged in root
+- `AppOnboardingController` and feature source untouched
+
+### Final status
+
+`IMPLEMENTED — VALIDATION PENDING`
