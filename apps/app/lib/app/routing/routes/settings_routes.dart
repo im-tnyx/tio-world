@@ -117,5 +117,15 @@ List<RouteBase> buildSettingsRoutes({
         },
       ),
     ),
+    GoRoute(
+      path: AppRoutes.healthGoalsSettings.path,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => HealthGoalsSettingsPage(
+        onDailyWellnessPressed: () =>
+            context.push(AppRoutes.dailyWellnessSettings.path),
+        onBodyWeightPressed: () =>
+            context.push(AppRoutes.bodyWeightSettings.path),
+      ),
+    ),
   ];
 }
