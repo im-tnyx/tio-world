@@ -22,17 +22,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`
 **Branch:** `tnyx/tnyx-201-c3b-app-settings-route`
-**HEAD SHA:** `ff1a37086cf98d9ce08a14b6e5514e199f91d7e1` before task-brief commit
+**HEAD SHA:** `a0ddad620a70938956996893f0a5cfc64c76730f` source implementation checkpoint before this task update
 **Observed working-tree state:** Connector/API execution only; no local working tree claimed
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #392 / #357 / #260; Linear TNYX-201
-**Current implementation state:** Not started; scope frozen to App Settings hub registration only
+**Current implementation state:** App Settings hub registration moved verbatim into existing `settings_routes.dart`; root duplicate removed
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
 **Validation completed at SHA:** None for C3b
-**Validation remaining:** exact-head Flutter CI, route/reference audit, one-router audit, review-thread audit
+**Validation remaining:** exact-head Flutter CI, independent review, review-thread audit
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Add the App Settings route to `buildSettingsRoutes(...)`, remove its duplicate root registration, then validate exact behavior-preserving scope.
+**Next exact action:** Open focused PR, run exact-head CI, then independently review diff/threads before merge.
 
 ## 1. Discovery
 
@@ -95,10 +95,10 @@ No failure/accessibility behavior changes. Existing App Settings behavior is mov
 
 ## 5. Implementation Plan
 
-- [ ] add existing App Settings route registration to `settings_routes.dart`
-- [ ] remove only the duplicate root App Settings route block
-- [ ] audit imports and route references
-- [ ] verify one-router authority
+- [x] add existing App Settings route registration to `settings_routes.dart`
+- [x] remove only the duplicate root App Settings route block
+- [x] audit imports and route references
+- [x] verify one-router authority
 - [ ] run exact-head CI
 - [ ] independent review and tracker reconciliation
 
@@ -106,7 +106,21 @@ No failure/accessibility behavior changes. Existing App Settings behavior is mov
 
 ### Validation Run
 
-`Not run yet.`
+Implementation checkpoint before CI:
+
+- base: `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`
+- source checkpoint: `a0ddad620a70938956996893f0a5cfc64c76730f`
+- compare: 4 commits ahead / 0 behind
+- exactly 4 owned paths: task brief, task index, `router.dart`, `settings_routes.dart`
+- source delta: 28 lines removed from root + same 28 lines added to Settings route builder
+- root `AppRoutes.appSettings` references: 1 (chrome-policy list only)
+- `settings_routes.dart` `AppRoutes.appSettings` references: 2 (Settings navigation callback + route registration)
+- root `GoRouter(...)`: 1
+- route-module `GoRouter(...)`: 0
+- root `goRouterProvider`: 1
+- `buildSettingsRoutes(...)` root assembly calls: 1
+
+Exact-head Flutter CI has not run yet.
 
 ### Review Findings and Resolution
 
@@ -117,11 +131,14 @@ No failure/accessibility behavior changes. Existing App Settings behavior is mov
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c3b-app-settings-route.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/settings_routes.dart`
 
 ### Actual Behavior
 
-Pending validation.
+Expected behavior is unchanged: App Settings still reads current App Mode, Theme and Calendar preference state and navigates to the same App Mode, Measurement Units and Calendar destinations. Only registration ownership moved to the existing Settings route module; exact-head CI/review remains required.
 
 ### Known Limitations
 
