@@ -1,9 +1,10 @@
 # TNYX-201 C3b — App Settings Hub Route Registration Extraction
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
 **Tracker:** GitHub #392; parent #357 / #260; Linear TNYX-201
+**Completed:** 2026-09-26
 
 ## Owner Approval and Scope Boundary
 
@@ -17,22 +18,22 @@
 
 **Planning owner:** current C3b planning/reconciliation session
 **Implementation owner:** None active; bounded source implementation is complete
-**Review owner:** current PR review/reconciliation session
+**Review owner:** None; exact-head review completed before merge
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub/API at `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`
-**Branch:** `tnyx/tnyx-201-c3b-app-settings-route`
-**HEAD SHA:** `c66d433fce7661d6270d6cb4712aafa229dc7301` validated source/review checkpoint before this documentation-only reconciliation
+**Repository state last verified:** `main@4237244867892815dcc4cabb419706a652a00168` after PR #393 squash merge
+**Branch:** source `tnyx/tnyx-201-c3b-app-settings-route`; archive `tnyx/tnyx-201-c3b-archive`
+**HEAD SHA:** exact reviewed final head `258861d8f1b5eb47bcdf672c943fc760fdf94749`; merged as `4237244867892815dcc4cabb419706a652a00168`
 **Observed working-tree state:** Connector/API execution only; no local working tree claimed
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #392 / #357 / #260; Linear TNYX-201
 **Current implementation state:** App Settings hub registration moved verbatim into existing `settings_routes.dart`; root duplicate removed
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`
-**Validation completed at SHA:** `c66d433fce7661d6270d6cb4712aafa229dc7301` — Flutter CI #2807 full PASS; attribution guards PASS; fresh Codex review found no major issues; 0 unresolved threads
-**Validation remaining:** Final exact-head CI/review after this documentation-only reconciliation
+**Validation completed at SHA:** `258861d8f1b5eb47bcdf672c943fc760fdf94749` — Flutter CI #2808 full PASS; Commit attribution guard PASS; Attribution guard runner PASS; Codex found no major issues; 0 unresolved threads
+**Validation remaining:** None for C3b. Archive reconciliation is docs-only.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Validate the final documentation-only head, reconcile PR/Linear to merge-ready state, then merge only if all exact-head gates remain clean.
+**Next exact action:** None for C3b. PR #393 is merged and this brief is archived; no next source slice is authorized by this archive.
 
 ## 1. Discovery
 
@@ -101,7 +102,7 @@ No failure/accessibility behavior changes. Existing App Settings behavior is mov
 - [x] verify one-router authority
 - [x] run exact-head CI
 - [x] independent review
-- [ ] final exact-head docs-only validation and tracker reconciliation
+- [x] final exact-head docs-only validation and tracker reconciliation
 
 ## 6. Quality Review
 
@@ -151,4 +152,21 @@ Profile and Measurement Units mixed ownership/composition remain intentionally d
 
 ### Final Status
 
-`REVIEW` — source implementation is validated; final docs-only exact-head gate remains before merge.
+`VALIDATED — MERGED VIA PR #393 (42372448)`
+
+
+## Final Merge Validation
+
+- exact final reviewed head: `258861d8f1b5eb47bcdf672c943fc760fdf94749`
+- Flutter CI #2808 / run `36244381925`: full PASS
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- final Codex review: no major issues
+- unresolved review threads: 0
+- non-required GHAS: failed before analysis because configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced
+- PR #393 squash-merged on 2026-09-26 as `4237244867892815dcc4cabb419706a652a00168`
+- GitHub #392 closed as completed
+
+## Archive Handoff
+
+C3b is complete. App Settings hub route registration is now Settings-route-module owned while Measurement Units/Profile/Nutrition/Wellness/Body/Account mixed blocks remain intentionally untouched. A future source slice requires a fresh current-main audit and explicit owner authorization.
