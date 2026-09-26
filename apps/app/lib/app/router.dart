@@ -13,7 +13,6 @@ import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
-import 'package:tio_feature_welcome/welcome.dart';
 import 'package:tio_shared/shared.dart';
 
 import 'account_setup/account_setup.dart';
@@ -25,6 +24,7 @@ import 'onboarding/onboarding.dart';
 import 'profile/profile_avatar_upload.dart';
 import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
+import 'routing/routes/auth_routes.dart';
 import 'routing/shell/shell_route.dart';
 import 'session/session.dart';
 import 'settings_persistence_providers.dart';
@@ -217,120 +217,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(
-        path: AppRoutes.auth.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const WelcomeRoute(),
-      ),
-      GoRoute(
-        path: AppRoutes.appModeSetup.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => PreAuthAppModeRoute(
-          pendingPreference: pendingAppModePreference,
-          onBack: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go(AppRoutes.auth.path);
-            }
-          },
-          onContinueToSignup: () async {
-            if (context.mounted) {
-              await context.push<void>(AppRoutes.emailSignup.path);
-            }
-          },
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.login.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final signInWithEmailUseCase =
-                ref.watch(signInWithEmailUseCaseProvider);
-            final supabaseSignInUseCase =
-                ref.watch(signInWithGoogleUseCaseProvider);
-            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
-            return LoginPage(
-              signInWithEmailUseCase: signInWithEmailUseCase,
-              signInWithGoogleUseCase: supabaseSignInUseCase,
-              googleAuthUseCase: googleAuthUseCase,
-              onSignInSuccess: (_) {
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-              onAuthSuccess: (result) {
-                ref.read(backendUserStateProvider.notifier).state =
-                    result.backendUserState;
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.emailLogin.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final signInWithEmailUseCase =
-                ref.watch(signInWithEmailUseCaseProvider);
-            final supabaseSignInUseCase =
-                ref.watch(signInWithGoogleUseCaseProvider);
-            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
-            return LoginPage(
-              signInWithEmailUseCase: signInWithEmailUseCase,
-              signInWithGoogleUseCase: supabaseSignInUseCase,
-              googleAuthUseCase: googleAuthUseCase,
-              onSignInSuccess: (_) {
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-              onAuthSuccess: (result) {
-                ref.read(backendUserStateProvider.notifier).state =
-                    result.backendUserState;
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.emailSignup.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final signUpWithEmailUseCase =
-                ref.watch(signUpWithEmailUseCaseProvider);
-            final supabaseSignInUseCase =
-                ref.watch(signInWithGoogleUseCaseProvider);
-            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
-            return EmailSignupPage(
-              signUpWithEmailUseCase: signUpWithEmailUseCase,
-              signInWithGoogleUseCase: supabaseSignInUseCase,
-              googleAuthUseCase: googleAuthUseCase,
-              onSignUpSuccess: (_) {
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-              onAuthSuccess: (result) {
-                ref.read(backendUserStateProvider.notifier).state =
-                    result.backendUserState;
-                unawaited(clearGlassSizeForNewExplicitLogin());
-              },
-            );
-          },
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.forgotPassword.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final resetUseCase =
-                ref.watch(sendPasswordResetEmailUseCaseProvider);
-            return ForgotPasswordPage(
-              sendPasswordResetEmailUseCase: resetUseCase,
-            );
-          },
-        ),
+      ...buildAuthRoutes(
+        rootNavigatorKey: rootNavigatorKey,
+        pendingAppModePreference: pendingAppModePreference,
+        onExplicitLoginSuccess: clearGlassSizeForNewExplicitLogin,
       ),
       GoRoute(
         path: AppRoutes.accountSetup.path,
