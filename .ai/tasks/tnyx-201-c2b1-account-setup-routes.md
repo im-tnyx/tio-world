@@ -19,10 +19,10 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** `main@edc86745aa28ce631ad11be0399bc87ee3fbc127` after C2a archive PR #382.
 **Branch:** `tnyx/tnyx-201-c2b1-account-setup-routes`
-**HEAD SHA:** branch created from `edc86745aa28ce631ad11be0399bc87ee3fbc127`; source mutation not yet applied.
+**HEAD SHA:** source checkpoint `764e182586072fc5ee18e2d460c6198aa7eeee4b`; subsequent handoff update is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2b1 child #383; TNYX-202/#261 explicitly separate.
 **Current blocker:** None.
-**Next exact action:** Extract `AppRoutes.accountSetup` plus `AppRoutes.usernameSetup` redirect into `app/routing/routes/account_setup_routes.dart`, injecting root lifecycle callbacks.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
 
 ## 1. Discovery
 
@@ -69,23 +69,43 @@ apps/app/lib/app/router.dart  # single GoRouter owner + lifecycle callbacks
 
 ## 4. Implementation Plan
 
-- [ ] create `routing/routes/account_setup_routes.dart`
-- [ ] move canonical Account Setup GoRoute
-- [ ] move username compatibility redirect
-- [ ] keep provider availability/trusted-phone derivation unchanged
-- [ ] inject root `onExitRequested` callback
-- [ ] inject root `onCompleted` callback
-- [ ] remove now-unused Account Setup imports from root router
-- [ ] keep Product Onboarding block untouched
-- [ ] audit route/reference preservation + one-router authority
+- [x] create `routing/routes/account_setup_routes.dart`
+- [x] move canonical Account Setup GoRoute
+- [x] move username compatibility redirect
+- [x] keep provider availability/trusted-phone derivation unchanged
+- [x] inject root `onExitRequested` callback
+- [x] inject root `onCompleted` callback
+- [x] remove now-unused Account Setup imports from root router
+- [x] keep Product Onboarding block untouched
+- [x] audit route/reference preservation + one-router authority
 - [ ] obtain exact-head CI
 - [ ] whitespace/conflict audit
 - [ ] reconcile review handoff
 
 ## 5. Quality Review
 
-Pending.
+Source checkpoint `764e1825`; exact-head GitHub CI pending. Static audit confirms exact four-file scope, preserved Account Setup/username route references, one root `goRouterProvider` / `GoRouter(...)`, zero `GoRouter(...)` constructions in the new module, and byte-for-byte unchanged Product Onboarding + congratulations block.
 
 ## 6. Final Handoff
 
-Pending implementation and validation.
+### Changed files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c2b1-account-setup-routes.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/account_setup_routes.dart`
+
+### Source checkpoint
+
+- base: `main@edc86745aa28ce631ad11be0399bc87ee3fbc127`
+- source checkpoint: `764e182586072fc5ee18e2d460c6198aa7eeee4b`
+- exact branch scope: four C2b1-owned files
+- `router.dart`: 1351 → 1329 lines
+- new Account Setup route module: 49 source lines
+- Account Setup + username route reference counts unchanged vs base
+- Product Onboarding + congratulations source block unchanged
+- root lifecycle logic remains in `router.dart` and is injected
+
+### Final status
+
+`IMPLEMENTED — VALIDATION PENDING`
