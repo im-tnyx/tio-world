@@ -14,6 +14,7 @@ import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'account_setup/account_setup_providers.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'calendar_preferences.dart';
