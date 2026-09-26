@@ -689,16 +689,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.healthGoalsSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => HealthGoalsSettingsPage(
-          onDailyWellnessPressed: () =>
-              context.push(AppRoutes.dailyWellnessSettings.path),
-          onBodyWeightPressed: () =>
-              context.push(AppRoutes.bodyWeightSettings.path),
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.dailyWellnessSettings.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
