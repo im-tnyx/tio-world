@@ -7,6 +7,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_welcome/welcome.dart';
 
+import '../../account_setup/pre_auth_app_mode_route.dart';
 import '../../app_mode/app_mode.dart';
 import '../../network_providers.dart';
 
