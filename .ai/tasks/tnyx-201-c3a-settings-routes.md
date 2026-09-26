@@ -1,6 +1,6 @@
 # TNYX-201 C3a — Settings Route Registration Extraction
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** apps/app routing composition
 **Tracker:** GitHub #389; parent #357 / #260; Linear TNYX-201
 **Approval:** Owner authorized planning/preparation via chat on 2026-09-26. Source implementation remains bounded to this recorded slice.
@@ -48,8 +48,8 @@ Same paths/deep links, root navigator, Settings callbacks, Nutrition visibility 
 - [x] create `routing/routes/settings_routes.dart`
 - [x] replace only four recorded root route registrations with builder assembly
 - [x] audit references/imports and one-router authority
-- [ ] run focused app validation
-- [ ] run required broader validation
+- [x] run focused app validation (Flutter CI #2801 source/review head)
+- [x] run required broader validation (full monorepo Flutter/Dart analyze + tests in CI #2801)
 - [ ] review exact head and reconcile trackers
 
 ## Exit criteria
@@ -73,3 +73,15 @@ No unrelated route block moves, no UI/business/persistence change, validation pa
 - Narrow fix commit: `90e95db2ed946aa98e343ae79d90744531ef34bd`; removed only that stale import, with no behavior or scope change.
 - Bootstrap had passed before the analyzer finding; later analyze/test steps were skipped by fail-fast.
 - next gate: fresh exact-head CI on the corrected branch, then independent review/thread audit.
+
+## Review handoff checkpoint
+
+- validated head before this documentation-only handoff: `9ac87c3086b40d3b098ee926417b763528282aa5`
+- Flutter CI #2801 / run `36239669793`: PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests)
+- Commit attribution guard: PASS
+- Attribution guard runner: PASS
+- route/reference preservation audit: PASS for Settings, App Mode, Calendar, Theme, App Settings and Measurement Units references
+- router authority audit: one root `goRouterProvider` / one root `GoRouter(...)`; extracted module constructs no `GoRouter`
+- review-thread audit at validated head: 0 unresolved threads; 0 submitted reviews
+- non-required GHAS: failed before analysis with `400 The requested model is not supported`; no code-scanning finding was produced
+- this handoff commit is documentation-only; next gate is exact-final-head CI plus fresh review/thread audit before any merge decision
