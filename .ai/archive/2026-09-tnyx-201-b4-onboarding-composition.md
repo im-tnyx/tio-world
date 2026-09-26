@@ -1,6 +1,7 @@
 # TNYX-201 B4 — Onboarding Composition Split
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-26
 **Primary owner:** apps/app composition root
 **Affected platforms:** Flutter phone app
 
@@ -19,19 +20,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub main `d9edb55be00a7b2a520e3d1cba7fdfa37bd0252d`; B3 merged/archived and B4 is the sole active #260 source slice.
-**Branch:** `tnyx/tnyx-201-b4-onboarding-composition`
-**HEAD SHA:** runtime/source checkpoint `4f0529c72f430084e1f0f9e1ac148366f97e72be`; this handoff update is documentation-only
+**Repository state last verified:** 2026-09-26 after PR #369 squash merge; GitHub `main` is `7d88a6054a945f4bd4ce48ac178fe8f50da76b8e`.
+**Branch:** `tnyx/tnyx-201-b4-onboarding-composition` (merged via PR #369; remote branch cleanup follows post-merge sync).
+**HEAD SHA:** final reviewed PR head `10297d27dda605abc32c6e8b9ec37730cc8906b5`; squash-merged to `main` as `7d88a6054a945f4bd4ce48ac178fe8f50da76b8e`.
 **Observed working-tree state:** No local worktree exists in this API-backed session; remote branch/main ancestry and changed-file delta are used as safety evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session
-**PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #368; Draft PR #369; TNYX-202/#261 separate and out of scope; #357 planning-only
-**Current implementation state:** B4 source extraction complete. The four app-owned Onboarding composition symbols now live in `app/composition/onboarding_providers.dart`; `network_providers.dart` re-exports them and retains all remaining composition.
+**PR / tracker:** PR #369 merged; GitHub #368 closed by merge; Linear TNYX-201 / GitHub #260 remain the umbrella for later separately authorized work; TNYX-202/#261 remains separate; #357 remains planning-only.
+**Current implementation state:** Complete and merged. The four app-owned Onboarding composition symbols live in `app/composition/onboarding_providers.dart`; `network_providers.dart` re-exports them and retains the remaining composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/onboarding_providers.dart`, `apps/app/lib/main.dart`, `apps/app/lib/app/onboarding/onboarding_completion_use_case_provider.dart`
-**Validation completed at SHA:** runtime/source checkpoint `4f0529c72f430084e1f0f9e1ac148366f97e72be` — Flutter CI #2776 / run `36222783073`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
-**Validation remaining:** Live PR exact-head CI after this documentation-only handoff update, then review-thread/scope audit. If that exact-head check passes, no further task-brief edit is required; live PR/Linear state is authoritative for the merge gate.
+**Validation completed at SHA:** final reviewed head `10297d27dda605abc32c6e8b9ec37730cc8906b5` — Flutter CI #2777 / run `36223136544`: bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed. `git diff --check main...HEAD` also returned exit 0 in an isolated git worktree reconstructed from the exact GitHub PR patches after direct clone was blocked by DNS.
+**Validation remaining:** None for B4.
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #369 ready for review, audit review threads and reconcile TNYX-201/#368 without another documentation-only commit.
+**Next exact action:** None for B4. Any later provider group or router work requires a fresh current-head audit and separate owner authorization under #260/TNYX-201.
 
 ## Global UI / Design-System Guardrail
 
@@ -132,7 +133,7 @@ Moving OnboardingController/provider definitions from `apps/features/onboarding`
 - [x] preserve all existing consumers
 - [x] audit exact branch delta
 - [x] obtain focused/app validation and CI
-- [ ] reconcile GitHub/Linear/task state for review
+- [x] reconcile GitHub/Linear/task state for review
 
 ## 6. Quality Review
 
@@ -167,8 +168,8 @@ No product/runtime behavior change is intended. Existing consumers continue impo
 
 ### Known Limitations
 
-Local Flutter tooling is unavailable in this connector-only session; GitHub CI supplies executable validation. Runtime/source validation is complete. This final handoff commit changes documentation only; once its automatically triggered exact-head CI passes, live PR/Linear state records review readiness without requiring another brief edit.
+Local Flutter tooling was unavailable in this connector-only session, so GitHub CI supplied executable validation. Direct repository clone for the final whitespace command was blocked by DNS; the exact GitHub PR patches were reconstructed in an isolated git worktree and `git diff --check main...HEAD` returned exit 0.
 
 ### Final Status
 
-`REVIEW`
+`PASS`: merged via PR #369 as `7d88a6054a945f4bd4ce48ac178fe8f50da76b8e` on 2026-09-26T06:29:42Z (UTC). Exact review head `10297d27` passed Flutter CI #2777; `git diff --check` returned exit 0 on the exact PR patch reconstruction; 0 unresolved review threads remained. TNYX-201/#260 remain the umbrella for later separately authorized slices.
