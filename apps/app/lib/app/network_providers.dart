@@ -3,7 +3,6 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
-import 'package:tio_feature_workout/workout.dart';
 
 import 'composition/auth_providers.dart';
 import 'composition/runtime_providers.dart';
@@ -12,6 +11,7 @@ import 'profile/canonical_profile_data_reader.dart';
 export 'composition/auth_providers.dart';
 export 'composition/hydration_preferences_providers.dart';
 export 'composition/runtime_providers.dart';
+export 'composition/workout_providers.dart';
 
 /// Canonical common Profile owner used by Supabase production composition.
 final userProfileRepositoryProvider = Provider<UserProfileRepository?>((ref) {
@@ -132,26 +132,6 @@ final profileAccountRepositoryProvider =
     return SupabaseProfileAccountRepository(client: supabaseClient);
   }
   return null;
-});
-
-/// Canonical Workout Profile owner used by Product Onboarding completion.
-final workoutProfileRepositoryProvider =
-    Provider<WorkoutProfileRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseWorkoutProfileRepository(client: supabaseClient);
-  }
-  return InMemoryWorkoutProfileRepository();
-});
-
-/// Canonical Workout Targets owner used by Product Onboarding completion.
-final workoutTargetsRepositoryProvider =
-    Provider<WorkoutTargetsRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseWorkoutTargetsRepository(client: supabaseClient);
-  }
-  return InMemoryWorkoutTargetsRepository();
 });
 
 /// Canonical Nutrition Profile owner used by Product Onboarding completion.
