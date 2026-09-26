@@ -20,17 +20,17 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** GitHub `main@eb7b041b5a078d6e0e846792d3587a521de7024d`; B4 merged and archived via PRs #369/#370.
 **Branch:** `tnyx/tnyx-201-b5-nutrition-composition`
-**HEAD SHA:** branch starts from `eb7b041b5a078d6e0e846792d3587a521de7024d`; source mutation not yet applied at brief creation.
+**HEAD SHA:** source checkpoint `4a6ad75dcc23997a7048544a83b823e6722a6fc4`; subsequent handoff update is documentation-only.
 **Observed working-tree state:** No local repository worktree is available in this connector session; branch/main refs and GitHub file blobs are used as repository-state evidence.
 **Observed uncommitted/dirty files:** Not applicable in API-backed session.
 **PR / tracker:** Linear TNYX-201; GitHub #260 parent; GitHub #371 B5 child; TNYX-153 related Nutrition package restructure is separate; #357 router remains planning-only.
-**Current implementation state:** Planning complete; six Nutrition composition symbols are approved for extraction only.
+**Current implementation state:** Source extraction complete. Six Nutrition composition symbols now live in `app/composition/nutrition_providers.dart`; `network_providers.dart` re-exports them and retains Profile/Wellness/Body composition.
 **Relevant execution surface:** `apps/app/lib/app/network_providers.dart`, new `apps/app/lib/app/composition/nutrition_providers.dart`, existing app consumers/tests.
 **Validation completed at SHA:** None yet for B5.
 **Validation remaining:** exact-head workspace analyze/test, `git diff --check`, scope/review-thread audit.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Extract the six approved Nutrition composition symbols unchanged and preserve the `network_providers.dart` compatibility surface.
+**Next exact action:** Open Draft PR, run exact-head CI, then complete scope/whitespace/review audit.
 
 ## Global UI / Design-System Guardrail
 
@@ -112,12 +112,12 @@ apps/app/lib/app/composition/
 
 ## 5. Implementation Plan
 
-- [ ] create `composition/nutrition_providers.dart`
-- [ ] move only the six approved symbols unchanged
-- [ ] re-export the new module from `network_providers.dart`
-- [ ] remove now-unused Nutrition import from `network_providers.dart`
-- [ ] preserve all existing consumer imports
-- [ ] audit exact branch delta
+- [x] create `composition/nutrition_providers.dart`
+- [x] move only the six approved symbols unchanged
+- [x] re-export the new module from `network_providers.dart`
+- [x] remove now-unused Nutrition import from `network_providers.dart`
+- [x] preserve all existing consumer imports
+- [x] audit exact branch delta
 - [ ] obtain exact-head CI
 - [ ] run/record `git diff --check`
 - [ ] reconcile GitHub/Linear/task state for review
@@ -126,7 +126,7 @@ apps/app/lib/app/composition/
 
 ### Validation Run
 
-Pending.
+Source checkpoint `4a6ad75d`; GitHub CI pending on final PR head.
 
 ### Review Findings and Resolution
 
@@ -135,4 +135,22 @@ Pending.
 
 ## 7. Final Handoff
 
-Pending implementation and validation.
+### Changed Files
+
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-b5-nutrition-composition.md`
+- `apps/app/lib/app/composition/nutrition_providers.dart`
+- `apps/app/lib/app/network_providers.dart`
+
+### Source Checkpoint
+
+- base: `main@eb7b041b5a078d6e0e846792d3587a521de7024d`
+- source checkpoint: `4a6ad75dcc23997a7048544a83b823e6722a6fc4`
+- branch delta: exactly four B5-owned files
+- `network_providers.dart`: 232 → 166 lines
+- no consumer imports changed
+- no feature/router/UI/backend/schema files changed
+
+### Final Status
+
+`IMPLEMENTED — VALIDATION PENDING`
