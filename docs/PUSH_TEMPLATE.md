@@ -127,9 +127,35 @@ For **tio-world** code changes:
 - [ ] Wear OS code stays in `apps/wear`.
 - [ ] watchOS native code stays in `apps/watchos`.
 - [ ] Watch apps remain fast, lightweight, and focused on quick workflows.
-- [ ] Supabase Auth/data/Storage work stays in its approved `supabase/` boundary; Gemini, privileged AI, and advanced server work stay in approved protected functions or future `backend/*`.
+- [ ] Supabase Auth/data/Storage work stays in its approved `supabase/` boundary; Gemini, privileged AI, and advanced server work stay in approved protected functions or future `services/api`.
 
 If any item does not apply, mention why in the PR notes.
+
+### Security-sensitive validation gate
+
+If the task or PR touches any of these boundaries, explicitly inspect the applicable security evidence before push/merge:
+
+- `supabase/functions/**` Edge Functions
+- Supabase Auth/session/login/signup/admission/account-linking behavior
+- migrations, tables, RLS, grants, RPCs, triggers, views, `SECURITY DEFINER`, or other privileged database code
+- secrets, tokens, API keys, service credentials, signing/authentication material, or server-held provider credentials
+- OAuth/external account or provider integrations
+- server-side AI/provider calls or external APIs using protected credentials
+- future approved protected service code under `services/api`
+
+For those scopes:
+
+- run the task-specific migration/RLS/security validation and inspect Supabase Security Advisor when relevant;
+- inspect repository security/code-scanning checks when available;
+- record **merge-gate requirement** separately: verify from current branch/ruleset configuration whether the check is required or supplemental/non-required;
+- record **analysis outcome/cause** separately: distinguish a concrete security finding/completed analysis from an external scanner/infrastructure failure before meaningful analysis;
+- combine both axes in the PR report when a check does not pass (for example, `required + infrastructure failure` or `supplemental + concrete finding`);
+- treat any failed/incomplete required check as merge-blocking until it passes or an authorized owner/admin changes the policy, including when the cause is scanner infrastructure;
+- treat a concrete finding as a real security finding even when its check is supplemental/non-required;
+- never report an infrastructure failure as a security pass or as proof of a product vulnerability;
+- never weaken branch protection or suppress a real finding merely to make a PR mergeable.
+
+Pure UI/layout, docs-only, or unrelated refactor work does not automatically require Supabase-specific security validation when it does not touch a security-sensitive server/data boundary. Normal repository-required checks still apply.
 
 ---
 
@@ -139,9 +165,11 @@ Use the smallest meaningful validation.
 
 Docs-only:
 
-```text
-Validation: docs-only, no build required.
+```bash
+git diff --check
 ```
+
+No build is required unless another repository-required docs/governance check applies.
 
 Flutter monorepo:
 
@@ -168,10 +196,10 @@ flutter pub get
 flutter analyze
 ```
 
-Supabase or protected backend:
+Supabase or security-sensitive protected service:
 
 ```text
-Run the feature task's documented migration/RLS/security checks or the selected backend runtime checks.
+Apply the security-sensitive validation gate above, then run the feature task's documented migration/RLS/security checks or the selected protected-service runtime checks.
 ```
 
 If validation cannot run, document the exact reason.
@@ -277,7 +305,8 @@ For documentation-only work:
 ```markdown
 ## Validation
 
-- Docs-only change; no build required.
+- [ ] `git diff --check`
+- Docs-only change; no build required unless another repository-required docs/governance check applies.
 ```
 
 ---

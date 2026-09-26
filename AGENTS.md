@@ -169,6 +169,32 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Supabase is active current infrastructure, not future work; a current Supabase schema/RLS/RPC change is allowed when a concrete active feature genuinely needs it and the bounded task approves it. Do not add Docker/local-database CI, paid Supabase environments, or extra RPC-hardening/verification infrastructure merely for speculative future-safety.
 - `services/api` remains architecture-only (ADR-0007) until a separately approved implementation slice starts it. Documenting or planning it does not authorize writing backend code.
 
+## Security-Sensitive Change Validation
+
+Inspect applicable security evidence whenever a task or PR touches any of these security-sensitive boundaries:
+
+- `supabase/functions/**` Edge Functions
+- Supabase Auth, sessions, login/signup/admission, or account-linking behavior
+- migrations, tables, RLS policies, grants, RPCs, triggers, views, `SECURITY DEFINER`, or other privileged database code
+- secrets, tokens, API keys, service credentials, signing/authentication material, or server-held provider credentials
+- OAuth or external account/provider integrations
+- server-side AI/provider calls or external APIs that use protected credentials
+- future approved protected service code under `services/api`
+
+For those scopes:
+
+1. Run or inspect the task-specific security validation that actually applies, including migration/RLS/security tests, Supabase Security Advisor when relevant, and repository security/code-scanning checks when available.
+2. Record **merge-gate requirement** independently from the check result/cause:
+   - **Required:** if the repository's current branch/ruleset configuration marks the check required, any failed or incomplete check remains merge-blocking until it passes or an authorized owner/admin explicitly changes that policy.
+   - **Supplemental/non-required:** the check is not automatically merge-blocking by required-status alone, but any concrete finding it reports still requires normal security disposition according to severity and repository policy.
+3. Record **analysis outcome/cause** independently from requiredness:
+   - **Concrete security finding / completed analysis:** treat the reported code/config/security problem as a real finding and resolve or explicitly disposition it. A finding remains real even when the producing check is supplemental/non-required.
+   - **External scanner/infrastructure failure before meaningful analysis:** record and track the outage separately; it is neither a security pass nor evidence of a product-code vulnerability. If that scanner is required, the infrastructure failure still blocks merge because requiredness is a separate axis.
+4. Report both axes together when a security check does not pass, for example `required + infrastructure failure` or `supplemental + concrete finding`. Verify required-vs-supplemental status from current repository branch/ruleset configuration; never infer it from a check name.
+5. Do not weaken branch protection, suppress a real finding, or add unrelated product/runtime work to silence a security tool.
+
+Pure UI/layout work, docs-only changes, or unrelated refactors that do not touch a security-sensitive server/data boundary do not automatically require Supabase-specific security validation. Normal repository-required CI and the changed-area validation rules below still apply.
+
 ## Git And Push Workflow
 
 Before commit, push, or PR creation:
@@ -204,7 +230,7 @@ flutter analyze
 flutter test
 ```
 
-For Supabase changes, use the feature task's documented migration/RLS/security checks. For a future protected backend, use the selected runtime's documented commands; do not assume a backend toolchain before its first service slice is approved.
+For Supabase or other security-sensitive server/data changes, apply the Security-Sensitive Change Validation rule above and run the feature task's documented migration/RLS/security checks. For a future protected service under `services/api`, use the selected runtime's documented commands; do not assume a backend toolchain before its first service slice is approved.
 
 For docs-only changes, at minimum run:
 
