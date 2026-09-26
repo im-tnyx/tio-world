@@ -1,6 +1,6 @@
 # TNYX-201 C2b2 — Product Onboarding Route Registration Extraction
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** apps/app routing composition
 **Affected platforms:** Flutter phone app
 
@@ -22,7 +22,7 @@
 **HEAD SHA:** validated source/review checkpoint `5045ef5b60748da60068cb751f1bf4dbdf86b651`; this handoff reconciliation is documentation-only.
 **PR / tracker:** Linear TNYX-201; GitHub #260; router parent #357; C2b2 child #386; TNYX-202/#261 and TNYX-159/#215 context-only.
 **Current blocker:** None.
-**Next exact action:** Revalidate this documentation-only final head; if green, mark PR #387 ready for review and reconcile TNYX-201 to In Review.
+**Next exact action:** None. Source PR #387 merged and this brief is archived.
 
 ## 1. Discovery
 
@@ -83,7 +83,7 @@ apps/app/lib/app/router.dart  # single GoRouter owner + Product Onboarding polic
 - [x] audit route/workflow reference preservation + one-router authority
 - [x] obtain exact-head CI
 - [x] whitespace/conflict audit
-- [ ] reconcile review handoff
+- [x] reconcile review handoff
 
 ## 5. Quality Review
 
@@ -114,7 +114,7 @@ API-mode scope / behavior-preservation audit
 Non-required GHAS failed before code analysis because its configured Copilot model returned `400 The requested model is not supported`; no code-scanning finding was produced.
 ```
 
-This handoff update is documentation-only and requires one final exact-head CI recheck.
+Final exact-head Flutter CI #2798 / run 36237539943 passed at `ff72da0d46e8e8e3af9adaea238a2e521627f5a9`. Codex reviewed that exact head with no major issues and 0 unresolved review threads. PR #387 was squash-merged as `e458eda5bd22683ddb22ebd019afde37873b9249` on 2026-09-26.
 
 ## 6. Final Handoff
 
@@ -138,4 +138,4 @@ This handoff update is documentation-only and requires one final exact-head CI r
 
 ### Final status
 
-`REVIEW HANDOFF — FINAL HEAD REVALIDATION PENDING`
+`VALIDATED — MERGED VIA PR #387 (e458eda5)`
