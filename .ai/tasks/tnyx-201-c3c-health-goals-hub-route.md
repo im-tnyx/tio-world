@@ -17,22 +17,22 @@
 
 **Planning owner:** current C3c planning/reconciliation session
 **Implementation owner:** current C3c implementation session
-**Review owner:** None yet
-**Implementation ownership state:** Active
+**Review owner:** Codex exact-head review + primary integration review
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub/API at `main@ee649c6d404337a248072e3ab3040e5b84c2dadc`
 **Branch:** `tnyx/tnyx-201-c3c-health-goals-hub-route`
-**HEAD SHA:** `e8740a1f3e8967912342f2a1f376eecb97194266` source-implementation checkpoint before this handoff update
+**HEAD SHA:** `36076e5f886b7c6b45160e7e0433b600ad82d52c` validated source/docs head before this final handoff update
 **Observed working-tree state:** Connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable / not observable from connector execution
 **PR / tracker:** GitHub #395 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Health & Goals hub route registration moved into existing `settings_routes.dart`; root duplicate removed; downstream Daily Wellness and Body & Weight blocks untouched
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`, existing `apps/app/test/app/app_mode_router_test.dart`
-**Validation completed at SHA:** `e8740a1f3e8967912342f2a1f376eecb97194266` API scope/invariant audit: base ancestor, 5 ahead / 0 behind, exactly 4 owned paths, root Health & Goals registration 0, Settings module registration 1, root Daily Wellness 1, root Body & Weight 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0, no trailing-whitespace/conflict findings in changed file contents
-**Validation remaining:** exact-head PR diff whitespace check, Flutter CI/analyze/tests, independent review
+**Validation completed at SHA:** `36076e5f886b7c6b45160e7e0433b600ad82d52c`: Flutter CI #2810 full PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests); API scope audit 6 ahead / 0 behind with exactly 4 owned paths; PR diff trailing whitespace 0 and conflict markers 0; moved route block equivalent ignoring indentation; root Health & Goals registration 0, Settings module registration 1, root Daily Wellness 1, root Body & Weight 1, root `GoRouter(...)` 1, route-module `GoRouter(...)` 0; Codex exact-head review found no major issues; unresolved review threads 0
+**Validation remaining:** final governance-only head revalidation after this handoff commit
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Open the focused Draft PR, validate exact-head CI/diff/review, then reconcile review state
+**Next exact action:** Revalidate the final governance-only head, then mark PR #396 Ready for Review; do not merge without explicit owner instruction
 
 ## Global UI / Design-System Guardrail
 
@@ -106,15 +106,25 @@ No failure, loading, accessibility or visible presentation behavior changes in t
 - [x] verify Daily Wellness and Body & Weight registrations remain root-owned
 - [x] verify route/reference count and one-router authority
 - [x] audit exact parent-to-head changed files
-- [ ] run exact-head CI/analyze/tests and whitespace validation
-- [ ] request independent review
+- [x] run exact-head CI/analyze/tests and whitespace validation
+- [x] request independent review
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Validated source/docs head: 36076e5f886b7c6b45160e7e0433b600ad82d52c
+Flutter CI #2810: PASS
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
+API ancestry/scope: 6 ahead / 0 behind; exactly 4 owned paths
+PR diff: trailing whitespace 0; conflict markers 0
+Codex exact-head review: no major issues
+Unresolved review threads: 0
 ```
 
 ### Review Findings and Resolution
@@ -141,4 +151,4 @@ Downstream Daily Wellness and Body & Weight route composition remains root-owned
 
 ### Final Status
 
-`REVIEW` — bounded source implementation is complete; exact-head CI/review remain.
+`REVIEW` — bounded implementation is validated and ready for final governance-only head revalidation / Ready for Review transition.
