@@ -23,6 +23,7 @@ import 'profile/profile_completion.dart';
 import 'routing/routes/account_setup_routes.dart';
 import 'routing/routes/auth_routes.dart';
 import 'routing/routes/onboarding_routes.dart';
+import 'routing/routes/nutrition_routes.dart';
 import 'routing/routes/profile_routes.dart';
 import 'routing/routes/settings_routes.dart';
 import 'routing/shell/shell_route.dart';
@@ -483,25 +484,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         appModeController: appModeController,
         appThemeController: appThemeController,
       ),
-      GoRoute(
-        path: AppRoutes.nutritionSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => NutritionSettingsPage(
-          onNutritionProfilePressed: () =>
-              context.push(AppRoutes.nutritionProfileSettings.path),
-          onNutritionTargetsPressed: () =>
-              context.push(AppRoutes.nutritionTargetsSettings.path),
-          onMealDiarySettingsPressed: () =>
-              context.push(AppRoutes.mealDiarySettings.path),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.mealDiarySettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => MealDiarySettingsPage(
-          onMealCategoriesPressed: () =>
-              context.push(AppRoutes.mealCategoriesSettings.path),
-        ),
+      ...buildNutritionRoutes(
+        rootNavigatorKey: rootNavigatorKey,
       ),
       GoRoute(
         path: AppRoutes.archivedMealCategoriesSettings.path,
