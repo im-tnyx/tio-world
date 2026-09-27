@@ -75,7 +75,7 @@ to:
 
 ### Verified Evidence
 
-- Read root `AGENTS.md`, `.ai/workflow.md`, `.ai/tasks/TEMPLATE.md`, `docs/ARCHITECTURE.md`, `docs/MODULE_OWNERSHIP.md`, GitHub #260/#362, Linear TNYX-201 and current source.
+- Read root `AGENTS.md`, `.ai/workflow.md`, `.ai/tasks/TEMPLATE.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/MODULE_OWNERSHIP.md`, GitHub #260/#362, Linear TNYX-201 and current source.
 - Current base: `main@509c9ba55388ab1c2eecc77a4b9d4e78b7688283`.
 - `network_providers.dart`: 314 lines, blob `fae0f14644afdf61c15b20f4335cdbc5511cc8a7`.
 - Canonical ownership: `HydrationPreferences`, repository contract and SharedPreferences adapter belong to Settings; `apps/app` constructs/injects the adapter and owns explicit account-boundary composition.
