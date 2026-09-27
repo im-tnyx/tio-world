@@ -7,7 +7,7 @@ Truth Boundary: Concise AI-facing product/repository orientation; canonical prod
 
 **TNYX / tio-world** is an AI health, fitness, nutrition, recovery, coaching, workout, wearable, and future multi-platform product.
 
-The current target repository direction is a **Flutter-first monorepo** with a Flutter Wear OS companion and a native Apple Watch app.
+The current target repository direction is a **Flutter-first monorepo** with a Flutter Wear OS companion and a future native Apple Watch app.
 
 ## Current Platform Scope
 
