@@ -1,5 +1,10 @@
 # Architecture Summary
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Concise AI-facing orientation to current repository architecture; canonical architecture docs/ADRs and runtime source/config override this summary.
+
 `tio-world` uses a Flutter-first monorepo architecture with a Flutter Wear OS companion, a native Apple Watch app, and feature-owned vertical slices.
 
 The target shape is modular, practical, and easy to grow without leaking business logic into UI.
@@ -13,7 +18,7 @@ The target shape is modular, practical, and easy to grow without leaking busines
 - Shared Dart models, entities, repository contracts, and use cases live in `apps/shared`.
 - Shared Flutter design tokens, shell components, and route contracts live in `apps/core`.
 - Feature-owned mobile UI and workflows live in `apps/features/*`.
-- Supabase is the planned first Auth, Postgres/RLS, Storage, and migration boundary. Future `backend/*` owns privileged Gemini/AI orchestration, advanced integrations, and long-running jobs.
+- Supabase is the active Auth, Postgres/RLS, Storage, migration, and approved server-function boundary. Future protected application work belongs under `services/api`; add `services/worker` only when a separately approved asynchronous/background workload requires it. Do not introduce `backend/*`.
 - Feature logic stays inside the owning feature or package.
 - UI remains dumb and renders immutable state.
 - Business rules belong in controllers/notifiers/use cases/domain services/repositories.
@@ -61,10 +66,11 @@ The implemented architecture places the single `AppMode` enum, guided destinatio
 
 Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's first mode-selection screen and Settings mode editor are implemented; later conditional onboarding steps remain planned. Coach becomes eligible only when Phase 7 begins.
 
-The planned full onboarding uses one `/onboarding` parent screen. Top progress and
+Current Product Onboarding uses one `/onboarding` parent screen. Top progress and
 bottom actions stay fixed while one mode-derived child changes. Stable step IDs and
-one Riverpod controller own the internal flow. Draft mode, confirmed App Mode, and
-completion status remain separate; see
+one Riverpod controller own the internal flow. Durable draft autosave/resume is
+implemented through the Supabase-backed draft repository, while draft mode,
+confirmed App Mode, and completion status remain separate; see
 [Onboarding Flow Architecture](../docs/architecture/ONBOARDING_ARCHITECTURE.md).
 
 A final-stage custom navigation layer keeps Home first, supports three to six eligible destinations, and may promote implemented feature routes such as Workout Library or Meal Plan as shortcuts. Home sections and feature action entries adapt through shared layout/composition contracts while business logic remains feature-owned.
