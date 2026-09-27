@@ -220,9 +220,9 @@ Conversely, do not retroactively create ADRs for every completed implementation.
 ## Related
 
 - [ADR template](TEMPLATE.md)
-- [Architecture](../ARCHITECTURE.md)
-- [Module Ownership](../MODULE_OWNERSHIP.md)
-- [Roadmap](../ROADMAP.md)
-- [Supabase-First Platform Strategy](../SUPABASE_STRATEGY.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
+- [Module Ownership](../architecture/MODULE_OWNERSHIP.md)
+- [Roadmap](../planning/ROADMAP.md)
+- [Supabase-First Platform Strategy](../data/SUPABASE_STRATEGY.md)
 - [Documentation index](../README.md)
 - [Active Decisions](../../.ai/DECISIONS.md)
