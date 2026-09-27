@@ -37,7 +37,7 @@ Reconcile only the source-proven Coach current-state wording left open by the pr
 
 ## Validation Evidence
 
-Repository API compare against `main@4230849e36d23c64053108fcf4aac08a6f4cb664`: 3 ahead / 0 behind; exact changed paths are this task brief, `docs/screens/README.md`, and `docs/screens/coach.md`. Branch content was re-read after the edits and matches `shellBranchRegistry`, `AppDestination.guidedDestinations`, and `appModeRedirect()` behavior. No runtime, Progress, backend, Supabase, #250 acceptance, or P9 files are in the diff.
+Repository API compare against `main@4230849e36d23c64053108fcf4aac08a6f4cb664`: 4 ahead / 0 behind after the validation-record commit; exact changed paths are this task brief, `docs/screens/README.md`, and `docs/screens/coach.md`. Branch content was re-read after the edits and matches `shellBranchRegistry`, `AppDestination.guidedDestinations`, and `appModeRedirect()` behavior. No runtime, Progress, backend, Supabase, #250 acceptance, or P9 files are in the diff.
 
 ## Known follow-up
 `docs/planning/ROADMAP.md` still contains separate stale App Mode/onboarding current-state prose. Audit and reconcile it in its own bounded slice.
