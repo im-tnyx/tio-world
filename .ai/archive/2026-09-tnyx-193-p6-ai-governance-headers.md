@@ -1,6 +1,7 @@
 # TNYX-193 P6 — AI Governance Header Rollout
 
-**Status:** In review
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository AI governance
 **Affected platforms:** documentation only
 
@@ -17,21 +18,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** independent exact-head review after the bounded P6 slice
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Completed / archived
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@44b92d6690f35bc1741460268065ee38dc8a5502`; GitHub #250 open; Linear TNYX-193 `In Progress`; P6 explicitly assigned 10 stable files and P7 assigned the two dynamic current-state snapshots.
-**Branch:** `tnyx/tnyx-193-p6-ai-governance-headers`
-**HEAD SHA:** source/docs review checkpoint `483d019da142674468279d5c2f2603492f16e1ff`; this final handoff-only refresh will move HEAD and must be revalidated externally rather than recursively rewriting this field
+**Repository state last verified:** `main@77547eb35666c61874fe9dd5490c5e102215f2f3`; PR #419 merged/closed; GitHub #250 open with P6 Completed; Linear TNYX-193 `In Progress` because P7/P9 remain separately gated.
+**Branch:** merged from `tnyx/tnyx-193-p6-ai-governance-headers`; archive lifecycle branch is separate
+**HEAD SHA:** exact reviewed head `0adf314a05ae06d24f872a2aa74106b61b14b308`; squash merge `77547eb35666c61874fe9dd5490c5e102215f2f3`
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
 **Current implementation state:** P6 implementation is complete at the source/docs checkpoint: all 10 locked stable `.ai/` files carry the four-line governance header and known contradicted architecture/data/ownership/current-state prose in P6 scope is reconciled.
 **Relevant execution surface:** `.ai/DECISIONS.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/README.md`, `.ai/architecture-summary.md`, `.ai/coding-rules.md`, `.ai/ownership-rules.md`, `.ai/project-context.md`, `.ai/supabase-rules.md`, `.ai/ui-rules.md`, `.ai/workflow.md`, this task brief, and `.ai/tasks/README.md`.
 **Validation completed at SHA:** source/docs checkpoint `483d019da142674468279d5c2f2603492f16e1ff`: 20 ahead / 0 behind from `main@44b92d6690f35bc1741460268065ee38dc8a5502`; 12 changed paths = 10 P6 stable files + this task brief + task index; 10/10 governance headers; P7 files zero diff; 36 local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; known stale protected-backend paths, legacy schema symbols, removed adapter names, App Mode device-local authenticated wording, Nutrition Water/Glass ownership claims, and current-vs-future Apple Watch ambiguity absent.
-**Validation remaining:** after this handoff refresh, revalidate the resulting exact PR head, required checks, mergeability, and available review evidence externally; do not add another commit solely to embed its own SHA.
+**Validation remaining:** none for P6; P7 requires separate owner authorization and reconstruction.
 **Current blocker:** none
 **Open review finding IDs:** none — P6-AUDIT-01 through P6-AUDIT-08 and P6-REV-01 are resolved
-**Next exact action:** open/update the docs-only P6 PR, perform exact-head review/check reconciliation, then stop at the explicit owner merge gate.
+**Next exact action:** archive this validated P6 brief; do not start P7 or P9 from this archive lifecycle step.
 
 ## 1. Discovery
 
@@ -110,7 +111,7 @@ Treating all `.ai/` content as canonical product truth was rejected; every P6 tr
 - [x] reconcile decision-log facts that are contradicted by current App Mode/onboarding/Supabase runtime;
 - [x] correct Wellness Water Goal + Default Glass Size ownership in ownership rules;
 - [x] run exact scope/reference/patch-hygiene validation;
-- [ ] PR #419 is open; complete resulting exact-head check/review reconciliation and stop at owner merge gate.
+- [x] PR #419 exact-head review/check gate completed and squash-merged as `77547eb35666c61874fe9dd5490c5e102215f2f3`.
 
 ## 6. Quality Review
 
@@ -165,8 +166,8 @@ The 10 stable top-level `.ai/` orientation/rule files now carry explicit status,
 
 ### Known Limitations
 
-P7 remains separately gated and must reconstruct `.ai/CURRENT.md` plus `.ai/IMPLEMENTATION_STATUS.md`. Exact PR-head checks/review still need reconciliation after this handoff-only commit.
+P7 remains separately gated and must reconstruct `.ai/CURRENT.md` plus `.ai/IMPLEMENTATION_STATUS.md`. P6 does not authorize that work.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
