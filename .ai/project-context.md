@@ -1,5 +1,10 @@
 # Project Context
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Concise AI-facing product/repository orientation; canonical product/architecture docs, runtime source/config, and live trackers override current-state details.
+
 **TNYX / tio-world** is an AI health, fitness, nutrition, recovery, coaching, workout, wearable, and future multi-platform product.
 
 The current target repository direction is a **Flutter-first monorepo** with a Flutter Wear OS companion and a native Apple Watch app.
@@ -14,10 +19,9 @@ The repository uses the following apps-based structure:
 - `apps/shared`: Pure Dart models, entities, repository contracts, use cases, result/error types, and shared utilities.
 - `apps/core`: Flutter design system, app shell UI, route contracts, reusable widgets, and theme tokens.
 - `apps/features/*`: Feature-owned Flutter UI, state, controllers, and presentation workflows.
-- future `supabase/`: Supabase Auth, Postgres/RLS, private Storage buckets, migrations, and seed data.
-- future `backend/api`: Protected service API boundary after the Supabase-first upgrade gate.
-- future `backend/ai-coach`: Server-side Gemini/provider coaching layer.
-- future `backend/jobs`: Long-running scheduled and background jobs after the upgrade gate.
+- `supabase/` (active): Supabase Auth, Postgres/RLS, Storage, migrations, and approved server functions.
+- future `services/api`: Sole protected application-service path when a separately approved slice needs it; server-side AI/provider orchestration and advanced integrations belong here when Supabase functions are no longer the right boundary.
+- future `services/worker`: Add only for a real separately approved asynchronous/background workload.
 
 ## Current Product Areas
 
@@ -56,6 +60,6 @@ Use:
 
 ## Current Status
 
-`tio-world` should be treated as a foundation-stage monorepo until real modules, apps, and backend services are implemented.
+`tio-world` is an active Flutter/Supabase monorepo with multiple implemented feature and platform slices, while several product areas and future protected services remain incomplete or planned.
 
-Do not infer production readiness from docs, placeholder modules, or planned folders.
+Do not infer production readiness from docs, implemented slices, placeholder modules, or planned folders; runtime/source and release acceptance remain the proof.
