@@ -1,5 +1,10 @@
 # Home Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/home`
+Truth Boundary: Authoritative for the Home screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone primary tab
 **Route:** `/`
 **Primary owner:** `apps/app` for current shell composition; introduce a dedicated Home package only when its real domain logic warrants one.

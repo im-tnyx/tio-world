@@ -1,5 +1,10 @@
 # Nutrition Targets Screen
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/nutrition`
+Truth Boundary: Authoritative for the planned Nutrition Targets screen product contract and ownership; not evidence the screen is implemented or scheduled.
+
 **Surface:** Nested Phone Nutrition configuration
 **Route:** No route exists yet
 **Primary owner:** `apps/features/nutrition`

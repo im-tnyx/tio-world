@@ -1,5 +1,10 @@
 # Meal Diary Display Preferences
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/nutrition`
+Truth Boundary: Authoritative for Meal Diary display-preference product rules and ownership; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Owner:** `apps/features/nutrition`
 **Runtime slice:** TNYX-198 / N14A
 **Persistence:** device-local `SharedPreferencesAsync`
