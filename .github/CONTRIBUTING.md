@@ -9,10 +9,10 @@ Use this GitHub-facing file as a pointer only.
 Before opening a pull request, read:
 
 - [../README.md](../README.md)
-- [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)
-- [../docs/MODULE_OWNERSHIP.md](../docs/MODULE_OWNERSHIP.md)
-- [../docs/WATCH_STRATEGY.md](../docs/WATCH_STRATEGY.md)
-- [../docs/ROADMAP.md](../docs/ROADMAP.md)
+- [../docs/architecture/ARCHITECTURE.md](../docs/architecture/ARCHITECTURE.md)
+- [../docs/architecture/MODULE_OWNERSHIP.md](../docs/architecture/MODULE_OWNERSHIP.md)
+- [../docs/wearables/WATCH_STRATEGY.md](../docs/wearables/WATCH_STRATEGY.md)
+- [../docs/planning/ROADMAP.md](../docs/planning/ROADMAP.md)
 
 For day-to-day work, follow these defaults:
 
