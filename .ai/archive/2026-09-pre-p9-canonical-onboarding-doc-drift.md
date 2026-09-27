@@ -1,6 +1,7 @@
 # Pre-P9 — Canonical Onboarding Documentation Drift Reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository documentation governance + onboarding
 **Affected platforms:** Documentation only
 
@@ -17,20 +18,20 @@
 **Planning owner:** TNYX-193 / GitHub #250
 **Implementation owner:** current agent
 **Review owner:** exact-head manual review + repository checks
-**Implementation ownership state:** Active
-**Repository state last verified:** `main@9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`
+**Implementation ownership state:** Complete
+**Repository state last verified:** `main@e926f05fa751db47d1cf11c82f1456eef5eda50f` after PR #430 merge
 **Branch:** `tnyx/pre-p9-canonical-onboarding-doc-drift`
-**HEAD SHA:** branch created from exact verified main
+**HEAD SHA:** reviewed PR #430 head `ca879c12a325744394febe1815c70311b1e18ba0`; squash merge `e926f05fa751db47d1cf11c82f1456eef5eda50f`
 **Observed working-tree state:** Connector-backed branch; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** Reconciling three canonical onboarding docs whose current-state wording predates merged O1–O11 runtime.
+**Current implementation state:** Validated and merged; the three identified canonical onboarding drift claims are reconciled.
 **Relevant execution surface:** docs only
-**Validation completed at SHA:** Audit baseline `9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`
-**Validation remaining:** PR exact-head review/checks.
+**Validation completed at SHA:** reviewed PR #430 head `ca879c12a325744394febe1815c70311b1e18ba0`; merged to `main` as `e926f05fa751db47d1cf11c82f1456eef5eda50f`
+**Validation remaining:** None.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Apply the three bounded doc corrections, validate, then open a docs-only PR.
+**Next exact action:** Archive this validated handoff, then resume the separate #250 evidence-by-evidence acceptance audit. Do not start P9.
 
 ## 1. Discovery
 
@@ -73,7 +74,7 @@ No architecture change. Preserve existing ownership and current runtime truth.
 - [x] Correct stale onboarding architecture blocker wording.
 - [x] Correct stale onboarding screen status/NutritionTarget wording.
 - [x] Validate exact branch scope and source-backed statements.
-- [ ] Exact-head review and CI gate.
+- [x] Exact-head review and final merge gate.
 
 ## 6. Quality Review
 
@@ -81,7 +82,7 @@ No architecture change. Preserve existing ownership and current runtime truth.
 Repository API validation: 4 ahead / 0 behind from `main@9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`; exactly 4 changed paths; targeted stale blocker/status phrases absent; replacement claims cross-checked against current flow/renderer/target/completion source and merged #50 plus closed #40/#54 evidence.
 
 ### Review Findings and Resolution
-None yet.
+Manual exact-head review at `ca879c12a325744394febe1815c70311b1e18ba0` found no content issues and 0 unresolved threads. Final gate was 5 ahead / 0 behind and mergeable. GitHub published no workflow/status checks for this docs-only head, so no CI-pass claim is made. PR #430 squash-merged as `e926f05fa751db47d1cf11c82f1456eef5eda50f`.
 
 ## 7. Final Handoff
 
@@ -95,4 +96,4 @@ Documentation only; runtime unchanged.
 This slice does not prove every canonical document repo-wide contradiction-free; it removes the concrete onboarding drift found by the current audit.
 
 ### Final Status
-`REVIEW`
+`PASS`

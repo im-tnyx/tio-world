@@ -68,3 +68,5 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 | 2026-09-27 | [TNYX-193 P6 — AI governance headers](2026-09-tnyx-193-p6-ai-governance-headers.md) | Validated; merged via PR #419 (`77547eb3`) | [Documentation governance](../../docs/README.md), [.ai/README.md](../README.md), GitHub #250 / Linear TNYX-193 |
 
 | 2026-09-27 | [Pre-P9 — Post-index dynamic snapshot refresh](2026-09-pre-p9-snapshot-post-index-refresh.md) | Validated; snapshots reconciled and merged via PR #428 (`0db78d42`) | [.ai/CURRENT.md](../CURRENT.md), [.ai/IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md), GitHub #250 / Linear TNYX-193 |
+
+| 2026-09-27 | [Pre-P9 — Canonical onboarding documentation drift reconciliation](2026-09-pre-p9-canonical-onboarding-doc-drift.md) | Validated; canonical onboarding status drift reconciled and merged via PR #430 (`e926f05f`) | [MVP_ACCEPTANCE.md](../../docs/planning/MVP_ACCEPTANCE.md), [ONBOARDING_ARCHITECTURE.md](../../docs/architecture/ONBOARDING_ARCHITECTURE.md), [onboarding.md](../../docs/screens/onboarding.md), GitHub #250 / Linear TNYX-193 |
