@@ -1,6 +1,7 @@
 # Pre-P9 — Post-index dynamic snapshot refresh
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository documentation governance
 **Affected platforms:** documentation / AI execution orientation only
 
@@ -17,21 +18,21 @@
 **Planning owner:** GitHub #250 / Linear TNYX-193
 **Implementation owner:** ChatGPT
 **Review owner:** manual exact-head review after implementation
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@7a243122a58baa2cf1e03fa785669339e89940c5`
+**Repository state last verified:** `main@0db78d42e42eae027718f90f84a78bcc76a06a9c` after PR #428 merge
 **Branch:** `tnyx/pre-p9-snapshot-post-index-refresh`
-**HEAD SHA:** branch created from exact verified main
+**HEAD SHA:** exact reviewed PR #428 head `c4585cddf5603dbd5504cfa78ad4abca06217374`; squash merge `0db78d42e42eae027718f90f84a78bcc76a06a9c`
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** Snapshot refresh implemented and exact three-path scope validated.
+**Current implementation state:** Snapshot refresh validated and merged via PR #428.
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`
-**Validation completed at SHA:** Audit baseline `7a243122a58baa2cf1e03fa785669339e89940c5`
-**Validation remaining:** PR exact-head review and repository checks.
+**Validation completed at SHA:** exact reviewed head `c4585cddf5603dbd5504cfa78ad4abca06217374`; merged `main@0db78d42e42eae027718f90f84a78bcc76a06a9c`
+**Validation remaining:** None for this snapshot-refresh slice.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Refresh only the two snapshots, then validate exact scope.
+**Next exact action:** Archive this validated handoff, then resume the separate #250 evidence-by-evidence acceptance-bookkeeping reconciliation; do not start P9 from this lifecycle step.
 
 ## 1. Discovery
 
@@ -93,7 +94,7 @@ Documentation/execution orientation only. Runtime/source, canonical docs, and li
 ### Validation Run
 
 ```text
-Repository API validation: 4 ahead / 0 behind from main; exactly 3 changed paths; both snapshots reference main@7a243122... and PRs #426/#427; obsolete pending-index-cleanup phrases absent; GitHub #250 P9 remains Not started; Linear TNYX-193 remains In Progress.
+PR #428 exact-head gate at `c4585cddf5603dbd5504cfa78ad4abca06217374`: 5 ahead / 0 behind from `main@7a243122...`; exactly 3 changed paths; manual exact-head review found no content findings; 0 unresolved threads; Commit attribution guard PASS; Attribution guard runner PASS; supplemental GHAS failed before meaningful analysis with `400 The requested model is not supported` (TNYX-256); squash merged as `main@0db78d42e42eae027718f90f84a78bcc76a06a9c`. GitHub #250 P9 remained Not started and Linear TNYX-193 remained In Progress.
 ```
 
 ## 7. Final Handoff
@@ -114,4 +115,4 @@ Live tracker state remains volatile and must be re-queried before implementation
 
 ### Final Status
 
-`REVIEW`
+`PASS`
