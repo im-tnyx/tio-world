@@ -16,7 +16,7 @@
 
 **Planning owner:** TNYX-193 / GitHub #250  
 **Implementation owner:** active P7 agent  
-**Review owner:** pending  
+**Review owner:** manual exact-head review pending  
 **Implementation ownership state:** Active  
 **Ownership transition:** Not applicable  
 **Repository state last verified:** `main@0248fab407201bf5b8debd71262c871a4beb98a4`  
@@ -31,7 +31,7 @@
 **Validation remaining:** PR exact-head review/check gates.  
 **Current blocker:** None.  
 **Open review finding IDs:** None.  
-**Next exact action:** Reconstruct both P7 snapshots without widening into stale Product Onboarding task cleanup.
+**Next exact action:** Run exact-head PR review/check gates without widening into stale Product Onboarding task cleanup.
 
 ## 1. Discovery
 
@@ -104,7 +104,8 @@ Not applicable; documentation-only.
 - [x] Reconstruct `.ai/CURRENT.md`.
 - [x] Reconstruct `.ai/IMPLEMENTATION_STATUS.md`.
 - [x] Validate exact scope and stale claims.
-- [ ] Open focused docs-only PR and run review gates.
+- [x] Open focused docs-only PR.
+- [ ] Run exact-head review/check gates.
 
 ## 6. Quality Review
 
