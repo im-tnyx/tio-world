@@ -92,7 +92,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Splash](splash.md) | Implemented bootstrap surface; app-level session/bootstrap state owns destination decisions and recoverable retry. |
 | Entry | [Welcome](welcome.md) | Implemented UI and navigation. |
 | Entry | [Login](login.md) | Implemented Phone-first auth entry backed by real Supabase Auth use cases; Email and Google remain supported through the canonical auth composition. |
-| Phone | [Home](home.md) | Implemented Home feature page; broader Home-owned workflows remain capability-gated. |
+| Phone | [Home](home.md) | Routed Home feature placeholder; current `HomePage` intentionally renders an empty surface while Home-owned content remains future work. |
 | Phone | [Workout](workout.md) | Implemented Workout Home date surface with Library entry; Library and Exercises nested routes are shipped while broader Workout capabilities remain later slices. |
 | Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs, Routines and Plans remain later capability slices. |
 | Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
