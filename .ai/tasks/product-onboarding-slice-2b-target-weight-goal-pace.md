@@ -167,4 +167,4 @@ This brief remains active only for its independently tracked picker/recommendati
 ## Handoff
 
 **Historical global sequence:** O1–O11 completed/frozen in #40; O1 is complete in #11 / TNYX-6.  
-**Remaining scope here:** independently tracked picker/recommendation follow-ups only; do not reopen completed O3/O10 sequencing from this brief.**
+**Remaining scope here:** independently tracked picker/recommendation follow-ups only; do not reopen completed O3/O10 sequencing from this brief.
