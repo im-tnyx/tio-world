@@ -5,7 +5,7 @@ Last Verified: 2026-09-27
 Owner: repository AI governance
 Truth Boundary: Concise AI-facing orientation to current repository architecture; canonical architecture docs/ADRs and runtime source/config override this summary.
 
-`tio-world` uses a Flutter-first monorepo architecture with a Flutter Wear OS companion, a native Apple Watch app, and feature-owned vertical slices.
+`tio-world` uses a Flutter-first monorepo architecture with a Flutter Wear OS companion, a future native Apple Watch app, and feature-owned vertical slices.
 
 The target shape is modular, practical, and easy to grow without leaking business logic into UI.
 
