@@ -25,7 +25,7 @@
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** Audit complete; stale snapshot claims identified.
+**Current implementation state:** Snapshot refresh implemented; exact-scope validation pending.
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`
 **Validation completed at SHA:** Audit baseline `7a243122a58baa2cf1e03fa785669339e89940c5`
 **Validation remaining:** exact diff/scope review, PR review, repository checks.
@@ -83,9 +83,9 @@ Documentation/execution orientation only. Runtime/source, canonical docs, and li
 
 ## 5. Implementation Plan
 
-- [ ] Refresh snapshot baselines to current main.
-- [ ] Replace obsolete Product Onboarding pending-cleanup wording with completed #426/#427 state.
-- [ ] Preserve P9 and tracker boundaries.
+- [x] Refresh snapshot baselines to current main.
+- [x] Replace obsolete Product Onboarding pending-cleanup wording with completed #426/#427 state.
+- [x] Preserve P9 and tracker boundaries.
 - [ ] Validate exact three-path scope.
 
 ## 6. Quality Review
@@ -100,7 +100,9 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/CURRENT.md`
+- `.ai/IMPLEMENTATION_STATUS.md`
+- `.ai/tasks/pre-p9-snapshot-post-index-refresh.md`
 
 ### Actual Behavior
 
