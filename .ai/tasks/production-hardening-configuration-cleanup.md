@@ -28,7 +28,7 @@ A release build must never silently select a Supabase project because build-time
 - `apps/app/lib/main.dart`
 - `apps/app/lib/app/network_providers.dart`
 - `apps/app/test/app/supabase_runtime_config_test.dart`
-- `docs/SUPABASE_RUNTIME_CONFIG.md`
+- `docs/data/SUPABASE_RUNTIME_CONFIG.md`
 
 ### Non-Goals Preserved
 
