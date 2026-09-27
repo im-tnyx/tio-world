@@ -41,7 +41,7 @@ Every push/PR can be checked on GitHub without relying only on a local machine. 
 
 ### Verified Evidence
 
-- Source/config inspected: `AGENTS.md`, `docs/DEVELOPMENT_SETUP.md`, `melos.yaml`, root `pubspec.yaml`, `apps/shared/pubspec.yaml`, `.github/`.
+- Source/config inspected: `AGENTS.md`, `docs/development/DEVELOPMENT_SETUP.md`, `melos.yaml`, root `pubspec.yaml`, `apps/shared/pubspec.yaml`, `.github/`.
 - Existing pattern to follow: repository validation prefers Melos for monorepo changes.
 - `.github/` had no workflow before this slice.
 - `melos.yaml` uses the legacy workspace format with explicit package globs.
