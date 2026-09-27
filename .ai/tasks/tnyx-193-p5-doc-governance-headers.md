@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** exact review/check checkpoint `b909e8f46801aa35e95f95f2092330f79763b05a`; this final gate-summary refresh creates one metadata-only head that must be revalidated
+**HEAD SHA:** exact merge-gate checkpoint `533e17b91211b9d51e6744a0d54832bf8535c58f`; this final active-handoff refresh creates one `.ai`-only head that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
 **Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Three Codex review rounds plus one manual exact-head review exposed stale/current-truth gaps; all verified findings are now reconciled against current source, routes, repositories, migrations, live Supabase Edge Function state, CI and canonical ownership. Codex review quota is exhausted, so no further independent Codex pass is currently available.
 **Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
-**Validation completed at SHA:** exact head `b909e8f46801aa35e95f95f2092330f79763b05a`: 50 ahead / 0 behind; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted.
+**Validation completed at SHA:** exact head `533e17b91211b9d51e6744a0d54832bf8535c58f`: 51 ahead / 0 behind; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted.
 **Validation remaining:** revalidate the resulting metadata-only final head and its repository checks, then stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
 **Current blocker:** none
-**Open review finding IDs:** none — P5-REV-01 through P5-REV-31 fixed and all 32 review threads resolved
-**Next exact action:** revalidate the final metadata-only head/check state, reconcile PR/tracker exact SHA, then stop at the owner merge gate.
+**Open review finding IDs:** none — all 32 review threads/findings are resolved; the final manual privacy finding is included in the reconciled exact-head evidence
+**Next exact action:** revalidate the resulting `.ai`-only final head/check state, reconcile PR/tracker exact SHA, then stop at the explicit owner merge gate.
 
 ## 1. Discovery
 
