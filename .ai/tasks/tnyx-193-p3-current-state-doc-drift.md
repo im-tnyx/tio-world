@@ -25,12 +25,12 @@
 **Planning owner:** current P3 session  
 **Implementation owner:** current P3 session  
 **Review owner:** pending independent review  
-**Implementation ownership state:** Active  
+**Implementation ownership state:** Complete  
 **Branch:** `tnyx/tnyx-193-p3-current-state-doc-drift`  
 **Repository base last verified:** `main@25556a83cf49886333ecfe10d8628b79cbf5159d`  
 **Observed working-tree state:** connector/API execution only; no local working tree is available to inspect  
-**Current blocker:** none  
-**Next exact action:** update only the four approved docs to match verified current repository truth, then run exact docs-only scope/reference/drift validation and request independent exact-head review.
+**Current blocker:** none; exact-head independent review remains before merge  
+**Next exact action:** open the bounded docs-only PR, run exact PR patch/check validation, and request independent exact-head review.
 
 ## 1. Discovery
 
@@ -89,18 +89,29 @@ future async worker, only when a real workload justifies it:
 
 ## 5. Implementation Plan
 
-- [ ] correct current Supabase/future-service wording in `docs/DEVELOPMENT_SETUP.md`
-- [ ] correct current Supabase/future-service wording in `docs/FLUTTER_MODULAR_STRUCTURE.md`
-- [ ] correct ownership rows/rules in `docs/MODULE_OWNERSHIP.md`
-- [ ] reconcile internally stale setup/tree/sequencing wording in `docs/SUPABASE_STRATEGY.md`
-- [ ] keep P3 to exactly four canonical docs plus this execution handoff/index
-- [ ] validate no runtime/Supabase/CI files changed
-- [ ] run docs/reference/current-state checks
+- [x] correct current Supabase/future-service wording in `docs/DEVELOPMENT_SETUP.md`
+- [x] correct current Supabase/future-service wording in `docs/FLUTTER_MODULAR_STRUCTURE.md`
+- [x] correct ownership rows/rules in `docs/MODULE_OWNERSHIP.md`
+- [x] reconcile internally stale setup/tree/sequencing wording in `docs/SUPABASE_STRATEGY.md`
+- [x] keep P3 to exactly four canonical docs plus this execution handoff/index
+- [x] validate no runtime/Supabase/CI files changed
+- [x] run docs/reference/current-state checks
 - [ ] request independent exact-head review
 
 ## 6. Quality Review
 
-Pending implementation.
+Implementation validation at `99cd55cf3a164ca4c7e2e669caba1f93aab4eace`:
+
+- base `main@25556a83cf49886333ecfe10d8628b79cbf5159d`
+- 7 ahead / 0 behind before this task-handoff update
+- exactly 6 expected paths: task brief/index + 4 approved P3 docs
+- runtime/Supabase/CI/service files changed: 0
+- stale P3 factual patterns in the four docs: 0
+- intentional `backend/*` occurrence: only the explicit rule forbidding that namespace
+- local-reference integrity over `AGENTS.md`, `docs/README.md`, and `.ai/README.md`: 69 checked, 0 missing
+- trailing whitespace: 0
+- conflict markers: 0
+- current direction verified in all four docs: active `supabase/`, future-only `services/api`/`services/worker`
 
 ## 7. Final Handoff
 
@@ -119,4 +130,4 @@ P3 does not fix stale wording outside these four canonical docs and does not sta
 
 ### Final Status
 
-`REVIEW` pending implementation and validation.
+`REVIEW` — bounded implementation and branch validation complete; exact PR patch/check validation and independent review remain.
