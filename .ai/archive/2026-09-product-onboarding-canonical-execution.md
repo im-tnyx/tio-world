@@ -1,6 +1,16 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1–O6 complete; O7 ACTIVE/BLOCKED at O7C2  
+**Status:** Superseded  
+**Completed:** 2026-09-27  
+**Historical scope:** Execution checkpoint preserved from the Product Onboarding O1–O11 delivery lane.  
+**Superseded by:** completed/frozen GitHub #40 + merged PR #50 + current source/canonical onboarding docs/live trackers.  
+**Truth boundary:** Historical snapshot only. The stale O7/#75/#78/#79/#54/PR #50 status text below is preserved as execution history and MUST NOT be used as current sequencing, blocker, runtime, permission, or architecture truth.
+
+> Historical checkpoint follows unchanged below. For current state, inspect source/runtime, canonical docs, and live GitHub/Linear trackers.
+
+## Preserved historical checkpoint
+
+**Historical status at that checkpoint:** In progress — O1–O6 complete; O7 ACTIVE/BLOCKED at O7C2  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O6 Workout:** #69 ✅ / CI #1555  
