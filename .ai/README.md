@@ -47,14 +47,11 @@ Use these documents as the source of truth when available:
 - [Onboarding Flow Architecture](../docs/ONBOARDING_ARCHITECTURE.md)
 - [Supabase-First Platform Strategy](../docs/SUPABASE_STRATEGY.md)
 
-## Priority Rule
+## Documentation Authority
 
-When docs conflict:
+The canonical documentation authority layers, status labels, and conflict-resolution rules live in [`docs/README.md`](../docs/README.md). Do not maintain a second precedence list here.
 
-1. Runtime source/config wins for actual behavior.
-2. Root documentation wins for repository structure and current direction.
-3. Platform-local docs win for platform-specific implementation details.
-4. This `.ai` directory is only a concise orientation layer.
+This `.ai/` directory is only an execution, routing, and handoff layer. If an `.ai/` file conflicts with runtime source/config, an accepted ADR, or the owning canonical/module documentation for that question, treat the `.ai/` text as stale and reconcile it instead of overriding the authoritative source.
 
 Do not invent future modules, APIs, schemas, or product behavior without a concrete feature slice or user request.
 
