@@ -8,11 +8,11 @@ This document completes the planning scope of Linear TNYX-30. It does not enable
 
 Related contracts:
 
-- [Architecture](ARCHITECTURE.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
-- [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
+- [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)
 - [Observability](OBSERVABILITY.md)
-- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
 
 Linear ownership remains separate:
 
@@ -153,7 +153,7 @@ Queue storage does not grant business authorization.
 
 The future producer must already be authorized to request the asynchronous operation. The future trusted consumer must independently execute only the narrow operation represented by the message.
 
-For privileged jobs, follow [Supabase Server Access](SUPABASE_SERVER_ACCESS.md):
+For privileged jobs, follow [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md):
 
 ```text
 trusted trigger
@@ -315,7 +315,7 @@ Before production use, the implementation slice must decide:
 - what happens when canonical domain state restores to a different point than pending async work;
 - whether jobs can be safely regenerated/reconciled after restore.
 
-Database recovery policy remains owned by [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md).
+Database recovery policy remains owned by [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md).
 
 ## When to Reconsider Supabase Queues
 
