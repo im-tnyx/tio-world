@@ -1,6 +1,6 @@
 # TNYX-193 P5 — Documentation Governance Header Rollout
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** repository documentation governance
 **Affected platforms:** documentation only
 
@@ -19,19 +19,19 @@
 **Review owner:** independent exact-head reviewer after each bounded slice
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
+**Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 is `In Review`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** exact merge-gate checkpoint `533e17b91211b9d51e6744a0d54832bf8535c58f`; this final active-handoff refresh creates one `.ai`-only head that must be revalidated
+**HEAD SHA:** last source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`; only this handoff metadata is expected to change after that checkpoint, and the resulting head must be revalidated externally in PR #417 / Linear TNYX-193 rather than creating recursive self-referential SHA-only commits
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
 **Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Three Codex review rounds plus one manual exact-head review exposed stale/current-truth gaps; all verified findings are now reconciled against current source, routes, repositories, migrations, live Supabase Edge Function state, CI and canonical ownership. Codex review quota is exhausted, so no further independent Codex pass is currently available.
 **Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
-**Validation completed at SHA:** exact head `533e17b91211b9d51e6744a0d54832bf8535c58f`: 51 ahead / 0 behind; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted.
-**Validation remaining:** revalidate the resulting metadata-only final head and its repository checks, then stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
+**Validation completed at SHA:** source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`: 53 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Branch protection requires only `Commit attribution guard`; supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted. This active-handoff correction is the only expected change after that checkpoint.
+**Validation remaining:** after this handoff-only correction lands, revalidate the resulting PR head/check state externally and record that exact result in PR #417 plus Linear TNYX-193; do not create another metadata-only commit solely to embed its own resulting SHA. Then stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
 **Current blocker:** none
 **Open review finding IDs:** none — all 32 review threads/findings are resolved; the final manual privacy finding is included in the reconciled exact-head evidence
-**Next exact action:** revalidate the resulting `.ai`-only final head/check state, reconcile PR/tracker exact SHA, then stop at the explicit owner merge gate.
+**Next exact action:** revalidate the resulting handoff-only PR head/check state, record its exact SHA in PR #417 and Linear TNYX-193, then stop at the explicit owner merge gate; do not merge without explicit owner authorization.
 
 ## 1. Discovery
 
@@ -153,8 +153,8 @@ Header slice after prerequisite merge:
 - [x] build and review the 68-row path/status/owner/truth-boundary/last-verified matrix; current reconciled classification is 48 `Canonical Live Doc`, 11 `Architecture Decision Record`, 9 `Planned/Future Doc` after confirming Nutrition Targets is implemented.
 - [x] apply headers without deleting existing status semantics;
 - [x] verify 68/68 coverage and canonical label vocabulary;
-- [x] validate header placement, status sets, docs-body preservation, and zero Markdown-link mutation; final patch/scope hygiene remains after this handoff refresh.
-- [ ] open P5 header PR and obtain exact-head review.
+- [x] validate header placement, status sets, docs-body preservation, zero Markdown-link mutation, and final patch/scope hygiene at source/docs checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`.
+- [x] open P5 header PR and obtain the available exact-head review; PR #417 is open, three Codex review rounds plus one manual exact-head review were completed, 32/32 review threads are resolved, and further Codex review is unavailable under the current usage limit.
 
 ## 6. Quality Review
 
@@ -183,6 +183,7 @@ Manual exact-head review at `32c150ed400dc3dc3a1a825df4c00145f96d2794` found one
 | P5-REV-07..22 | P2 | Fix applied | Second exact-head review found additional stale/current-truth contradictions across onboarding Firebase/HTTP status, draft persistence wording, Splash/Login/Welcome routing/auth behavior, Onboarding persistence, screen runtime snapshot, Nutrition Targets classification, Profile/avatar implementation, Home/Settings ownership and Body flow, current Flutter feature package tree, Profile table split, live public avatar Storage exception, and Flutter feature validation commands. | `b69505274698b1eae98945ef33d8c16b3a35f15c` | Each finding was verified against current source/routes/repositories/migrations/CI before correction; source checkpoint `f02ef333d33805355454a3f84aed7ff4c03ef397` passes targeted truth checks and yields classification 48/11/9. |
 | P5-REV-23..30 | P2 | Fix applied | Third exact-head review found stale handoff counts plus conditional Nutrition Settings, Workout runtime, authenticated App Mode persistence, Wear checkout tree, Meal Diary display/create state, Describe Meal activation, and AI/provider privacy-policy drift. | `f02ef333d33805355454a3f84aed7ff4c03ef397` | Verified against current Settings/App Mode/Workout/Nutrition source, actual Wear tree, ACTIVE JWT-protected `nutrition-meal-text-parse` function, provider composition and privacy policy; corrected at source checkpoint `72ab1bb973ce4d3398a94bcac810664fa4edcb69`. Codex then reported code-review usage exhaustion, preventing another independent pass. |
 | P5-REV-31 | P2 | Fix applied | Manual exact-head review found that Data & Privacy Governance described one configured Gemini/OpenAI interpreter but did not disclose that the same raw Health-context meal text can be transmitted sequentially to the fallback AI interpreter when the primary is unavailable. | `32c150ed400dc3dc3a1a825df4c00145f96d2794` | Verified against live `nutrition-meal-text-parse` v38: `FallbackMealInterpreter` sends identical `mealText` to the fallback only on primary `unavailable`; recognized/unrecognized results are final and calls are not parallel. FatSecret/Edamam resolver fallback is separate and structured-candidate based. Corrected at `13f34b53add3a08b0925f345b6b3766a64a63237`. |
+| P5-HANDOFF-01 | P2 | Fix applied | Final active handoff still pointed to pre-refresh checkpoint `533e17b9...`, said revalidation remained, and left the PR/review step unchecked after exact-head revalidation at `2716c2c...`. | `2716c2c77971ad4fd2610c0aedd250c85a211760` | Handoff status/checkpoint/validation/next-action fields are reconciled in one bounded `.ai`-only correction. The resulting commit SHA is recorded externally in PR #417 and Linear TNYX-193 after revalidation to avoid recursive self-referential metadata churn. |
 
 ## 7. Final Handoff
 
