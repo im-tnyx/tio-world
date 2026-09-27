@@ -33,15 +33,15 @@ Before code changes, inspect the actual repository and read the relevant source-
 
 1. `README.md`
 2. `docs/README.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/MODULE_OWNERSHIP.md`
-5. `docs/DEVELOPMENT_SETUP.md`
-6. `docs/ROADMAP.md`
-7. `docs/SUPABASE_STRATEGY.md` when Auth, data, Storage, backend, or Gemini behavior is in scope
+3. `docs/architecture/ARCHITECTURE.md`
+4. `docs/architecture/MODULE_OWNERSHIP.md`
+5. `docs/development/DEVELOPMENT_SETUP.md`
+6. `docs/planning/ROADMAP.md`
+7. `docs/data/SUPABASE_STRATEGY.md` when Auth, data, Storage, backend, or Gemini behavior is in scope
 8. `.ai/README.md`
 9. `.ai/workflow.md`
 10. `.ai/FEATURE_DEVELOPMENT.md` for feature work
-11. `docs/PUSH_TEMPLATE.md`
+11. `.github/PUSH_TEMPLATE.md`
 12. `.github/PULL_REQUEST_TEMPLATE.md`
 
 Runtime source/config wins for actual behavior. Product docs and ADRs win for intended architecture and product rules. If docs and runtime disagree, call out the stale doc clearly instead of silently guessing.
@@ -199,15 +199,15 @@ Pure UI/layout work, docs-only changes, or unrelated refactors that do not touch
 
 Before commit, push, or PR creation:
 
-1. Read `docs/PUSH_TEMPLATE.md`.
+1. Read `.github/PUSH_TEMPLATE.md`.
 2. Confirm repository state with `git status --short --branch`.
 3. Keep unrelated local changes out of the commit.
-4. Run the applicable validation commands from `docs/PUSH_TEMPLATE.md`.
+4. Run the applicable validation commands from `.github/PUSH_TEMPLATE.md`.
 5. List validations actually run in the PR.
 
 For Pull Requests, follow `.github/PULL_REQUEST_TEMPLATE.md`.
 
-After a PR merge, follow `docs/POST_MERGE_SYNC.md` before starting the next branch.
+After a PR merge, follow `.github/POST_MERGE_SYNC.md` before starting the next branch.
 
 ## Validation
 
