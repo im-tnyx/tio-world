@@ -14,7 +14,7 @@ The target shape is modular, practical, and easy to grow without leaking busines
 - Mobile app UI lives in `apps/app` using Flutter.
 - Wear OS companion app lives in `apps/wear` using Flutter.
 - Wear OS owns lightweight workout controls and nutrition quick actions, not full phone workflows.
-- Apple Watch UI lives in `apps/watchos` using Swift + SwiftUI.
+- Future Apple Watch UI belongs in `apps/watchos` using native Swift + SwiftUI when that app is introduced.
 - Shared Dart models, entities, repository contracts, and use cases live in `apps/shared`.
 - Shared Flutter design tokens, shell components, and route contracts live in `apps/core`.
 - Feature-owned mobile UI and workflows live in `apps/features/*`.
@@ -64,7 +64,7 @@ The implemented architecture places the single `AppMode` enum, guided destinatio
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's first mode-selection screen and Settings mode editor are implemented; later conditional onboarding steps remain planned. Coach becomes eligible only when Phase 7 begins.
+Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Pre-auth App Mode selection and the Settings mode editor are implemented. Product Onboarding's single parent flow and multiple owner-backed sections are live, while remaining compatibility owner sections/final acceptance stay separately gated. Coach becomes eligible only when Phase 7 begins.
 
 Current Product Onboarding uses one `/onboarding` parent screen. Top progress and
 bottom actions stay fixed while one mode-derived child changes. Stable step IDs and
