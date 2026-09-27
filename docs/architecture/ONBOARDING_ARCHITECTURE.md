@@ -135,15 +135,17 @@ Verified source behavior in the current working tree:
   Training Days, Workout Duration, and Workout Split. `HealthConcerns` and
   `SpecialEvent` are real optional text inputs that stay in-memory only.
   `WorkoutStepValidator.hasRequiredSelections` now distinguishes required
-  Workout readiness from optional W3 text context, but overall onboarding
-  completion remains blocked by remaining Nutrition/Targets compatibility
-  owner sections.
+  Workout readiness from optional W3 text context. Nutrition, Targets, Health
+  Connections, Review, owner persistence, and finalization are implemented on
+  the eligible current flow; onboarding completion is no longer blocked by
+  compatibility owner sections.
 - The parent shell is registered in `apps/app/lib/app/router.dart` on
   `/onboarding`, so it now changes current user-visible routing.
 - Durable onboarding draft persistence and resume are implemented through
   `OnboardingDraftRepository` and `SupabaseOnboardingDraftRepository`, backed by
-  `public.onboarding_drafts` with user-scoped RLS. The remaining completion gate
-  concerns owner-backed product writes/finalization, not absence of draft persistence.
+  `public.onboarding_drafts` with user-scoped RLS. Owner-backed product writes,
+  retry-safe finalization, confirmed App Mode publication, and completed status
+  persistence are implemented behind the current completion flow.
 
 Runtime source remains the truth until the planned slices below are delivered.
 
@@ -234,8 +236,8 @@ The real Workout child screens are Gym Access, Equipment, Experience Level,
 Focus Areas, Training Days, Workout Duration, Workout Split, Health Concerns,
 and Special Event. Required Workout readiness is now source-backed through
 typed W1/W2 validation, while W3 remains optional. Workout no longer uses
-`WorkoutCompatibilityScreen`, and overall onboarding completion still stays
-blocked until the remaining compatibility Nutrition/Targets slices are real.
+`WorkoutCompatibilityScreen`; the eligible Nutrition/Targets/Health/Review and
+finalization paths are implemented in the current flow.
 
 ### Mode-Derived Step Plan
 
