@@ -5,7 +5,7 @@
 **GitHub tracker:** #40  
 **Canonical ownership:** #44  
 **Canonical implementation PR:** #50  
-**Current onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`
+**Historical onboarding sequence:** `.ai/archive/2026-09-product-onboarding-canonical-execution.md` — Superseded/Historical; not current sequencing authority
 
 PR #50 remains Draft/unmerged.
 
@@ -138,23 +138,9 @@ Rules:
 
 This focused slice is **not the global next-step sequencer anymore**.
 
-Use:
+The historical O1–O11 Product Onboarding lane is complete/frozen in #40. Do not use this brief or the archived execution plan to infer a current next onboarding slice.
 
-`.ai/tasks/product-onboarding-canonical-execution.md`
-
-Current Product Onboarding order:
-
-```text
-O1 durable App Mode / active_tabs        NEXT
-→ O2 common Profile owner/section
-→ O3 Body Goal section + Body/Profile parity
-→ O4 Wellness
-→ O5 Nutrition
-→ O6 Workout
-→ O7–O10 final onboarding sections/acceptance
-```
-
-O3 will complete structural Body/Profile parity and activate the prepared Body Goal section identity while preserving this task's validated Goal/Target/Pace behavior.
+This brief remains active only for its independently tracked picker/recommendation follow-ups. Any new implementation must reconcile current source/runtime, canonical onboarding docs, and live trackers.
 
 ## UI preservation
 
@@ -180,5 +166,5 @@ O3 will complete structural Body/Profile parity and activate the prepared Body G
 
 ## Handoff
 
-**Global next onboarding slice:** O1 App Mode (#11), not account verification.  
-**This task resumes directly during O3 for final Body/Profile structural parity and during final acceptance for picker/recommendation gates.**
+**Historical global sequence:** O1–O11 completed/frozen in #40; O1 is complete in #11 / TNYX-6.  
+**Remaining scope here:** independently tracked picker/recommendation follow-ups only; do not reopen completed O3/O10 sequencing from this brief.**
