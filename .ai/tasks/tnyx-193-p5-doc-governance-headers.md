@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** pre-PR checkpoint `9106e0505ff895129d41f9818acc6d97fbdec5ef`; this PR-number handoff refresh creates the exact final head that must be revalidated
+**HEAD SHA:** review-fix checkpoint `940c6b1f4be852f27b305f15d36c4e12437e83f9`; this handoff refresh creates the final review head that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
-**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files and PR #417 is open; exact-head revalidation/review gates remain.
-**Relevant execution surface:** all 68 `docs/**/*.md` files plus this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
-**Validation completed at SHA:** source-validation checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 10 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 69 changed files = 68 docs + this active task brief; every docs file has exactly 5 additions / 0 deletions; 68/68 direct-under-title four-line headers; status counts 47 `Canonical Live Doc`, 11 `Architecture Decision Record`, 10 `Planned/Future Doc`; ADR and planned-only file sets exactly match the reviewed matrix; `Last Verified` is 2026-09-27 on all 68; unexpected labels 0; docs Markdown-link mutations 0; no document body/status deletion.
-**Validation remaining:** revalidate PR #417 exact final head, update tracker evidence without changing branch source, inspect repository checks, and obtain independent exact-head review.
+**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Codex review findings on stale routing/ownership/current-state prose were verified against current source/canonical architecture and fixed; PR #417 exact-head revalidation/re-review remains.
+**Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
+**Validation completed at SHA:** review-fix checkpoint `940c6b1f4be852f27b305f15d36c4e12437e83f9`: 20 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 70 changed files = 68 docs + `.ai/tasks/README.md` + this active task brief; 64 docs remain pure header-only at 5 additions / 0 deletions; 4 docs have bounded review-driven factual reconciliation in addition to their headers (`ONBOARDING_ARCHITECTURE.md`, `ROADMAP.md`, `docs/screens/README.md`, `docs/screens/coach.md`); status counts remain 47/11/10; Splash/Welcome owners now match `apps/features/splash` and `apps/features/welcome`; obsolete `backend/ai-coach` routing is gone from the reviewed roadmap/Coach locations; onboarding draft persistence and screen-catalog current status match current source evidence.
+**Validation remaining:** revalidate the handoff-refreshed final head, reply/resolve the six verified Codex findings with exact evidence, update PR/tracker exact-head evidence, inspect checks, and obtain a fresh independent exact-head review.
 **Current blocker:** none
-**Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** revalidate PR #417 exact final head, then request exact-head Codex review and inspect checks.
+**Open review finding IDs:** P5-REV-01 through P5-REV-06 fixes applied; exact-head revalidation/thread closeout pending
+**Next exact action:** revalidate the final review head, then close the six review threads with evidence and request a fresh Codex exact-head review.
 
 ## 1. Discovery
 
@@ -163,7 +163,7 @@ Header slice after prerequisite merge:
 ```text
 Prerequisite source validation complete on branch: 4 ahead / 0 behind from `main@74a3903537442c4d2bb5e120b51a479da851e980`; exactly four planned paths; 49 live migrations = 49 checked-in by version+name; legacy 24-count/table/removed-adapter claims absent; 43 local Markdown references checked with 0 missing; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no out-of-scope path diff.
 
-Header-rollout source checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 68/68 docs headers present; 47 canonical + 11 ADR + 10 planned/future; every docs patch is metadata-only (5 additions / 0 deletions); direct placement clean; docs link mutations 0.
+Header-rollout + review-fix checkpoint `940c6b1f4be852f27b305f15d36c4e12437e83f9`: 68/68 docs headers remain present with 47 canonical + 11 ADR + 10 planned/future; 64 docs are pure header-only, while 4 docs contain bounded factual corrections required to make `Last Verified` truthful; `.ai/tasks/README.md` now routes takeover to the current PR #417 review state.
 ```
 
 ### Review Findings and Resolution
@@ -172,6 +172,12 @@ Header-rollout source checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 68/
 |---|---|---|---|---|---|
 | P5-AUDIT-01 | Blocking prerequisite | Resolved | `DATABASE_BACKUP_RECOVERY.md` says current live migration history contains 24 applied migrations; live + repository history verify 49/49. | `74a3903537442c4d2bb5e120b51a479da851e980` | Correct only this current-state claim before P5 verification metadata. |
 | P5-AUDIT-02 | Blocking prerequisite | Resolved | `SUPABASE_STRATEGY.md` Status block lists legacy tables and removed adapter examples as current; its later inactive-backend examples also include two classes no longer in source. | `74a3903537442c4d2bb5e120b51a479da851e980` | Reconcile the bounded stale current-state/example prose against live schema + current source. |
+| P5-REV-01 | P2 | Fix applied | Active-task index still described the prerequisite slice after the 68-header rollout. | `58882396eab71e414e28b153465eaab4ed81181e` | `.ai/tasks/README.md` now states PR #417 header rollout is implemented and under review. |
+| P5-REV-02 | P2 | Fix applied | ROADMAP and Coach repeated obsolete protected-backend path `backend/ai-coach`. | `58882396eab71e414e28b153465eaab4ed81181e` | Both now route future protected AI work to canonical `services/api` with explicit authorization. |
+| P5-REV-03 | P2 | Fix applied | Splash header owner conflicted with the real `apps/features/splash` package and its own primary-owner line. | `58882396eab71e414e28b153465eaab4ed81181e` | Header owner corrected to `apps/features/splash`. |
+| P5-REV-04 | P2 | Fix applied | Welcome header owner conflicted with the real `apps/features/welcome` package and its own primary-owner line. | `58882396eab71e414e28b153465eaab4ed81181e` | Header owner corrected to `apps/features/welcome`. |
+| P5-REV-05 | P2 | Fix applied | Onboarding current-runtime prose said Supabase/draft persistence was not implemented although current source provides `SupabaseOnboardingDraftRepository` and `public.onboarding_drafts`. | `58882396eab71e414e28b153465eaab4ed81181e` | Current runtime boundary now records implemented durable draft persistence/resume and the remaining owner-write/finalization gate. |
+| P5-REV-06 | P2 | Fix applied | Screen catalog still called Library/Exercises/Nutrition/Meal Diary future/placeholders despite shipped routes and implemented screen-doc status. | `58882396eab71e414e28b153465eaab4ed81181e` | Those four catalog rows now match current route/source and individual screen-doc evidence. |
 
 ## 7. Final Handoff
 
@@ -183,13 +189,16 @@ Prerequisite slice:
 - `docs/data/SUPABASE_STRATEGY.md`
 - `docs/data/DATABASE_BACKUP_RECOVERY.md`
 
-Header-rollout slice:
+Header-rollout/review slice:
 - all 68 Markdown documents recursively under `docs/`
-- `.ai/tasks/tnyx-193-p5-doc-governance-headers.md` handoff only
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`
+
+Review-driven body reconciliation is intentionally limited to `docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/planning/ROADMAP.md`, `docs/screens/README.md`, and `docs/screens/coach.md`; all other docs changes are governance-header metadata only.
 
 ### Actual Behavior
 
-All 68 Markdown documents under `docs/` now carry the canonical four-line governance header directly below the H1 title. Existing document body text, runtime/planning `Status` sections, screen status lines, ADR lifecycle status, and Markdown-link text remain unchanged. This slice changes documentation metadata only; runtime/database behavior is unchanged.
+All 68 Markdown documents under `docs/` now carry the canonical four-line governance header directly below the H1 title. Existing ADR lifecycle status and unrelated document content remain intact. Codex review exposed six verified governance/current-truth issues; their fixes update only the active task index, two header owners, and four bounded canonical-doc current-state/routing locations so the new `Last Verified` claims are truthful. Runtime/database behavior is unchanged.
 
 ### Known Limitations
 
