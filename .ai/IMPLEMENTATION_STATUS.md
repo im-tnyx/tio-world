@@ -7,7 +7,7 @@ Truth Boundary: High-level implementation orientation only; source/runtime prove
 
 ## Verification baseline
 
-Refreshed against `main@0a534984793714ad46e23f40b366f7ca8c82c2f3` after PR #423 merged. Live work status must still be re-queried before implementation because PR, issue, CI, and Linear state can change after this checkpoint.
+Refreshed against `main@7a243122a58baa2cf1e03fa785669339e89940c5` after PR #426 reconciled the stale Product Onboarding task-index sequencing and PR #427 archived its validated handoff. Live work status must still be re-queried before implementation because PR, issue, CI, and Linear state can change after this checkpoint.
 
 ## Status model
 
@@ -40,7 +40,7 @@ Use these terms only after checking the relevant source and evidence:
 | Future protected API | Planned/Future | Canonical path is `services/api/`; no speculative service implementation should be inferred. |
 | Future async worker | Planned/Future | `services/worker/` only when an approved real async workload requires it. |
 | Wear OS / Apple Watch | Planned/Future | Companion surfaces remain separately planned/gated; inspect wearable docs and trackers before work. |
-| Documentation governance | In progress | GitHub #250 / Linear TNYX-193; P1–P8 complete, pre-P9 reconciliation active, P9 separately gated and Not started. |
+| Documentation governance | In progress | GitHub #250 / Linear TNYX-193; P1–P8 complete, Product Onboarding pre-P9 handoff/index reconciliation complete, acceptance bookkeeping is the next bounded audit, and P9 remains separately gated and Not started. |
 
 ## Current execution rules
 
@@ -53,8 +53,8 @@ Use these terms only after checking the relevant source and evidence:
 - UI changes require the repository's owner/design approval rules; internal docs work does not authorize visual redesign.
 - Do not create `services/api/`, `services/worker/`, web, watch, connector, or other future infrastructure merely because it is documented as planned.
 
-## Known documentation follow-up outside this refresh
+## Pre-P9 reconciliation checkpoint
 
-`.ai/tasks/README.md` still contains a historical Product Onboarding execution-order block that marks O1 as NEXT even though GitHub #40 is complete/frozen. PR #423 removed the stale canonical execution handoff and its active index row, but this remaining block needs a separately bounded index-lifecycle cleanup.
+The stale Product Onboarding O1/O1F current-sequencing claims in `.ai/tasks/README.md` were reconciled by PR #426 and the validated handoff was archived by PR #427. Do not revive the historical O1–O11 lane as current sequencing truth.
 
-Do not use that block as current Product Onboarding sequencing truth. For any new onboarding work, reconcile current source, canonical onboarding docs, and live trackers.
+The next bounded governance step is evidence-by-evidence GitHub #250 acceptance bookkeeping. P9 remains separately gated and Not started.
