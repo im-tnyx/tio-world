@@ -11,13 +11,13 @@ Runtime source remains the truth for live behavior. A **Target** section is a pl
 
 ## Current Runtime Snapshot
 
-- The phone starts at `/splash`, then routes to `/auth` after two seconds.
-- Welcome and Login have real Flutter UI. Onboarding routes one parent flow with
-  App Mode as the first child, Settings implements App Mode editing, and Profile
-  provides the avatar/photo-preview/Settings launcher boundary. Home, Nutrition,
-  Coach, Workout, Progress, and Profile details still use placeholder content.
-- The phone shell keeps five stable registered branches, while the visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before Phase 7.
-- The Wear OS app has a static seven-item action list. Every tile currently shows a `coming soon` message.
+- The phone starts at `/splash`; app-level session/bootstrap state decides the next destination and Splash exposes recoverable failure/retry rather than a fixed two-second redirect.
+- Welcome routes fresh-account Get Started into pre-auth App Mode selection and Sign In/Skip into Login. Login uses real Auth use cases and returns successful authentication to app-level bootstrap.
+- Onboarding is one parent flow with durable Supabase draft persistence/resume and Supabase-backed completion composition.
+- Home renders the Home feature page. Workout renders `WorkoutHomePage` with the Library entry, and Nutrition renders `MealDiaryPage`.
+- Library and Exercises are shipped nested Workout routes. Profile loads canonical profile/account/body data, exposes persisted editing and avatar management. Coach and Progress remain the shell branches whose current feature depth is still limited relative to their target contracts.
+- The phone shell keeps five stable registered branches while visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before its approved release stage.
+- The Wear OS app remains an early companion surface; runtime source is the authority for which actions are currently implemented.
 
 ## Module Map
 
