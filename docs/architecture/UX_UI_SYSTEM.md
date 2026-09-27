@@ -2,7 +2,7 @@
 
 ## Status And Scope
 
-This is the target product design-system contract for the Flutter phone app and its Wear OS boundary. It supplements the [screen catalog](screens/README.md), which defines per-screen content and acceptance criteria.
+This is the target product design-system contract for the Flutter phone app and its Wear OS boundary. It supplements the [screen catalog](../screens/README.md), which defines per-screen content and acceptance criteria.
 
 It does not claim that the target components or behaviors are already implemented. Runtime source remains the behavior truth.
 
@@ -82,7 +82,7 @@ fixed while only the scrollable child content changes.
 
 This is a target contract, not current runtime completion. See
 [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and the
-[Onboarding screen specification](screens/onboarding.md).
+[Onboarding screen specification](../screens/onboarding.md).
 
 ## Shell And Navigation
 
@@ -189,7 +189,7 @@ Before a screen with real data is complete, define and verify:
 - safe handling of health, nutrition, workout, recovery, profile, and photo data
 - a responsive phone layout without clipped text or inaccessible primary actions
 
-The detailed content and actions belong in the corresponding [screen specification](screens/README.md).
+The detailed content and actions belong in the corresponding [screen specification](../screens/README.md).
 
 ## Wear OS Boundary
 
@@ -197,9 +197,9 @@ Wear OS remains compact, glanceable, and action-first. Its two intended lanes ar
 
 ## Related
 
-- [ADR-0004: Material 3 Expressive Through Core](adr/0004-material-3-expressive-through-core.md)
-- [ADR-0005: Adaptive Navigation And Action Entry](adr/0005-adaptive-navigation-and-action-entry.md)
+- [ADR-0004: Material 3 Expressive Through Core](../adr/0004-material-3-expressive-through-core.md)
+- [ADR-0005: Adaptive Navigation And Action Entry](../adr/0005-adaptive-navigation-and-action-entry.md)
 - [Architecture](ARCHITECTURE.md)
-- [Screen Catalog](screens/README.md)
-- [Testing Guide](TESTING_GUIDE.md)
-- [Adaptive navigation task](../.ai/tasks/adaptive-navigation-and-actions.md)
+- [Screen Catalog](../screens/README.md)
+- [Testing Guide](../development/TESTING_GUIDE.md)
+- [Adaptive navigation task](../../.ai/tasks/adaptive-navigation-and-actions.md)
