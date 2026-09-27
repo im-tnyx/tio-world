@@ -183,7 +183,7 @@ Two older merged task briefs still use `Quick Add` as the blank saved-record dis
 
 ### Other stale documentation
 
-`.ai/CURRENT.md`, parts of `.ai/DECISIONS.md`, `docs/DEVELOPMENT_SETUP.md`, and older future-`backend/` wording remain stale against current runtime/ADR/governance evidence. They should be corrected in focused documentation work, not bundled into this domain slice.
+`.ai/CURRENT.md`, parts of `.ai/DECISIONS.md`, `docs/development/DEVELOPMENT_SETUP.md`, and older future-`backend/` wording remain stale against current runtime/ADR/governance evidence. They should be corrected in focused documentation work, not bundled into this domain slice.
 
 A separate governance discrepancy was also observed after PR #245: root `AGENTS.md` references `.github/POST_MERGE_SYNC.md`, but that file is not present on current `main`. This does not affect the Nutrition readiness classification and must not be repaired inside N20A-3.
 
