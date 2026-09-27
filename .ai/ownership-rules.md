@@ -1,5 +1,10 @@
 # Ownership Rules
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: AI-facing ownership summary only; canonical `docs/architecture/MODULE_OWNERSHIP.md`, accepted ADRs, and owning runtime source remain authoritative.
+
 Use root docs and feature-local docs as the canonical ownership reference.
 
 ## Onboarding
@@ -53,8 +58,9 @@ Nutrition owns:
 - Macros
 - Meal logging
 - Water goal
-- Glass size
 - Food search / meal editor when implemented
+
+Default Glass Size is a Settings-owned device-local convenience preference under ADR-0009; it is not Nutrition domain truth or Water Goal ownership.
 
 Nutrition does not own steps, sleep, or HRV.
 
