@@ -68,7 +68,7 @@ Profile page; Profile Avatar page; Profile Settings internals; profile completio
 
 ### Verified Evidence
 
-- Read root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `docs/PUSH_TEMPLATE.md`, PR template, GitHub #260/#357/#398, Linear TNYX-201, current source and focused tests.
+- Read root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.github/PUSH_TEMPLATE.md`, PR template, GitHub #260/#357/#398, Linear TNYX-201, current source and focused tests.
 - Current base: `main@a23bb6bbbd0ca9043dc626b12b9af4f3b9fb88de`.
 - No open PR overlaps this route slice.
 - No nested `apps/app/AGENTS.md` exists.
