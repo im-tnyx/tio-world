@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@1e22f623454b85b432aa2ea0dedcc6d31a90d9ba`; GitHub #250 open; Linear TNYX-193 In Progress; no open PRs at activation.
 **Branch:** `tnyx/tnyx-193-p4a-doc-location-normalization`
-**HEAD SHA:** `1e22f623454b85b432aa2ea0dedcc6d31a90d9ba` before this task brief
+**HEAD SHA:** source-validation head `c2dd606e83f50a90feb0c432b8819a0197a443ab`; this handoff refresh is docs-only and requires one final exact-head revalidation before PR review
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193; PR not opened yet.
-**Current implementation state:** Audit complete; taxonomy and move matrix locked; source moves not started.
+**Current implementation state:** P4A relocation implementation complete on the branch: 29 approved moves are present, repository references were updated, `docs/README.md` carries the ownership taxonomy, and no runtime/Supabase/CI/lockfile net diff remains.
 **Relevant execution surface:** canonical `docs/`, repository workflow docs, repository references, focused `.ai/tasks` handoff.
-**Validation completed at SHA:** audit-only against `1e22f623454b85b432aa2ea0dedcc6d31a90d9ba`.
-**Validation remaining:** exact branch diff/scope, reference-integrity scan, patch scan, repository checks, independent exact-head review.
+**Validation completed at SHA:** source-validation head `c2dd606e83f50a90feb0c432b8819a0197a443ab`: 29/29 approved final paths present; 0 old canonical paths; 279 changed Markdown link refs / 74 unique targets with 0 missing; all known baseline moved-path reference holders reconciled except one intentionally preserved historical Supabase migration comment; exact patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, and lockfiles all 0 net diff.
+**Validation remaining:** re-run exact-head scope/reference/patch checks after this handoff commit, then open the bounded P4A PR, inspect repository checks, and obtain independent exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** apply the approved move matrix and update all affected repository references atomically.
+**Next exact action:** revalidate the post-handoff exact head, then open the bounded P4A PR and move the task into review.
 
 ## 1. Discovery
 
@@ -169,12 +169,12 @@ Keeping all canonical docs flat under `docs/` was rejected because it does not m
 - [x] reconcile GitHub #250 / Linear TNYX-193 / main / open PR state;
 - [x] complete read-only P4A audit;
 - [x] lock taxonomy and move matrix;
-- [ ] create/move canonical files to approved final paths;
-- [ ] update all affected relative/absolute repository references;
-- [ ] update `docs/README.md` catalog/taxonomy;
-- [ ] verify old canonical paths are absent and no duplicate copies remain;
-- [ ] run full local-reference integrity scan over repository markdown;
-- [ ] run exact patch scan / docs-only checks;
+- [x] create/move canonical files to approved final paths;
+- [x] update all affected relative/absolute repository references;
+- [x] update `docs/README.md` catalog/taxonomy;
+- [x] verify old canonical paths are absent and no duplicate copies remain;
+- [x] run moved-path holder coverage plus changed-Markdown-link target integrity at the exact source-validation head;
+- [x] run exact patch scan / docs-only scope checks;
 - [ ] open bounded P4A PR and request independent exact-head review.
 
 ## 6. Quality Review
@@ -182,7 +182,18 @@ Keeping all canonical docs flat under `docs/` was rejected because it does not m
 ### Validation Run
 
 ```text
-Not run yet after source moves.
+Source-validation head: c2dd606e83f50a90feb0c432b8819a0197a443ab
+Base / merge base: main@1e22f623454b85b432aa2ea0dedcc6d31a90d9ba
+Ahead / behind: 109 / 0
+Net files: 111 = 29 renamed + 1 added task brief + 81 modified reference/catalog files
+Approved final paths: 29/29 present
+Old canonical paths: 0 remaining
+Changed Markdown link targets: 279 refs / 74 unique targets / 0 missing
+Moved-path baseline holder verification: all active holders reconciled; one old path string intentionally remains only in the byte-identical historical Supabase migration comment
+Patch scan: 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers
+Out-of-scope net diff: apps 0 / services 0 / supabase 0 / .github/workflows 0 / lockfiles 0
+docs/status: absent
+docs/integrations: absent (future destination only)
 ```
 
 ### Review Findings and Resolution
@@ -190,16 +201,17 @@ Not run yet after source moves.
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | P4A-AUDIT-01 | Follow-up | Deferred | Several top-level `.ai/` orientation files contain stale Supabase/backend/current-state wording. | `1e22f623454b85b432aa2ea0dedcc6d31a90d9ba` | Keep location unchanged in P4A; reconcile content in a separately bounded follow-up/P7-adjacent governance slice rather than promoting stale duplicate truth. |
+| P4A-VAL-01 | Info | Accepted | Historical migration `supabase/migrations/20260903052101_reconcile_legacy_lineage_state.sql` contains the old `docs/DATABASE_BACKUP_RECOVERY.md` text reference. | `c2dd606e83f50a90feb0c432b8819a0197a443ab` | Preserve the applied historical migration byte-for-byte; P4A does not mutate migration history. The canonical document itself moved to `docs/data/DATABASE_BACKUP_RECOVERY.md`, and net `supabase/**` diff is 0. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+At source-validation head: 111 net paths, including 29 approved renames, the focused P4A task brief, and reference/catalog updates. No net changes under `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, or lockfiles.
 
 ### Actual Behavior
 
-Documentation location only; no runtime behavior change.
+Documentation ownership/location normalization only. Canonical product/architecture docs now live under ownership-based `docs/` folders, repository workflow docs live under `.github/`, and P4B's future schema inventory path is fixed at `docs/data/SUPABASE_SCHEMA.md`. No runtime or database behavior changes.
 
 ### Known Limitations
 
