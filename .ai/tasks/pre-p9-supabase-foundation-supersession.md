@@ -40,11 +40,11 @@ Do not rewrite the historical task into a second current Supabase source of trut
 
 ## Validation
 
-- [ ] Exact changed paths reviewed.
-- [ ] Markdown references checked for the retired active-task path.
-- [ ] Patch hygiene / equivalent `git diff --check` evidence recorded if available.
+- [x] Exact changed paths reviewed: one historical task rename/archive, archive index, canonical strategy Related links, ADR-0003 Related link, and this handoff.
+- [x] Repository default-branch search found two references to the retired active-task path (`SUPABASE_STRATEGY.md`, ADR-0003); both are reconciled in this branch.
+- [ ] `git diff --check` cannot be executed through the connected GitHub API; no local-check pass is claimed. Hosted review/check evidence will be recorded from the PR.
 - [ ] Exact-head review completed.
 
 ## Handoff
 
-Current verdict: **IN PROGRESS**.
+Current verdict: **REVIEW** — implementation scope is complete; exact-head review remains.
