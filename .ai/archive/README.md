@@ -25,6 +25,7 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
+| 2026-09-27 | [Pre-P9 — Canonical runtime-status drift reconciliation](2026-09-pre-p9-canonical-runtime-status-drift.md) | Validated; source-backed Splash/Login/Home/Workout and onboarding status drift reconciled via PR #434 (`24b76a4a`) | [screens/README.md](../../docs/screens/README.md), [FLUTTER_MODULAR_STRUCTURE.md](../../docs/mobile/FLUTTER_MODULAR_STRUCTURE.md), GitHub #250 / Linear TNYX-193 |
 | 2026-09-27 | [Pre-P9 — Product Onboarding task-index reconciliation](2026-09-pre-p9-onboarding-task-index-reconciliation.md) | Validated; stale O1/O1F current-sequencing claims reconciled and merged via PR #426 (`6ca53860`) | `.ai/tasks` orientation, GitHub #40 / #11 / #44, Linear TNYX-6, GitHub #250 / Linear TNYX-193 |
 | 2026-09-27 | [Pre-P9 — Dynamic current-state snapshot refresh](2026-09-pre-p9-dynamic-snapshot-refresh.md) | Validated; refreshed both dynamic snapshots and merged via PR #424 (`069c9601`) | [.ai/CURRENT.md](../CURRENT.md), [.ai/IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md), GitHub #250 / Linear TNYX-193 |
 | 2026-09-27 | [Product Onboarding — Canonical Execution Plan](2026-09-product-onboarding-canonical-execution.md) | Superseded historical execution checkpoint; #40 complete/frozen and PR #50 merged | [ONBOARDING_ARCHITECTURE.md](../../docs/architecture/ONBOARDING_ARCHITECTURE.md), GitHub #40 / #44, merged PR #50 |
