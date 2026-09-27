@@ -8,9 +8,9 @@
 
 > Historical checkpoint follows unchanged below. For current state, inspect source/runtime, canonical docs, and live GitHub/Linear trackers.
 
-# Product Onboarding — Canonical Execution Plan
+## Preserved historical checkpoint
 
-**Status:** In progress — O1–O6 complete; O7 ACTIVE/BLOCKED at O7C2  
+**Historical status at that checkpoint:** In progress — O1–O6 complete; O7 ACTIVE/BLOCKED at O7C2  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O6 Workout:** #69 ✅ / CI #1555  
