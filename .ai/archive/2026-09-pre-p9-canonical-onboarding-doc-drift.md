@@ -27,7 +27,7 @@
 **PR / tracker:** GitHub #250 / Linear TNYX-193
 **Current implementation state:** Validated and merged; the three identified canonical onboarding drift claims are reconciled.
 **Relevant execution surface:** docs only
-**Validation completed at SHA:** Audit baseline `9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`
+**Validation completed at SHA:** reviewed PR #430 head `ca879c12a325744394febe1815c70311b1e18ba0`; merged to `main` as `e926f05fa751db47d1cf11c82f1456eef5eda50f`
 **Validation remaining:** None.
 **Current blocker:** None.
 **Open review finding IDs:** None.
