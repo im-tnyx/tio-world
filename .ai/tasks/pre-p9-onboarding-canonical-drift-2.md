@@ -28,7 +28,7 @@
 **Current implementation state:** Reconciling remaining onboarding canonical drift found after PR #430/#431.
 **Relevant execution surface:** docs only
 **Validation completed at SHA:** Audit baseline `73a092adea5102a340d27e2d17249f7662273cda`
-**Validation remaining:** Exact branch scope, stale-phrase absence, source-backed wording, PR exact-head review/checks.
+**Validation remaining:** PR exact-head review/checks.
 **Current blocker:** None.
 **Open review finding IDs:** None.
 **Next exact action:** Validate these two canonical doc corrections and open a docs-only PR.
@@ -70,13 +70,13 @@ No architecture change; current source/runtime remains executable truth.
 ## 5. Implementation Plan
 - [x] Correct remaining architecture current-runtime blocker claims.
 - [x] Correct stale screen-catalog onboarding status/order wording.
-- [ ] Validate exact branch scope and source-backed statements.
+- [x] Validate exact branch scope and source-backed statements.
 - [ ] Exact-head review and final gate.
 
 ## 6. Quality Review
 
 ### Validation Run
-Pending branch validation.
+Repository API validation: 4 ahead / 0 behind from `main@73a092adea5102a340d27e2d17249f7662273cda`; exactly 3 changed paths; identified stale blocker/status phrases absent; replacement claims cross-checked against current renderer, completion repository, completion validator, and integrated O3D/O4D/O5E/O6E/O7E/O9B/O10C acceptance evidence.
 
 ### Review Findings and Resolution
 None yet.
@@ -84,7 +84,7 @@ None yet.
 ## 7. Final Handoff
 
 ### Changed Files
-Pending validation.
+`docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/screens/README.md`, and this task brief.
 
 ### Actual Behavior
 Documentation only; runtime unchanged.
