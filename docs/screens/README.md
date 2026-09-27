@@ -107,7 +107,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Phone | [Meal Plan](meal-plan.md) | Future post-diary Nutrition flow. |
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |
 | Phone | [Recovery](recovery.md) | Future module and screen. |
-| Phone | [Coach](coach.md) | Route placeholder; primary tab deferred to Phase 7. |
+| Phone | [Coach](coach.md) | Registered shell branch only; current App Modes do not expose Coach as a guided destination, and direct `/coach` access redirects to an allowed destination. Phase 7 remains the product gate. |
 | Phone | [Onboarding](onboarding.md) | Implemented/frozen Product Onboarding flow with mode-specific Profile, Body/Wellness, Nutrition, Workout, Targets, optional Health Connections, Review, and durable completion. |
 | Phone | [Profile](profile.md) | Avatar/photo-preview/Settings launcher implemented; profile details remain planned. |
 | Phone | [Profile Photo](profile-avatar.md) | 1:1 preview route and safe disabled media actions implemented; Storage operations planned. |
