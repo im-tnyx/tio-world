@@ -1,6 +1,7 @@
 # Pre-P9 — Product Onboarding task-index reconciliation
 
-**Status:** Review
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository AI governance
 **Affected platforms:** Documentation / execution orientation only
 
@@ -15,9 +16,11 @@
 
 **Planning owner:** GitHub #250 / Linear TNYX-193
 **Repository baseline:** `main@19790d1d8bb64fd3ca74d79cd0e6d771c74f35fb`
+**Merged repository state:** `main@6ca53860ddce4e6a6a919f4810dd8ee4d5176642` via PR #426
 **Branch:** `tnyx/pre-p9-onboarding-task-index-reconciliation`
 **Current blocker:** None
-**Next exact action:** Correct only current-sequencing statements proven stale by completed/frozen GitHub #40, completed GitHub #11, and Done Linear TNYX-6.
+**Outcome:** Validated and merged via PR #426; exact reviewed head `59c0f409ef26df2375c21b8097d3092d0addc259`.
+**Next exact action:** Archive this validated handoff, then run the separate #250 acceptance-bookkeeping audit before any P9 decision.
 
 ## Discovery
 
@@ -50,8 +53,10 @@ Audit `.ai/tasks/onboarding-flow.md` for index wording, but do not redesign or c
 
 ## Validation
 
-Source/tracker reconciliation complete. Branch changes only the focused task-index/orientation surfaces plus this handoff. Current-sequencing assertions that marked O1/O1F as NEXT/ACTIVE or pointed to the archived execution brief as current authority were removed; historical/negative references are retained intentionally. Exact-head PR review and CI remain.
+Source/tracker reconciliation complete. PR #426 changed only the focused task-index/orientation surfaces plus this handoff. Current-sequencing assertions that marked O1/O1F as NEXT/ACTIVE or pointed to the archived execution brief as current authority were removed; historical/negative references were retained intentionally.
+
+Exact-head manual review at `59c0f409ef26df2375c21b8097d3092d0addc259`: no content findings, 0 unresolved threads. Required `Commit attribution guard` and `Attribution guard runner` passed. GitHub Advanced Security failed before meaningful analysis with the tracked TNYX-256 unsupported-model infrastructure error (`400 The requested model is not supported`). PR #426 squash-merged as `main@6ca53860ddce4e6a6a919f4810dd8ee4d5176642`.
 
 ## Final Status
 
-`REVIEW`
+`VALIDATED`
