@@ -33,6 +33,7 @@ Settings (/settings)
 │  └─ Account Settings -> /settings/account
 ├─ HEALTH & GOALS
 │  └─ Health & Goals -> /settings/health-goals
+│     ├─ Body & Weight -> /settings/health-goals/body-weight
 │     └─ Daily Wellness -> /settings/health-goals/daily-wellness
 ├─ PREFERENCES
 │  └─ App Preferences -> /settings/app
@@ -61,7 +62,7 @@ and `wellnessTargetsDataProvider`.
 - Sleep Schedule edits Bedtime and Wake Time together in one bottom sheet (local 0..1439 minute-of-day integer values, persisted as SQL TIME). There is no independently editable Sleep Goal in Settings: `sleepTargetMinutes` is always derived from the current Bedtime/Wake Time pair (cross-midnight safe) and recomputed on every save, never fabricated when either side of the schedule is unset.
 - Partial edits preserve all untouched values (including unset `null`s) without fabricating defaults.
 - Default Glass Size has its own Settings-owned preference/repository, separate from Wellness targets (see below).
-- Body Goal / Weight edit remains deferred post-S0-C; no placeholder Body rows are exposed in Settings.
+- Body & Weight is implemented under Health & Goals. It reads canonical Body state, records Current Weight, and edits the active Body Goal / Target Weight / Goal Pace through the Progress-owned `BodyRepository`; Settings owns presentation/navigation, not Body domain truth.
 
 ### Daily Wellness grouping
 
