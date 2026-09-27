@@ -151,23 +151,17 @@ shared contracts and lightweight design primitives where useful
 
 ## Supabase And Future Backend
 
-Supabase is the planned Auth, data, RLS, and private Storage foundation. No Supabase workspace, project configuration, or credential is present in this checkout.
+Supabase is the active Auth, data, RLS, Storage, migration, and approved server-function foundation. The root `supabase/` workspace is present in this checkout and contains project configuration, migrations, functions, and tests. Deployment secrets and privileged credentials remain outside tracked client configuration.
 
-When the first approved slice requires it, the root Supabase workspace will be:
-
-```text
-supabase
-```
-
-The separate protected backend is a later upgrade. It will be used for Gemini/provider orchestration, advanced integrations, and long-running jobs—not initial Auth or database migrations.
-
-The planned backend workspace will live under:
+The separate protected service is a later upgrade for orchestration, advanced integrations, and long-running work when approved Supabase server functions are no longer the right boundary. Its canonical future application path is:
 
 ```text
-backend
+services/api
 ```
 
-Select its toolchain and validation commands only when its first approved service slice is defined. Backend should own server-only Gemini/provider secrets, AI orchestration, analytics jobs, and protected integrations; Supabase owns the initial Auth/data/migration boundary.
+A future `services/worker` process is reserved only for a real asynchronous/background workload. Neither future service path should be scaffolded until its first separately approved implementation slice.
+
+Until then, server-only provider credentials and privileged operations stay in approved Supabase server functions. Select a future service runtime's validation commands only after that service implementation is authorized.
 
 ## Common Validation
 
