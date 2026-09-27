@@ -189,7 +189,7 @@ Goal: add a separate protected backend only when Supabase functions and reposito
 
 Goal: introduce server-side Gemini coaching after data and workout flows are stable.
 
-- [ ] Add protected backend service in `backend/ai-coach`
+- [ ] Add the protected AI coaching boundary under future `services/api` when that server-side slice is explicitly authorized
 - [ ] Keep prompt templates, Gemini credentials, and tool definitions server-side
 - [ ] Add client contract in `apps/features/coaching`
 - [ ] Stream coaching responses into Flutter UI
