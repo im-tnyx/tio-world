@@ -189,7 +189,7 @@ Header-rollout slice:
 
 ### Actual Behavior
 
-Known current-state drift blocking truthful P5 verification metadata is reconciled in the prerequisite branch. No governance headers or runtime/database behavior changes are included.
+All 68 Markdown documents under `docs/` now carry the canonical four-line governance header directly below the H1 title. Existing document body text, runtime/planning `Status` sections, screen status lines, ADR lifecycle status, and Markdown-link text remain unchanged. This slice changes documentation metadata only; runtime/database behavior is unchanged.
 
 ### Known Limitations
 
