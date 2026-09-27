@@ -1,5 +1,10 @@
 # Onboarding Flow Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: onboarding architecture (`apps/features/onboarding` + `apps/app`)
+Truth Boundary: Authoritative for onboarding architecture, state/persistence boundaries, and approved delivery design; source proves current behavior and trackers own slice status.
+
 ## Status
 
 **Typed-section routing, common Profile, the real Hybrid-only Workout Intro

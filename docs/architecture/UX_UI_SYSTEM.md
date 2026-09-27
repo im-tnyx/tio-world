@@ -1,5 +1,10 @@
 # UI/UX System
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/core` design-system + app-shell architecture
+Truth Boundary: Authoritative for shared UI/UX and design-system policy; runtime widgets/goldens prove actual rendering and trackers own rollout status.
+
 ## Status And Scope
 
 This is the target product design-system contract for the Flutter phone app and its Wear OS boundary. It supplements the [screen catalog](../screens/README.md), which defines per-screen content and acceptance criteria.

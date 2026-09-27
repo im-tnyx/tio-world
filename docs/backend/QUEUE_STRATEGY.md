@@ -1,5 +1,10 @@
 # Initial Queue Strategy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for durable queue selection and usage policy; not evidence that a queue or worker is provisioned.
+
 ## Status
 
 **Canonical documentation for Tio's first durable asynchronous queue boundary.**

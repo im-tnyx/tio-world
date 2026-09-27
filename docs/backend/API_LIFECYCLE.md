@@ -1,5 +1,10 @@
 # API Lifecycle & Client Compatibility
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for future protected-API versioning and compatibility policy; not evidence that `services/api` or runtime gates exist.
+
 ## Status
 
 **Canonical protected-API lifecycle policy for Tio World.**

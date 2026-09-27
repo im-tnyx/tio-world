@@ -1,5 +1,10 @@
 # Scaling Readiness
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for scaling triggers and escalation order; not evidence that scaled infrastructure currently exists.
+
 ## Status
 
 **Canonical capacity and scaling-trigger baseline for Tio's future protected API, database, queue, worker, Storage, and provider dependencies.**

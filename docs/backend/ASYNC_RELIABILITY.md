@@ -1,5 +1,10 @@
 # Async Reliability Rules
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for asynchronous reliability, idempotency, retry, and failure-handling policy; not evidence that a worker or queue runtime exists.
+
 ## Status
 
 **Canonical reliability policy for future Tio asynchronous jobs.**
