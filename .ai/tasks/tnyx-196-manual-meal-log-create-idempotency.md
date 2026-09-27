@@ -85,7 +85,7 @@ Prevent one logical manual MealLog create from becoming duplicate nutrition hist
 Tracker/runtime drift retained as context:
 
 - TNYX-113 remains a broad Backlog umbrella even though the completed manual-path children are sufficient prerequisites for this slice.
-- `docs/SUPABASE_STRATEGY.md` has known future-backend namespace drift; current root `AGENTS.md` remains authoritative and TNYX-196 introduces no backend service namespace.
+- `docs/data/SUPABASE_STRATEGY.md` has known future-backend namespace drift; current root `AGENTS.md` remains authoritative and TNYX-196 introduces no backend service namespace.
 
 ## 3. Clarification
 
