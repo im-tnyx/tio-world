@@ -1,109 +1,77 @@
 # Current State
 
-Last verified from current branch/runtime trackers and exact CI evidence: 2026-08-23.
+Document Status: Dynamic Current-State Snapshot
+Last Verified: 2026-09-27
+Owner: repository execution context
+Truth Boundary: Orientation only; runtime/source proves behavior, canonical docs own approved architecture/policy, and Linear plus linked GitHub own live task/phase status.
 
-Runtime source remains behavior truth. Product Onboarding sequencing is owned by `.ai/tasks/product-onboarding-canonical-execution.md`.
+## Verification baseline
+
+This snapshot was reconstructed for TNYX-193 P7 from `main@0248fab407201bf5b8debd71262c871a4beb98a4`, current canonical docs, and live GitHub/Linear tracker state.
+
+Do not treat this file as a backlog, release record, architecture authority, or substitute for source inspection.
 
 ## Read order
 
-1. `.ai/CURRENT.md`
-2. `.ai/tasks/product-onboarding-canonical-execution.md`
-3. `.ai/tasks/product-onboarding-o7c-health-connect-adapter.md`
-4. GitHub Issues #79/#78/#75/#40/#44 and Draft PR #50
-5. O7B predecessor acceptance: #77 / CI #1575
+1. Applicable `AGENTS.md`.
+2. Runtime/source/config for the surface being changed.
+3. `docs/README.md` for documentation authority and conflict rules.
+4. Relevant canonical docs/ADRs.
+5. Linear issue/project plus linked GitHub issue/PR/CI for current execution state.
+6. Relevant active `.ai/tasks/` brief only after confirming it is current.
 
-## Latest exact validated Product Onboarding / platform checkpoint
+## Current platform boundary
 
-```text
-f95ddf7cef05e658566e5d9493efd6099edded76
-Flutter CI #1593 / run 32611022666 / job 97124041663
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
+- Flutter mobile is the active application surface.
+- Supabase is active infrastructure for Auth and repository-owned persisted data.
+- The readable current public-schema inventory is `docs/data/SUPABASE_SCHEMA.md`; executable database truth remains checked-in migrations plus verified live schema.
+- Future protected server work belongs under `services/api/` only when an approved need exists. Do not create speculative backend/service scaffolding.
+- `services/worker/` remains future-only and requires a real approved asynchronous workload.
+- Wear OS and Apple Watch are planned/future native companion surfaces; verify their canonical wearable docs and trackers before implementation.
+- AI/connectors and external integrations remain security-sensitive boundaries; verify their current approved scope before adding credentials, scopes, privileged APIs, or data access.
 
-Android Native CI #5 / run 32611022667 / job 97124042275
-Android debug APK/native compile ✅
-```
+## Product Onboarding status
 
-This freezes O7C1 Health Connect surface-presence infrastructure. Tracker/docs commits after this SHA do not replace exact runtime/platform validation.
+The historical Product Onboarding O1–O11 execution is complete/frozen in GitHub #40.
 
-## Current sequence
+- O1–O10 implementation/acceptance is complete.
+- O11 canonical schema cleanup is complete in GitHub #54.
+- Health Connections onboarding remains availability/connect-later only for the completed onboarding scope; future health-data authorization belongs to a separately approved consuming feature.
+- PR #50 is merged/closed. It is not an active implementation PR.
+- GitHub #44 remains open as the broader canonical-ownership umbrella for post-onboarding Account/Settings/runtime lanes.
 
-```text
-O1 App Mode                                      ✅ #11 / CI #1240
-O2 User Profile                                  ✅ #53 / CI #1279
-O3 Body Goal                                     ✅ #55 / CI #1354
-O4 Wellness                                      ✅ #58 / CI #1441
-O5 Nutrition Profile + Targets                   ✅ #63 / CI #1507
-O6 Workout Profile + Targets                     ✅ #69 / CI #1555
-→ O7 Health Connections                          ACTIVE/BLOCKED #75
-   O7A capability + product contract readiness   ✅ #76
-   O7B runtime section + approved UI/content      ✅ #77 / CI #1575
-   O7C Android Health Connect adapter             PARTIAL #78
-      O7C1 surface-presence infrastructure        ✅ source f95ddf7c / CI #1593 + Native #5
-      O7C2 SDK readiness + authorization          BLOCKED #79
-   O7D persistence/resume/review integration      BLOCKED by O7C2
-   O7E integrated acceptance                     BLOCKED
-→ O8 Review + resume/edit-back
-→ O9 Plan Building/finalization
-→ O10 final acceptance
-→ O11 Canonical Schema Cleanup                   BLOCKED #54
-```
+The old `.ai/tasks/product-onboarding-canonical-execution.md` and related task-index wording still describe an earlier O7-blocked execution checkpoint. They are not current sequencing authority. Their lifecycle cleanup is a separate bounded follow-up, not P7 scope.
 
-## O7B frozen runtime
+## Live work context
 
-Health Connections is active in every App Mode as:
+At verification time there are no open pull requests. The open issue set includes multiple independent lanes; examples relevant to architecture/execution routing include:
 
-```text
-... → Nutrition Targets → Health Connections → Review
-```
+- #357 and #260 — app router/composition organization;
+- #356 — Daily Nutrition loading-state behavior;
+- #261 — onboarding package architecture/public API/responsibility cleanup;
+- #34 — auth hardening;
+- #44 — canonical account/profile/preferences/health ownership umbrella;
+- #46/#47/#48 — mode-aware nutrition/workout settings and runtime preferences;
+- #157 — proposed health-data JSONB consolidation;
+- #269/#284 — N5D meal-text processing and country/region provider routing;
+- #250 / Linear TNYX-193 — documentation governance, including this P7 reconstruction.
 
-It is optional, non-blocking and retryable later. Only a real platform adapter may establish `connected`; passive entry never requests OS permission and live Health authorization state is not serialized into `OnboardingDraft`.
+This list is orientation, not priority ordering and not a complete planning source. Re-read the live trackers before starting any slice.
 
-## O7C1 validated boundary
+## Documentation-governance status
 
-O7C1 detects only Android Health Connect **surface presence**:
+GitHub #250 / Linear TNYX-193 is the active governance tracker.
 
-```text
-Android 14+            → framework Health Connect service surface
-Android 9–13           → Health Connect provider/settings surface
-Android < 9            → absent
-managed profile        → absent
-non-Android/failure    → absent
-```
-
-Surface presence is not SDK readiness and is never authorization. O7C1 adds no health-data permission, no record access, no Health Connect client dependency, no app minSdk change, and does not replace the production O7B unavailable gateway.
-
-## O7C2 blocker — #79
-
-No exact first imported Health Connect signal is approved yet. Existing step/sleep values are wellness **targets**, not evidence that Steps/Sleep records should be imported.
-
-Before O7C2 source work, #79 must define:
-
-- first user-visible product outcome;
-- exact Health Connect record types;
-- read/write scope;
-- canonical imported-data owner;
-- retention/freshness/consent withdrawal;
-- Android client/minSdk policy;
-- matching Play Console/privacy declaration.
-
-Until then:
-
-```text
-surface present ≠ SDK ready
-SDK ready        ≠ authorized
-connected        → unreachable
-```
+- P1–P6 and P8 are completed.
+- P7 is the current authorized docs-only reconstruction slice.
+- P9 remains separately gated and should not be inferred from P7.
+- Supplemental GitHub AI code-scanning has a known unsupported-model infrastructure outage tracked separately by TNYX-256; do not represent that failure as a security pass or repository finding.
 
 ## Guardrails
 
-- no fake health connection success;
-- no health permission without exact approved data types and explicit user action;
-- no broad future-use permissions;
-- no sensitive health-data duplication/logging;
-- imported health records never belong in `onboarding_drafts`;
-- do not start O7D/O7E while O7C2 is blocked;
-- O11 remains blocked until O10;
-- PR #50 remains Draft/open/unmerged.
+- Audit before implementation and work slice-by-slice.
+- Do not infer authorization from tracker existence.
+- Reconcile source/runtime, canonical docs, Linear, and GitHub when they disagree.
+- Do not revive historical `.ai/tasks/` state as current truth without live verification.
+- Keep secrets and privileged credentials server-side and apply least privilege at Auth/OAuth/connectors/health/AI boundaries.
+- No speculative services, schema, permissions, or broad health-data scopes.
