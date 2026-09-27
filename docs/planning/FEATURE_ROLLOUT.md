@@ -10,11 +10,11 @@ It is an architecture/documentation contract only. It does **not** add a remote-
 
 Related policy boundaries:
 
-- [API Lifecycle & Client Compatibility](API_LIFECYCLE.md)
-- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
-- [Security](SECURITY.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
-- [ADR policy](adr/README.md)
+- [API Lifecycle & Client Compatibility](../backend/API_LIFECYCLE.md)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
+- [Security](../security/SECURITY.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
+- [ADR policy](../adr/README.md)
 
 Linear planning owners remain authoritative for implementation sequencing and acceptance. This document preserves the cross-cutting rollout contract.
 
@@ -266,7 +266,7 @@ Do not expose the hashing salt or targeting internals to untrusted clients when 
 
 May be used when capability support differs materially by Android/iOS/Wear/watchOS/web/client contract.
 
-This must align with [API Lifecycle](API_LIFECYCLE.md); app version is not itself authorization.
+This must align with [API Lifecycle](../backend/API_LIFECYCLE.md); app version is not itself authorization.
 
 ## Targeting Privacy
 
@@ -295,7 +295,7 @@ Examples of prohibited/default-excluded targeting inputs:
 - authentication tokens/OTP/secrets;
 - unrestricted user-generated text.
 
-Any exceptional sensitive targeting requires a separate privacy review under [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md).
+Any exceptional sensitive targeting requires a separate privacy review under [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md).
 
 ## Server Enforcement vs Client Presentation
 
