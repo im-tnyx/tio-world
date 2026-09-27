@@ -1,5 +1,10 @@
 # Authentication Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Security & Identity + `apps/features/auth`
+Truth Boundary: Authoritative for identity, session, and protected-service authentication architecture; source and Supabase configuration prove current implementation.
+
 ## Status
 
 **Canonical architecture — Supabase Auth is the identity authority.**

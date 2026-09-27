@@ -1,5 +1,10 @@
 # Settings Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/settings`
+Truth Boundary: Authoritative for the Settings screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`

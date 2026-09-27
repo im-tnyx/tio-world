@@ -1,5 +1,10 @@
 # Wear Home Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/wear`
+Truth Boundary: Authoritative for the Wear Home screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Flutter Wear OS companion
 **Primary owner:** `apps/wear`
 **Status:** Implemented static action list; every action is currently a `coming soon` placeholder.
