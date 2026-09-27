@@ -20,7 +20,7 @@ For day-to-day work, follow these defaults:
 - Shared Dart logic belongs in `apps/shared`; reusable Flutter UI belongs in `apps/core`.
 - Flutter Wear OS app work belongs in `apps/wear`.
 - Apple Watch app work belongs in `apps/watchos`.
-- Backend and AI work belongs in `backend/*`.
+- Supabase Auth/data/Storage and approved server functions belong in `supabase/`; future protected service work belongs in `services/api`.
 - Keep changes small, scoped, and validated.
 - Do not commit secrets, `.env` files, APK/AAB/IPA files, build outputs, or local caches.
 
