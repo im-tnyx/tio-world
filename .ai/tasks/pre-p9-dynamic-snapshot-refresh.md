@@ -17,18 +17,18 @@
 **Planning owner:** GitHub #250 / Linear TNYX-193
 **Implementation owner:** current pre-P9 snapshot-refresh slice
 **Review owner:** pending exact-head review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@0a534984793714ad46e23f40b366f7ca8c82c2f3`
 **Branch:** `tnyx/pre-p9-dynamic-snapshot-refresh`
-**HEAD SHA:** branch created from verified main
+**HEAD SHA:** `1feaece28812add716dcef49e328974b85d7a09e` before final handoff-evidence commit
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable / not observed.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
 **Current implementation state:** Fresh audit complete; snapshot reconstruction in progress.
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`
-**Validation completed at SHA:** Not yet.
-**Validation remaining:** exact diff/scope, stale-claim scan, review, required CI.
+**Validation completed at SHA:** `1feaece28812add716dcef49e328974b85d7a09e` — 3 paths, 3 ahead / 0 behind, baseline matches current main; stale `P7 current` and `no open PRs` claims absent.
+**Validation remaining:** PR exact-head review and required CI.
 **Current blocker:** None.
 **Open review finding IDs:** None.
 **Next exact action:** Reconstruct both dynamic snapshots together without turning them into a volatile backlog copy.
@@ -80,22 +80,22 @@ Keep the snapshots high-level and authority-aware. Avoid enumerating a volatile 
 
 ## 5. Implementation Plan
 
-- [ ] Refresh `.ai/CURRENT.md`.
-- [ ] Refresh `.ai/IMPLEMENTATION_STATUS.md`.
-- [ ] Validate exact scope and stale claims.
+- [x] Refresh `.ai/CURRENT.md`.
+- [x] Refresh `.ai/IMPLEMENTATION_STATUS.md`.
+- [x] Validate exact scope and stale claims.
 - [ ] Review exact head and CI before merge authorization.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Not run yet.
+Connector/API validation at `1feaece28812add716dcef49e328974b85d7a09e`: branch is 3 commits ahead / 0 behind current `main@0a534984793714ad46e23f40b366f7ca8c82c2f3`; exact changed paths are the two snapshots plus this task brief. Both snapshots carry the current baseline. Old `P7 current` and `no open pull requests` assertions are absent. Historical references are explicitly labelled retired/superseded.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+`.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`, `.ai/tasks/pre-p9-dynamic-snapshot-refresh.md`.
 
 ### Actual Behavior
 
@@ -107,4 +107,4 @@ The stale Product Onboarding execution-order block in `.ai/tasks/README.md` is d
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
