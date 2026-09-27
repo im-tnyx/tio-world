@@ -1,14 +1,14 @@
 # TNYX-193 P3 — Current-State Documentation Drift
 
-**Status:** In progress  
-**Primary owner:** repository documentation governance  
-**Affected platforms:** documentation only  
+**Status:** In progress
+**Primary owner:** repository documentation governance
+**Affected platforms:** documentation only
 **Tracker:** GitHub #250 / Linear TNYX-193
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** separately authorized governance phase  
-**Authorization:** owner said `Next go` after P2 completed and post-merge reconciliation returned GitHub #250 / TNYX-193 to active umbrella state.  
+**Trigger:** separately authorized governance phase
+**Authorization:** owner said `Next go` after P2 completed and post-merge reconciliation returned GitHub #250 / TNYX-193 to active umbrella state.
 **Base:** `main@25556a83cf49886333ecfe10d8628b79cbf5159d`.
 
 **Approved P3 boundary:** correct checkout-contradicted current-state Supabase/protected-server wording only in the four docs already classified for P3 by GitHub #250 / TNYX-193:
@@ -22,14 +22,14 @@
 
 ## Active Handoff
 
-**Planning owner:** current P3 session  
-**Implementation owner:** current P3 session  
-**Review owner:** pending independent review  
-**Implementation ownership state:** Complete  
-**Branch:** `tnyx/tnyx-193-p3-current-state-doc-drift`  
-**Repository base last verified:** `main@25556a83cf49886333ecfe10d8628b79cbf5159d`  
-**Observed working-tree state:** connector/API execution only; no local working tree is available to inspect  
-**Current blocker:** none; exact-head independent review remains before merge  
+**Planning owner:** current P3 session
+**Implementation owner:** current P3 session
+**Review owner:** pending independent review
+**Implementation ownership state:** Complete
+**Branch:** `tnyx/tnyx-193-p3-current-state-doc-drift`
+**Repository base last verified:** `main@25556a83cf49886333ecfe10d8628b79cbf5159d`
+**Observed working-tree state:** connector/API execution only; no local working tree is available to inspect
+**Current blocker:** none; exact-head independent review remains before merge
 **Next exact action:** open the bounded docs-only PR, run exact PR patch/check validation, and request independent exact-head review.
 
 ## 1. Discovery
