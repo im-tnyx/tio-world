@@ -65,7 +65,7 @@ The planned full onboarding uses one `/onboarding` parent screen. Top progress a
 bottom actions stay fixed while one mode-derived child changes. Stable step IDs and
 one Riverpod controller own the internal flow. Draft mode, confirmed App Mode, and
 completion status remain separate; see
-[Onboarding Flow Architecture](../docs/ONBOARDING_ARCHITECTURE.md).
+[Onboarding Flow Architecture](../docs/architecture/ONBOARDING_ARCHITECTURE.md).
 
 A final-stage custom navigation layer keeps Home first, supports three to six eligible destinations, and may promote implemented feature routes such as Workout Library or Meal Plan as shortcuts. Home sections and feature action entries adapt through shared layout/composition contracts while business logic remains feature-owned.
 
