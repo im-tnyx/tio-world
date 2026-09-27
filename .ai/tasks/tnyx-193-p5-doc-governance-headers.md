@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@74a3903537442c4d2bb5e120b51a479da851e980`; GitHub #250 open; Linear TNYX-193 `In Progress`; P5 tracker state `Not started` before activation; no open PR overlap.
 **Branch:** `tnyx/tnyx-193-p5-verification-prereq`
-**HEAD SHA:** branch created from `main@74a3903537442c4d2bb5e120b51a479da851e980`; implementation commits pending
+**HEAD SHA:** prerequisite source-validation checkpoint pending this handoff refresh; exact final PR head must be revalidated after PR metadata is recorded
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** P5 authorized. Read-only audit found 68 Markdown documents under `docs/`, with 0/68 carrying the canonical four-line header. Header rollout is intentionally paused behind a prerequisite factual-drift correction slice so `Last Verified` is not falsely stamped onto known-stale canonical prose.
+**Current implementation state:** P5 prerequisite factual-drift source changes are complete and locally equivalent connector validation is clean; header rollout remains intentionally not started until prerequisite review/merge.
 **Relevant execution surface:** this prerequisite slice: `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`, `.ai/tasks/README.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/data/DATABASE_BACKUP_RECOVERY.md`. Later P5 slice: all 68 `docs/**/*.md` files.
 **Validation completed at SHA:** audit against `main@74a3903537442c4d2bb5e120b51a479da851e980`: 68 docs Markdown files; 0 complete governance headers; 49 live migrations match 49 checked-in by version/name; live `public` table set contains 14 active ordinary tables; `SUPABASE_STRATEGY.md` Status block names legacy tables `profiles`, `workout_preferences`, `user_targets` absent from the current live schema and names legacy adapters no longer present in current source; `DATABASE_BACKUP_RECOVERY.md` states 24 applied migrations while verified current count is 49.
-**Validation remaining:** correct only the confirmed stale prerequisite prose; exact diff/reference/scope validation; bounded prerequisite PR/review/merge; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
-**Current blocker:** P5 header rollout must not claim current verification while confirmed stale canonical statements remain.
+**Validation remaining:** open the bounded prerequisite PR, revalidate its exact final head, inspect checks, obtain independent exact-head review, and merge only with explicit owner authorization; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
+**Current blocker:** header rollout remains gated on prerequisite review/merge; no source-level prerequisite blocker remains.
 **Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** reconcile only the confirmed current-state drift in the two data docs, validate the prerequisite slice, and open it for exact-head review.
+**Next exact action:** open the prerequisite PR from the validated branch, record its review handoff without widening source scope, then run exact-head review/check gates.
 
 ## 1. Discovery
 
@@ -135,10 +135,10 @@ Not applicable to runtime/UI. If a document cannot be truthfully classified or v
 ## 5. Implementation Plan
 
 Prerequisite slice:
-- [ ] correct `SUPABASE_STRATEGY.md` current Status block using verified current platform state;
-- [ ] remove no-longer-current backend adapter examples from its future-safe preservation list while keeping valid examples;
-- [ ] correct the backup/recovery migration-count sentence with an explicitly dated P4B verification note;
-- [ ] validate exact scope, links and patch hygiene;
+- [x] correct `SUPABASE_STRATEGY.md` current Status block using verified current platform state;
+- [x] remove no-longer-current backend adapter examples from its future-safe preservation list while keeping valid examples;
+- [x] correct the backup/recovery migration-count sentence with an explicitly dated P4B verification note;
+- [x] validate exact scope, links and patch hygiene;
 - [ ] open bounded prerequisite PR and obtain exact-head review.
 
 Header slice after prerequisite merge:
@@ -153,25 +153,29 @@ Header slice after prerequisite merge:
 ### Validation Run
 
 ```text
-Read-only P5 audit complete. Prerequisite implementation not yet validated.
+Prerequisite source validation complete on branch: 4 ahead / 0 behind from `main@74a3903537442c4d2bb5e120b51a479da851e980`; exactly four planned paths; 49 live migrations = 49 checked-in by version+name; legacy 24-count/table/removed-adapter claims absent; 43 local Markdown references checked with 0 missing; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no out-of-scope path diff.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| P5-AUDIT-01 | Blocking prerequisite | Open | `DATABASE_BACKUP_RECOVERY.md` says current live migration history contains 24 applied migrations; live + repository history verify 49/49. | `74a3903537442c4d2bb5e120b51a479da851e980` | Correct only this current-state claim before P5 verification metadata. |
-| P5-AUDIT-02 | Blocking prerequisite | Open | `SUPABASE_STRATEGY.md` Status block lists legacy tables and removed adapter examples as current; its later inactive-backend examples also include two classes no longer in source. | `74a3903537442c4d2bb5e120b51a479da851e980` | Reconcile the bounded stale current-state/example prose against live schema + current source. |
+| P5-AUDIT-01 | Blocking prerequisite | Resolved | `DATABASE_BACKUP_RECOVERY.md` says current live migration history contains 24 applied migrations; live + repository history verify 49/49. | `74a3903537442c4d2bb5e120b51a479da851e980` | Correct only this current-state claim before P5 verification metadata. |
+| P5-AUDIT-02 | Blocking prerequisite | Resolved | `SUPABASE_STRATEGY.md` Status block lists legacy tables and removed adapter examples as current; its later inactive-backend examples also include two classes no longer in source. | `74a3903537442c4d2bb5e120b51a479da851e980` | Reconcile the bounded stale current-state/example prose against live schema + current source. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending prerequisite implementation.
+Prerequisite slice:
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`
+- `docs/data/SUPABASE_STRATEGY.md`
+- `docs/data/DATABASE_BACKUP_RECOVERY.md`
 
 ### Actual Behavior
 
-Documentation-only; no runtime/database behavior change.
+Known current-state drift blocking truthful P5 verification metadata is reconciled in the prerequisite branch. No governance headers or runtime/database behavior changes are included.
 
 ### Known Limitations
 
