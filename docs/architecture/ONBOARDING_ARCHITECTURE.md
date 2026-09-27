@@ -113,9 +113,9 @@ Verified source behavior in the current working tree:
 - `CompleteOnboardingUseCase` validates completion eligibility, ensures status
   storage is initialized, writes confirmed App Mode, then writes
   `OnboardingStatus.completed`. A failed completion never routes Home.
-- Review summarizes only real captured data and explicitly blocks Finish while
-  required Nutrition Preferences/Targets owner sections remain compatibility
-  previews.
+- Review summarizes captured owner data and exposes Finish only when the
+  completion validator confirms the eligible mode's required owner data and
+  durable completion prerequisites.
 - `apps/features/onboarding/lib/src/domain` owns stable step IDs, versioned draft
   and status models, exact mode plans, and safe current-step reconciliation.
 - `OnboardingController` and `OnboardingFlowPage` provide the tested fixed progress,
@@ -147,7 +147,7 @@ Verified source behavior in the current working tree:
   retry-safe finalization, confirmed App Mode publication, and completed status
   persistence are implemented behind the current completion flow.
 
-Runtime source remains the truth until the planned slices below are delivered.
+Runtime source remains the truth. The delivery history below records how the current architecture was reached; completed slices are historical implementation checkpoints, not pending blockers.
 
 ## Durable Decisions
 
@@ -642,11 +642,10 @@ The implementation must define and test:
    Focus Areas, Training Days, Workout Duration, Workout Split, optional
    Health Concerns, and optional Special Event. The Android onboarding
    reference does not provide a dedicated Nutrition onboarding section, so
-   Tio-World Nutrition onboarding must come from Flutter/product owner
-   contracts instead of Android parity. `NutritionIntroSection ->
-   NutritionIntroScreen` is now real, while `NutritionSection ->
-   NutritionStepRenderer` remains an explicit owner-contract block because no
-   canonical local Nutrition preference fields were found.
+   Tio-World Nutrition onboarding comes from Flutter/product owner contracts
+   instead of Android parity. `NutritionIntroSection -> NutritionIntroScreen`
+   and `NutritionSection -> NutritionStepRenderer` are real current paths backed
+   by the canonical Nutrition onboarding owner contract.
 7. **Targets T1 slice (Implemented):** `TargetsSection` -> `TargetStepRenderer`
    delivers real `BridgeScreen`, `StepTargetScreen`, `SleepTargetScreen`, and
    `WaterTargetScreen` with typed `TargetsOnboardingDraft`, pure `SleepScheduleHelper`,
@@ -655,11 +654,9 @@ The implementation must define and test:
    - **Formula Authority:** Nutrition target calculation is owned by `NutritionTargetCalculator` in `apps/features/nutrition`; onboarding adapts its draft inputs through `CalculateNutritionTargetRecommendationUseCase`.
    - **GoalPace:** Delivered as real `GoalPaceScreen` with pure `GoalPaceResolver` (Loss, Gain, Maintenance mode derivation from profile weights; reference pace bounds 0.1..1.5 kg/week; aggressive pace warning thresholds $\ge 1.0$) and `GoalPaceTargetDateCalculator` with deterministic clock injection. Widget contains no BMR/TDEE calculations.
    - **NutritionTarget:** Delivered as real `NutritionTargetScreen`, with explicit success, insufficient-input, and invalid-input states from the nutrition-domain calculator. The unused `TargetsCompatibilityScreen` placeholder has been removed.
-   - **Readiness:** Targets product readiness remains `PARTIAL` and `OnboardingCompletionValidator` separately models durable owner persistence readiness, preventing false completion.
+   - **Readiness:** Targets screens are implemented in the canonical Product Onboarding flow. `OnboardingCompletionValidator` separately models durable owner-persistence/backend readiness so navigation readiness cannot produce false completion.
 9. **Secure persistence and resume:** implemented via `OnboardingDraftRepository`, `OnboardingDraftSnapshot`, `OnboardingDraftSnapshotDtoMapper`, and `SupabaseOnboardingDraftRepository` backed by `public.onboarding_drafts` with RLS (`auth.uid() = user_id`). Includes monotonic revision autosave, hydration race guards, step reconciliation, and post-completion draft cleanup.
-10. **Owner-backed product completion:** replace compatibility Workout/Nutrition/
-    Targets blockers with real owner writes, then keep the existing explicit
-    completion boundary for end-to-end finalization.
+10. **Owner-backed product completion (Implemented):** real Profile/Body/Wellness/Nutrition/Workout/Targets owner writes feed the explicit completion boundary, with retry-safe finalization and completed-session persistence/readback.
 
 
 Each slice must be usable and testable before the next grows.
