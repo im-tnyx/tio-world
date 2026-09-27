@@ -156,8 +156,8 @@ Codex review of `43cccda1` on PR #331 (5 × P2), fixed in `47173351` and `7d76ea
 ### Changed Files
 
 - new `docs/screens/library.md`; `docs/screens/{exercise-search,routine-library,workout,README,home}.md`
-- `docs/MODULE_OWNERSHIP.md`, `docs/UX_UI_SYSTEM.md`, `.ai/architecture-summary.md` (Routine Library → Workout Library in promotion lines only)
-- `docs/ROADMAP.md` Phase 3 Workout items and `docs/MVP_ACCEPTANCE.md` Workout MVP (review fix R1)
+- `docs/architecture/MODULE_OWNERSHIP.md`, `docs/architecture/UX_UI_SYSTEM.md`, `.ai/architecture-summary.md` (Routine Library → Workout Library in promotion lines only)
+- `docs/planning/ROADMAP.md` Phase 3 Workout items and `docs/planning/MVP_ACCEPTANCE.md` Workout MVP (review fix R1)
 - `.ai/DECISIONS.md` (new D-020); this brief and `.ai/tasks/README.md`
 - unchanged: ADR-0005, ADR-0011, D-014, runtime, router, Supabase, owner assets
 
