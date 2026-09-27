@@ -17,7 +17,7 @@ Reconcile only source-proven stale current-status wording found during the broad
 ### Source evidence
 - Splash delegates session resolution/destination routing to app-level bootstrap; `app_session_route_policy.dart` implements the redirect state policy.
 - Auth composition uses Supabase session/sign-in repositories; `LoginPage` is wired to real auth use cases.
-- App router acceptance coverage renders `HomePage` at Home.
+- App router acceptance coverage routes to `HomePage`, but current `HomePage.build()` returns only an empty `SizedBox.expand`; Home remains a routed placeholder rather than implemented user-visible content.
 - `WorkoutHomePage` is real runtime source with calendar + Library entry; shell routes ship Library and Exercises.
 - Product Onboarding is implemented/frozen; current canonical onboarding docs and runtime/source already record the completed flow.
 
@@ -36,6 +36,9 @@ Reconcile only source-proven stale current-status wording found during the broad
 
 ## Known limitation
 This slice resolves only the proven runtime-status drift cluster. The broader canonical contradiction audit remains open, so GitHub #250 acceptance criterion “No canonical document contains a statement contradicted by the current checkout” must remain unchecked.
+
+## Review Findings and Resolution
+- Codex P2 on PR #434 correctly found that the initial Home wording overstated implementation. Runtime source shows `HomePage.build()` returns only an empty `SizedBox.expand`. The Home status was narrowed to a routed empty placeholder; no other scope was widened.
 
 ## Final Validation Verdict
 `REVIEW`
