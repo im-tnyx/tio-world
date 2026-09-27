@@ -21,7 +21,7 @@ Manage app-level preferences and route the user to module-owned configuration. S
 - App Preferences contains App Mode, Theme, Units and Calendar. Its root subtitle is `App Mode, theme, units & calendar` and its page heading is `App Preferences`.
 - App Mode editing previews guided tabs, persists through the same controller used by Onboarding, and returns to Home after success.
 - Theme uses the existing Appearance bottom sheet. Units uses the existing shared editor and persistence.
-- Manage Subscription, Reset Password, Workout Settings, Wear OS / Watch Settings, Nutrition & Diet and About Tio are not exposed. Their empty sections are absent; no placeholder destinations are wired.
+- Nutrition & Diet is conditionally exposed when the active App Mode is `nutrition` or `hybrid`, and routes to `/settings/nutrition`. Manage Subscription, Reset Password, Workout Settings, Wear OS / Watch Settings and About Tio are not exposed unless their approved capability exists; empty placeholder sections remain absent.
 - Navigation & Tabs personalization and additional global preferences remain deferred. Existing account entry wiring is not evidence that all account/security acceptance gates are complete.
 
 ## Current Information Architecture
@@ -35,6 +35,8 @@ Settings (/settings)
 │  └─ Health & Goals -> /settings/health-goals
 │     ├─ Body & Weight -> /settings/health-goals/body-weight
 │     └─ Daily Wellness -> /settings/health-goals/daily-wellness
+├─ NUTRITION (only in `nutrition` / `hybrid` App Mode)
+│  └─ Nutrition & Diet -> /settings/nutrition
 ├─ PREFERENCES
 │  └─ App Preferences -> /settings/app
 │     ├─ App Mode -> /settings/app-mode
