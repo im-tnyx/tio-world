@@ -29,9 +29,9 @@ Reconcile only source-proven stale current-status wording found during the broad
 - Do not start or decide P9.
 
 ## Validation
-- [ ] Only task brief + two canonical docs differ.
-- [ ] Target stale phrases are absent/replaced with bounded source-backed wording.
-- [ ] No runtime/Supabase/#250/P9 mutation.
+- [x] Only task brief + two canonical docs differ.
+- [x] Target stale phrases are absent/replaced with bounded source-backed wording.
+- [x] No runtime/Supabase/#250/P9 mutation.
 - [ ] Exact-head PR review and final gate.
 
 ## Known limitation
