@@ -174,7 +174,7 @@ Visual check: a temporary, uncommitted render test produced PNGs of the page and
 - `apps/app/lib/app/app_mode/app_mode_route_policy.dart`: nested tab paths inherit their tab root's gating.
 - `apps/app/lib/app/profile/exercise_media_gender.dart`, `apps/app/lib/main.dart`: profile gender → media gender override.
 - `apps/app/test/app/workout_exercises_route_test.dart`.
-- `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`, this brief, `.ai/tasks/README.md`.
+- `docs/screens/exercise-search.md`, `docs/architecture/MODULE_OWNERSHIP.md`, this brief, `.ai/tasks/README.md`.
 
 The PR carried five commits (`098c17a5` initial slice, `ff5c06ce` owner top-bar revision, `1237eb5c` / `6bc6c354` / `6b6e38e8` brief follow-up records), squashed into `38fa740a`.
 
