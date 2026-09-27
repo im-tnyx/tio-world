@@ -1,36 +1,36 @@
 # TNYX-197 — Manual MealLog selected-day read model foundation
 
-**Status:** In progress — source implementation validated; Draft PR final handoff review remains  
-**Primary owner:** `apps/features/nutrition`  
+**Status:** In progress — source implementation validated; Draft PR final handoff review remains
+**Primary owner:** `apps/features/nutrition`
 **Affected platforms:** Flutter mobile + Supabase-backed Nutrition repository
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** New independently scoped product task/feature slice  
-**Approval status:** Approved  
-**Approval evidence:** Owner approved the bounded TNYX-57A audit outcome on 2026-09-11 with `go`.  
-**Approved product/UI/data-shape boundaries:** Selected-local-date MealLog repository/gateway reads plus deterministic in-memory parity only. No visible UI and no Supabase table/column shape change.  
+**Trigger:** New independently scoped product task/feature slice
+**Approval status:** Approved
+**Approval evidence:** Owner approved the bounded TNYX-57A audit outcome on 2026-09-11 with `go`.
+**Approved product/UI/data-shape boundaries:** Selected-local-date MealLog repository/gateway reads plus deterministic in-memory parity only. No visible UI and no Supabase table/column shape change.
 **Explicit non-changes:** No Quick Add activation, Diary cards/sections/controller, N14 display preferences, edit/delete, detailed items, daily summary/calendar decoration, schema/RLS/grant changes, `services/api`, ads, membership, or entitlements.
 
 ## Active Handoff
 
-**Planning owner:** ChatGPT  
-**Implementation owner:** ChatGPT  
-**Review owner:** ChatGPT  
-**Implementation ownership state:** Complete  
-**Ownership transition:** Not applicable  
-**Repository state last verified:** Base `main` = `66f03c33f4fbffc0639333e1f1bd9ff075a0d4aa`; source-validation head = `7bba235a10d13b810566f3de1f80c53dfb38f59b`; base is exact merge base; source branch was 6 ahead / 0 behind with six TNYX-197-owned files.  
-**Branch:** `tnyx/tnyx-197-n4a-manual-meallog-selected-day-read-model-foundation`  
-**HEAD SHA:** `7bba235a10d13b810566f3de1f80c53dfb38f59b` is the validated source head immediately before this docs-only handoff reconciliation commit.  
-**Observed working-tree state:** GitHub/API-based execution; parent-to-head ancestry, commit count and complete changed-file list were inspected through repository API per `.github/PUSH_TEMPLATE.md`.  
-**Observed uncommitted/dirty files:** Not applicable to connector-backed branch writes; no unrelated committed files found.  
-**PR / tracker:** Draft PR #256; Linear TNYX-197 `In Progress`.  
-**Current implementation state:** Repository contract, Supabase gateway/adapter, in-memory parity and focused tests implemented. No UI/schema change.  
-**Relevant execution surface:** `MealLogRepository`, `InMemoryMealLogRepository`, `MealLogTableGateway`, `SupabaseMealLogRepository`, focused Nutrition repository tests.  
-**Validation completed at SHA:** `7bba235a10d13b810566f3de1f80c53dfb38f59b` — Flutter CI #2381 / run `34621964823` / job `103337867111`: bootstrap ✅, Flutter analyze ✅, Dart analyze ✅, Flutter tests ✅, Dart tests ✅.  
-**Validation remaining:** Current PR head after this docs-only reconciliation must be checked; final PR scope/review state then reconciled before Ready-for-review.  
-**Current blocker:** None.  
-**Open review finding IDs:** None.  
+**Planning owner:** ChatGPT
+**Implementation owner:** ChatGPT
+**Review owner:** ChatGPT
+**Implementation ownership state:** Complete
+**Ownership transition:** Not applicable
+**Repository state last verified:** Base `main` = `66f03c33f4fbffc0639333e1f1bd9ff075a0d4aa`; source-validation head = `7bba235a10d13b810566f3de1f80c53dfb38f59b`; base is exact merge base; source branch was 6 ahead / 0 behind with six TNYX-197-owned files.
+**Branch:** `tnyx/tnyx-197-n4a-manual-meallog-selected-day-read-model-foundation`
+**HEAD SHA:** `7bba235a10d13b810566f3de1f80c53dfb38f59b` is the validated source head immediately before this docs-only handoff reconciliation commit.
+**Observed working-tree state:** GitHub/API-based execution; parent-to-head ancestry, commit count and complete changed-file list were inspected through repository API per `.github/PUSH_TEMPLATE.md`.
+**Observed uncommitted/dirty files:** Not applicable to connector-backed branch writes; no unrelated committed files found.
+**PR / tracker:** Draft PR #256; Linear TNYX-197 `In Progress`.
+**Current implementation state:** Repository contract, Supabase gateway/adapter, in-memory parity and focused tests implemented. No UI/schema change.
+**Relevant execution surface:** `MealLogRepository`, `InMemoryMealLogRepository`, `MealLogTableGateway`, `SupabaseMealLogRepository`, focused Nutrition repository tests.
+**Validation completed at SHA:** `7bba235a10d13b810566f3de1f80c53dfb38f59b` — Flutter CI #2381 / run `34621964823` / job `103337867111`: bootstrap ✅, Flutter analyze ✅, Dart analyze ✅, Flutter tests ✅, Dart tests ✅.
+**Validation remaining:** Current PR head after this docs-only reconciliation must be checked; final PR scope/review state then reconciled before Ready-for-review.
+**Current blocker:** None.
+**Open review finding IDs:** None.
 **Next exact action:** Verify docs-only head delta and current-head CI; then reconcile PR body + Linear to `In Review` and mark PR Ready only if review stays clean.
 
 ## Global UI / Design-System Guardrail
