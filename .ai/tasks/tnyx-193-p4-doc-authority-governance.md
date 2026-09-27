@@ -127,15 +127,16 @@ Not applicable; docs-only governance.
 ### Validation Run
 
 ```text
-Branch validation at e65542c14bcbdc570b51f9ccbd77668b32a526ed:
+Branch validation after Codex P2 fix at `9e4fa14fd07459b233483c9efe1919a74d48c23f`:
 - base main@52236317a57c94d7a28620c7d007e706b7945665
-- 4 ahead / 0 behind before this handoff update
+- 7 ahead / 0 behind before this handoff update
 - exactly 5 expected paths after resolving Codex P2 review finding
 - runtime/Supabase/CI/service files changed: 0
 - all six canonical status labels present
 - docs/README.md contains canonical authority + conflict sections
 - .ai/README.md contains canonical pointer and no duplicate numbered Priority Rule
-- 53 local markdown references checked, 0 missing
+- .ai/workflow.md contains the canonical pointer and no duplicate numbered Source Of Truth Order
+- 55 local markdown references checked, 0 missing
 - trailing whitespace: 0
 - conflict markers: 0
 ```
@@ -159,7 +160,7 @@ Expected:
 
 ### Actual Behavior
 
-P4 now has one canonical documentation authority/status/conflict model in `docs/README.md`; `.ai/README.md` routes to it instead of restating precedence.
+P4 now has one canonical documentation authority/status/conflict model in `docs/README.md`; both `.ai/README.md` and `.ai/workflow.md` route to it instead of restating precedence.
 
 ### Known Limitations
 
