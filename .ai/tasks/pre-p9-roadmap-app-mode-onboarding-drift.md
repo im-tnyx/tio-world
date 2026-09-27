@@ -35,6 +35,7 @@ Reconcile only stale current-state prose in `docs/planning/ROADMAP.md` that cont
 - [x] Replacement wording agrees with D-021, current screen catalog, onboarding architecture, and runtime repository ownership.
 - [x] Codex P2 findings incorporated: Account Setup/Product Onboarding entry boundary and structural-vs-eligibility validation wording.
 - [x] Fresh exact-head P2 findings incorporated: finalization writes canonical preferences before the completion marker, and legacy `active_tabs = null` restores mode-derived guided destinations.
+- [x] Canonical restore ownership clarified: repository parses/preserves the row; controller derives legacy fallback destinations and rejects missing mode.
 - [ ] Exact-head review/final gate completed.
 
 ## Final Validation Verdict
