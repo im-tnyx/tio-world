@@ -106,4 +106,4 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 - [Workout](workout.md)
 - [Library](library.md)
 - [Screen catalog](README.md)
-- [Module ownership](../MODULE_OWNERSHIP.md)
+- [Module ownership](../architecture/MODULE_OWNERSHIP.md)
