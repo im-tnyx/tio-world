@@ -70,4 +70,4 @@ Library                 → navigation + user relationship/collection queries + 
 - [Exercises and Exercise Picker](exercise-search.md)
 - [Routines](routine-library.md)
 - [Programs](programs.md)
-- [Module ownership](../MODULE_OWNERSHIP.md)
+- [Module ownership](../architecture/MODULE_OWNERSHIP.md)
