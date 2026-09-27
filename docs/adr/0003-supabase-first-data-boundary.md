@@ -56,4 +56,4 @@ Do not rewrite the historical Context/Decision above as current-state prose. Use
 - [Supabase-First Platform Strategy](../data/SUPABASE_STRATEGY.md)
 - [Data and Sync](../data/DATA_AND_SYNC.md)
 - [Security](../security/SECURITY.md)
-- [Supabase foundation task](../../.ai/tasks/supabase-foundation.md)
+- [Supabase public schema inventory](../data/SUPABASE_SCHEMA.md)
