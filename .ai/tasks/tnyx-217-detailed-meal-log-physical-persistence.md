@@ -161,7 +161,7 @@ Source/test checkpoint review on `216a353a122ee3e0b446c0710dd3d046025d15f6`:
 - independent fallback review found no new P1/P2 finding;
 - requested Codex review did not execute because the code-review usage limit was reached.
 
-Local `git diff --check` and local working-tree cleanliness cannot be truthfully claimed from this connector-only session. GitHub API ancestry, commit, changed-file and CI evidence are used under `docs/PUSH_TEMPLATE.md`.
+Local `git diff --check` and local working-tree cleanliness cannot be truthfully claimed from this connector-only session. GitHub API ancestry, commit, changed-file and CI evidence are used under `.github/PUSH_TEMPLATE.md`.
 
 ### Review Findings
 
@@ -189,7 +189,7 @@ Supabase can represent canonical detailed MealLog aggregates with ordered consum
 
 ### Known Limitations / Next Bounded Slice
 
-After merge and `docs/POST_MERGE_SYNC.md` reconciliation, perform a fresh audit for:
+After merge and `.github/POST_MERGE_SYNC.md` reconciliation, perform a fresh audit for:
 
 ```text
 detailed MealLog repository
