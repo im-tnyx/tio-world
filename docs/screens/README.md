@@ -89,11 +89,11 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 
 | Surface | Screen | Current status |
 | :--- | :--- | :--- |
-| Entry | [Splash](splash.md) | Implemented transition; no session decision yet. |
+| Entry | [Splash](splash.md) | Implemented bootstrap surface; app-level session/bootstrap state owns destination decisions and recoverable retry. |
 | Entry | [Welcome](welcome.md) | Implemented UI and navigation. |
-| Entry | [Login](login.md) | Implemented UI; authentication is mocked. |
-| Phone | [Home](home.md) | Route placeholder; target specification. |
-| Phone | [Workout](workout.md) | Route placeholder; target specification. |
+| Entry | [Login](login.md) | Implemented Phone-first auth entry backed by real Supabase Auth use cases; Email and Google remain supported through the canonical auth composition. |
+| Phone | [Home](home.md) | Implemented Home feature page; broader Home-owned workflows remain capability-gated. |
+| Phone | [Workout](workout.md) | Implemented Workout Home date surface with Library entry; Library and Exercises nested routes are shipped while broader Workout capabilities remain later slices. |
 | Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs, Routines and Plans remain later capability slices. |
 | Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
 | Phone | [Routines](routine-library.md) | Future Routines capability, reached through Library → Routines. |
