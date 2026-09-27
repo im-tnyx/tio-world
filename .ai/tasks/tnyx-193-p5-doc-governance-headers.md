@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** branch created from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; header-rollout implementation commit pending
+**HEAD SHA:** source-validation checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`; this handoff refresh creates one final docs-only metadata commit that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193; prerequisite PR #416 merged; header-rollout PR pending
-**Current implementation state:** prerequisite factual-drift correction is merged. The 68-document classification is resolved and the four-line header rollout is ready to implement.
+**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files; exact-head PR/review gates remain.
 **Relevant execution surface:** all 68 `docs/**/*.md` files plus this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
-**Validation completed at SHA:** prerequisite PR #416 exact reviewed head `9a56c1c8a01d99e7a5e437e05063833fa4258691` merged as `aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; Codex no major issues; unresolved threads 0; both attribution guards PASS; known Supabase strategy/backup current-state drift resolved. Header audit baseline remains 68 docs Markdown files and 0 complete four-line governance headers before rollout.
-**Validation remaining:** apply the resolved 68-row classification; verify 68/68 exact header coverage, canonical label vocabulary, preserved existing status semantics, Markdown links, patch hygiene and zero out-of-scope diff; then open/review the header-rollout PR.
+**Validation completed at SHA:** source-validation checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 10 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 69 changed files = 68 docs + this active task brief; every docs file has exactly 5 additions / 0 deletions; 68/68 direct-under-title four-line headers; status counts 47 `Canonical Live Doc`, 11 `Architecture Decision Record`, 10 `Planned/Future Doc`; ADR and planned-only file sets exactly match the reviewed matrix; `Last Verified` is 2026-09-27 on all 68; unexpected labels 0; docs Markdown-link mutations 0; no document body/status deletion.
+**Validation remaining:** revalidate the resulting handoff-only head, run exact patch/scope hygiene, open the bounded header-rollout PR, inspect repository checks, and obtain independent exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** insert only the four-line governance metadata under each `docs/` title according to the resolved classification and ownership rules.
+**Next exact action:** revalidate the final handoff-only head, open the P5 header-rollout PR, then request exact-head Codex review.
 
 ## 1. Discovery
 
@@ -151,9 +151,9 @@ Prerequisite slice:
 
 Header slice after prerequisite merge:
 - [x] build and review 68-row path/status/owner/truth-boundary/last-verified matrix; classification summary: 47 `Canonical Live Doc`, 11 `Architecture Decision Record`, 10 `Planned/Future Doc`.
-- [ ] apply headers without deleting existing status semantics;
-- [ ] verify 68/68 coverage and canonical label vocabulary;
-- [ ] validate links/patch/scope;
+- [x] apply headers without deleting existing status semantics;
+- [x] verify 68/68 coverage and canonical label vocabulary;
+- [x] validate header placement, status sets, docs-body preservation, and zero Markdown-link mutation; final patch/scope hygiene remains after this handoff refresh.
 - [ ] open P5 header PR and obtain exact-head review.
 
 ## 6. Quality Review
@@ -162,6 +162,8 @@ Header slice after prerequisite merge:
 
 ```text
 Prerequisite source validation complete on branch: 4 ahead / 0 behind from `main@74a3903537442c4d2bb5e120b51a479da851e980`; exactly four planned paths; 49 live migrations = 49 checked-in by version+name; legacy 24-count/table/removed-adapter claims absent; 43 local Markdown references checked with 0 missing; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no out-of-scope path diff.
+
+Header-rollout source checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 68/68 docs headers present; 47 canonical + 11 ADR + 10 planned/future; every docs patch is metadata-only (5 additions / 0 deletions); direct placement clean; docs link mutations 0.
 ```
 
 ### Review Findings and Resolution
@@ -181,14 +183,18 @@ Prerequisite slice:
 - `docs/data/SUPABASE_STRATEGY.md`
 - `docs/data/DATABASE_BACKUP_RECOVERY.md`
 
+Header-rollout slice:
+- all 68 Markdown documents recursively under `docs/`
+- `.ai/tasks/tnyx-193-p5-doc-governance-headers.md` handoff only
+
 ### Actual Behavior
 
 Known current-state drift blocking truthful P5 verification metadata is reconciled in the prerequisite branch. No governance headers or runtime/database behavior changes are included.
 
 ### Known Limitations
 
-P5 header rollout remains pending until this prerequisite current-state cleanup is reviewed and merged.
+P5 source implementation is complete but not merged; exact-head review/check gates remain. P6/P7/P9 are still separately gated.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
