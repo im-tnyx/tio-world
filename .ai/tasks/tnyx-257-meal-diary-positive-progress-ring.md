@@ -44,7 +44,7 @@ Read before source changes:
 - `.ai/tasks/design-system-token-consolidation.md`
 - `apps/features/AGENTS.md`
 - `apps/core/lib/src/theme/README.md`
-- `docs/PUSH_TEMPLATE.md`
+- `.github/PUSH_TEMPLATE.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 
 This slice changes visibility of an already-approved progress decoration only. It introduces no new visual token, geometry, color, typography, spacing, reusable Core component, or design-system contract.
