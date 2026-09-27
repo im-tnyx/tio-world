@@ -1,5 +1,10 @@
 # Database Backup, Recovery & Migration Safety
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for database/Storage recovery and migration-safety policy plus its stated audited posture; provider and live configuration must be re-verified before production changes.
+
 ## Status
 
 **Canonical recovery and production migration-safety baseline for Tio World.**

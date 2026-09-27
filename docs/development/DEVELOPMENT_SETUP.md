@@ -1,5 +1,10 @@
 # Development Setup
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository developer experience
+Truth Boundary: Authoritative for repository developer setup and validation guidance; not production runtime configuration.
+
 This guide explains how to set up `tio-world` locally.
 
 ## Required Tools

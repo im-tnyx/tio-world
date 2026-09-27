@@ -1,5 +1,10 @@
 # Supabase-First Platform Strategy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Supabase data ownership + Backend & Platform
+Truth Boundary: Authoritative for current Supabase ownership and future protected-service boundaries; runtime source and verified live schema prove actual implementation.
+
 ## Status
 
 **Active current Supabase foundation.**

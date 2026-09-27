@@ -1,5 +1,10 @@
 # Data And Sync
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: data architecture + owning feature repositories
+Truth Boundary: Authoritative for repository data ownership, offline-first, and sync direction; not evidence that every feature has sync implemented.
+
 This document defines Tio-world data ownership, repository boundaries, local persistence, sync, Supabase, and the future protected-backend direction.
 
 ## Data Principles

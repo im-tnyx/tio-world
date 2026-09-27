@@ -1,5 +1,10 @@
 # Supabase Server Access Modes
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Security & Identity + Backend & Platform
+Truth Boundary: Authoritative for user-scoped versus privileged server-side Supabase access policy; not evidence that future protected server code exists.
+
 ## Status
 
 **Canonical architecture for future server-side Supabase access.**

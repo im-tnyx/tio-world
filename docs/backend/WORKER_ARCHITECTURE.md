@@ -1,5 +1,10 @@
 # Worker Process Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for future worker process architecture and lifecycle; not evidence that `services/worker` exists.
+
 ## Status
 
 **Canonical process-architecture policy for the future `services/worker` runtime.**
