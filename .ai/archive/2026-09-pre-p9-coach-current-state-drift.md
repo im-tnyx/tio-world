@@ -1,6 +1,7 @@
 # Pre-P9 — Coach current-state drift reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-27
 **Date:** 2026-09-27
 **Owner:** repository documentation governance + coaching
 **Tracker:** GitHub #250 / Linear TNYX-193
@@ -33,7 +34,7 @@ Reconcile only the source-proven Coach current-state wording left open by the pr
 - [x] Exact branch scope is task brief + two Coach canonical-doc surfaces.
 - [x] Stale fixed-visible-tab wording is absent from the branch versions of the Coach docs.
 - [x] Replacement wording matches current route policy and App Mode contracts.
-- [ ] Exact-head review/final gate completed.
+- [x] Exact-head review/final gate completed.
 
 ## Validation Evidence
 
@@ -43,4 +44,9 @@ Repository API compare against `main@4230849e36d23c64053108fcf4aac08a6f4cb664` c
 `docs/planning/ROADMAP.md` still contains separate stale App Mode/onboarding current-state prose. Audit and reconcile it in its own bounded slice.
 
 ## Final Validation Verdict
-`REVIEW`
+`PASS`
+
+
+## Merge Evidence
+
+PR #436 was exact-head reviewed at `a4a1f43bc61d85be3e9470b6c7af77abbb5f93ce`. Manual review found no content findings, Codex reviewed the same commit and reported no major issues, unresolved review threads were 0, and the branch was 6 ahead / 0 behind its current `main` merge base. GitHub published no workflow/status checks for the docs-only head, so no CI-pass claim is made. PR #436 squash-merged as `12f0fcd3522b9d1f2344702d0371bd03d1cbf3ba`, verified as remote `main`. P9 remains not started.
