@@ -93,7 +93,7 @@ auth_providers.dart:
 
 ### Verified Evidence
 
-- Source/config inspected: AGENTS.md, .ai/workflow.md, .ai/FEATURE_DEVELOPMENT.md, .ai/tasks/README.md, docs/ARCHITECTURE.md, docs/MODULE_OWNERSHIP.md, docs/PUSH_TEMPLATE.md, .github/PULL_REQUEST_TEMPLATE.md, docs/POST_MERGE_SYNC.md, network_providers.dart, network_providers_test.dart.
+- Source/config inspected: AGENTS.md, .ai/workflow.md, .ai/FEATURE_DEVELOPMENT.md, .ai/tasks/README.md, docs/architecture/ARCHITECTURE.md, docs/architecture/MODULE_OWNERSHIP.md, .github/PUSH_TEMPLATE.md, .github/PULL_REQUEST_TEMPLATE.md, .github/POST_MERGE_SYNC.md, network_providers.dart, network_providers_test.dart.
 - Current head at audit: main@e838083376551c4f27885656aa2d027a4216a4db.
 - network_providers.dart is 494 lines at blob b46ec114b27d565db6e714aabcedbaffa5724733.
 - Existing pattern to follow: apps/app owns concrete runtime/provider composition; feature business logic remains in owning feature/domain packages.
