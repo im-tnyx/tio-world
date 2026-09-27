@@ -96,10 +96,10 @@ Rules:
 
 See:
 
-- [Auth Architecture](AUTH_ARCHITECTURE.md)
-- [Supabase Strategy](SUPABASE_STRATEGY.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
-- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
+- [Auth Architecture](../security/AUTH_ARCHITECTURE.md)
+- [Supabase Strategy](../data/SUPABASE_STRATEGY.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
 
 ## Future Protected Server Boundary
 
@@ -177,7 +177,7 @@ Firebase Admin token verification is not part of the target backend auth archite
 
 Historical Firebase-named classes, adapters, tests, or migration-era code may still exist in source. Their existence is not evidence that Firebase remains an approved auth provider or future backend target.
 
-Use [Auth Architecture](AUTH_ARCHITECTURE.md) for the canonical identity contract.
+Use [Auth Architecture](../security/AUTH_ARCHITECTURE.md) for the canonical identity contract.
 
 ## Future HTTP Adapter Preservation Rule
 
@@ -266,7 +266,7 @@ enum AppMode { workout, nutrition, hybrid }
 
 The pure-Dart contract belongs in `apps/shared`. Onboarding and Settings use the same underlying product-mode model.
 
-The routed onboarding flow uses one `/onboarding` parent route with mode-derived child steps. Stable step IDs own progress/resume identity. See [Onboarding Architecture](ONBOARDING_ARCHITECTURE.md) and [ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
+The routed onboarding flow uses one `/onboarding` parent route with mode-derived child steps. Stable step IDs own progress/resume identity. See [Onboarding Architecture](ONBOARDING_ARCHITECTURE.md) and [ADR-0006](../adr/0006-single-route-onboarding-parent-flow.md).
 
 The phone shell uses `go_router` with a `StatefulShellRoute.indexedStack`; route registration stays at the app composition boundary while each feature owns its internal screens/actions.
 
@@ -278,7 +278,7 @@ Guided navigation defaults:
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Future navigation personalization must not change feature ownership. See [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md).
+Future navigation personalization must not change feature ownership. See [ADR-0005](../adr/0005-adaptive-navigation-and-action-entry.md).
 
 ## Profile-Derived Defaults
 
@@ -318,7 +318,7 @@ Avoid full phone home surfaces, long forms, large analytics flows, full AI chat,
 
 ## Architecture Decision Records
 
-Durable architecture decisions live in [Architecture Decision Records](adr/README.md).
+Durable architecture decisions live in [Architecture Decision Records](../adr/README.md).
 
 The current Supabase + future `services/api` cutover supersedes the original workspace assumptions in ADR-0003; see ADR-0007 for the current durable boundary.
 
@@ -340,10 +340,10 @@ Do not introduce `backend/api` as the canonical protected API path. Do not renam
 
 ## Related
 
-- [Documentation index](README.md)
-- [Auth Architecture](AUTH_ARCHITECTURE.md)
-- [Supabase Strategy](SUPABASE_STRATEGY.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
-- [API Lifecycle](API_LIFECYCLE.md)
-- [Feature Rollout](FEATURE_ROLLOUT.md)
-- [ADR index](adr/README.md)
+- [Documentation index](../README.md)
+- [Auth Architecture](../security/AUTH_ARCHITECTURE.md)
+- [Supabase Strategy](../data/SUPABASE_STRATEGY.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
+- [API Lifecycle](../backend/API_LIFECYCLE.md)
+- [Feature Rollout](../planning/FEATURE_ROLLOUT.md)
+- [ADR index](../adr/README.md)
