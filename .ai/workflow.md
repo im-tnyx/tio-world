@@ -68,7 +68,7 @@ Do not create large future areas before a slice needs them:
 - Community
 - Challenges
 - AI Coach runtime
-- Full Supabase schema
+- Broad/speculative Supabase schema expansion
 - Apple Watch full feature parity
 - Wear OS advanced telemetry
 
