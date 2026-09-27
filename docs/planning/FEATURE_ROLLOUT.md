@@ -1,5 +1,10 @@
 # Feature Rollout, Remote Capability & Emergency Kill-Switch Policy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: product/platform architecture
+Truth Boundary: Authoritative for rollout-control, safe-default, cohort, and kill-switch policy; not evidence that a flag/provider system is deployed.
+
 ## Status
 
 **Canonical provider-neutral rollout-control policy for Tio World.**

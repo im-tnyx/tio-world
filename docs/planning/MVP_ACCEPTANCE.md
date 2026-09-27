@@ -1,5 +1,10 @@
 # MVP Acceptance Gates
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: product engineering planning
+Truth Boundary: Authoritative for planned MVP acceptance gates; not evidence that any gate or product slice is implemented or complete.
+
 ## Purpose
 
 This checklist defines the minimum evidence needed to close the first Tio vertical slices. It is a delivery reference, not a claim that any listed capability is implemented or approved for release.

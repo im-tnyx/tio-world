@@ -1,5 +1,10 @@
 # Coach Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/coaching`
+Truth Boundary: Authoritative for the Coach screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Future phone primary tab in Phase 7
 **Current route:** `/coach`
 **Primary owner:** `apps/features/coaching`; future protected runtime in `backend/ai-coach` when introduced

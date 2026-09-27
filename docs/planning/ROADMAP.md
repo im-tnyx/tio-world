@@ -1,5 +1,10 @@
 # Roadmap
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: product engineering planning
+Truth Boundary: Authoritative for approved roadmap direction and sequencing intent; live trackers own current priority/status and runtime source proves shipped features.
+
 This roadmap is practical and intentionally staged. Do not build future areas before the current slice needs them.
 
 ## App Mode System

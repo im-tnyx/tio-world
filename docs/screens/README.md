@@ -1,5 +1,10 @@
 # Screen Catalog And Module Plan
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: screen/product architecture
+Truth Boundary: Authoritative for the screen catalog, module ownership, state/navigation planning, and implementation order; runtime source proves shipped behavior and trackers own live delivery status.
+
 This catalog is the product-level reference for phone and Wear OS screens. It records what each screen is for, which package owns it, the visible sections, actions, states, and implementation boundaries.
 
 Runtime source remains the truth for live behavior. A **Target** section is a planned contract, not a claim that the screen or data already works.

@@ -1,5 +1,10 @@
 # Flutter Modular Structure
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Flutter mobile architecture
+Truth Boundary: Authoritative for Flutter workspace/module structure and dependency direction; checked-in workspace/source prove the actual current tree.
+
 This document defines the Flutter equivalent of the native `Tio-hub` modular structure.
 
 The goal is simple: keep the Flutter app scalable when each product area grows to 20+ screens, while keeping the app shell thin and feature ownership clear.
