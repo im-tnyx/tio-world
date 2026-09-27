@@ -15,9 +15,9 @@ App Mode is the first-class product contract for selecting the phone experience:
 enum AppMode { workout, nutrition, hybrid }
 ```
 
-The implemented `AppMode` enum, guided destination mapping, and preference boundary belong in `apps/shared` so every Flutter feature package can read pure-Dart contracts without violating module ownership. Onboarding starts with mode selection and Settings changes the same selection. The common Profile section now exists as an in-memory typed onboarding slice; Workout, Nutrition, review, persistence, and finish remain planned and conditional on mode.
+The implemented `AppMode` enum, guided destination mapping, and preference boundary belong in `apps/shared` so every Flutter feature package can read pure-Dart contracts without violating module ownership. Product Onboarding starts with mode selection, runs as one mode-conditional parent flow, and is implemented/frozen at its current acceptance boundary. Settings changes the same semantic mode after onboarding; remaining feature work is tracked separately rather than treated as unfinished onboarding.
 
-The first slice persists the confirmed mode device-locally through the shared preference boundary and defers Supabase account sync until an approved profile contract exists. Missing or invalid local data returns to mode selection.
+Pre-auth mode selection may be staged locally. For authenticated accounts, canonical `app_mode` and ordered `active_tabs` are persisted in `public.user_app_preferences` through the shared App Preferences contract and app-composed Supabase repository. Local SharedPreferences is staging/cache only and must not override valid canonical account state. Bootstrap restores canonical preferences before publishing the ready shell; malformed or unusable canonical state fails safely rather than silently inventing a mode.
 
 The phone shell keeps stable registered `go_router` `StatefulShellRoute` branches and derives the visible guided layout and route eligibility from the active mode:
 
