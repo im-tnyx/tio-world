@@ -1,6 +1,6 @@
 # Pre-P9 — Product Onboarding task-index reconciliation
 
-**Status:** In progress
+**Status:** Review
 **Primary owner:** repository AI governance
 **Affected platforms:** Documentation / execution orientation only
 
@@ -50,8 +50,8 @@ Audit `.ai/tasks/onboarding-flow.md` for index wording, but do not redesign or c
 
 ## Validation
 
-Pending exact diff review, tracker reconciliation, and PR CI.
+Source/tracker reconciliation complete. Branch changes only the focused task-index/orientation surfaces plus this handoff. Current-sequencing assertions that marked O1/O1F as NEXT/ACTIVE or pointed to the archived execution brief as current authority were removed; historical/negative references are retained intentionally. Exact-head PR review and CI remain.
 
 ## Final Status
 
-`IMPLEMENTATION IN PROGRESS`
+`REVIEW`
