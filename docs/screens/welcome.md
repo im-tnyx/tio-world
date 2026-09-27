@@ -2,7 +2,7 @@
 
 Document Status: Canonical Live Doc
 Last Verified: 2026-09-27
-Owner: `apps/features/auth`
+Owner: `apps/features/welcome`
 Truth Boundary: Authoritative for the Welcome screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Phone entry / auth landing screen
