@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@74a3903537442c4d2bb5e120b51a479da851e980`; GitHub #250 open; Linear TNYX-193 `In Progress`; P5 tracker state `Not started` before activation; no open PR overlap.
 **Branch:** `tnyx/tnyx-193-p5-verification-prereq`
-**HEAD SHA:** prerequisite source-validation checkpoint pending this handoff refresh; exact final PR head must be revalidated after PR metadata is recorded
+**HEAD SHA:** pre-review source checkpoint `a404f068c08bd3b5f6146c3b6120bc251329365f`; this PR-number handoff refresh creates the exact final head that must be revalidated before review
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
-**PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** P5 prerequisite factual-drift source changes are complete and locally equivalent connector validation is clean; header rollout remains intentionally not started until prerequisite review/merge.
+**PR / tracker:** GitHub #250 / PR #416 / Linear TNYX-193
+**Current implementation state:** P5 prerequisite factual-drift source changes are complete and PR #416 is open; header rollout remains intentionally not started until prerequisite review/merge.
 **Relevant execution surface:** this prerequisite slice: `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`, `.ai/tasks/README.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/data/DATABASE_BACKUP_RECOVERY.md`. Later P5 slice: all 68 `docs/**/*.md` files.
 **Validation completed at SHA:** audit against `main@74a3903537442c4d2bb5e120b51a479da851e980`: 68 docs Markdown files; 0 complete governance headers; 49 live migrations match 49 checked-in by version/name; live `public` table set contains 14 active ordinary tables; `SUPABASE_STRATEGY.md` Status block names legacy tables `profiles`, `workout_preferences`, `user_targets` absent from the current live schema and names legacy adapters no longer present in current source; `DATABASE_BACKUP_RECOVERY.md` states 24 applied migrations while verified current count is 49.
-**Validation remaining:** open the bounded prerequisite PR, revalidate its exact final head, inspect checks, obtain independent exact-head review, and merge only with explicit owner authorization; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
+**Validation remaining:** revalidate PR #416 exact final head, inspect checks, obtain independent exact-head review, and merge only with explicit owner authorization; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
 **Current blocker:** header rollout remains gated on prerequisite review/merge; no source-level prerequisite blocker remains.
 **Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** open the prerequisite PR from the validated branch, record its review handoff without widening source scope, then run exact-head review/check gates.
+**Next exact action:** revalidate the exact final PR #416 head, update tracker evidence without changing branch source, then request Codex exact-head review and inspect checks.
 
 ## 1. Discovery
 
