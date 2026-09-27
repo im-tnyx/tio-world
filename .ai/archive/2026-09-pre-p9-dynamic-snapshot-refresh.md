@@ -1,6 +1,7 @@
 # Pre-P9 — Dynamic current-state snapshot refresh
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository AI governance
 **Affected platforms:** Documentation / execution orientation only
 
@@ -16,22 +17,22 @@
 
 **Planning owner:** GitHub #250 / Linear TNYX-193
 **Implementation owner:** current pre-P9 snapshot-refresh slice
-**Review owner:** pending exact-head review
-**Implementation ownership state:** Handoff pending
+**Review owner:** completed on PR #424 exact head `7353cd98534a8fc55df1d5fe8244d878d1a387e6`
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@0a534984793714ad46e23f40b366f7ca8c82c2f3`
+**Repository state last verified:** merged `main@069c96015567423cae77f73f43975ebbb081a4fb`
 **Branch:** `tnyx/pre-p9-dynamic-snapshot-refresh`
 **HEAD SHA:** `1feaece28812add716dcef49e328974b85d7a09e` before final handoff-evidence commit
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable / not observed.
-**PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** Fresh audit complete; snapshot reconstruction in progress.
+**PR / tracker:** PR #424 / GitHub #250 / Linear TNYX-193
+**Current implementation state:** Snapshot refresh merged via PR #424.
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`
 **Validation completed at SHA:** `1feaece28812add716dcef49e328974b85d7a09e` — 3 paths, 3 ahead / 0 behind, baseline matches current main; stale `P7 current` and `no open PRs` claims absent.
-**Validation remaining:** PR exact-head review and required CI.
+**Validation remaining:** None for this completed slice.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Reconstruct both dynamic snapshots together without turning them into a volatile backlog copy.
+**Next exact action:** Separate bounded cleanup of the stale Product Onboarding execution-order block in `.ai/tasks/README.md`.
 
 ## 1. Discovery
 
@@ -83,7 +84,7 @@ Keep the snapshots high-level and authority-aware. Avoid enumerating a volatile 
 - [x] Refresh `.ai/CURRENT.md`.
 - [x] Refresh `.ai/IMPLEMENTATION_STATUS.md`.
 - [x] Validate exact scope and stale claims.
-- [ ] Review exact head and CI before merge authorization.
+- [x] Review exact head and CI before merge authorization.
 
 ## 6. Quality Review
 
@@ -107,4 +108,9 @@ The stale Product Onboarding execution-order block in `.ai/tasks/README.md` is d
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
+
+
+### Merge Evidence
+
+PR #424 was manually reviewed at exact head `7353cd98534a8fc55df1d5fe8244d878d1a387e6` with 0 unresolved threads. Required `Commit attribution guard` and `Attribution guard runner` passed. Supplemental GitHub Advanced Security failed before meaningful analysis with the TNYX-256 unsupported-model infrastructure error. PR #424 squash-merged as `069c96015567423cae77f73f43975ebbb081a4fb`, which was then verified as remote `main`.
