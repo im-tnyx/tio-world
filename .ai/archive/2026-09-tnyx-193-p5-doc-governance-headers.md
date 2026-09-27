@@ -1,6 +1,7 @@
 # TNYX-193 P5 — Documentation Governance Header Rollout
 
-**Status:** In review
+**Status:** Validated
+**Completed:** 2026-09-27
 **Primary owner:** repository documentation governance
 **Affected platforms:** documentation only
 
@@ -12,26 +13,24 @@
 **Approved product/UI/data-shape boundaries:** Roll out the canonical four-line governance header across every Markdown file under `docs/` after each document's status/owner/truth boundary is classified and its `Last Verified` value is evidence-backed.
 **Explicit non-changes:** No runtime/UI/routing/state change; no Supabase schema/migration/RLS/storage/function/Auth mutation; no CI workflow change; no lockfile change; no P6 `.ai/` header rollout; no P7 `.ai/CURRENT.md` refresh; no P9 routing-map work.
 
-## Active Handoff
+## Archived Handoff
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** independent exact-head reviewer after each bounded slice
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 is `In Review`; P6/P7/P9 remain separately gated.
-**Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** last source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`; only this handoff metadata is expected to change after that checkpoint, and the resulting head must be revalidated externally in PR #417 / Linear TNYX-193 rather than creating recursive self-referential SHA-only commits
-**Observed working-tree state:** Connector/API execution only; no local worktree claim.
-**Observed uncommitted/dirty files:** Not applicable through connector/API.
-**PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
-**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Three Codex review rounds plus one manual exact-head review exposed stale/current-truth gaps; all verified findings are now reconciled against current source, routes, repositories, migrations, live Supabase Edge Function state, CI and canonical ownership. Codex review quota is exhausted, so no further independent Codex pass is currently available.
-**Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
-**Validation completed at SHA:** source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`: 53 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Branch protection requires only `Commit attribution guard`; supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted. This active-handoff correction is the only expected change after that checkpoint.
-**Validation remaining:** after this handoff-only correction lands, revalidate the resulting PR head/check state externally and record that exact result in PR #417 plus Linear TNYX-193; do not create another metadata-only commit solely to embed its own resulting SHA. Then stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
-**Current blocker:** none
-**Open review finding IDs:** none — all 32 review threads/findings are resolved; the final manual privacy finding is included in the reconciled exact-head evidence
-**Next exact action:** revalidate the resulting handoff-only PR head/check state, record its exact SHA in PR #417 and Linear TNYX-193, then stop at the explicit owner merge gate; do not merge without explicit owner authorization.
+**Review owner:** three Codex review rounds plus manual exact-head review
+**Implementation ownership state:** Completed
+**Repository state last verified:** P5 squash-merged to `main@4410135963f6962e91d81e333a67fe7d90be23f3` via PR #417; GitHub #250 remains open; Linear TNYX-193 remains `In Progress` because P6/P7/P9 are separately gated.
+**Branch:** `tnyx/tnyx-193-p5-doc-governance-headers` (merged history)
+**Exact gated HEAD SHA:** `1550eaca377a54a2adbbfd82cd698c7cc2b9c937`
+**Merge SHA:** `4410135963f6962e91d81e333a67fe7d90be23f3`
+**PR / tracker:** GitHub #250 / merged PR #417 / Linear TNYX-193
+**Final implementation state:** all 68 `docs/**/*.md` files carry the canonical four-line governance header. Final classification is 48 `Canonical Live Doc`, 11 `Architecture Decision Record`, and 9 `Planned/Future Doc`.
+**Final validation:** 70 changed paths = 68 docs + two focused `.ai/tasks` files; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; required `Commit attribution guard` PASS and `Attribution guard runner` PASS.
+**Security/check limitation:** supplemental GHAS failed before meaningful analysis with `400 The requested model is not supported`, matching TNYX-256; this was not treated as a security pass or repository finding. No additional Codex exact-head review was available because the code-review usage limit was exhausted.
+**Validation remaining:** none for P5 archive lifecycle.
+**Current blocker:** none for P5.
+**Open review finding IDs:** none.
+**Next exact action:** none for P5. P6, P7 and P9 require separate authorization and fresh audit.
 
 ## 1. Discovery
 
@@ -154,7 +153,7 @@ Header slice after prerequisite merge:
 - [x] apply headers without deleting existing status semantics;
 - [x] verify 68/68 coverage and canonical label vocabulary;
 - [x] validate header placement, status sets, docs-body preservation, zero Markdown-link mutation, and final patch/scope hygiene at source/docs checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`.
-- [x] open P5 header PR and obtain the available exact-head review; PR #417 is open, three Codex review rounds plus one manual exact-head review were completed, 32/32 review threads are resolved, and further Codex review is unavailable under the current usage limit.
+- [x] open P5 header PR and obtain the available exact-head review; PR #417 completed three Codex review rounds plus one manual exact-head review, 32/32 review threads were resolved, and the exact gated head `1550eaca377a54a2adbbfd82cd698c7cc2b9c937` was squash-merged as `4410135963f6962e91d81e333a67fe7d90be23f3`.
 
 ## 6. Quality Review
 
@@ -208,8 +207,8 @@ All 68 Markdown documents under `docs/` carry the canonical four-line governance
 
 ### Known Limitations
 
-P5 source implementation is complete but not merged. All known review findings are resolved. Supplemental GHAS remains blocked by the existing TNYX-256 unsupported-model infrastructure outage, and no further Codex review is available under the current quota. Owner merge authorization remains the final product-governance gate. P6/P7/P9 are still separately gated.
+P5 is merged and validated. Supplemental GHAS remains separately blocked by the existing TNYX-256 unsupported-model infrastructure outage; it was not treated as a security pass. No further Codex exact-head review was available under the code-review usage limit. P6/P7/P9 remain separately gated and are not authorized by the P5 merge or this archive record.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
