@@ -56,10 +56,10 @@ For architecture-sensitive discussions, start with the relevant project docs:
 
 - [README.md](README.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- [docs/WATCH_STRATEGY.md](docs/WATCH_STRATEGY.md)
-- [docs/DATA_AND_SYNC.md](docs/DATA_AND_SYNC.md)
-- [docs/SECURITY.md](docs/SECURITY.md)
+- [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)
+- [docs/wearables/WATCH_STRATEGY.md](docs/wearables/WATCH_STRATEGY.md)
+- [docs/data/DATA_AND_SYNC.md](docs/data/DATA_AND_SYNC.md)
+- [docs/security/SECURITY.md](docs/security/SECURITY.md)
 
 Review comments should help the code get better, not make the contributor feel small.
 
