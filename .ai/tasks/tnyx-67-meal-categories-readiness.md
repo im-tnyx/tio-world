@@ -73,7 +73,7 @@ Supabase adapter or migration creation/application, UI/routes, MealLog schema/pe
 - JSONB precedent exists in `onboarding_drafts.payload`, `user_nutrition_targets.recommendation_metadata`, nullable `additional_nutrient_goals`, `body_weight_logs.metadata`, and `user_profiles.unit_preferences`. Persisted JSON keys use snake_case and versioned envelopes.
 - `pg_jsonschema` is not installed. Built-in `jsonb_typeof`, `jsonb_array_length`, and `jsonb_path_query_array` are immutable on the hosted database. A read-only feasibility query counted 8, 9, and 8 active items correctly for eight-active, nine-active, and eight-active-plus-archived samples.
 - Current Supabase guidance supports JSONB for small variable config but warns that relational modeling provides query/join/FK integrity. The owner explicitly accepts that trade-off for V1.
-- Stale docs: `.ai/CURRENT.md` is an Onboarding O7 snapshot dated 2026-08-23. `docs/DEVELOPMENT_SETUP.md`, `docs/ROADMAP.md`, `docs/SUPABASE_STRATEGY.md`, and parts of `docs/MODULE_OWNERSHIP.md` still describe absent/future Supabase or `backend/*`; current `AGENTS.md`, `README.md`, and `docs/ARCHITECTURE.md` establish active `supabase/` and future `services/api` as canonical.
+- Stale docs: `.ai/CURRENT.md` is an Onboarding O7 snapshot dated 2026-08-23. `docs/development/DEVELOPMENT_SETUP.md`, `docs/planning/ROADMAP.md`, `docs/data/SUPABASE_STRATEGY.md`, and parts of `docs/architecture/MODULE_OWNERSHIP.md` still describe absent/future Supabase or `backend/*`; current `AGENTS.md`, `README.md`, and `docs/architecture/ARCHITECTURE.md` establish active `supabase/` and future `services/api` as canonical.
 
 ### Linear Dependency Truth
 
