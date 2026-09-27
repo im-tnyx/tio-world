@@ -43,7 +43,7 @@ Core product areas are:
 
 ## App Mode System
 
-The phone experience uses one implemented `AppMode` enum in `apps/shared`: `workout`, `nutrition`, or `hybrid`. Onboarding's first screen selects it, Settings changes the same device-local preference, and the visible `go_router` `StatefulShellRoute` tabs follow it: workout has Home/Workout/Progress; nutrition has Home/Nutrition/Progress; hybrid has all four. Later mode-conditional onboarding steps remain planned. Workout Library is a Workout route, while Meal Plan is a post-MVP Nutrition route. Coach is added to every mode in Phase 7.
+The phone experience uses one implemented `AppMode` enum in `apps/shared`: `workout`, `nutrition`, or `hybrid`. Pre-auth account setup may stage the choice locally, while authenticated Settings writes the canonical value through the shared App Preferences contract to `public.user_app_preferences`; local SharedPreferences is staging/cache rather than authenticated truth. The visible `go_router` `StatefulShellRoute` tabs follow the resolved mode: workout has Home/Workout/Progress; nutrition has Home/Nutrition/Progress; hybrid has all four. Product Onboarding is implemented as one parent flow with remaining owner/final-acceptance gates tracked separately. Workout Library is a Workout route, while Meal Plan is a post-MVP Nutrition route. Coach is added to every mode in Phase 7.
 
 ## Watch Strategy
 
