@@ -10,10 +10,10 @@
 
 P3 corrected checkout-contradicted Supabase/protected-service wording in the four canonical docs already classified by the governance tracker:
 
-- `docs/DEVELOPMENT_SETUP.md`
-- `docs/FLUTTER_MODULAR_STRUCTURE.md`
-- `docs/MODULE_OWNERSHIP.md`
-- `docs/SUPABASE_STRATEGY.md`
+- `docs/development/DEVELOPMENT_SETUP.md`
+- `docs/mobile/FLUTTER_MODULAR_STRUCTURE.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
+- `docs/data/SUPABASE_STRATEGY.md`
 
 The durable current direction is now:
 
