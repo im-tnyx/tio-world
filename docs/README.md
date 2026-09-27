@@ -10,9 +10,11 @@ This folder is the source of truth for product architecture, module ownership, s
 Use these layers to decide what is authoritative for a question:
 
 1. **Checked-in source, configuration, migrations, and generated/runtime evidence** are executable truth for what the repository currently does.
-2. **Canonical product and architecture docs under `docs/` plus accepted ADRs** define intended product rules, repository ownership, durable architecture direction, policy, and roadmap for their stated scopes. An ADR does not prove that implementation has landed.
-3. **Module-local docs** under an owning app/package describe implementation details for that module only. They do not override repository-wide product or architecture governance.
-4. **`.ai/`** is an execution, routing, and handoff layer. It points to canonical truth, records bounded task context, and must not become a parallel product-truth store.
+2. **Canonical product and architecture docs under `docs/`** define current repository-wide product rules, ownership, architecture/product policy, operating boundaries, and durable roadmap direction for their stated scopes.
+3. **Accepted ADRs** preserve approved durable architecture decisions, trade-offs, and decision history. They guide new work until explicitly superseded or deprecated, but they do not by themselves prove implementation is live or replace current canonical policy prose.
+4. **Live Linear issues and linked GitHub issues/PRs** own current task planning, sequencing, acceptance, blockers, and implementation/review state. Tracker state does not override runtime behavior or durable architecture policy; disagreements must be reconciled before implementation continues.
+5. **Module-local docs** under an owning app/package describe implementation details for that module only. They do not override repository-wide product or architecture governance.
+6. **`.ai/`** is an execution, routing, and handoff layer. It points to canonical truth, records bounded task context, and must not become a parallel product-truth store.
 
 When two sources disagree, do not average or silently choose between them. Use the authority boundary above for the specific question, call out the stale/conflicting source, and update that source in the appropriate bounded task.
 
@@ -21,8 +23,9 @@ When two sources disagree, do not average or silently choose between them. Use t
 Apply this order by question type:
 
 - For **current runtime behavior**, source/config/migrations and validated runtime evidence win.
-- For **approved architecture direction and durable architecture decisions**, accepted ADRs and canonical architecture docs win until implementation catches up.
-- For **product status, repository ownership, policy, roadmap, and cross-module direction**, canonical `docs/` files win within their stated truth boundaries.
+- For **current task or phase status, sequencing, acceptance criteria, blockers, and review/implementation state**, reconcile the live Linear issue with its linked GitHub issue/PR. Do not let stale roadmap/status prose override the live tracker state, and do not let tracker text override runtime truth.
+- For **current repository ownership, product/architecture policy, operating boundaries, durable product rules, roadmap direction, and cross-module direction**, canonical `docs/` files win within their stated truth boundaries.
+- For **durable architecture decision history and trade-offs**, accepted ADRs are authoritative for the decision they record. If an accepted ADR and a canonical current-policy doc disagree, do not silently choose one: first check whether a newer accepted ADR explicitly supersedes the older decision. If the conflict is still unresolved, treat it as governance drift, pause work that depends on the disputed direction, and reconcile the ADR/canonical doc against the latest approved decision and implementation evidence before continuing.
 - For **module-specific implementation detail**, the owning module's source is primary and its local docs may summarize it.
 - `.ai/` never overrides the layers above; if its handoff text disagrees, treat the `.ai/` text as stale and reconcile it.
 
