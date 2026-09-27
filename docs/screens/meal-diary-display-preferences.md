@@ -26,11 +26,10 @@ These values control presentation/capability only. They never mutate durable `Me
 
 The preferences are intentionally device-local in V1 and do not create Supabase columns, RLS, migrations, or account-synced state.
 
-Current Meal Diary status after TNYX-197/TNYX-198:
+Current Meal Diary runtime:
 
-- durable manual MealLog selected-day repository reads exist;
-- display preferences now have a runtime owner and local persistence;
-- the current Diary page still does not render actual MealLog cards/sections;
-- Quick Add still opens its editor without enabling `Log Meal` persistence;
-- TNYX-57 owns later Diary section/card rendering and consumes these preferences;
-- TNYX-115 owns later Quick Add create/edit lifecycle activation.
+- canonical selected-day MealLog history is rendered as live sections/cards through `MealDiaryHistoryView`;
+- display preferences have a runtime owner and device-local persistence and are consumed by current cards/section headers;
+- Quick Add `Log Meal` creates canonical manual MealLog rows through `MealLogRepository.createManual()`, and confirmed saves refresh affected Diary history/summary truth;
+- Quick Edit is also live for canonical manual rows;
+- delete/move and the broader full Meal Editor remain later bounded slices.
