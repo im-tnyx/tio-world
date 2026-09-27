@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Workout screen product contract, ownership
 **Surface:** Phone primary tab for `workout` and `hybrid` modes
 **Current route:** `/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** Current route is a shared placeholder. The sections below are the target contract.
+**Status:** `/workout` renders the Workout-owned `WorkoutHomePage` with the current calendar/date surface and a real Library entry. `/workout/library` and `/workout/exercises` are shipped nested routes; Programs, Routines, active-session execution, Insights and broader Workout Settings remain later capability slices.
 
 ## Purpose
 
