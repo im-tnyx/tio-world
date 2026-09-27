@@ -108,8 +108,8 @@ Inactive != obsolete. Removal requires:
 
 ## Related
 
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Data and Sync](DATA_AND_SYNC.md)
-- [Security](SECURITY.md)
-- [Roadmap](ROADMAP.md)
-- [Supabase foundation task](../.ai/tasks/supabase-foundation.md)
+- [Security](../security/SECURITY.md)
+- [Roadmap](../planning/ROADMAP.md)
+- [Supabase foundation task](../../.ai/tasks/supabase-foundation.md)
