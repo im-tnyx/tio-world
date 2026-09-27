@@ -180,7 +180,7 @@ tap outside -> popup dismisses -> local draft retained
 - `apps/features/nutrition/lib/src/meal_logging/presentation/widgets/meal_log_action_footer.dart`
 - `apps/features/nutrition/lib/src/meal_logging/presentation/widgets/quick_add_editor_sheet.dart`
 - `apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart`
-- `docs/MODULE_OWNERSHIP.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 - `docs/screens/meal-diary.md`
 
 ### Safety / Boundaries
