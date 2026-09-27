@@ -57,10 +57,9 @@ Nutrition owns:
 - Calories
 - Macros
 - Meal logging
-- Water goal
 - Food search / meal editor when implemented
 
-Default Glass Size is a Settings-owned device-local convenience preference under ADR-0009; it is not Nutrition domain truth or Water Goal ownership.
+Daily Water Goal remains Wellness-owned and is consumed through the Progress-owned `WellnessTargetsRepository`. Default Glass Size is a separate Settings-owned device-local convenience preference under ADR-0009; neither belongs to Nutrition domain truth.
 
 Nutrition does not own steps, sleep, or HRV.
 
