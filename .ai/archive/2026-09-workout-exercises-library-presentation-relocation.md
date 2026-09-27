@@ -26,7 +26,7 @@
 **Implementation commit SHA:** `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`
 **Delivery authorization:** Owner authorized commit, push, PR #352 creation, and merge. External tracker reconciliation authorized post-merge.
 **Current implementation state:** Merged. Production and mirrored test subtrees moved under Library; public export and canonical placement text updated; no runtime source content changed inside moved files.
-**Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, mirrored Workout presentation tests, public presentation barrel, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, and `.ai/DECISIONS.md`.
+**Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, mirrored Workout presentation tests, public presentation barrel, `docs/architecture/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, and `.ai/DECISIONS.md`.
 **Validation completed at SHA:** Implementation commit `5e12b06ccf0481c66300e1a2f7b7aa0a003b139d`: Workout analyze PASS; focused moved Exercises tests 58 PASS; full Workout tests 157 PASS; app analyze PASS; app Workout/Library/Exercises route tests 25 PASS; `git diff --check` PASS; all eleven moved source/test files detected as 100% renames; no current source/canonical-doc old-path reference remains. Exact-head CI on `72aeb99b`: Analyze and test SUCCESS; Attribution guard SUCCESS; Commit attribution guard SUCCESS.
 **Validation remaining:** None.
 **Current blocker:** None.
@@ -169,7 +169,7 @@ Path/reference and rename audit
 - `apps/features/workout/lib/src/presentation/presentation.dart`
 - `apps/features/workout/lib/src/presentation/library/exercises/**` (moved from `presentation/explore/exercises/**`)
 - `apps/features/workout/test/presentation/library/exercises/**` (moved from `test/presentation/explore/exercises/**`)
-- `docs/MODULE_OWNERSHIP.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 - `docs/screens/exercise-search.md`
 
 ### Actual Behavior
