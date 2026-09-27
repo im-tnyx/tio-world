@@ -79,6 +79,29 @@ P5 and P6 apply the four-line governance headers only after the separately gated
 | [`POST_MERGE_SYNC.md`](../.github/POST_MERGE_SYNC.md) | Post-merge local sync workflow. |
 | [`PUSH_TEMPLATE.md`](../.github/PUSH_TEMPLATE.md) | Push and PR checklist for humans and AI agents. |
 
+## Documentation Layout
+
+Canonical documentation is grouped by durable ownership, not by current task status:
+
+| Path | Ownership |
+| :--- | :--- |
+| `docs/architecture/` | Cross-repository product/application architecture, module ownership, onboarding architecture, and shared UI-system policy. |
+| `docs/planning/` | Durable roadmap, MVP acceptance, and rollout direction. Live task/phase status does not belong here. |
+| `docs/mobile/` | Flutter phone/mobile structure and mobile-platform architecture detail. |
+| `docs/wearables/` | Wear OS and Apple Watch strategy. |
+| `docs/data/` | Supabase/data/sync/database ownership and runtime-data policy. P4B's future readable schema inventory belongs at `docs/data/SUPABASE_SCHEMA.md`. |
+| `docs/backend/` | Future protected API/worker, async reliability, observability, deployment, scaling, and API lifecycle policy. |
+| `docs/security/` | Auth/identity, security, privacy, secrets, and environment policy. |
+| `docs/development/` | Developer setup and testing guidance. |
+| `docs/adr/` | Durable architecture decision records and decision history. |
+| `docs/screens/` | Per-screen product specifications and screen ownership. |
+
+Canonical connector/OAuth/ChatGPT integration documentation belongs under `docs/integrations/` once a real integration document exists. Do not create an empty directory only to reserve that destination.
+
+Do not create `docs/status/` for live project/task status. Linear plus linked GitHub issues/PRs own current sequencing, blockers, acceptance, implementation, and review state; `.ai/` remains the compact execution/routing/handoff layer.
+
+Repository workflow/process documents such as post-merge sync and push/PR instructions live under `.github/`, not under canonical product/architecture `docs/`.
+
 ## Target Repository Shape
 
 The current checkout contains the Flutter workspace and the active `supabase/` workspace that owns applied schema migrations and approved Supabase platform configuration. The future protected server destination is `services/api`; it remains unimplemented and must be created only with its first explicitly authorized server-side implementation slice.
