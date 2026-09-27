@@ -18,7 +18,7 @@ This document defines where code should live in `tio-world`.
 | `apps/features/workout` | Workout feature package: Workout-specific repository interfaces, catalog/user data sources, controllers, composition, and all workout screens/flows. |
 | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `apps/features/profile` | Profile launcher, account summary, personal info UI, and fitness hub entry points. |
-| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, the bounded S0-B2 HydrationPreferences owner ([ADR-0008](adr/0008-settings-hydration-preferences-owner.md)), and the TNYX-72 local Calendar Preferences domain/repository. |
+| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, the bounded S0-B2 HydrationPreferences owner ([ADR-0008](../adr/0008-settings-hydration-preferences-owner.md)), and the TNYX-72 local Calendar Preferences domain/repository. |
 | `apps/features/progress` | Weight, measurements, progress photos, streaks, trends, achievements, and analytics screens. |
 | `apps/features/coaching` | Coach UI package and backend-facing coaching contracts. |
 | future `apps/features/recovery` | Recovery, readiness, and rest context after its first approved vertical slice. |
@@ -33,11 +33,11 @@ Create missing paths only when a real implementation slice needs them.
 
 ## Workout Canonical Domain Split
 
-Per [ADR-0011](adr/0011-workout-canonical-identities-and-exercise-catalog.md):
+Per [ADR-0011](../adr/0011-workout-canonical-identities-and-exercise-catalog.md):
 
 - `apps/shared` owns durable pure-Dart Workout identities, value objects, canonical entities, and historical snapshot contracts that must remain stable across phone, Wear, and later approved consumers.
 - `apps/features/workout` owns Workout-specific repository interfaces, bundled-catalog/user data sources, controllers, presentation, and feature composition.
-- the built-in Exercise catalog is bundled/versioned application content owned by the Workout capability; since W3A2a it ships as `apps/features/workout/assets/exercises/exercise_catalog.json`, registered in `tio_feature_workout`, loaded by `AssetBundleExerciseCatalogSource` through a versioned document envelope and validated/mapped by the W3A1 parser (including per-gender media URLs, whose canonical `ExerciseMedia` value and selection rule live in `apps/shared`) (see [Exercise search](screens/exercise-search.md#first-slice-data-source)); the dedicated Exercises screen (`/workout/exercises`, W3A2b) is co-located with the shipped Library presentation hierarchy under `apps/features/workout/lib/src/presentation/library/exercises/`, while canonical Exercise domain/data ownership remains under the Workout Exercise capability; its route contract stays in `apps/core`, its nested router wiring stays in `apps/app`, and it is reached from Workout Home → Library (`/workout/library`, W6A);
+- the built-in Exercise catalog is bundled/versioned application content owned by the Workout capability; since W3A2a it ships as `apps/features/workout/assets/exercises/exercise_catalog.json`, registered in `tio_feature_workout`, loaded by `AssetBundleExerciseCatalogSource` through a versioned document envelope and validated/mapped by the W3A1 parser (including per-gender media URLs, whose canonical `ExerciseMedia` value and selection rule live in `apps/shared`) (see [Exercise search](../screens/exercise-search.md#first-slice-data-source)); the dedicated Exercises screen (`/workout/exercises`, W3A2b) is co-located with the shipped Library presentation hierarchy under `apps/features/workout/lib/src/presentation/library/exercises/`, while canonical Exercise domain/data ownership remains under the Workout Exercise capability; its route contract stays in `apps/core`, its nested router wiring stays in `apps/app`, and it is reached from Workout Home → Library (`/workout/library`, W6A);
 - built-in catalog rows are not duplicated into Supabase; later Supabase work owns only approved user-created/dynamic/transactional Workout data;
 - existing Profile/Targets ownership is unchanged by this decision and is not moved cosmetically;
 - the legacy non-canonical `apps/shared/lib/src/workout/**` scaffolds were removed by the isolated W1A7 cleanup (TNYX-258); canonical Workout identities are introduced from W1A1 onward;
