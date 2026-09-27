@@ -32,7 +32,7 @@ The first version of this branch corrected two divergences by **editing the
 historical migrations in place**: it deleted the retired-table blocks from
 `20260814000001` and changed `20260814000002` from 5 MB to 10 MB.
 
-That was wrong, and review caught it. `docs/DATABASE_BACKUP_RECOVERY.md`
+That was wrong, and review caught it. `docs/data/DATABASE_BACKUP_RECOVERY.md`
 ("Migration Ownership") states the rule plainly:
 
 - *never edit an already applied migration to change production history;*
