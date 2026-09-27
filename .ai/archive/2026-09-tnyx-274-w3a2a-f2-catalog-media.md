@@ -27,7 +27,7 @@
 **Observed uncommitted/dirty files:** Not applicable (slice complete)
 **PR / tracker:** [PR #343](https://github.com/im-tnyx/tio-world/pull/343) merged 2026-09-25T11:42:08Z (squash). Linear TNYX-274 `Done` (set by the GitHub integration on merge; moved to `In Review` manually at Ready). GitHub #342 closed as completed. Parent TNYX-270 stays `In Progress`; TNYX-272 is `Backlog` and its blocker is now done.
 **Current implementation state:** Validated. On `main`: every catalog row carries curated per-gender `media` (`catalogVersion` 2, `schemaVersion` 1), and `Exercise.media` with `ExerciseMedia.urlFor(kind, gender:)` lives in `apps/shared`.
-**Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/shared/test/workout/`, `apps/features/workout/{assets/exercises,lib/src/data/exercises,test/data/exercises}`, `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`
+**Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/shared/test/workout/`, `apps/features/workout/{assets/exercises,lib/src/data/exercises,test/data/exercises}`, `docs/screens/exercise-search.md`, `docs/architecture/MODULE_OWNERSHIP.md`
 **Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on implementation commit `67ce4e2f` and on merged head `a5a62259`, with 0 review threads at merge. GHAS failed before analysis (`CAPIError 400` unsupported model, TNYX-256 outage; no real security finding, not a security pass). Local per-package validation: section 6.
 **Validation remaining:** None.
 **Current blocker:** None
@@ -142,7 +142,7 @@ Tool side effects from `pub get` (nutrition pubspec.lock, wear GeneratedPluginRe
 - `apps/features/workout/assets/exercises/exercise_catalog.json`
 - `apps/features/workout/lib/src/data/exercises/exercise_catalog_row_dto.dart`
 - `apps/features/workout/test/data/exercises/exercise_catalog_parser_test.dart`, `asset_bundle_exercise_catalog_source_test.dart`
-- `docs/screens/exercise-search.md`, `docs/MODULE_OWNERSHIP.md`
+- `docs/screens/exercise-search.md`, `docs/architecture/MODULE_OWNERSHIP.md`
 
 ### Actual Behavior
 
