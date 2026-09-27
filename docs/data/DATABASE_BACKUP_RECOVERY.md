@@ -6,7 +6,7 @@
 
 This document defines the operational contract for PostgreSQL recovery, Supabase Storage recovery, schema/data migrations, restore verification, and recovery ownership. It is a planning and readiness policy; it does not enable backups, PITR, Storage replication, or any runtime/backend service.
 
-It complements [Supabase Strategy](SUPABASE_STRATEGY.md), [Security](SECURITY.md), [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md), and the repository-owned `supabase/migrations/` history.
+It complements [Supabase Strategy](SUPABASE_STRATEGY.md), [Security](../security/SECURITY.md), [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md), and the repository-owned `supabase/migrations/` history.
 
 ## Current Audited Posture — 2026-08-28
 
