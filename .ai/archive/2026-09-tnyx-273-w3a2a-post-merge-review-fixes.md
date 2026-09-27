@@ -27,7 +27,7 @@
 **Observed uncommitted/dirty files:** Not applicable (slice complete)
 **PR / tracker:** [PR #340](https://github.com/im-tnyx/tio-world/pull/340) merged 2026-09-25T08:34:33Z (squash). Linear TNYX-273 `Done` (set by the GitHub integration on merge; moved to `In Review` manually at Ready). Parent TNYX-270 stays `In Progress`; TNYX-272 stays `Backlog`. The PR #339 R4/R5 threads were replied to and resolved after this merge.
 **Current implementation state:** Validated. Canonical docs match the shipped W3A2a boundary, and source failures are distinguishable as missing asset, generic asset load failure, invalid document, unsupported schema and invalid rows.
-**Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
+**Relevant execution surface:** `apps/features/workout/lib/src/{data,domain}/exercises/`, `apps/features/workout/test/data/exercises/`, `docs/architecture/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`
 **Validation completed at SHA:** exact-head CI PASS (Commit attribution guard, Attribution guard runner, Analyze and test) on fix commit `45e43df8`, on governance-only commits `2f02840a` and `48ddbfa6`, and on merged head `48ddbfa6`, with 0 unresolved review threads at merge. GHAS failed before analysis (`CAPIError: 400` unsupported model, TNYX-256 outage; no security pass claimed). Local, on the working tree before the fix commit (2026-09-25) — Dart format PASS (0 changed); Workout `flutter analyze` PASS; focused Exercise tests PASS (63); full Workout tests PASS (82); `git diff --check` PASS
 **Validation remaining:** None.
 **Current blocker:** None
@@ -53,7 +53,7 @@ Canonical docs describe the shipped W3A2a catalog boundary truthfully, and the c
 
 Source PR #339 (merge `a023730f`) findings:
 
-- **R4 (P2)** stale docs — `docs/MODULE_OWNERSHIP.md:41`, `docs/screens/exercise-search.md:65`.
+- **R4 (P2)** stale docs — `docs/architecture/MODULE_OWNERSHIP.md:41`, `docs/screens/exercise-search.md:65`.
 - **R5 (P2)** `FlutterError` over-classification in `AssetBundleExerciseCatalogSource`.
 
 ### Non-Goals
@@ -138,7 +138,7 @@ asset / pubspec / apps/app / apps/core changes                      0 files
 - `apps/features/workout/lib/src/data/exercises/exercise_catalog_source_exceptions.dart`
 - `apps/features/workout/lib/src/domain/exercises/exercise_catalog_repository.dart` (doc contract only)
 - `apps/features/workout/test/data/exercises/asset_bundle_exercise_catalog_source_test.dart`
-- `docs/MODULE_OWNERSHIP.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 - `docs/screens/exercise-search.md`
 
 ### Actual Behavior
