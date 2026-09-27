@@ -27,7 +27,7 @@
 **Current implementation state:** Reconciling three canonical onboarding docs whose current-state wording predates merged O1–O11 runtime.
 **Relevant execution surface:** docs only
 **Validation completed at SHA:** Audit baseline `9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`
-**Validation remaining:** Exact branch scope, stale-phrase absence, source-backed wording, PR exact-head review/checks.
+**Validation remaining:** PR exact-head review/checks.
 **Current blocker:** None.
 **Open review finding IDs:** None.
 **Next exact action:** Apply the three bounded doc corrections, validate, then open a docs-only PR.
@@ -72,13 +72,13 @@ No architecture change. Preserve existing ownership and current runtime truth.
 - [x] Correct stale MVP acceptance wording.
 - [x] Correct stale onboarding architecture blocker wording.
 - [x] Correct stale onboarding screen status/NutritionTarget wording.
-- [ ] Validate exact branch scope and source-backed statements.
+- [x] Validate exact branch scope and source-backed statements.
 - [ ] Exact-head review and CI gate.
 
 ## 6. Quality Review
 
 ### Validation Run
-Pending exact branch validation.
+Repository API validation: 4 ahead / 0 behind from `main@9c3c18a360fca4a79337b86a83be3d9b6ff5edf3`; exactly 4 changed paths; targeted stale blocker/status phrases absent; replacement claims cross-checked against current flow/renderer/target/completion source and merged #50 plus closed #40/#54 evidence.
 
 ### Review Findings and Resolution
 None yet.
@@ -86,7 +86,7 @@ None yet.
 ## 7. Final Handoff
 
 ### Changed Files
-Pending final validation.
+`docs/planning/MVP_ACCEPTANCE.md`, `docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/screens/onboarding.md`, and this task brief.
 
 ### Actual Behavior
 Documentation only; runtime unchanged.
