@@ -75,7 +75,7 @@ Profile inputs may inform module defaults, but ownership remains explicit:
 
 ## Reading And Implementation Order
 
-1. Expand the routed onboarding parent shell with the mode-conditional Profile, Workout, Nutrition, Targets, Review, and finish slices on top of the implemented App Mode foundation.
+1. Maintain the implemented/frozen routed Product Onboarding flow and evolve owner-specific onboarding behavior only through separately approved feature slices.
 2. Introduce the smallest profile-context slice required by that onboarding flow and the first Workout or Nutrition vertical slice.
 3. Deliver Workout, Nutrition, and Home summaries as independent vertical slices behind their owners.
 4. Add Progress once at least one tracked data source exists.
@@ -108,7 +108,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |
 | Phone | [Recovery](recovery.md) | Future module and screen. |
 | Phone | [Coach](coach.md) | Route placeholder; primary tab deferred to Phase 7. |
-| Phone | [Onboarding](onboarding.md) | Routed parent flow with App Mode first child; later conditional steps planned. |
+| Phone | [Onboarding](onboarding.md) | Implemented/frozen Product Onboarding flow with mode-specific Profile, Body/Wellness, Nutrition, Workout, Targets, optional Health Connections, Review, and durable completion. |
 | Phone | [Profile](profile.md) | Avatar/photo-preview/Settings launcher implemented; profile details remain planned. |
 | Phone | [Profile Photo](profile-avatar.md) | 1:1 preview route and safe disabled media actions implemented; Storage operations planned. |
 | Phone | [Settings](settings.md) | App Mode editor implemented; remaining preferences planned. |
