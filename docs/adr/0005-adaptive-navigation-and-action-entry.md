@@ -49,7 +49,7 @@ Conceptual target contracts include stable destination identity, navigation layo
 ## Related
 
 - [ADR-0002: Shared App Mode And Dynamic Navigation](0002-shared-app-mode-and-dynamic-navigation.md)
-- [Architecture](../ARCHITECTURE.md)
-- [UI/UX System](../UX_UI_SYSTEM.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
+- [UI/UX System](../architecture/UX_UI_SYSTEM.md)
 - [Screen Catalog](../screens/README.md)
 - [Adaptive navigation task](../../.ai/tasks/adaptive-navigation-and-actions.md)
