@@ -1,5 +1,10 @@
 # Routines (Library → Routines)
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/workout`
+Truth Boundary: Authoritative for the planned Routines library product contract and ownership; not evidence the screen is implemented or scheduled.
+
 **Surface:** Nested Phone Workout flow; the Routines section of [Library](library.md)
 **Route:** No route exists yet
 **Primary owner:** `apps/features/workout`

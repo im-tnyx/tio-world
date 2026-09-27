@@ -1,5 +1,10 @@
 # Profile Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/profile`
+Truth Boundary: Authoritative for the Profile screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone full-screen account and fitness context
 **Current route:** `/profile`
 **Primary owner:** `apps/features/profile`

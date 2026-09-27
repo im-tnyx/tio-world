@@ -1,5 +1,10 @@
 # Onboarding Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/onboarding`
+Truth Boundary: Authoritative for the Onboarding screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone full-screen setup flow
 **Current route:** `/onboarding`
 **Primary owner:** `apps/features/onboarding`
