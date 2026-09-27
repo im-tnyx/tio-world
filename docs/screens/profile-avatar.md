@@ -56,5 +56,5 @@ and repository contract exist. Client code must never receive service-role keys.
 ## Related
 
 - [Profile](profile.md)
-- [Supabase strategy](../SUPABASE_STRATEGY.md)
-- [Reusable avatar architecture](../ARCHITECTURE.md#reusable-profile-avatar)
+- [Supabase strategy](../data/SUPABASE_STRATEGY.md)
+- [Reusable avatar architecture](../architecture/ARCHITECTURE.md#reusable-profile-avatar)
