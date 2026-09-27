@@ -91,7 +91,7 @@ Allowed changes:
   Wellness page and their focused tests
 - `apps/app/lib/app/network_providers.dart`, `router.dart`, the narrow
   `hydration_preferences_session_boundary.dart`, and focused app tests
-- `docs/screens/settings.md`, `docs/MODULE_OWNERSHIP.md`, ADR-0008/0009 and ADR index
+- `docs/screens/settings.md`, `docs/architecture/MODULE_OWNERSHIP.md`, ADR-0008/0009 and ADR index
 - deletion only of `supabase/migrations/20260829043204_create_user_hydration_preferences.sql`
 
 Must not change: Units editor/domain/repository, Progress Wellness repository,
@@ -147,7 +147,7 @@ apps/features/settings/test/data/hydration_preferences_repository_test.dart
 apps/features/settings/test/domain/hydration_preferences_test.dart
 apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart
 apps/features/settings/test/presentation/hydration_preferences_editor_controller_test.dart
-docs/MODULE_OWNERSHIP.md
+docs/architecture/MODULE_OWNERSHIP.md
 docs/adr/0008-settings-hydration-preferences-owner.md
 docs/adr/0009-settings-local-default-glass-size.md
 docs/adr/README.md
