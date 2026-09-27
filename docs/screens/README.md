@@ -98,15 +98,15 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Login](login.md) | Implemented UI; authentication is mocked. |
 | Phone | [Home](home.md) | Route placeholder; target specification. |
 | Phone | [Workout](workout.md) | Route placeholder; target specification. |
-| Phone | [Library](library.md) | Future canonical Workout Library route; capability-gated Programs/Routines/Plans/Exercises sections. |
-| Phone | [Exercises and Exercise Picker](exercise-search.md) | Future dedicated Exercises screen (Library → Exercises) and builder exercise picker. |
+| Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs, Routines and Plans remain later capability slices. |
+| Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
 | Phone | [Routines](routine-library.md) | Future Routines capability, reached through Library → Routines. |
 | Phone | [Programs](programs.md) | Future nested multi-week Workout program flow. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine/Program execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
-| Phone | [Nutrition](nutrition.md) | Route placeholder; target specification. |
-| Phone | [Meal Diary](meal-diary.md) | Future Nutrition MVP diary flow. |
+| Phone | [Nutrition](nutrition.md) | `/nutrition` now renders the Nutrition-owned Meal Diary date-navigation surface; later Nutrition sections remain target work. |
+| Phone | [Meal Diary](meal-diary.md) | Meal Diary date navigation, manual create/read foundations, selected-day cards, Quick Edit, daily summary and primary calorie-progress ring are implemented; later mutation/editor slices remain. |
 | Phone | [Nutrition Targets](nutrition-targets.md) | Future Nutrition-owned target configuration. |
 | Phone | [Meal Plan](meal-plan.md) | Future post-diary Nutrition flow. |
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |
