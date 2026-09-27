@@ -48,15 +48,9 @@ Start from [tasks/TEMPLATE.md](tasks/TEMPLATE.md). Keep the feature brief curren
 
 ## Source Of Truth Order
 
-When code and docs conflict:
+The canonical documentation authority layers and conflict-resolution rules live in [`docs/README.md`](../docs/README.md). Do not maintain a second precedence list in this workflow.
 
-1. Runtime source/config wins for actual behavior.
-2. Root README and contributor docs win for repository direction.
-3. Platform-local docs win for implementation details.
-4. Feature-local docs win for feature ownership details.
-5. This `.ai` directory is only a concise orientation layer.
-
-Tracker text is execution context, not a replacement for this source-of-truth order. When Linear, GitHub, or a task brief is stale against current source/docs, record and reconcile the mismatch before implementation.
+Tracker text and `.ai/` task/handoff files are execution context, not a replacement for runtime truth or the owning canonical/module documentation. When Linear, GitHub, or a task brief is stale against current source/docs, record and reconcile the mismatch before implementation.
 
 ## Do Not Start Without Explicit Need
 

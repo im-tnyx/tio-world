@@ -4,6 +4,46 @@ This folder is the source of truth for product architecture, module ownership, s
 
 `tio-world` is a Flutter-first health, fitness, workout, nutrition, progress, coaching, and wearable monorepo with a Flutter Wear OS companion, a future native Apple Watch app, an active Supabase Auth/data foundation, and a future protected `services/api` server workspace.
 
+
+## Documentation Authority
+
+Use these layers to decide what is authoritative for a question:
+
+1. **Checked-in source, configuration, migrations, and generated/runtime evidence** are executable truth for what the repository currently does.
+2. **Canonical product and architecture docs under `docs/`** define current repository-wide product rules, ownership, architecture/product policy, operating boundaries, and durable roadmap direction for their stated scopes.
+3. **Accepted ADRs** preserve approved durable architecture decisions, trade-offs, and decision history. They guide new work until explicitly superseded or deprecated, but they do not by themselves prove implementation is live or replace current canonical policy prose.
+4. **Live Linear issues and linked GitHub issues/PRs** own current task planning, sequencing, acceptance, blockers, and implementation/review state. Tracker state does not override runtime behavior or durable architecture policy; disagreements must be reconciled before implementation continues.
+5. **Module-local docs** under an owning app/package describe implementation details for that module only. They do not override repository-wide product or architecture governance.
+6. **`.ai/`** is an execution, routing, and handoff layer. It points to canonical truth, records bounded task context, and must not become a parallel product-truth store.
+
+When two sources disagree, do not average or silently choose between them. Use the authority boundary above for the specific question, call out the stale/conflicting source, and update that source in the appropriate bounded task.
+
+## Conflict Resolution
+
+Apply this order by question type:
+
+- For **current runtime behavior**, source/config/migrations and validated runtime evidence win.
+- For **current task or phase status, sequencing, acceptance criteria, blockers, and review/implementation state**, reconcile the live Linear issue with its linked GitHub issue/PR. Do not let stale roadmap/status prose override the live tracker state, and do not let tracker text override runtime truth.
+- For **current repository ownership, product/architecture policy, operating boundaries, durable product rules, roadmap direction, and cross-module direction**, canonical `docs/` files win within their stated truth boundaries.
+- For **durable architecture decision history and trade-offs**, accepted ADRs are authoritative for the decision they record. If an accepted ADR and a canonical current-policy doc disagree, do not silently choose one: first check whether a newer accepted ADR explicitly supersedes the older decision. If the conflict is still unresolved, treat it as governance drift, pause work that depends on the disputed direction, and reconcile the ADR/canonical doc against the latest approved decision and implementation evidence before continuing.
+- For **module-specific implementation detail**, the owning module's source is primary and its local docs may summarize it.
+- `.ai/` never overrides the layers above; if its handoff text disagrees, treat the `.ai/` text as stale and reconcile it.
+
+## Document Status Labels
+
+Documents that can drift use one of these canonical status labels:
+
+| Label | Meaning |
+| :--- | :--- |
+| `Canonical Live Doc` | Current source of truth for the document's stated scope. |
+| `Module Detail Doc` | Implementation detail owned by one app, package, platform, or module. |
+| `Architecture Decision Record` | Accepted or proposed architecture direction with explicit decision status; it does not by itself prove implementation is live. |
+| `Historical Snapshot` | Preserved audit, plan, or execution record from a point in time; useful for history but not current truth. |
+| `Deprecated` | Retained only for transition/reference context and should identify the replacement when known. |
+| `Planned/Future Doc` | Roadmap, proposal, or design intent that must not imply shipped behavior. |
+
+P5 and P6 apply the four-line governance headers only after the separately gated P4A document-location normalization settles final document ownership/locations. P4 itself does not move documents or roll out headers repository-wide.
+
 ## Start Here
 
 | Document | Purpose |
@@ -76,14 +116,15 @@ tio-world/
 
 The tree above documents accepted destinations. Do not create empty `services/`, `worker/`, or package folders just to match it.
 
-## Documentation Rules
+## Documentation Maintenance Rules
 
-- Runtime source/config wins for actual behavior.
-- `docs/` wins for architecture and ownership decisions.
-- `.ai/` is only a short orientation layer.
-- Update docs when module boundaries, data flow, navigation, security, or platform strategy changes.
-- Keep docs practical. Avoid future modules until a real product slice needs them.
-- Do not convert documentation-only backend planning into runtime/backend implementation without explicit authorization.
+- Keep each document inside its stated truth boundary; do not duplicate canonical truth in another layer.
+- Update the owning canonical doc when module boundaries, data flow, navigation, security, platform strategy, repository ownership, or durable product rules change.
+- Preserve useful history by marking it `Historical Snapshot` or `Deprecated` instead of rewriting historical facts as if they were current.
+- Keep planned/future documents explicit about what is not implemented.
+- Document location is part of ownership. Actual relocation/classification work belongs to the separately gated P4A phase.
+- Do not create future modules, folders, APIs, or backend runtime merely because documentation names an accepted future destination.
+- Do not convert documentation-only planning into runtime implementation without the separately required task authorization.
 
 ## Naming Decisions
 
