@@ -21,12 +21,12 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@52236317a57c94d7a28620c7d007e706b7945665`
 **Branch:** `tnyx/tnyx-193-p4-doc-authority-governance`
-**HEAD SHA:** `e65542c14bcbdc570b51f9ccbd77668b32a526ed` before this handoff update
+**HEAD SHA:** `a681987a3faeebaf814f778da19ddf17382fa18a` before this handoff update
 **Observed working-tree state:** connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable
 **PR / tracker:** GitHub #250 / Linear TNYX-193
 **Current implementation state:** bounded P4 source edits and branch validation complete
-**Relevant execution surface:** `docs/README.md`, `.ai/README.md`
+**Relevant execution surface:** `docs/README.md`, `.ai/README.md`, `.ai/workflow.md`
 **Validation completed at SHA:** `e65542c14bcbdc570b51f9ccbd77668b32a526ed`
 **Validation remaining:** exact PR patch scan, repository checks, exact-head independent review
 **Current blocker:** none
@@ -51,6 +51,7 @@ Tio-world should have one obvious documentation authority model before any docum
 
 - `docs/README.md`
 - `.ai/README.md`
+- `.ai/workflow.md` (review-found duplicate precedence list)
 - this focused task brief and task index
 
 ### Non-Goals
@@ -116,6 +117,7 @@ Not applicable; docs-only governance.
 - [x] add explicit conflict-resolution order to `docs/README.md`
 - [x] add six canonical document-status definitions to `docs/README.md`
 - [x] replace duplicate `.ai/README.md` Priority Rule with canonical pointer
+- [x] replace duplicate `.ai/workflow.md` Source Of Truth Order with canonical pointer
 - [x] preserve all existing documentation entry links and current architecture direction
 - [x] verify exact changed paths and local-reference integrity
 - [ ] request independent exact-head review
@@ -128,7 +130,7 @@ Not applicable; docs-only governance.
 Branch validation at e65542c14bcbdc570b51f9ccbd77668b32a526ed:
 - base main@52236317a57c94d7a28620c7d007e706b7945665
 - 4 ahead / 0 behind before this handoff update
-- exactly 4 expected paths
+- exactly 5 expected paths after resolving Codex P2 review finding
 - runtime/Supabase/CI/service files changed: 0
 - all six canonical status labels present
 - docs/README.md contains canonical authority + conflict sections
@@ -142,6 +144,7 @@ Branch validation at e65542c14bcbdc570b51f9ccbd77668b32a526ed:
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| PRRT_kwDOTOXwB86mXsGm | P2 | Resolved | `.ai/workflow.md` still carried a competing source-of-truth precedence list, so `docs/README.md` was not yet the single canonical authority location. | `3285d226d398c86fc74138986ad4f7ed6e1d4d24` | Replaced the workflow list with a pointer to `docs/README.md` in `a681987a3faeebaf814f778da19ddf17382fa18a`; exact-head revalidation/re-review required. |
 
 ## 7. Final Handoff
 
@@ -152,6 +155,7 @@ Expected:
 - `.ai/tasks/tnyx-193-p4-doc-authority-governance.md`
 - `docs/README.md`
 - `.ai/README.md`
+- `.ai/workflow.md`
 
 ### Actual Behavior
 
