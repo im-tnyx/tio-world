@@ -34,16 +34,20 @@ Supabase is the data/auth platform; it does not make client code privileged. RLS
 
 Supabase Storage holds user-owned files only. Structured profile, nutrition, workout, and progress records stay in Supabase Postgres behind feature repositories and RLS; they do not become JSON files in a bucket.
 
-The planned module buckets are private by default and are provisioned only when their first real file use case is approved:
+Current Storage has one explicit Profile-media exception: the checked-in migration provisions a public `avatars` bucket. `SupabaseProfileAvatarRepository` uploads objects under the authenticated user's first path segment, writes the resulting public URL to `public.users.avatar_url`, and restricts authenticated insert/update/delete policies to the user's owned folder. Public reads are allowed by the current bucket policy.
+
+That public `avatars` bucket is existing implementation truth, not the default pattern for future health/fitness media. A move to private Profile media/signing requires a separately approved migration and repository/client transition.
+
+Future module buckets are private by default and are provisioned only when their first real file use case is approved:
 
 | Future private bucket | Owner | Allowed file purpose | Explicit non-purpose |
 | :--- | :--- | :--- | :--- |
-| `profile` | Profile | Avatar and approved user profile media | Profile fields, Auth data, or arbitrary document backup |
+| `profile` | Profile | Possible future private replacement/additional Profile media only after an approved migration away from or alongside the current public `avatars` contract | Profile fields, Auth data, or arbitrary document backup |
 | `nutrition` | Nutrition | Optional user meal/food images when the diary slice approves them | Meal diary records, food search database, or Meal Plan data |
 | `workout` | Workout | Approved user workout attachments only when a concrete feature needs them | The bundled Exercise Search JSON catalog, routine/program records, or sensor streams |
 | `progress` | Progress | User progress photos | Weight, measurement, achievement, or trend records |
 
-Each user-owned object must use an ownership-safe path rooted in the authenticated user ID, for example `<user-id>/<object-id>`. Storage policies must enforce that the caller can access only their own object path. Do not use public buckets or public URLs for health/fitness media by default; use an authorised retrieval flow with bounded access instead.
+Each user-owned object must use an ownership-safe path rooted in the authenticated user ID, for example `<user-id>/<object-id>`. Storage policies must enforce that the caller can access only their own object path. Do not introduce new public buckets or public URLs for health/fitness media by default. The existing public `avatars` bucket is a documented exception; new sensitive-media designs should use an authorised retrieval flow with bounded access unless an explicit review approves otherwise.
 
 Before a bucket is created, its feature task must define allowed MIME types, size limit, image-processing policy, object naming, metadata, overwrite/delete rules, retention, offline upload state, and owner-specific Storage RLS policies. If replacement uploads are supported, the policy design must cover the full required read/write operation rather than only initial upload.
 
