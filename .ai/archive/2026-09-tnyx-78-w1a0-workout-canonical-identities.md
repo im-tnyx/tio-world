@@ -57,7 +57,7 @@ Create the smallest architecture decision slice needed before Workout domain cod
 
 - ADR-0011 for canonical Workout identity/ownership rules.
 - `.ai/DECISIONS.md` durable decision entries/status notes.
-- `docs/MODULE_OWNERSHIP.md` minimal shared/feature ownership clarification.
+- `docs/architecture/MODULE_OWNERSHIP.md` minimal shared/feature ownership clarification.
 - `docs/screens/exercise-search.md` catalog identity/incompleteness rules.
 - ADR/task indexes.
 
@@ -73,7 +73,7 @@ Create the smallest architecture decision slice needed before Workout domain cod
 
 ### Verified Evidence
 
-- Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.ai/DECISIONS.md`, `docs/adr/README.md`, `docs/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, current Linear TNYX-78, current Workout/shared structure from prior readiness audit.
+- Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.ai/DECISIONS.md`, `docs/adr/README.md`, `docs/architecture/MODULE_OWNERSHIP.md`, `docs/screens/exercise-search.md`, current Linear TNYX-78, current Workout/shared structure from prior readiness audit.
 - Existing pattern to follow: Nutrition keeps durable pure-Dart canonical entities/value objects in `apps/shared`, while feature repositories and feature behavior remain in `apps/features/*`.
 - Tests or validation already present: W1A0 is docs-only; validation is scope/diff/link consistency rather than runtime tests.
 - Tracker state at slice start: TNYX-78 was Backlog and unblocked; open PR overlap = 0.
@@ -156,7 +156,7 @@ Not applicable; no UI/runtime behavior in this slice.
 - [x] Add ADR-0011.
 - [x] Update ADR index.
 - [x] Update `.ai/DECISIONS.md`.
-- [x] Update `docs/MODULE_OWNERSHIP.md`.
+- [x] Update `docs/architecture/MODULE_OWNERSHIP.md`.
 - [x] Update `docs/screens/exercise-search.md`.
 - [x] Add task to `.ai/tasks/README.md`.
 - [x] Run docs/scope validation.
@@ -209,7 +209,7 @@ Final merged head `9c8c8c5a` re-ran these checks with the same results (see Acti
 - `.ai/DECISIONS.md`
 - `.ai/tasks/README.md`
 - `.ai/tasks/tnyx-78-w1a0-workout-canonical-identities.md`
-- `docs/MODULE_OWNERSHIP.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 - `docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md`
 - `docs/adr/README.md`
 - `docs/screens/exercise-search.md`
