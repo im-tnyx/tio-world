@@ -1,11 +1,11 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** In progress — O1A + O1B + O1C + O1D + O1E validated; O1F integrated acceptance is ACTIVE  
+**Status:** Historical/validated O1 implementation detail — O1A–O1F complete; GitHub #11 closed / Linear TNYX-6 Done  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
-**Canonical sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
-**Active focused task:** `.ai/tasks/app-mode-o1f-integrated-acceptance.md`  
+**Historical sequence:** `.ai/archive/2026-09-product-onboarding-canonical-execution.md` — Superseded/Historical; not current sequencing authority  
+**Focused O1F evidence:** `.ai/tasks/app-mode-o1f-integrated-acceptance.md` — historical validation evidence; not an active sequencing gate  
 **PR:** #50 remains Draft/unmerged
 
 ## Outcome
@@ -163,12 +163,12 @@ O1A domain/repository contract          ✅ #1183
 → O1C onboarding completion cutover     ✅ #1199
 → O1D authenticated bootstrap/restore   ✅ #1210
 → O1E Settings mode-change parity       ✅ #1231
-→ O1F integrated acceptance/full CI     ACTIVE
+→ O1F integrated acceptance/full CI     ✅ #1240
 ```
 
-Only one O1 sub-slice is active at a time. Do not start O2 common Profile until O1F is validated.
+Historical sequencing note: O1F was the final O1 gate. It is now validated; O2 and the full O1–O11 lane subsequently completed under #40.
 
-## O1F — Integrated acceptance — ACTIVE
+## O1F — Integrated acceptance — VALIDATED / HISTORICAL
 
 Focused task: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`
 
@@ -205,6 +205,5 @@ Production code should change only if the integrated acceptance matrix exposes a
 
 ## Handoff
 
-**Continue O1F integrated App Mode acceptance/full CI.**  
-Do not start O2 until O1F final validation evidence is recorded.  
-After O1F validation, update trackers and start O2 common Profile owner/section activation.
+**Historical O1F handoff:** integrated App Mode acceptance/full CI completed.  
+Historical handoff satisfied: O1F validation was recorded, O2 proceeded, and Product Onboarding O1–O11 is now complete/frozen in #40.

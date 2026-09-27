@@ -21,12 +21,12 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [GitHub #24 Phase #24-B — Nutrition numeric input migration](issue-24b-nutrition-numeric-input-migration.md) | Validated | `apps/core` input contract + Nutrition presentation | Runtime/review validated; PR #195 remains open for final exact-head CI and merge gates |
 | [TNYX-257 — Meal Diary positive-only calendar progress ring](tnyx-257-meal-diary-positive-progress-ring.md) | In progress | `apps/features/nutrition` | GitHub #317; hide progress decoration for `progress <= 0`, preserve Core null-vs-zero semantics |
 | [Product Onboarding card variant cleanup](onboarding-card-variant-cleanup.md) | Validated | `apps/features/onboarding` presentation | Removed unreachable placeholder and validated approved Health/Sleep elevated card variants |
-| [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences` | P1 canonical table is live; durable runtime persistence is O1/P2 and is no longer blocked by account-contact verification |
-| [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Historical/detail reference for flow/controller architecture; use canonical execution task for current sequence |
+| [App Mode foundation](app-mode-foundation.md) | Historical/validated implementation detail | `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences` | O1 App Mode is complete (#11 / TNYX-6); preserve implementation evidence, but use source/canonical docs/live trackers for current work |
+| [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Historical/detail reference for flow/controller architecture; do not use it or archived execution briefs as current sequencing truth |
 | [Product Onboarding Slice 1 — identities](product-onboarding-slice-1-identities.md) | Validated | `apps/features/onboarding` | Stable future section/step identity + draft codec foundation validated by CI #945 |
-| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | Goal/Target Weight/Goal Pace local + Body foundations validated; remaining picker/recommendation gates are tracked, while onboarding sequence continues from O1 |
+| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | O1–O11 onboarding lane is complete/frozen; this brief remains only for its independently tracked picker/recommendation follow-ups |
 | [Canonical Supabase Owner Migration](canonical-supabase-owner-migration.md) | In progress | Supabase + domain repositories | Body foundation + P1 `user_profiles`/`user_app_preferences`/`email_verified_at` are live |
-| [Account / Profile / App Preferences Canonical Split](account-profile-app-preferences-canonical-split.md) | In progress | Supabase + Account/Profile/App Mode composition | P1 schema is live; Product Onboarding lane starts with App Mode, while account contact verification is a parallel lane |
+| [Account / Profile / App Preferences Canonical Split](account-profile-app-preferences-canonical-split.md) | In progress | Supabase + Account/Profile/App Mode composition | P1 schema and Product Onboarding O1–O11 are complete; retain only independently open post-onboarding Account/Settings/runtime follow-ups |
 | [Profile & Account Data Persistence](profile-account-data-persistence.md) | In progress | `users` account root + Profile/Settings/Auth adapter | Independent A1: real email/mobile add/change/verify; required for account/settings acceptance but not an O1 onboarding blocker |
 | [Canonical Body Owner Repository Cutover](canonical-body-owner-repository-cutover.md) | In progress | `apps/features/progress` + onboarding/Profile/Settings composition | Body A + B1 validated (#1135/#1153); final Profile/Settings mirror shutdown follows canonical Profile cutover |
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
@@ -34,43 +34,13 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |
 | [Supabase foundation](supabase-foundation.md) | Needs decision | `supabase/`, `apps/shared`, affected features | Starting Auth, data, RLS, Storage, or protected AI work |
 
-## Product Onboarding execution order
+## Product Onboarding execution state
 
-```text
-Foundation: Body B1 + P1 canonical schema          VALIDATED / LIVE
-        ↓
-O1 durable App Mode / active_tabs                  NEXT (#11)
-        ↓
-O2 common User Profile owner + section activation
-        ↓
-O3 Body Goal section + Body/Profile parity
-        ↓
-O4 Wellness placement + canonical owner
-        ↓
-O5 Nutrition Profile + Nutrition Targets split
-        ↓
-O6 Workout Intro/Profile/Targets split
-        ↓
-O7 Health Connections decision/integration
-        ↓
-O8 Review + edit-back + draft/resume reconciliation
-        ↓
-O9 truthful Plan Building/finalization + existing Congratulations
-        ↓
-O10 full mode/device/persistence acceptance
-        ↓
-later legacy-column cleanup migration
-```
+The historical O1–O11 delivery sequence is **COMPLETE / FROZEN** in GitHub #40. O1 App Mode is complete in GitHub #11 / Linear TNYX-6. The former canonical execution brief is archived as Superseded/Historical and is not current sequencing authority.
 
-Independent account lane:
+For any new onboarding slice, reconcile current source/runtime, canonical onboarding docs, and live GitHub/Linear trackers. Do not infer a next onboarding step from the historical O1–O11 order.
 
-```text
-A1 real email/mobile contact verification (#8)
-```
-
-A1 is required before final account/settings acceptance but does not block O1–O3 Product Onboarding persistence.
-
-The historical Product Onboarding O1–O11 execution lane is complete/frozen in Issue #40. Do not use archived execution briefs as current sequencing truth; reconcile source, canonical docs, and live trackers for any new onboarding slice.
+Independent post-onboarding Account/Settings/runtime work may continue under its own live trackers; GitHub #44 remains the broader canonical-ownership umbrella.
 
 ## Design-System Execution Order
 

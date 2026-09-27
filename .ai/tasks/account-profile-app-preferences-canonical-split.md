@@ -2,7 +2,7 @@
 
 **Status:** P1 schema foundation validated live  
 **Canonical owner tracker:** #44  
-**Product Onboarding sequence:** `product-onboarding-canonical-execution.md`  
+**Historical Product Onboarding sequence:** `.ai/archive/2026-09-product-onboarding-canonical-execution.md` — Superseded/Historical; not current sequencing authority  
 **App Mode tracker:** #11  
 **Account/contact persistence tracker:** #8  
 **Related onboarding:** #40 / PR #50
@@ -74,20 +74,7 @@ P1 originally serialized account contact verification before App Mode solely as 
 
 ### Product Onboarding lane
 
-Authoritative task: `.ai/tasks/product-onboarding-canonical-execution.md`
-
-```text
-O1 durable App Mode / active_tabs       NEXT (#11)
-→ O2 common Profile owner/section
-→ O3 Body Goal/Profile parity
-→ O4 Wellness
-→ O5 Nutrition
-→ O6 Workout
-→ O7 Health Connections
-→ O8 Review/resume
-→ O9 finalization/Congratulations
-→ O10 full acceptance
-```
+Historical delivery lane: O1–O11 is complete/frozen in #40; O1 is complete in #11 / Linear TNYX-6. The archived execution plan is historical evidence only and must not be used to choose current work.
 
 ### Account / Settings lane
 
@@ -119,7 +106,7 @@ Tracker: #11.
 
 ## O2 / common Profile contract
 
-After O1 validation, Product Onboarding cuts common Profile persistence to `user_profiles`:
+Historical O2 contract (subsequently completed in the frozen O1–O11 lane) cut common Profile persistence to `user_profiles`:
 
 ```text
 name
@@ -175,7 +162,6 @@ Requirements:
 
 ## Handoff
 
-**Product Onboarding next:** O1 durable App Mode / active-tabs (#11).  
-**Parallel account work:** A1 contact verification (#8).  
-**After O1:** O2 common Profile owner/section.  
-**Read `product-onboarding-canonical-execution.md` before any further Product Onboarding implementation.**
+**Product Onboarding:** O1–O11 complete/frozen in #40; do not derive current sequencing from this historical split brief.  
+**Independent account/runtime work:** reconcile current source and live trackers such as #44/#8 before implementation.  
+**For any new Product Onboarding work:** read current canonical onboarding docs and live GitHub/Linear trackers; the archived execution plan is historical only.
