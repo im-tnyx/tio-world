@@ -27,11 +27,11 @@ Before a slice is called complete:
 
 **Approved start boundary:** Persist the confirmed mode device-locally for the first slice. Defer account sync until an approved Supabase profile contract exists.
 
-The foundation below is partially implemented. Checked items describe verified runtime behavior; unchecked items remain pending and must not be treated as full onboarding or release completion.
+The Product Onboarding O1–O11 implementation is complete/frozen in current runtime. Checked items below describe verified behavior; unchecked items are narrower release/device-validation or follow-up acceptance gates and must not be read as evidence that the canonical onboarding flow itself is incomplete.
 
 - [x] `AppMode` is a single pure-Dart contract in `apps/shared` with `workout`, `nutrition`, and `hybrid`.
 - [x] Onboarding begins with App Mode selection.
-- [ ] Later onboarding steps are conditioned by mode; the flow planner and parent-shell foundation are implemented, but mode-step routing and owner steps are not.
+- [x] Later onboarding steps are conditioned by mode through the canonical flow planner, with owner sections and finalization following the eligible Nutrition, Workout-only, or Hybrid plan.
 - [x] Settings reads and changes the same mode through the approved preference boundary.
 - [ ] The confirmed mode survives a verified app restart; missing or invalid local data returns to mode selection safely. Device restart verification remains pending.
 - [x] `StatefulShellRoute` derives the guided layout from mode and safely handles a mode change while a destination is selected.

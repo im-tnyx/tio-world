@@ -8,11 +8,7 @@ Truth Boundary: Authoritative for the Onboarding screen product contract, owners
 **Surface:** Phone full-screen setup flow
 **Current route:** `/onboarding`
 **Primary owner:** `apps/features/onboarding`
-**Status:** PARTIAL. App Mode selection, common Profile, Hybrid-only Workout Intro,
-Workout Preferences (W1/W2/W3), Nutrition Intro, Daily Targets, Review, durable Supabase draft
-autosave/resume, and Supabase-backed completion/owner persistence composition are implemented.
-Remaining work is feature-slice/acceptance specific; durable persistence is no longer blocked on
-authenticated HTTP adapters.
+**Status:** IMPLEMENTED / FROZEN for Product Onboarding O1–O11. App Mode selection, mode-specific Profile/Body/Wellness/Nutrition/Workout paths, Health Connections, Targets, Review, durable Supabase draft autosave/resume, canonical owner persistence, retry-safe finalization, and completed-session readback are implemented. Remaining work belongs to separately tracked feature/release refinements rather than an incomplete canonical onboarding flow.
 
 ## Purpose
 
@@ -125,8 +121,7 @@ GymAccess -> Equipment? -> ExperienceLevel -> FocusAreas
 - `SpecialEvent` is single-line, optional, and remains in the same in-memory
   Workout draft for consistency.
 
-This means Workout Preferences is now complete and compatibility-free, while
-overall onboarding product status still remains `PARTIAL`.
+This means Workout Preferences is complete and compatibility-free within the frozen canonical Product Onboarding flow.
 
 ### Targets Is One Typed Section
 
@@ -142,7 +137,7 @@ bridge -> stepTarget -> sleepTarget -> waterTarget -> goalPace -> nutritionTarge
 - `SleepTargetScreen` provides a duration slider (4h–12h, 30m steps) and bedtime/wake-time pickers with cross-midnight arithmetic.
 - `WaterTargetScreen` provides a hydration slider (1,000–8,000 ml) with ephemeral L/ml/oz display unit switching and canonical ml storage.
 - `GoalPaceScreen` provides weight goal pace selection (0.1–1.5 kg/week) in Loss/Gain modes with aggressive pace warning alerts and deterministic target completion date projection. In Maintenance mode, the slider is hidden.
-- `NutritionTarget` currently serves as an explicit `BLOCKED BY FORMULA AUTHORITY` compatibility screen because Android reference contains conflicting formula families and no canonical local formula authority exists in `apps/features/nutrition` or `apps/shared`.
+- `NutritionTarget` renders the real `NutritionTargetScreen` backed by the nutrition-domain calculator, with explicit success, insufficient-input, and invalid-input states; the old formula-authority compatibility placeholder is no longer the active path.
 - Primary CTAs derive dynamically from `TargetsFlowPlan`: `nutritionTarget` shows `Review`, while the preceding 5 child steps show `Continue`.
 - Targets subprogress announces `Target step N of 6`, while global onboarding progress weighting remains macro-step based.
 - Targets product readiness remains `PARTIAL`.
