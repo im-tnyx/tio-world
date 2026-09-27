@@ -7,8 +7,8 @@ Truth Boundary: Authoritative for the Home screen product contract, ownership, a
 
 **Surface:** Phone primary tab
 **Route:** `/`
-**Primary owner:** `apps/app` for current shell composition; introduce a dedicated Home package only when its real domain logic warrants one.
-**Status:** Current route is a shared placeholder. The sections below are the target contract.
+**Primary owner:** `apps/features/home`; `apps/app` owns only shell composition/routing.
+**Status:** The `/` shell branch renders the Home feature package's `HomePage`; the sections below remain the broader product contract and may include later slices.
 
 ## Purpose
 
