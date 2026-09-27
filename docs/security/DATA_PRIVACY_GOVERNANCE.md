@@ -250,14 +250,17 @@ The existing authenticated `nutrition-meal-text-parse` Supabase Edge Function is
 Current server-side flow:
 
 1. The authenticated client sends the user's raw natural-language meal description to the Edge Function.
-2. The function selects the configured interpreter through deployment environment configuration: Gemini or OpenAI. Provider API keys/models remain server-side.
-3. The interpreter returns structured candidate foods/amounts; the resolver then uses FatSecret as the primary nutrition resolver and Edamam as an optional secondary resolver when its server-side credentials are configured.
-4. Authenticated user country context is used for region-aware resolution. The client receives only the shaped Tio parse outcome, not provider credentials.
-5. Failure is fail-closed to explicit `unrecognized`, `incomplete`, or `unavailable` outcomes; provider failure must not fabricate nutrition facts.
+2. `MEAL_INTERPRETER_PRIMARY` chooses the primary AI interpreter: Gemini or OpenAI. The other interpreter is configured as the sequential fallback; provider API keys/models remain server-side.
+3. `FallbackMealInterpreter` sends the same raw `mealText` to the fallback interpreter **only when** the primary returns `unavailable` (for example provider/transport/timeout/malformed-output failure) and the request is still active. `recognized` and `unrecognized` are final, and the two AI interpreters are never called in parallel.
+4. After interpretation, only the structured candidate foods/amounts enter nutrition resolution. FatSecret is the primary resolver and Edamam is an optional secondary resolver when its server-side credentials are configured; this resolver fallback is separate from the raw-text AI-interpreter fallback.
+5. Authenticated user country context is used for region-aware resolution. The client receives only the shaped Tio parse outcome, not provider credentials.
+6. Failure is fail-closed to explicit `unrecognized`, `incomplete`, or `unavailable` outcomes; provider failure must not fabricate nutrition facts.
 
 Data/privacy classification:
 
 - raw meal description and interpreted/resolved nutrition context are Health-context data for this workflow;
+- one request may transmit the same raw meal text to **both** configured AI interpreter providers sequentially when the primary is unavailable; fallback is not parallel and is not invoked after a recognized or unrecognized primary result;
+- FatSecret/Edamam receive structured food candidate/amount/region facts required for nutrition resolution rather than the original raw meal text; their resolver fallback is a separate provider path from interpreter fallback;
 - provider transmission is purpose-limited to interpreting the submitted meal text and resolving nutrition data;
 - raw meal text must not be added to analytics or routine logs/diagnostics;
 - repository/runtime code proves the provider path and server-side secret boundary, but it does **not** establish provider-side retention, training/reuse, deletion/export guarantees, or contractual data residency. Those provider-side properties must be documented from the applicable provider configuration/contract before provider settings are changed or the flow is expanded to new data classes;
