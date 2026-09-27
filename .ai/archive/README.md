@@ -25,6 +25,7 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
+| 2026-09-27 | [TNYX-193 P7 — Dynamic current-state snapshots](2026-09-tnyx-193-p7-current-state-snapshots.md) | Validated; merged via PR #421 (`25d4dd08`) | [.ai/CURRENT.md](../CURRENT.md), [.ai/IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md), GitHub #250 / Linear TNYX-193 |
 | 2026-09-24 | [TNYX-78 W1A0 — Workout canonical identities and terminology](2026-09-tnyx-78-w1a0-workout-canonical-identities.md) | Validated; merged via PR #324 (`45c194e0`) | [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md) |
 | 2026-09-24 | [TNYX-258 W1A7 — Stale shared Workout scaffold cleanup](2026-09-tnyx-258-w1a7-stale-workout-scaffold-cleanup.md) | Validated; merged via PR #327 (`ec1f94c9`) | [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-24 | [TNYX-259 W1A1 — Canonical Workout identity value objects](2026-09-tnyx-259-w1a1-workout-identity-value-objects.md) | Validated; merged via PR #329 (`17de0500`) | D-019 in [DECISIONS.md](../DECISIONS.md), [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md) |
