@@ -10,17 +10,17 @@
 
 ## Decision
 
-Supabase is the planned foundation for authenticated user data. It will provide the first production boundary for user identity and data instead of building a custom database/authentication service upfront.
+Supabase is the active foundation for authenticated user data and the current production boundary for user identity and Tio-owned application data. Future protected services extend this boundary only when a separately approved server-side need exceeds the appropriate Supabase function path.
 
-| Responsibility | Planned owner |
+| Responsibility | Current owner / direction |
 | :--- | :--- |
 | Authentication and sessions | Supabase Auth |
 | User-owned application data | Supabase Postgres with explicit Row Level Security (RLS) |
 | User media or documents, when a real slice needs them | Supabase Storage with explicit access policies |
-| Schema migrations, RLS policies, seed data, and database functions | future root `supabase/` workspace |
+| Schema migrations, RLS policies, seed data, and database functions | active root `supabase/` workspace |
 | Flutter/Wear client integration | Feature repositories behind client-safe Supabase contracts |
-| Gemini API and other privileged third-party calls | Future protected server-side boundary only |
-| Long-running jobs, complex AI orchestration, or protected integrations | Future separate `backend/` workspace when the product outgrows the Supabase-first slice |
+| Gemini API and other privileged third-party calls | approved Supabase server functions today where implemented; future `services/api` when a separately approved protected-service slice requires it |
+| Long-running jobs, complex orchestration, or protected integrations | future `services/api`, with `services/worker` added only for a real asynchronous/background workload |
 
 Supabase is the data/auth platform; it does not make client code privileged. RLS and feature-level repository boundaries remain required.
 
@@ -46,16 +46,15 @@ Before a bucket is created, its feature task must define allowed MIME types, siz
 ```text
 tio-world/
 ├─ apps/                 # Flutter phone, Wear OS, core, shared, feature packages
-├─ supabase/             # Future: config, migrations, policies, seed data, functions when approved
-├─ backend/              # Future upgrade: protected service code only when required
-│  ├─ api/               # authenticated/protected service endpoints
-│  ├─ ai-coach/          # Gemini adapter, prompts, guardrails, response shaping
-│  └─ jobs/              # long-running or scheduled work
+├─ supabase/             # ACTIVE: config, migrations, policies, tests, approved functions
+├─ services/             # Future only; do not scaffold before an approved need
+│  ├─ api/               # Future protected service application
+│  └─ worker/            # Future only for real async/background processing
 ├─ docs/
 └─ .ai/
 ```
 
-`backend/db` is not the target owner for Supabase schema/migrations. Do not create either `supabase/` or `backend/` until a real approved vertical slice needs it.
+`supabase/` is the active owner for Supabase schema/migrations and related platform assets. Do not introduce a parallel `backend/*` namespace. Future protected service implementation belongs under `services/api`, with `services/worker` reserved for an approved asynchronous workload; neither future service path should be scaffolded speculatively.
 
 ## Client And Security Boundary
 
@@ -67,26 +66,26 @@ tio-world/
 
 ## Gemini Boundary
 
-Gemini is a future AI provider option for Coach or other approved server-side capabilities. It is not a client dependency or a current product feature.
+Gemini is a server-side provider option and must never be a client dependency. Existing or future approved provider integrations must stay behind protected server-side boundaries.
 
-When an approved AI slice begins:
+For any approved AI/provider slice:
 
 1. Authenticate the caller through Supabase Auth and authorize the requested user data.
 2. Prepare the minimum allowed domain summary through server-side contracts.
-3. Call Gemini only from a protected server-side function or the future backend service using deployment-managed secrets.
+3. Call Gemini only from an approved Supabase server function or future `services/api` using deployment-managed secrets.
 4. Apply product safety, rate-limit, logging-redaction, and response-shaping rules before returning a client-safe result.
 5. Keep prompts, provider credentials, and privileged data joins off Flutter and Wear OS clients.
 
-Choose the exact runtime for Gemini later. A Supabase Edge Function may suit a small protected request; a separate backend is reserved for the upgrade when orchestration, queues, integrations, or operational needs require it. Do not select an unconfirmed framework from a typo or add it as a dependency.
+Use an approved Supabase Edge Function when that boundary fits the request. The future protected application path is `services/api`; add `services/worker` only when queue/background workload requirements justify it. Architecture documentation does not authorize creating either future service.
 
 ## Implementation Sequence
 
-1. Approve the first authenticated vertical slice and supported sign-in methods.
-2. Create the minimal `supabase/` configuration only for that slice.
-3. Define the feature repository contract, then add the minimum table/policy/storage boundary with tests and RLS review.
-4. Connect the Flutter repository using only client-safe configuration; preserve offline-first behavior where required.
-5. Add a protected Gemini integration only when the Coach/AI slice has explicit data, safety, cost, and observability requirements.
-6. Create the separate `backend/` workspace only when its documented upgrade criteria are met.
+1. For each new authenticated vertical slice, define the feature repository contract and the minimum required Supabase table/policy/storage/function boundary.
+2. Add migrations, RLS/security tests, and access review appropriate to that slice.
+3. Connect Flutter/Wear repositories using only client-safe Supabase configuration and preserve offline-first behavior where required.
+4. Add or extend a protected provider integration only when the approved slice has explicit data, safety, cost, and observability requirements.
+5. Start `services/api` only through a separately approved protected-service slice when Supabase functions are no longer the appropriate boundary.
+6. Start `services/worker` only when a real asynchronous/background workload justifies a separate process.
 
 ## Non-Goals Until Approved
 
@@ -94,7 +93,7 @@ Choose the exact runtime for Gemini later. A Supabase Edge Function may suit a s
 - Direct Gemini requests from Flutter, Wear OS, or watchOS.
 - Service-role keys in the repository, clients, screenshots, tests, or documentation.
 - A custom backend framework, worker system, or queue before a concrete server-side slice requires one.
-- Claims that Supabase Auth, RLS, Storage, Edge Functions, or Gemini are live.
+- Unverified claims that a specific Storage bucket, Edge Function deployment, provider integration, or future service path is live.
 
 ## Future-Safe Backend Preservation Rule
 
