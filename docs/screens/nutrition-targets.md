@@ -1,20 +1,20 @@
 # Nutrition Targets Screen
 
-Document Status: Planned/Future Doc
+Document Status: Canonical Live Doc
 Last Verified: 2026-09-27
 Owner: `apps/features/nutrition`
-Truth Boundary: Authoritative for the planned Nutrition Targets screen product contract and ownership; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for the Nutrition Targets settings contract, ownership, and documented current/target behavior; runtime source and the Nutrition repository prove shipped behavior.
 
 **Surface:** Nested Phone Nutrition configuration
-**Route:** No route exists yet
+**Current route:** `/settings/nutrition/targets` (`AppRoutes.nutritionTargetsSettings`)
 **Primary owner:** `apps/features/nutrition`
-**Status:** Planned only.
+**Status:** Implemented Settings-owned Nutrition Targets surface with repository-backed load/save, Macronutrients child flow, and Additional Nutrition child flow; recommendation/override UX can continue evolving in later slices.
 
 ## Purpose
 
 Let the user review, accept, or override daily nutrition targets. Profile context can offer starting inputs, but Nutrition owns the calculation, validation, and final target state.
 
-## Target Content
+## Current And Target Content
 
 - Current calorie and macro targets with plain-language explanations.
 - Nutrition goal and approved dietary-preference inputs.
