@@ -1,5 +1,10 @@
 # AI Context
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Entry point and routing guide for the `.ai/` execution/orientation layer; canonical docs, ADRs, runtime source/config, and live trackers retain their own authority.
+
 This directory gives AI assistants and contributors a concise orientation to **TNYX / tio-world**.
 
 It is intentionally short. It is not a replacement for canonical repository documentation.

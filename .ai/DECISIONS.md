@@ -1,5 +1,10 @@
 # Active Decisions
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Current AI-facing decision index and durable execution constraints; canonical docs, accepted ADRs, and runtime source remain authoritative for architecture and implementation state.
+
 This log records durable product and architecture choices. It is a concise orientation aid; canonical architecture and roadmap documents remain authoritative.
 
 | ID | Status | Decision | Rationale and boundary |
@@ -15,11 +20,11 @@ This log records durable product and architecture choices. It is a concise orien
 | D-009 | Target, not implemented | Recovery will be an independent future `apps/features/recovery` feature. | Do not create it until a narrow first user outcome, data source, privacy/sync boundary, and non-medical scope are approved. It is not a primary App Mode tab. |
 | D-010 | Target, not implemented | Workout is Routine/Program-first and owns its training visualizations. | Do not add standalone Quick Start. Start active sessions from a selected Routine or Program session. Exercise Search is nested and reads a validated versioned local JSON catalog. Muscle heatmap, accessible training radar map, and calendar use recorded workout history; Recovery context is conditional. |
 | D-011 | Target, not implemented | Profile-derived defaults do not change domain ownership. | Profile supplies approved context. Nutrition owns targets/overrides; Workout owns settings/defaults. Feature calculations use stable contracts and never silently replace user overrides. |
-| D-012 | Target, not implemented | Supabase is the first Auth, data, and Storage platform. | Use Supabase Auth and RLS-protected Postgres for user data. Custom protected backend code and Gemini are future upgrades, not current clients or repo modules. |
+| D-012 | Active; implemented | Supabase is the active Auth, data, and Storage platform. | Use Supabase Auth and RLS-protected Postgres for user data. Approved Supabase server functions handle protected server work where they fit; future protected application services belong under `services/api` only when separately authorized. |
 | D-013 | Target, not implemented | Module media uses private Supabase Storage buckets. | `profile`, `nutrition`, `workout`, and `progress` hold only approved user media. Structured data remains in Postgres; each bucket needs owner-specific policies and a concrete file slice before provisioning. |
 | D-014 | Target, not implemented | Future adaptive navigation keeps three App Modes, Home fixed first, and three to six eligible selections. | Guided defaults ship first. Later custom layouts may promote implemented owner routes such as Routine Library or Meal Plan, adapt Home/feature section prominence, and move action entry points without duplicating feature workflows. Active Workout remains resumable independent from tab order. |
-| D-015 | Active | Persist the confirmed App Mode device-locally for the first slice. | `apps/shared` owns the pure-Dart preference contract and `apps/app` wires a `SharedPreferencesAsync` adapter. Missing/invalid data returns to mode selection. Supabase account sync is deferred until an approved profile contract exists. |
-| D-016 | Active; routed parent flow implemented | Full onboarding uses one `/onboarding` parent; the unnumbered App Mode gate shows Back-only fixed-height chrome and hides progress, while later children keep fixed Back/progress and a fixed bottom primary action. | Stable mode-derived step IDs and one Riverpod controller own internal flow. App Mode is excluded from progress position/total; every later user-facing child advances progress. Draft mode, confirmed App Mode, and completion status stay separate. Sensitive draft persistence and cross-owner finalization remain implementation-gated. |
+| D-015 | Superseded by D-021 | Persist the confirmed App Mode device-locally for the first slice. | This was the initial pre-auth/device-local foundation. Authenticated canonical persistence is now `public.user_app_preferences`; local SharedPreferences remains staging/cache rather than authenticated truth. |
+| D-016 | Active; routed parent flow + durable draft persistence implemented | Full onboarding uses one `/onboarding` parent; the unnumbered App Mode gate shows Back-only fixed-height chrome and hides progress, while later children keep fixed Back/progress and a fixed bottom primary action. | Stable mode-derived step IDs and one Riverpod controller own internal flow. App Mode is excluded from progress position/total; every later user-facing child advances progress. Draft mode, confirmed App Mode, and completion status stay separate. Durable draft autosave/resume is implemented through `SupabaseOnboardingDraftRepository` / `public.onboarding_drafts`; remaining owner-write/finalization eligibility stays separately gated. |
 
 ## D-017 — Superseded: account-synced S0-B2 HydrationPreferences
 
@@ -61,6 +66,18 @@ Workout Library is one canonical Workout-owned route/screen. Its approved initia
 Library sections (Programs, Routines, Plans / Training Plans, Exercises) are capability-gated and Library owns none of their truth. Exercises is a dedicated capability/screen reached from Library; the Library root does not render the Exercise catalog. Its presentation subtree is co-located under `presentation/library/exercises/` because Library is the shipped entry and presentation hierarchy, while canonical Exercise domain/data ownership remains under the Workout Exercise capability. Where older text says "Routine Library" for this promoted route, it means this Workout Library. D-010's nested Exercise Search remains true: the dedicated Exercises screen and the builder picker are both nested Workout contexts over one Exercise capability, never a primary tab. Exercise detail ships only with its own capability slice (W3B), not with the first Exercises screen (W3A). D-010, D-014 and ADR-0005 are otherwise unchanged.
 
 See [Library](../docs/screens/library.md).
+
+## D-021 — Active; implemented: authenticated App Mode uses canonical App Preferences persistence
+
+For authenticated sessions, `AppMode` and `active_tabs` are canonical in
+`public.user_app_preferences` through the shared App Preferences contract and
+the app-composed Supabase repository. The earlier device-local-only D-015 slice
+remains historical foundation: local SharedPreferences is pre-auth staging/cache
+and is refreshed after canonical success, not a second authenticated source of
+truth.
+
+See [Settings](../docs/screens/settings.md) and
+[ADR-0002](../docs/adr/0002-shared-app-mode-and-dynamic-navigation.md).
 
 ## Maintenance Rules
 

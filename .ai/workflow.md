@@ -1,5 +1,10 @@
 # Workflow
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Authoritative for the `.ai/` execution workflow, tracker-role coordination, and handoff process; canonical docs/ADRs and runtime source retain product/architecture/behavior authority.
+
 Use docs to freeze ownership before building large feature areas.
 
 ## Current Development Flow
@@ -63,7 +68,7 @@ Do not create large future areas before a slice needs them:
 - Community
 - Challenges
 - AI Coach runtime
-- Full Supabase schema
+- Broad/speculative Supabase schema expansion
 - Apple Watch full feature parity
 - Wear OS advanced telemetry
 

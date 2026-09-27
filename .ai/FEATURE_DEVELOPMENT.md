@@ -1,5 +1,10 @@
 # Feature Development Workflow
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Authoritative for the repository's AI/contributor feature-execution workflow and Owner Approval gates; not product architecture, runtime behavior, or live tracker state.
+
 This workflow adapts the same practical sequence used by structured feature-development tools: understand the existing system before coding, make consequential decisions explicit, review the delivered behavior, and leave a usable handoff.
 
 It is a repository process, not a dependency on a specific AI product or plugin.

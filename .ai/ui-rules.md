@@ -1,5 +1,10 @@
 # UI Rules
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: AI-facing UI execution guardrails and shell conventions; canonical UX/UI docs, `apps/core` design-system contracts, owning feature docs, and runtime source remain authoritative.
+
 Use the existing TNYX / tio-world design direction and keep UI platform-appropriate.
 
 ## Flutter Mobile Rules

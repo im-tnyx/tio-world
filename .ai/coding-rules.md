@@ -1,5 +1,10 @@
 # Coding Rules
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: AI-facing coding and validation defaults for repository work; `AGENTS.md`, canonical docs/ADRs, module-local rules, and actual source patterns override this summary where more specific.
+
 Follow the existing repository style before introducing new patterns.
 
 ## Flutter / Dart

@@ -1,16 +1,21 @@
 # Supabase Architecture & Rules
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: AI execution guardrails for the active Supabase boundary and preserved future HTTP adapters; canonical data/security docs, migrations, verified live metadata, and runtime source remain authoritative.
+
 ## Active Production Foundation (Supabase-First)
 
 Tio-World uses Supabase as its active data, authentication, and storage platform.
 
 - **Auth:** Supabase Auth (`GoTrue`) with direct token management and stream observation.
-- **Database:** Supabase PostgreSQL with strict Row Level Security (RLS) on all user-owned tables (`users`, `user_workout_preferences`, `user_targets`).
-- **Storage:** Private/public module buckets (`avatars`) with path ownership policies (`auth.uid() = foldername`).
+- **Database:** Supabase PostgreSQL is active. The verified readable inventory currently covers 14 `public` tables with RLS enabled; use `docs/data/SUPABASE_SCHEMA.md` for the current structure and treat migrations + verified live metadata as executable truth.
+- **Storage:** The current `avatars` bucket is a documented public exception with owner/path controls. Do not generalize that exception to future sensitive module media; follow canonical Storage/privacy policy for each approved slice.
 
-## Future-Safe Backend Preservation Rule
+## Future-Safe HTTP Adapter Preservation Rule
 
-Tio-World currently uses **Supabase as the active production data boundary**, but the repository has already-established **future custom-backend infrastructure**.
+Tio-World currently uses **Supabase as the active production data boundary**, while the repository also preserves **future HTTP/remote adapter abstractions**. Their presence is not evidence that `services/api` has been implemented.
 
 The following code is intentional architecture and MUST NOT be deleted, merged away, replaced, or classified as dead/unused code merely because it is not active in the current Supabase production composition:
 
@@ -19,14 +24,10 @@ The following code is intentional architecture and MUST NOT be deleted, merged a
 * `AuthTokenProvider`
 * `RemoteProfileSetupRepository`
 * `ProfileSetupDtoMapper`
-* `RemoteWorkoutPreferencesRepository`
-* `WorkoutPreferencesDtoMapper`
-* `RemoteTargetsSetupRepository`
-* `TargetsSetupDtoMapper`
 * `RemoteOnboardingFinalizer`
 * `BackendUserSyncRepository`
 * `RemoteBackendUserSyncRepository`
-* `GoogleAuthUseCase` (Firebase + custom backend path)
+* `GoogleAuthUseCase` (fail-closed legacy Firebase compatibility path; not the production Supabase auth path)
 * backend transport DTOs and mappers
 
 ### Current vs Future Adapter Rule
@@ -36,12 +37,12 @@ Current production path:
 Flutter → existing repository contracts → Supabase adapters → Supabase Auth + Postgres/RLS
 ```
 
-Future backend path:
+Future protected-service path:
 ```text
-Flutter → SAME repository contracts → Remote*/HTTP adapters → custom Tio backend
+Flutter → SAME repository contracts → Remote*/HTTP adapters → future `services/api` when separately authorized
 ```
 
-A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP/backend infrastructure solely because Supabase is the current production adapter.
+A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP adapter infrastructure solely because Supabase is the current production adapter.
 
 Inactive != obsolete.
 
