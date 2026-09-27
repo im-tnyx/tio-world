@@ -22,10 +22,9 @@ This document defines where code should live in `tio-world`.
 | `apps/features/progress` | Weight, measurements, progress photos, streaks, trends, achievements, and analytics screens. |
 | `apps/features/coaching` | Coach UI package and backend-facing coaching contracts. |
 | future `apps/features/recovery` | Recovery, readiness, and rest context after its first approved vertical slice. |
-| future `supabase/` | Supabase Auth, Postgres migrations, RLS policies, private Storage buckets, seed data, and approved server functions. |
-| future `backend/api` | Protected service endpoints and integrations when a separate backend upgrade is required. |
-| future `backend/ai-coach` | Gemini/provider runtime, AI orchestration, prompt logic, safety boundaries, and server-only response shaping. |
-| future `backend/jobs` | Long-running scheduled/background work after the backend upgrade is required. |
+| `supabase/` | Active Supabase project configuration, Auth/data platform assets, Postgres migrations, RLS/policies, Storage boundaries, tests, and approved Edge Functions. |
+| future `services/api` | Protected service endpoints, provider orchestration, and advanced integrations only after a separately approved server slice requires them. |
+| future `services/worker` | Long-running scheduled/background processing only after a real asynchronous workload requires a separate worker. |
 | `docs` | Canonical architecture and process docs. |
 | `.github` | GitHub templates, CODEOWNERS, PR, push, and issue workflow. |
 | `.ai` | Short AI orientation files. |
@@ -73,7 +72,7 @@ Do not pre-create empty Workout capability folders before a real slice requires 
 | Home | `apps/features/home` for Home presentation; `apps/app` for shell composition and route registration. |
 | Workout | `apps/features/workout`, including the Workout Library route and workout screens/flows. |
 | Nutrition | `apps/features/nutrition`, including the future Meal Plan route after nutrition diary MVP. |
-| Supabase Auth/data/Storage | future `supabase/` with feature repositories and client-safe contracts |
+| Supabase Auth/data/Storage | active `supabase/` platform boundary with feature repositories and client-safe contracts |
 | Coaching | `apps/features/coaching` and future protected Gemini/server runtime |
 | Progress | `apps/features/progress` |
 | Recovery | future `apps/features/recovery`; create only after its first data source and privacy/sync boundary are approved |
@@ -118,7 +117,7 @@ Do not pre-create empty Workout capability folders before a real slice requires 
 - Coaching may read workout, nutrition, progress, recovery, and profile data through clear contracts.
 - Promoting Workout Library or Meal Plan into a future custom navigation slot does not create a new feature owner or duplicate the route/screen.
 - Watch apps own their own UI and platform integrations.
-- Supabase owns the planned first Auth, data, private Storage, migrations, and RLS boundary. A future backend owns protected Gemini/AI orchestration, advanced integrations, and long-running work only when needed.
+- Supabase owns the active Auth, data, private Storage, migrations, RLS, and approved Edge Function boundary. Future protected service endpoints/provider orchestration belong under `services/api` only when separately approved; long-running background processing belongs under `services/worker` only when a real asynchronous workload justifies it.
 
 ## Feature Package Rules
 
