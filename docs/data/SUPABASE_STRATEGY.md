@@ -122,4 +122,5 @@ Inactive != obsolete. Removal requires:
 - [Data and Sync](DATA_AND_SYNC.md)
 - [Security](../security/SECURITY.md)
 - [Roadmap](../planning/ROADMAP.md)
-- [Supabase foundation task](../../.ai/tasks/supabase-foundation.md)
+- [Supabase public schema inventory](SUPABASE_SCHEMA.md)
+- [Architecture](../architecture/ARCHITECTURE.md)

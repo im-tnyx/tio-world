@@ -25,6 +25,7 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
+| 2026-09-27 | [Supabase Foundation](2026-09-supabase-foundation.md) | Superseded historical pre-implementation snapshot; stale no-Supabase/UI-only/device-local-first claims retired from active tasks | [SUPABASE_STRATEGY.md](../../docs/data/SUPABASE_STRATEGY.md), [SUPABASE_SCHEMA.md](../../docs/data/SUPABASE_SCHEMA.md), checked-in `supabase/` runtime/migrations |
 | 2026-09-27 | [Pre-P9 — Coach current-state drift reconciliation](2026-09-pre-p9-coach-current-state-drift.md) | Validated; registered-vs-guided Coach route status reconciled via PR #436 (`12f0fcd3`) | [Coach](../../docs/screens/coach.md), [Screen catalog](../../docs/screens/README.md), GitHub #250 / Linear TNYX-193 |
 | 2026-09-27 | [Pre-P9 — Canonical runtime-status drift reconciliation](2026-09-pre-p9-canonical-runtime-status-drift.md) | Validated; source-backed Splash/Login/Home/Workout and onboarding status drift reconciled via PR #434 (`24b76a4a`) | [screens/README.md](../../docs/screens/README.md), [FLUTTER_MODULAR_STRUCTURE.md](../../docs/mobile/FLUTTER_MODULAR_STRUCTURE.md), GitHub #250 / Linear TNYX-193 |
 | 2026-09-27 | [Pre-P9 — Product Onboarding task-index reconciliation](2026-09-pre-p9-onboarding-task-index-reconciliation.md) | Validated; stale O1/O1F current-sequencing claims reconciled and merged via PR #426 (`6ca53860`) | `.ai/tasks` orientation, GitHub #40 / #11 / #44, Linear TNYX-6, GitHub #250 / Linear TNYX-193 |

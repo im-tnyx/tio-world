@@ -1,6 +1,7 @@
 # Supabase Foundation
 
-**Status:** Needs decision
+**Status:** Superseded
+**Archived:** 2026-09-27
 **Primary owners:** future `supabase/`, `apps/shared`, affected feature package, `apps/app`
 **Affected platforms:** Flutter phone, Flutter Wear OS, future protected server boundary
 
@@ -81,4 +82,4 @@ Documentation-only plan. No Supabase, Gemini, backend, or client behavior has ch
 
 ### Final Status
 
-`BLOCKED`
+`SUPERSEDED` — preserved as a historical pre-Supabase implementation snapshot. Current Supabase ownership and runtime state are governed by `docs/data/SUPABASE_STRATEGY.md`, `docs/data/SUPABASE_SCHEMA.md`, checked-in `supabase/` source/migrations, and live tracker/runtime evidence. Do not use the discovery/clarification statements above as current implementation truth.
