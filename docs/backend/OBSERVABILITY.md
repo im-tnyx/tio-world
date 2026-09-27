@@ -8,10 +8,10 @@ This document defines what Tio must be able to observe before protected backend/
 
 Related boundaries:
 
-- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
-- [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md)
-- [Security](SECURITY.md)
-- [Feature Rollout](FEATURE_ROLLOUT.md)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
+- [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)
+- [Security](../security/SECURITY.md)
+- [Feature Rollout](../planning/FEATURE_ROLLOUT.md)
 
 Linear ownership:
 
@@ -337,7 +337,7 @@ region/location category when a deployment topology later has one
 
 Never attach secret values or full environment dumps.
 
-Environment names and configuration sourcing follow [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md).
+Environment names and configuration sourcing follow [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md).
 
 ## Retention And Access
 
