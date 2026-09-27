@@ -30,7 +30,7 @@ Tio needs a consistent premium mobile experience without allowing each feature t
 
 ## Related
 
-- [UI/UX System](../UX_UI_SYSTEM.md)
-- [Architecture](../ARCHITECTURE.md)
+- [UI/UX System](../architecture/UX_UI_SYSTEM.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Material 3 Expressive task](../../.ai/tasks/material-3-expressive.md)
 - [Active Decision D-008](../../.ai/DECISIONS.md)
