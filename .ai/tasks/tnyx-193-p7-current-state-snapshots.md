@@ -1,6 +1,6 @@
 # TNYX-193 P7 — Dynamic current-state snapshots
 
-**Status:** In progress  
+**Status:** In review  
 **Primary owner:** repository documentation governance  
 **Affected platforms:** repository-wide documentation only
 
@@ -16,8 +16,8 @@
 
 **Planning owner:** TNYX-193 / GitHub #250  
 **Implementation owner:** active P7 agent  
-**Review owner:** manual exact-head review pending  
-**Implementation ownership state:** Active  
+**Review owner:** manual exact-head review complete  
+**Implementation ownership state:** Handoff pending  
 **Ownership transition:** Not applicable  
 **Repository state last verified:** `main@0248fab407201bf5b8debd71262c871a4beb98a4`  
 **Branch:** `tnyx/tnyx-193-p7-current-state-snapshots`  
@@ -28,10 +28,10 @@
 **Current implementation state:** Both snapshots reconstructed and task indexed; pre-PR scope/stale-pattern validation passed.  
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`  
 **Validation completed at SHA:** `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9` for reconstructed snapshot content/scope checks.  
-**Validation remaining:** PR exact-head review/check gates.  
-**Current blocker:** None.  
+**Validation remaining:** Owner merge authorization; post-merge archive lifecycle remains separate.  
+**Current blocker:** Owner merge authorization.  
 **Open review finding IDs:** None.  
-**Next exact action:** Run exact-head PR review/check gates without widening into stale Product Onboarding task cleanup.
+**Next exact action:** Hold at owner merge gate; do not merge or widen into stale Product Onboarding task cleanup without explicit authorization.
 
 ## 1. Discovery
 
@@ -105,20 +105,21 @@ Not applicable; documentation-only.
 - [x] Reconstruct `.ai/IMPLEMENTATION_STATUS.md`.
 - [x] Validate exact scope and stale claims.
 - [x] Open focused docs-only PR.
-- [ ] Run exact-head review/check gates.
+- [x] Run exact-head review/check gates.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-At `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9`: branch 4 ahead / 0 behind; exact four-file docs scope; both P7 governance headers present; known stale O7/PR #50 blocker patterns absent; no local Markdown links introduced by the two snapshots.
+At `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9`: reconstructed snapshot content/scope validation passed. At exact reviewed head `2efdd11095ad7376ddfb56143d2bb39c1ef02df0`: 4-file docs-only scope, 6 ahead / 0 behind, both P7 headers present, known stale O7/PR #50 blocker patterns absent, 0 unresolved review threads, required Commit attribution guard PASS and Attribution guard runner PASS. Supplemental GHAS failed before meaningful analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; tracked separately by TNYX-256.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| P7-REV-01 | Low | Resolved | Task brief handoff still described reconstruction as the next action after the PR already existed. | 5c9e638f134ec231d7f30de301e170ccd7fce898 | Corrected before exact-head manual review. |
 | P7-F1 | Medium | Deferred | Product Onboarding canonical execution task/index remains materially stale but is outside P7 scope. | 0248fab407201bf5b8debd71262c871a4beb98a4 | Separate bounded lifecycle audit/archive follow-up. |
 
 ## 7. Final Handoff
@@ -140,4 +141,4 @@ P7 does not repair unrelated stale task briefs.
 
 ### Final Status
 
-`REVIEW`
+`OWNER MERGE GATE`
