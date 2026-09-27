@@ -6,7 +6,7 @@
 
 This document defines how future Tio server code chooses between user-scoped and privileged Supabase access. It is an architecture/documentation decision only; it does not start `services/api`, add middleware, deploy a worker, create credentials, or mutate Supabase.
 
-Related identity contract: [Authentication Architecture](AUTH_ARCHITECTURE.md).
+Related identity contract: [Authentication Architecture](../security/AUTH_ARCHITECTURE.md).
 
 ## Core Rule
 
