@@ -5,6 +5,10 @@ Last Verified: 2026-09-27
 Owner: repository execution context
 Truth Boundary: High-level implementation orientation only; source/runtime proves shipped behavior, canonical docs define intended architecture, and Linear plus linked GitHub own current work status.
 
+## Verification baseline
+
+Refreshed against `main@0a534984793714ad46e23f40b366f7ca8c82c2f3` after PR #423 merged. Live work status must still be re-queried before implementation because PR, issue, CI, and Linear state can change after this checkpoint.
+
 ## Status model
 
 Use these terms only after checking the relevant source and evidence:
@@ -21,26 +25,27 @@ Use these terms only after checking the relevant source and evidence:
 |---|---|---|
 | Flutter mobile application | Active runtime | Source under `apps/` proves behavior; canonical mobile/architecture docs define intended boundaries. |
 | Supabase Auth/session | Active runtime | Supabase is the current identity/session boundary; verify source and security docs before auth changes. |
-| Supabase public data model | Live, canonical inventory available | `docs/data/SUPABASE_SCHEMA.md` records the verified readable inventory; migrations plus verified live schema remain executable truth. |
-| Product Onboarding O1–O11 | Validated / complete | GitHub #40 is complete/frozen; O11 cleanup #54 is complete. Historical per-slice CI remains evidence, not current work. |
+| Supabase public data model | Live, canonical inventory available | `docs/data/SUPABASE_SCHEMA.md` records the readable verified inventory; migrations plus verified live schema remain executable truth. |
+| Product Onboarding O1–O11 | Validated / complete historical lane | GitHub #40 is complete/frozen and #54 cleanup is complete; historical per-slice CI remains evidence, not current sequencing. |
 | Product Onboarding implementation PR #50 | Merged / closed | Not an active PR and must not be used as a current blocker. |
-| Health Connections in onboarding | Validated availability/connect-later boundary | Completed onboarding does not authorize broad Health Connect/HealthKit record access. Future consuming features must define least-privilege data scope first. |
-| Canonical account/profile/preferences/health ownership | Live baseline with follow-up umbrella open | GitHub #44 remains open for post-onboarding ownership/runtime lanes; re-read current issue scope before changes. |
-| App/router composition cleanup | Open tracker work | #260 and #357 are live planning/execution references; tracker existence is not implementation authorization. |
-| Nutrition loading-state fix | Open tracker work | #356 owns the Daily Nutrition loading-card issue. |
-| Onboarding package architecture cleanup | Open tracker work | #261 owns package/public-API/responsibility cleanup. |
-| Auth hardening | Open tracker work | #34 is the live auth-hardening tracker; Auth remains security-sensitive. |
-| Nutrition/workout settings/runtime preferences | Open tracker work | #46/#47/#48 own separate settings/runtime-preference lanes. |
-| N5D meal text/provider routing | Open tracker work | #269/#284 own the current N5D planning slices. |
+| Product Onboarding execution handoff | Superseded / archived | PR #423 removed the stale handoff from active tasks; its archived checkpoint is historical only. |
+| Health Connections in completed onboarding | Validated availability/connect-later boundary | Completed onboarding does not authorize broad Health Connect/HealthKit record access. Future consuming features must define least-privilege scope. |
+| Canonical account/profile/preferences/health ownership | Follow-up umbrella open | GitHub #44 remains open; re-read live issue/source before changes rather than inferring unfinished runtime from the tracker alone. |
+| App/router organization | Open tracker work | Live GitHub work exists; query current issue/PR state before any slice. |
+| Nutrition loading/calendar behavior | Open tracker work | Live GitHub work exists; query current issue/PR state before any slice. |
+| Onboarding package architecture cleanup | Open tracker work | Live GitHub work exists; tracker presence is not implementation authorization. |
+| Auth hardening | Open tracker work | Auth remains security-sensitive; reconcile current source and live tracker before changes. |
+| Nutrition/workout settings/runtime preferences | Open tracker work | Multiple independent live tracker lanes exist; do not collapse them into one implementation scope. |
+| N5D meal/provider routing | Open tracker work | Live planning/PR work exists; re-query before implementation. |
 | Future protected API | Planned/Future | Canonical path is `services/api/`; no speculative service implementation should be inferred. |
 | Future async worker | Planned/Future | `services/worker/` only when an approved real async workload requires it. |
-| Wear OS / Apple Watch | Planned/Future | Native companion surfaces remain separately planned/gated; inspect wearable docs and trackers before work. |
-| Documentation governance | In progress | GitHub #250 / Linear TNYX-193; P1–P6 and P8 complete, P7 current, P9 separately gated. |
+| Wear OS / Apple Watch | Planned/Future | Companion surfaces remain separately planned/gated; inspect wearable docs and trackers before work. |
+| Documentation governance | In progress | GitHub #250 / Linear TNYX-193; P1–P8 complete, pre-P9 reconciliation active, P9 separately gated and Not started. |
 
 ## Current execution rules
 
-- There are no open pull requests at this verification checkpoint.
-- Open GitHub issues are not a priority queue. Use Linear + linked GitHub reconciliation to determine the authorized slice.
+- A fresh GitHub query at this checkpoint returned open PRs; never assume the repository has no open PRs without querying live state.
+- Open GitHub issues/PRs are not a priority queue. Use Linear + linked GitHub reconciliation to determine the authorized slice.
 - Before meaningful work, read the applicable `AGENTS.md`, inspect source/runtime, then reconcile canonical docs, Linear, GitHub, CI, and the relevant `.ai/tasks/` handoff.
 - A historical exact CI checkpoint proves only the source state it validated; it does not make an old task brief current.
 - Applied Supabase migrations are immutable; new database changes must be forward-only and owner-approved where the canonical gate applies.
@@ -48,8 +53,8 @@ Use these terms only after checking the relevant source and evidence:
 - UI changes require the repository's owner/design approval rules; internal docs work does not authorize visual redesign.
 - Do not create `services/api/`, `services/worker/`, web, watch, connector, or other future infrastructure merely because it is documented as planned.
 
-## Known documentation follow-up outside P7
+## Known documentation follow-up outside this refresh
 
-`.ai/tasks/product-onboarding-canonical-execution.md` and related rows in `.ai/tasks/README.md` still describe the old O7-blocked / PR #50 draft-open checkpoint. P7 deliberately does not widen into that lifecycle cleanup.
+`.ai/tasks/README.md` still contains a historical Product Onboarding execution-order block that marks O1 as NEXT even though GitHub #40 is complete/frozen. PR #423 removed the stale canonical execution handoff and its active index row, but this remaining block needs a separately bounded index-lifecycle cleanup.
 
-Until that separate cleanup is authorized, do not use those stale task entries as current sequencing truth; use source, canonical docs, and live trackers.
+Do not use that block as current Product Onboarding sequencing truth. For any new onboarding work, reconcile current source, canonical onboarding docs, and live trackers.

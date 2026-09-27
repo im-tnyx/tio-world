@@ -7,9 +7,9 @@ Truth Boundary: Orientation only; runtime/source proves behavior, canonical docs
 
 ## Verification baseline
 
-This snapshot was reconstructed for TNYX-193 P7 from `main@0248fab407201bf5b8debd71262c871a4beb98a4`, current canonical docs, and live GitHub/Linear tracker state.
+This snapshot was refreshed after the pre-P9 Product Onboarding handoff cleanup from `main@0a534984793714ad46e23f40b366f7ca8c82c2f3`, current canonical AI governance, GitHub #250, Linear TNYX-193, and a fresh GitHub open-PR query.
 
-Do not treat this file as a backlog, release record, architecture authority, or substitute for source inspection.
+Do not treat this file as a backlog, release record, architecture authority, or substitute for source inspection. Live tracker state can change immediately after this checkpoint.
 
 ## Read order
 
@@ -27,44 +27,37 @@ Do not treat this file as a backlog, release record, architecture authority, or 
 - The readable current public-schema inventory is `docs/data/SUPABASE_SCHEMA.md`; executable database truth remains checked-in migrations plus verified live schema.
 - Future protected server work belongs under `services/api/` only when an approved need exists. Do not create speculative backend/service scaffolding.
 - `services/worker/` remains future-only and requires a real approved asynchronous workload.
-- Wear OS and Apple Watch are planned/future native companion surfaces; verify their canonical wearable docs and trackers before implementation.
-- AI/connectors and external integrations remain security-sensitive boundaries; verify their current approved scope before adding credentials, scopes, privileged APIs, or data access.
+- Wear OS and Apple Watch remain separately planned/gated companion surfaces; verify their canonical wearable docs and live trackers before implementation.
+- AI/connectors and external integrations remain security-sensitive boundaries; verify current approved scope before adding credentials, scopes, privileged APIs, or data access.
 
 ## Product Onboarding status
 
-The historical Product Onboarding O1–O11 execution is complete/frozen in GitHub #40.
+The historical Product Onboarding O1–O11 execution lane is complete/frozen in GitHub #40.
 
-- O1–O10 implementation/acceptance is complete.
-- O11 canonical schema cleanup is complete in GitHub #54.
-- Health Connections onboarding remains availability/connect-later only for the completed onboarding scope; future health-data authorization belongs to a separately approved consuming feature.
-- PR #50 is merged/closed. It is not an active implementation PR.
-- GitHub #44 remains open as the broader canonical-ownership umbrella for post-onboarding Account/Settings/runtime lanes.
+- O11 canonical schema cleanup #54 is complete.
+- PR #50 is merged/closed and is not an active implementation PR.
+- The former `.ai/tasks/product-onboarding-canonical-execution.md` handoff was retired by PR #423 and is preserved only as a Superseded/Historical archive record.
+- GitHub #44 remains the broader open canonical-ownership umbrella; its current live scope must be re-read before new work.
+- Completed onboarding does not itself authorize broad Health Connect/HealthKit record access; any future consuming feature must establish its own approved least-privilege scope.
 
-The old `.ai/tasks/product-onboarding-canonical-execution.md` and related task-index wording still describe an earlier O7-blocked execution checkpoint. They are not current sequencing authority. Their lifecycle cleanup is a separate bounded follow-up, not P7 scope.
+A separate `.ai/tasks/README.md` execution-order block still contains historical O1-as-NEXT wording. Until that bounded index cleanup is completed, do not use that block as current sequencing truth.
 
 ## Live work context
 
-At verification time there are no open pull requests. The open issue set includes multiple independent lanes; examples relevant to architecture/execution routing include:
+A fresh GitHub query at this checkpoint returned open pull requests, so the previous P7 statement that there were no open PRs is no longer current.
 
-- #357 and #260 — app router/composition organization;
-- #356 — Daily Nutrition loading-state behavior;
-- #261 — onboarding package architecture/public API/responsibility cleanup;
-- #34 — auth hardening;
-- #44 — canonical account/profile/preferences/health ownership umbrella;
-- #46/#47/#48 — mode-aware nutrition/workout settings and runtime preferences;
-- #157 — proposed health-data JSONB consolidation;
-- #269/#284 — N5D meal-text processing and country/region provider routing;
-- #250 / Linear TNYX-193 — documentation governance, including this P7 reconstruction.
+Do not copy the full open PR or issue set into this snapshot: it is volatile and is not a priority queue. Before starting or resuming work, query the live Linear issue/project and linked GitHub issue/PR/CI, then reconcile them with source, canonical docs, and the relevant active handoff.
 
-This list is orientation, not priority ordering and not a complete planning source. Re-read the live trackers before starting any slice.
+Representative live lanes at this checkpoint include app/router organization, Nutrition loading/calendar behavior, onboarding package cleanup, auth hardening, account/profile/preferences ownership, settings/runtime preferences, N5D meal/provider work, and repository documentation governance. Their presence does not authorize implementation or establish priority.
 
 ## Documentation-governance status
 
-GitHub #250 / Linear TNYX-193 is the active governance tracker.
+GitHub #250 / Linear TNYX-193 remains the active documentation-governance tracker.
 
-- P1–P6 and P8 are completed.
-- P7 is the current authorized docs-only reconstruction slice.
-- P9 remains separately gated and should not be inferred from P7.
+- P1–P8 are completed.
+- The stale Product Onboarding execution handoff cleanup merged via PR #423 before this refresh.
+- This refresh is a bounded pre-P9 reconciliation, not P9.
+- P9 remains separately gated and Not started; its routing-map decision must be made only after the pre-P9 alignment baseline is clean.
 - Supplemental GitHub AI code-scanning has a known unsupported-model infrastructure outage tracked separately by TNYX-256; do not represent that failure as a security pass or repository finding.
 
 ## Guardrails
