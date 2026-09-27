@@ -8,13 +8,14 @@ Truth Boundary: Authoritative for the Login screen product contract, ownership, 
 **Surface:** Phone authentication screen
 **Current route:** `/login`
 **Primary owner:** `apps/features/auth`
-**Status:** Implemented UI; all sign-in buttons are placeholders that route to Home.
+**Status:** Implemented authentication UI with real Supabase-backed sign-in flows for supported methods; verified success returns to app-level session/bootstrap handling.
 
 ## Current Runtime Behavior
 
-- Shows Truecaller, Google, phone-number, and email-address entry buttons plus a back action.
-- Pressing any sign-in method currently routes to `/`; it does not authenticate a user or establish a session.
-- Terms and Privacy text is visible but not linked.
+- Shows the supported sign-in entry methods and back action; provider availability can still vary by configured capability.
+- Email and Google sign-in are wired through injected Auth use cases, and the Auth feature also owns the Supabase phone-OTP repository/use-case flow.
+- Successful authentication invokes the app-level explicit-login success callback so session/bootstrap state decides the next destination; Login does not directly fabricate a Home session.
+- Terms and Privacy text remains visible; only approved destinations should become interactive.
 
 ## Target Responsibility
 
