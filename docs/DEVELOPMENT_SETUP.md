@@ -12,8 +12,8 @@ Install these first:
 - Android Studio
 - Android SDK Platform Tools
 - Xcode for iOS/watchOS work on macOS
-- Supabase CLI when the first approved Auth/data/Storage slice begins
-- A future backend runtime/toolchain only when the protected-backend upgrade is approved
+- Supabase CLI for work on the active root `supabase/` workspace
+- A future `services/api` runtime/toolchain only when a separately approved protected-service slice starts it
 - Melos for Flutter/Dart monorepo management
 - GitHub CLI optional but recommended
 
