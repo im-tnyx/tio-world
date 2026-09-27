@@ -1,5 +1,10 @@
 # ADR-0007: Active Supabase and Future `services/api` Boundary
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: Supabase + future protected-service architecture
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Accepted
 - **Date:** 2026-08-28
 

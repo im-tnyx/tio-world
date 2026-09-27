@@ -1,5 +1,10 @@
 # tio-world Documentation
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository documentation governance
+Truth Boundary: Authoritative for documentation authority, status labels, ownership taxonomy, and conflict resolution; not runtime behavior or live task status.
+
 This folder is the source of truth for product architecture, module ownership, setup, validation, and future implementation direction.
 
 `tio-world` is a Flutter-first health, fitness, workout, nutrition, progress, coaching, and wearable monorepo with a Flutter Wear OS companion, a future native Apple Watch app, an active Supabase Auth/data foundation, and a future protected `services/api` server workspace.
