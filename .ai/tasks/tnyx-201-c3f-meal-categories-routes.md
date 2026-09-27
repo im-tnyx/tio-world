@@ -95,16 +95,16 @@ No state or UI behavior changes; existing feature-owned behavior remains unchang
 
 ## 5. Implementation Plan
 
-- [ ] Add active task index row.
-- [ ] Move the two route registrations.
-- [ ] Audit exact parent-to-head paths and route counts.
+- [x] Add active task index row.
+- [x] Move the two route registrations.
+- [x] Audit exact parent-to-head paths and route counts.
 - [ ] Open Draft PR and request/wait for Codex review.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet. GitHub API execution cannot claim local Flutter/git commands; hosted checks will be used.`
+`GitHub API scope audit: base is merge-base; 4 ahead / 0 behind; exactly 4 expected paths. Root route counts for Meal Categories/Archived = 0/0; Nutrition module references = 2/2 (registration + navigation where applicable); one root GoRouter authority; route module constructs no GoRouter. Local Flutter/git commands are unavailable through this connector session; hosted checks remain required.`
 
 ### Review Findings and Resolution
 
@@ -116,11 +116,14 @@ No state or UI behavior changes; existing feature-owned behavior remains unchang
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-201-c3f-meal-categories-routes.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/nutrition_routes.dart`
 
 ### Actual Behavior
 
-Expected behavior-preserving route ownership move only.
+Meal Categories and Archived Meal Categories route registration moved to the existing Nutrition route module with the same paths, root navigator, repository provider injection, pages and archived navigation callback.
 
 ### Known Limitations
 
