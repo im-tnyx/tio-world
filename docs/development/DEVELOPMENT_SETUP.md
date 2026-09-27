@@ -81,23 +81,29 @@ apps/features/<feature>
 Examples:
 
 ```text
-apps/features/workout
+apps/features/account_setup
+apps/features/auth
+apps/features/coaching
+apps/features/home
 apps/features/nutrition
 apps/features/onboarding
-apps/features/auth
 apps/features/profile
-apps/features/settings
 apps/features/progress
-apps/features/coaching
+apps/features/settings
+apps/features/splash
+apps/features/welcome
+apps/features/workout
 ```
 
 For a focused feature check:
 
 ```bash
 cd apps/features/workout
-dart analyze
-dart test
+flutter analyze
+flutter test
 ```
+
+These feature packages use Flutter SDK / `flutter_test`; use `dart analyze` / `dart test` only for packages intentionally classified as non-Flutter (`--no-flutter`) by the workspace.
 
 With Melos from repo root:
 
@@ -184,8 +190,8 @@ For Flutter package changes:
 
 ```bash
 cd apps/features/<feature>
-dart analyze
-dart test
+flutter analyze
+flutter test
 ```
 
 For monorepo changes after Melos is configured:
