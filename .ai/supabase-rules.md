@@ -15,7 +15,7 @@ Tio-World uses Supabase as its active data, authentication, and storage platform
 
 ## Future-Safe HTTP Adapter Preservation Rule
 
-Tio-World currently uses **Supabase as the active production data boundary**, but the repository has already-established **future custom-backend infrastructure**.
+Tio-World currently uses **Supabase as the active production data boundary**, while the repository also preserves **future HTTP/remote adapter abstractions**. Their presence is not evidence that `services/api` has been implemented.
 
 The following code is intentional architecture and MUST NOT be deleted, merged away, replaced, or classified as dead/unused code merely because it is not active in the current Supabase production composition:
 
@@ -37,12 +37,12 @@ Current production path:
 Flutter → existing repository contracts → Supabase adapters → Supabase Auth + Postgres/RLS
 ```
 
-Future backend path:
+Future protected-service path:
 ```text
 Flutter → SAME repository contracts → Remote*/HTTP adapters → future `services/api` when separately authorized
 ```
 
-A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP/backend infrastructure solely because Supabase is the current production adapter.
+A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP adapter infrastructure solely because Supabase is the current production adapter.
 
 Inactive != obsolete.
 
