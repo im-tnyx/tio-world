@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@1e22f623454b85b432aa2ea0dedcc6d31a90d9ba`; GitHub #250 open; Linear TNYX-193 In Progress; no open PRs at activation.
 **Branch:** `tnyx/tnyx-193-p4a-doc-location-normalization`
-**HEAD SHA:** pre-PR validated head `31ccb229740ef71f6fde5757e94594272bffb4d4`; this PR-state handoff update is docs-only and requires one final exact-head revalidation before Codex review
+**HEAD SHA:** exact validation checkpoint `2519d6f4a2e06328ccc94dbc7d63e48c7df9a101`; this final handoff-metadata update is docs-only, so the resulting head must be revalidated before Codex review
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #412 open / Linear TNYX-193 `In Review`.
 **Current implementation state:** P4A relocation implementation complete and PR #412 is open for review: 29 approved moves are present, repository references were updated, `docs/README.md` carries the ownership taxonomy, and no runtime/Supabase/CI/lockfile net diff remains.
 **Relevant execution surface:** canonical `docs/`, repository workflow docs, repository references, focused `.ai/tasks` handoff.
-**Validation completed at SHA:** source-validation head `c2dd606e83f50a90feb0c432b8819a0197a443ab`: 29/29 approved final paths present; 0 old canonical paths; 279 changed Markdown link refs / 74 unique targets with 0 missing; all known baseline moved-path reference holders reconciled except one intentionally preserved historical Supabase migration comment; exact patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, and lockfiles all 0 net diff.
-**Validation remaining:** re-run exact-head scope/reference/patch checks after this PR-state handoff commit, update PR #412 with the final head evidence, inspect repository checks, and obtain independent Codex exact-head review.
+**Validation completed at SHA:** `2519d6f4a2e06328ccc94dbc7d63e48c7df9a101`: exact base/merge-base `main@1e22f623454b85b432aa2ea0dedcc6d31a90d9ba`; 111 ahead / 0 behind; 29/29 approved final paths present; 0 old canonical paths; 279 changed Markdown link refs / 74 unique targets with 0 missing; exact patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, and lockfiles all 0 net diff; `docs/status/` and `docs/integrations/` absent.
+**Validation remaining:** revalidate only the resulting handoff-metadata head, update PR #412 with that final SHA/evidence, inspect repository checks, and obtain independent Codex exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** revalidate the post-handoff exact head, update PR #412 with that exact SHA/evidence, then request Codex exact-head review.
+**Next exact action:** revalidate the resulting handoff-only head, update PR #412 with that exact SHA/evidence, then request Codex exact-head review.
 
 ## 1. Discovery
 
@@ -183,9 +183,9 @@ Keeping all canonical docs flat under `docs/` was rejected because it does not m
 ### Validation Run
 
 ```text
-Source-validation head: c2dd606e83f50a90feb0c432b8819a0197a443ab
+Latest full validation checkpoint: 2519d6f4a2e06328ccc94dbc7d63e48c7df9a101
 Base / merge base: main@1e22f623454b85b432aa2ea0dedcc6d31a90d9ba
-Ahead / behind: 109 / 0
+Ahead / behind: 111 / 0
 Net files: 111 = 29 renamed + 1 added task brief + 81 modified reference/catalog files
 Approved final paths: 29/29 present
 Old canonical paths: 0 remaining
