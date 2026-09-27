@@ -193,10 +193,10 @@ Verified source behavior in the current working tree:
   owner sections.
 - The parent shell is registered in `apps/app/lib/app/router.dart` on
   `/onboarding`, so it now changes current user-visible routing.
-- A secure sensitive resume repository and cross-owner draft persistence still do
-  not exist. Restarting during unfinished onboarding preserves the incomplete
-  gate truth but may lose in-memory Profile data.
-- Supabase and a structured local database are not implemented.
+- Durable onboarding draft persistence and resume are implemented through
+  `OnboardingDraftRepository` and `SupabaseOnboardingDraftRepository`, backed by
+  `public.onboarding_drafts` with user-scoped RLS. The remaining completion gate
+  concerns owner-backed product writes/finalization, not absence of draft persistence.
 
 Runtime source remains the truth until the planned slices below are delivered.
 
