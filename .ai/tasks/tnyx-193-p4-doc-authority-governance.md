@@ -17,21 +17,21 @@
 **Planning owner:** current P4 session
 **Implementation owner:** current P4 session
 **Review owner:** pending independent review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@52236317a57c94d7a28620c7d007e706b7945665`
 **Branch:** `tnyx/tnyx-193-p4-doc-authority-governance`
-**HEAD SHA:** branch created from current main; implementation commits pending
+**HEAD SHA:** `e65542c14bcbdc570b51f9ccbd77668b32a526ed` before this handoff update
 **Observed working-tree state:** connector/API execution only; no local working tree is available to inspect
 **Observed uncommitted/dirty files:** Not applicable
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** P4 scope locked; source edits pending
+**Current implementation state:** bounded P4 source edits and branch validation complete
 **Relevant execution surface:** `docs/README.md`, `.ai/README.md`
-**Validation completed at SHA:** pre-implementation audit only
-**Validation remaining:** exact scope/diff scan, local-reference integrity, repository checks, exact-head review
+**Validation completed at SHA:** `e65542c14bcbdc570b51f9ccbd77668b32a526ed`
+**Validation remaining:** exact PR patch scan, repository checks, exact-head independent review
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** make `docs/README.md` the canonical documentation-governance entrypoint and reduce `.ai/README.md` conflict precedence to a canonical pointer
+**Next exact action:** open the bounded P4 PR, validate its exact head, and request independent review
 
 ## 1. Discovery
 
@@ -112,12 +112,12 @@ Not applicable; docs-only governance.
 
 ## 5. Implementation Plan
 
-- [ ] add canonical authority layers to `docs/README.md`
-- [ ] add explicit conflict-resolution order to `docs/README.md`
-- [ ] add six canonical document-status definitions to `docs/README.md`
-- [ ] replace duplicate `.ai/README.md` Priority Rule with canonical pointer
-- [ ] preserve all existing documentation entry links and current architecture direction
-- [ ] verify exact changed paths and local-reference integrity
+- [x] add canonical authority layers to `docs/README.md`
+- [x] add explicit conflict-resolution order to `docs/README.md`
+- [x] add six canonical document-status definitions to `docs/README.md`
+- [x] replace duplicate `.ai/README.md` Priority Rule with canonical pointer
+- [x] preserve all existing documentation entry links and current architecture direction
+- [x] verify exact changed paths and local-reference integrity
 - [ ] request independent exact-head review
 
 ## 6. Quality Review
@@ -125,7 +125,17 @@ Not applicable; docs-only governance.
 ### Validation Run
 
 ```text
-Pending implementation.
+Branch validation at e65542c14bcbdc570b51f9ccbd77668b32a526ed:
+- base main@52236317a57c94d7a28620c7d007e706b7945665
+- 4 ahead / 0 behind before this handoff update
+- exactly 4 expected paths
+- runtime/Supabase/CI/service files changed: 0
+- all six canonical status labels present
+- docs/README.md contains canonical authority + conflict sections
+- .ai/README.md contains canonical pointer and no duplicate numbered Priority Rule
+- 53 local markdown references checked, 0 missing
+- trailing whitespace: 0
+- conflict markers: 0
 ```
 
 ### Review Findings and Resolution
@@ -145,7 +155,7 @@ Expected:
 
 ### Actual Behavior
 
-Pending implementation.
+P4 now has one canonical documentation authority/status/conflict model in `docs/README.md`; `.ai/README.md` routes to it instead of restating precedence.
 
 ### Known Limitations
 
@@ -153,4 +163,4 @@ P4 defines governance only. P4A performs document-location normalization; P5/P6 
 
 ### Final Status
 
-`REVIEW` pending implementation and validation.
+`REVIEW` — bounded implementation and branch validation complete; exact PR checks/review remain.
