@@ -1,5 +1,10 @@
 # Workflow
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository AI governance
+Truth Boundary: Authoritative for the `.ai/` execution workflow, tracker-role coordination, and handoff process; canonical docs/ADRs and runtime source retain product/architecture/behavior authority.
+
 Use docs to freeze ownership before building large feature areas.
 
 ## Current Development Flow
