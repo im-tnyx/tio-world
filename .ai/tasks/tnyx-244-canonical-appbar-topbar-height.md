@@ -40,7 +40,7 @@ Read before implementation:
 - `.ai/tasks/design-system-token-consolidation.md`
 - `.ai/tasks/material-3-expressive.md`
 - `apps/core/lib/src/theme/README.md`
-- `docs/UX_UI_SYSTEM.md`
+- `docs/architecture/UX_UI_SYSTEM.md`
 
 This is a visual-ownership migration, not a visual change.
 
