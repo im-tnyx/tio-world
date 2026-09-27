@@ -20,7 +20,7 @@ org plan     Free
 status       ACTIVE_HEALTHY
 ```
 
-Current live migration history contains 24 applied migrations. Canonical schema/function/RLS change ownership remains `supabase/migrations/`; applied migrations are historical records and must not be edited in place.
+Migration history was re-verified on 2026-09-27 during TNYX-193 P4B/P5 preparation: live Supabase reports 49 applied migrations and the repository contains the same 49 migration version + name entries, with no live-only or repo-only migration. Canonical schema/function/RLS change ownership remains `supabase/migrations/`; applied migrations are historical records and must not be edited in place.
 
 Current recovery posture is **not production-ready**:
 

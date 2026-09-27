@@ -2,11 +2,12 @@
 
 ## Status
 
-**Active production foundation (Onboarding Owner Persistence slice implemented).**
-- Workspace: `supabase/` created with `config.toml` and migrations (`20260814000001_create_onboarding_owner_tables.sql`).
-- Core owner tables: `profiles`, `workout_preferences`, `user_targets` with RLS (`auth.uid() = user_id`).
-- Adapters: `SupabaseProfileSetupRepository`, `SupabaseWorkoutPreferencesRepository`, `SupabaseTargetsSetupRepository`, `SupabaseAuthSessionRepository`.
-- Future HTTP/backend adapters preserved in parallel.
+**Active current Supabase foundation.**
+- The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
+- On 2026-09-27, live and repository migration history were re-verified at 49 / 49 by version + name, with no live-only or repo-only migration.
+- The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 14 ordinary tables, with RLS enabled on all 14 at the verified snapshot.
+- Flutter startup initializes configured Supabase through `SupabaseRuntimeConfig` and `initializeSupabaseRuntime`; current feature persistence/auth integrations use feature-owned Supabase repositories behind composition/provider boundaries.
+- Future HTTP/backend adapters remain architecture-preserved only where current source still contains them; future `services/api` remains unimplemented until a separately authorized protected-service slice.
 
 ## Decision
 
@@ -99,7 +100,7 @@ Use an approved Supabase Edge Function when that boundary fits the request. The 
 
 Supabase is the **CURRENT production adapter**. Remote HTTP/backend adapters are **FUTURE-SAFE architecture**.
 
-Currently inactive backend code (`ApiClient`, `DioApiClient`, `RemoteProfileSetupRepository`, `RemoteWorkoutPreferencesRepository`, `RemoteTargetsSetupRepository`, `RemoteOnboardingFinalizer`, `BackendUserSyncRepository`, `RemoteBackendUserSyncRepository`, etc.) must NEVER be deleted merely because Supabase is active.
+Current source still contains inactive/future-safe backend code such as `ApiClient`, `DioApiClient`, `RemoteProfileSetupRepository`, `RemoteOnboardingFinalizer`, `BackendUserSyncRepository`, and `RemoteBackendUserSyncRepository`; these must NEVER be deleted merely because Supabase is active.
 
 Inactive != obsolete. Removal requires:
 1. architecture audit,
