@@ -1,6 +1,6 @@
 # Pre-P9 — ROADMAP App Mode and onboarding drift reconciliation
 
-**Status:** In progress
+**Status:** Validated
 **Date:** 2026-09-27
 **Owner:** repository documentation governance + product engineering planning
 **Tracker:** GitHub #250 / Linear TNYX-193
@@ -36,7 +36,8 @@ Reconcile only stale current-state prose in `docs/planning/ROADMAP.md` that cont
 - [x] Codex P2 findings incorporated: Account Setup/Product Onboarding entry boundary and structural-vs-eligibility validation wording.
 - [x] Fresh exact-head P2 findings incorporated: finalization writes canonical preferences before the completion marker, and legacy `active_tabs = null` restores mode-derived guided destinations.
 - [x] Canonical restore ownership clarified: repository parses/preserves the row; controller derives legacy fallback destinations and rejects missing mode.
-- [ ] Exact-head review/final gate completed.
+- [x] Exact-head review/final gate completed: Codex reported no major issues on `ae00750aca6e5a3c7a2010f178c9bd46adadf70b`; all review threads were resolved; no workflow/status checks were published.
+- [x] PR #438 squash-merged as `17803a67bc2ed3bf50a43ea7680da51e4d910873`; remote `main` verified identical to that merge SHA.
 
 ## Final Validation Verdict
-`REVIEW`
+`PASS`
