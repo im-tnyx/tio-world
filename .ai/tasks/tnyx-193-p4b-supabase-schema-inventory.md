@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; GitHub #250 open; Linear TNYX-193 `In Progress`; P4B tracker state `Not started` before activation.
 **Branch:** `tnyx/tnyx-193-p4b-supabase-schema-inventory`
-**HEAD SHA:** branch created from `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; task-governance commits pending
+**HEAD SHA:** source-validation checkpoint `bd6283b48e221eb518ec8100cd7859fa2172213b`; this handoff refresh creates one final docs-only metadata commit that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** read-only audit complete; schema inventory implementation authorized; source doc not created yet.
+**Current implementation state:** P4B source implementation complete: canonical schema inventory added and `docs/README.md` catalog updated; exact-head PR/review gates remain.
 **Relevant execution surface:** `docs/data/SUPABASE_SCHEMA.md`, `docs/README.md`, focused `.ai/tasks` handoff/index.
-**Validation completed at SHA:** pre-implementation audit against `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`: live Tio-world Supabase project ACTIVE_HEALTHY; 49 live migrations match 49 checked-in migration files by version/name; 14 ordinary `public` tables; 147 columns; 14 PKs; 14 FKs; 4 unique constraints; 54 check constraints; 39 indexes; all 14 tables have RLS enabled; no existing `docs/data/SUPABASE_SCHEMA.md`.
-**Validation remaining:** generate schema inventory from current metadata; reconcile columns/defaults/nullability, constraints and indexes; validate no row/user data; exact diff/reference scan; repository checks; independent exact-head review.
+**Validation completed at SHA:** source-validation checkpoint `bd6283b48e221eb518ec8100cd7859fa2172213b`: 4 ahead / 0 behind from `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; exactly 4 docs/governance paths; 49 live migrations = 49 checked-in by version/name; inventory covers 14/14 tables, 147/147 columns, 88/88 live constraints and 39/39 indexes; 14/14 RLS enabled; 65 local Markdown refs checked with 0 missing; no row-count payload; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, or lockfile diff.
+**Validation remaining:** revalidate the resulting handoff-only head, open bounded PR, inspect repository checks, obtain independent Codex exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** none
-**Next exact action:** create the current schema inventory from live structural metadata and checked-in migration truth without database mutation.
+**Next exact action:** revalidate the final handoff-only head, open the P4B PR, then request exact-head Codex review.
 
 ## 1. Discovery
 
@@ -121,13 +121,13 @@ Not applicable to runtime/UI. If live metadata and checked-in migrations disagre
 
 ## 5. Implementation Plan
 
-- [ ] query only live structural metadata required by P4B;
-- [ ] create `docs/data/SUPABASE_SCHEMA.md`;
-- [ ] add minimal catalog/reference entry in `docs/README.md`;
-- [ ] verify all 14 active tables and 147 columns are represented;
-- [ ] verify constraints, indexes and RLS status against live metadata;
-- [ ] verify no row counts/user data/secrets are present;
-- [ ] run exact docs-only diff/reference/scope validation;
+- [x] query only live structural metadata required by P4B;
+- [x] create `docs/data/SUPABASE_SCHEMA.md`;
+- [x] add minimal catalog/reference entry in `docs/README.md`;
+- [x] verify all 14 active tables and 147 columns are represented;
+- [x] verify constraints, indexes and RLS status against live metadata;
+- [x] verify no row counts/user data/secrets are present;
+- [x] run exact docs-only diff/reference/scope validation;
 - [ ] open bounded P4B PR and obtain independent exact-head review.
 
 ## 6. Quality Review
@@ -135,7 +135,7 @@ Not applicable to runtime/UI. If live metadata and checked-in migrations disagre
 ### Validation Run
 
 ```text
-Pre-implementation audit only.
+Source validation complete at `bd6283b48e221eb518ec8100cd7859fa2172213b`; final handoff-only head revalidation still required before review.
 ```
 
 ### Review Findings and Resolution
@@ -149,11 +149,14 @@ Pre-implementation audit only.
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-193-p4b-supabase-schema-inventory.md`
+- `docs/README.md`
+- `docs/data/SUPABASE_SCHEMA.md`
 
 ### Actual Behavior
 
-Docs-only; no runtime/database behavior change.
+A canonical readable current `public` schema inventory now exists at `docs/data/SUPABASE_SCHEMA.md`, derived from verified live structural metadata and checked-in migration history. Runtime/database behavior is unchanged.
 
 ### Known Limitations
 
