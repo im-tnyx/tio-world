@@ -86,4 +86,4 @@ Sections are reusable feature-summary components backed by prepared contracts. H
 - [Screen catalog](README.md)
 - [App Mode foundation](../../.ai/tasks/app-mode-foundation.md)
 - [Adaptive navigation and action entry](../../.ai/tasks/adaptive-navigation-and-actions.md)
-- [Architecture: App Mode and navigation](../ARCHITECTURE.md#app-mode-navigation-layout-and-surface-composition)
+- [Architecture: App Mode and navigation](../architecture/ARCHITECTURE.md#app-mode-navigation-layout-and-surface-composition)
