@@ -75,7 +75,7 @@ content host still dispatches compatibility previews directly by
 `OnboardingStepId`; a dedicated section renderer, section widgets, individual
 owner-backed screens, secure draft resume, and explicit completion-status gating
 remain pending. This ADR describes the durable decision, while
-`docs/ONBOARDING_ARCHITECTURE.md` records the detailed current-runtime versus
+`docs/architecture/ONBOARDING_ARCHITECTURE.md` records the detailed current-runtime versus
 target boundary.
 
 ## Alternatives Rejected
@@ -94,8 +94,8 @@ target boundary.
 
 ## Related
 
-- [Onboarding flow architecture](../ONBOARDING_ARCHITECTURE.md)
+- [Onboarding flow architecture](../architecture/ONBOARDING_ARCHITECTURE.md)
 - [Onboarding screen specification](../screens/onboarding.md)
 - [ADR-0002: Shared App Mode And Dynamic Navigation](0002-shared-app-mode-and-dynamic-navigation.md)
-- [Module ownership](../MODULE_OWNERSHIP.md)
+- [Module ownership](../architecture/MODULE_OWNERSHIP.md)
 - [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)
