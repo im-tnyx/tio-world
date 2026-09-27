@@ -70,12 +70,11 @@ Verified source behavior in the current working tree:
   of stored as duplicate mutable state.
 - `OnboardingContentHost` defaults to `OnboardingSectionRenderer`; its optional
   `stepBuilder` remains only as a focused test injection seam.
-- `OnboardingSectionRenderer` dispatches `AppModeSection` for the first section,
-  `ProfileSection` for common Profile input, `WorkoutIntroSection` for the real
-  Hybrid gate, `WorkoutSection -> WorkoutStepRenderer` for Workout
-  Preferences, `ReviewSection -> ReviewScreen` for the final user-visible
-  checkpoint, and an explicitly labeled compatibility section/screen for later
-  owner steps that are not implemented.
+- `OnboardingSectionRenderer` dispatches real App Mode, Profile, Body Goal,
+  Wellness, Nutrition, Workout, Targets, Health Connections, and Review owner
+  sections for the eligible flow. The compatibility renderer remains only as a
+  fail-fast guard for inactive or historical step identities; active owner steps
+  use their real sections.
 - `WorkoutSection` keeps the durable global identity
   `OnboardingStepId.workoutPreferences` while dispatching section-local
   `WorkoutStepId` children. The current real Workout children are Gym Access,
