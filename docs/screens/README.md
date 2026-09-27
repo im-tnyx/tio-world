@@ -56,13 +56,9 @@ Coach becomes eligible in Phase 7. Profile launches from the Home avatar; Settin
 
 A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library (one canonical route, see [Library](library.md)) and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
 
-The first implementation uses the approved device-local App Mode preference and
-defers account sync until a Supabase profile contract exists. The routed flow
-uses one `/onboarding` parent: the unnumbered App Mode chooser shows Back-only
-chrome and hides progress; later children keep fixed Back/progress and a fixed
-bottom primary action while
-only child content changes. Draft mode, confirmed mode, and completion status stay
-separate. Later mode-conditional steps and manual restart verification remain open.
+Pre-auth App Mode selection is held as local pending setup state until authentication/account setup completes. For authenticated accounts, canonical App Mode and active-tab preferences are persisted in `public.user_app_preferences` through `SupabaseAppPreferencesRepository`. Session bootstrap reads that canonical state and `AppModeController.restoreCanonical()` publishes it; the legacy device-local `AppModePreference` is only a best-effort cache and must not override valid remote account state.
+
+Product Onboarding still uses one `/onboarding` parent after account setup. Draft mode, canonical authenticated mode, and onboarding completion status remain distinct ownership/state concepts.
 See [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md), the
 [onboarding task](../../.ai/tasks/onboarding-flow.md), and the
 [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
