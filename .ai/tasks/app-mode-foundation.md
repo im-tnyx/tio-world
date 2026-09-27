@@ -205,5 +205,5 @@ Production code should change only if the integrated acceptance matrix exposes a
 
 ## Handoff
 
-**Continue O1F integrated App Mode acceptance/full CI.**  
+**Historical O1F handoff:** integrated App Mode acceptance/full CI completed.  
 Historical handoff satisfied: O1F validation was recorded, O2 proceeded, and Product Onboarding O1–O11 is now complete/frozen in #40.
