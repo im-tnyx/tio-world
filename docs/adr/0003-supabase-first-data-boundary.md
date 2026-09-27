@@ -46,9 +46,9 @@ Do not rewrite the historical Context/Decision above as current-state prose. Use
 ## Related
 
 - [ADR-0007: Active Supabase and Future `services/api`](0007-active-supabase-and-future-services-api.md)
-- [Architecture](../ARCHITECTURE.md)
-- [Auth Architecture](../AUTH_ARCHITECTURE.md)
-- [Supabase-First Platform Strategy](../SUPABASE_STRATEGY.md)
-- [Data and Sync](../DATA_AND_SYNC.md)
-- [Security](../SECURITY.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
+- [Auth Architecture](../security/AUTH_ARCHITECTURE.md)
+- [Supabase-First Platform Strategy](../data/SUPABASE_STRATEGY.md)
+- [Data and Sync](../data/DATA_AND_SYNC.md)
+- [Security](../security/SECURITY.md)
 - [Supabase foundation task](../../.ai/tasks/supabase-foundation.md)
