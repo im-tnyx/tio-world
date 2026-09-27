@@ -51,6 +51,7 @@ P5 and P6 apply the four-line governance headers only after the separately gated
 | [`ARCHITECTURE.md`](architecture/ARCHITECTURE.md) | Repository shape, architecture principles, app boundaries, and dependency direction. |
 | [`AUTH_ARCHITECTURE.md`](security/AUTH_ARCHITECTURE.md) | Canonical Supabase Auth identity authority and future protected-service token boundary. |
 | [`SUPABASE_STRATEGY.md`](data/SUPABASE_STRATEGY.md) | Supabase Auth, Postgres/RLS, Storage, AI-provider, and future-backend boundaries. |
+| [`SUPABASE_SCHEMA.md`](data/SUPABASE_SCHEMA.md) | Verified human-readable inventory of the current Supabase `public` schema; executable truth remains migrations + verified live metadata. |
 | [`SUPABASE_SERVER_ACCESS.md`](data/SUPABASE_SERVER_ACCESS.md) | User-scoped vs privileged Supabase server access policy and no-escalation rules. |
 | [`SECRETS_AND_ENVIRONMENTS.md`](security/SECRETS_AND_ENVIRONMENTS.md) | Client-safe vs server-secret classification, environment isolation, rotation/revocation, and leak-response policy. |
 | [`OBSERVABILITY.md`](backend/OBSERVABILITY.md) | Structured logs, metrics, OpenTelemetry readiness, request/job correlation, dependency signals, and safe telemetry boundaries. |
@@ -89,7 +90,7 @@ Canonical documentation is grouped by durable ownership, not by current task sta
 | `docs/planning/` | Durable roadmap, MVP acceptance, and rollout direction. Live task/phase status does not belong here. |
 | `docs/mobile/` | Flutter phone/mobile structure and mobile-platform architecture detail. |
 | `docs/wearables/` | Wear OS and Apple Watch strategy. |
-| `docs/data/` | Supabase/data/sync/database ownership and runtime-data policy. P4B's future readable schema inventory belongs at `docs/data/SUPABASE_SCHEMA.md`. |
+| `docs/data/` | Supabase/data/sync/database ownership and runtime-data policy, including the current readable schema inventory at `docs/data/SUPABASE_SCHEMA.md`. |
 | `docs/backend/` | Future protected API/worker, async reliability, observability, deployment, scaling, and API lifecycle policy. |
 | `docs/security/` | Auth/identity, security, privacy, secrets, and environment policy. |
 | `docs/development/` | Developer setup and testing guidance. |
