@@ -1,5 +1,10 @@
 # ADR-0010: Calendar first day of week is a local Settings preference
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: Settings architecture (`apps/features/settings`)
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Accepted
 - **Date:** 2026-09-05
 - **Supersedes:** None

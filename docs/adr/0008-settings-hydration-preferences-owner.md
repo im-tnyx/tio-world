@@ -1,5 +1,10 @@
 # ADR-0008: Settings owns the bounded HydrationPreferences contract
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: Settings architecture (`apps/features/settings`)
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Superseded by [ADR-0009](0009-settings-local-default-glass-size.md)
 - **Date:** 2026-08-29
 

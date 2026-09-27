@@ -1,5 +1,10 @@
 # ADR-NNNN: Decision Title
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository architecture governance
+Truth Boundary: Authoritative for the structure of newly authored ADRs; not an architecture decision or runtime claim.
+
 - **Status:** Proposed
 - **Date:** YYYY-MM-DD
 
