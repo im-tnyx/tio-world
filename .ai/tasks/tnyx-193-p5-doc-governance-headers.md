@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** manual-review privacy-fix checkpoint `13f34b53add3a08b0925f345b6b3766a64a63237`; this handoff refresh creates the final evidence head that must be revalidated
+**HEAD SHA:** pre-final-handoff checkpoint `93dd72c340ead73eb53c4ac0e9286b2fd0326d94`; this final handoff refresh creates the exact review head that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
 **Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Three Codex review rounds plus one manual exact-head review exposed stale/current-truth gaps; all verified findings are now reconciled against current source, routes, repositories, migrations, live Supabase Edge Function state, CI and canonical ownership. Codex review quota is exhausted, so no further independent Codex pass is currently available.
 **Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
 **Validation completed at SHA:** manual exact-head review at `32c150ed400dc3dc3a1a825df4c00145f96d2794` verified 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation. That review found one additional P2: raw meal text can reach both configured AI interpreters sequentially when the primary is unavailable. Live `nutrition-meal-text-parse` v38 (ACTIVE, `verify_jwt=true`) confirms `FallbackMealInterpreter` reuses the same `mealText`; privacy policy fix committed at `13f34b53add3a08b0925f345b6b3766a64a63237`.
-**Validation remaining:** revalidate the handoff-refreshed exact head, reply/resolve manual finding P5-REV-31, refresh PR/tracker evidence and exact-head checks, and record that no further Codex review is available because the code-review usage limit has been reached. Merge remains separately gated by owner authorization.
+**Validation remaining:** revalidate the resulting exact final head, refresh PR/tracker exact-head evidence, inspect repository checks, and stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
 **Current blocker:** none
-**Open review finding IDs:** P5-REV-01 through P5-REV-31 fixes applied; P5-REV-31 thread closeout/exact-head check reconciliation pending
-**Next exact action:** revalidate this final handoff head, close P5-REV-31 with exact evidence, reconcile PR/tracker/check state, then stop at the owner merge gate because Codex cannot provide another review under the current usage limit.
+**Open review finding IDs:** none — P5-REV-01 through P5-REV-31 fixed and all 32 review threads resolved
+**Next exact action:** revalidate this final handoff head, reconcile PR/tracker/check state, then stop at the owner merge gate because Codex cannot provide another review under the current usage limit.
 
 ## 1. Discovery
 
@@ -207,7 +207,7 @@ All 68 Markdown documents under `docs/` carry the canonical four-line governance
 
 ### Known Limitations
 
-P5 source implementation is complete but not merged; exact-head review/check gates remain. P6/P7/P9 are still separately gated.
+P5 source implementation is complete but not merged. All known review findings are resolved; final exact-head repository checks and owner merge authorization remain. P6/P7/P9 are still separately gated.
 
 ### Final Status
 
