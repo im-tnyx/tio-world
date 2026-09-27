@@ -66,7 +66,7 @@ Daily Wellness; Body & Weight; Measurement Units; Profile/Profile Avatar; Accoun
 
 ### Verified Evidence
 
-- Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `docs/ARCHITECTURE.md`, `docs/MODULE_OWNERSHIP.md`, `docs/PUSH_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE.md`, GitHub #260/#357, Linear TNYX-201/TNYX-155/TNYX-154, current `router.dart`, current `settings_routes.dart`, and route tests.
+- Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/MODULE_OWNERSHIP.md`, `.github/PUSH_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE.md`, GitHub #260/#357, Linear TNYX-201/TNYX-155/TNYX-154, current `router.dart`, current `settings_routes.dart`, and route tests.
 - Current base: `main@ee649c6d404337a248072e3ab3040e5b84c2dadc`.
 - Existing pattern: C3a/C3b already place Settings-owned navigation/preferences registrations in `buildSettingsRoutes(...)`.
 - Current Health & Goals block is pure route/navigation composition: page mounting plus callbacks to Daily Wellness and Body & Weight.
