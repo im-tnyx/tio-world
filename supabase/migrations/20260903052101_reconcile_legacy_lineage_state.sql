@@ -8,7 +8,7 @@
 --
 -- Two corrections were first attempted by editing the historical migrations
 -- 20260814000001 and 20260814000002 in place. That was wrong. Per
--- docs/DATABASE_BACKUP_RECOVERY.md ("Migration Ownership"), applied history is
+-- docs/data/DATABASE_BACKUP_RECOVERY.md ("Migration Ownership"), applied history is
 -- evidence, not a template to rewrite: corrections are forward-only. Both
 -- historical files are preserved byte-for-byte, and the current corrections
 -- live here instead, so a fresh replay converges on the canonical state by
