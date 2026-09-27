@@ -31,7 +31,7 @@ Earlier documentation described Wear OS as native, which conflicted with the exi
 
 ## Related
 
-- [Watch Strategy](../WATCH_STRATEGY.md)
-- [Architecture](../ARCHITECTURE.md)
+- [Watch Strategy](../wearables/WATCH_STRATEGY.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Wear Home screen specification](../screens/wear-home.md)
 - [Active Decision D-001](../../.ai/DECISIONS.md)
