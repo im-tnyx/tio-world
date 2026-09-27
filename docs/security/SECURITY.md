@@ -1,5 +1,10 @@
 # Security
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository security governance
+Truth Boundary: Authoritative for baseline repository/product security and secret-handling rules; not evidence that every control has been independently audited.
+
 `tio-world` is a health and fitness product. Treat privacy, safety, and trust as product requirements.
 
 Cross-cutting data classification, minimization, retention, deletion/export, AI/provider, and environment-separation policy lives in [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md).

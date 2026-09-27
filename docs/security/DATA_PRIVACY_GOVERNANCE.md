@@ -1,5 +1,10 @@
 # Data & Privacy Governance
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Security & Privacy governance
+Truth Boundary: Authoritative for data-classification, minimization, privacy, retention, provider, and environment-separation policy; not proof every runtime control is deployed.
+
 ## Status
 
 **Canonical cross-cutting policy baseline for Tio World data handling.**
@@ -238,6 +243,32 @@ Before a new provider receives Personal, Sensitive, or Health-context data, reco
 
 Do not spread provider SDK calls across product modules when a shared internal boundary is appropriate.
 
+## Current Nutrition Meal-Text Provider Flow
+
+The existing authenticated `nutrition-meal-text-parse` Supabase Edge Function is current runtime, not future architecture. On 2026-09-27 the connected Supabase project reports the function ACTIVE with JWT verification enabled.
+
+Current server-side flow:
+
+1. The authenticated client sends the user's raw natural-language meal description to the Edge Function.
+2. `MEAL_INTERPRETER_PRIMARY` chooses the primary AI interpreter: Gemini or OpenAI. The other interpreter is configured as the sequential fallback; provider API keys/models remain server-side.
+3. `FallbackMealInterpreter` sends the same raw `mealText` to the fallback interpreter **only when** the primary returns `unavailable` (for example provider/transport/timeout/malformed-output failure) and the request is still active. `recognized` and `unrecognized` are final, and the two AI interpreters are never called in parallel.
+4. After interpretation, only the structured candidate foods/amounts enter nutrition resolution. FatSecret is the primary resolver and Edamam is an optional secondary resolver when its server-side credentials are configured; this resolver fallback is separate from the raw-text AI-interpreter fallback.
+5. Authenticated user country context is used for region-aware resolution. The client receives only the shaped Tio parse outcome, not provider credentials.
+6. Failure is fail-closed to explicit `unrecognized`, `incomplete`, or `unavailable` outcomes; provider failure must not fabricate nutrition facts.
+
+Data/privacy classification:
+
+- raw meal description and interpreted/resolved nutrition context are Health-context data for this workflow;
+- one request may transmit the same raw meal text to **both** configured AI interpreter providers sequentially when the primary is unavailable; fallback is not parallel and is not invoked after a recognized or unrecognized primary result;
+- FatSecret/Edamam receive structured food candidate/amount/region facts required for nutrition resolution rather than the original raw meal text; their resolver fallback is a separate provider path from interpreter fallback;
+- provider transmission is purpose-limited to interpreting the submitted meal text and resolving nutrition data;
+- raw meal text must not be added to analytics or routine logs/diagnostics;
+- repository/runtime code proves the provider path and server-side secret boundary, but it does **not** establish provider-side retention, training/reuse, deletion/export guarantees, or contractual data residency. Those provider-side properties must be documented from the applicable provider configuration/contract before provider settings are changed or the flow is expanded to new data classes;
+- FatSecret/Edamam resolution queries must remain limited to the minimum candidate/region facts required for food resolution;
+- changing interpreter/resolver provider, enabling new provider features, or broadening transmitted health context requires a fresh privacy/security review.
+
+This existing flow is a documented exception to the old "no AI provider integration is started" baseline; this policy does not authorize additional provider integrations.
+
 ## Relationship to Security
 
 Security asks whether data and systems are protected from unauthorized access or misuse.
@@ -260,7 +291,7 @@ Until separately approved tasks execute:
 
 - no `services/api` scaffold is required;
 - no analytics/attribution SDK is selected;
-- no AI provider integration is started;
+- no additional AI/provider integration is authorized by this policy; the existing Nutrition meal-text flow above is current implementation truth and remains bounded to its approved purpose;
 - no new Storage bucket is created solely because it is described here;
 - no export service/job is implemented;
 - no retention cron/job is introduced;

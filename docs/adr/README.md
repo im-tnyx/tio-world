@@ -1,5 +1,10 @@
 # Architecture Decision Records
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository architecture governance
+Truth Boundary: Authoritative for ADR lifecycle, numbering, status meanings, and the decision index; not runtime implementation status.
+
 Architecture Decision Records (ADRs) preserve **durable implementation-level architecture decisions** that should remain understandable after the original Linear issue, PR, or discussion is closed.
 
 They are intentionally lightweight. ADRs are not a second backlog and are not required for routine implementation choices.

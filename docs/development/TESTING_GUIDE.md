@@ -1,5 +1,10 @@
 # Testing Guide
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository developer experience
+Truth Boundary: Authoritative for repository testing expectations and validation coverage; not evidence that tests or CI currently pass.
+
 Testing depth should match product risk.
 
 ## Test Pyramid

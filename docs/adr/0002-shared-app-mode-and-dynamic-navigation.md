@@ -1,5 +1,10 @@
 # ADR-0002: Shared App Mode and Dynamic Navigation
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: app-mode/navigation architecture (`apps/shared` + `apps/app`)
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Accepted
 - **Date:** 2026-08-11
 

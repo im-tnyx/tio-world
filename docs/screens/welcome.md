@@ -1,5 +1,10 @@
 # Welcome Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/welcome`
+Truth Boundary: Authoritative for the Welcome screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone entry / auth landing screen
 **Current route:** `/auth`
 **Primary owner:** `apps/features/welcome`
@@ -7,20 +12,19 @@
 
 ## Current Runtime Behavior
 
-- Shows the Tio landing image, backdrop, product message, feature tiles, Get Started, Sign In, Skip for now, language, and legal text.
-- The image controls stay image-safe, while the feature summary uses a theme-aware semantic surface so light and dark modes preserve readable contrast.
-- **Get Started** pushes `/onboarding`.
+- Shows the Tio landing surface, Get Started, Sign In, Skip for now, language, and legal text.
+- **Get Started** pushes `/account-setup/app-mode`, beginning pre-auth App Mode selection for the fresh-account journey.
 - **Sign In** pushes `/login`.
-- **Skip for now** navigates to `/`.
-- Language and legal copy remain visible placeholders but are intentionally non-interactive until approved destinations exist.
+- **Skip for now** currently also pushes `/login`; there is no implicit guest Home session.
+- Language and legal copy remain visible placeholders until approved destinations exist.
 
 ## Target Responsibility
 
-Welcome explains the product and gives a safe entry choice. It must not decide App Mode, create a profile, or assume an authenticated session.
+Welcome explains the product and owns the entry choice into fresh-account setup or authentication. It may route into pre-auth App Mode selection, but it does not itself persist App Mode, create canonical profile data, or establish an authenticated session.
 
 ## Target Actions
 
-- Get Started opens the mode-first Onboarding flow.
+- Get Started opens pre-auth App Mode selection; authenticated account setup and Product Onboarding follow through their owning routes.
 - Sign In opens Login.
 - Skip must be retained only if the product supports an explicit guest path. Before real feature persistence is added, define what guest data is available, local-only, or blocked.
 - Language and legal copy remain non-interactive until approved, accessible destinations exist; when implemented, their actions must be restored with explicit semantics and tests.

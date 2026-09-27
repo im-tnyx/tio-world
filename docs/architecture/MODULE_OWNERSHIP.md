@@ -1,5 +1,10 @@
 # Module Ownership
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository architecture governance
+Truth Boundary: Authoritative for repository and module ownership boundaries; not live implementation status or runtime evidence.
+
 This document defines where code should live in `tio-world`.
 
 `tio-world` uses an apps-based Flutter workspace that mirrors the modular native structure from `Tio-hub`.

@@ -1,5 +1,10 @@
 # Supabase Runtime Configuration
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/app` startup + Supabase platform
+Truth Boundary: Authoritative for client-safe Supabase runtime configuration requirements; source/config prove actual bootstrap behavior and release values.
+
 The Flutter phone app does not embed a default Supabase project. Backend selection is explicit at build time.
 
 ## Required release values

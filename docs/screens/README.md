@@ -1,18 +1,23 @@
 # Screen Catalog And Module Plan
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: screen/product architecture
+Truth Boundary: Authoritative for the screen catalog, module ownership, state/navigation planning, and implementation order; runtime source proves shipped behavior and trackers own live delivery status.
+
 This catalog is the product-level reference for phone and Wear OS screens. It records what each screen is for, which package owns it, the visible sections, actions, states, and implementation boundaries.
 
 Runtime source remains the truth for live behavior. A **Target** section is a planned contract, not a claim that the screen or data already works.
 
 ## Current Runtime Snapshot
 
-- The phone starts at `/splash`, then routes to `/auth` after two seconds.
-- Welcome and Login have real Flutter UI. Onboarding routes one parent flow with
-  App Mode as the first child, Settings implements App Mode editing, and Profile
-  provides the avatar/photo-preview/Settings launcher boundary. Home, Nutrition,
-  Coach, Workout, Progress, and Profile details still use placeholder content.
-- The phone shell keeps five stable registered branches, while the visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before Phase 7.
-- The Wear OS app has a static seven-item action list. Every tile currently shows a `coming soon` message.
+- The phone starts at `/splash`; app-level session/bootstrap state decides the next destination and Splash exposes recoverable failure/retry rather than a fixed two-second redirect.
+- Welcome routes fresh-account Get Started into pre-auth App Mode selection and Sign In/Skip into Login. Login uses real Auth use cases and returns successful authentication to app-level bootstrap.
+- Onboarding is one parent flow with durable Supabase draft persistence/resume and Supabase-backed completion composition.
+- Home renders the Home feature page. Workout renders `WorkoutHomePage` with the Library entry, and Nutrition renders `MealDiaryPage`.
+- Library and Exercises are shipped nested Workout routes. Profile loads canonical profile/account/body data, exposes persisted editing and avatar management. Coach and Progress remain the shell branches whose current feature depth is still limited relative to their target contracts.
+- The phone shell keeps five stable registered branches while visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before its approved release stage.
+- The Wear OS app remains an early companion surface; runtime source is the authority for which actions are currently implemented.
 
 ## Module Map
 
@@ -51,13 +56,9 @@ Coach becomes eligible in Phase 7. Profile launches from the Home avatar; Settin
 
 A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library (one canonical route, see [Library](library.md)) and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
 
-The first implementation uses the approved device-local App Mode preference and
-defers account sync until a Supabase profile contract exists. The routed flow
-uses one `/onboarding` parent: the unnumbered App Mode chooser shows Back-only
-chrome and hides progress; later children keep fixed Back/progress and a fixed
-bottom primary action while
-only child content changes. Draft mode, confirmed mode, and completion status stay
-separate. Later mode-conditional steps and manual restart verification remain open.
+Pre-auth App Mode selection is held as local pending setup state until authentication/account setup completes. For authenticated accounts, canonical App Mode and active-tab preferences are persisted in `public.user_app_preferences` through `SupabaseAppPreferencesRepository`. Session bootstrap reads that canonical state and `AppModeController.restoreCanonical()` publishes it; the legacy device-local `AppModePreference` is only a best-effort cache and must not override valid remote account state.
+
+Product Onboarding still uses one `/onboarding` parent after account setup. Draft mode, canonical authenticated mode, and onboarding completion status remain distinct ownership/state concepts.
 See [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md), the
 [onboarding task](../../.ai/tasks/onboarding-flow.md), and the
 [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
@@ -93,15 +94,15 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Login](login.md) | Implemented UI; authentication is mocked. |
 | Phone | [Home](home.md) | Route placeholder; target specification. |
 | Phone | [Workout](workout.md) | Route placeholder; target specification. |
-| Phone | [Library](library.md) | Future canonical Workout Library route; capability-gated Programs/Routines/Plans/Exercises sections. |
-| Phone | [Exercises and Exercise Picker](exercise-search.md) | Future dedicated Exercises screen (Library → Exercises) and builder exercise picker. |
+| Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs, Routines and Plans remain later capability slices. |
+| Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
 | Phone | [Routines](routine-library.md) | Future Routines capability, reached through Library → Routines. |
 | Phone | [Programs](programs.md) | Future nested multi-week Workout program flow. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine/Program execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
-| Phone | [Nutrition](nutrition.md) | Route placeholder; target specification. |
-| Phone | [Meal Diary](meal-diary.md) | Future Nutrition MVP diary flow. |
+| Phone | [Nutrition](nutrition.md) | `/nutrition` now renders the Nutrition-owned Meal Diary date-navigation surface; later Nutrition sections remain target work. |
+| Phone | [Meal Diary](meal-diary.md) | Meal Diary date navigation, manual create/read foundations, selected-day cards, Quick Edit, daily summary and primary calorie-progress ring are implemented; later mutation/editor slices remain. |
 | Phone | [Nutrition Targets](nutrition-targets.md) | Future Nutrition-owned target configuration. |
 | Phone | [Meal Plan](meal-plan.md) | Future post-diary Nutrition flow. |
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |

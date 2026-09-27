@@ -1,70 +1,20 @@
 # Onboarding Flow Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: onboarding architecture (`apps/features/onboarding` + `apps/app`)
+Truth Boundary: Authoritative for onboarding architecture, state/persistence boundaries, and approved delivery design; source proves current behavior and trackers own slice status.
+
 ## Status
 
-**Typed-section routing, common Profile, the real Hybrid-only Workout Intro
-gate, real Workout Preferences, real Nutrition Intro, real Daily Targets (Bridge, Steps, Sleep, Water, Goal Pace, Nutrition Target Recommendation), canonical owner-backed domain persistence architecture, remote repository adapters (`RemoteProfileSetupRepository`, `RemoteWorkoutPreferencesRepository`, `RemoteTargetsSetupRepository`), remote finalizer (`RemoteOnboardingFinalizer`), Google authentication chain (`GoogleAuthUseCase`, `GoogleSignInProvider`, `FirebaseAuthSessionRepository`, `FirebaseAuthTokenProvider`), Device identity contract (`DeviceIdentity`, `DeviceIdentityProvider`, `FlutterDeviceIdentityProvider`), and Backend user synchronization (`BackendUserSyncRepository`, `RemoteBackendUserSyncRepository`, `BackendUserSyncRemoteDataSource`) are fully implemented and validated.**
+**Current Tio-world onboarding runtime is Supabase-backed and app-composed.**
 
-**Durable Persistence Readiness: BLOCKED (PARTIAL A)**.
-Auth timing is verified as `BEFORE_ONBOARDING` (from reference `AuthNavGraph.kt`). The Google authentication chain (`GoogleSignIn` -> Google ID Token -> `FirebaseAuth.signInWithCredential()` -> Firebase User -> `getIdToken()` -> `POST /api/v1/auth/google-sync` -> Backend DB user) is implemented and verified. Device identity generation with SHA-256 fingerprinting is in place.
-However, `Tio-World` currently lacks live Firebase client options/credentials in source (using `UnavailableAuthTokenProvider` and `AuthCapabilityUnavailable` by default). Consequently, `AuthProductState.isReadyForProtectedBackendCalls` remains safely false, and `OnboardingStatus.completed` publication remains blocked until live Firebase client authentication is wired.
-
-### Verified Backend Contracts (Source-grounded from `Tnyx-hub`):
-- **Profile:**
-  - Endpoint: `PATCH /api/v1/onboarding/profile`
-  - Request DTO: `{ data: { name: string, gender: "male"|"female"|"other", goals: string[], dob: "YYYY-MM-DD", height: number, currentWeight: number, activityLevel: string, healthConditions?: string[], otherHealthCondition?: string }, isCompleted: true }`
-  - Auth: Private (`Bearer <Firebase ID Token>`)
-  - Adapter: `RemoteProfileSetupRepository` with `ProfileSetupDtoMapper` & `HttpProfileSetupRemoteDataSource`.
-- **Workout:**
-  - Endpoint: `PATCH /api/v1/onboarding/workout`
-  - Request DTO: `{ data: { gymAccess: "home"|"gym", equipment?: string[], experienceLevel: "fresh"|"beginner"|"intermediate"|"advanced", focusAreas: string[], trainingDays: string[], workoutDuration: string, workoutSplit: string, healthConcerns?: string, specialEvent?: string }, isCompleted: true }`
-  - Auth: Private (`Bearer <Firebase ID Token>`)
-  - Mode-awareness: Only persisted when `workoutPreferences` was part of active flow.
-  - Adapter: `RemoteWorkoutPreferencesRepository` with `WorkoutPreferencesDtoMapper` & `HttpWorkoutPreferencesRemoteDataSource`.
-- **Targets:**
-  - Endpoint: `PATCH /api/v1/onboarding/target`
-  - Request DTO: `{ data: { stepTarget: number, sleepTarget: number (hours, decimal allowed, e.g. 7.5), sleepTime: "HH:mm", wakeTime: "HH:mm", waterTarget: number (ml, lossless), goalPaceKgPerWeek: number, targetWeight: number }, isCompleted: true }`
-  - Precision: `sleepTarget` preserves half-hour precision (e.g. 450m -> 7.5h); `waterTarget` preserves exact ml (1000..8000 ml).
-  - Adapter: `RemoteTargetsSetupRepository` with `TargetsSetupDtoMapper` & `HttpTargetsSetupRemoteDataSource`.
-- **Server Finalizer:**
-  - Endpoint: `POST /api/v1/onboarding/finalize`
-  - Server Authority: `targetFinalizeService.ts` recomputes `MetabolicEngine` BMR/TDEE/macros server-side and atomically transfers onboarding records to user profile & targets.
-  - Missing workout in Nutrition mode / Hybrid later: Server finalizer treats missing workout draft as valid, sets `workoutPayload = null` and `isWorkoutLocked = true`.
-  - Adapter: `RemoteOnboardingFinalizer` executing `POST /api/v1/onboarding/finalize`.
-
-The completion transaction coordinates atomic multi-owner persistence:
-1. Validates full flow eligibility via `OnboardingCompletionValidator` (`hasDurableOwnerPersistence` required).
-2. Persists active owner domain entities via `PersistOnboardingOwnerDataUseCase`:
-   - `ProfileSetupRepository` (Profile owner)
-   - `WorkoutPreferencesRepository` (Workout owner — mode-aware: skipped if workout was not in active flow)
-   - `TargetsSetupRepository` (Nutrition / Targets owner)
-3. Invokes server finalization via `OnboardingRemoteFinalizer.finalize()`.
-4. Persists confirmed `AppMode` to `AppModePreference`.
-5. Persists `OnboardingStatus.completed` to `OnboardingStatusRepository`.
-6. Navigates to Home upon successful completion.
-
-If any owner write or server finalization fails, confirmed AppMode and completed status are not written, duplicate submissions remain locked, and the user stays safely on Review with retry capability.
-
-```text
-App Router
-  -> /onboarding
-     -> OnboardingFlowPage
-        -> OnboardingTopBar (Back-only for App Mode; progress hidden)
-        -> OnboardingContentHost
-           -> OnboardingSectionRenderer
-              -> section widget
-                 -> individual screen, keyed by OnboardingStepId
-        -> OnboardingBottomBar
-
-OnboardingController
-  -> BuildOnboardingFlowUseCase
-     -> draft AppMode: workout | nutrition | hybrid
-     -> ordered OnboardingFlowPlan
-```
-
-The top region and bottom action region do not scroll away. The content host is
-the only scrolling region. When the keyboard opens, the parent resizes so the
-active field and primary action remain reachable.
+- Fresh-account entry uses pre-auth App Mode selection at `/account-setup/app-mode`, then authenticated account setup before Product Onboarding.
+- Product Onboarding remains one parent `/onboarding` flow with typed Profile, Workout, Nutrition and Targets sections.
+- Durable draft autosave/resume is implemented through `OnboardingDraftRepository` / `SupabaseOnboardingDraftRepository` and `public.onboarding_drafts`.
+- Completion composition uses Supabase-backed owner repositories and `SupabaseOnboardingCompletionRepository`; canonical owner writes/finalization and completion status remain subject to the flow's eligibility and failure guarantees.
+- Supabase Auth is the active identity/session boundary. Firebase/custom-backend adapters and the old `/api/v1/onboarding/*` Tnyx-hub chain are historical/reference or future-safe artifacts, not the current Tio-world production path.
+- Runtime source and current Supabase schema remain the proof of shipped behavior; this document owns the approved onboarding architecture and persistence boundaries.
 
 ## Android Reference And Flutter Translation
 
@@ -141,9 +91,11 @@ Verified source behavior in the current working tree:
   values to `OnboardingController`.
 - `ProfileFlowPlan.orderedSteps` is the single source for Name, Gender, Goal,
   Age, Height, Current Weight, Target Weight, Activity, and Health Conditions.
-- Profile data and the Hybrid workout-intro choice are held only in
-  `OnboardingDraft` for this slice. They are not written to
-  `SharedPreferences`, Supabase, a backend, or Profile storage.
+- Profile data and the Hybrid workout-intro choice remain part of the
+  versioned `OnboardingDraft`. Draft Profile fields are serialized into the
+  `public.onboarding_drafts` snapshot for durable autosave/resume; they are not
+  promoted to canonical `public.user_profiles` / owner tables until the
+  completion transaction performs the approved owner writes.
 - The routed flow keeps draft mode separate from confirmed App Mode;
   `AppModeScreen` owns only intro/mode-card presentation and emits selection.
 - The app layer persists non-sensitive onboarding bootstrap metadata only:
@@ -188,10 +140,10 @@ Verified source behavior in the current working tree:
   owner sections.
 - The parent shell is registered in `apps/app/lib/app/router.dart` on
   `/onboarding`, so it now changes current user-visible routing.
-- A secure sensitive resume repository and cross-owner draft persistence still do
-  not exist. Restarting during unfinished onboarding preserves the incomplete
-  gate truth but may lose in-memory Profile data.
-- Supabase and a structured local database are not implemented.
+- Durable onboarding draft persistence and resume are implemented through
+  `OnboardingDraftRepository` and `SupabaseOnboardingDraftRepository`, backed by
+  `public.onboarding_drafts` with user-scoped RLS. The remaining completion gate
+  concerns owner-backed product writes/finalization, not absence of draft persistence.
 
 Runtime source remains the truth until the planned slices below are delivered.
 

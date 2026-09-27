@@ -1,5 +1,10 @@
 # Workout Settings Screen
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/workout`
+Truth Boundary: Authoritative for the planned Workout Settings screen product contract and ownership; not evidence the screen is implemented or scheduled.
+
 **Surface:** Nested Phone Workout configuration
 **Route:** No route exists yet
 **Primary owner:** `apps/features/workout`

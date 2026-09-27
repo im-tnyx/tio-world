@@ -1,5 +1,10 @@
 # Deployment & Rollback Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for future service deployment and rollback policy; not evidence that hosting or deployment infrastructure exists.
+
 ## Status
 
 **Canonical provider-neutral deployment, rollback, and reproducible-infrastructure policy for Tio's future protected API and worker runtimes.**

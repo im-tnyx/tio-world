@@ -1,5 +1,10 @@
 # ADR-0005: Adaptive Navigation And Action Entry
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: adaptive navigation architecture (`apps/app` + `apps/shared`)
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Accepted
 - **Date:** 2026-08-11
 

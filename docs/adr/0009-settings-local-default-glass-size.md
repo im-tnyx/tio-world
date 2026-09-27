@@ -1,5 +1,10 @@
 # ADR-0009: Default Glass Size is a local Settings convenience preference
 
+Document Status: Architecture Decision Record
+Last Verified: 2026-09-27
+Owner: Settings architecture (`apps/features/settings`)
+Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
+
 - **Status:** Accepted
 - **Date:** 2026-08-29
 - **Supersedes:** [ADR-0008](0008-settings-hydration-preferences-owner.md)

@@ -1,5 +1,10 @@
 # Recovery Screen
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: future `apps/features/recovery`
+Truth Boundary: Authoritative for the planned Recovery screen product contract and ownership; not evidence the feature/package or screen is implemented or scheduled.
+
 **Surface:** Future phone feature; not a current primary tab
 **Route:** No route exists yet
 **Primary owner:** future `apps/features/recovery`

@@ -1,11 +1,14 @@
 # Profile Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/profile`
+Truth Boundary: Authoritative for the Profile screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone full-screen account and fitness context
 **Current route:** `/profile`
 **Primary owner:** `apps/features/profile`
-**Status:** A minimal Profile launcher is implemented with an actionable shared
-avatar, Profile photo preview route, and Settings entry. Profile details and real
-media persistence remain planned.
+**Status:** The Profile route loads canonical profile/account/body data, renders personal and health context, exposes persisted Profile Settings editing, opens Settings, and supports Profile avatar upload/deletion through the Profile-owned Supabase repository. Additional cross-feature content remains governed by its owning modules.
 
 ## Purpose
 
@@ -24,7 +27,7 @@ Give the user a single place to review and update personal and fitness context, 
 - Tapping the 100dp avatar opens the owned [Profile Photo](profile-avatar.md)
   screen.
 
-When avatar upload is approved, its file belongs in the private Supabase `profile` bucket through a Profile-owned repository. Profile fields remain structured data, not Storage files.
+Current avatar media uses the Profile-owned Supabase avatar repository and the existing public `avatars` bucket with user-folder ownership checks; `public.users.avatar_url` stores the pointer. This is a documented current exception, not the default model for sensitive health/fitness media. Profile fields remain structured data, not Storage files.
 
 ## Ownership Rules
 
@@ -37,7 +40,7 @@ When avatar upload is approved, its file belongs in the private Supabase `profil
 ## States And Privacy
 
 - Clearly distinguish unset data, user-entered data, inferred defaults, and data waiting to save/sync.
-- Edits need validation, cancellation, save success, save failure, and offline handling before persistence is implemented.
+- Persisted edits require validation, cancellation, truthful save success/failure handling, and safe retry behavior; do not present unsaved local state as canonical data.
 - Sensitive data must have an explicit purpose and no accidental logging. Destructive account or data actions require their own confirmed flow and are not part of the first Profile slice.
 
 ## Acceptance Criteria

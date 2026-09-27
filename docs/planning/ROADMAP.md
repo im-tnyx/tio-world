@@ -1,5 +1,10 @@
 # Roadmap
 
+Document Status: Planned/Future Doc
+Last Verified: 2026-09-27
+Owner: product engineering planning
+Truth Boundary: Authoritative for approved roadmap direction and sequencing intent; live trackers own current priority/status and runtime source proves shipped features.
+
 This roadmap is practical and intentionally staged. Do not build future areas before the current slice needs them.
 
 ## App Mode System
@@ -184,7 +189,7 @@ Goal: add a separate protected backend only when Supabase functions and reposito
 
 Goal: introduce server-side Gemini coaching after data and workout flows are stable.
 
-- [ ] Add protected backend service in `backend/ai-coach`
+- [ ] Add the protected AI coaching boundary under future `services/api` when that server-side slice is explicitly authorized
 - [ ] Keep prompt templates, Gemini credentials, and tool definitions server-side
 - [ ] Add client contract in `apps/features/coaching`
 - [ ] Stream coaching responses into Flutter UI

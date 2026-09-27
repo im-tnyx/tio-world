@@ -1,5 +1,10 @@
 # Library Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/workout`
+Truth Boundary: Authoritative for the Workout Library product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`

@@ -1,5 +1,10 @@
 # Architecture
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: repository architecture
+Truth Boundary: Authoritative for repository-wide architecture direction and dependency boundaries; source/config prove actual runtime behavior and trackers own delivery status.
+
 `tio-world` is a Flutter-first product monorepo with a Flutter Wear OS companion, a future native Apple Watch app, an active Supabase Auth/data foundation, and a future protected TypeScript/Fastify server workspace.
 
 This document is the canonical repository-shape and ownership reference. Runtime source/config remains the truth for what is actually implemented today.

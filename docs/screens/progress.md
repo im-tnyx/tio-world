@@ -1,5 +1,10 @@
 # Progress Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/progress`
+Truth Boundary: Authoritative for the Progress screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone primary tab in every App Mode
 **Current route:** `/progress`
 **Primary owner:** `apps/features/progress`

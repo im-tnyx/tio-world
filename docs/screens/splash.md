@@ -1,15 +1,21 @@
 # Splash Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/splash`
+Truth Boundary: Authoritative for the Splash screen product contract and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone entry screen
 **Current route:** `/splash`
 **Primary owner:** `apps/features/splash`
-**Status:** Implemented visual screen with a fixed transition; session and data initialization are not implemented.
+**Status:** Implemented presentation-only startup surface. App-level session/bootstrap resolution, redirect policy, failure state, and retry are implemented outside the feature screen.
 
 ## Current Runtime Behavior
 
-- Shows a bold "TIO" wordmark and a loading spinner on the Tio background.
-- Waits two seconds, then navigates to `/auth`.
-- Does not inspect authentication, App Mode, profile completeness, persistence, network state, or sync state.
+- `SplashScreen` is passive presentation: it shows the TIO wordmark plus loading state, or a recoverable failure message with Retry.
+- `AppSessionBootstrapController` and the app-level GoRouter policy own session/bootstrap resolution and destination routing; the screen itself has no fixed timer or direct `/auth` navigation.
+- Bootstrap failure can surface on Splash and Retry calls the app-level bootstrap refresh.
+- Authentication, App Mode, onboarding completion, profile/bootstrap reads, and safe fallback routing remain app-composition responsibilities rather than feature-widget decisions.
 
 ## Target Responsibility
 

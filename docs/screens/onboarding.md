@@ -1,13 +1,18 @@
 # Onboarding Screen
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: `apps/features/onboarding`
+Truth Boundary: Authoritative for the Onboarding screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+
 **Surface:** Phone full-screen setup flow
 **Current route:** `/onboarding`
 **Primary owner:** `apps/features/onboarding`
 **Status:** PARTIAL. App Mode selection, common Profile, Hybrid-only Workout Intro,
-Workout Preferences (W1/W2/W3), Nutrition Intro, Daily Targets (Bridge, Step Target, Sleep Target,
-Water Target, Goal Pace, Nutrition Target Recommendation), Review, and Atomic Owner Persistence
-architecture with confirmed App Mode & completion transactions are fully implemented and verified.
-Durable persistence remains BLOCKED until authenticated HTTP network adapters are wired in client.
+Workout Preferences (W1/W2/W3), Nutrition Intro, Daily Targets, Review, durable Supabase draft
+autosave/resume, and Supabase-backed completion/owner persistence composition are implemented.
+Remaining work is feature-slice/acceptance specific; durable persistence is no longer blocked on
+authenticated HTTP adapters.
 
 ## Purpose
 
@@ -24,8 +29,10 @@ Collect only the minimum context required to give a user the correct product exp
   3. Publishes confirmed `AppMode` to `AppModePreference`.
   4. Persists `OnboardingStatus.completed` to `OnboardingStatusRepository`.
   5. Navigates to Home with guided shell navigation.
-- Because only in-memory repositories exist currently, `hasDurableOwnerPersistence` is `false`
-  and Finish stays safely locked on Review.
+- App composition supplies Supabase-backed draft, completion, and canonical owner
+  repositories. Finish remains gated by `hasDurableOwnerPersistence`, validation,
+  authenticated owner writes, and failure-safe completion semantics rather than
+  by an absence of durable adapters.
 - If any owner write fails, confirmed AppMode and completed status are NOT written,
   and the user remains on Review with full retry capabilities.
 - Sensitive profile/body/health and workout answers are persisted directly to

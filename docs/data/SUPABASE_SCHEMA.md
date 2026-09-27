@@ -1,5 +1,10 @@
 # Supabase Public Schema Inventory
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Supabase data ownership
+Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
+
 ## Status
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**

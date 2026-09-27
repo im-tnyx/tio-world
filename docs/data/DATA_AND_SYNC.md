@@ -1,5 +1,10 @@
 # Data And Sync
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: data architecture + owning feature repositories
+Truth Boundary: Authoritative for repository data ownership, offline-first, and sync direction; not evidence that every feature has sync implemented.
+
 This document defines Tio-world data ownership, repository boundaries, local persistence, sync, Supabase, and the future protected-backend direction.
 
 ## Data Principles
@@ -55,6 +60,7 @@ Tio-world has three different persistence lifecycles:
 
 ```text
 public.users
+public.user_profiles
 public.user_devices
 public.body_weight_logs
 public.user_body_goals
@@ -74,7 +80,8 @@ Onboarding and Settings are entry points into canonical owners; neither creates 
 
 | Durable concept | Canonical owner |
 | :--- | :--- |
-| Account + common user profile | `public.users` |
+| Account/application root and account-level metadata | `public.users` |
+| Common personal Profile (name, gender, birth date, height, activity, health conditions, units, country) | `public.user_profiles` |
 | Device identity/runtime device state | `public.user_devices` |
 | Body weight history/current weight | `public.body_weight_logs` |
 | Body goal, Target Weight, weekly Goal Pace | `public.user_body_goals` |
@@ -91,9 +98,15 @@ Onboarding and Settings are entry points into canonical owners; neither creates 
 
 ### `public.users`
 
-Common profile/account fields such as name, gender, date of birth, height, activity level, general health conditions, unit preferences, timezone/profile/account metadata remain here.
+`public.users` is the application/account root and remains linked to Supabase Auth. Account-level state such as the avatar pointer and other explicitly account-owned compatibility fields may live here.
 
-`current_weight_kg`, `target_weight_kg`, `goals`, and `primary_goal` may remain physically present during compatibility, but are not long-term canonical Body/Goal owners after repository cutover.
+Common personal Profile fields are no longer canonically owned here. Compatibility columns can remain physically present during migration, but new Profile reads/writes must use the canonical Profile owner.
+
+### `public.user_profiles`
+
+`public.user_profiles` is the canonical common personal Profile owner for name, gender, date of birth, height, activity level, health conditions, unit preferences, and country. `SupabaseUserProfileRepository` reads/writes this table.
+
+Body weight/goals, Wellness, Nutrition and Workout fields remain with their dedicated owner tables; Profile must not absorb those domains.
 
 ### Body ownership
 

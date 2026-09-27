@@ -1,5 +1,10 @@
 # Observability Baseline
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Backend & Platform
+Truth Boundary: Authoritative for operational telemetry policy for protected runtimes; not evidence that dashboards, exporters, or alerts are deployed.
+
 ## Status
 
 **Canonical operational-telemetry policy for future Tio API and worker processes.**

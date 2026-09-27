@@ -1,5 +1,10 @@
 # Watch Strategy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: wearables architecture (`apps/wear` + `apps/watchos`)
+Truth Boundary: Authoritative for Wear OS and Apple Watch platform strategy, scope, and ownership; not proof Apple Watch or feature parity is implemented.
+
 `tio-world` treats smartwatch support as a core product surface, not an afterthought.
 
 ## Decision
@@ -62,7 +67,7 @@ Avoid putting these on watch unless a strong product reason exists:
 
 ## Wear OS Architecture
 
-Current Flutter Wear OS structure:
+Current checked-in Flutter Wear OS structure:
 
 ```text
 apps/wear/
@@ -70,14 +75,19 @@ apps/wear/
 │  ├─ main.dart
 │  ├─ wear_app.dart
 │  └─ src/
-│     ├─ home/
-│     ├─ live_workout/
-│     ├─ nutrition/
-│     └─ sync/
+│     ├─ device/
+│     │  └─ wear_display_shape.dart
+│     └─ home/
+│        └─ presentation/
+│           ├─ model/
+│           ├─ wear_home_screen.dart
+│           └─ widgets/
 ├─ android/
 ├─ test/
 └─ pubspec.yaml
 ```
+
+`live_workout/`, `nutrition/`, and `sync/` are architectural target areas only; they do not exist in the current checkout and must be introduced only by their approved vertical slices.
 
 ## Phone And Watch Sync
 

@@ -1,6 +1,6 @@
 # TNYX-193 P5 — Documentation Governance Header Rollout
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** repository documentation governance
 **Affected platforms:** documentation only
 
@@ -19,19 +19,19 @@
 **Review owner:** independent exact-head reviewer after each bounded slice
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@74a3903537442c4d2bb5e120b51a479da851e980`; GitHub #250 open; Linear TNYX-193 `In Progress`; P5 tracker state `Not started` before activation; no open PR overlap.
-**Branch:** `tnyx/tnyx-193-p5-verification-prereq`
-**HEAD SHA:** pre-review source checkpoint `a404f068c08bd3b5f6146c3b6120bc251329365f`; this PR-number handoff refresh creates the exact final head that must be revalidated before review
+**Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 is `In Review`; P6/P7/P9 remain separately gated.
+**Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
+**HEAD SHA:** last source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`; only this handoff metadata is expected to change after that checkpoint, and the resulting head must be revalidated externally in PR #417 / Linear TNYX-193 rather than creating recursive self-referential SHA-only commits
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
-**PR / tracker:** GitHub #250 / PR #416 / Linear TNYX-193
-**Current implementation state:** P5 prerequisite factual-drift source changes are complete and PR #416 is open; header rollout remains intentionally not started until prerequisite review/merge.
-**Relevant execution surface:** this prerequisite slice: `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`, `.ai/tasks/README.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/data/DATABASE_BACKUP_RECOVERY.md`. Later P5 slice: all 68 `docs/**/*.md` files.
-**Validation completed at SHA:** audit against `main@74a3903537442c4d2bb5e120b51a479da851e980`: 68 docs Markdown files; 0 complete governance headers; 49 live migrations match 49 checked-in by version/name; live `public` table set contains 14 active ordinary tables; `SUPABASE_STRATEGY.md` Status block names legacy tables `profiles`, `workout_preferences`, `user_targets` absent from the current live schema and names legacy adapters no longer present in current source; `DATABASE_BACKUP_RECOVERY.md` states 24 applied migrations while verified current count is 49.
-**Validation remaining:** revalidate PR #416 exact final head, inspect checks, obtain independent exact-head review, and merge only with explicit owner authorization; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
-**Current blocker:** header rollout remains gated on prerequisite review/merge; no source-level prerequisite blocker remains.
-**Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** revalidate the exact final PR #416 head, update tracker evidence without changing branch source, then request Codex exact-head review and inspect checks.
+**PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
+**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files. Three Codex review rounds plus one manual exact-head review exposed stale/current-truth gaps; all verified findings are now reconciled against current source, routes, repositories, migrations, live Supabase Edge Function state, CI and canonical ownership. Codex review quota is exhausted, so no further independent Codex pass is currently available.
+**Relevant execution surface:** all 68 `docs/**/*.md` files plus `.ai/tasks/README.md` and this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
+**Validation completed at SHA:** source/docs merge-gate checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`: 53 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 70 changed files = all 68 docs + the two focused `.ai/tasks` files; 68/68 headers; classification 48 `Canonical Live Doc`, 11 ADR, 9 `Planned/Future Doc`; 46 docs header-only and 22 docs with bounded truth reconciliation; 5 added local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; 32/32 review threads resolved; PR mergeable state `clean`. `Commit attribution guard` and `Attribution guard runner` PASS. Branch protection requires only `Commit attribution guard`; supplemental GHAS fails before meaningful analysis with `400 The requested model is not supported`, matching existing TNYX-256 infrastructure/tooling outage. No fresh Codex verdict is available because the code-review usage limit is exhausted. This active-handoff correction is the only expected change after that checkpoint.
+**Validation remaining:** after this handoff-only correction lands, revalidate the resulting PR head/check state externally and record that exact result in PR #417 plus Linear TNYX-193; do not create another metadata-only commit solely to embed its own resulting SHA. Then stop at the explicit owner merge gate. No further Codex review is available because the code-review usage limit has been reached.
+**Current blocker:** none
+**Open review finding IDs:** none — all 32 review threads/findings are resolved; the final manual privacy finding is included in the reconciled exact-head evidence
+**Next exact action:** revalidate the resulting handoff-only PR head/check state, record its exact SHA in PR #417 and Linear TNYX-193, then stop at the explicit owner merge gate; do not merge without explicit owner authorization.
 
 ## 1. Discovery
 
@@ -92,6 +92,10 @@ Later P5 header slice:
 - Live `public` tables are: `body_weight_logs`, `meal_log_entries`, `meal_log_item_snapshots`, `onboarding_drafts`, `user_app_preferences`, `user_body_goals`, `user_devices`, `user_nutrition_profiles`, `user_nutrition_targets`, `user_profiles`, `user_wellness_targets`, `user_workout_profiles`, `user_workout_targets`, `users`.
 - Current Flutter startup initializes Supabase through `SupabaseRuntimeConfig` + `initializeSupabaseRuntime`; current code contains multiple feature-owned Supabase repositories. The old `SupabaseWorkoutPreferencesRepository` and `SupabaseTargetsSetupRepository` named in the strategy Status block are not current source classes.
 - The future-safe backend examples later in `SUPABASE_STRATEGY.md` are mostly still present, but `RemoteWorkoutPreferencesRepository` and `RemoteTargetsSetupRepository` are no longer current source examples and must not be presented as currently inactive code.
+- P4A establishes ownership folders under `docs/`; `docs/README.md` says canonical docs own repository-wide current policy within their stated truth boundaries, while runtime source/config proves actual behavior and live trackers own task state.
+- `docs/adr/README.md` keeps ADR lifecycle status separate from implementation completion and explicitly preserves superseded ADR history.
+- `docs/screens/README.md` maps screen/product areas to durable module owners, which P5 uses for screen `Owner` metadata.
+- P5 verification date for this rollout is `2026-09-27`; it records verification of each document's governance class/owner/truth boundary against the current canonical/source context, not a claim that planned features are implemented.
 
 ## 3. Clarification
 
@@ -104,6 +108,10 @@ Later P5 header slice:
 | Use one current date for every `Last Verified` value without content evidence | Rejected | Would create false verification claims. | AGENTS.md / audit-first rule |
 | Fix known stale current-state prose inside the 68-file header PR | Rejected | Keep the P5 header rollout reviewable; prerequisite drift gets its own bounded docs slice. | Slice discipline |
 | Treat future backend policy docs as automatically `Planned/Future Doc` | Rejected | They are current canonical policies even when the runtime they govern is future-only. | docs/README.md authority model |
+| Actual numbered ADR files use `Architecture Decision Record` even when superseded | Resolved | The governance label describes document class; each ADR's existing lifecycle `Status` preserves Accepted/Superseded/Deprecated state. | ADR governance |
+| `docs/adr/README.md` and `docs/adr/TEMPLATE.md` are ADRs | Rejected | They govern/index ADRs but are not decision records themselves; classify them as `Canonical Live Doc`. | ADR governance |
+| Planned-only classification set | Resolved | `docs/planning/ROADMAP.md`, `docs/planning/MVP_ACCEPTANCE.md`, and eight planned-only screen specs: active-workout, meal-plan, nutrition-targets, programs, recovery, routine-library, workout-insights, workout-settings. | P5 matrix |
+| Mixed current + target screen specs are planned-only | Rejected | Where a screen doc records current runtime plus target contract, it remains a current canonical screen spec; runtime source still wins for shipped behavior. | Screen catalog |
 
 ## 4. Architecture Design
 
@@ -139,14 +147,14 @@ Prerequisite slice:
 - [x] remove no-longer-current backend adapter examples from its future-safe preservation list while keeping valid examples;
 - [x] correct the backup/recovery migration-count sentence with an explicitly dated P4B verification note;
 - [x] validate exact scope, links and patch hygiene;
-- [ ] open bounded prerequisite PR and obtain exact-head review.
+- [x] open bounded prerequisite PR and obtain exact-head review; PR #416 merged as `aac56b3f0323ea4f5b8b0e5741ead815097f3da8`.
 
 Header slice after prerequisite merge:
-- [ ] build and review 68-row path/status/owner/truth-boundary/last-verified matrix;
-- [ ] apply headers without deleting existing status semantics;
-- [ ] verify 68/68 coverage and canonical label vocabulary;
-- [ ] validate links/patch/scope;
-- [ ] open P5 header PR and obtain exact-head review.
+- [x] build and review the 68-row path/status/owner/truth-boundary/last-verified matrix; current reconciled classification is 48 `Canonical Live Doc`, 11 `Architecture Decision Record`, 9 `Planned/Future Doc` after confirming Nutrition Targets is implemented.
+- [x] apply headers without deleting existing status semantics;
+- [x] verify 68/68 coverage and canonical label vocabulary;
+- [x] validate header placement, status sets, docs-body preservation, zero Markdown-link mutation, and final patch/scope hygiene at source/docs checkpoint `2716c2c77971ad4fd2610c0aedd250c85a211760`.
+- [x] open P5 header PR and obtain the available exact-head review; PR #417 is open, three Codex review rounds plus one manual exact-head review were completed, 32/32 review threads are resolved, and further Codex review is unavailable under the current usage limit.
 
 ## 6. Quality Review
 
@@ -154,6 +162,10 @@ Header slice after prerequisite merge:
 
 ```text
 Prerequisite source validation complete on branch: 4 ahead / 0 behind from `main@74a3903537442c4d2bb5e120b51a479da851e980`; exactly four planned paths; 49 live migrations = 49 checked-in by version+name; legacy 24-count/table/removed-adapter claims absent; 43 local Markdown references checked with 0 missing; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no out-of-scope path diff.
+
+Third-review checkpoint `72ab1bb973ce4d3398a94bcac810664fa4edcb69`: 68/68 headers remain present; classification 48 canonical + 11 ADR + 9 planned/future; 46 docs are pure header-only and 22 docs contain bounded truth reconciliation; changed paths remain exactly 68 docs + the two focused `.ai/tasks` files.
+
+Manual exact-head review at `32c150ed400dc3dc3a1a825df4c00145f96d2794` found one additional privacy P2. Live Edge Function v38 shows interpreter selection is primary + sequential fallback: on primary `unavailable`, the same raw `mealText` is sent to the other AI interpreter; resolver fallback (FatSecret -> optional Edamam) is a separate structured-candidate path. Policy correction committed at `13f34b53add3a08b0925f345b6b3766a64a63237`.
 ```
 
 ### Review Findings and Resolution
@@ -162,6 +174,16 @@ Prerequisite source validation complete on branch: 4 ahead / 0 behind from `main
 |---|---|---|---|---|---|
 | P5-AUDIT-01 | Blocking prerequisite | Resolved | `DATABASE_BACKUP_RECOVERY.md` says current live migration history contains 24 applied migrations; live + repository history verify 49/49. | `74a3903537442c4d2bb5e120b51a479da851e980` | Correct only this current-state claim before P5 verification metadata. |
 | P5-AUDIT-02 | Blocking prerequisite | Resolved | `SUPABASE_STRATEGY.md` Status block lists legacy tables and removed adapter examples as current; its later inactive-backend examples also include two classes no longer in source. | `74a3903537442c4d2bb5e120b51a479da851e980` | Reconcile the bounded stale current-state/example prose against live schema + current source. |
+| P5-REV-01 | P2 | Fix applied | Active-task index still described the prerequisite slice after the 68-header rollout. | `58882396eab71e414e28b153465eaab4ed81181e` | `.ai/tasks/README.md` now states PR #417 header rollout is implemented and under review. |
+| P5-REV-02 | P2 | Fix applied | ROADMAP and Coach repeated obsolete protected-backend path `backend/ai-coach`. | `58882396eab71e414e28b153465eaab4ed81181e` | Both now route future protected AI work to canonical `services/api` with explicit authorization. |
+| P5-REV-03 | P2 | Fix applied | Splash header owner conflicted with the real `apps/features/splash` package and its own primary-owner line. | `58882396eab71e414e28b153465eaab4ed81181e` | Header owner corrected to `apps/features/splash`. |
+| P5-REV-04 | P2 | Fix applied | Welcome header owner conflicted with the real `apps/features/welcome` package and its own primary-owner line. | `58882396eab71e414e28b153465eaab4ed81181e` | Header owner corrected to `apps/features/welcome`. |
+| P5-REV-05 | P2 | Fix applied | Onboarding current-runtime prose said Supabase/draft persistence was not implemented although current source provides `SupabaseOnboardingDraftRepository` and `public.onboarding_drafts`. | `58882396eab71e414e28b153465eaab4ed81181e` | Current runtime boundary now records implemented durable draft persistence/resume and the remaining owner-write/finalization gate. |
+| P5-REV-06 | P2 | Fix applied | Screen catalog still called Library/Exercises/Nutrition/Meal Diary future/placeholders despite shipped routes and implemented screen-doc status. | `58882396eab71e414e28b153465eaab4ed81181e` | Those four catalog rows now match current route/source and individual screen-doc evidence. |
+| P5-REV-07..22 | P2 | Fix applied | Second exact-head review found additional stale/current-truth contradictions across onboarding Firebase/HTTP status, draft persistence wording, Splash/Login/Welcome routing/auth behavior, Onboarding persistence, screen runtime snapshot, Nutrition Targets classification, Profile/avatar implementation, Home/Settings ownership and Body flow, current Flutter feature package tree, Profile table split, live public avatar Storage exception, and Flutter feature validation commands. | `b69505274698b1eae98945ef33d8c16b3a35f15c` | Each finding was verified against current source/routes/repositories/migrations/CI before correction; source checkpoint `f02ef333d33805355454a3f84aed7ff4c03ef397` passes targeted truth checks and yields classification 48/11/9. |
+| P5-REV-23..30 | P2 | Fix applied | Third exact-head review found stale handoff counts plus conditional Nutrition Settings, Workout runtime, authenticated App Mode persistence, Wear checkout tree, Meal Diary display/create state, Describe Meal activation, and AI/provider privacy-policy drift. | `f02ef333d33805355454a3f84aed7ff4c03ef397` | Verified against current Settings/App Mode/Workout/Nutrition source, actual Wear tree, ACTIVE JWT-protected `nutrition-meal-text-parse` function, provider composition and privacy policy; corrected at source checkpoint `72ab1bb973ce4d3398a94bcac810664fa4edcb69`. Codex then reported code-review usage exhaustion, preventing another independent pass. |
+| P5-REV-31 | P2 | Fix applied | Manual exact-head review found that Data & Privacy Governance described one configured Gemini/OpenAI interpreter but did not disclose that the same raw Health-context meal text can be transmitted sequentially to the fallback AI interpreter when the primary is unavailable. | `32c150ed400dc3dc3a1a825df4c00145f96d2794` | Verified against live `nutrition-meal-text-parse` v38: `FallbackMealInterpreter` sends identical `mealText` to the fallback only on primary `unavailable`; recognized/unrecognized results are final and calls are not parallel. FatSecret/Edamam resolver fallback is separate and structured-candidate based. Corrected at `13f34b53add3a08b0925f345b6b3766a64a63237`. |
+| P5-HANDOFF-01 | P2 | Fix applied | Final active handoff still pointed to pre-refresh checkpoint `533e17b9...`, said revalidation remained, and left the PR/review step unchecked after exact-head revalidation at `2716c2c...`. | `2716c2c77971ad4fd2610c0aedd250c85a211760` | Handoff status/checkpoint/validation/next-action fields are reconciled in one bounded `.ai`-only correction. The resulting commit SHA is recorded externally in PR #417 and Linear TNYX-193 after revalidation to avoid recursive self-referential metadata churn. |
 
 ## 7. Final Handoff
 
@@ -173,14 +195,21 @@ Prerequisite slice:
 - `docs/data/SUPABASE_STRATEGY.md`
 - `docs/data/DATABASE_BACKUP_RECOVERY.md`
 
+Header-rollout/review slice:
+- all 68 Markdown documents recursively under `docs/`
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`
+
+After three Codex review rounds plus one manual exact-head review, 46 docs remain governance-header-only and 22 docs contain bounded truth reconciliation required to make the 2026-09-27 verification claim accurate. The privacy reconciliation now explicitly records sequential raw-meal-text transmission to the fallback AI interpreter on primary unavailability and keeps FatSecret/Edamam structured-candidate fallback separate; no runtime or database code changed.
+
 ### Actual Behavior
 
-Known current-state drift blocking truthful P5 verification metadata is reconciled in the prerequisite branch. No governance headers or runtime/database behavior changes are included.
+All 68 Markdown documents under `docs/` carry the canonical four-line governance header directly below the H1 title. Three Codex reviews plus a manual exact-head review exposed stale current-state prose that would have made the verification metadata misleading; verified corrections are limited to documentation/governance truth reconciliation and do not change runtime/database behavior. Current classification is 48 Canonical Live Docs, 11 ADRs, and 9 Planned/Future Docs. The privacy reconciliation documents both sequential AI-interpreter fallback transmission and separate nutrition-resolver fallback without inventing provider-side retention/training/deletion guarantees.
 
 ### Known Limitations
 
-P5 header rollout remains pending until this prerequisite current-state cleanup is reviewed and merged.
+P5 source implementation is complete but not merged. All known review findings are resolved. Supplemental GHAS remains blocked by the existing TNYX-256 unsupported-model infrastructure outage, and no further Codex review is available under the current quota. Owner merge authorization remains the final product-governance gate. P6/P7/P9 are still separately gated.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`

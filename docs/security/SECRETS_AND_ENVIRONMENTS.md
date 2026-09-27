@@ -1,5 +1,10 @@
 # Secrets & Environment Strategy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Security & Platform
+Truth Boundary: Authoritative for secrets, client-safe configuration, environment isolation, and rotation/revocation policy; deployment configuration is actual environment truth.
+
 ## Status
 
 **Canonical provider-neutral policy for Tio World configuration, secrets, environment separation, and credential rotation.**

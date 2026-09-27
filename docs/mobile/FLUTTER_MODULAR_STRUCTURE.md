@@ -1,5 +1,10 @@
 # Flutter Modular Structure
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Flutter mobile architecture
+Truth Boundary: Authoritative for Flutter workspace/module structure and dependency direction; checked-in workspace/source prove the actual current tree.
+
 This document defines the Flutter equivalent of the native `Tio-hub` modular structure.
 
 The goal is simple: keep the Flutter app scalable when each product area grows to 20+ screens, while keeping the app shell thin and feature ownership clear.
@@ -20,6 +25,10 @@ Native Gradle-style module names map to Flutter/Melos package folders like this:
 | `:features:nutrition` | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `:features:onboarding` | `apps/features/onboarding` | Onboarding feature package and all onboarding screens/flows. |
 | `:features:auth` | `apps/features/auth` | Auth feature package and session entry flows. |
+| `:features:account_setup` | `apps/features/account_setup` | Pre-product account setup package used after authentication and before Product Onboarding. |
+| `:features:home` | `apps/features/home` | Home presentation package rendered by the phone shell. |
+| `:features:splash` | `apps/features/splash` | Presentation-only startup surface; app composition owns bootstrap/routing. |
+| `:features:welcome` | `apps/features/welcome` | Welcome/auth-landing presentation and entry actions. |
 | `:features:profile` | `apps/features/profile` | Profile launcher/account/fitness hub package. |
 | `:features:settings` | `apps/features/settings` | App settings and account controls package. |
 | `:features:progress` | `apps/features/progress` | Progress, measurements, photos, streaks, and analytics package. |
@@ -68,14 +77,18 @@ tio-world/
 │  │  └─ pubspec.yaml
 │  │
 │  └─ features/
+│     ├─ account_setup/
 │     ├─ auth/
-│     ├─ onboarding/
-│     ├─ workout/
+│     ├─ coaching/
+│     ├─ home/
 │     ├─ nutrition/
+│     ├─ onboarding/
 │     ├─ profile/
-│     ├─ settings/
 │     ├─ progress/
-│     └─ coaching/
+│     ├─ settings/
+│     ├─ splash/
+│     ├─ welcome/
+│     └─ workout/
 ├─ supabase/                      # Active Auth/data/migrations/RLS/functions boundary
 ├─ docs/
 ├─ .github/
