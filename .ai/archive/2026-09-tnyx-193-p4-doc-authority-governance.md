@@ -28,7 +28,7 @@ P4 changed only documentation/governance surfaces:
 - `.ai/workflow.md`
 - focused task brief/index
 
-P4 did not change runtime/UI/routing/state, Supabase schema/migrations/RLS/Storage/functions/Auth, CI workflows, lockfiles, ADR history, P4A document relocation, P5/P6 header rollout, or P7 `.ai/CURRENT.md`.
+P4 did not change runtime/UI/routing/state, Supabase schema/migrations/RLS/Storage/functions/Auth, CI workflows, lockfiles, ADR history, P4A document relocation, P4B current-schema inventory, P5/P6 header rollout, or P7 `.ai/CURRENT.md`.
 
 ## Review Findings Resolved
 
@@ -62,7 +62,7 @@ All review threads were resolved before final exact-head review.
 
 After merge automation temporarily completed the umbrella trackers:
 
-- GitHub #250 was reopened because P4A/P5/P6/P7/P9 remain separately gated;
+- GitHub #250 was reopened because P4A/P4B/P5/P6/P7/P9 remain separately gated;
 - Linear TNYX-193 was restored to `In Progress`;
 - P4 was marked completed in both trackers;
 - no later phase was authorized by the P4 merge.
@@ -71,4 +71,4 @@ After merge automation temporarily completed the umbrella trackers:
 
 `VALIDATED — MERGED VIA PR #410 (ff211c40)`
 
-No P4A/P5/P6/P7/P9 implementation is authorized by this archived handoff.
+No P4A/P4B/P5/P6/P7/P9 implementation is authorized by this archived handoff.
