@@ -41,6 +41,8 @@ This inventory intentionally excludes:
 | Foreign-key constraints | 14 |
 | Unique constraints | 4 |
 | Check constraints | 54 |
+| Constraint-trigger records | 2 |
+| Total catalog constraint records | 88 |
 | Indexes | 39 |
 | Tables with RLS enabled | 14 / 14 |
 | Partitioned tables | 0 |
