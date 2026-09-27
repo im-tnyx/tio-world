@@ -164,4 +164,4 @@ Requirements:
 
 **Product Onboarding:** O1–O11 complete/frozen in #40; do not derive current sequencing from this historical split brief.  
 **Independent account/runtime work:** reconcile current source and live trackers such as #44/#8 before implementation.  
-**For any new Product Onboarding work:** read current canonical onboarding docs and live GitHub/Linear trackers; the archived execution plan is historical only.**
+**For any new Product Onboarding work:** read current canonical onboarding docs and live GitHub/Linear trackers; the archived execution plan is historical only.
