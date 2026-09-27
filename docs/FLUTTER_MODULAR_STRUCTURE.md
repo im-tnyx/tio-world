@@ -76,6 +76,7 @@ tio-world/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
+├─ supabase/                      # Active Auth/data/migrations/RLS/functions boundary
 ├─ docs/
 ├─ .github/
 ├─ .ai/
@@ -85,9 +86,9 @@ tio-world/
 └─ README.md
 ```
 
-Supabase is the planned first Auth/data/Storage foundation, but no root `supabase/` workspace is present in the current checkout. Create it only with its first approved vertical slice; it owns migrations and RLS rather than a `backend/db` module.
+Supabase is the active Auth/data/Storage foundation. The root `supabase/` workspace is present and owns project configuration, migrations, RLS/policies, approved Edge Functions, and related platform assets.
 
-The separate `backend/` workspace is a future protected-service upgrade for Gemini/AI orchestration, advanced integrations, and long-running work. Create it only with its first approved server-side vertical slice; do not add placeholder runtime/tooling files before then.
+Future protected service work belongs under `services/api` only after a separately approved server-side slice requires it. A future `services/worker` is reserved for a real asynchronous/background workload. Neither path exists in the current checkout, and no placeholder runtime/tooling folders should be added before then.
 
 Recovery is also planned but absent from the current checkout. Create `apps/features/recovery` only after its first approved vertical slice; do not add an empty feature package for future work.
 
