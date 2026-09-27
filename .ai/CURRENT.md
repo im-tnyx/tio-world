@@ -7,7 +7,7 @@ Truth Boundary: Orientation only; runtime/source proves behavior, canonical docs
 
 ## Verification baseline
 
-This snapshot was refreshed after the pre-P9 Product Onboarding handoff cleanup from `main@0a534984793714ad46e23f40b366f7ca8c82c2f3`, current canonical AI governance, GitHub #250, Linear TNYX-193, and a fresh GitHub open-PR query.
+This snapshot was refreshed from `main@7a243122a58baa2cf1e03fa785669339e89940c5` after the pre-P9 Product Onboarding task-index reconciliation and its archive lifecycle completed via PRs #426 and #427, with GitHub #250 and Linear TNYX-193 re-queried.
 
 Do not treat this file as a backlog, release record, architecture authority, or substitute for source inspection. Live tracker state can change immediately after this checkpoint.
 
@@ -40,7 +40,7 @@ The historical Product Onboarding O1–O11 execution lane is complete/frozen in 
 - GitHub #44 remains the broader open canonical-ownership umbrella; its current live scope must be re-read before new work.
 - Completed onboarding does not itself authorize broad Health Connect/HealthKit record access; any future consuming feature must establish its own approved least-privilege scope.
 
-A separate `.ai/tasks/README.md` execution-order block still contains historical O1-as-NEXT wording. Until that bounded index cleanup is completed, do not use that block as current sequencing truth.
+- The stale `.ai/tasks/README.md` O1/O1F current-sequencing wording was reconciled by PR #426; its validated handoff was archived by PR #427. The historical O1–O11 lane remains reference-only, not current sequencing truth.
 
 ## Live work context
 
@@ -55,8 +55,8 @@ Representative live lanes at this checkpoint include app/router organization, Nu
 GitHub #250 / Linear TNYX-193 remains the active documentation-governance tracker.
 
 - P1–P8 are completed.
-- The stale Product Onboarding execution handoff cleanup merged via PR #423 before this refresh.
-- This refresh is a bounded pre-P9 reconciliation, not P9.
+- The stale Product Onboarding execution handoff cleanup merged via PR #423; the remaining task-index sequencing drift was reconciled by PR #426 and its handoff archived by PR #427.
+- The current work is a bounded post-index snapshot reconciliation before #250 acceptance bookkeeping; it is not P9.
 - P9 remains separately gated and Not started; its routing-map decision must be made only after the pre-P9 alignment baseline is clean.
 - Supplemental GitHub AI code-scanning has a known unsupported-model infrastructure outage tracked separately by TNYX-256; do not represent that failure as a security pass or repository finding.
 
