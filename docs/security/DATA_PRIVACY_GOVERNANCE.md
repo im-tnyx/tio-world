@@ -1,5 +1,10 @@
 # Data & Privacy Governance
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: Security & Privacy governance
+Truth Boundary: Authoritative for data-classification, minimization, privacy, retention, provider, and environment-separation policy; not proof every runtime control is deployed.
+
 ## Status
 
 **Canonical cross-cutting policy baseline for Tio World data handling.**

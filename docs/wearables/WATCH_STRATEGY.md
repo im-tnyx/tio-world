@@ -1,5 +1,10 @@
 # Watch Strategy
 
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-27
+Owner: wearables architecture (`apps/wear` + `apps/watchos`)
+Truth Boundary: Authoritative for Wear OS and Apple Watch platform strategy, scope, and ownership; not proof Apple Watch or feature parity is implemented.
+
 `tio-world` treats smartwatch support as a core product surface, not an afterthought.
 
 ## Decision
