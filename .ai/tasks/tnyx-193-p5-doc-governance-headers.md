@@ -19,19 +19,19 @@
 **Review owner:** independent exact-head reviewer after each bounded slice
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@74a3903537442c4d2bb5e120b51a479da851e980`; GitHub #250 open; Linear TNYX-193 `In Progress`; P5 tracker state `Not started` before activation; no open PR overlap.
-**Branch:** `tnyx/tnyx-193-p5-verification-prereq`
-**HEAD SHA:** pre-review source checkpoint `a404f068c08bd3b5f6146c3b6120bc251329365f`; this PR-number handoff refresh creates the exact final head that must be revalidated before review
+**Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
+**Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
+**HEAD SHA:** branch created from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; header-rollout implementation commit pending
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
-**PR / tracker:** GitHub #250 / PR #416 / Linear TNYX-193
-**Current implementation state:** P5 prerequisite factual-drift source changes are complete and PR #416 is open; header rollout remains intentionally not started until prerequisite review/merge.
-**Relevant execution surface:** this prerequisite slice: `.ai/tasks/tnyx-193-p5-doc-governance-headers.md`, `.ai/tasks/README.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/data/DATABASE_BACKUP_RECOVERY.md`. Later P5 slice: all 68 `docs/**/*.md` files.
-**Validation completed at SHA:** audit against `main@74a3903537442c4d2bb5e120b51a479da851e980`: 68 docs Markdown files; 0 complete governance headers; 49 live migrations match 49 checked-in by version/name; live `public` table set contains 14 active ordinary tables; `SUPABASE_STRATEGY.md` Status block names legacy tables `profiles`, `workout_preferences`, `user_targets` absent from the current live schema and names legacy adapters no longer present in current source; `DATABASE_BACKUP_RECOVERY.md` states 24 applied migrations while verified current count is 49.
-**Validation remaining:** revalidate PR #416 exact final head, inspect checks, obtain independent exact-head review, and merge only with explicit owner authorization; then build the 68-row P5 classification/verification matrix and apply headers in a separate branch/PR.
-**Current blocker:** header rollout remains gated on prerequisite review/merge; no source-level prerequisite blocker remains.
+**PR / tracker:** GitHub #250 / Linear TNYX-193; prerequisite PR #416 merged; header-rollout PR pending
+**Current implementation state:** prerequisite factual-drift correction is merged. The 68-document classification is resolved and the four-line header rollout is ready to implement.
+**Relevant execution surface:** all 68 `docs/**/*.md` files plus this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
+**Validation completed at SHA:** prerequisite PR #416 exact reviewed head `9a56c1c8a01d99e7a5e437e05063833fa4258691` merged as `aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; Codex no major issues; unresolved threads 0; both attribution guards PASS; known Supabase strategy/backup current-state drift resolved. Header audit baseline remains 68 docs Markdown files and 0 complete four-line governance headers before rollout.
+**Validation remaining:** apply the resolved 68-row classification; verify 68/68 exact header coverage, canonical label vocabulary, preserved existing status semantics, Markdown links, patch hygiene and zero out-of-scope diff; then open/review the header-rollout PR.
+**Current blocker:** none
 **Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** revalidate the exact final PR #416 head, update tracker evidence without changing branch source, then request Codex exact-head review and inspect checks.
+**Next exact action:** insert only the four-line governance metadata under each `docs/` title according to the resolved classification and ownership rules.
 
 ## 1. Discovery
 
@@ -92,6 +92,10 @@ Later P5 header slice:
 - Live `public` tables are: `body_weight_logs`, `meal_log_entries`, `meal_log_item_snapshots`, `onboarding_drafts`, `user_app_preferences`, `user_body_goals`, `user_devices`, `user_nutrition_profiles`, `user_nutrition_targets`, `user_profiles`, `user_wellness_targets`, `user_workout_profiles`, `user_workout_targets`, `users`.
 - Current Flutter startup initializes Supabase through `SupabaseRuntimeConfig` + `initializeSupabaseRuntime`; current code contains multiple feature-owned Supabase repositories. The old `SupabaseWorkoutPreferencesRepository` and `SupabaseTargetsSetupRepository` named in the strategy Status block are not current source classes.
 - The future-safe backend examples later in `SUPABASE_STRATEGY.md` are mostly still present, but `RemoteWorkoutPreferencesRepository` and `RemoteTargetsSetupRepository` are no longer current source examples and must not be presented as currently inactive code.
+- P4A establishes ownership folders under `docs/`; `docs/README.md` says canonical docs own repository-wide current policy within their stated truth boundaries, while runtime source/config proves actual behavior and live trackers own task state.
+- `docs/adr/README.md` keeps ADR lifecycle status separate from implementation completion and explicitly preserves superseded ADR history.
+- `docs/screens/README.md` maps screen/product areas to durable module owners, which P5 uses for screen `Owner` metadata.
+- P5 verification date for this rollout is `2026-09-27`; it records verification of each document's governance class/owner/truth boundary against the current canonical/source context, not a claim that planned features are implemented.
 
 ## 3. Clarification
 
@@ -104,6 +108,10 @@ Later P5 header slice:
 | Use one current date for every `Last Verified` value without content evidence | Rejected | Would create false verification claims. | AGENTS.md / audit-first rule |
 | Fix known stale current-state prose inside the 68-file header PR | Rejected | Keep the P5 header rollout reviewable; prerequisite drift gets its own bounded docs slice. | Slice discipline |
 | Treat future backend policy docs as automatically `Planned/Future Doc` | Rejected | They are current canonical policies even when the runtime they govern is future-only. | docs/README.md authority model |
+| Actual numbered ADR files use `Architecture Decision Record` even when superseded | Resolved | The governance label describes document class; each ADR's existing lifecycle `Status` preserves Accepted/Superseded/Deprecated state. | ADR governance |
+| `docs/adr/README.md` and `docs/adr/TEMPLATE.md` are ADRs | Rejected | They govern/index ADRs but are not decision records themselves; classify them as `Canonical Live Doc`. | ADR governance |
+| Planned-only classification set | Resolved | `docs/planning/ROADMAP.md`, `docs/planning/MVP_ACCEPTANCE.md`, and eight planned-only screen specs: active-workout, meal-plan, nutrition-targets, programs, recovery, routine-library, workout-insights, workout-settings. | P5 matrix |
+| Mixed current + target screen specs are planned-only | Rejected | Where a screen doc records current runtime plus target contract, it remains a current canonical screen spec; runtime source still wins for shipped behavior. | Screen catalog |
 
 ## 4. Architecture Design
 
@@ -139,10 +147,10 @@ Prerequisite slice:
 - [x] remove no-longer-current backend adapter examples from its future-safe preservation list while keeping valid examples;
 - [x] correct the backup/recovery migration-count sentence with an explicitly dated P4B verification note;
 - [x] validate exact scope, links and patch hygiene;
-- [ ] open bounded prerequisite PR and obtain exact-head review.
+- [x] open bounded prerequisite PR and obtain exact-head review; PR #416 merged as `aac56b3f0323ea4f5b8b0e5741ead815097f3da8`.
 
 Header slice after prerequisite merge:
-- [ ] build and review 68-row path/status/owner/truth-boundary/last-verified matrix;
+- [x] build and review 68-row path/status/owner/truth-boundary/last-verified matrix; classification summary: 47 `Canonical Live Doc`, 11 `Architecture Decision Record`, 10 `Planned/Future Doc`.
 - [ ] apply headers without deleting existing status semantics;
 - [ ] verify 68/68 coverage and canonical label vocabulary;
 - [ ] validate links/patch/scope;
