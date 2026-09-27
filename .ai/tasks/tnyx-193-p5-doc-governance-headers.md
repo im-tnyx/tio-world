@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; prerequisite PR #416 merged; GitHub #250 open; Linear TNYX-193 restored to `In Progress`; P6/P7/P9 remain separately gated.
 **Branch:** `tnyx/tnyx-193-p5-doc-governance-headers`
-**HEAD SHA:** source-validation checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`; this handoff refresh creates one final docs-only metadata commit that must be revalidated
+**HEAD SHA:** pre-PR checkpoint `9106e0505ff895129d41f9818acc6d97fbdec5ef`; this PR-number handoff refresh creates the exact final head that must be revalidated
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
-**PR / tracker:** GitHub #250 / Linear TNYX-193; prerequisite PR #416 merged; header-rollout PR pending
-**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files; exact-head PR/review gates remain.
+**PR / tracker:** GitHub #250 / PR #417 / Linear TNYX-193; prerequisite PR #416 merged
+**Current implementation state:** four-line governance headers are implemented across all 68 `docs/**/*.md` files and PR #417 is open; exact-head revalidation/review gates remain.
 **Relevant execution surface:** all 68 `docs/**/*.md` files plus this focused task handoff. No `.ai/` rule-file header rollout (P6) is included.
 **Validation completed at SHA:** source-validation checkpoint `97824c484cdcfd9a2197f6670662858a3a4db360`: 10 ahead / 0 behind from `main@aac56b3f0323ea4f5b8b0e5741ead815097f3da8`; 69 changed files = 68 docs + this active task brief; every docs file has exactly 5 additions / 0 deletions; 68/68 direct-under-title four-line headers; status counts 47 `Canonical Live Doc`, 11 `Architecture Decision Record`, 10 `Planned/Future Doc`; ADR and planned-only file sets exactly match the reviewed matrix; `Last Verified` is 2026-09-27 on all 68; unexpected labels 0; docs Markdown-link mutations 0; no document body/status deletion.
-**Validation remaining:** revalidate the resulting handoff-only head, run exact patch/scope hygiene, open the bounded header-rollout PR, inspect repository checks, and obtain independent exact-head review.
+**Validation remaining:** revalidate PR #417 exact final head, update tracker evidence without changing branch source, inspect repository checks, and obtain independent exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** P5-AUDIT-01, P5-AUDIT-02
-**Next exact action:** revalidate the final handoff-only head, open the P5 header-rollout PR, then request exact-head Codex review.
+**Next exact action:** revalidate PR #417 exact final head, then request exact-head Codex review and inspect checks.
 
 ## 1. Discovery
 
