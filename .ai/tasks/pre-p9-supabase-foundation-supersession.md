@@ -16,6 +16,7 @@ Linear reconciliation was attempted before implementation on 2026-09-27 but the 
 - Preserve the old foundation brief as a `Superseded` archive record.
 - Remove the stale active task copy from `.ai/tasks/`.
 - Update `.ai/archive/README.md` with the supersession record.
+- Remove the retired brief from `.ai/tasks/README.md` Current Tasks.
 - Replace the canonical `SUPABASE_STRATEGY.md` link that currently points readers back to the stale active task with current canonical/runtime references.
 
 ## Out of scope
@@ -41,9 +42,9 @@ Do not rewrite the historical task into a second current Supabase source of trut
 ## Validation
 
 - [x] Exact changed paths reviewed: one historical task rename/archive, archive index, canonical strategy Related links, ADR-0003 Related link, and this handoff.
-- [x] Repository default-branch search found two references to the retired active-task path (`SUPABASE_STRATEGY.md`, ADR-0003); both are reconciled in this branch.
+- [x] Repository default-branch code search found two canonical references to the retired active-task path (`SUPABASE_STRATEGY.md`, ADR-0003); both are reconciled in this branch. Codex exact-head review additionally identified the `.ai/tasks/README.md` Current Tasks index entry; that stale/broken row is removed.
 - [ ] `git diff --check` cannot be executed through the connected GitHub API; no local-check pass is claimed. Hosted review/check evidence will be recorded from the PR.
-- [ ] Exact-head review completed.
+- [ ] Exact-head re-review required after resolving Codex P2: retired task remained listed in `.ai/tasks/README.md` Current Tasks.
 
 ## Handoff
 
