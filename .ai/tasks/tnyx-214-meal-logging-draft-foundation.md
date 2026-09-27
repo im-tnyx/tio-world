@@ -50,7 +50,7 @@ Provide one canonical Tio-owned editable meal draft that future parser/provider 
 
 Verified before the review correction:
 
-- root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, root/canonical architecture and module-ownership docs, `docs/PUSH_TEMPLATE.md`, and `.github/PULL_REQUEST_TEMPLATE.md`;
+- root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, root/canonical architecture and module-ownership docs, `.github/PUSH_TEMPLATE.md`, and `.github/PULL_REQUEST_TEMPLATE.md`;
 - current Linear TNYX-214 and related TNYX-113 durable consumed-snapshot semantics;
 - current PR #268, its one P2 review thread, branch ancestry/scope, `NutritionSnapshot`, `MealLoggingDraftItem`, and focused tests;
 - `apps/shared` has no nested `AGENTS.md`, so root instructions apply.
