@@ -21,13 +21,13 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; GitHub #250 open; Linear TNYX-193 `In Progress`; P4B tracker state `Not started` before activation.
 **Branch:** `tnyx/tnyx-193-p4b-supabase-schema-inventory`
-**HEAD SHA:** pre-final-handoff checkpoint `bfc07a5521c87dde25021dabc45ab02e84062f48`; this PR-number handoff update creates the final docs-only head that must be revalidated
+**HEAD SHA:** source-validation checkpoint `6ba1f266c7808fd89f0f691620e841dfbe74b0df`; this final handoff-metadata update creates the resulting docs-only head that must be revalidated before review
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / PR #414 / Linear TNYX-193
 **Current implementation state:** P4B source implementation complete and PR #414 is open; exact-head revalidation/review gates remain.
 **Relevant execution surface:** `docs/data/SUPABASE_SCHEMA.md`, `docs/README.md`, focused `.ai/tasks` handoff/index.
-**Validation completed at SHA:** source-validation checkpoint `bd6283b48e221eb518ec8100cd7859fa2172213b`: 4 ahead / 0 behind from `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; exactly 4 docs/governance paths; 49 live migrations = 49 checked-in by version/name; inventory covers 14/14 tables, 147/147 columns, 88/88 live constraints and 39/39 indexes; 14/14 RLS enabled; 65 local Markdown refs checked with 0 missing; no row-count payload; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, or lockfile diff.
+**Validation completed at SHA:** source-validation checkpoint `6ba1f266c7808fd89f0f691620e841dfbe74b0df`: 7 ahead / 0 behind from `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`; exactly 4 docs/governance paths; 49 live migrations = 49 checked-in by version/name; inventory covers 14/14 tables, 147/147 columns, 88/88 live catalog constraint records (14 PK, 14 FK, 4 unique, 54 check, 2 constraint-trigger) and 39/39 indexes; 14/14 RLS enabled; 65 local Markdown refs checked with 0 missing; no row-count payload; patch scan 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; no `apps/**`, `services/**`, `supabase/**`, `.github/workflows/**`, or lockfile diff.
 **Validation remaining:** revalidate the resulting final head, update PR #414 with exact-head evidence, inspect repository checks, obtain independent Codex exact-head review.
 **Current blocker:** none
 **Open review finding IDs:** none
@@ -135,7 +135,7 @@ Not applicable to runtime/UI. If live metadata and checked-in migrations disagre
 ### Validation Run
 
 ```text
-Source validation complete at `bd6283b48e221eb518ec8100cd7859fa2172213b`; final handoff-only head revalidation still required before review.
+Source validation complete at `6ba1f266c7808fd89f0f691620e841dfbe74b0df`; final handoff-only head revalidation still required before review.
 ```
 
 ### Review Findings and Resolution
