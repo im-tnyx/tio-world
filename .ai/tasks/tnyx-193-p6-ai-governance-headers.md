@@ -1,6 +1,6 @@
 # TNYX-193 P6 — AI Governance Header Rollout
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** repository AI governance
 **Affected platforms:** documentation only
 
@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** independent exact-head review after the bounded P6 slice
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@44b92d6690f35bc1741460268065ee38dc8a5502`; GitHub #250 open; Linear TNYX-193 `In Progress`; P6 explicitly assigned 10 stable files and P7 assigned the two dynamic current-state snapshots.
 **Branch:** `tnyx/tnyx-193-p6-ai-governance-headers`
-**HEAD SHA:** task-brief checkpoint to be recorded after commit
+**HEAD SHA:** source/docs review checkpoint `c73d832de4f65355916f7f05a70ad08d01871c27`; the final handoff-only commit will move HEAD and must be revalidated externally rather than recursively rewriting this field
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
-**Current implementation state:** planning + source audit complete; implementation has not yet changed the 10 P6 rule/orientation files.
+**Current implementation state:** P6 implementation is complete at the source/docs checkpoint: all 10 locked stable `.ai/` files carry the four-line governance header and known contradicted architecture/data/ownership/current-state prose in P6 scope is reconciled.
 **Relevant execution surface:** `.ai/DECISIONS.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/README.md`, `.ai/architecture-summary.md`, `.ai/coding-rules.md`, `.ai/ownership-rules.md`, `.ai/project-context.md`, `.ai/supabase-rules.md`, `.ai/ui-rules.md`, `.ai/workflow.md`, this task brief, and `.ai/tasks/README.md`.
-**Validation completed at SHA:** read-only audit on `44b92d6690f35bc1741460268065ee38dc8a5502`; 12 top-level `.ai/*.md` files exist, none has all four governance fields; P6/P7 boundary reconciled in GitHub #250 and Linear TNYX-193.
-**Validation remaining:** apply bounded P6 edits; verify 10/10 headers, canonical label vocabulary, no P7 file diff, no stale protected-backend paths in P6 scope, source-backed Supabase/current-owner wording, local Markdown references, exact changed-file scope and docs patch hygiene.
+**Validation completed at SHA:** source/docs checkpoint `c73d832de4f65355916f7f05a70ad08d01871c27`: 16 ahead / 0 behind from `main@44b92d6690f35bc1741460268065ee38dc8a5502`; 12 changed paths = 10 P6 stable files + this task brief + task index; 10/10 governance headers; P7 files zero diff; 36 local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; known stale protected-backend paths, legacy schema symbols, removed adapter names, App Mode device-local authenticated wording, and Nutrition Water/Glass ownership claims absent.
+**Validation remaining:** after this handoff refresh, revalidate the resulting exact PR head, required checks, mergeability, and available review evidence externally; do not add another commit solely to embed its own SHA.
 **Current blocker:** none
-**Open review finding IDs:** P6-AUDIT-01 through P6-AUDIT-06 below
-**Next exact action:** implement the 10-file P6 governance/header + bounded factual-drift slice, then validate exact head and open a docs-only PR.
+**Open review finding IDs:** none — P6-AUDIT-01 through P6-AUDIT-08 are resolved
+**Next exact action:** open/update the docs-only P6 PR, perform exact-head review/check reconciliation, then stop at the explicit owner merge gate.
 
 ## 1. Discovery
 
@@ -104,12 +104,12 @@ Treating all `.ai/` content as canonical product truth was rejected; every P6 tr
 
 ## 5. Implementation Plan
 
-- [ ] add 10/10 four-line governance headers;
-- [ ] reconcile protected-backend namespace/current Supabase wording in architecture/project context;
-- [ ] reconcile current schema and legacy adapter preservation wording in Supabase rules;
-- [ ] reconcile decision-log facts that are contradicted by current App Mode/onboarding/Supabase runtime;
-- [ ] correct Default Glass Size ownership in ownership rules;
-- [ ] run exact scope/reference/patch-hygiene validation;
+- [x] add 10/10 four-line governance headers;
+- [x] reconcile protected-backend namespace/current Supabase wording in architecture/project context;
+- [x] reconcile current schema and legacy adapter preservation wording in Supabase rules;
+- [x] reconcile decision-log facts that are contradicted by current App Mode/onboarding/Supabase runtime;
+- [x] correct Wellness Water Goal + Default Glass Size ownership in ownership rules;
+- [x] run exact scope/reference/patch-hygiene validation;
 - [ ] open docs-only PR and obtain available exact-head review.
 
 ## 6. Quality Review
@@ -117,34 +117,55 @@ Treating all `.ai/` content as canonical product truth was rejected; every P6 tr
 ### Validation Run
 
 ```text
-Not run yet.
+Source/docs checkpoint: c73d832de4f65355916f7f05a70ad08d01871c27
+Base: main@44b92d6690f35bc1741460268065ee38dc8a5502
+Ahead / behind: 16 / 0
+Changed paths: 12 = 10 P6 stable .ai files + task brief + task index
+Governance headers: 10 / 10
+P7 files changed: 0
+Local Markdown references: 36 checked / 0 missing
+Patch hygiene: 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers
+Known stale P6 patterns: 0
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| P6-AUDIT-01 | P2 | Open | `architecture-summary.md` says Supabase is planned and future work belongs under `backend/*`. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Canonical architecture says Supabase active; future protected path is `services/api`. |
-| P6-AUDIT-02 | P2 | Open | `project-context.md` calls Supabase future and names `backend/api`, `backend/ai-coach`, `backend/jobs`. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Canonical architecture/current checkout contradicts this. |
-| P6-AUDIT-03 | P2 | Open | `supabase-rules.md` lists legacy three-table schema and removed Remote Workout/Targets symbols. | 44b92d6690f35bc1741460268065ee38dc8a5502 | P4B schema inventory + source search. |
-| P6-AUDIT-04 | P2 | Open | `DECISIONS.md` contains current-state wording inconsistent with active Supabase/App Mode/onboarding persistence. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Current canonical docs/runtime. |
-| P6-AUDIT-05 | P2 | Open | `ownership-rules.md` assigns Glass Size to Nutrition despite accepted Settings-owned ADR-0009. | 44b92d6690f35bc1741460268065ee38dc8a5502 | ADR-0009 + Settings canonical screen doc. |
+| P6-AUDIT-01 | P2 | Resolved | `architecture-summary.md` says Supabase is planned and future work belongs under `backend/*`. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Canonical architecture says Supabase active; future protected path is `services/api`. |
+| P6-AUDIT-02 | P2 | Resolved | `project-context.md` calls Supabase future and names `backend/api`, `backend/ai-coach`, `backend/jobs`. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Canonical architecture/current checkout contradicts this. |
+| P6-AUDIT-03 | P2 | Resolved | `supabase-rules.md` lists legacy three-table schema and removed Remote Workout/Targets symbols. | 44b92d6690f35bc1741460268065ee38dc8a5502 | P4B schema inventory + source search. |
+| P6-AUDIT-04 | P2 | Resolved | `DECISIONS.md` contains current-state wording inconsistent with active Supabase/App Mode/onboarding persistence. | 44b92d6690f35bc1741460268065ee38dc8a5502 | Current canonical docs/runtime. |
+| P6-AUDIT-05 | P2 | Resolved | `ownership-rules.md` assigns Glass Size to Nutrition despite accepted Settings-owned ADR-0009. | 44b92d6690f35bc1741460268065ee38dc8a5502 | ADR-0009 + Settings canonical screen doc. |
 | P6-AUDIT-06 | Boundary | Resolved | Exact P6/P7 file ownership was undefined. | 44b92d6690f35bc1741460268065ee38dc8a5502 | #250/TNYX-193 now lock P6=10 stable files, P7=2 dynamic snapshots. |
+| P6-AUDIT-07 | P2 | Resolved | `ownership-rules.md` assigned Water Goal to Nutrition even though canonical ownership keeps Daily Water Goal in Wellness through the Progress-owned `WellnessTargetsRepository`. | c73d832de4f65355916f7f05a70ad08d01871c27 | Removed Water Goal from Nutrition and recorded Wellness/Progress ownership plus separate Settings Default Glass Size ownership. |
+| P6-AUDIT-08 | P2 | Resolved | Second review found stale current-state wording for future Apple Watch existence, authenticated App Mode persistence, speculative full-schema future scope, and preserved HTTP adapters. | c73d832de4f65355916f7f05a70ad08d01871c27 | Reconciled against canonical Architecture/Settings/Supabase docs and current source without changing runtime. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Not final yet.
+- `.ai/DECISIONS.md`
+- `.ai/FEATURE_DEVELOPMENT.md`
+- `.ai/README.md`
+- `.ai/architecture-summary.md`
+- `.ai/coding-rules.md`
+- `.ai/ownership-rules.md`
+- `.ai/project-context.md`
+- `.ai/supabase-rules.md`
+- `.ai/ui-rules.md`
+- `.ai/workflow.md`
+- `.ai/tasks/README.md`
+- this task brief
 
 ### Actual Behavior
 
-Documentation-only; no runtime behavior change.
+The 10 stable top-level `.ai/` orientation/rule files now carry explicit status, verification date, owner, and narrow truth boundaries. Known P6 factual drift is reconciled so the AI layer routes to active Supabase/current ownership/future `services/api` correctly without becoming a duplicate canonical source. No runtime behavior changed.
 
 ### Known Limitations
 
-P7 remains separately gated and must reconstruct `.ai/CURRENT.md` plus `.ai/IMPLEMENTATION_STATUS.md`.
+P7 remains separately gated and must reconstruct `.ai/CURRENT.md` plus `.ai/IMPLEMENTATION_STATUS.md`. Exact PR-head checks/review still need reconciliation after this handoff-only commit.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
