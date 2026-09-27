@@ -1,91 +1,55 @@
 # Implementation Status
 
-Use this file to distinguish validated runtime from remaining Product Onboarding work. Runtime source is behavior truth; current sequencing is `.ai/tasks/product-onboarding-canonical-execution.md`.
+Document Status: Dynamic Current-State Snapshot
+Last Verified: 2026-09-27
+Owner: repository execution context
+Truth Boundary: High-level implementation orientation only; source/runtime proves shipped behavior, canonical docs define intended architecture, and Linear plus linked GitHub own current work status.
 
-## Status terms
+## Status model
 
-- **Documented**: approved direction only.
-- **Scaffolded**: source/UI contract exists but end-to-end behavior is incomplete.
-- **Implemented**: intended source exists but final validation may remain.
-- **Validated**: applicable checks/evidence are recorded on an exact source SHA.
-- **Live**: production Supabase schema/migration is applied and verified.
+Use these terms only after checking the relevant source and evidence:
 
-| Capability | Status | Owner | Current boundary / evidence |
-|---|---|---|---|
-| S0-B2 Default Glass Size | Implemented; local validation PASS, CI/device pending | Settings | Device-local `SharedPreferencesAsync` preference with a real 250 ml default and explicit account-boundary reset. No Supabase table/migration, hydration logging or Water Goal coupling. [Execution evidence](tasks/settings-s0b2-default-glass-size.md). |
-| Canonical Body/Wellness/Nutrition/Workout schema | Live | Supabase | Canonical owner tables live; legacy duplicate/mixed columns stay until O11/#54 after O10. |
-| Durable App Mode / active_tabs | Validated | App preferences | O1 #11 / CI #1240. |
-| Common User Profile canonical runtime | Validated | Profile + onboarding | O2 #53 / CI #1279. |
-| Body Goal ownership | Validated | Body + onboarding | O3 #55 / CI #1354. |
-| Wellness canonical onboarding | Validated | Wellness + onboarding | O4 #58 / CI #1441. |
-| Nutrition canonical onboarding | Validated | Nutrition + onboarding | O5 #63 / source `b017f6c31c9c89a6df1ba6b670ea0ea04d635941` / CI #1507. |
-| Workout canonical onboarding | Validated | Workout + onboarding + app | O6 #69 / source `d56e8226f8631bc81d3dd309cbb22c631ca636f5` / CI #1555. |
-| Health Connections runtime/UI | Validated | onboarding orchestration | O7B #77 / source `371fafb8cf8a27b6f7922733b071277accf4af98` / CI #1575. Optional/non-blocking step active before Review. |
-| Android Health Connect surface presence | Validated | app/platform | O7C1 / #78 / source `f95ddf7cef05e658566e5d9493efd6099edded76` / Flutter CI #1593 + Android Native CI #5. Presence only; no readiness/authorization claim. |
-| Android Health Connect SDK readiness + authorization | Blocked | app/platform + product data owner | O7C2 blocked by #79 until first product capability, exact record types/access, owner, retention and privacy scope are approved. |
-| Health connection durability/review integration | Blocked | unresolved until O7D | O7D waits for O7C2. No imported health records in `onboarding_drafts`. |
-| Integrated Health Connections acceptance | Blocked | onboarding + platform | O7E waits for O7C2/O7D. |
-| Review + edit-back + draft/resume reconciliation | Partial | onboarding | O8 after O7. |
-| Plan Building / finalization | Pending | onboarding orchestration | O9. Truthful/idempotent finalization only. |
-| Full Product Onboarding acceptance | Pending | onboarding + owners | O10. All modes/navigation/resume/persistence/failure/device acceptance. |
-| Canonical Schema Cleanup | Blocked | Supabase + owners | O11/#54 blocked until O10. |
-| Account email/mobile verification | Pending parallel lane | Account/Settings/Auth | #8 parallel. |
-| PR #50 | Draft/open/unmerged | Product Onboarding | Keep Draft until O10-level acceptance. |
+- **Planned/Future** — approved direction exists but the implementation is not current runtime.
+- **Implemented** — intended source exists; do not infer full acceptance without evidence.
+- **Validated** — applicable validation evidence is recorded for an exact source state.
+- **Live** — deployed/persisted infrastructure has been verified where that distinction matters.
+- **Open tracker** — work exists in GitHub/Linear; it does not by itself authorize implementation.
 
-## Current Product Onboarding execution
+## Current capability snapshot
 
-```text
-O1 App Mode                                      ✅ #11 / CI #1240
-O2 User Profile                                  ✅ #53 / CI #1279
-O3 Body Goal                                     ✅ #55 / CI #1354
-O4 Wellness                                      ✅ #58 / CI #1441
-O5 Nutrition                                     ✅ #63 / CI #1507
-O6 Workout                                       ✅ #69 / CI #1555
-→ O7 Health Connections                          ACTIVE/BLOCKED #75
-   O7A contract/readiness                        ✅ #76
-   O7B runtime/UI                                ✅ #77 / CI #1575
-   O7C Android Health Connect adapter            PARTIAL #78
-      O7C1 surface presence                      ✅ f95ddf7c / CI #1593 + Native #5
-      O7C2 readiness + authorization             BLOCKED #79
-   O7D durability/review integration             BLOCKED
-   O7E integrated acceptance                    BLOCKED
-→ O8 Review/resume/edit-back
-→ O9 finalization
-→ O10 final acceptance
-→ O11 canonical schema cleanup                   BLOCKED #54
-```
+| Capability | Current state | Authority / boundary |
+|---|---|---|
+| Flutter mobile application | Active runtime | Source under `apps/` proves behavior; canonical mobile/architecture docs define intended boundaries. |
+| Supabase Auth/session | Active runtime | Supabase is the current identity/session boundary; verify source and security docs before auth changes. |
+| Supabase public data model | Live, canonical inventory available | `docs/data/SUPABASE_SCHEMA.md` records the verified readable inventory; migrations plus verified live schema remain executable truth. |
+| Product Onboarding O1–O11 | Validated / complete | GitHub #40 is complete/frozen; O11 cleanup #54 is complete. Historical per-slice CI remains evidence, not current work. |
+| Product Onboarding implementation PR #50 | Merged / closed | Not an active PR and must not be used as a current blocker. |
+| Health Connections in onboarding | Validated availability/connect-later boundary | Completed onboarding does not authorize broad Health Connect/HealthKit record access. Future consuming features must define least-privilege data scope first. |
+| Canonical account/profile/preferences/health ownership | Live baseline with follow-up umbrella open | GitHub #44 remains open for post-onboarding ownership/runtime lanes; re-read current issue scope before changes. |
+| App/router composition cleanup | Open tracker work | #260 and #357 are live planning/execution references; tracker existence is not implementation authorization. |
+| Nutrition loading-state fix | Open tracker work | #356 owns the Daily Nutrition loading-card issue. |
+| Onboarding package architecture cleanup | Open tracker work | #261 owns package/public-API/responsibility cleanup. |
+| Auth hardening | Open tracker work | #34 is the live auth-hardening tracker; Auth remains security-sensitive. |
+| Nutrition/workout settings/runtime preferences | Open tracker work | #46/#47/#48 own separate settings/runtime-preference lanes. |
+| N5D meal text/provider routing | Open tracker work | #269/#284 own the current N5D planning slices. |
+| Future protected API | Planned/Future | Canonical path is `services/api/`; no speculative service implementation should be inferred. |
+| Future async worker | Planned/Future | `services/worker/` only when an approved real async workload requires it. |
+| Wear OS / Apple Watch | Planned/Future | Native companion surfaces remain separately planned/gated; inspect wearable docs and trackers before work. |
+| Documentation governance | In progress | GitHub #250 / Linear TNYX-193; P1–P6 and P8 complete, P7 current, P9 separately gated. |
 
-## Latest exact validated source/platform checkpoint
+## Current execution rules
 
-```text
-f95ddf7cef05e658566e5d9493efd6099edded76
-Flutter CI #1593 / run 32611022666 / job 97124041663
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
+- There are no open pull requests at this verification checkpoint.
+- Open GitHub issues are not a priority queue. Use Linear + linked GitHub reconciliation to determine the authorized slice.
+- Before meaningful work, read the applicable `AGENTS.md`, inspect source/runtime, then reconcile canonical docs, Linear, GitHub, CI, and the relevant `.ai/tasks/` handoff.
+- A historical exact CI checkpoint proves only the source state it validated; it does not make an old task brief current.
+- Applied Supabase migrations are immutable; new database changes must be forward-only and owner-approved where the canonical gate applies.
+- Health, Auth/OAuth, connectors, secrets, privileged APIs, RLS, and AI providers are security-sensitive boundaries. Use least privilege and keep privileged credentials/operations server-side.
+- UI changes require the repository's owner/design approval rules; internal docs work does not authorize visual redesign.
+- Do not create `services/api/`, `services/worker/`, web, watch, connector, or other future infrastructure merely because it is documented as planned.
 
-Android Native CI #5 / run 32611022667 / job 97124042275
-Android debug APK/native compile ✅
-```
+## Known documentation follow-up outside P7
 
-## Important current-source facts
+`.ai/tasks/product-onboarding-canonical-execution.md` and related rows in `.ai/tasks/README.md` still describe the old O7-blocked / PR #50 draft-open checkpoint. P7 deliberately does not widen into that lifecycle cleanup.
 
-- O7B activates Health Connections in Workout/Nutrition/Hybrid after Nutrition Targets and before Review.
-- Health Connections remains optional, non-blocking and retryable later.
-- `HealthConnectionGateway` is the narrow onboarding/platform boundary; only a real authorized adapter may return `connected`.
-- Live Health authorization status is not serialized in `OnboardingDraft`.
-- O7C1 is app-owned platform infrastructure only and reports `present/absent` Health Connect surface presence.
-- O7C1 adds only provider package visibility; it adds no health-data permissions, record access, client SDK dependency or minSdk change.
-- Production still uses the O7B unavailable gateway because authorization is not yet implemented.
-- O7C2 is blocked by #79; existing wellness step/sleep targets are not permission-scope evidence.
-- Applied migrations are immutable; duplicate physical cleanup belongs only to O11 after O10.
-
-## Update rules
-
-- Move capability state only with exact source + CI evidence.
-- One Product Onboarding implementation slice is active at a time.
-- Surface presence is not SDK readiness; SDK readiness is not authorization.
-- No health-data permission without an exact source-backed record-type/use-case scope.
-- Do not start O7D/O7E while O7C2 is blocked.
-- Do not merge PR #50 until O10-level acceptance and remaining required gates are resolved.
+Until that separate cleanup is authorized, do not use those stale task entries as current sequencing truth; use source, canonical docs, and live trackers.
