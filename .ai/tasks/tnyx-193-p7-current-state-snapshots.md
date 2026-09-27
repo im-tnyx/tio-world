@@ -25,10 +25,10 @@
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.  
 **Observed uncommitted/dirty files:** Not applicable.  
 **PR / tracker:** GitHub #250 / Linear TNYX-193  
-**Current implementation state:** Audit complete; bounded docs reconstruction authorized.  
+**Current implementation state:** Both snapshots reconstructed and task indexed; pre-PR scope/stale-pattern validation passed.  
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`  
-**Validation completed at SHA:** Not yet.  
-**Validation remaining:** exact diff/scope, stale-pattern scan, local-link review, tracker/PR review gates.  
+**Validation completed at SHA:** `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9` for reconstructed snapshot content/scope checks.  
+**Validation remaining:** PR exact-head review/check gates.  
 **Current blocker:** None.  
 **Open review finding IDs:** None.  
 **Next exact action:** Reconstruct both P7 snapshots without widening into stale Product Onboarding task cleanup.
@@ -101,9 +101,9 @@ Not applicable; documentation-only.
 ## 5. Implementation Plan
 
 - [x] Fresh audit current main and P7 scope.
-- [ ] Reconstruct `.ai/CURRENT.md`.
-- [ ] Reconstruct `.ai/IMPLEMENTATION_STATUS.md`.
-- [ ] Validate exact scope and stale claims.
+- [x] Reconstruct `.ai/CURRENT.md`.
+- [x] Reconstruct `.ai/IMPLEMENTATION_STATUS.md`.
+- [x] Validate exact scope and stale claims.
 - [ ] Open focused docs-only PR and run review gates.
 
 ## 6. Quality Review
@@ -111,7 +111,7 @@ Not applicable; documentation-only.
 ### Validation Run
 
 ```text
-Not run yet.
+At `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9`: branch 4 ahead / 0 behind; exact four-file docs scope; both P7 governance headers present; known stale O7/PR #50 blocker patterns absent; no local Markdown links introduced by the two snapshots.
 ```
 
 ### Review Findings and Resolution
@@ -124,7 +124,10 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/CURRENT.md`
+- `.ai/IMPLEMENTATION_STATUS.md`
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-193-p7-current-state-snapshots.md`
 
 ### Actual Behavior
 
@@ -136,4 +139,4 @@ P7 does not repair unrelated stale task briefs.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
