@@ -22,7 +22,7 @@
 **Repository state last verified:** 2026-09-11
 **Branch:** `tnyx/tnyx-195-n20a-6-manual-meallog-repository-supabase-adapter-foundation`
 **HEAD SHA:** validated source/fix head `b83d96970943cf1c9c62f72e035ed8406f1465e1`; this handoff reconciliation is docs-only
-**Observed working-tree state:** Connector-managed remote branch. A local clone could not be created because the container has no outbound GitHub DNS/network access; GitHub API ancestry/scope evidence was used per `docs/PUSH_TEMPLATE.md`.
+**Observed working-tree state:** Connector-managed remote branch. A local clone could not be created because the container has no outbound GitHub DNS/network access; GitHub API ancestry/scope evidence was used per `.github/PUSH_TEMPLATE.md`.
 **Observed uncommitted/dirty files:** Not observable through GitHub connector; all writes were isolated to the TNYX-195 branch.
 **PR / tracker:** PR #254; Linear TNYX-195 `In Review`
 **Current implementation state:** Bounded repository contract, Supabase adapter/gateway, active Meal Category create validation, strict instant decoding, non-durable fallback, app composition, and focused tests implemented and validated. P1/P2 review threads are resolved.
@@ -189,7 +189,7 @@ ahead / behind = 4 / 0       PASS
 changed files = 10           PASS; all TNYX-195 owned paths
 ```
 
-Local `git status`/`git diff --check` could not be run because no repository checkout is mounted and outbound `git clone` is unavailable in the container. Per `docs/PUSH_TEMPLATE.md`, equivalent GitHub API ancestry, commit and complete changed-file evidence was collected and reviewed. No local validation is claimed.
+Local `git status`/`git diff --check` could not be run because no repository checkout is mounted and outbound `git clone` is unavailable in the container. Per `.github/PUSH_TEMPLATE.md`, equivalent GitHub API ancestry, commit and complete changed-file evidence was collected and reviewed. No local validation is claimed.
 
 ### Review Findings and Resolution
 

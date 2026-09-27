@@ -82,7 +82,7 @@ Update required relative imports, production/test imports, and only current cano
 
 ### Verified Evidence
 
-- Source/config inspected: root `AGENTS.md`; `.ai/workflow.md`; `.ai/tasks/README.md`; `.ai/tasks/TEMPLATE.md`; `.ai/FEATURE_DEVELOPMENT.md`; root `README.md`; `docs/ARCHITECTURE.md`; `docs/MODULE_OWNERSHIP.md`; Linear TNYX-201; GitHub #260; current main source for all three target files; live import/reference search.
+- Source/config inspected: root `AGENTS.md`; `.ai/workflow.md`; `.ai/tasks/README.md`; `.ai/tasks/TEMPLATE.md`; `.ai/FEATURE_DEVELOPMENT.md`; root `README.md`; `docs/architecture/ARCHITECTURE.md`; `docs/architecture/MODULE_OWNERSHIP.md`; Linear TNYX-201; GitHub #260; current main source for all three target files; live import/reference search.
 - Existing pattern to follow: `apps/app` canonically owns phone bootstrap, startup, provider composition, and runtime implementation selection. Existing responsibility folders under `apps/app/lib/app/` establish grouping by app-shell concern.
 - Tests or validation already present: `apps/app/test/app/startup_hydration_test.dart` and `apps/app/test/app/supabase_runtime_config_test.dart`; app-wide analyze/test is required by parent #260.
 - No package-local `apps/app/AGENTS.md` exists; root `AGENTS.md` applies.
@@ -104,7 +104,7 @@ Known live references before mutation:
 - `apps/app/lib/app/network_providers.dart` imports `supabase_runtime_config.dart`.
 - `apps/app/test/app/startup_hydration_test.dart` imports `startup_hydration.dart`.
 - `apps/app/test/app/supabase_runtime_config_test.dart` imports `supabase_runtime_config.dart`.
-- `docs/FLUTTER_MODULAR_STRUCTURE.md` contains a current tree reference to `bootstrap.dart`; classify before changing.
+- `docs/mobile/FLUTTER_MODULAR_STRUCTURE.md` contains a current tree reference to `bootstrap.dart`; classify before changing.
 - `.ai/tasks/production-hardening-configuration-cleanup.md` is historical validation evidence and is not rewritten solely for the later path move.
 
 ## 3. Clarification
@@ -195,7 +195,7 @@ Remote/API validation at PR checkpoint 3fda7d52:
 - `apps/app/lib/main.dart`
 - `apps/app/test/app/startup_hydration_test.dart`
 - `apps/app/test/app/supabase_runtime_config_test.dart`
-- `docs/FLUTTER_MODULAR_STRUCTURE.md`
+- `docs/mobile/FLUTTER_MODULAR_STRUCTURE.md`
 
 ### Actual Behavior
 

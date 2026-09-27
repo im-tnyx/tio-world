@@ -76,8 +76,8 @@ The two partial items are physical organization follow-ups, not unresolved owner
 ## 3. Stale but Non-Blocking Documentation
 
 - `.ai/CURRENT.md` remains an older Onboarding O7 snapshot.
-- `docs/MODULE_OWNERSHIP.md`, `docs/DEVELOPMENT_SETUP.md`, `docs/ROADMAP.md`, and `docs/SUPABASE_STRATEGY.md` retain historical `future supabase/`, absent-Supabase, or `backend/*` wording.
-- Current `AGENTS.md`, root `README.md`, and `docs/ARCHITECTURE.md` supersede that repository-platform wording: Supabase is active and future protected services belong at `services/api`.
+- `docs/architecture/MODULE_OWNERSHIP.md`, `docs/development/DEVELOPMENT_SETUP.md`, `docs/planning/ROADMAP.md`, and `docs/data/SUPABASE_STRATEGY.md` retain historical `future supabase/`, absent-Supabase, or `backend/*` wording.
+- Current `AGENTS.md`, root `README.md`, and `docs/architecture/ARCHITECTURE.md` supersede that repository-platform wording: Supabase is active and future protected services belong at `services/api`.
 - `.ai/tasks/tnyx-158-meal-diary-add-food-quick-add-shell.md` still says `In review`, while current Linear truth is `Done`.
 - `.ai/tasks/tnyx-67-meal-categories-readiness.md` records TNYX-67 as `In Progress`, while Linear currently shows unintended post-PR automation status `Done`.
 

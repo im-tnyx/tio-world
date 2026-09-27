@@ -138,7 +138,7 @@ Matrix rewrite rule for nutrition/app palette matrices: rename rows, do not rest
 
 **CURRENT DOC — must change (2):** `docs/screens/settings.md` (Theme Interaction section: choices + storage key), `apps/core/lib/src/theme/README.md` (add mode→palette resolution map; README requires the map to stay current).
 
-**CURRENT DOC — unchanged:** `docs/ONBOARDING_ARCHITECTURE.md:719`, `docs/screens/onboarding.md:233` (refer to the dark/OLED *palettes* as QA coverage, which still exist), `docs/UX_UI_SYSTEM.md`, ADR-0004.
+**CURRENT DOC — unchanged:** `docs/architecture/ONBOARDING_ARCHITECTURE.md:719`, `docs/screens/onboarding.md:233` (refer to the dark/OLED *palettes* as QA coverage, which still exist), `docs/architecture/UX_UI_SYSTEM.md`, ADR-0004.
 
 **HISTORICAL `.ai` EVIDENCE — do not rewrite:** `auth-google-identity-and-bootstrap-loading`, `auth-mobile-first-mode-switch-complementary-contact`, `design-system-hardcoded-color-audit`, `design-system-slice-b-welcome`, `design-system-slice-h-final-enforcement`, `design-system-token-consolidation`, `material-3-expressive`, `onboarding-flow`, `production-hardening-tio-colors-lerp`, `production-hardening-wear-os`, `settings-s0a-truthfulness-units`, `settings-s0b4-body-weight-device-qa`, `splash-tio-wordmark`, `tnyx-226-add-food-single-prompt-field`, `tnyx-67-meal-categories-readiness`, `tnyx-68-meal-diary-settings-shell-readiness`, `welcome-signin-footer-theme-contrast`.
 
@@ -506,7 +506,7 @@ No file outside the allowlist changed. Not committed, not pushed, no PR.
 ```text
 [done] owner implementation authorization → TNYX-157 In Progress → §5 implemented → §6 automated validation
 → owner review + owner device QA (§6 plan, incl. upgrade from each legacy value and downgrade observation)
-→ owner-authorized publication gate: commit / push / PR per docs/PUSH_TEMPLATE.md (not authorized yet)
+→ owner-authorized publication gate: commit / push / PR per .github/PUSH_TEMPLATE.md (not authorized yet)
 → CI on PR head → review/merge gate → then TNYX-157 Done / close #213 (not before)
 ```
 

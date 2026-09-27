@@ -4,7 +4,7 @@
 
 This checklist defines the minimum evidence needed to close the first Tio vertical slices. It is a delivery reference, not a claim that any listed capability is implemented or approved for release.
 
-Each feature task must link the affected [screen specifications](screens/README.md), record actual validation, and retain its own scope and non-goals.
+Each feature task must link the affected [screen specifications](../screens/README.md), record actual validation, and retain its own scope and non-goals.
 
 ## Global Gate For Every Slice
 
@@ -13,7 +13,7 @@ Before a slice is called complete:
 - [ ] Ownership is clear: shell, feature package, shared contract, repository, and platform responsibility are documented.
 - [ ] The UI has loading, empty, error, retry, and offline behavior appropriate to the data boundary.
 - [ ] Sensitive health, nutrition, workout, recovery, profile, and media data are not logged or exposed through client secrets.
-- [ ] The screen uses `apps/core` tokens/components and meets the [UI/UX System](UX_UI_SYSTEM.md) accessibility baseline.
+- [ ] The screen uses `apps/core` tokens/components and meets the [UI/UX System](../architecture/UX_UI_SYSTEM.md) accessibility baseline.
 - [ ] Feature business logic is not placed in `apps/app`, `apps/core`, or Flutter widgets.
 - [ ] Applicable static analysis and focused tests have run, or an exact limitation is recorded.
 - [ ] Runtime behavior, task brief, implementation status, and canonical docs agree before a completion claim.
@@ -89,7 +89,7 @@ These are mandatory product/legal/security gates, not assumptions an implementat
 ## Related
 
 - [Roadmap](ROADMAP.md)
-- [Supabase-First Platform Strategy](SUPABASE_STRATEGY.md)
-- [Security](SECURITY.md)
-- [Testing Guide](TESTING_GUIDE.md)
-- [Feature Development Workflow](../.ai/FEATURE_DEVELOPMENT.md)
+- [Supabase-First Platform Strategy](../data/SUPABASE_STRATEGY.md)
+- [Security](../security/SECURITY.md)
+- [Testing Guide](../development/TESTING_GUIDE.md)
+- [Feature Development Workflow](../../.ai/FEATURE_DEVELOPMENT.md)

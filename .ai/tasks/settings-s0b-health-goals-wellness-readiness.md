@@ -64,7 +64,7 @@ Relevant source boundaries include:
 - `apps/core/lib/src/units/unit_preferences.dart`
 - onboarding Step / Water / Sleep target presentation under `apps/features/onboarding/`
 - applicable Progress / Profile / Settings tests
-- `docs/MODULE_OWNERSHIP.md`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 
 ## Canonical owner matrix
 
@@ -336,7 +336,7 @@ Settings needs its own read/edit/save lifecycle while consuming the same canonic
 
 ## Documentation drift
 
-`docs/MODULE_OWNERSHIP.md` contains stale ownership language that can imply Nutrition ownership of Water.
+`docs/architecture/MODULE_OWNERSHIP.md` contains stale ownership language that can imply Nutrition ownership of Water.
 
 Current runtime contracts are more specific and authoritative:
 

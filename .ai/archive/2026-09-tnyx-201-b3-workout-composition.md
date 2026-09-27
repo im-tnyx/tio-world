@@ -74,7 +74,7 @@ to:
 
 ### Verified Evidence
 
-- Read root `AGENTS.md`, applicable feature agent rules, `.ai/workflow.md`, `.ai/tasks/TEMPLATE.md`, `docs/ARCHITECTURE.md`, `docs/MODULE_OWNERSHIP.md`, GitHub #260/#365, Linear TNYX-201 and current source.
+- Read root `AGENTS.md`, applicable feature agent rules, `.ai/workflow.md`, `.ai/tasks/TEMPLATE.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/MODULE_OWNERSHIP.md`, GitHub #260/#365, Linear TNYX-201 and current source.
 - Current base: `main@c47094f85ba3e02ccce999a12efe5c8398ee2cd4`.
 - `network_providers.dart`: 294 lines, blob `58e73795e8c6e1bd5cfb6eb8a512ebe0fc3fd41d`.
 - Workout Profile and Workout Targets contracts/adapters belong to `apps/features/workout`.

@@ -115,6 +115,6 @@ Component contracts describe meaning, but their fixed physical values follow the
 
 - [Canonical token task](design-system-token-consolidation.md)
 - [Hardcoded color audit](design-system-hardcoded-color-audit.md)
-- [Architecture](../../docs/ARCHITECTURE.md)
-- [Roadmap](../../docs/ROADMAP.md)
+- [Architecture](../../docs/architecture/ARCHITECTURE.md)
+- [Roadmap](../../docs/planning/ROADMAP.md)
 - [UI rules](../ui-rules.md)

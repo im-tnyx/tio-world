@@ -262,7 +262,7 @@ health collection merely because a future module may use it.
 
 ## Related
 
-- [Onboarding flow architecture](../ONBOARDING_ARCHITECTURE.md)
+- [Onboarding flow architecture](../architecture/ONBOARDING_ARCHITECTURE.md)
 - [ADR-0006: Single-Route Onboarding Parent Flow](../adr/0006-single-route-onboarding-parent-flow.md)
 - [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)
 - [Settings](settings.md)

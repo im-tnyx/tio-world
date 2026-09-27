@@ -63,7 +63,7 @@ See *Explicit non-changes*. W1A7 is subtraction only.
 
 ### Verified Evidence
 
-- Source/config inspected at `2725d5ab`: root and `apps/features/AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `.ai/tasks/TEMPLATE.md`, [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md), [MODULE_OWNERSHIP.md](../../docs/MODULE_OWNERSHIP.md), [archived W1A0 brief](../archive/2026-09-tnyx-78-w1a0-workout-canonical-identities.md), `docs/PUSH_TEMPLATE.md`, `melos.yaml`, `apps/shared/lib/shared.dart`, the scaffold files, Linear TNYX-78.
+- Source/config inspected at `2725d5ab`: root and `apps/features/AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `.ai/tasks/TEMPLATE.md`, [ADR-0011](../../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), D-019 in [DECISIONS.md](../DECISIONS.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md), [archived W1A0 brief](2026-09-tnyx-78-w1a0-workout-canonical-identities.md), `.github/PUSH_TEMPLATE.md`, `melos.yaml`, `apps/shared/lib/shared.dart`, the scaffold files, Linear TNYX-78.
 - Architecture gate (unchanged on fresh main): ADR-0011 §1 durable Workout IDs/entities/value objects → `apps/shared`; Workout repository interfaces/data sources/controllers/UI → `apps/features/workout`; §4 `WorkoutSet` retired, `SetPrescription`/`PerformedSet` canonical; §5 scaffold non-canonical, removed in isolated W1A7 before W1A1. D-019 and MODULE_OWNERSHIP say the same.
 
 ### Target Paths (11 tracked files; no untracked/newer files present)
@@ -102,7 +102,7 @@ These names are the legacy scaffold only, not future canonical W1A1+ contracts.
 
 | Reference | Class | Effect on W1A7 |
 |---|---|---|
-| ADR-0011 §4–5, D-019, `docs/MODULE_OWNERSHIP.md` Workout split | Current canonical architecture — describes the removal | Supports W1A7; update only if wording becomes false after deletion (decide at implementation, minimal) |
+| ADR-0011 §4–5, D-019, `docs/architecture/MODULE_OWNERSHIP.md` Workout split | Current canonical architecture — describes the removal | Supports W1A7; update only if wording becomes false after deletion (decide at implementation, minimal) |
 | Archived W1A0 brief | Historical record | None |
 | `.ai/tasks/tnyx-66-nutrition-readiness-gate.md` (`TrainingSession` `String id` precedent) | Historical evidence in a Nutrition brief | Not a blocker; not rewritten by W1A7 |
 | `.ai/tasks/tnyx-188-meal-log-capture-source.md` (`training_session.dart` ownership precedent) | Historical evidence in a Nutrition brief | Not a blocker; not rewritten by W1A7 |
@@ -149,7 +149,7 @@ Not applicable; no runtime or UI behavior.
 - [x] 4. Re-scan for `tio_shared/workout.dart`, `src/workout`, and the six stale symbols in runtime/test code.
 - [x] 5. Validate (section 6).
 - [x] 6. Quality review of the diff: changed-file list = 11 deletions + task records (+ at most a minimal canonical-doc wording fix if a statement became false).
-- [x] 7. Pushed and opened Draft PR #327 per `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; moved TNYX-258 `In Progress` → `In Review` as real state changed; marked Ready after exact-head gates; owner-authorized squash merge `ec1f94c9` set TNYX-258 `Done`; TNYX-78 stayed `In Progress`.
+- [x] 7. Pushed and opened Draft PR #327 per `.github/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`; moved TNYX-258 `In Progress` → `In Review` as real state changed; marked Ready after exact-head gates; owner-authorized squash merge `ec1f94c9` set TNYX-258 `Done`; TNYX-78 stayed `In Progress`.
 
 ## 6. Quality Review
 
@@ -193,14 +193,14 @@ Local melos is 8.x while `melos.yaml` targets the CI pin 2.9.0, so the equivalen
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| W1A7-C1 | P2 | Resolved | Codex: after merge `docs/MODULE_OWNERSHIP.md` ("pending the isolated W1A7 cleanup") and D-019 ("scheduled for … W1A7 cleanup") would be false against the runtime tree | d865f1ba | The W1A7-C1 commit rewords only those two current statements to "removed by W1A7 (TNYX-258)"; ADR-0011 (decision record) and historical briefs unchanged |
+| W1A7-C1 | P2 | Resolved | Codex: after merge `docs/architecture/MODULE_OWNERSHIP.md` ("pending the isolated W1A7 cleanup") and D-019 ("scheduled for … W1A7 cleanup") would be false against the runtime tree | d865f1ba | The W1A7-C1 commit rewords only those two current statements to "removed by W1A7 (TNYX-258)"; ADR-0011 (decision record) and historical briefs unchanged |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
 - `.ai/tasks/tnyx-258-w1a7-stale-workout-scaffold-cleanup.md`, `.ai/tasks/README.md` (governance)
-- `docs/MODULE_OWNERSHIP.md`, `.ai/DECISIONS.md` D-019: one-clause status wording only (W1A7-C1)
+- `docs/architecture/MODULE_OWNERSHIP.md`, `.ai/DECISIONS.md` D-019: one-clause status wording only (W1A7-C1)
 - deleted: `apps/shared/lib/workout.dart` and the 10 files under `apps/shared/lib/src/workout/**` listed in *Target Paths*
 
 ### Actual Behavior

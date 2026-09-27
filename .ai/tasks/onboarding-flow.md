@@ -17,7 +17,7 @@ the current typed section from step metadata and dispatches a section widget.
 The runtime path now supports `AppModeSection`, `ProfileSection`,
 `WorkoutIntroSection`, `WorkoutSection`, `NutritionIntroSection`,
 `NutritionSection`, `TargetsSection` (all 6 Targets children including real GoalPaceScreen and authoritative NutritionTargetScreen),
-and `ReviewSection`. See `docs/ONBOARDING_ARCHITECTURE.md`
+and `ReviewSection`. See `docs/architecture/ONBOARDING_ARCHITECTURE.md`
 for the durable architecture and status boundary.
 A new user completes one calm, resumable setup flow. Progress remains visible at
 the top, the primary action remains reachable at the bottom, and only the child
@@ -77,7 +77,7 @@ complete both branches without duplicate profile questions.
   - Riverpod for state ownership
   - `go_router` for app route composition
   - `TioButton`, theme tokens, and reduced-motion behavior from `apps/core`
-  - repository/data-source boundaries from `docs/DATA_AND_SYNC.md`
+  - repository/data-source boundaries from `docs/data/DATA_AND_SYNC.md`
 - Tests or validation already present:
   - App Mode parsing, persistence, queued writes, failure behavior, guided tab
     mapping, and route eligibility have focused coverage.
@@ -134,7 +134,7 @@ go_router /onboarding
 ```
 
 Detailed contracts, mode matrices, target folders, failure rules, and alternatives
-are canonical in [Onboarding Flow Architecture](../../docs/ONBOARDING_ARCHITECTURE.md)
+are canonical in [Onboarding Flow Architecture](../../docs/architecture/ONBOARDING_ARCHITECTURE.md)
 and [ADR-0006](../../docs/adr/0006-single-route-onboarding-parent-flow.md).
 
 ### Ownership And Data Flow

@@ -10,9 +10,9 @@ Related boundaries:
 
 - [Security](SECURITY.md)
 - [Authentication Architecture](AUTH_ARCHITECTURE.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
 - [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 
 ## Core Rule
 
@@ -287,7 +287,7 @@ Rules:
 - user-owned operations should preserve user-scoped access/RLS where appropriate;
 - privileged credentials must not become a fallback for failed authorization.
 
-See [Supabase Server Access](SUPABASE_SERVER_ACCESS.md).
+See [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md).
 
 ## Logging, Errors & Telemetry
 
@@ -322,7 +322,7 @@ fail startup / disable the owning capability safely
 → do not silently point to another environment
 ```
 
-For optional integrations, the owning feature may define a safe disabled/degraded state under [Feature Rollout](FEATURE_ROLLOUT.md), but absence of a secret must never enable unsafe behavior.
+For optional integrations, the owning feature may define a safe disabled/degraded state under [Feature Rollout](../planning/FEATURE_ROLLOUT.md), but absence of a secret must never enable unsafe behavior.
 
 ## Configuration Change vs Code Change
 

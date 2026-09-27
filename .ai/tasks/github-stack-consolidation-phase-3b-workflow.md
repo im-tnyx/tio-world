@@ -21,7 +21,7 @@ commit, and stop. Do not amend the Phase 3A commit.
   the only extra evidence path, and Phase 3A source remains unchanged.
 
 Scope: .ai/tasks/stacked-branch-scope-hygiene.md,
-.github/PULL_REQUEST_TEMPLATE.md and docs/PUSH_TEMPLATE.md.
+.github/PULL_REQUEST_TEMPLATE.md and .github/PUSH_TEMPLATE.md.
 
 Non-goals: runtime/source changes, UI-preserve, Phase 3C, new workflow tooling,
 path manifests, CI enforcement, branch switching, worktree creation/use,
@@ -56,7 +56,7 @@ three-commit checkpoint remain historical evidence, not Phase 3B results.
 
 ## 4. Architecture Design
 
-docs/PUSH_TEMPLATE.md continues to own executable parent/stack checks;
+.github/PUSH_TEMPLATE.md continues to own executable parent/stack checks;
 .github/PULL_REQUEST_TEMPLATE.md records ancestry, commit and changed-file
 evidence. AGENTS.md already requires the push template and stays unchanged.
 Parent movement requires ordered reconciliation. History rewrite still needs

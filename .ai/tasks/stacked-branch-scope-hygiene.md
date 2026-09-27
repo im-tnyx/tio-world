@@ -23,7 +23,7 @@ Keep stacked development branches small, linear, and reviewable so unrelated UI,
 
 - strengthen the push checklist with concrete ancestry/scope commands;
 - add PR-template evidence for stack/base/scope auditing;
-- rely on the existing root `AGENTS.md` requirement to read `docs/PUSH_TEMPLATE.md` before every push/PR instead of duplicating the same commands in two policy files.
+- rely on the existing root `AGENTS.md` requirement to read `.github/PUSH_TEMPLATE.md` before every push/PR instead of duplicating the same commands in two policy files.
 
 ### Non-Goals
 
@@ -35,8 +35,8 @@ Keep stacked development branches small, linear, and reviewable so unrelated UI,
 
 ### Verified Evidence
 
-- `AGENTS.md` already requires `git status --short --branch`, small focused changes, no unrelated pushes, no history rewrite without explicit approval, and explicitly requires reading `docs/PUSH_TEMPLATE.md` before commit/push/PR creation.
-- `docs/PUSH_TEMPLATE.md` already checked branch/base correctness and changed-file scope, but did not require a merge-base/ancestry audit for stacked PRs.
+- `AGENTS.md` already requires `git status --short --branch`, small focused changes, no unrelated pushes, no history rewrite without explicit approval, and explicitly requires reading `.github/PUSH_TEMPLATE.md` before commit/push/PR creation.
+- `.github/PUSH_TEMPLATE.md` already checked branch/base correctness and changed-file scope, but did not require a merge-base/ancestry audit for stacked PRs.
 - `.github/PULL_REQUEST_TEMPLATE.md` did not require parent ref, ahead/behind state, or changed-file scope evidence.
 - A recent stacked Auth branch temporarily accumulated unrelated Core/Onboarding/Welcome commits, which required source-history cleanup and child-stack reconstruction.
 
@@ -58,7 +58,7 @@ Docs-only change. Validation is repository-API ancestry/changed-file review plus
 | Require parent-to-head changed-file audit | Approved | Detect unrelated files before push | Repository workflow |
 | Preserve recovery branch before approved rewrite | Approved | Avoid losing unrelated user work | Repository safety |
 | Do not add new CI/tool dependency | Chosen | Workflow docs are sufficient for this bounded correction | Engineering |
-| Do not duplicate the command list in `AGENTS.md` | Chosen | Root instructions already mandate `docs/PUSH_TEMPLATE.md`; one command source avoids drift | Engineering |
+| Do not duplicate the command list in `AGENTS.md` | Chosen | Root instructions already mandate `.github/PUSH_TEMPLATE.md`; one command source avoids drift | Engineering |
 
 ## 4. Architecture Design
 
@@ -91,7 +91,7 @@ parent moves
 
 ```text
 AGENTS.md requires PUSH_TEMPLATE review
-→ docs/PUSH_TEMPLATE.md owns executable branch/stack checks
+→ .github/PUSH_TEMPLATE.md owns executable branch/stack checks
 → .github/PULL_REQUEST_TEMPLATE.md records review evidence
 ```
 
@@ -106,8 +106,8 @@ If the parent is not an ancestor or unrelated files appear, do not push more wor
 ## 5. Implementation Plan
 
 - [x] Audit existing agent/push/PR guidance.
-- [x] Keep `AGENTS.md` unchanged because it already mandates `docs/PUSH_TEMPLATE.md` before push/PR creation.
-- [x] Add concrete ancestry/scope commands to `docs/PUSH_TEMPLATE.md`.
+- [x] Keep `AGENTS.md` unchanged because it already mandates `.github/PUSH_TEMPLATE.md` before push/PR creation.
+- [x] Add concrete ancestry/scope commands to `.github/PUSH_TEMPLATE.md`.
 - [x] Add stack/scope evidence section to `.github/PULL_REQUEST_TEMPLATE.md`.
 - [x] Review final changed-file scope.
 
@@ -128,7 +128,7 @@ ahead:     3
 Changed files:
 - .ai/tasks/stacked-branch-scope-hygiene.md
 - .github/PULL_REQUEST_TEMPLATE.md
-- docs/PUSH_TEMPLATE.md
+- .github/PUSH_TEMPLATE.md
 
 Runtime/build validation: not applicable (docs/workflow only)
 Local `git diff --check`: not executable through the current GitHub connector; complete changed-file and full text content were inspected instead.
@@ -136,7 +136,7 @@ Local `git diff --check`: not executable through the current GitHub connector; c
 
 ### Review Findings and Resolution
 
-1. Repeating all stack commands in `AGENTS.md` would create two policy copies that can drift. The root file already requires reading `docs/PUSH_TEMPLATE.md`, so the executable checklist remains single-owned there.
+1. Repeating all stack commands in `AGENTS.md` would create two policy copies that can drift. The root file already requires reading `.github/PUSH_TEMPLATE.md`, so the executable checklist remains single-owned there.
 2. Routine recovery branches would themselves create clutter. The guidance limits recovery refs to explicitly approved history rewrites where work is actually at risk.
 3. Automated path enforcement was intentionally not introduced because task-owned paths vary by slice; PR evidence now makes the scope decision explicit and reviewable.
 
@@ -145,7 +145,7 @@ Local `git diff --check`: not executable through the current GitHub connector; c
 ### Changed Files
 
 - `.ai/tasks/stacked-branch-scope-hygiene.md`
-- `docs/PUSH_TEMPLATE.md`
+- `.github/PUSH_TEMPLATE.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 
 ### Actual Behavior

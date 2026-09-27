@@ -136,10 +136,10 @@ Rejected. Current product work can continue on the active Supabase foundation. P
 ## Links
 
 - Supersedes: [ADR-0003](0003-supabase-first-data-boundary.md)
-- [Architecture](../ARCHITECTURE.md)
-- [Auth Architecture](../AUTH_ARCHITECTURE.md)
-- [Supabase Strategy](../SUPABASE_STRATEGY.md)
-- [Supabase Server Access](../SUPABASE_SERVER_ACCESS.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
+- [Auth Architecture](../security/AUTH_ARCHITECTURE.md)
+- [Supabase Strategy](../data/SUPABASE_STRATEGY.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
 - Linear TNYX-17 — monorepo/services namespace
 - Linear TNYX-18 — TypeScript + Fastify baseline
 - Linear TNYX-21 — Firebase auth architecture cleanup

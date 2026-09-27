@@ -61,7 +61,7 @@ Measurement Units; Profile/Profile Avatar/Profile Settings; Nutrition; Wellness;
 
 ### Verified Evidence
 
-- Source/config inspected: root `AGENTS.md`, #260, #357, TNYX-201, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `docs/ARCHITECTURE.md`, `docs/MODULE_OWNERSHIP.md`, current `router.dart`, current `settings_routes.dart`.
+- Source/config inspected: root `AGENTS.md`, #260, #357, TNYX-201, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/MODULE_OWNERSHIP.md`, current `router.dart`, current `settings_routes.dart`.
 - Current base: `main@ff1a37086cf98d9ce08a14b6e5514e199f91d7e1`.
 - `router.dart`: 1252 lines; one root `GoRouter(...)`; one `goRouterProvider`.
 - Existing `settings_routes.dart` already owns Settings root, App Mode, Calendar and Theme registration.

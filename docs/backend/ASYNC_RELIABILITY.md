@@ -12,9 +12,9 @@ Related contracts:
 
 - [Initial Queue Strategy](QUEUE_STRATEGY.md)
 - [Observability](OBSERVABILITY.md)
-- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
-- [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md)
-- [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
+- [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md)
+- [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)
 
 Linear ownership remains separate:
 
@@ -509,7 +509,7 @@ Before a real queue goes production, recovery testing must verify how the system
 
 This is why provider idempotency/reconciliation and durable local operation identities remain necessary even when the queue itself is durable.
 
-Database recovery policy remains owned by [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md).
+Database recovery policy remains owned by [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md).
 
 ## Implementation Gate
 

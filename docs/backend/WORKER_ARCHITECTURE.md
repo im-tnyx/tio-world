@@ -8,13 +8,13 @@ This document completes the planning scope of Linear TNYX-31. It defines the lif
 
 Related contracts:
 
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Initial Queue Strategy](QUEUE_STRATEGY.md)
 - [Async Reliability](ASYNC_RELIABILITY.md)
 - [Observability](OBSERVABILITY.md)
 - [Scaling Readiness](SCALING_READINESS.md)
-- [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md)
-- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
+- [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)
+- [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
 
 Linear ownership remains separate:
 

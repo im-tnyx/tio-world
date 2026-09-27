@@ -46,7 +46,7 @@ Fresh-read during this repair sequence:
 - `.ai/tasks/design-system-token-consolidation.md`;
 - `apps/features/AGENTS.md`;
 - `apps/core/lib/src/theme/README.md`;
-- `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`;
+- `.github/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`;
 - current PR #267 metadata/review threads and actual Codex reviews;
 - Linear TNYX-206 status/relations;
 - current Daily Nutrition widget/provider/recovery/summary tests;

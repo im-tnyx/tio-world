@@ -111,7 +111,7 @@ Restoring a public `TioConfirmationCard`, retaining a local `AlertDialog`, or cr
 - [x] Run final Codex-style review; no blocking findings at exact HEAD `09660677`; exact-head CI green.
 - [x] Move PR #279 to Ready for Review and Linear TNYX-222 to In Review.
 - [x] Merge PR #279 (squash) into `main` on explicit owner instruction.
-- [x] Sync local `main` per `docs/POST_MERGE_SYNC.md`.
+- [x] Sync local `main` per `.github/POST_MERGE_SYNC.md`.
 - [x] Verify acceptance criteria against merged `main` source and move Linear TNYX-222 to Done.
 
 ## 6. Quality Review

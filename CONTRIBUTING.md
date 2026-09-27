@@ -220,15 +220,15 @@ Recommended docs:
 
 | Area | Read first |
 | :--- | :--- |
-| Architecture | `docs/ARCHITECTURE.md` |
-| Flutter modular structure | `docs/FLUTTER_MODULAR_STRUCTURE.md` |
-| Module ownership | `docs/MODULE_OWNERSHIP.md` |
+| Architecture | `docs/architecture/ARCHITECTURE.md` |
+| Flutter modular structure | `docs/mobile/FLUTTER_MODULAR_STRUCTURE.md` |
+| Module ownership | `docs/architecture/MODULE_OWNERSHIP.md` |
 | Mobile app | `apps/app/README.md` when introduced |
-| Watch strategy | `docs/WATCH_STRATEGY.md` |
+| Watch strategy | `docs/wearables/WATCH_STRATEGY.md` |
 | API/backend | Create backend documentation only when the `backend/` workspace is introduced. |
-| Security | `docs/SECURITY.md` |
-| Testing | `docs/TESTING_GUIDE.md` |
-| Release and PRs | `docs/PUSH_TEMPLATE.md` |
+| Security | `docs/security/SECURITY.md` |
+| Testing | `docs/development/TESTING_GUIDE.md` |
+| Release and PRs | `.github/PUSH_TEMPLATE.md` |
 | ADRs | Add an ADR index when the first durable architecture decision needs one. |
 
 Rule simple hai: architecture behavior badalta hai to docs bhi update honge.
@@ -285,7 +285,7 @@ If `Commit attribution guard` fails on a PR:
 1. Identify the offending feature-branch commit(s) from the check's output.
 2. Remove the prohibited AI `Co-Authored-By` trailer(s) from those commit messages.
 3. Amend or rebase only the working feature branch — never rewrite `main`.
-4. Follow this repository's history-rewrite safety rules (see `docs/PUSH_TEMPLATE.md`).
+4. Follow this repository's history-rewrite safety rules (see `.github/PUSH_TEMPLATE.md`).
 5. Use `git push --force-with-lease` only when the branch was already pushed and a rewrite is explicitly authorized.
 6. Push again and let the guard re-run; merge only after it passes.
 

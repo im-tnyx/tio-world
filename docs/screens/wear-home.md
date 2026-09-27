@@ -62,4 +62,4 @@ Until mode sync exists, the current static list is not evidence of mode-aware wa
 - [Nutrition](nutrition.md)
 - [Workout](workout.md)
 - [Screen catalog](README.md)
-- [Wear strategy](../WATCH_STRATEGY.md)
+- [Wear strategy](../wearables/WATCH_STRATEGY.md)

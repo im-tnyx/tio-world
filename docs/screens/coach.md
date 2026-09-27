@@ -45,4 +45,4 @@ After the Phase 9 custom-navigation upgrade, Coach remains an eligible root dest
 
 - [Screen catalog](README.md)
 - [Recovery](recovery.md)
-- [Roadmap: Phase 7](../ROADMAP.md#phase-7-ai-coach)
+- [Roadmap: Phase 7](../planning/ROADMAP.md#phase-7-ai-coach)

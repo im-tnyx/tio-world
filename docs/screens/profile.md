@@ -57,4 +57,4 @@ When avatar upload is approved, its file belongs in the private Supabase `profil
 - [Workout](workout.md)
 - [Settings](settings.md)
 - [Profile Photo](profile-avatar.md)
-- [Architecture: reusable avatar](../ARCHITECTURE.md#reusable-profile-avatar)
+- [Architecture: reusable avatar](../architecture/ARCHITECTURE.md#reusable-profile-avatar)

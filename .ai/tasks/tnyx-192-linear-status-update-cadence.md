@@ -31,7 +31,7 @@
 **Validation remaining:** None for implementation. Merge remains explicitly owner-gated.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Await explicit owner merge authorization for PR #249; after merge, reconcile Linear TNYX-192 to `Done` and follow `docs/POST_MERGE_SYNC.md`.
+**Next exact action:** Await explicit owner merge authorization for PR #249; after merge, reconcile Linear TNYX-192 to `Done` and follow `.github/POST_MERGE_SYNC.md`.
 
 ## 1. Discovery
 
@@ -65,8 +65,8 @@ Keep Linear task state current while avoiding noisy project-level status updates
 - Root `AGENTS.md` already defined Tracker Reconciliation but not project status cadence.
 - `.ai/workflow.md` defined tracker roles and final handoff but not issue-vs-project update frequency.
 - `.ai/tasks/README.md` requires compact task briefs for active tracked work.
-- `docs/POST_MERGE_SYNC.md` exists on `main` and is linked from `.ai/README.md` / `docs/README.md`.
-- Root `AGENTS.md` contained a stale `.github/POST_MERGE_SYNC.md` path; because the same governance file was already in scope, the reference was corrected to `docs/POST_MERGE_SYNC.md` in this slice.
+- `.github/POST_MERGE_SYNC.md` exists on `main` and is linked from `.ai/README.md` / `docs/README.md`.
+- Root `AGENTS.md` contained a stale `.github/POST_MERGE_SYNC.md` path; because the same governance file was already in scope, the reference was corrected to `.github/POST_MERGE_SYNC.md` in this slice.
 
 ## 3. Clarification
 
@@ -77,7 +77,7 @@ Keep Linear task state current while avoiding noisy project-level status updates
 | Issue status cadence | Decided | Update on actual task state transitions | Owner |
 | Project status cadence | Decided | Weekly when useful, plus material-change updates; avoid per-task spam | Owner |
 | Material risk/blocker timing | Decided | Update promptly, do not wait for weekly cadence | Owner |
-| Post-merge guide path | Decided | Point root governance at the existing `docs/POST_MERGE_SYNC.md` | Repository evidence + Owner correction |
+| Post-merge guide path | Decided | Point root governance at the existing `.github/POST_MERGE_SYNC.md` | Repository evidence + Owner correction |
 
 ## 4. Architecture Design
 
@@ -116,7 +116,7 @@ GitHub/API compare at implementation head 3fade49b3e399493272cc09d0297190ef3c400
 Complete PR #249 patch review at head 47374a9aae321ea3a92e95d03761a1eebba2063f:
 - AGENTS.md cadence wording is scoped and consistent with Tracker Reconciliation
 - .ai/workflow.md reinforces the same task-vs-project distinction
-- stale post-merge path corrected to docs/POST_MERGE_SYNC.md
+- stale post-merge path corrected to .github/POST_MERGE_SYNC.md
 - no runtime/product/UI/Supabase changes
 - no whitespace or unrelated-diff issue observed in the returned patch
 - one P2 finding: committed handoff still described already-completed Linear/exact-head actions as pending
@@ -139,7 +139,7 @@ Final pre-merge audit at 251fdc3047072edea87b49099e43950ca9bb792b:
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| GOV-1 | P3 | Resolved | Task brief initially repeated the stale assumption that `POST_MERGE_SYNC.md` was absent | `3fade49b` review | Owner pointed out the docs path; live repo verified `docs/POST_MERGE_SYNC.md`, task brief corrected |
+| GOV-1 | P3 | Resolved | Task brief initially repeated the stale assumption that `POST_MERGE_SYNC.md` was absent | `3fade49b` review | Owner pointed out the docs path; live repo verified `.github/POST_MERGE_SYNC.md`, task brief corrected |
 | PR249-P2 | P2 | Resolved | Active handoff still said exact-head/Linear reconciliation was pending after both had completed | `47374a9a` review | Fixed in `c4c1ad49`; exact-head compare and focused patch verification passed before thread resolution |
 
 ## 7. Final Handoff
@@ -152,7 +152,7 @@ Final pre-merge audit at 251fdc3047072edea87b49099e43950ca9bb792b:
 
 ### Actual Behavior
 
-Agents now have a canonical distinction between task-level Linear state transitions and project-level health/status summaries. Project updates are not emitted for every completed task; weekly summaries are used when useful, with immediate updates for material risks/blockers or other project-level changes. Root agent governance also points to the existing `docs/POST_MERGE_SYNC.md` guide.
+Agents now have a canonical distinction between task-level Linear state transitions and project-level health/status summaries. Project updates are not emitted for every completed task; weekly summaries are used when useful, with immediate updates for material risks/blockers or other project-level changes. Root agent governance also points to the existing `.github/POST_MERGE_SYNC.md` guide.
 
 ### Known Limitations
 

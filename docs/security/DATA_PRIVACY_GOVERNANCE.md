@@ -6,7 +6,7 @@
 
 This document defines how Tio classifies, collects, uses, shares, retains, exports, and deletes user data before AI, analytics, coaching, private media, and other sensitive workflows expand.
 
-It complements [Security](SECURITY.md), [Authentication Architecture](AUTH_ARCHITECTURE.md), and [Supabase Server Access Modes](SUPABASE_SERVER_ACCESS.md). It does not replace security controls, product-specific ownership rules, or future legal review.
+It complements [Security](SECURITY.md), [Authentication Architecture](AUTH_ARCHITECTURE.md), and [Supabase Server Access Modes](../data/SUPABASE_SERVER_ACCESS.md). It does not replace security controls, product-specific ownership rules, or future legal review.
 
 No backend/runtime implementation is introduced by this document.
 

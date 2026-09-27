@@ -723,11 +723,11 @@ Each slice must be usable and testable before the next grows.
 
 ## Related
 
-- [Onboarding screen specification](screens/onboarding.md)
-- [ADR-0006: Single-Route Onboarding Parent Flow](adr/0006-single-route-onboarding-parent-flow.md)
+- [Onboarding screen specification](../screens/onboarding.md)
+- [ADR-0006: Single-Route Onboarding Parent Flow](../adr/0006-single-route-onboarding-parent-flow.md)
 - [App Mode architecture](ARCHITECTURE.md#app-mode-navigation-layout-and-surface-composition)
 - [Module ownership](MODULE_OWNERSHIP.md)
-- [Data and sync](DATA_AND_SYNC.md)
-- [Security](SECURITY.md)
-- [Supabase strategy](SUPABASE_STRATEGY.md)
-- [Onboarding implementation task](../.ai/tasks/onboarding-flow.md)
+- [Data and sync](../data/DATA_AND_SYNC.md)
+- [Security](../security/SECURITY.md)
+- [Supabase strategy](../data/SUPABASE_STRATEGY.md)
+- [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)

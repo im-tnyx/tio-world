@@ -162,7 +162,7 @@ The planned full onboarding keeps one `/onboarding` parent screen: top progress
 and bottom actions remain fixed while a mode-derived child step changes. Draft
 mode, confirmed App Mode, and onboarding completion are separate so the first
 choice cannot open Home prematurely. See the
-[Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md).
+[Onboarding flow architecture](docs/architecture/ONBOARDING_ARCHITECTURE.md).
 
 Workout Library and Meal Plan remain owned routes inside Workout and Nutrition. After their features exist, the custom layout may promote them as shortcuts without moving their business logic or duplicating screens. Coach becomes eligible only in Phase 7; You and future Social remain gated by their own approved product slices.
 
@@ -236,19 +236,19 @@ melos test
 Start here:
 
 - [Documentation index](docs/README.md)
-- [Architecture](docs/ARCHITECTURE.md)
+- [Architecture](docs/architecture/ARCHITECTURE.md)
 - [AI context and active tasks](.ai/README.md)
-- [Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md)
+- [Onboarding flow architecture](docs/architecture/ONBOARDING_ARCHITECTURE.md)
 
 For platform trust, data, recovery, environment, and future protected-service contracts, read:
 
-- [Authentication architecture](docs/AUTH_ARCHITECTURE.md)
-- [Supabase server access](docs/SUPABASE_SERVER_ACCESS.md)
-- [Secrets & environment strategy](docs/SECRETS_AND_ENVIRONMENTS.md)
-- [Data & privacy governance](docs/DATA_PRIVACY_GOVERNANCE.md)
-- [Database backup & recovery](docs/DATABASE_BACKUP_RECOVERY.md)
-- [API lifecycle & client compatibility](docs/API_LIFECYCLE.md)
-- [Feature rollout & kill switch](docs/FEATURE_ROLLOUT.md)
+- [Authentication architecture](docs/security/AUTH_ARCHITECTURE.md)
+- [Supabase server access](docs/data/SUPABASE_SERVER_ACCESS.md)
+- [Secrets & environment strategy](docs/security/SECRETS_AND_ENVIRONMENTS.md)
+- [Data & privacy governance](docs/security/DATA_PRIVACY_GOVERNANCE.md)
+- [Database backup & recovery](docs/data/DATABASE_BACKUP_RECOVERY.md)
+- [API lifecycle & client compatibility](docs/backend/API_LIFECYCLE.md)
+- [Feature rollout & kill switch](docs/planning/FEATURE_ROLLOUT.md)
 
 For the phone and Wear OS screen-by-screen product plan, read:
 
@@ -257,8 +257,8 @@ For the phone and Wear OS screen-by-screen product plan, read:
 For durable architecture decisions, the phone design-system contract, and MVP delivery gates, read:
 
 - [Architecture Decision Records](docs/adr/README.md)
-- [UX/UI system](docs/UX_UI_SYSTEM.md)
-- [MVP acceptance gates](docs/MVP_ACCEPTANCE.md)
+- [UX/UI system](docs/architecture/UX_UI_SYSTEM.md)
+- [MVP acceptance gates](docs/planning/MVP_ACCEPTANCE.md)
 
 ## License and source-use notice
 

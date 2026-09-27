@@ -121,7 +121,7 @@ its height (`1.5dp`), while the invisible interaction height remains at least 48
 - no Planning Calendar and no Progress Calendar, and no pre-generalizing of `TioDateCalendar` into a universal
   calendar to accommodate them;
 - no empty future Workout/Meal Plan folders;
-- no unrelated stale-doc cleanup (for example the legacy `backend/*` rows in `docs/MODULE_OWNERSHIP.md`).
+- no unrelated stale-doc cleanup (for example the legacy `backend/*` rows in `docs/architecture/MODULE_OWNERSHIP.md`).
 
 ## Active Handoff
 
@@ -219,7 +219,7 @@ See "Explicit non-changes" above.
 
 - `.ai/CURRENT.md` is stale (last verified 2026-08-23, frozen SHA `f95ddf7c`) and was not used as readiness
   evidence.
-- `docs/MODULE_OWNERSHIP.md` still lists `future backend/api`, `future backend/ai-coach`, `future backend/jobs`
+- `docs/architecture/MODULE_OWNERSHIP.md` still lists `future backend/api`, `future backend/ai-coach`, `future backend/jobs`
   and `future supabase/`, contradicting `AGENTS.md` and ADR-0007. Out of scope here and recorded as a follow-up.
 - `docs/screens/meal-diary.md` and `docs/screens/nutrition.md` disagree on whether Meal Diary is a nested route
   or a section of the `/nutrition` root. This slice delivers it on the `/nutrition` root branch and both docs
@@ -231,7 +231,7 @@ See "Explicit non-changes" above.
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Reusable calendar owner is `apps/core` | Made | `docs/MODULE_OWNERSHIP.md`: core owns reusable Flutter UI and must not import feature packages | TNYX-54 and repo docs |
+| Reusable calendar owner is `apps/core` | Made | `docs/architecture/MODULE_OWNERSHIP.md`: core owns reusable Flutter UI and must not import feature packages | TNYX-54 and repo docs |
 | First consumer surface is the `/nutrition` shell branch | Made | It is the only reachable Nutrition surface; `HomePage` is the existing root-page precedent; a new nested route would be unreachable | this slice |
 | Per-date decoration is a builder callback, not a `Map<DateTime, ...>` | Made | `DateTime` equality includes time, so raw date-key maps are easy to misuse | this slice |
 | `progress == null` means unavailable and `0.0` means actual zero | Made | TNYX-55 acceptance, enforced by an explicit test | TNYX-55 |
@@ -343,7 +343,7 @@ Meaning is never carried by colour alone. The handle hit area is at least 48dp t
 - [x] Core superseded radius pass: explicit/tested 2dp all-corner pill radius
 - [x] Core selection-ring correction: reduce only the outer selected-date stroke from 1.5dp to 0.5dp
 - [x] Core latest handle correction: 80/60/6 transparent cut around a centered 60x3 grabber with 1.5dp radius
-- [x] Docs: `docs/screens/meal-diary.md`, `docs/screens/nutrition.md`, `docs/MODULE_OWNERSHIP.md`, `apps/core/lib/src/theme/README.md`
+- [x] Docs: `docs/screens/meal-diary.md`, `docs/screens/nutrition.md`, `docs/architecture/MODULE_OWNERSHIP.md`, `apps/core/lib/src/theme/README.md`
 - [x] Baseline validation before the latest owner visual corrections
 - [x] Focused Flutter validation for the latest owner visual corrections
 - [x] Workspace-wide validation after the `intl` dependency was introduced
@@ -575,7 +575,7 @@ apps/core/lib/src/theme/README.md                      calendar + shell-slot con
 apps/core/pubspec.yaml / pubspec.lock                  localized short-weekday dependency
 apps/features/nutrition/lib/nutrition.dart              meal_diary barrel export
 apps/features/nutrition/pubspec.yaml / pubspec.lock    Material icons + resolved Core dependencies
-docs/MODULE_OWNERSHIP.md                               core calendar ownership
+docs/architecture/MODULE_OWNERSHIP.md                               core calendar ownership
 docs/screens/meal-diary.md                            delivered route/interaction behavior
 docs/screens/nutrition.md                              root is no longer a placeholder
 ```

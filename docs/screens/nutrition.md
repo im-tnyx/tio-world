@@ -61,5 +61,5 @@ shows the currently selected day number.
 - [Screen catalog](README.md)
 - [Profile](profile.md)
 - [Wear Home](wear-home.md)
-- [Roadmap](../ROADMAP.md)
+- [Roadmap](../planning/ROADMAP.md)
 - [Adaptive navigation and action entry](../../.ai/tasks/adaptive-navigation-and-actions.md)

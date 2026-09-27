@@ -69,4 +69,4 @@ saved-versus-resolved boundary.
 - [TNYX-72 execution brief](../../.ai/tasks/tnyx-72-global-calendar-preferences.md)
 - [Settings screen](../screens/settings.md)
 - [Meal Diary screen](../screens/meal-diary.md)
-- [Module ownership](../MODULE_OWNERSHIP.md)
+- [Module ownership](../architecture/MODULE_OWNERSHIP.md)

@@ -10,7 +10,7 @@
 
 **Trigger classification:** No mandatory product/UI/data-shape approval trigger; this was repository-governance documentation only.
 **Authorization:** Owner explicitly said `Go` after C3e source/archive lifecycle completion and fresh current-main audit.
-**Approved boundary:** Add an explicit agent-readable security-check decision rule to root `AGENTS.md`, align `docs/PUSH_TEMPLATE.md`, and record a focused execution handoff.
+**Approved boundary:** Add an explicit agent-readable security-check decision rule to root `AGENTS.md`, align `.github/PUSH_TEMPLATE.md`, and record a focused execution handoff.
 **Explicit non-changes:** No runtime/product/UI change; no Supabase schema/RLS/Edge Function/Auth mutation; no CI workflow change; no branch-protection/ruleset change; no GHAS outage fix; no change making every GHAS/AI scanner required by default.
 
 ## Active Handoff
@@ -45,22 +45,22 @@ Future agents should know exactly when security evidence must be inspected for l
 - A required scanner infrastructure failure remains merge-blocking.
 - A supplemental scanner can still produce a real concrete finding requiring disposition.
 - Pure UI/layout/docs-only/unrelated refactors do not automatically require Supabase-specific security validation when they do not touch a security-sensitive boundary.
-- `docs/PUSH_TEMPLATE.md` mirrors the same rule and uses canonical future protected-service path `services/api`.
+- `.github/PUSH_TEMPLATE.md` mirrors the same rule and uses canonical future protected-service path `services/api`.
 - TNYX-256 remains separate and no branch protection is weakened.
 
 ## Codebase Exploration
 
 - C3e lifecycle was complete before #403 implementation began.
 - Fresh current-main base was `399f4fddcabbece0588778afe41d62a77e25123c`.
-- No open PR overlapped `AGENTS.md`, `docs/PUSH_TEMPLATE.md`, or the #403 task brief.
+- No open PR overlapped `AGENTS.md`, `.github/PUSH_TEMPLATE.md`, or the #403 task brief.
 - Root `AGENTS.md` already required task-specific Supabase migration/RLS/security checks but lacked an explicit trigger and failure-classification rule.
-- `docs/PUSH_TEMPLATE.md` had generic Supabase/protected-server validation and one stale `future backend/*` reference.
+- `.github/PUSH_TEMPLATE.md` had generic Supabase/protected-server validation and one stale `future backend/*` reference.
 - That stale path overlapped TNYX-193 P2; #403 owned the PUSH_TEMPLATE correction and TNYX-193 was notified not to duplicate it.
 - TNYX-256 separately tracks the GitHub-managed AI code-scanning unsupported-model outage.
 
 ## Architecture Design
 
-`AGENTS.md` owns the mandatory agent-readable security decision rule. `docs/PUSH_TEMPLATE.md` mirrors the same rule at push/PR time without inventing a separate policy vocabulary.
+`AGENTS.md` owns the mandatory agent-readable security decision rule. `.github/PUSH_TEMPLATE.md` mirrors the same rule at push/PR time without inventing a separate policy vocabulary.
 
 Security reporting uses two independent dimensions:
 
@@ -76,7 +76,7 @@ This preserves combinations such as `required + infrastructure failure` and `sup
 ## Implementation
 
 - [x] added security-sensitive scope decision rule to `AGENTS.md`
-- [x] aligned `docs/PUSH_TEMPLATE.md` validation/failure guidance
+- [x] aligned `.github/PUSH_TEMPLATE.md` validation/failure guidance
 - [x] corrected stale protected-server path from `backend/*` to `services/api`
 - [x] kept runtime, Supabase, CI workflow and branch protection untouched
 - [x] validated exact docs-only PR scope
@@ -119,7 +119,7 @@ GitHub #403: closed completed
 - `.ai/tasks/README.md`
 - `.ai/tasks/issue-403-security-check-governance.md`
 - `AGENTS.md`
-- `docs/PUSH_TEMPLATE.md`
+- `.github/PUSH_TEMPLATE.md`
 
 ### Actual Behavior
 
@@ -137,4 +137,4 @@ This governance change does not fix the current GitHub-managed AI code-scanning 
 
 ## Archive Handoff
 
-GitHub #403 is complete. The durable security-check decision rule is now in `AGENTS.md` and `docs/PUSH_TEMPLATE.md`. No runtime, Supabase, UI, CI workflow, or branch-protection behavior changed. Any future change to actual required security gates or branch protection requires separate current-state verification and authorization.
+GitHub #403 is complete. The durable security-check decision rule is now in `AGENTS.md` and `.github/PUSH_TEMPLATE.md`. No runtime, Supabase, UI, CI workflow, or branch-protection behavior changed. Any future change to actual required security gates or branch protection requires separate current-state verification and authorization.

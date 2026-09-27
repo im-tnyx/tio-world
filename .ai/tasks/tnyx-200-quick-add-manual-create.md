@@ -76,7 +76,7 @@ Meal Diary [+]
 
 ### Stale docs noted, not followed
 
-`.ai/CURRENT.md`, old DateTime-wheel handoff, `docs/DEVELOPMENT_SETUP.md`, and older backend wording in Supabase/module docs are stale against runtime/root architecture. They did not block this slice and did not authorise backend/schema work.
+`.ai/CURRENT.md`, old DateTime-wheel handoff, `docs/development/DEVELOPMENT_SETUP.md`, and older backend wording in Supabase/module docs are stale against runtime/root architecture. They did not block this slice and did not authorise backend/schema work.
 
 ## 3. Decisions
 

@@ -49,5 +49,5 @@ Remote migration application remains separately authorized.
 
 - [TNYX-130](https://linear.app/tnyx/issue/TNYX-130)
 - [Settings screen](../screens/settings.md)
-- [Module ownership](../MODULE_OWNERSHIP.md)
+- [Module ownership](../architecture/MODULE_OWNERSHIP.md)
 - [Execution brief](../../.ai/tasks/settings-s0b2-default-glass-size.md)

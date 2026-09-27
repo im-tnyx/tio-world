@@ -203,9 +203,9 @@ The implemented architecture places the single `AppMode` enum, guided destinatio
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's implemented first step selects the mode and Settings changes it later. The planned full flow keeps one parent route with fixed progress/actions and mode-derived child content; see [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md). Coach becomes eligible in Phase 7.
+Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's implemented first step selects the mode and Settings changes it later. The planned full flow keeps one parent route with fixed progress/actions and mode-derived child content; see [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md). Coach becomes eligible in Phase 7.
 
-A final-stage custom navigation layer may promote implemented feature routes as shortcuts while keeping Home fixed, three to six eligible selections, stable route ownership, and one canonical feature workflow. See [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md).
+A final-stage custom navigation layer may promote implemented feature routes as shortcuts while keeping Home fixed, three to six eligible selections, stable route ownership, and one canonical feature workflow. See [ADR-0005](../adr/0005-adaptive-navigation-and-action-entry.md).
 
 Profile and Settings are launch surfaces, not primary bottom tabs.
 

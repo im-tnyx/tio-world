@@ -10,14 +10,14 @@ It is documentation only. It does **not** create `services/api`, `services/worke
 
 Related contracts:
 
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Worker Architecture](WORKER_ARCHITECTURE.md)
 - [Scaling Readiness](SCALING_READINESS.md)
 - [Observability](OBSERVABILITY.md)
-- [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md)
-- [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md)
+- [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)
+- [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md)
 - [API Lifecycle](API_LIFECYCLE.md)
-- [Feature Rollout](FEATURE_ROLLOUT.md)
+- [Feature Rollout](../planning/FEATURE_ROLLOUT.md)
 
 Linear ownership remains separate:
 

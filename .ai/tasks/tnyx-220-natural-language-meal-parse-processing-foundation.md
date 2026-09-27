@@ -76,12 +76,12 @@ Prepare the safe Tio-owned processing boundary behind future `What did you eat?`
 
 ### Verified Evidence
 
-- Source/config inspected: root `AGENTS.md`; `.ai/workflow.md`; `.ai/FEATURE_DEVELOPMENT.md`; `.ai/tasks/README.md`; `apps/features/AGENTS.md`; TNYX-207/TNYX-58/TNYX-215/TNYX-219; GitHub #269; `add_food_sheet.dart`; `MealLoggingDraft` / `MealLoggingDraftItem`; `MealEditorCreateController`; `MealEditorDetailedCreateController`; current repository/controller patterns; `docs/ARCHITECTURE.md`; ADR-0007; Supabase server/access strategy; current `supabase/functions` tree; backend Linear planning TNYX-26/TNYX-27/TNYX-33.
+- Source/config inspected: root `AGENTS.md`; `.ai/workflow.md`; `.ai/FEATURE_DEVELOPMENT.md`; `.ai/tasks/README.md`; `apps/features/AGENTS.md`; TNYX-207/TNYX-58/TNYX-215/TNYX-219; GitHub #269; `add_food_sheet.dart`; `MealLoggingDraft` / `MealLoggingDraftItem`; `MealEditorCreateController`; `MealEditorDetailedCreateController`; current repository/controller patterns; `docs/architecture/ARCHITECTURE.md`; ADR-0007; Supabase server/access strategy; current `supabase/functions` tree; backend Linear planning TNYX-26/TNYX-27/TNYX-33.
 - Existing pattern followed: feature-owned repository interfaces under `apps/features/nutrition/lib/src/domain/repositories`; stateful controllers under `apps/features/nutrition/lib/src/meal_logging`; canonical draft types from `tio_shared`.
 - Current Add Food natural-language surface remains disabled/inert.
 - Current detailed save requires quantity + serving unit + nutrition snapshot for every item. The current Meal Editor cannot fully repair all missing parse facts, so a later live adapter must return a sufficiently complete draft or map insufficient normalization to recoverable failure until broader ingredient correction exists.
 - `services/api` is not implemented; `supabase/functions` currently has no Nutrition parser function.
-- Historical `backend/` wording in `docs/SUPABASE_STRATEGY.md` is stale against root `AGENTS.md`, `docs/ARCHITECTURE.md` and ADR-0007, which are the current canonical server-boundary truth.
+- Historical `backend/` wording in `docs/data/SUPABASE_STRATEGY.md` is stale against root `AGENTS.md`, `docs/architecture/ARCHITECTURE.md` and ADR-0007, which are the current canonical server-boundary truth.
 
 ## 3. Clarification
 

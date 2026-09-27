@@ -198,7 +198,7 @@ synchronization until its own commit is published.
 - `apps/core` calendar visible-anchor behavior, the shared `tioWeekdayName`/`tioOrderedWeekdayLabels` helpers the weekday header now draws from, the theme README entry and regression tests
 - `apps/features/settings` Calendar Preferences domain/data/presentation and Settings entry/tests
 - `apps/features/nutrition` Meal Diary resolved week-start forwarding
-- `docs/screens/settings.md`, `docs/screens/meal-diary.md`, `docs/MODULE_OWNERSHIP.md`, `docs/adr/README.md`, `docs/adr/0010-settings-local-calendar-first-day-of-week.md`
+- `docs/screens/settings.md`, `docs/screens/meal-diary.md`, `docs/architecture/MODULE_OWNERSHIP.md`, `docs/adr/README.md`, `docs/adr/0010-settings-local-calendar-first-day-of-week.md`
 - `.ai/tasks/tnyx-55-core-date-calendar-meal-diary.md` stale decision reconciliation
 
 ### Actual Behavior

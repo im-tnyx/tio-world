@@ -74,7 +74,7 @@ OpenAI interpreter fallback, TNYX-225/TNYX-226, Add Food activation, voice/photo
 
 ### Verified Evidence
 
-- Root `AGENTS.md`, `.ai` workflow/task rules, canonical architecture/Supabase docs, ADR-0007, `docs/PUSH_TEMPLATE.md`, and PR template were reconciled before continuation.
+- Root `AGENTS.md`, `.ai` workflow/task rules, canonical architecture/Supabase docs, ADR-0007, `.github/PUSH_TEMPLATE.md`, and PR template were reconciled before continuation.
 - No nested `AGENTS.md` applies under `supabase/functions`.
 - Live Supabase project `tio-world` (`oykupyiitspujzpwwvuj`) is healthy in `ap-south-1`.
 - Live Edge Function inventory contains only `google-login-admission`; `nutrition-meal-text-parse` is not deployed.

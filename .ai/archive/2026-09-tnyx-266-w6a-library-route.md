@@ -143,7 +143,7 @@ Visual check: a temporary, uncommitted render test produced PNGs of Workout Home
 - `apps/features/workout/lib/src/presentation/pages/workout_home_page.dart` (Library entry, scrollable body, required `onLibraryPressed`), `test/presentation/workout_home_page_test.dart`.
 - `apps/app/lib/app/router.dart`: Library child route, Home/Library push callbacks, chrome policy entry.
 - `apps/app/test/app/workout_exercises_route_test.dart`: Library chrome, gating parity, the Home → Library → Exercises → back flow, Library deep link, mode gating, and no direct Exercises entry.
-- `docs/screens/library.md`, `docs/screens/exercise-search.md`, `docs/screens/workout.md`, `docs/MODULE_OWNERSHIP.md`, `docs/ROADMAP.md`, this brief, `.ai/tasks/README.md`.
+- `docs/screens/library.md`, `docs/screens/exercise-search.md`, `docs/screens/workout.md`, `docs/architecture/MODULE_OWNERSHIP.md`, `docs/planning/ROADMAP.md`, this brief, `.ai/tasks/README.md`.
 
 ### Actual Behavior
 

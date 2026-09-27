@@ -10,12 +10,12 @@ It is documentation only. It does **not** create `services/api`, `services/worke
 
 Related contracts:
 
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [Observability](OBSERVABILITY.md)
 - [Initial Queue Strategy](QUEUE_STRATEGY.md)
 - [Async Reliability](ASYNC_RELIABILITY.md)
-- [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md)
-- [Feature Rollout](FEATURE_ROLLOUT.md)
+- [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md)
+- [Feature Rollout](../planning/FEATURE_ROLLOUT.md)
 
 Linear ownership remains separate:
 
@@ -525,7 +525,7 @@ Examples:
 - multi-region deployment does not automatically make Storage/Auth/data recovery correct;
 - queue replicas/consumers do not define dead-letter recovery.
 
-Use [Database Backup & Recovery](DATABASE_BACKUP_RECOVERY.md) for RPO/RTO/restore policy.
+Use [Database Backup & Recovery](../data/DATABASE_BACKUP_RECOVERY.md) for RPO/RTO/restore policy.
 
 ## Relationship to Deployment
 

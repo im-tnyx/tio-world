@@ -188,7 +188,7 @@ final R8/R9 docs correction
 → Linear TNYX-209 In Review
 → owner review
 → merge only with explicit owner instruction
-→ post-merge sync per docs/POST_MERGE_SYNC.md
+→ post-merge sync per .github/POST_MERGE_SYNC.md
 → only then begin TNYX-205
 ```
 

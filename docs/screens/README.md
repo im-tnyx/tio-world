@@ -58,7 +58,7 @@ chrome and hides progress; later children keep fixed Back/progress and a fixed
 bottom primary action while
 only child content changes. Draft mode, confirmed mode, and completion status stay
 separate. Later mode-conditional steps and manual restart verification remain open.
-See [Onboarding Flow Architecture](../ONBOARDING_ARCHITECTURE.md), the
+See [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md), the
 [onboarding task](../../.ai/tasks/onboarding-flow.md), and the
 [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
 

@@ -22,7 +22,7 @@
 **Repository state last verified:** Base `main` = `66f03c33f4fbffc0639333e1f1bd9ff075a0d4aa`; source-validation head = `7bba235a10d13b810566f3de1f80c53dfb38f59b`; base is exact merge base; source branch was 6 ahead / 0 behind with six TNYX-197-owned files.  
 **Branch:** `tnyx/tnyx-197-n4a-manual-meallog-selected-day-read-model-foundation`  
 **HEAD SHA:** `7bba235a10d13b810566f3de1f80c53dfb38f59b` is the validated source head immediately before this docs-only handoff reconciliation commit.  
-**Observed working-tree state:** GitHub/API-based execution; parent-to-head ancestry, commit count and complete changed-file list were inspected through repository API per `docs/PUSH_TEMPLATE.md`.  
+**Observed working-tree state:** GitHub/API-based execution; parent-to-head ancestry, commit count and complete changed-file list were inspected through repository API per `.github/PUSH_TEMPLATE.md`.
 **Observed uncommitted/dirty files:** Not applicable to connector-backed branch writes; no unrelated committed files found.  
 **PR / tracker:** Draft PR #256; Linear TNYX-197 `In Progress`.  
 **Current implementation state:** Repository contract, Supabase gateway/adapter, in-memory parity and focused tests implemented. No UI/schema change.  
@@ -73,7 +73,7 @@ Diary UI/controller/cards, Quick Add submit wiring, N14 preferences, update/dele
 - `MealLogRepository` previously exposed only `createManual()` and `readById()`.
 - Supabase adapter already owned authenticated identity and strict row decoding.
 - Quick Add remains disabled and Meal Diary still has no durable list consumer; both remain intentionally untouched.
-- `.ai/CURRENT.md` and parts of `docs/DEVELOPMENT_SETUP.md`, `docs/MODULE_OWNERSHIP.md`, and `docs/SUPABASE_STRATEGY.md` contain older context; runtime/root architecture remains authoritative. This slice does not bundle broad docs cleanup.
+- `.ai/CURRENT.md` and parts of `docs/development/DEVELOPMENT_SETUP.md`, `docs/architecture/MODULE_OWNERSHIP.md`, and `docs/data/SUPABASE_STRATEGY.md` contain older context; runtime/root architecture remains authoritative. This slice does not bundle broad docs cleanup.
 
 ### Existing Pattern Followed
 
