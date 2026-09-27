@@ -1,6 +1,7 @@
 # TNYX-193 P7 — Dynamic current-state snapshots
 
-**Status:** In review  
+**Status:** Validated  
+**Completed:** 2026-09-27  
 **Primary owner:** repository documentation governance  
 **Affected platforms:** repository-wide documentation only
 
@@ -15,11 +16,11 @@
 ## Active Handoff
 
 **Planning owner:** TNYX-193 / GitHub #250  
-**Implementation owner:** active P7 agent  
+**Implementation owner:** completed P7 slice  
 **Review owner:** manual exact-head review complete  
-**Implementation ownership state:** Handoff pending  
+**Implementation ownership state:** Completed / archived  
 **Ownership transition:** Not applicable  
-**Repository state last verified:** `main@0248fab407201bf5b8debd71262c871a4beb98a4`  
+**Repository state last verified:** `main@25d4dd08ad3cf3948630b07098bf1d8912eab912` after PR #421 merge  
 **Branch:** `tnyx/tnyx-193-p7-current-state-snapshots`  
 **HEAD SHA:** `0248fab407201bf5b8debd71262c871a4beb98a4` at branch creation  
 **Observed working-tree state:** Connector/API workflow; no local worktree claim.  
@@ -28,10 +29,10 @@
 **Current implementation state:** Both snapshots reconstructed and task indexed; pre-PR scope/stale-pattern validation passed.  
 **Relevant execution surface:** `.ai/CURRENT.md`, `.ai/IMPLEMENTATION_STATUS.md`  
 **Validation completed at SHA:** `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9` for reconstructed snapshot content/scope checks.  
-**Validation remaining:** Owner merge authorization; post-merge archive lifecycle remains separate.  
-**Current blocker:** Owner merge authorization.  
+**Validation remaining:** None for P7; P9 and stale Product Onboarding task lifecycle cleanup remain separately gated.  
+**Current blocker:** None.  
 **Open review finding IDs:** None.  
-**Next exact action:** Hold at owner merge gate; do not merge or widen into stale Product Onboarding task cleanup without explicit authorization.
+**Next exact action:** Archive this validated handoff; do not infer authorization for P9 or stale Product Onboarding task cleanup.
 
 ## 1. Discovery
 
@@ -112,7 +113,7 @@ Not applicable; documentation-only.
 ### Validation Run
 
 ```text
-At `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9`: reconstructed snapshot content/scope validation passed. At exact reviewed head `2efdd11095ad7376ddfb56143d2bb39c1ef02df0`: 4-file docs-only scope, 6 ahead / 0 behind, both P7 headers present, known stale O7/PR #50 blocker patterns absent, 0 unresolved review threads, required Commit attribution guard PASS and Attribution guard runner PASS. Supplemental GHAS failed before meaningful analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; tracked separately by TNYX-256.
+At reconstructed-content checkpoint `cd05493077c8a48f52f3a392e57e4ebec1a6d1b9`, snapshot content/scope validation passed. Final gated head `e780f291e95876254336c5ea6275d34a8d78db5a` was reviewed with 0 unresolved threads; required Commit attribution guard PASS and Attribution guard runner PASS. Supplemental GHAS failed before meaningful analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported, tracked by TNYX-256. PR #421 squash-merged as `25d4dd08ad3cf3948630b07098bf1d8912eab912` and remote main was verified at that SHA.
 ```
 
 ### Review Findings and Resolution
@@ -141,4 +142,4 @@ P7 does not repair unrelated stale task briefs.
 
 ### Final Status
 
-`OWNER MERGE GATE`
+`VALIDATED`
