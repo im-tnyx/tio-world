@@ -21,16 +21,16 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@44b92d6690f35bc1741460268065ee38dc8a5502`; GitHub #250 open; Linear TNYX-193 `In Progress`; P6 explicitly assigned 10 stable files and P7 assigned the two dynamic current-state snapshots.
 **Branch:** `tnyx/tnyx-193-p6-ai-governance-headers`
-**HEAD SHA:** source/docs review checkpoint `c73d832de4f65355916f7f05a70ad08d01871c27`; the final handoff-only commit will move HEAD and must be revalidated externally rather than recursively rewriting this field
+**HEAD SHA:** source/docs review checkpoint `483d019da142674468279d5c2f2603492f16e1ff`; this final handoff-only refresh will move HEAD and must be revalidated externally rather than recursively rewriting this field
 **Observed working-tree state:** Connector/API execution only; no local worktree claim.
 **Observed uncommitted/dirty files:** Not applicable through connector/API.
 **PR / tracker:** GitHub #250 / Linear TNYX-193
 **Current implementation state:** P6 implementation is complete at the source/docs checkpoint: all 10 locked stable `.ai/` files carry the four-line governance header and known contradicted architecture/data/ownership/current-state prose in P6 scope is reconciled.
 **Relevant execution surface:** `.ai/DECISIONS.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/README.md`, `.ai/architecture-summary.md`, `.ai/coding-rules.md`, `.ai/ownership-rules.md`, `.ai/project-context.md`, `.ai/supabase-rules.md`, `.ai/ui-rules.md`, `.ai/workflow.md`, this task brief, and `.ai/tasks/README.md`.
-**Validation completed at SHA:** source/docs checkpoint `c73d832de4f65355916f7f05a70ad08d01871c27`: 16 ahead / 0 behind from `main@44b92d6690f35bc1741460268065ee38dc8a5502`; 12 changed paths = 10 P6 stable files + this task brief + task index; 10/10 governance headers; P7 files zero diff; 36 local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; known stale protected-backend paths, legacy schema symbols, removed adapter names, App Mode device-local authenticated wording, and Nutrition Water/Glass ownership claims absent.
+**Validation completed at SHA:** source/docs checkpoint `483d019da142674468279d5c2f2603492f16e1ff`: 20 ahead / 0 behind from `main@44b92d6690f35bc1741460268065ee38dc8a5502`; 12 changed paths = 10 P6 stable files + this task brief + task index; 10/10 governance headers; P7 files zero diff; 36 local Markdown refs / 0 missing; patch hygiene 0 trailing whitespace / 0 conflict markers / 0 missing-final-newline markers; known stale protected-backend paths, legacy schema symbols, removed adapter names, App Mode device-local authenticated wording, Nutrition Water/Glass ownership claims, and current-vs-future Apple Watch ambiguity absent.
 **Validation remaining:** after this handoff refresh, revalidate the resulting exact PR head, required checks, mergeability, and available review evidence externally; do not add another commit solely to embed its own SHA.
 **Current blocker:** none
-**Open review finding IDs:** none — P6-AUDIT-01 through P6-AUDIT-08 are resolved
+**Open review finding IDs:** none — P6-AUDIT-01 through P6-AUDIT-08 and P6-REV-01 are resolved
 **Next exact action:** open/update the docs-only P6 PR, perform exact-head review/check reconciliation, then stop at the explicit owner merge gate.
 
 ## 1. Discovery
@@ -110,16 +110,16 @@ Treating all `.ai/` content as canonical product truth was rejected; every P6 tr
 - [x] reconcile decision-log facts that are contradicted by current App Mode/onboarding/Supabase runtime;
 - [x] correct Wellness Water Goal + Default Glass Size ownership in ownership rules;
 - [x] run exact scope/reference/patch-hygiene validation;
-- [ ] open docs-only PR and obtain available exact-head review.
+- [ ] PR #419 is open; complete resulting exact-head check/review reconciliation and stop at owner merge gate.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Source/docs checkpoint: c73d832de4f65355916f7f05a70ad08d01871c27
+Source/docs checkpoint: 483d019da142674468279d5c2f2603492f16e1ff
 Base: main@44b92d6690f35bc1741460268065ee38dc8a5502
-Ahead / behind: 16 / 0
+Ahead / behind: 20 / 0
 Changed paths: 12 = 10 P6 stable .ai files + task brief + task index
 Governance headers: 10 / 10
 P7 files changed: 0
@@ -140,6 +140,7 @@ Known stale P6 patterns: 0
 | P6-AUDIT-06 | Boundary | Resolved | Exact P6/P7 file ownership was undefined. | 44b92d6690f35bc1741460268065ee38dc8a5502 | #250/TNYX-193 now lock P6=10 stable files, P7=2 dynamic snapshots. |
 | P6-AUDIT-07 | P2 | Resolved | `ownership-rules.md` assigned Water Goal to Nutrition even though canonical ownership keeps Daily Water Goal in Wellness through the Progress-owned `WellnessTargetsRepository`. | c73d832de4f65355916f7f05a70ad08d01871c27 | Removed Water Goal from Nutrition and recorded Wellness/Progress ownership plus separate Settings Default Glass Size ownership. |
 | P6-AUDIT-08 | P2 | Resolved | Second review found stale current-state wording for future Apple Watch existence, authenticated App Mode persistence, speculative full-schema future scope, and preserved HTTP adapters. | c73d832de4f65355916f7f05a70ad08d01871c27 | Reconciled against canonical Architecture/Settings/Supabase docs and current source without changing runtime. |
+| P6-REV-01 | P2 | Resolved | Manual PR diff review found the opening sentences in `architecture-summary.md` and `project-context.md` still described a native Apple Watch app as current even though `apps/watchos` remains future. | `2c125cdf1f7cce1085698df83b20dab9a2b00e31` | Both openings now say future native Apple Watch app; source/docs checkpoint `483d019da142674468279d5c2f2603492f16e1ff` revalidated 10/10 headers, 36/36 links, zero stale patterns and patch hygiene 0/0/0. |
 
 ## 7. Final Handoff
 
