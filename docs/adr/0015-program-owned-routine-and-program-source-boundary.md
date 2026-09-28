@@ -7,7 +7,7 @@ Truth Boundary: Authoritative for Program/Routine ownership, creation-source edi
 
 - **Status:** Accepted
 - **Date:** 2026-09-28
-- **Supersedes:** [ADR-0011](0011-workout-canonical-identities-and-exercise-catalog.md) for the Routine/Program ownership semantics that ADR-0011 originally deferred. ADR-0011 remains the historical identity/catalog record.
+- **Resolves deferral from:** [ADR-0011](0011-workout-canonical-identities-and-exercise-catalog.md) for Routine/Program ownership semantics. ADR-0011's accepted identity/catalog decisions remain active.
 
 ## Context
 
@@ -21,7 +21,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - A saved user-owned Routine keeps stable `RoutineId` and composition but belongs to exactly one user-owned Program. It is not an orphan top-level Library object.
 - A Program may contain **zero or more** Routines. Zero is valid for a newly created draft/empty Program immediately after confirmation; executable/followable flows may impose stronger readiness requirements later.
 - Library exposes Programs, Plans/Training Plans and Exercises as capabilities become ready. Routine create/edit/manage is entered from the owning Program; there is no standalone user Routines collection or top-level Create Routine action.
-- Initial user-created Program creation presents a generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. The user-created Program editing surface initially exposes only name and optional image; richer metadata is not required from the user.
+- Initial user-created Program creation presents a generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. The initial My Program slice exposes name only; optional image editing belongs to a later separately approved media slice. Richer metadata is not required from the user.
 - Routine creation inside a Program follows the same minimal direction: generated non-blank name, with optional image as later approved media capability. Exact Routine composition fields remain owned by their bounded domain slice.
 - Program remains one canonical domain capability, but persistence separates user-owned Program truth from Tio-owned source/catalog Program truth. User-owned Programs use a dedicated user-owned Program table/source; Tio-curated source Programs must not be mixed into that user-owned table.
 - `user_created`, adopted Tio content, accepted AI-generated content, and eligible coach-derived content become user-owned Program records only at the explicit create/adopt/accept boundary. Their provenance/lineage remains explicit.
@@ -52,7 +52,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 
 ## Links
 
-- [ADR-0011](0011-workout-canonical-identities-and-exercise-catalog.md) — superseded for previously deferred Routine/Program ownership semantics
+- [ADR-0011](0011-workout-canonical-identities-and-exercise-catalog.md) — accepted identity/catalog decision whose Routine/Program ownership deferral is resolved here
 - [Module Ownership](../architecture/MODULE_OWNERSHIP.md)
 - [Library](../screens/library.md)
 - [Programs](../screens/programs.md)
