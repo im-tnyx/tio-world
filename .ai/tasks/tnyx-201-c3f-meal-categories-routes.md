@@ -116,7 +116,7 @@ No state or UI behavior changes; existing feature-owned behavior remains unchang
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | C3F-REV-01 | P2 | Resolved | Completed audit was anchored to an earlier head. | `26f812e277b718d7fc04e79e6f279f970b7bbbaa` | Fixed in `d3644dc...`; thread resolved and later exact-head review was clean. |
-| C3F-REV-02 | P2 | Fixed pending post-fix verification | After merging latest main, handoff still described the pre-reconciliation head/audit. | `cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0` | Handoff now records current main, reconciled head, 8/0 scope audit and passing hosted CI; this docs-only correction requires exact-head revalidation. |
+| C3F-REV-02 | P2 | Open | After merging latest main, handoff still described the pre-reconciliation head/audit. | `cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0` | Handoff now records current main, reconciled head, 8/0 scope audit and passing hosted CI; this docs-only correction requires exact-head revalidation. |
 
 ## 7. Final Handoff
 
