@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex bot after PR creation
-**Implementation ownership state:** Paused
+**Implementation ownership state:** Review
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub API against `main@4db03ef82f7330dabfc11a11cf5439c5dc8dce81`
+**Repository state last verified:** GitHub API against `main@336d3b7d012a323e4f6744f6a724ddf2eb0a7e72` after PR #444 merge
 **Branch:** `tnyx/tnyx-201-c3f-meal-categories-routes`
-**HEAD SHA:** `26f812e277b718d7fc04e79e6f279f970b7bbbaa` audited by Codex/current review
+**HEAD SHA:** `cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0` — reconciled head reviewed by Codex; handoff correction follows this head
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub PR #442 / issue #441 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Bounded implementation complete; Draft PR #442 open
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/nutrition_routes.dart`
-**Validation completed at SHA:** `26f812e277b718d7fc04e79e6f279f970b7bbbaa` — GitHub API parent-to-head audit: 6 ahead / 0 behind; exactly 4 expected paths
-**Validation remaining:** hosted Flutter CI and exact-head revalidation after this review-fix commit
-**Current blocker:** None
-**Open review finding IDs:** Codex P2 `discussion_r4116483738` — fixing stale audit anchor in this brief
-**Next exact action:** Revalidate the post-fix exact head, reply to Codex P2 with evidence, and resolve the thread only if the fix is verified.
+**Validation completed at SHA:** `cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0` — against current `main@336d3b7d...`: 8 ahead / 0 behind, exactly 4 C3f paths; hosted Flutter CI run `36365642286` passed
+**Validation remaining:** exact-head CI and Codex re-review after this handoff-only correction
+**Current blocker:** Codex P2 `discussion_r4117795252` requires this handoff to reflect the reconciled head
+**Open review finding IDs:** Codex P2 `discussion_r4117795252` — reconciled-head handoff anchor
+**Next exact action:** Revalidate this handoff-only correction, reply/resolve `discussion_r4117795252` if verified, then request exact-head Codex review and wait for hosted CI.
 
 ## 1. Discovery
 
@@ -100,19 +100,23 @@ No state or UI behavior changes; existing feature-owned behavior remains unchang
 - [x] Audit exact parent-to-head paths and route counts.
 - [x] Open Draft PR.
 - [x] Receive Codex review on `26f812e277b718d7fc04e79e6f279f970b7bbbaa`.
-- [x] Address Codex P2 stale audit-anchor finding in the task brief.
+- [x] Address original Codex P2 stale audit-anchor finding.
+- [x] Reconcile latest `main@336d3b7d...` into the branch without history rewrite.
+- [x] Verify reconciled head `cab1d191...`: 8 ahead / 0 behind, exactly 4 C3f diff paths, Flutter CI pass.
+- [x] Address reconciled-head Codex P2 in this handoff.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`GitHub API scope audit at reviewed head 26f812e277b718d7fc04e79e6f279f970b7bbbaa: base 4db03ef82f7330dabfc11a11cf5439c5dc8dce81 is merge-base; 6 ahead / 0 behind; exactly 4 expected paths. Root route counts for Meal Categories/Archived = 0/0; Nutrition module references = 2/2 (registration + navigation where applicable); one root GoRouter authority; route module constructs no GoRouter. Local Flutter/git commands are unavailable through this connector session; hosted checks remain required.`
+`GitHub API scope audit at reconciled head cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0 against current main 336d3b7d012a323e4f6744f6a724ddf2eb0a7e72: 8 ahead / 0 behind; exactly 4 C3f paths. The merged #444 test/task files are inherited from main and do not appear in the PR diff. Root route counts for Meal Categories/Archived remain 0/0; Nutrition module owns both registrations; one root GoRouter authority remains. Hosted Flutter CI run 36365642286 passed on cab1d191. Local Flutter/git commands are unavailable through this connector session.`
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| C3F-REV-01 | P2 | Fixed pending post-fix verification | Completed audit was anchored to the earlier 4-ahead state instead of reviewed head. | `26f812e277b718d7fc04e79e6f279f970b7bbbaa` | Recorded exact audited head and verified 6 ahead / 0 behind result; post-fix head must be revalidated before resolving Codex thread. |
+| C3F-REV-01 | P2 | Resolved | Completed audit was anchored to an earlier head. | `26f812e277b718d7fc04e79e6f279f970b7bbbaa` | Fixed in `d3644dc...`; thread resolved and later exact-head review was clean. |
+| C3F-REV-02 | P2 | Fixed pending post-fix verification | After merging latest main, handoff still described the pre-reconciliation head/audit. | `cab1d19172f31ab7e2ed0adde3df9c7b2f5e84b0` | Handoff now records current main, reconciled head, 8/0 scope audit and passing hosted CI; this docs-only correction requires exact-head revalidation. |
 
 ## 7. Final Handoff
 
