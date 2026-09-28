@@ -1,6 +1,6 @@
 # Workout Program-owned Routines reconciliation
 
-**Status:** In progress
+**Status:** Ready for review
 **Owner approval:** 2026-09-28, owner requested audit-first start after approving the Program-owned Routine direction and minimal generated-name creation flow.
 **Base:** `main@c0274d03568e0b06c43521918da220bb207c1b89`
 **Implementation owner:** current repository agent
@@ -48,7 +48,11 @@ No Flutter UI/runtime change, Program/Routine entity implementation, repository/
 
 ## Validation
 
-Pending PR diff review and docs validation. No runtime tests required for this docs-only reconciliation.
+- GitHub compare against base `c0274d03`: branch is ahead only, behind 0; changed paths are canonical docs plus this task handoff/index, with no runtime or Supabase files.
+- Manual scope review confirmed no Flutter production source, migration, RLS, Storage or schema changes.
+- Connector-only workspace does not expose a local checkout, so `git diff --check` was not executed locally; PR/CI evidence must be used for repository-side validation.
+- Linear TNYX-78/TNYX-81/TNYX-83/TNYX-267 were reconciled to the same Program-owned Routine contract.
+- New Linear child creation was attempted and blocked by workspace free issue limit; this limitation is explicit rather than inventing tracker state.
 
 ## Handoff
 
