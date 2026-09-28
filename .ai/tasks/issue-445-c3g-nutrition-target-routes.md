@@ -51,10 +51,17 @@ Implemented the bounded extraction. The three target route registrations now liv
 
 API audit against base: 3 commits ahead / 0 behind before this handoff sync; effective diff is exactly this brief, `router.dart`, and `nutrition_routes.dart`. Root no longer registers the three target routes; the Nutrition route module does. No local git/Flutter commands were claimed.
 
+## Validation completed at reviewed source head `cd6ba69fea2742357aa5a098ff10a909faaed391`
+
+- Hosted Flutter CI run `36369097629`: PASS.
+- Codex exact-head review: no major issues.
+- Unresolved review threads: 0.
+- Parent compare: 5 ahead / 0 behind with exactly this brief, `router.dart`, and `routing/routes/nutrition_routes.dart`.
+
 ## Validation remaining
 
-Hosted Flutter CI, exact-head diff/reference audit, Codex review, and unresolved-thread audit.
+Re-run exact-head hosted CI and Codex after this handoff-only evidence update.
 
 ## Next action
 
-Open Draft PR, wait for exact-head hosted CI and Codex review, fix findings narrowly, then reconcile trackers before Ready/merge.
+Validate this handoff-only head with hosted CI and Codex. If clean with 0 unresolved threads and unchanged scope, mark PR Ready for Review; merge still requires explicit owner authorization.
