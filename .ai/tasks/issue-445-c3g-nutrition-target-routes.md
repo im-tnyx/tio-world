@@ -5,7 +5,7 @@
 **Base:** `main@f3646625fd9286b1f7b783f88afd25d36d86a8ea`
 **GitHub:** #445
 **Parents:** #357, #260
-**Linear:** TNYX-201 planning mirror is Done; TNYX-69 owns Nutrition Targets product behavior.
+**Linear:** TNYX-201 is In Progress for active C3g; TNYX-69 owns Nutrition Targets product behavior.
 
 ## Goal
 
