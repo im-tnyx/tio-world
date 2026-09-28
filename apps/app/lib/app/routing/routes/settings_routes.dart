@@ -9,6 +9,7 @@ import 'package:tio_shared/shared.dart';
 import '../../app_mode/app_mode.dart';
 import '../../app_theme_controller.dart';
 import '../../calendar_preferences_providers.dart';
+import '../../network_providers.dart';
 import '../../settings_persistence_providers.dart';
 
 List<RouteBase> buildSettingsRoutes({
