@@ -1,6 +1,6 @@
 # Issue #445 — C3g Nutrition Targets route extraction
 
-**Status:** In Review
+**Status:** In progress
 **Owner authorization:** “Go agent.md follow kare”
 **Base:** `main@f3646625fd9286b1f7b783f88afd25d36d86a8ea`
 **GitHub:** #445
@@ -58,10 +58,18 @@ API audit against base: 3 commits ahead / 0 behind before this handoff sync; eff
 - Unresolved review threads: 0.
 - Parent compare: 5 ahead / 0 behind with exactly this brief, `router.dart`, and `routing/routes/nutrition_routes.dart`.
 
+## Validation completed at handoff head `dd2f76e6f929f61c3be3785d54b0adc703c28883`
+
+- Hosted Flutter CI run `36369961738`: PASS.
+- Codex exact-head review: no major issues.
+- Unresolved review threads: 0.
+- Current parent compare: 6 ahead / 0 behind with exactly this brief, `router.dart`, and `routing/routes/nutrition_routes.dart`.
+- Runtime source is unchanged since reviewed source head `cd6ba69fea2742357aa5a098ff10a909faaed391`; the intervening change was handoff evidence only.
+
 ## Validation remaining
 
-Re-run exact-head hosted CI and Codex after this handoff-only evidence update.
+This documentation-only reconciliation commit requires exact-head hosted CI/Codex validation before merge readiness.
 
 ## Next action
 
-Validate this handoff-only head with hosted CI and Codex. If clean with 0 unresolved threads and unchanged scope, mark PR Ready for Review; merge still requires explicit owner authorization.
+Request exact-head CI/Codex on this documentation-only reconciliation. If clean with 0 unresolved threads and unchanged scope, mark PR Ready for Review; merge still requires explicit owner authorization.
