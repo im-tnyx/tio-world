@@ -120,8 +120,7 @@ Connector access inherits Tio's privacy classification and minimization rules.
 |---|---|
 | Public/non-user-specific catalog facts | May be exposed only through approved domain capabilities and bounded schemas |
 | Personal profile/account context | Minimum fields required for the requested purpose and granted scope |
-| Workout/nutrition/progress history | Sensitive user-owned context; bounded range/pagination/summary by default |
-| Health-context / biometric / sleep/recovery | Highest minimization expectations; only after canonical source and explicit approved scope |
+| Health-context: workout, nutrition, progress, weight/body metrics, fasting/wellness/coaching context, progress photos, biometric, sleep/recovery | Highest applicable product-data caution; private by default; minimum-purpose fields/ranges, bounded pagination/summary, and explicit approved scope/canonical source where required |
 | Secrets/tokens/provider credentials | Never returned in connector payloads |
 | Internal audit/security metadata | Not part of ordinary connector responses; expose only user-safe connection history where separately designed |
 
@@ -270,10 +269,11 @@ Therefore moving an approved capability from a Supabase-hosted adapter to servic
 
 ## Minimum Audit/Operations Requirements
 
-Before a production connector pilot, two independent gates apply:
+Before a production connector pilot, three independent gates apply:
 
 1. **Provider/privacy gate:** before ChatGPT or any other external provider/client receives Personal, Sensitive, or Health-context data, record the provider-specific review required by [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md): provider/capability, transmitted data classes, purpose, authentication/secret boundary, provider storage, configured retention/training/reuse controls, deletion/export limitations, fallback/failure behavior, and ownership for replacement/contract changes.
-2. **Operational/audit gate:** Tio must be able to attribute requests without logging unnecessary sensitive payloads.
+2. **Account-deletion lifecycle gate:** connector clients/grants/token families and any connector-owned user records must explicitly join Tio's account-deletion graph. Account deletion must prevent future delegated access/refresh by revoking or invalidating the relevant grant/token family, and each connector/provider artifact must have one documented outcome: synchronous deletion, bounded queued deletion, defined short-lived expiry, or explicitly approved retention with minimized linkage. Provider-held artifact deletion/expiry limitations must be recorded rather than assumed.
+3. **Operational/audit gate:** Tio must be able to attribute requests without logging unnecessary sensitive payloads.
 
 At minimum the operational model must support:
 
@@ -300,7 +300,7 @@ TNYX-172 does not authorize or implement:
 - Tio Settings -> Integrations UI;
 - generic raw-history export;
 - write actions;
-- account deletion/security/billing administration through ordinary connector access;
+- account deletion/security/billing administration as ordinary connector capabilities; this does not exempt connector grants/tokens/provider artifacts from the account-deletion lifecycle gate above;
 - AI-generated Workout/Nutrition plans or plan persistence;
 - new queue/worker/cache infrastructure;
 - speculative services/api scaffolding.
