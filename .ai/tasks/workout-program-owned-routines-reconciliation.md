@@ -46,7 +46,8 @@ No Flutter UI/runtime change, Program/Routine entity implementation, repository/
 6. TrainingPlan owns user-specific schedule/following state.
 7. A newly created Program may be empty; execution readiness is a separate later rule.
 8. Tio/Coach/AI source metadata is not automatically user-editable; schedule/follow-duration changes remain TrainingPlan-owned.
-9. Next domain implementation must reconcile W1A3/W1A4 ordering because Routine requires Program ownership; do not implement the old Routine-first deferral mechanically.
+9. User-owned Program persistence is physically separate from Tio source/catalog Program persistence. Adoption/acceptance creates a user-owned Program snapshot with lineage; exact schema/RLS remains deferred.
+10. Next domain implementation must reconcile W1A3/W1A4 ordering because Routine requires Program ownership; do not implement the old Routine-first deferral mechanically.
 
 ## Validation
 
