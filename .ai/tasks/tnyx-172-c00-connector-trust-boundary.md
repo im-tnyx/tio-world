@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `e395389fbe90ffaf9076c33138685620b8a5c63e` at the latest completed content validation before this handoff-record update
+**HEAD SHA:** `02283fc6a967ebd52e095ab2932980775715a0e0` at the latest exact-head validation before this final review-handoff record
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
 **PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
 **Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation, Supabase runtime-host policy reconciliation, and provider privacy pilot gate are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** `e395389fbe90ffaf9076c33138685620b8a5c63e` — `main` merge-base remained `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; branch was ahead 12 / behind 0 with exactly 9 owned docs/AI files. Required-check evidence: `main` is protected and branch metadata lists only `Commit attribution guard` (app_id 5032971) as required; it PASSed on `e395389f...`. Supplemental `github-advanced-security` was still in progress on that SHA. On prior head `ae28dc0...`, the same GHAS check failed before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a product-code security finding and not a security pass.
-**Validation remaining:** this handoff-file update moves HEAD, so exact-head required-check/security-check state must be re-read after the commit; then resolve review threads and request the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation completed at SHA:** `02283fc6a967ebd52e095ab2932980775715a0e0` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 13 / behind 0; exactly 9 owned docs/AI files; all seven Codex threads resolved. Current `main` metadata proves `Commit attribution guard` (app_id 5032971) is the required status context and it PASSed on this SHA. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
+**Validation remaining:** this final handoff-record commit moves HEAD only in the task brief, so re-read exact-head checks after the commit and trigger the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** PR #453 threads `PRRT_kwDOTOXwB86mqzG8`, `PRRT_kwDOTOXwB86mqzHA`, `PRRT_kwDOTOXwB86mqzHI`, `PRRT_kwDOTOXwB86mqzHL`, `PRRT_kwDOTOXwB86mqzHO`, `PRRT_kwDOTOXwB86mqzHS`, `PRRT_kwDOTOXwB86mqzHU` — fixes applied; resolution pending exact-head verification.
-**Next exact action:** verify the new exact HEAD checks/content, reply to and resolve all seven validated Codex findings, refresh PR scope/evidence, then trigger the next Codex review.
+**Open review finding IDs:** none; all seven Codex threads from the first review are resolved.
+**Next exact action:** verify checks on the final handoff HEAD, refresh PR evidence, then comment `@codex review` for the next review pass.
 
 ## 1. Discovery
 
@@ -155,9 +155,9 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated content head: e395389fbe90ffaf9076c33138685620b8a5c63e
+Validated exact head: 02283fc6a967ebd52e095ab2932980775715a0e0
 Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare at that head: ahead 12 / behind 0
+Branch compare at that head: ahead 13 / behind 0
 Changed files at that head: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
@@ -174,17 +174,18 @@ Canonical reconciliation: PASS
 - First-party Supabase-token auth and delegated connector auth are explicitly separate.
 - Supabase narrow-function vs future services/api connector hosting follows ADR-0007 triggers.
 - Production connector pilot explicitly gates provider-specific privacy review.
+- All seven first-pass Codex review threads are resolved.
 
-Security merge-gate evidence at e395389f...:
+Security merge-gate evidence at 02283fc6...:
 - main protected: YES
 - required context: Commit attribution guard (app_id 5032971)
 - Commit attribution guard: PASS
-- github-advanced-security: supplemental/non-required by current main branch metadata; in progress at this SHA
-- prior ae28dc0... GHAS failure: infrastructure/model failure before meaningful analysis ("requested model is not supported"), not a concrete security finding
+- github-advanced-security: FAIL, supplemental/non-required by current main branch metadata
+- GHAS analysis outcome: infrastructure/model failure before meaningful analysis ("The requested model is not supported"), not a concrete security finding and not a security pass
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this task-brief commit: PENDING by construction and must be re-read before thread resolution/re-review
+Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
 ```
 
 ### Review Findings and Resolution
