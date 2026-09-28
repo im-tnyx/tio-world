@@ -90,7 +90,7 @@ Rejected because it does not distinguish prescribed template state from performe
 - Adding exercises or changing non-identity catalog metadata does not require a domain redesign.
 - Built-in Exercise content stays offline-capable and does not depend on Supabase availability.
 - Supabase persistence design remains intentionally deferred until real user-owned data shapes are approved.
-- Program/Routine domain sequencing must preserve the Program-owned Routine invariant before persistence or UI work starts.
+- Program/Routine domain sequencing must preserve the Program-owned Routine invariant before persistence or UI work starts. The next bounded domain slice establishes `ProgramId` and the minimal Program ownership contract before the saved user Routine contract is introduced.
 - Cross-platform consumers can share stable pure-Dart Workout entities without importing Flutter feature presentation/data-source code.
 - Existing Profile/Targets models remain in their current feature location until a separate migration is justified.
 - This ADR does not resolve the Quick Start/ad-hoc session conflict.
