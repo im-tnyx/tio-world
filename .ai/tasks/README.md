@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-| Task | Status | Primary owner | Read before |
+| [Workout Program-owned Routines reconciliation](workout-program-owned-routines-reconciliation.md) | In progress | Workout domain architecture | Before Program/Routine domain, Library W6B, persistence or UI work |\n| Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
