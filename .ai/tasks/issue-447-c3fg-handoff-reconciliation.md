@@ -21,16 +21,16 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@d82609e25388178763c6e3e74962725c83105702`
 **Branch:** `tnyx/issue-447-c3fg-handoff-archive`
-**HEAD SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc`
+**HEAD SHA:** `dcdbaba219b5a75bf269ea81f9146ee470280baa` — reviewed head before this finding-only handoff correction
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub #447 / parents #357 and #260 / Linear TNYX-201
 **Current implementation state:** C3f/C3g briefs archived and active/archive indexes reconciled; no runtime source changed.
 **Relevant execution surface:** `.ai/tasks/**`, `.ai/archive/**`, tracker comments
-**Validation completed at SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc` — API compare against `main@d82609e...`: 7 ahead / 0 behind; exactly 7 `.ai/**` paths, no runtime paths.
+**Validation completed at SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc` — pre-handoff API scope audit against `main@d82609e...`: 7 ahead / 0 behind; exactly 7 `.ai/**` paths, no runtime paths. Codex reviewed `dcdbaba219b5a75bf269ea81f9146ee470280baa` and raised P2 C3FG-REV-01 for the stale HEAD field; no runtime/source finding.
 **Validation remaining:** Exact branch scope audit, hosted checks if triggered, Codex exact-head review.
 **Current blocker:** None.
-**Open review finding IDs:** None.
+**Open review finding IDs:** C3FG-REV-01 — stale Active Handoff HEAD field; correction requires exact-head revalidation.
 **Next exact action:** Open Draft PR, request exact-head Codex review, and wait for hosted checks/review.
 
 ## 1. Discovery
@@ -92,6 +92,7 @@ GitHub API compare at `b03869d1...`: 7 ahead / 0 behind, exactly 7 `.ai/**` gove
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| C3FG-REV-01 | P2 | Open | Active Handoff HEAD field lagged the reviewed head. | `dcdbaba219b5a75bf269ea81f9146ee470280baa` | HEAD field refreshed; this docs-only correction requires exact-head revalidation. |
 
 ## 7. Final Handoff
 
