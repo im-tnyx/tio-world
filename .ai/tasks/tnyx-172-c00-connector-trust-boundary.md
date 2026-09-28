@@ -20,18 +20,18 @@
 **Implementation ownership state:** Complete
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `d4154c6995232e5ab681553480fe910db4f3ae00` at the latest exact-head validation before this final third-pass handoff update
+**HEAD SHA:** `2eec9a1d874ed7646bbdf1c385aeac63c6437ecc` at the fourth-pass ADR-fix content head before this handoff update
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
 **PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
 **Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation across Auth/Security/Supabase server-access docs, Supabase runtime-host policy, Health-context classification, provider privacy gate, account-deletion lifecycle gate, and audit controls are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** `d4154c6995232e5ab681553480fe910db4f3ae00` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 20 / behind 0; exactly 11 owned docs/AI files; all 11 Codex findings through the third review are resolved. Required `Commit attribution guard` PASSed. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
-**Validation remaining:** this final handoff-record commit moves HEAD only in the task brief; re-read exact-head compare/checks after the commit, refresh PR evidence, then request the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation completed at SHA:** `2eec9a1d874ed7646bbdf1c385aeac63c6437ecc` content scope verified against `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`: ahead 22 / behind 0; exactly 12 owned docs/AI files. ADR-0007 now explicitly scopes its Supabase-token auth flow to first-party callers and records ADR-0012 as the authoritative delegated-connector specialization/amendment without superseding ADR-0007's broader platform/runtime decision.
+**Validation remaining:** this handoff update moves HEAD; re-read exact-head compare, required `Commit attribution guard`, supplemental GHAS outcome/cause, and review-thread state before requesting the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** none; all first-, second-, and third-pass Codex threads are resolved.
-**Next exact action:** verify checks on the final handoff HEAD, refresh PR scope/security evidence, then comment `@codex review` for the next review pass.
+**Open review finding IDs:** fourth-pass thread `PRRT_kwDOTOXwB86mrg-s` — fix applied in `2eec9a1d`; reply/resolution pending exact-head verification.
+**Next exact action:** verify exact-head state after this handoff update, reply to and resolve R12, refresh PR/Linear evidence, then request the next Codex review.
 
 ## 1. Discovery
 
@@ -155,13 +155,14 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated exact head: d4154c6995232e5ab681553480fe910db4f3ae00
+Validated content head: 2eec9a1d874ed7646bbdf1c385aeac63c6437ecc
 Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare: ahead 20 / behind 0
-Changed files: exactly 11 owned docs/AI paths
+Branch compare at that head: ahead 22 / behind 0
+Changed files at that head: exactly 12 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
+- docs/adr/0007-active-supabase-and-future-services-api.md
 - docs/adr/0012-delegated-external-connector-trust-boundary.md
 - docs/adr/README.md
 - docs/architecture/ARCHITECTURE.md
@@ -171,24 +172,21 @@ Changed files: exactly 11 owned docs/AI paths
 - docs/security/AUTH_ARCHITECTURE.md
 - docs/security/SECURITY.md
 
-Canonical reconciliation: PASS
-- First-party Supabase token/sub and delegated grant-based caller identity are consistently separated across AUTH_ARCHITECTURE.md and SECURITY.md.
-- SUPABASE_SERVER_ACCESS.md separates authentication class from database access mode, forbids manufacturing a Supabase session for delegated traffic, and treats any server-secret/service-role connector operation as privileged/separately justified.
-- Connector Health-context classification matches DATA_PRIVACY_GOVERNANCE for workout, nutrition, progress, weight/body metrics, progress photos, and related health/fitness context.
-- Production pilot requires provider privacy review, account-deletion lifecycle participation, and operational/audit controls.
-- Account deletion invalidates future delegated access/refresh and requires explicit deletion/expiry/approved-retention outcomes for connector/provider artifacts.
-- All 11 Codex findings through the third review are resolved.
+Canonical reconciliation: PASS at content head
+- ADR-0007 remains Accepted for active Supabase, services/api runtime/namespace, DB ownership, and backend-start triggers.
+- ADR-0007 now explicitly states its Supabase token/sub flow is first-party-only.
+- ADR-0012 is explicitly authoritative for delegated connector caller authentication/identity and specializes/amends only that part of ADR-0007.
+- If a connector capability later runs in services/api, runtime/host rules come from ADR-0007 while delegated caller auth comes from ADR-0012 plus canonical Auth/server-access policies.
+- Previous first-/second-/third-pass canonical auth, privacy, deletion, and Health-context reconciliations remain intact.
 
-Security merge-gate evidence at d4154c69...:
-- main protected: YES
-- required context: Commit attribution guard (app_id 5032971)
-- Commit attribution guard: PASS
-- github-advanced-security: FAIL, supplemental/non-required by current main branch metadata
-- GHAS exact-head analysis outcome: infrastructure/model failure before meaningful analysis ("The requested model is not supported"), not a concrete security finding and not a security pass
+Security merge-gate evidence:
+- current main remains protected with required context Commit attribution guard (app_id 5032971)
+- exact-head required/supplemental checks must be re-read after this handoff update
+- prior GHAS failures on this PR were supplemental + infrastructure/model failures before meaningful analysis ("The requested model is not supported"), not concrete security findings and not security passes
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
+Exact-head validation after this handoff commit: PENDING by construction and must be re-read before thread resolution/re-review
 ```
 
 ### Review Findings and Resolution
@@ -206,6 +204,7 @@ Exact-head validation after this final handoff commit: PENDING by construction a
 | R9 | P2 | Resolved | Remaining canonical security/server-access docs still required Supabase token/sub for every protected caller | `de1608006b...` | `SECURITY.md` and `SUPABASE_SERVER_ACCESS.md` now distinguish first-party Supabase sessions from delegated grant-based callers and explicitly classify any server-secret DB operation as privileged |
 | R10 | P2 | Resolved | Production pilot did not require connector grant/token/provider artifacts to join account deletion lifecycle | `de1608006b...` | Connector policy now requires access/refresh invalidation plus documented synchronous deletion, bounded queued deletion, short expiry, or approved retention outcome |
 | R11 | P2 | Resolved | Workout/nutrition/progress were classified below canonical Health-context | `de1608006b...` | Connector classification now uses Health-context highest-applicable handling for workout, nutrition, progress, weight/body metrics and related health/fitness context |
+| R12 | P2 | Resolved | Accepted ADR-0007 still described services/api auth as Supabase-token-only, conflicting with ADR-0012 delegated auth | `07eb38bec2...` | ADR-0007 now scopes its token/sub flow to first-party callers and explicitly records ADR-0012 as the delegated-auth specialization/amendment without superseding ADR-0007's broader runtime decision |
 
 ## 7. Final Handoff
 
@@ -214,6 +213,7 @@ Exact-head validation after this final handoff commit: PENDING by construction a
 - `.ai/tasks/README.md`
 - `.ai/tasks/tnyx-172-c00-connector-trust-boundary.md`
 - `docs/README.md`
+- `docs/adr/0007-active-supabase-and-future-services-api.md`
 - `docs/adr/0012-delegated-external-connector-trust-boundary.md`
 - `docs/adr/README.md`
 - `docs/architecture/ARCHITECTURE.md`
