@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub API against `main@4db03ef82f7330dabfc11a11cf5439c5dc8dce81`
 **Branch:** `tnyx/issue-443-calendar-router-test-determinism`
-**HEAD SHA:** `4db03ef82f7330dabfc11a11cf5439c5dc8dce81` at branch creation
+**HEAD SHA:** `78d7cfec260d0c0c980120650e3f30660ef8c36b` reviewed by Codex
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub #443; Linear mirror unavailable because workspace issue limit is exceeded
-**Current implementation state:** Audit complete; implementation not yet applied
+**Current implementation state:** Test-only determinism fix implemented; Draft PR #444 open; Codex P2 handoff finding being addressed
 **Relevant execution surface:** `apps/app/test/app/app_mode_router_test.dart`
-**Validation completed at SHA:** Source comparison proves the failing test blob is identical on PR #442 base/head
-**Validation remaining:** focused implementation audit; hosted Flutter CI; Codex review
+**Validation completed at SHA:** `78d7cfec260d0c0c980120650e3f30660ef8c36b` — parent-to-head audit 2 ahead / 0 behind with exactly this task brief and `app_mode_router_test.dart`; Codex reviewed this head
+**Validation remaining:** hosted Flutter CI completion and exact-head re-review after this handoff-only correction
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Make the smallest test-only deterministic fix, then open a Draft PR.
+**Open review finding IDs:** Codex P2 `discussion_r4117697186` — stale Active Handoff/checklist
+**Next exact action:** Verify this handoff-only correction, reply to and resolve Codex P2, then request exact-head Codex re-review; wait for hosted Flutter CI before merge.
 
 ## 1. Discovery
 
@@ -94,10 +94,12 @@ Not applicable; no production behavior/UI changes.
 
 - [x] Audit failing CI and source identity.
 - [x] Create isolated GitHub tracker #443.
-- [ ] Apply smallest deterministic test fix.
-- [ ] Audit exact parent-to-head scope.
-- [ ] Open Draft PR.
-- [ ] Wait for Codex review.
+- [x] Apply smallest deterministic test fix.
+- [x] Audit exact parent-to-head scope: 2 ahead / 0 behind; exactly 2 owned paths at `78d7cfec260d0c0c980120650e3f30660ef8c36b`.
+- [x] Open Draft PR #444.
+- [x] Receive Codex review on `78d7cfec260d0c0c980120650e3f30660ef8c36b`.
+- [ ] Resolve Codex P2 after verifying this handoff correction.
+- [ ] Wait for hosted Flutter CI and exact-head Codex re-review.
 
 ## 6. Quality Review
 
@@ -112,17 +114,18 @@ Root-cause audit: affected test file is byte-identical between base and PR head.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| I443-REV-01 | P2 | Open | Active Handoff/checklist remained at pre-implementation state after the test fix was committed. | `78d7cfec260d0c0c980120650e3f30660ef8c36b` | Refresh implementation state, checklist, changed files, and next action; resolve only after post-fix verification. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/issue-443-calendar-router-test-determinism.md`
+- `apps/app/test/app/app_mode_router_test.dart`
 
 ### Actual Behavior
 
-Pending.
+Production behavior is unchanged. Tests now assert the calendar label against the controller's actual `visibleMonth` contract instead of assuming Today's week always belongs to Today's calendar month.
 
 ### Known Limitations
 
