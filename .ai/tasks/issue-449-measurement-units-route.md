@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@a77654532337111039dd3e2f8cd620b7c8c9b07e`
 **Branch:** `tnyx/issue-449-measurement-units-route`
-**HEAD SHA:** `d4e10576b4c35df613cde0ce6301c4f2e42c0fcc` — source/import correction head before this handoff refresh.
+**HEAD SHA:** `7b6bd38a30554f05e982febcec23f1c1df4983d0` — source head before this handoff refresh.
 **Observed working-tree state:** Connector-only execution; local working tree unavailable.
 **Observed uncommitted/dirty files:** Not observable through connector.
 **PR / tracker:** Draft PR #450; GitHub #449; parents #357/#260; Linear TNYX-201.
 **Current implementation state:** Measurement Units route registration moved into existing Settings route module; exact scope audit passed.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`, existing router tests.
 **Validation completed at SHA:** `d4e10576b4c35df613cde0ce6301c4f2e42c0fcc` — GitHub compare: 7 ahead / 0 behind; exactly this handoff plus two app routing files. Prior Flutter CI run `36408034012` on `aba20a40...` exposed missing imports; root persistence-provider import and moved-route profile-provider import were restored on the current source head.
-**Validation remaining:** Hosted Flutter CI on current/final head and exact-head Codex review.
+**Validation remaining:** Hosted Flutter CI and exact-head Codex review on the final handoff head.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Request exact-head Codex review on the final handoff head and wait for hosted Flutter CI/review results.
+**Next exact action:** Re-run exact-head Codex review on the final handoff head and wait for hosted Flutter CI/review results.
 
 ## 1. Discovery
 
@@ -93,7 +93,7 @@ Preserve existing loading, error, retry/back and save behavior.
 
 ### Validation Run
 ```text
-GitHub compare at `d4e10576b4c35df613cde0ce6301c4f2e42c0fcc`: 7 ahead / 0 behind; changed paths are only this handoff, `router.dart`, and `settings_routes.dart`. Flutter CI run `36408034012` on earlier head `aba20a40...` failed analyze because dependency imports were over-pruned during extraction; those exact import defects were corrected by `8ad7ddf3...` and `d4e10576...`. Current-head hosted validation remains pending. Existing `app_mode_router_test.dart` already covers Measurement Units navigation/hydration. Connector-only execution cannot claim local Flutter or git CLI validation.
+GitHub compare at `d4e10576b4c35df613cde0ce6301c4f2e42c0fcc`: 7 ahead / 0 behind; changed paths are only this handoff, `router.dart`, and `settings_routes.dart`. Flutter CI run `36408034012` on earlier head `aba20a40...` failed analyze because dependency imports were over-pruned during extraction; those exact import defects were corrected by `8ad7ddf3...` and `d4e10576...`. Flutter CI run `36409779366` on `2b7a7cc2...` then reduced the failure to one unused `tio_feature_profile/profile.dart` import; removed in `7b6bd38a...`. Current-head hosted validation remains pending. Existing `app_mode_router_test.dart` already covers Measurement Units navigation/hydration. Connector-only execution cannot claim local Flutter or git CLI validation.
 ```
 
 ### Review Findings and Resolution
