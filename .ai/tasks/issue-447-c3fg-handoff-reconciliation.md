@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@d82609e25388178763c6e3e74962725c83105702`
 **Branch:** `tnyx/issue-447-c3fg-handoff-archive`
-**HEAD SHA:** `d82609e25388178763c6e3e74962725c83105702`
+**HEAD SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc`
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub #447 / parents #357 and #260 / Linear TNYX-201
-**Current implementation state:** Governance reconciliation started; no runtime source changes authorized.
+**Current implementation state:** C3f/C3g briefs archived and active/archive indexes reconciled; no runtime source changed.
 **Relevant execution surface:** `.ai/tasks/**`, `.ai/archive/**`, tracker comments
-**Validation completed at SHA:** Runtime merge evidence verified for C3f and C3g.
+**Validation completed at SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc` — API compare against `main@d82609e...`: 7 ahead / 0 behind; exactly 7 `.ai/**` paths, no runtime paths.
 **Validation remaining:** Exact branch scope audit, hosted checks if triggered, Codex exact-head review.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Reconcile and archive C3f/C3g briefs and task indexes without touching runtime source.
+**Next exact action:** Open Draft PR, request exact-head Codex review, and wait for hosted checks/review.
 
 ## 1. Discovery
 
@@ -75,10 +75,10 @@ Docs/governance-only normalization. Preserve canonical runtime/docs; do not crea
 
 ## 5. Implementation Plan
 
-- [ ] Rewrite C3f final handoff to validated merged truth and archive it.
-- [ ] Rewrite C3g final handoff to validated merged truth and archive it.
-- [ ] Remove stale active-task rows and add archive index rows.
-- [ ] Audit exact changed paths.
+- [x] Rewrite C3f final handoff to validated merged truth and archive it.
+- [x] Rewrite C3g final handoff to validated merged truth and archive it.
+- [x] Remove stale active-task rows and add archive index rows.
+- [x] Audit exact changed paths.
 - [ ] Open PR and request Codex exact-head review.
 - [ ] After merge, reconcile #260/#357/TNYX-201 and audit remaining router work.
 
@@ -86,7 +86,7 @@ Docs/governance-only normalization. Preserve canonical runtime/docs; do not crea
 
 ### Validation Run
 
-Not run yet. Connector-only session cannot claim local `git diff --check`.
+GitHub API compare at `b03869d1...`: 7 ahead / 0 behind, exactly 7 `.ai/**` governance paths and no `apps/**` runtime path. Connector-only session cannot claim local `git diff --check`.
 
 ### Review Findings and Resolution
 
