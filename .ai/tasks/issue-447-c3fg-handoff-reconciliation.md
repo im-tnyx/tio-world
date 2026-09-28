@@ -31,7 +31,7 @@
 **Validation remaining:** Exact branch scope audit, hosted checks if triggered, Codex exact-head review.
 **Current blocker:** None.
 **Open review finding IDs:** C3FG-REV-04 — open-PR checklist state; C3FG-REV-05 — discovery baseline labeling; C3FG-REV-06 — review-history wording. C3FG-REV-01 is resolved; C3FG-REV-02/C3FG-REV-03 were fixed before the `2961d140...` review, which raised these three new consistency findings.
-**Next exact action:** Revalidate the current correction head with Codex, resolve C3FG-REV-02/C3FG-REV-03 after verification, then re-audit merge readiness. PR #448 is already open and Ready for Review.
+**Next exact action:** Revalidate the current correction head with Codex, resolve C3FG-REV-04/C3FG-REV-05/C3FG-REV-06 after verification, then re-audit merge readiness. PR #448 is already open and Ready for Review.
 
 ## 1. Discovery
 
