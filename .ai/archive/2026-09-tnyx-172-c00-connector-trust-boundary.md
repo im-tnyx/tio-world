@@ -156,10 +156,10 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated exact head: 07b8890b0af8657b98a3ae79e843fb89a24fbe9c
-Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare: ahead 23 / behind 0
-Changed files: exactly 12 owned docs/AI paths
+Validated exact reviewed head: 7e3df4d718e982e3c67e7a0c1b6b243554542c3c
+Base / merge-base before merge: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
+Branch compare before merge: ahead 24 / behind 0
+Changed files before merge: exactly 12 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
@@ -179,9 +179,11 @@ Canonical reconciliation: PASS
 - ADR-0012 is authoritative for delegated connector authentication/identity and specializes/amends only that part of ADR-0007.
 - First-party vs delegated auth is reconciled across canonical Auth/Security/Supabase server-access docs.
 - Connector Health-context, provider-privacy, account-deletion lifecycle, and operational/audit gates remain aligned with canonical privacy/security policy.
-- All 12 Codex findings through the fourth review are resolved.
+- All 12 Codex findings are resolved.
+- Codex exact-head review on 7e3df4d718 reported: “Didn't find any major issues.”
+- PR #453 merged into main as ef7edad5047c07d8ac4c31458600c52b5e21011c.
 
-Security merge-gate evidence at 07b8890b...:
+Security merge-gate evidence at 7e3df4d7...:
 - main protected: YES
 - required context: Commit attribution guard (app_id 5032971)
 - Commit attribution guard: PASS
@@ -190,7 +192,7 @@ Security merge-gate evidence at 07b8890b...:
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
+Post-merge archive cleanup is repository hygiene and is tracked separately from the validated product/architecture outcome
 ```
 
 ### Review Findings and Resolution
