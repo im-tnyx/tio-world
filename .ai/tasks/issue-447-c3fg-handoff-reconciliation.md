@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@d82609e25388178763c6e3e74962725c83105702`
 **Branch:** `tnyx/issue-447-c3fg-handoff-archive`
-**HEAD SHA:** `dcdbaba219b5a75bf269ea81f9146ee470280baa` — reviewed head before this finding-only handoff correction
+**HEAD SHA:** `aa06c8f1524a75443db3ab810fdd45905f8c2f56` — current head before this handoff-state correction
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub #447 / parents #357 and #260 / Linear TNYX-201
@@ -30,8 +30,8 @@
 **Validation completed at SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc` — pre-handoff API scope audit against `main@d82609e...`: 7 ahead / 0 behind; exactly 7 `.ai/**` paths, no runtime paths. Codex reviewed `dcdbaba219b5a75bf269ea81f9146ee470280baa` and raised P2 C3FG-REV-01 for the stale HEAD field; no runtime/source finding.
 **Validation remaining:** Exact branch scope audit, hosted checks if triggered, Codex exact-head review.
 **Current blocker:** None.
-**Open review finding IDs:** C3FG-REV-01 — stale Active Handoff HEAD field; correction requires exact-head revalidation.
-**Next exact action:** Open Draft PR, request exact-head Codex review, and wait for hosted checks/review.
+**Open review finding IDs:** C3FG-REV-02 — C3f archive validation evidence; C3FG-REV-03 — stale next action. C3FG-REV-01 was resolved and exact-head re-reviewed clean at `3d88a932...`.
+**Next exact action:** Revalidate the current correction head with Codex, resolve C3FG-REV-02/C3FG-REV-03 after verification, then re-audit merge readiness. PR #448 is already open and Ready for Review.
 
 ## 1. Discovery
 
@@ -92,7 +92,9 @@ GitHub API compare at `b03869d1...`: 7 ahead / 0 behind, exactly 7 `.ai/**` gove
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| C3FG-REV-01 | P2 | Open | Active Handoff HEAD field lagged the reviewed head. | `dcdbaba219b5a75bf269ea81f9146ee470280baa` | HEAD field refreshed; this docs-only correction requires exact-head revalidation. |
+| C3FG-REV-01 | P2 | Resolved | Active Handoff HEAD field lagged the reviewed head. | `dcdbaba219b5a75bf269ea81f9146ee470280baa` | Fixed in `3d88a932...`; Codex exact-head re-review found no major issues. |
+| C3FG-REV-02 | P2 | Open | C3f archive overstated lifecycle evidence instead of recording the post-merge governance race explicitly. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Archive now records merged-head CI, clean Codex review, late post-merge governance P2, resolved thread, and later clean merge-commit Codex review; exact-head revalidation pending. |
+| C3FG-REV-03 | P2 | Open | Active Handoff next action still said to open the already-open PR. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Next action now points to exact-head revalidation/finding resolution and merge-readiness audit; exact-head revalidation pending. |
 
 ## 7. Final Handoff
 
