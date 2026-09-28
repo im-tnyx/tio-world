@@ -1,6 +1,7 @@
 # TNYX-174 C1.0 Slice A — Vendor-neutral Tio capability contract
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-28
 **Primary owner:** Connector Architecture + Application/Domain Architecture
 **Affected platforms:** External connectors / future MCP adapter / future REST/OpenAPI adapter / future Siri/App Intents adapter / current Supabase protected boundary / future services/api
 
@@ -19,19 +20,19 @@
 **Review owner:** Codex / independent PR review
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`
-**Branch:** `tnyx/tnyx-174-c10-capability-contract`
-**HEAD SHA:** `000edae137b4b1285ad85031f33083c18cc17cd7` at the latest completed content + R1-R3 resolution validation before this handoff update
+**Repository state last verified:** `main@67d689299e2506c7f87a363ddb2516f51c975fcf`
+**Branch:** `tnyx/tnyx-174-c10-capability-contract` (merged via PR #457); archive maintenance branch: `tnyx/tnyx-174-c10-archive-handoff`
+**HEAD SHA:** `8c24a29ccae7a790efaac64f3024cb200c4a0c9e` — exact reviewed PR head merged by PR #457
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** GitHub PR #457; Linear TNYX-174 In Review.
-**Current implementation state:** Canonical vendor-neutral capability contract, ADR-0014, and authority links are authored. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime, or services/api runtime is introduced.
+**PR / tracker:** GitHub PR #457 merged; Linear TNYX-174 Done.
+**Current implementation state:** Vendor-neutral capability contract and ADR-0014 are merged/validated. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime/schema, REST route, UI, or `services/api` runtime was introduced.
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
-**Validation completed at SHA:** `71d9685cb246ddbd351af41f29a307f3e3222045` — branch remained exactly 9 owned docs/AI files and ahead 19 / behind 0; Codex R1-R3 fixes were self-reviewed against the canonical capability contract + ADR-0014; all three review threads received evidence replies and were resolved.
-**Validation remaining:** this handoff update moves HEAD; refresh exact-head compare/checks, request a fresh Codex review, and resolve any new validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
+**Validation completed at SHA:** `8c24a29ccae7a790efaac64f3024cb200c4a0c9e` — Codex exact-head re-review reported “Didn't find any major issues”; prior R1-R3 were fixed, replied to, and resolved; unresolved review threads 0; required `Commit attribution guard` PASS. Supplemental `github-advanced-security` failed before meaningful analysis with `400 The requested model is not supported`; it was non-required and is neither a concrete security finding nor a security pass. PR #457 merged into `main` as `67d689299e2506c7f87a363ddb2516f51c975fcf`.
+**Validation remaining:** none for the delivered architecture/docs outcome. Local `git diff --check` was unavailable through connector-only execution and was not claimed as run.
 **Current blocker:** none.
-**Open review finding IDs:** none; R1-R3 are fixed, replied to, and resolved. Fresh exact-head re-review pending.
-**Next exact action:** request Codex review against the new exact PR #457 head after this handoff commit; inspect exact-head checks and stop at review handoff unless another validated finding requires an in-scope fix.
+**Open review finding IDs:** none; R1-R3 resolved and exact-head re-review found no major issues.
+**Next exact action:** none for TNYX-174. Future connector work must start from a live successor issue and re-audit current repository/runtime/protocol state.
 
 ## 1. Discovery
 
@@ -178,16 +179,16 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Audit exact branch delta and current security-check requirements.
 - [x] Publish focused PR; move TNYX-174 to In Review after this handoff update.
 - [x] Request Codex exact-head review and inspect required/supplemental checks; first substantive review produced R1-R3.
-- [x] Resolve validated in-scope findings R1-R3 in docs/ADR, reply with evidence, and resolve all three threads; fresh exact-head review remains pending.
+- [x] Resolve validated in-scope findings R1-R3 in docs/ADR, reply with evidence, resolve all three threads, and obtain a clean exact-head Codex re-review.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Validated content head: 71d9685cb246ddbd351af41f29a307f3e3222045
+Validated exact reviewed head: 8c24a29ccae7a790efaac64f3024cb200c4a0c9e
 Base / merge-base: da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
-Branch compare at that head: ahead 19 / behind 0
+Branch compare before merge: ahead 20 / behind 0
 Changed files: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-174-c10-capability-contract.md
@@ -214,7 +215,10 @@ Canonical reconciliation: PASS
 Security-sensitive merge-gate baseline:
 - main protected: YES
 - required context: Commit attribution guard (app_id 5032971)
-- required `Commit attribution guard` passed on the prior reviewed head; exact-head checks after this handoff commit are PENDING by construction
+- exact-head `Commit attribution guard`: PASS
+- Codex exact-head re-review: “Didn't find any major issues.”
+- unresolved review threads: 0
+- `github-advanced-security`: supplemental/non-required unsupported-model infrastructure failure before meaningful analysis
 - local git diff --check: NOT AVAILABLE through connector-only execution
 - runtime/build tests: not applicable to this docs/architecture-only slice
 ```
@@ -251,4 +255,4 @@ This slice freezes shared capability semantics only. Domain-specific read schema
 
 ### Final Status
 
-`REVIEW`
+`PASS`

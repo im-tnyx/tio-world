@@ -6,7 +6,6 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
-| [TNYX-174 C1.0 Slice A — Vendor-neutral Tio capability contract](tnyx-174-c10-capability-contract.md) | In progress | Connector Architecture + Application/Domain Architecture | Any MCP/ChatGPT/Siri/REST connector adapter or domain connector contract; freezes stable Tio capability semantics before TNYX-247/TNYX-252/TNYX-175 |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
