@@ -1,6 +1,6 @@
 # TNYX-172 C0.0 Slice A — Connector V1 trust boundary
 
-**Status:** In progress
+**Status:** Review ready
 **Primary owner:** Connector architecture / Security & Identity
 **Affected platforms:** External connectors / Supabase protected boundary / future services/api
 **Approval status:** Approved
@@ -12,21 +12,21 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** Codex / independent PR review
+**Implementation ownership state:** Complete for the approved docs/architecture slice; review handoff
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-172; no connector GitHub issue/PR existed at slice start.
-**Current implementation state:** Audit/documentation slice started; no connector runtime exists.
+**PR / tracker:** Linear TNYX-172 In Progress; PR pending publication.
+**Current implementation state:** Canonical connector trust-boundary baseline written and indexed; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** Not run yet.
-**Validation remaining:** complete source/runtime audit; scope/diff audit; docs reference check; review.
+**Validation completed at SHA:** Branch compare after docs/index implementation: `main` merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`, ahead 4 / behind 0, exactly 4 owned docs/AI files; canonical/task index links present.
+**Validation remaining:** external PR review and repository CI/checks if triggered. Local `git diff --check` is unavailable in the connector-only execution environment.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** inspect current approved Supabase protected-function patterns, then write the canonical connector trust-boundary document.
+**Next exact action:** publish the focused PR, reconcile Linear to In Review, then address review findings without widening scope.
 
 ## 1. Discovery
 
@@ -137,11 +137,11 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ## 5. Implementation Plan
 
 - [x] Reconcile root governance, canonical docs, Linear graph, current GitHub state, and source search.
-- [ ] Inspect representative current Supabase protected-function runtime/config patterns.
-- [ ] Create canonical `docs/integrations/` connector trust-boundary document.
-- [ ] Add canonical doc to `docs/README.md`.
-- [ ] Add this active task to `.ai/tasks/README.md`.
-- [ ] Validate complete branch scope and documentation references.
+- [x] Inspect representative current Supabase protected-function runtime/config patterns.
+- [x] Create canonical `docs/integrations/` connector trust-boundary document.
+- [x] Add canonical doc to `docs/README.md`.
+- [x] Add this active task to `.ai/tasks/README.md`.
+- [x] Validate complete branch scope and documentation references.
 - [ ] Publish a focused PR for review.
 - [ ] Reconcile TNYX-172 to review state only after the docs slice is actually review-ready.
 
@@ -150,7 +150,20 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Not run yet.
+Current main/base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
+Branch compare: ahead 4 / behind 0
+Changed files: exactly 4, all owned docs/AI paths
+- .ai/tasks/README.md
+- .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
+- docs/README.md
+- docs/integrations/CONNECTOR_TRUST_BOUNDARY.md
+Index-link presence: PASS
+Representative runtime inspection: PASS
+- supabase/config.toml
+- supabase/functions/nutrition-meal-text-parse/index.ts
+- supabase/functions/google-login-admission/index.ts
+Local git diff --check: NOT AVAILABLE through connector-only execution
+Runtime/build tests: not applicable to this docs-only slice
 ```
 
 ### Review Findings and Resolution
@@ -163,7 +176,10 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-172-c00-connector-trust-boundary.md`
+- `docs/README.md`
+- `docs/integrations/CONNECTOR_TRUST_BOUNDARY.md`
 
 ### Actual Behavior
 
@@ -175,4 +191,4 @@ This slice freezes architecture/security intent only. OAuth, grants, read-models
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
