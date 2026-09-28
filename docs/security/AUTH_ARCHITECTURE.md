@@ -95,10 +95,8 @@ See [Connector Trust Boundary and V1 Exposure Policy](../integrations/CONNECTOR_
 
 When backend work is explicitly authorized, server-side authentication should:
 
-- for first-party Supabase-session callers, verify the Supabase access token using the approved Supabase verification mechanism for that runtime;
-- for delegated connector callers, validate the Tio connector credential and resolve connector client, grant, canonical user, and effective scopes before domain authorization;
-- reject invalid, expired, malformed, wrong-project, or otherwise untrusted tokens;
-- derive the user UUID from the verified token subject;
+- for first-party Supabase-session callers, verify the Supabase access token using the approved Supabase verification mechanism for that runtime, reject invalid/expired/malformed/wrong-project tokens, and derive the canonical user UUID from the verified Supabase token subject (`sub`);
+- for delegated connector callers, validate the Tio connector credential, reject invalid/expired/revoked credentials, and derive the canonical Tio user UUID from the validated user-owned connector grant after resolving connector client, grant, and effective scopes; a connector credential's own subject/client identifier is not a substitute for the grant-to-user mapping;
 - separate authentication from resource authorization;
 - never expose Supabase `service_role`/secret credentials to mobile/watch clients;
 - avoid logging raw Bearer tokens, authorization headers, refresh tokens, or private identity claims;
