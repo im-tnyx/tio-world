@@ -1,7 +1,7 @@
 # Authentication Architecture
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: Security & Identity + `apps/features/auth`
 Truth Boundary: Authoritative for identity, session, and protected-service authentication architecture; source and Supabase configuration prove current implementation.
 
@@ -44,9 +44,9 @@ The phone/watch client is responsible for:
 
 The client does **not** verify its own token as proof of identity and does not choose the authoritative user UUID sent to a protected backend.
 
-## Planned Protected API Contract
+## First-Party Protected API Contract
 
-Backend implementation is intentionally deferred. When a protected Tio API is introduced, the canonical flow is:
+Backend implementation is intentionally deferred. For Tio-owned phone/watch clients, when a protected Tio API is introduced, the canonical first-party flow is:
 
 ```text
 Tio client
@@ -68,11 +68,35 @@ Supabase Auth -> access token -> Tio API -> verified user identity
 
 The future API must derive identity from the verified token. It must not accept a request-body/header `user_id` as a substitute for authentication.
 
+## Delegated External Connector Authentication
+
+External ChatGPT-style or third-party connector clients use a separate Tio-controlled delegated authentication contract. They do **not** receive or present the user's Supabase session as the public connector credential.
+
+The canonical delegated flow is:
+
+```text
+external connector
+  -> Tio-issued/validated connector credential
+  -> connector client
+  -> user-owned connector grant
+  -> canonical Tio user UUID
+  -> effective scopes
+  -> Tio domain/resource authorization
+  -> bounded capability
+```
+
+This does not create a second Tio identity authority. Supabase Auth still owns the canonical Tio user identity; the connector grant resolves delegated access to that canonical user. A client-supplied `user_id`, Email, Phone, conversation claim, or model inference is never authentication proof.
+
+The external connector credential format, OAuth endpoints/lifecycle, client registration, and grant persistence remain separately gated. Runtime hosting may use an approved narrow Supabase protected function when that boundary can safely enforce the complete delegated chain, or future `services/api` only after an ADR-0007 protected-server trigger is proven.
+
+See [Connector Trust Boundary and V1 Exposure Policy](../integrations/CONNECTOR_TRUST_BOUNDARY.md) and [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md).
+
 ## Server Responsibility
 
 When backend work is explicitly authorized, server-side authentication should:
 
-- verify the Supabase access token using the approved Supabase verification mechanism for that runtime;
+- for first-party Supabase-session callers, verify the Supabase access token using the approved Supabase verification mechanism for that runtime;
+- for delegated connector callers, validate the Tio connector credential and resolve connector client, grant, canonical user, and effective scopes before domain authorization;
 - reject invalid, expired, malformed, wrong-project, or otherwise untrusted tokens;
 - derive the user UUID from the verified token subject;
 - separate authentication from resource authorization;
@@ -119,7 +143,7 @@ Authentication answers **who is the caller?**
 
 Authorization answers **may that caller perform this operation on this resource?**
 
-A valid Supabase token does not automatically authorize access to every row or privileged operation. Supabase RLS, server authorization policy, and owner-specific service boundaries remain required.
+A valid Supabase token does not automatically authorize access to every row or privileged operation. Likewise, a valid delegated connector credential does not authorize every Tio capability. Supabase RLS, connector grant/scope checks, server authorization policy, and owner-specific domain boundaries remain required as applicable.
 
 ## Backend Implementation Gate
 
