@@ -29,9 +29,9 @@
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
 **Validation completed at SHA:** `460322499ec3664c53598fda26eb0853dbda4020` — `main` remains `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`; branch ahead 12 / behind 0 with exactly 9 owned docs/AI files. Canonical capability contract, ADR-0014, docs/ADR indexes, trust/OAuth handoffs and architecture link were reviewed. MCP 2026-07-28 final spec was re-checked from official MCP documentation; MCP Tasks remains optional/draft and is not adopted.
 **Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
-**Current blocker:** none.
-**Open review finding IDs:** none.
-**Next exact action:** verify exact-head PR #457 scope/checks, reconcile Linear In Review, request Codex review, and stop at review handoff unless a validated finding requires an in-scope fix.
+**Current blocker:** Codex GitHub code-review usage limit. Automatic PR review and one explicit exact-head `@codex review` retry both returned the usage-limit message; no Codex review result/finding exists yet.
+**Open review finding IDs:** none; Codex has not produced a review because of the code-review usage limit.
+**Next exact action:** when Codex code-review capacity is available, request review against the then-current exact PR #457 head before any merge. Do not treat the quota response as a clean review.
 
 ## 1. Discovery
 
@@ -174,8 +174,8 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Add active task to `.ai/tasks/README.md`.
 - [x] Audit exact branch delta and current security-check requirements.
 - [x] Publish focused PR; move TNYX-174 to In Review after this handoff update.
-- [ ] Request Codex exact-head review and inspect required/supplemental checks.
-- [ ] Resolve only validated in-scope review findings; stop at review handoff, never merge without explicit `Go merge`.
+- [x] Request Codex exact-head review and inspect required/supplemental checks; review result is blocked by Codex usage limit.
+- [ ] Resolve only validated in-scope review findings after Codex can review; stop at review handoff, never merge without explicit `Go merge`.
 
 ## 6. Quality Review
 
@@ -246,4 +246,4 @@ This slice freezes shared capability semantics only. Domain-specific read schema
 
 ### Final Status
 
-`REVIEW`
+`BLOCKED — CODEX REVIEW QUOTA`
