@@ -24,13 +24,13 @@
 **Observed working-tree state:** GitHub API branch, no local checkout available
 **Observed uncommitted/dirty files:** Not observable through connector; branch was created from `main` before writes
 **PR / tracker:** Linear TNYX-78 parent remains In Progress; focused child creation was previously blocked by workspace free issue limit
-**Current implementation state:** audit complete; source edits starting
+**Current implementation state:** ProgramId + minimal Program + exports + focused tests implemented; self-review complete
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`
-**Validation completed at SHA:** Not yet
-**Validation remaining:** exact branch diff audit; CI/analyze/test evidence after PR
+**Validation completed at SHA:** `dc163bb57546e85925c25a8a951e678dc4471681` API scope/ancestry audit: branch ahead 7, behind 0, merge-base equals main `fbc5f0d`; exactly 7 expected files changed
+**Validation remaining:** repository CI/analyze/test evidence after PR; local commands unavailable in connector-only environment
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** add ProgramId, Program, barrel exports and focused pure-Dart tests
+**Next exact action:** open PR, inspect exact-head CI, then independent review
 
 ## 1. Discovery
 
@@ -99,18 +99,18 @@ Domain constructors reject invalid UUIDs and blank names. Accessibility is not a
 
 ## 5. Implementation Plan
 
-- [ ] Add `ProgramId`.
-- [ ] Add minimal `Program`.
-- [ ] Export both from Workout barrel.
-- [ ] Add focused pure-Dart tests.
-- [ ] Audit exact branch delta and CI.
+- [x] Add `ProgramId`.
+- [x] Add minimal `Program`.
+- [x] Export both from Workout barrel.
+- [x] Add focused pure-Dart tests.
+- [ ] Audit exact-head CI after PR; API branch delta is already clean.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+GitHub API scope/ancestry audit at `dc163bb5`: `main` is the merge base, ahead 7 / behind 0, and exactly 7 expected task files differ. Local `dart test` / `git diff --check` were not executable in the connector-only environment; do not treat them as passed.
 ```
 
 ### Review Findings and Resolution
@@ -123,11 +123,11 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+`.ai/tasks/README.md`, `.ai/tasks/my-program-domain-foundation.md`, `apps/shared/lib/src/workout/program_id.dart`, `apps/shared/lib/src/workout/program.dart`, `apps/shared/lib/src/workout/workout.dart`, `apps/shared/test/workout/program_id_test.dart`, `apps/shared/test/workout/program_test.dart`
 
 ### Actual Behavior
 
-Pending.
+`ProgramId` now provides a distinct canonical UUID-backed Program identity. `Program` now provides immutable id + non-blank name domain truth. No persistence or UI behavior was added.
 
 ### Known Limitations
 
