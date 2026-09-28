@@ -1,7 +1,7 @@
 # Workout Insights Screen
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the planned Workout Insights screen product contract and ownership; not evidence the screen is implemented or scheduled.
 
@@ -27,7 +27,7 @@ The screen may use a segmented control or sub-routes; it must not create a new b
 ## Data And Safety Boundaries
 
 - Inputs are recorded Workout history and approved schedule data only.
-- No history shows an explanatory empty state and links to Routine Library or Programs.
+- No history shows an explanatory empty state and links to Workout Library / Programs; user-owned Routines are reached inside their owning Program.
 - Recovery context can appear only after the independent Recovery contract is approved; it must be labelled and never presented as medical readiness.
 - Charts and maps need screen-reader summaries, high-contrast treatment, reduced-motion-safe transitions, and values that remain understandable without colour or graphics.
 
