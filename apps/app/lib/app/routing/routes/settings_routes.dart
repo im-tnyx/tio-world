@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../app_mode/app_mode.dart';
 import '../../app_theme_controller.dart';
 import '../../calendar_preferences_providers.dart';
+import '../../settings_persistence_providers.dart';
 
 List<RouteBase> buildSettingsRoutes({
   required GlobalKey<NavigatorState> rootNavigatorKey,
@@ -113,6 +115,44 @@ List<RouteBase> buildSettingsRoutes({
                 context.push(AppRoutes.measurementUnitsSettings.path),
             onCalendarPressed: () =>
                 context.push(AppRoutes.calendarSettings.path),
+          );
+        },
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.measurementUnitsSettings.path,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final profileAsync = ref.watch(profileDataProvider);
+          final profileData = profileAsync.valueOrNull;
+
+          if (profileAsync.isLoading && profileData == null) {
+            return Scaffold(
+              body: SafeArea(
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: context.tioColors.primary,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return MeasurementUnitsSettingsPage(
+            initialPreferences:
+                profileData?.unitPreferences ?? UnitPreferences.metric,
+            onSave: (preferences) async {
+              final repository =
+                  ref.read(measurementUnitPreferencesRepositoryProvider);
+              if (repository == null) {
+                throw StateError(
+                  'Measurement unit persistence is unavailable.',
+                );
+              }
+              await repository.updateMeasurementUnitPreferences(preferences);
+              ref.invalidate(profileDataProvider);
+            },
           );
         },
       ),
