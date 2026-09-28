@@ -19,14 +19,14 @@
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-172 In Progress; PR pending publication.
+**PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
 **Current implementation state:** Canonical connector trust-boundary baseline written and indexed; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
 **Validation completed at SHA:** Branch compare after docs/index implementation: `main` merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`, ahead 4 / behind 0, exactly 4 owned docs/AI files; canonical/task index links present.
 **Validation remaining:** external PR review and repository CI/checks if triggered. Local `git diff --check` is unavailable in the connector-only execution environment.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** publish the focused PR, reconcile Linear to In Review, then address review findings without widening scope.
+**Next exact action:** inspect PR #453 exact-head CI/review state; address only validated findings within the approved docs/architecture boundary.
 
 ## 1. Discovery
 
@@ -142,8 +142,8 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 - [x] Add canonical doc to `docs/README.md`.
 - [x] Add this active task to `.ai/tasks/README.md`.
 - [x] Validate complete branch scope and documentation references.
-- [ ] Publish a focused PR for review.
-- [ ] Reconcile TNYX-172 to review state only after the docs slice is actually review-ready.
+- [x] Publish a focused PR for review.
+- [x] Reconcile TNYX-172 to review state only after the docs slice is actually review-ready.
 
 ## 6. Quality Review
 
