@@ -1,7 +1,7 @@
 # Architecture
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: repository architecture
 Truth Boundary: Authoritative for repository-wide architecture direction and dependency boundaries; source/config prove actual runtime behavior and trackers own delivery status.
 
@@ -165,9 +165,9 @@ Rules:
 
 See the accepted Linear B0 decisions for repository namespaces, Fastify baseline, and `services/api` internal ownership.
 
-## Client ↔ Future API Auth Contract
+## First-Party Client ↔ Future API Auth Contract
 
-The canonical future protected-service auth flow is:
+The canonical future protected-service auth flow for Tio-owned phone/watch clients is:
 
 ```text
 Supabase Auth
@@ -183,6 +183,24 @@ Firebase Admin token verification is not part of the target backend auth archite
 Historical Firebase-named classes, adapters, tests, or migration-era code may still exist in source. Their existence is not evidence that Firebase remains an approved auth provider or future backend target.
 
 Use [Auth Architecture](../security/AUTH_ARCHITECTURE.md) for the canonical identity contract.
+
+### Delegated external connector path
+
+External connectors are a distinct protected-authentication class and do not use the user's Supabase session as their public credential:
+
+```text
+external connector
+→ Tio delegated connector credential
+→ connector client + user-owned grant
+→ canonical Tio user
+→ effective scopes
+→ domain authorization
+→ bounded Tio capability
+```
+
+Supabase Auth remains the canonical Tio identity authority. The delegated grant resolves to that canonical identity; it does not create a second user model. A bounded connector capability may execute in an approved narrow Supabase protected function when the complete delegated authorization chain can be enforced there. Future `services/api` is used only when an approved slice proves an ADR-0007 trigger.
+
+See [Connector Trust Boundary](../integrations/CONNECTOR_TRUST_BOUNDARY.md) and [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md).
 
 ## Future HTTP Adapter Preservation Rule
 
