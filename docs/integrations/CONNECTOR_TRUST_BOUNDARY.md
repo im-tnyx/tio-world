@@ -13,6 +13,8 @@ Tio may expose bounded user-owned capabilities to ChatGPT-style and future exter
 
 The first connector release is **read-only**. Write capabilities remain separately gated.
 
+The durable decision history for this boundary is recorded in [ADR-0012: Delegated external connector trust boundary](../adr/0012-delegated-external-connector-trust-boundary.md).
+
 ## Canonical Trust Boundary
 
 ~~~text
@@ -268,7 +270,12 @@ Therefore moving an approved capability from a Supabase-hosted adapter to servic
 
 ## Minimum Audit/Operations Requirements
 
-Before a production connector pilot, Tio must be able to attribute a request without logging unnecessary sensitive payloads. At minimum the operational model must support:
+Before a production connector pilot, two independent gates apply:
+
+1. **Provider/privacy gate:** before ChatGPT or any other external provider/client receives Personal, Sensitive, or Health-context data, record the provider-specific review required by [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md): provider/capability, transmitted data classes, purpose, authentication/secret boundary, provider storage, configured retention/training/reuse controls, deletion/export limitations, fallback/failure behavior, and ownership for replacement/contract changes.
+2. **Operational/audit gate:** Tio must be able to attribute requests without logging unnecessary sensitive payloads.
+
+At minimum the operational model must support:
 
 - connector client identity;
 - connector grant identity;
@@ -328,3 +335,4 @@ The first production pilot remains TNYX-178 after its complete blocker set is sa
 - [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
 - [Feature Rollout & Kill Switch](../planning/FEATURE_ROLLOUT.md)
 - [ADR-0007: Active Supabase and Future services/api](../adr/0007-active-supabase-and-future-services-api.md)
+- [ADR-0012: Delegated external connector trust boundary](../adr/0012-delegated-external-connector-trust-boundary.md)
