@@ -1,8 +1,12 @@
 # TNYX-172 C0.0 Slice A — Connector V1 trust boundary
 
-**Status:** Review ready
+**Status:** In progress
 **Primary owner:** Connector architecture / Security & Identity
 **Affected platforms:** External connectors / Supabase protected boundary / future services/api
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
 **Approval evidence:** Owner said `go` on 2026-09-28 after the fresh connector-first-slice audit.
 **Approved boundary:** Architecture/readiness only: freeze the V1 trust boundary, read-only capability classification, threat model, scope taxonomy direction, runtime-host decision criteria, migration invariant, and explicit non-goals.
@@ -13,20 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Complete for the approved docs/architecture slice; review handoff
+**Implementation ownership state:** Active
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
+**HEAD SHA:** `e395389fbe90ffaf9076c33138685620b8a5c63e` at the latest completed content validation before this handoff-record update
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
 **PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
-**Current implementation state:** Canonical connector trust-boundary baseline written and indexed; no connector runtime exists or was authorized.
+**Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation, Supabase runtime-host policy reconciliation, and provider privacy pilot gate are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** Branch compare after docs/index implementation: `main` merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`, ahead 4 / behind 0, exactly 4 owned docs/AI files; canonical/task index links present.
-**Validation remaining:** external PR review and repository CI/checks if triggered. Local `git diff --check` is unavailable in the connector-only execution environment.
+**Validation completed at SHA:** `e395389fbe90ffaf9076c33138685620b8a5c63e` — `main` merge-base remained `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; branch was ahead 12 / behind 0 with exactly 9 owned docs/AI files. Required-check evidence: `main` is protected and branch metadata lists only `Commit attribution guard` (app_id 5032971) as required; it PASSed on `e395389f...`. Supplemental `github-advanced-security` was still in progress on that SHA. On prior head `ae28dc0...`, the same GHAS check failed before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a product-code security finding and not a security pass.
+**Validation remaining:** this handoff-file update moves HEAD, so exact-head required-check/security-check state must be re-read after the commit; then resolve review threads and request the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** none.
-**Next exact action:** inspect PR #453 exact-head CI/review state; address only validated findings within the approved docs/architecture boundary.
+**Open review finding IDs:** PR #453 threads `PRRT_kwDOTOXwB86mqzG8`, `PRRT_kwDOTOXwB86mqzHA`, `PRRT_kwDOTOXwB86mqzHI`, `PRRT_kwDOTOXwB86mqzHL`, `PRRT_kwDOTOXwB86mqzHO`, `PRRT_kwDOTOXwB86mqzHS`, `PRRT_kwDOTOXwB86mqzHU` — fixes applied; resolution pending exact-head verification.
+**Next exact action:** verify the new exact HEAD checks/content, reply to and resolve all seven validated Codex findings, refresh PR scope/evidence, then trigger the next Codex review.
 
 ## 1. Discovery
 
@@ -150,27 +155,49 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Current main/base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare: ahead 4 / behind 0
-Changed files: exactly 4, all owned docs/AI paths
+Validated content head: e395389fbe90ffaf9076c33138685620b8a5c63e
+Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
+Branch compare at that head: ahead 12 / behind 0
+Changed files at that head: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
+- docs/adr/0012-delegated-external-connector-trust-boundary.md
+- docs/adr/README.md
+- docs/architecture/ARCHITECTURE.md
+- docs/data/SUPABASE_STRATEGY.md
 - docs/integrations/CONNECTOR_TRUST_BOUNDARY.md
-Index-link presence: PASS
-Representative runtime inspection: PASS
-- supabase/config.toml
-- supabase/functions/nutrition-meal-text-parse/index.ts
-- supabase/functions/google-login-admission/index.ts
+- docs/security/AUTH_ARCHITECTURE.md
+
+Canonical reconciliation: PASS
+- ADR-0012 records the durable connector trust-boundary decision.
+- First-party Supabase-token auth and delegated connector auth are explicitly separate.
+- Supabase narrow-function vs future services/api connector hosting follows ADR-0007 triggers.
+- Production connector pilot explicitly gates provider-specific privacy review.
+
+Security merge-gate evidence at e395389f...:
+- main protected: YES
+- required context: Commit attribution guard (app_id 5032971)
+- Commit attribution guard: PASS
+- github-advanced-security: supplemental/non-required by current main branch metadata; in progress at this SHA
+- prior ae28dc0... GHAS failure: infrastructure/model failure before meaningful analysis ("requested model is not supported"), not a concrete security finding
+
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
+Exact-head validation after this task-brief commit: PENDING by construction and must be re-read before thread resolution/re-review
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| R1 | P2 | Resolved | Durable connector trust boundary lacked an ADR | `65e924eaff...` | Added accepted ADR-0012, indexed it, and linked it from connector policy |
+| R2 | P2 | Resolved | Security-check requiredness/analysis outcome not recorded | `65e924eaff...` | Current `main` metadata proves only Commit attribution guard required; required guard PASS at `e395389f...`; GHAS classified separately |
+| R3 | P2 | Resolved | Validation evidence was not tied to an exact SHA | `65e924eaff...` | Exact validated content head `e395389f...` recorded; post-handoff HEAD explicitly marked pending |
+| R4 | P2 | Resolved | Noncanonical task status | `65e924eaff...` | Header/index/final state use canonical `In progress` while review is active |
+| R5 | P2 | Resolved | Delegated auth conflicted with canonical first-party auth/runtime docs | `65e924eaff...` | Reconciled AUTH_ARCHITECTURE, ARCHITECTURE and SUPABASE_STRATEGY; linked ADR-0012 |
+| R6 | P2 | Resolved | Production pilot lacked provider privacy-review gate | `65e924eaff...` | Connector policy now requires DATA_PRIVACY_GOVERNANCE provider review before sensitive egress |
+| R7 | P2 | Resolved | Owner Approval trigger classification missing | `65e924eaff...` | Added canonical Trigger field: New independently scoped product task/feature slice |
 
 ## 7. Final Handoff
 
@@ -179,7 +206,12 @@ Runtime/build tests: not applicable to this docs-only slice
 - `.ai/tasks/README.md`
 - `.ai/tasks/tnyx-172-c00-connector-trust-boundary.md`
 - `docs/README.md`
+- `docs/adr/0012-delegated-external-connector-trust-boundary.md`
+- `docs/adr/README.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/data/SUPABASE_STRATEGY.md`
 - `docs/integrations/CONNECTOR_TRUST_BOUNDARY.md`
+- `docs/security/AUTH_ARCHITECTURE.md`
 
 ### Actual Behavior
 
@@ -191,4 +223,4 @@ This slice freezes architecture/security intent only. OAuth, grants, read-models
 
 ### Final Status
 
-`REVIEW`
+`In progress`
