@@ -6,6 +6,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
+| [TNYX-172 C0.0 Slice A — Connector V1 trust boundary](tnyx-172-c00-connector-trust-boundary.md) | In progress | Connector Architecture + Security & Identity | Any connector/OAuth/ChatGPT implementation; freezes the first read-only trust boundary and runtime-host escalation rule |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |

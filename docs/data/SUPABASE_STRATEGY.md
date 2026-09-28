@@ -1,7 +1,7 @@
 # Supabase-First Platform Strategy
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: Supabase data ownership + Backend & Platform
 Truth Boundary: Authoritative for current Supabase ownership and future protected-service boundaries; runtime source and verified live schema prove actual implementation.
 
@@ -26,7 +26,8 @@ Supabase is the active foundation for authenticated user data and the current pr
 | Schema migrations, RLS policies, seed data, and database functions | active root `supabase/` workspace |
 | Flutter/Wear client integration | Feature repositories behind client-safe Supabase contracts |
 | Gemini API and other privileged third-party calls | approved Supabase server functions today where implemented; future `services/api` when a separately approved protected-service slice requires it |
-| Long-running jobs, complex orchestration, or protected integrations | future `services/api`, with `services/worker` added only for a real asynchronous/background workload |
+| Delegated external connector execution | approved narrow Supabase protected function when the full connector credential/client/grant/canonical-user/scope/domain-authorization chain can be enforced safely; future `services/api` when an approved ADR-0007 trigger is proven |
+| Long-running jobs or complex orchestration | future `services/api`, with `services/worker` added only for a real asynchronous/background workload |
 
 Supabase is the data/auth platform; it does not make client code privileged. RLS and feature-level repository boundaries remain required.
 
@@ -73,6 +74,7 @@ tio-world/
 - Every client-accessible table, view, storage bucket, and function needs an explicit access design. Enable RLS for exposed tables and write ownership-specific policies; authentication alone is not authorization.
 - Do not base authorization on user-editable metadata. Feature data access stays behind repository contracts rather than being called directly from widgets.
 - Sensitive health, nutrition, workout, recovery, and profile data require the minimum collection, clear user intent, and safe logs.
+- External connector credentials are not Supabase user sessions. Connector access must resolve a Tio-controlled client + user-owned grant + canonical user + effective scopes before domain authorization, as defined by [Connector Trust Boundary](../integrations/CONNECTOR_TRUST_BOUNDARY.md) and [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md).
 
 ## Gemini Boundary
 
@@ -94,8 +96,9 @@ Use an approved Supabase Edge Function when that boundary fits the request. The 
 2. Add migrations, RLS/security tests, and access review appropriate to that slice.
 3. Connect Flutter/Wear repositories using only client-safe Supabase configuration and preserve offline-first behavior where required.
 4. Add or extend a protected provider integration only when the approved slice has explicit data, safety, cost, and observability requirements.
-5. Start `services/api` only through a separately approved protected-service slice when Supabase functions are no longer the appropriate boundary.
-6. Start `services/worker` only when a real asynchronous/background workload justifies a separate process.
+5. For delegated external connectors, keep the public capability contract runtime-neutral; use an approved narrow Supabase protected function only when it can enforce the complete delegated authorization chain, otherwise start `services/api` through a separately approved protected-service slice.
+6. Start `services/api` for other protected-service work only through a separately approved slice when Supabase functions are no longer the appropriate boundary.
+7. Start `services/worker` only when a real asynchronous/background workload justifies a separate process.
 
 ## Non-Goals Until Approved
 
@@ -119,6 +122,8 @@ Inactive != obsolete. Removal requires:
 ## Related
 
 - [Architecture](../architecture/ARCHITECTURE.md)
+- [Connector Trust Boundary](../integrations/CONNECTOR_TRUST_BOUNDARY.md)
+- [ADR-0012: Delegated external connector trust boundary](../adr/0012-delegated-external-connector-trust-boundary.md)
 - [Data and Sync](DATA_AND_SYNC.md)
 - [Security](../security/SECURITY.md)
 - [Roadmap](../planning/ROADMAP.md)

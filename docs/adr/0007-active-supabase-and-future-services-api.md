@@ -1,12 +1,31 @@
 # ADR-0007: Active Supabase and Future `services/api` Boundary
 
 Document Status: Architecture Decision Record
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: Supabase + future protected-service architecture
 Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
 
 - **Status:** Accepted
 - **Date:** 2026-08-28
+
+## Current applicability note
+
+ADR-0007 remains authoritative for the active-Supabase foundation, the future `services/api` namespace/runtime, database-migration ownership, and the concrete triggers required before protected-server implementation starts.
+
+Its Supabase access-token authentication flow describes **first-party Tio callers that use a Supabase Auth session**. It is not the authentication contract for external delegated connectors.
+
+[ADR-0012](0012-delegated-external-connector-trust-boundary.md) adds the accepted delegated-connector caller class and is authoritative for that class:
+
+```text
+validated Tio connector credential
+  -> connector client
+  -> user-owned connector grant
+  -> canonical Tio user
+  -> effective scopes
+  -> domain/resource authorization
+```
+
+If an approved connector capability later executes in `services/api`, the host/runtime decision still follows ADR-0007, while caller authentication and delegated identity resolution follow ADR-0012 plus the canonical Auth/Supabase server-access policies. ADR-0012 therefore **specializes/amends only the external-connector authentication portion** of ADR-0007; it does not supersede ADR-0007's broader platform/runtime decision.
 
 ## Context
 
@@ -55,7 +74,7 @@ Node.js
 + modular monolith
 ```
 
-The future auth flow is:
+For first-party Tio callers using Supabase Auth sessions, the future auth flow is:
 
 ```text
 Supabase Auth
@@ -145,6 +164,7 @@ Rejected. Current product work can continue on the active Supabase foundation. P
 - [Auth Architecture](../security/AUTH_ARCHITECTURE.md)
 - [Supabase Strategy](../data/SUPABASE_STRATEGY.md)
 - [Supabase Server Access](../data/SUPABASE_SERVER_ACCESS.md)
+- [ADR-0012: Delegated external connector trust boundary](0012-delegated-external-connector-trust-boundary.md)
 - Linear TNYX-17 — monorepo/services namespace
 - Linear TNYX-18 — TypeScript + Fastify baseline
 - Linear TNYX-21 — Firebase auth architecture cleanup

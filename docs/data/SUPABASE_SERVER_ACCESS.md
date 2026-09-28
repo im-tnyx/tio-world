@@ -1,7 +1,7 @@
 # Supabase Server Access Modes
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: Security & Identity + Backend & Platform
 Truth Boundary: Authoritative for user-scoped versus privileged server-side Supabase access policy; not evidence that future protected server code exists.
 
@@ -45,20 +45,34 @@ Typical examples:
 - APIs that are primarily a protected transport/orchestration layer around data the caller could otherwise access through approved RLS policy;
 - server workflows where preserving `auth.uid()`-style ownership semantics is part of the security contract.
 
-Conceptual flow:
+Conceptual first-party flow:
 
 ```text
 Tio client
   -> Supabase Auth access token
-  -> future Tio API verifies token
+  -> protected Tio boundary verifies token
   -> canonical user UUID derived from verified `sub`
   -> Supabase request executes in caller context
   -> RLS / owner policy authorizes the data operation
 ```
 
+Delegated external connectors are authenticated differently:
+
+```text
+external connector
+  -> validated Tio connector credential
+  -> connector client + user-owned grant
+  -> canonical Tio user UUID resolved from the validated grant
+  -> effective scopes + domain/resource authorization
+  -> select an explicitly approved Supabase access mode for the bounded capability
+```
+
+A delegated connector must not be given or made to manufacture the user's Supabase session/JWT merely to fit the first-party path. Delegated authentication does **not** by itself authorize privileged database access.
+
 Rules:
 
-- The caller identity must come from the verified Supabase token, never from a request-body `user_id`.
+- For first-party Supabase-session callers, identity comes from the verified Supabase token `sub`, never from a request-body `user_id`.
+- For delegated connector callers, identity comes from the validated user-owned connector grant after client/grant/scope resolution; the connector credential's own subject/client identifier is not the Tio user identity.
 - The access mode should preserve user authorization/RLS semantics where the operation is user-owned.
 - The server must not silently replace a user-scoped operation with privileged credentials merely because doing so is easier.
 - A valid authenticated identity still does not authorize access to another user's rows.
@@ -120,18 +134,24 @@ Client-safe Supabase configuration and server-secret credentials are separate ca
 
 ## Authentication vs Database Access Mode
 
-Authentication and Supabase access mode are separate decisions.
+Authentication class and Supabase access mode are separate decisions.
 
 ```text
 Step 1: authenticate caller
-  -> verify Supabase access token
-  -> derive canonical user identity
+  -> first-party: verify Supabase access token -> canonical user from verified sub
+  -> delegated connector: validate connector credential + client + user-owned grant -> canonical user from grant
 
 Step 2: authorize requested workflow
-  -> decide whether operation is user-scoped or explicitly privileged
+  -> evaluate domain/resource ownership plus connector scopes/grant when applicable
 
-Step 3: execute minimum required data operation
+Step 3: select Supabase access mode
+  -> preserve normal user-scoped/RLS semantics when an approved mechanism can do so
+  -> otherwise use privileged access only through an explicitly reviewed narrow server operation that satisfies the privileged-boundary requirements
+
+Step 4: execute the minimum required data operation
 ```
+
+A connector implementation must not mint, request, or expose a Supabase user session solely to make delegated traffic look first-party. If a narrow server implementation cannot preserve normal RLS caller context and therefore uses a server-secret/service-role operation, that operation is **privileged** under this document and requires explicit trigger, authorization, scope, minimization, auditability, and fail-closed behavior. TNYX-172 does not pre-authorize such privileged access; the concrete implementation slice must justify it.
 
 An authenticated caller does not justify privileged access.
 
@@ -144,6 +164,7 @@ Likewise, a privileged system workflow may have no end-user caller at all, but i
 | User reads/updates own profile | User-scoped | Preserve normal ownership/RLS |
 | User logs own workout/meal/progress | User-scoped | Caller-owned data |
 | Protected API adds orchestration around caller-owned data | User-scoped | Backend presence alone is not privilege |
+| Delegated connector reads caller-owned data | User-scoped semantics by default; privileged narrow operation only if separately justified | Connector auth/grant proves delegated authority, but does not itself create a Supabase session or privilege |
 | Verified provider webhook reconciliation | Privileged | Trusted system event, no normal user session |
 | Scheduled maintenance/reconciliation job | Privileged | System-owned operation with explicit scope |
 | Cross-user admin/support action | Privileged, only if separately authorized | Elevated business capability |
@@ -180,7 +201,7 @@ Exact file names and SDK APIs belong to the future implementation slice.
 ## Fail-Closed Rules
 
 - Never retry an RLS/authorization denial with privileged credentials.
-- Never trust a client-provided user UUID as the privileged-operation target without deriving/authorizing it through the workflow contract.
+- Never trust a client-provided user UUID as the privileged-operation target without deriving/authorizing it through the workflow contract; for delegated connectors the canonical user must come from the validated user-owned grant.
 - Never expose privileged errors that reveal private account existence or cross-user data.
 - Never log server secrets or raw Bearer credentials.
 - Never make privileged access the implicit fallback when user-scoped configuration is unavailable.
