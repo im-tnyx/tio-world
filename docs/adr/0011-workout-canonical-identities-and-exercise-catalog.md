@@ -5,10 +5,10 @@ Last Verified: 2026-09-27
 Owner: Workout domain architecture (`apps/features/workout` + `apps/shared`)
 Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
 
-- **Status:** Superseded by ADR-0015
+- **Status:** Accepted
 - **Date:** 2026-09-23
 
-Superseded by [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md). This record is preserved as the historical identity/catalog decision that deferred Routine/Program ownership semantics.
+The identity/catalog decisions in this ADR remain accepted. Its intentionally deferred Routine/Program ownership semantics are now resolved by [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md).
 
 ## Context
 
