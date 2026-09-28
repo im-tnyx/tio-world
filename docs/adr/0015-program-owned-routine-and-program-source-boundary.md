@@ -23,7 +23,9 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - Library exposes Programs, Plans/Training Plans and Exercises as capabilities become ready. Routine create/edit/manage is entered from the owning Program; there is no standalone user Routines collection or top-level Create Routine action.
 - Initial user-created Program creation presents a generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. The user-created Program editing surface initially exposes only name and optional image; richer metadata is not required from the user.
 - Routine creation inside a Program follows the same minimal direction: generated non-blank name, with optional image as later approved media capability. Exact Routine composition fields remain owned by their bounded domain slice.
-- Program source/provenance distinguishes `user_created`, `tio_curated`, `coach_created`, and `ai_generated` within one canonical Program capability rather than parallel Program models.
+- Program remains one canonical domain capability, but persistence separates user-owned Program truth from Tio-owned source/catalog Program truth. User-owned Programs use a dedicated user-owned Program table/source; Tio-curated source Programs must not be mixed into that user-owned table.
+- `user_created`, adopted Tio content, accepted AI-generated content, and eligible coach-derived content become user-owned Program records only at the explicit create/adopt/accept boundary. Their provenance/lineage remains explicit.
+- Tio/Coach/AI source/catalog persistence may use source-specific protected tables/services when those slices are approved; this ADR does not pre-authorize their physical schema.
 - Tio/Coach/AI Programs may carry richer source metadata such as description, goal, level, type and recommended duration when their concrete source slice defines it. The user must not receive unrestricted mutation of source-owned metadata merely because the Program is visible in their Library.
 - User-adjustable schedule, start/end or follow-duration/till-date state belongs to TrainingPlan/following truth, even when edited from a Program-context UI. It is not silently written back into reusable Program source metadata.
 - Curated/coach/AI adoption, copy-on-adopt, lineage and exact field-level edit permissions remain gated by their concrete slices. This ADR fixes the ownership boundary, not a speculative persistence schema.
@@ -36,6 +38,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - **Require a Routine before Program confirmation:** rejected because the approved one-click Program flow creates the container first and lets the user add Routines afterward.
 - **Require all Program metadata from users:** rejected because user-created Programs need only lightweight organization; richer metadata is source-specific or later editing concern.
 - **Store personal schedule directly on Program:** rejected because reusable Program structure and user-specific following state have different lifecycles.
+- **Single physical Program table for both user-owned and Tio source/catalog rows:** rejected because ownership, mutation authority, RLS and source lifecycle differ; canonical domain capability does not require one physical table.
 
 ## Consequences
 
@@ -43,7 +46,8 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - Routine persistence must enforce Program ownership without collapsing Routine identity into anonymous nested data.
 - Source/provenance and edit authority must be explicit before curated, coach or AI Program persistence is implemented.
 - UI may present TrainingPlan controls in Program context while domain ownership remains TrainingPlan.
-- Program/Routine persistence, RLS, Storage and exact entities remain separate approved slices.
+- The user-owned/source Program table separation is locked, but exact table names, columns, foreign keys, Routine table shape, indexes, grants and RLS policies remain a separate approved persistence slice.
+- Program/Routine persistence implementation, RLS and Storage remain separate approved slices.
 
 ## Links
 
