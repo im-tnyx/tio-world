@@ -53,9 +53,9 @@ A Tio capability has a stable semantic identity owned by Tio, independent of:
 - Supabase Edge Function names;
 - future `services/api` module paths.
 
-Capability contracts use explicit JSON-compatible request/result schemas and must define the applicable owner, scope family, boundedness/privacy rules, error categories, compatibility semantics, availability, and correlation expectations. Canonical capability IDs follow a Tio-owned lowercase dot-separated semantic convention; existing `get_*` names in Linear remain candidate adapter/tool names unless a domain follow-up explicitly adopts them.
+Capability contracts use explicit JSON-compatible request/result schemas and must define the applicable owner, complete required scope-family set plus combination semantics, boundedness/privacy rules, error categories, compatibility semantics, availability, and correlation expectations. Canonical capability IDs follow a Tio-owned lowercase dot-separated semantic convention; existing `get_*` names in Linear remain candidate adapter/tool names unless a domain follow-up explicitly adopts them.
 
-The first connector capability set remains read-only.
+The first connector capability set remains read-only. V1 capability descriptors model required scopes as a collection with `all_of` semantics by default, so aggregate capabilities cannot authorize multi-domain data from a single domain scope.
 
 Capability discovery describes supported/available behavior. It is not authorization, entitlement, consent, or proof that a specific user's resource may be read.
 
@@ -76,7 +76,9 @@ TNYX-174 does not create a competing OpenAPI/schema source of truth.
 
 Global HTTP validation/errors, rate limits/timeouts/logging, and HTTP pagination/mutation/concurrency remain owned by their Backend & Platform policies/tasks (including TNYX-28, TNYX-29 and TNYX-134). TNYX capability contracts define transport-neutral domain semantics; future adapters map those semantics into the then-current implemented transport policy.
 
-Read list/history capabilities must be bounded by server-enforced pagination/range/field rules. Raw/unrestricted health-history export is not implied by ordinary pagination.
+Read list/history capabilities must be bounded by server-enforced pagination/range/field rules **and** a server-authoritative cumulative lookback/coverage control so repeated pages or adjacent valid windows cannot reconstruct unrestricted health history. Raw/unrestricted health-history export is not implied by ordinary pagination.
+
+Retryable reads may still create separately attributed operational audit/correlation/metrics/rate-limit records; read classification prohibits user-visible/domain mutation, not required operational evidence.
 
 Long-running operations remain conceptual until a real capability proves the need. The current optional/draft MCP Tasks extension, queues, workers, or job persistence are not adopted by this ADR.
 
