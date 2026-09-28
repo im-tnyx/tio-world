@@ -38,6 +38,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - **Require a Routine before Program confirmation:** rejected because the approved one-click Program flow creates the container first and lets the user add Routines afterward.
 - **Require all Program metadata from users:** rejected because user-created Programs need only lightweight organization; richer metadata is source-specific or later editing concern.
 - **Store personal schedule directly on Program:** rejected because reusable Program structure and user-specific following state have different lifecycles.
+- **One physical Program table for both user-owned and authoritative source content:** rejected because ownership, write authority, RLS, lifecycle and source publication semantics differ.
 - **Single physical Program table for both user-owned and Tio source/catalog rows:** rejected because ownership, mutation authority, RLS and source lifecycle differ; canonical domain capability does not require one physical table.
 
 ## Consequences
@@ -45,6 +46,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - Empty newly created Programs are representable, but cannot be treated as executable merely because they exist.
 - Routine persistence must enforce Program ownership without collapsing Routine identity into anonymous nested data.
 - Source/provenance and edit authority must be explicit before curated, coach or AI Program persistence is implemented.
+- User-owned Program rows and authoritative Tio/Coach source Program rows must not share one physical table; adoption crosses an explicit copy/lineage boundary.
 - UI may present TrainingPlan controls in Program context while domain ownership remains TrainingPlan.
 - The user-owned/source Program table separation is locked, but exact table names, columns, foreign keys, Routine table shape, indexes, grants and RLS policies remain a separate approved persistence slice.
 - Program/Routine persistence implementation, RLS and Storage remain separate approved slices.
