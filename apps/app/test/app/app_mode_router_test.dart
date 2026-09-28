@@ -175,8 +175,8 @@ void main() {
         localeName: 'en_US',
       ),
     );
-    expect(diaryDates.visibleMonth,
-        DateTime(diaryDates.localToday.year, diaryDates.localToday.month));
+    // The visible-month label follows the rendered calendar viewport, which
+    // may belong to the adjacent month when Today's week crosses a boundary.
     final today = diaryDates.localToday;
     final historicalDate = DateTime(today.year, today.month, today.day - 1);
     final todayAction =
@@ -447,7 +447,7 @@ void main() {
     expect(
       tester.widget<Text>(visibleMonth).data,
       tioCompactMonthYearLabel(
-        dates.localToday,
+        dates.visibleMonth,
         localeName: 'en_US',
       ),
     );
