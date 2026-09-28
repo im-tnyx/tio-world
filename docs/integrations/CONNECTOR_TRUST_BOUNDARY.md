@@ -248,7 +248,7 @@ The OAuth authorization-server host remains **unselected by the architecture con
 
 ## Migration Invariant
 
-External clients depend on stable Tio connector capability contracts, never on Supabase table/RPC/Edge Function implementation details.
+External clients depend on stable Tio connector capability contracts, never on Supabase table/RPC/Edge Function implementation details. The canonical capability/adaptor semantics are defined by [Connector Capability Contract](CONNECTOR_CAPABILITY_CONTRACT.md) and [ADR-0014](../adr/0014-vendor-neutral-connector-capability-contract.md).
 
 A host migration must preserve this logical sequence:
 
@@ -312,7 +312,7 @@ After this baseline is accepted:
 ~~~text
 TNYX-172 C0.0
   -> TNYX-173 C0.1 delegated OAuth contract
-  -> TNYX-174 C1.0 vendor-neutral gateway/tool contract
+  -> TNYX-174 C1.0 vendor-neutral capability/gateway contract
   -> TNYX-251 C0.5 cross-app composition/egress policy
 ~~~
 
@@ -336,5 +336,7 @@ The first production pilot remains TNYX-178 after its complete blocker set is sa
 - [Feature Rollout & Kill Switch](../planning/FEATURE_ROLLOUT.md)
 - [ADR-0007: Active Supabase and Future services/api](../adr/0007-active-supabase-and-future-services-api.md)
 - [Delegated OAuth Authorization Contract](DELEGATED_OAUTH_AUTHORIZATION.md)
+- [Connector Capability Contract](CONNECTOR_CAPABILITY_CONTRACT.md)
 - [ADR-0012: Delegated external connector trust boundary](../adr/0012-delegated-external-connector-trust-boundary.md)
 - [ADR-0013: Delegated OAuth authorization contract](../adr/0013-delegated-oauth-authorization-contract.md)
+- [ADR-0014: Vendor-neutral connector capability contract](../adr/0014-vendor-neutral-connector-capability-contract.md)

@@ -70,6 +70,7 @@ P5 and P6 apply the four-line governance headers only after the separately gated
 | [`API_LIFECYCLE.md`](backend/API_LIFECYCLE.md) | `/v1` compatibility, deprecation, minimum-client, capability negotiation, and generated-client traceability policy. |
 | [`CONNECTOR_TRUST_BOUNDARY.md`](integrations/CONNECTOR_TRUST_BOUNDARY.md) | External connector/ChatGPT trust boundary, V1 read-only exposure classes, threat baseline, and Supabase-to-`services/api` runtime-host escalation rule. |
 | [`DELEGATED_OAUTH_AUTHORIZATION.md`](integrations/DELEGATED_OAUTH_AUTHORIZATION.md) | Connector client registration, delegated scopes/consent, PKCE, token lifecycle, revocation, and grant-effective authorization semantics. |
+| [`CONNECTOR_CAPABILITY_CONTRACT.md`](integrations/CONNECTOR_CAPABILITY_CONTRACT.md) | Vendor-neutral Tio capability identity, request/result schemas, boundedness, discovery, errors, compatibility, and MCP/REST/Siri adapter ownership. |
 | [`FEATURE_ROLLOUT.md`](planning/FEATURE_ROLLOUT.md) | Provider-neutral capability rollout, safe defaults, cohorting, cache/offline behavior, and emergency kill-switch policy. |
 | [`ONBOARDING_ARCHITECTURE.md`](architecture/ONBOARDING_ARCHITECTURE.md) | Single-route parent shell, mode-derived child flow, state, persistence gates, and delivery slices for onboarding. |
 | [`screens/README.md`](screens/README.md) | Per-screen product specifications, module owners, state rules, and implementation order. |
@@ -105,7 +106,7 @@ Canonical documentation is grouped by durable ownership, not by current task sta
 | `docs/adr/` | Durable architecture decision records and decision history. |
 | `docs/screens/` | Per-screen product specifications and screen ownership. |
 
-Canonical connector/OAuth/ChatGPT integration documentation lives under `docs/integrations/`. [`CONNECTOR_TRUST_BOUNDARY.md`](integrations/CONNECTOR_TRUST_BOUNDARY.md) owns the external trust/exposure baseline and [`DELEGATED_OAUTH_AUTHORIZATION.md`](integrations/DELEGATED_OAUTH_AUTHORIZATION.md) owns delegated client/scope/consent/token-lifecycle semantics; live task sequencing remains owned by Linear plus linked GitHub state.
+Canonical connector/OAuth/ChatGPT integration documentation lives under `docs/integrations/`. [`CONNECTOR_TRUST_BOUNDARY.md`](integrations/CONNECTOR_TRUST_BOUNDARY.md) owns the external trust/exposure baseline, [`DELEGATED_OAUTH_AUTHORIZATION.md`](integrations/DELEGATED_OAUTH_AUTHORIZATION.md) owns delegated client/scope/consent/token-lifecycle semantics, and [`CONNECTOR_CAPABILITY_CONTRACT.md`](integrations/CONNECTOR_CAPABILITY_CONTRACT.md) owns vendor-neutral capability/adaptor semantics; live task sequencing remains owned by Linear plus linked GitHub state.
 
 Do not create `docs/status/` for live project/task status. Linear plus linked GitHub issues/PRs own current sequencing, blockers, acceptance, implementation, and review state; `.ai/` remains the compact execution/routing/handoff layer.
 

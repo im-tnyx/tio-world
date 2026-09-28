@@ -501,7 +501,9 @@ The external client must not depend on:
 
 ### TNYX-174 and domain contracts must define
 
-- tool/capability schemas;
+The shared capability/adaptor boundary is defined by [Connector Capability Contract](CONNECTOR_CAPABILITY_CONTRACT.md) and [ADR-0014](../adr/0014-vendor-neutral-connector-capability-contract.md). Domain follow-ups must define:
+
+- exact domain capability schemas;
 - capability-to-scope mapping;
 - bounded field/range semantics;
 - protocol/vendor-neutral domain contracts.
@@ -535,6 +537,7 @@ TNYX-173 Slice A does not:
 ## Related Policy
 
 - [Connector Trust Boundary and V1 Exposure Policy](CONNECTOR_TRUST_BOUNDARY.md)
+- [Connector Capability Contract](CONNECTOR_CAPABILITY_CONTRACT.md)
 - [Authentication Architecture](../security/AUTH_ARCHITECTURE.md)
 - [Security](../security/SECURITY.md)
 - [Secrets & Environment Strategy](../security/SECRETS_AND_ENVIRONMENTS.md)

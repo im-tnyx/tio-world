@@ -200,7 +200,7 @@ external connector
 
 Supabase Auth remains the canonical Tio identity authority. The delegated grant resolves to that canonical identity; it does not create a second user model. A bounded connector capability may execute in an approved narrow Supabase protected function when the complete delegated authorization chain can be enforced there. Future `services/api` is used only when an approved slice proves an ADR-0007 trigger.
 
-See [Connector Trust Boundary](../integrations/CONNECTOR_TRUST_BOUNDARY.md) and [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md).
+See [Connector Trust Boundary](../integrations/CONNECTOR_TRUST_BOUNDARY.md), [Connector Capability Contract](../integrations/CONNECTOR_CAPABILITY_CONTRACT.md), [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md), and [ADR-0014](../adr/0014-vendor-neutral-connector-capability-contract.md).
 
 ## Future HTTP Adapter Preservation Rule
 
