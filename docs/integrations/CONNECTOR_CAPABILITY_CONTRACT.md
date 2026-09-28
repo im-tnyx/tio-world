@@ -51,19 +51,25 @@ The capability contract is **not**:
 
 Each capability has one stable Tio-owned semantic identity.
 
-Examples of candidate read capabilities tracked in Linear include:
+Canonical capability IDs use a lowercase, dot-separated semantic convention:
 
 ```text
-profile.get
-goals.get
+<domain>.<resource-or-purpose>.<operation>
+```
+
+Illustrative identities include:
+
+```text
+profile.current.get
+goals.current.get
 nutrition.summary.get
 training.summary.get
 progress.summary.get
 activity.summary.get
-profile.audit
+profile.audit.run
 ```
 
-These example identities express semantics only. Domain-specific issues may refine exact names before implementation.
+Linear's existing `get_profile`, `get_goals`, `get_nutrition_summary`, and similar names remain candidate **adapter/tool names**, not canonical Tio capability IDs. Domain-specific follow-ups finalize the exact implemented IDs and schemas inside this naming rule.
 
 Rules:
 
@@ -196,7 +202,7 @@ Rules:
 - a client cannot bypass range/export limits by supplying a large page size;
 - capability cursors are not database-offset/table contracts.
 
-A future HTTP adapter maps these semantics to the canonical HTTP pagination policy owned by Backend & Platform. MCP/Siri adapters map the same semantics without redefining them.
+A future HTTP adapter must reconcile these semantics with `API_LIFECYCLE.md` plus the detailed Backend & Platform HTTP pagination/concurrency work owned by TNYX-134. This conceptual shape is not itself an HTTP wire contract. MCP/Siri adapters map the same capability semantics without redefining them.
 
 ## Error Categories
 
@@ -305,7 +311,7 @@ Tio rules:
 - MCP transport/session/version metadata stays out of feature/domain DTOs;
 - if an MCP SDK/protocol revision changes, adapter code absorbs that change while Tio capability semantics remain stable whenever possible.
 
-TNYX-248 owns the future ChatGPT/MCP adapter implementation/publishing work.
+TNYX-248 owns the future ChatGPT/MCP adapter implementation/publishing work and must re-check the then-current MCP specification/SDK behavior at implementation time.
 
 ## REST/OpenAPI Adapter Mapping
 
@@ -323,7 +329,7 @@ TNYX-174 does not create a second OpenAPI source of truth.
 A future HTTP adapter:
 
 - maps one or more HTTP routes to stable Tio capabilities;
-- uses the global HTTP validation/error/pagination/concurrency policy;
+- uses the applicable `API_LIFECYCLE.md` rules and the detailed HTTP validation/error/pagination/concurrency contracts owned by TNYX-28/TNYX-134 when those runtime contracts are implemented;
 - keeps response schemas as explicit allowlists;
 - does not expose DB schema;
 - does not treat route/path names as the domain capability owner.
@@ -407,7 +413,7 @@ Rules:
 - operation identifiers are opaque;
 - polling/cancellation semantics must be explicit when introduced;
 - protocol-specific async mechanisms map to this logical boundary rather than define domain ownership;
-- MCP Tasks may be evaluated by a future MCP adapter because the current MCP ecosystem provides a task extension, but Tio does not adopt or implement it merely because the extension exists;
+- the current MCP ecosystem has an optional/draft Tasks extension for deferred work; a future MCP adapter may evaluate it, but Tio does not adopt or implement it merely because the extension exists;
 - `services/worker` is created only when a real durable async workload independently justifies it.
 
 ## Candidate V1 Capability Classes
