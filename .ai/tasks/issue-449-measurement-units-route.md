@@ -25,13 +25,13 @@
 **Observed working-tree state:** Connector-only execution; local working tree unavailable.
 **Observed uncommitted/dirty files:** Not observable through connector.
 **PR / tracker:** GitHub #449; parents #357/#260; Linear TNYX-201.
-**Current implementation state:** Ready for bounded route-registration extraction.
+**Current implementation state:** Measurement Units route registration moved into existing Settings route module; exact scope audit passed.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/settings_routes.dart`, existing router tests.
-**Validation completed at SHA:** Read-only source/tracker audit at main baseline.
+**Validation completed at SHA:** `f0ef82aa56fab3b0a7dc6daac5af83b5e4db54ad` — GitHub compare: 4 ahead / 0 behind; exactly this handoff plus two app routing files.
 **Validation remaining:** Exact diff scope, hosted checks, exact-head Codex review.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Move only Measurement Units route registration into existing Settings route builder.
+**Next exact action:** Open Draft PR and request exact-head Codex review; hosted checks remain required if triggered.
 
 ## 1. Discovery
 
@@ -83,16 +83,16 @@ Combining Daily Wellness, Body & Weight or Account Settings was rejected because
 Preserve existing loading, error, retry/back and save behavior.
 
 ## 5. Implementation Plan
-- [ ] Move Measurement Units route registration.
-- [ ] Remove only now-unused root-router imports if proven unused.
-- [ ] Audit exact diff and existing coverage.
+- [x] Move Measurement Units route registration.
+- [x] Remove only now-unused root-router imports if proven unused.
+- [x] Audit exact diff and existing coverage.
 - [ ] Open Draft PR and request exact-head Codex review.
 
 ## 6. Quality Review
 
 ### Validation Run
 ```text
-Not run yet. Connector-only execution cannot claim local Flutter or git CLI validation.
+GitHub compare at `f0ef82aa56fab3b0a7dc6daac5af83b5e4db54ad`: 4 ahead / 0 behind; changed paths are only this handoff, `router.dart`, and `settings_routes.dart`. Existing `app_mode_router_test.dart` already covers Measurement Units navigation/hydration. Connector-only execution cannot claim local Flutter or git CLI validation.
 ```
 
 ### Review Findings and Resolution
@@ -103,10 +103,12 @@ Not run yet. Connector-only execution cannot claim local Flutter or git CLI vali
 ## 7. Final Handoff
 
 ### Changed Files
-Pending.
+- `.ai/tasks/issue-449-measurement-units-route.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/settings_routes.dart`
 
 ### Actual Behavior
-Pending.
+No intended behavior change: the existing Measurement Units `GoRoute` now registers through `buildSettingsRoutes` with the same root navigator, profile hydration/loading state, initial preferences, repository save, and profile-provider invalidation.
 
 ### Known Limitations
 Local CLI validation unavailable through connector.
