@@ -12,9 +12,7 @@ Truth Boundary: Authoritative for the Workout Library product contract, ownershi
 
 ## Purpose
 
-Give the user one canonical hub for Workout Programs, Training Plans and Exercises. Library is a navigation/collection surface. It does not own Program, Routine, TrainingPlan or Exercise truth.
-
-A user-owned Routine keeps stable identity/composition but belongs to exactly one user-owned Program. Library therefore does not expose a standalone user Routines collection.
+Give the user one canonical hub for their Workout content: Programs, Training Plans and Exercises. Library is a navigation/collection surface. It does not own Program, Routine, TrainingPlan or Exercise truth. User-owned Routines keep stable identity but are managed inside their owning Program rather than a standalone Library collection.
 
 ## Entry Points
 
@@ -23,73 +21,60 @@ Initial target:  Bottom navigation → Workout → Workout Home → Library entr
 Future:          Bottom navigation → Library (only if enabled in configurable navigation) → same Library
 ```
 
-- The Workout Home entry exists since W6A.
+- The Workout Home entry exists since W6A: a `TioGroupCard` holding one `TioSettingsNavigationRow` (folder icon, `Library`, `Browse exercises`, chevron) below the calendar. The future bottom-nav entry does not exist.
 - There is exactly one Library route/screen. Every entry point opens the same route with the same state and ownership.
-- Library is not a bottom-nav destination now. Future configurable navigation may promote the same route after its destination-readiness audit.
+- Library is not a bottom-nav destination now. A future configurable navigation with three to six destinations may expose it only after its destination-readiness audit ([ADR-0005](../adr/0005-adaptive-navigation-and-action-entry.md), D-014, D-020).
 - The Workout Home → Library entry remains available whether or not Library is selected in bottom navigation.
+- Library is not a Workout-local content tab inside Workout Home.
 
 ## W6A Runtime
 
-- `/workout/library` is a child of the Workout branch route and currently renders only the ready Exercises capability.
-- Workout Home → Library and Library → Exercises use `push`; Workout presentation does not import route paths.
-- The Library top bar search action opens Exercises search.
-- There are no Programs, Plans, placeholders or create actions in current runtime.
+- `/workout/library` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath does not jump while Library slides in or out. The page has an AppBar with back and the title `Library`. A direct deep link lands with `/workout` beneath it and follows `/workout` onboarding and App Mode gating.
+- Workout Home → Library and Library → Exercises use `push`, so back retraces Exercises → Library → Workout Home. The app shell supplies both callbacks (`WorkoutHomePage.onLibraryPressed`, `LibraryPage.onExercisesPressed`); Workout presentation does not import route paths.
+- The Library top bar has one search icon (tooltip `Search exercises`). It pushes `/workout/exercises?search=true`, which opens Exercises with its top-bar search field already active and focused; back returns to Library.
+- There are no sub-tabs, grid/list toggle, placeholders, or Create/Favorites/Custom rows until their capabilities exist.
 
 ## Target Sections
 
 ```text
 Library
 ├─ Programs
-│  └─ Program detail/builder
-│     └─ Program-owned Routines
-├─ Plans / Training Plans     // only once W9 exists
+│  └─ Program detail/builder → Program-owned Routines
+├─ Plans / Training Plans
 └─ Exercises → dedicated Exercises screen
 ```
 
-- Sections are capability-gated. No production-looking placeholder stands in for an unbuilt capability.
-- **Programs** is the user collection/management entry. User-owned Routine creation/editing is nested inside its owning Program.
-- **Plans / Training Plans** appears only once the canonical TrainingPlan capability exists.
-- **Exercises** opens the dedicated Exercises screen and remains the first implemented section.
-- Library does not expose a standalone user Routines section or top-level Create Routine action.
+- Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
+- **Programs** is the user-owned Program collection/management entry. Routine create/edit is nested inside the owning Program; there is no standalone user Routines section or top-level Create Routine action. See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
+- **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
+- **Exercises** opens the dedicated Exercises screen. It is the first real section: since W6A the Library root shows one `Exercises` row (fitness icon, `Browse all exercises`, chevron) that pushes `/workout/exercises`, so back returns to Library. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
 
 ## Minimal Program Creation Contract
 
-Initial Program creation is deliberately small:
+Initial Program creation presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Blank-name fallback is not the user-facing contract.
 
-```text
-Create Program
-→ generated non-blank name is already visible (for example Program 1)
-→ user may rename it
-→ OK
-→ Program exists and can own Routines
-```
-
-Blank-name fallback is not the user-facing contract because the create surface starts with a generated valid name. Description, image, level, goal, type, duration and similar metadata are not required during initial creation. They may be added later through Program editing only when a concrete approved slice needs them.
-
-Schedule, start date, current week/progress and following state are not initial Program metadata. They belong to the later TrainingPlan/following boundary.
-
-Optional Program/Routine images remain future metadata. This contract does not authorize a Supabase table/column or Storage bucket/upload implementation.
+Description, image, level, goal, type, duration and similar metadata are not required during initial creation. They may be added later through Program editing only when a concrete approved slice needs them. Schedule, start date, current week/progress and following state belong to the later TrainingPlan/following boundary. Optional Program/Routine images do not authorize Supabase schema or Storage work in this slice.
 
 ## Data And State Boundaries
 
 ```text
 Program capability      → Program truth + Program→Routine ownership
-Routine capability      → Routine identity/composition inside owning Program
+Routine capability      → stable Routine identity/composition inside owning Program
 TrainingPlan capability → scheduling/following truth
-Exercise capability     → Exercise truth
-Library                 → navigation + collection presentation
+Exercise capability     → Exercise truth (including Favorites, Custom, Folders)
+Library                 → navigation + user relationship/collection queries + presentation
 ```
 
-Library must not create competing copies such as `LibraryProgram`, `LibraryRoutine` or `LibraryExercise`.
+- Library must not create competing copies such as `LibraryProgram`, `LibraryRoutine` or `LibraryExercise`.
+- Leaving Library and returning must not reset Workout Home selected-date or active-session state.
 
 ## Acceptance Criteria
 
 - One canonical Library route is reused by every entry point.
 - The root shows only sections whose capability is ready.
 - User-owned Routines are managed inside their owning Program, not a standalone Library collection.
-- Initial Program creation has a visible generated non-blank name and optional rename before confirmation.
-- Optional Program metadata and scheduling are not prerequisites for initial Program creation.
-- Library → Exercises opens the dedicated Exercises screen.
+- Initial Program creation uses a visible generated non-blank name with optional rename before confirmation; optional metadata/scheduling is not a prerequisite.
+- Library → Exercises opens the dedicated Exercises screen; the Library root shows no Exercise rows.
 - No Library-owned domain truth.
 
 ## Related
