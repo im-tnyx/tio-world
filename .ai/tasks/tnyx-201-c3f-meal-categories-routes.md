@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub API against `main@4db03ef82f7330dabfc11a11cf5439c5dc8dce81`
 **Branch:** `tnyx/tnyx-201-c3f-meal-categories-routes`
-**HEAD SHA:** `4db03ef82f7330dabfc11a11cf5439c5dc8dce81` at branch creation
+**HEAD SHA:** `26f812e277b718d7fc04e79e6f279f970b7bbbaa` audited by Codex/current review
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub PR #442 / issue #441 / #357 / #260; Linear TNYX-201
 **Current implementation state:** Bounded implementation complete; Draft PR #442 open
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/nutrition_routes.dart`
-**Validation completed at SHA:** Read-only source/tracker/ownership audit at base SHA
-**Validation remaining:** exact diff/scope audit; hosted Flutter CI; Codex review
+**Validation completed at SHA:** `26f812e277b718d7fc04e79e6f279f970b7bbbaa` — GitHub API parent-to-head audit: 6 ahead / 0 behind; exactly 4 expected paths
+**Validation remaining:** hosted Flutter CI and exact-head revalidation after this review-fix commit
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Wait for Codex bot review on the exact PR head; do not continue implementation until review returns.
+**Open review finding IDs:** Codex P2 `discussion_r4116483738` — fixing stale audit anchor in this brief
+**Next exact action:** Revalidate the post-fix exact head, reply to Codex P2 with evidence, and resolve the thread only if the fix is verified.
 
 ## 1. Discovery
 
@@ -99,19 +99,20 @@ No state or UI behavior changes; existing feature-owned behavior remains unchang
 - [x] Move the two route registrations.
 - [x] Audit exact parent-to-head paths and route counts.
 - [x] Open Draft PR.
-- [ ] Wait for Codex review.
+- [x] Receive Codex review on `26f812e277b718d7fc04e79e6f279f970b7bbbaa`.
+- [x] Address Codex P2 stale audit-anchor finding in the task brief.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`GitHub API scope audit: base is merge-base; 4 ahead / 0 behind; exactly 4 expected paths. Root route counts for Meal Categories/Archived = 0/0; Nutrition module references = 2/2 (registration + navigation where applicable); one root GoRouter authority; route module constructs no GoRouter. Local Flutter/git commands are unavailable through this connector session; hosted checks remain required.`
+`GitHub API scope audit at reviewed head 26f812e277b718d7fc04e79e6f279f970b7bbbaa: base 4db03ef82f7330dabfc11a11cf5439c5dc8dce81 is merge-base; 6 ahead / 0 behind; exactly 4 expected paths. Root route counts for Meal Categories/Archived = 0/0; Nutrition module references = 2/2 (registration + navigation where applicable); one root GoRouter authority; route module constructs no GoRouter. Local Flutter/git commands are unavailable through this connector session; hosted checks remain required.`
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| C3F-REV-01 | P2 | Fixed pending post-fix verification | Completed audit was anchored to the earlier 4-ahead state instead of reviewed head. | `26f812e277b718d7fc04e79e6f279f970b7bbbaa` | Recorded exact audited head and verified 6 ahead / 0 behind result; post-fix head must be revalidated before resolving Codex thread. |
 
 ## 7. Final Handoff
 
