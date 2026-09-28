@@ -25,6 +25,7 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
+| 2026-09-28 | [TNYX-172 C0.0 — Connector V1 trust boundary](2026-09-tnyx-172-c00-connector-trust-boundary.md) | Validated; merged via PR #453 (`ef7edad5`); read-only delegated connector trust boundary frozen | [Connector Trust Boundary](../../docs/integrations/CONNECTOR_TRUST_BOUNDARY.md), [ADR-0012](../../docs/adr/0012-delegated-external-connector-trust-boundary.md), [ADR-0007](../../docs/adr/0007-active-supabase-and-future-services-api.md) |
 | 2026-09-28 | [Issue #449 — Measurement Units route extraction](2026-09-issue-449-measurement-units-route.md) | Validated; merged via PR #450 (`b8dc48a8`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-28 | [TNYX-201 C3g — Nutrition Targets route extraction](2026-09-tnyx-201-c3g-nutrition-target-routes.md) | Validated; merged via PR #446 (`d82609e2`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-28 | [TNYX-201 C3f — Meal Categories route registrations](2026-09-tnyx-201-c3f-meal-categories-routes.md) | Validated; merged via PR #442 (`f3646625`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |

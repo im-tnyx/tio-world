@@ -1,6 +1,7 @@
 # TNYX-172 C0.0 Slice A — Connector V1 trust boundary
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-28
 **Primary owner:** Connector architecture / Security & Identity
 **Affected platforms:** External connectors / Supabase protected boundary / future services/api
 
@@ -18,20 +19,20 @@
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
 **Implementation ownership state:** Complete
-**Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
+**Repository state last verified:** `main@ef7edad5047c07d8ac4c31458600c52b5e21011c`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `07b8890b0af8657b98a3ae79e843fb89a24fbe9c` at the latest exact-head validation before this final fourth-pass handoff update
+**HEAD SHA:** `7e3df4d718e982e3c67e7a0c1b6b243554542c3c` — reviewed exact PR head merged by PR #453
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
+**PR / tracker:** GitHub PR #453 merged; Linear TNYX-172 Done.
 **Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation across Auth/Security/Supabase server-access docs, Supabase runtime-host policy, Health-context classification, provider privacy gate, account-deletion lifecycle gate, and audit controls are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** `07b8890b0af8657b98a3ae79e843fb89a24fbe9c` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 23 / behind 0; exactly 12 owned docs/AI files; all 12 Codex findings through the fourth review are resolved. Required `Commit attribution guard` PASSed. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
-**Validation remaining:** this final handoff-record commit moves HEAD only in the task brief; re-read exact-head compare/checks after the commit, refresh PR/Linear evidence, then request the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation completed at SHA:** `7e3df4d718e982e3c67e7a0c1b6b243554542c3c` — Codex exact-head review reported “Didn't find any major issues”; all 12 review findings resolved; unresolved review threads 0; required `Commit attribution guard` PASS. Supplemental `github-advanced-security` failed before meaningful analysis with unsupported-model infrastructure error and was non-required; it is neither a concrete security finding nor a security pass. PR #453 merged into `main` as `ef7edad5047c07d8ac4c31458600c52b5e21011c`.
+**Validation remaining:** none for the delivered architecture/docs outcome. Local `git diff --check` was unavailable through connector-only execution and was not claimed as run.
 **Current blocker:** none.
-**Open review finding IDs:** none; all first-, second-, third-, and fourth-pass Codex threads are resolved.
-**Next exact action:** verify checks on the final handoff HEAD, refresh PR/Linear scope/security evidence, then comment `@codex review` for the next review pass.
+**Open review finding IDs:** none; all 12 Codex findings are resolved.
+**Next exact action:** none for TNYX-172. Future connector work must start from the relevant live Linear issue (notably TNYX-173/TNYX-174) and re-audit current repository state before implementation.
 
 ## 1. Discovery
 
@@ -155,10 +156,10 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated exact head: 07b8890b0af8657b98a3ae79e843fb89a24fbe9c
-Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare: ahead 23 / behind 0
-Changed files: exactly 12 owned docs/AI paths
+Validated exact reviewed head: 7e3df4d718e982e3c67e7a0c1b6b243554542c3c
+Base / merge-base before merge: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
+Branch compare before merge: ahead 24 / behind 0
+Changed files before merge: exactly 12 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
@@ -178,9 +179,11 @@ Canonical reconciliation: PASS
 - ADR-0012 is authoritative for delegated connector authentication/identity and specializes/amends only that part of ADR-0007.
 - First-party vs delegated auth is reconciled across canonical Auth/Security/Supabase server-access docs.
 - Connector Health-context, provider-privacy, account-deletion lifecycle, and operational/audit gates remain aligned with canonical privacy/security policy.
-- All 12 Codex findings through the fourth review are resolved.
+- All 12 Codex findings are resolved.
+- Codex exact-head review on 7e3df4d718 reported: “Didn't find any major issues.”
+- PR #453 merged into main as ef7edad5047c07d8ac4c31458600c52b5e21011c.
 
-Security merge-gate evidence at 07b8890b...:
+Security merge-gate evidence at 7e3df4d7...:
 - main protected: YES
 - required context: Commit attribution guard (app_id 5032971)
 - Commit attribution guard: PASS
@@ -189,7 +192,7 @@ Security merge-gate evidence at 07b8890b...:
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
+Post-merge archive cleanup is repository hygiene and is tracked separately from the validated product/architecture outcome
 ```
 
 ### Review Findings and Resolution
@@ -236,4 +239,4 @@ This slice freezes architecture/security intent only. OAuth, grants, read-models
 
 ### Final Status
 
-`In progress`
+`Validated`
