@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `46c931ccdd7704e45fecc9cf88f50cfe0309b90e` at the third-pass content-fix head before this handoff update
+**HEAD SHA:** `d4154c6995232e5ab681553480fe910db4f3ae00` at the latest exact-head validation before this final third-pass handoff update
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
 **PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
 **Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation across Auth/Security/Supabase server-access docs, Supabase runtime-host policy, Health-context classification, provider privacy gate, account-deletion lifecycle gate, and audit controls are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** `46c931ccdd7704e45fecc9cf88f50cfe0309b90e` content scope verified against `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`: ahead 19 / behind 0; exactly 11 owned docs/AI files. Third-pass fixes are present in `SECURITY.md`, `SUPABASE_SERVER_ACCESS.md`, and `CONNECTOR_TRUST_BOUNDARY.md`. Required/supplemental checks were still running on this content head at handoff-update time.
-**Validation remaining:** this handoff update moves HEAD; re-read exact-head compare, required `Commit attribution guard`, supplemental GHAS outcome/cause, and review-thread state before requesting the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation completed at SHA:** `d4154c6995232e5ab681553480fe910db4f3ae00` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 20 / behind 0; exactly 11 owned docs/AI files; all 11 Codex findings through the third review are resolved. Required `Commit attribution guard` PASSed. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
+**Validation remaining:** this final handoff-record commit moves HEAD only in the task brief; re-read exact-head compare/checks after the commit, refresh PR evidence, then request the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** third-pass threads `PRRT_kwDOTOXwB86mrQ_g`, `PRRT_kwDOTOXwB86mrQ_v`, `PRRT_kwDOTOXwB86mrQ_z` — fixes applied; reply/resolution pending exact-head verification.
-**Next exact action:** verify exact-head state after this handoff update, reply to and resolve R9–R11, refresh PR evidence, then request the next Codex review.
+**Open review finding IDs:** none; all first-, second-, and third-pass Codex threads are resolved.
+**Next exact action:** verify checks on the final handoff HEAD, refresh PR scope/security evidence, then comment `@codex review` for the next review pass.
 
 ## 1. Discovery
 
@@ -155,10 +155,10 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated content head: 46c931ccdd7704e45fecc9cf88f50cfe0309b90e
+Validated exact head: d4154c6995232e5ab681553480fe910db4f3ae00
 Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare at that head: ahead 19 / behind 0
-Changed files at that head: exactly 11 owned docs/AI paths
+Branch compare: ahead 20 / behind 0
+Changed files: exactly 11 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
@@ -171,22 +171,24 @@ Changed files at that head: exactly 11 owned docs/AI paths
 - docs/security/AUTH_ARCHITECTURE.md
 - docs/security/SECURITY.md
 
-Canonical reconciliation: PASS at content head
-- SECURITY.md scopes Supabase token/sub auth to first-party callers and records delegated grant-based identity.
-- SUPABASE_SERVER_ACCESS.md separates caller authentication class from database access mode and forbids manufacturing a Supabase session for delegated traffic.
-- Delegated connector database execution defaults to user-scoped semantics; any server-secret/service-role operation is privileged and separately justified.
-- Workout/nutrition/progress/weight/body metrics and related fitness data are Health-context under the highest applicable class.
+Canonical reconciliation: PASS
+- First-party Supabase token/sub and delegated grant-based caller identity are consistently separated across AUTH_ARCHITECTURE.md and SECURITY.md.
+- SUPABASE_SERVER_ACCESS.md separates authentication class from database access mode, forbids manufacturing a Supabase session for delegated traffic, and treats any server-secret/service-role connector operation as privileged/separately justified.
+- Connector Health-context classification matches DATA_PRIVACY_GOVERNANCE for workout, nutrition, progress, weight/body metrics, progress photos, and related health/fitness context.
 - Production pilot requires provider privacy review, account-deletion lifecycle participation, and operational/audit controls.
-- Account deletion must prevent future delegated access/refresh and define cleanup/expiry/approved-retention outcomes for connector/provider artifacts.
+- Account deletion invalidates future delegated access/refresh and requires explicit deletion/expiry/approved-retention outcomes for connector/provider artifacts.
+- All 11 Codex findings through the third review are resolved.
 
-Security merge-gate evidence:
-- current main remains protected with required context Commit attribution guard (app_id 5032971)
-- content-head required/supplemental checks were still running when this handoff update was authored
-- prior GHAS failures on this PR were supplemental + infrastructure/model failures before meaningful analysis ("The requested model is not supported"), not concrete security findings and not security passes
+Security merge-gate evidence at d4154c69...:
+- main protected: YES
+- required context: Commit attribution guard (app_id 5032971)
+- Commit attribution guard: PASS
+- github-advanced-security: FAIL, supplemental/non-required by current main branch metadata
+- GHAS exact-head analysis outcome: infrastructure/model failure before meaningful analysis ("The requested model is not supported"), not a concrete security finding and not a security pass
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this handoff commit: PENDING by construction and must be re-read before thread resolution/re-review
+Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
 ```
 
 ### Review Findings and Resolution
