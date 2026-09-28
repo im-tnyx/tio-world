@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@d82609e25388178763c6e3e74962725c83105702`
 **Branch:** `tnyx/issue-447-c3fg-handoff-archive`
-**HEAD SHA:** `aa06c8f1524a75443db3ab810fdd45905f8c2f56` — current head before this handoff-state correction
+**HEAD SHA:** `2961d14005b38edc2c6d029a2cd533055c4f8e54` — Codex-reviewed head before this task-brief-only correction
 **Observed working-tree state:** Not available through GitHub API execution
 **Observed uncommitted/dirty files:** Not observable; no local dirty-state claim
 **PR / tracker:** GitHub #447 / parents #357 and #260 / Linear TNYX-201
@@ -30,7 +30,7 @@
 **Validation completed at SHA:** `b03869d1f15ad7d5b79db28b2757017f4630a7bc` — pre-handoff API scope audit against `main@d82609e...`: 7 ahead / 0 behind; exactly 7 `.ai/**` paths, no runtime paths. Codex reviewed `dcdbaba219b5a75bf269ea81f9146ee470280baa` and raised P2 C3FG-REV-01 for the stale HEAD field; no runtime/source finding.
 **Validation remaining:** Exact branch scope audit, hosted checks if triggered, Codex exact-head review.
 **Current blocker:** None.
-**Open review finding IDs:** C3FG-REV-02 — C3f archive validation evidence; C3FG-REV-03 — stale next action. C3FG-REV-01 was resolved and exact-head re-reviewed clean at `3d88a932...`.
+**Open review finding IDs:** C3FG-REV-04 — open-PR checklist state; C3FG-REV-05 — discovery baseline labeling; C3FG-REV-06 — review-history wording. C3FG-REV-01 is resolved; C3FG-REV-02/C3FG-REV-03 were fixed before the `2961d140...` review, which raised these three new consistency findings.
 **Next exact action:** Revalidate the current correction head with Codex, resolve C3FG-REV-02/C3FG-REV-03 after verification, then re-audit merge readiness. PR #448 is already open and Ready for Review.
 
 ## 1. Discovery
@@ -58,12 +58,16 @@ Any router/source implementation or broader completion decision for #260/#357/TN
 
 ### Verified Evidence
 
+Current evidence:
 - C3f PR #442 merged as `f3646625fd9286b1f7b783f88afd25d36d86a8ea`.
 - C3g PR #446 merged as `d82609e25388178763c6e3e74962725c83105702`.
-- Current active task index still lists C3f In progress.
-- C3f brief still describes open Draft review state and uses invalid ownership state `Review`.
-- C3g brief still describes post-doc validation/merge as pending.
-- Archive contract requires Validated/Superseded status before moving.
+- C3f/C3g briefs are now archived and the stale C3f active-task index row is removed on this branch.
+- Archive contract requires Validated/Superseded status before moving; both replacement archive records use `Validated` with merge/review evidence.
+
+Pre-reconciliation baseline observed on `main@d82609e...`:
+- Active task index listed C3f In progress.
+- C3f brief described an open Draft review state and used invalid ownership state `Review`.
+- C3g brief described post-doc validation/merge as pending.
 
 ## 3. Clarification
 
@@ -79,7 +83,7 @@ Docs/governance-only normalization. Preserve canonical runtime/docs; do not crea
 - [x] Rewrite C3g final handoff to validated merged truth and archive it.
 - [x] Remove stale active-task rows and add archive index rows.
 - [x] Audit exact changed paths.
-- [ ] Open PR and request Codex exact-head review.
+- [x] Open PR and request Codex exact-head review.
 - [ ] After merge, reconcile #260/#357/TNYX-201 and audit remaining router work.
 
 ## 6. Quality Review
@@ -92,9 +96,12 @@ GitHub API compare at `b03869d1...`: 7 ahead / 0 behind, exactly 7 `.ai/**` gove
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| C3FG-REV-01 | P2 | Resolved | Active Handoff HEAD field lagged the reviewed head. | `dcdbaba219b5a75bf269ea81f9146ee470280baa` | Fixed in `3d88a932...`; Codex exact-head re-review found no major issues. |
-| C3FG-REV-02 | P2 | Open | C3f archive overstated lifecycle evidence instead of recording the post-merge governance race explicitly. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Archive now records merged-head CI, clean Codex review, late post-merge governance P2, resolved thread, and later clean merge-commit Codex review; exact-head revalidation pending. |
-| C3FG-REV-03 | P2 | Open | Active Handoff next action still said to open the already-open PR. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Next action now points to exact-head revalidation/finding resolution and merge-readiness audit; exact-head revalidation pending. |
+| C3FG-REV-01 | P2 | Resolved | Active Handoff HEAD field lagged the reviewed head. | `dcdbaba219b5a75bf269ea81f9146ee470280baa` | Fixed in `3d88a932...`; the finding did not recur, while the later Ready-triggered review on that same head raised C3FG-REV-02/C3FG-REV-03. |
+| C3FG-REV-02 | P2 | Resolved | C3f archive overstated lifecycle evidence instead of recording the post-merge governance race explicitly. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Archive now records merged-head CI, clean Codex review, late post-merge governance P2, resolved thread, and later clean merge-commit Codex review; fixed evidence was reviewed at `2961d140...`; that review raised separate consistency findings C3FG-REV-04/05/06. |
+| C3FG-REV-03 | P2 | Resolved | Active Handoff next action still said to open the already-open PR. | `3d88a932dabc6437f461ec87507efa38a43cf428` | Next action now points to exact-head revalidation/finding resolution and merge-readiness audit; reviewed at `2961d140...`, where this finding did not recur. |
+| C3FG-REV-04 | P2 | Open | Implementation checklist left the already-open PR step pending. | `2961d14005b38edc2c6d029a2cd533055c4f8e54` | Checklist corrected to completed; exact-head revalidation pending. |
+| C3FG-REV-05 | P2 | Open | Discovery baseline facts were worded as current repository state after reconciliation. | `2961d14005b38edc2c6d029a2cd533055c4f8e54` | Evidence split into current state and pre-reconciliation baseline; exact-head revalidation pending. |
+| C3FG-REV-06 | P2 | Open | C3FG-REV-01 evidence incorrectly called the `3d88...` review clean despite later findings on that SHA. | `2961d14005b38edc2c6d029a2cd533055c4f8e54` | Evidence now states only that REV-01 did not recur and records the later findings separately; exact-head revalidation pending. |
 
 ## 7. Final Handoff
 
