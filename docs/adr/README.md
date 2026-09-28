@@ -187,7 +187,7 @@ Existing ADRs remain historical records and are not rewritten merely to match th
 | [0008](0008-settings-hydration-preferences-owner.md) | Superseded by 0009 | Historical account-synced Supabase preference proposal. |
 | [0009](0009-settings-local-default-glass-size.md) | Accepted | Settings owns a local-only Default Glass Size convenience preference. |
 | [0010](0010-settings-local-calendar-first-day-of-week.md) | Accepted | Settings owns the local-only app-global Calendar Preferences first-day-of-week value. |
-| [0011](0011-workout-canonical-identities-and-exercise-catalog.md) | Superseded by 0015 for Routine/Program ownership | Historical Workout identity/catalog decision; Routine/Program ownership semantics were deferred and are now governed by ADR-0015. |
+| [0011](0011-workout-canonical-identities-and-exercise-catalog.md) | Accepted | Workout identity/catalog decisions remain active; its deferred Routine/Program ownership question is resolved by ADR-0015. |
 | [0012](0012-delegated-external-connector-trust-boundary.md) | Accepted | External connectors use Tio-controlled delegated credentials/grants over stable Tio capabilities; V1 is read-only and runtime-neutral. |
 | [0013](0013-delegated-oauth-authorization-contract.md) | Accepted | Pre-registered connector clients use Authorization Code + PKCE with server-authoritative grants/scopes, revocation, and read-only V1 authority. |
 | [0014](0014-vendor-neutral-connector-capability-contract.md) | Accepted | Tio owns stable vendor-neutral capability semantics; MCP, HTTP/OpenAPI, Siri/App Intents and future ecosystems remain thin adapters. |
