@@ -38,8 +38,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - **Require a Routine before Program confirmation:** rejected because the approved one-click Program flow creates the container first and lets the user add Routines afterward.
 - **Require all Program metadata from users:** rejected because user-created Programs need only lightweight organization; richer metadata is source-specific or later editing concern.
 - **Store personal schedule directly on Program:** rejected because reusable Program structure and user-specific following state have different lifecycles.
-- **One physical Program table for both user-owned and authoritative source content:** rejected because ownership, write authority, RLS, lifecycle and source publication semantics differ.
-- **Single physical Program table for both user-owned and Tio source/catalog rows:** rejected because ownership, mutation authority, RLS and source lifecycle differ; canonical domain capability does not require one physical table.
+- **One physical Program table for both user-owned and authoritative source content:** rejected because ownership, mutation authority, RLS, lifecycle and source publication semantics differ; one canonical domain capability does not require one physical table.
 
 ## Consequences
 
