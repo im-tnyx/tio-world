@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`
 **Branch:** `tnyx/tnyx-174-c10-capability-contract`
-**HEAD SHA:** `c4da02a583680b984bda244b491516060d229971` at PR publication before this tracker-handoff update
+**HEAD SHA:** `000edae137b4b1285ad85031f33083c18cc17cd7` at the latest completed content + R1-R3 resolution validation before this handoff update
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** GitHub PR #457; Linear TNYX-174 transitioning to In Review.
+**PR / tracker:** GitHub PR #457; Linear TNYX-174 In Review.
 **Current implementation state:** Canonical vendor-neutral capability contract, ADR-0014, and authority links are authored. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime, or services/api runtime is introduced.
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
-**Validation completed at SHA:** `460322499ec3664c53598fda26eb0853dbda4020` — `main` remains `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`; branch ahead 12 / behind 0 with exactly 9 owned docs/AI files. Canonical capability contract, ADR-0014, docs/ADR indexes, trust/OAuth handoffs and architecture link were reviewed. MCP 2026-07-28 final spec was re-checked from official MCP documentation; MCP Tasks remains optional/draft and is not adopted.
-**Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
-**Current blocker:** none. Codex review capacity returned and exact-head review produced three P2 findings now being resolved in-scope.
-**Open review finding IDs:** R1 multi-scope aggregate authorization; R2 cumulative history-export boundary; R3 retryable-read operational telemetry.
-**Next exact action:** apply R1-R3 fixes, record evidence, reply/resolve the three Codex threads, then request a fresh Codex review against the new exact head.
+**Validation completed at SHA:** `000edae137b4b1285ad85031f33083c18cc17cd7` — branch remained exactly 9 owned docs/AI files; Codex R1-R3 fixes were self-reviewed against the canonical capability contract + ADR-0014; all three review threads received evidence replies and were resolved.
+**Validation remaining:** this handoff update moves HEAD; refresh exact-head compare/checks, request a fresh Codex review, and resolve any new validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
+**Current blocker:** none.
+**Open review finding IDs:** none; R1-R3 are fixed, replied to, and resolved. Fresh exact-head re-review pending.
+**Next exact action:** request Codex review against the new exact PR #457 head after this handoff commit; inspect exact-head checks and stop at review handoff unless another validated finding requires an in-scope fix.
 
 ## 1. Discovery
 
@@ -178,16 +178,16 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Audit exact branch delta and current security-check requirements.
 - [x] Publish focused PR; move TNYX-174 to In Review after this handoff update.
 - [x] Request Codex exact-head review and inspect required/supplemental checks; first substantive review produced R1-R3.
-- [x] Resolve validated in-scope findings R1-R3 in docs/ADR; thread replies/resolution and fresh exact-head review remain pending.
+- [x] Resolve validated in-scope findings R1-R3 in docs/ADR, reply with evidence, and resolve all three threads; fresh exact-head review remains pending.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Validated content head: 460322499ec3664c53598fda26eb0853dbda4020
+Validated content head: 000edae137b4b1285ad85031f33083c18cc17cd7
 Base / merge-base: da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
-Branch compare at that head: ahead 12 / behind 0
+Branch compare at that head: ahead 18 / behind 0
 Changed files: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-174-c10-capability-contract.md
@@ -214,7 +214,7 @@ Canonical reconciliation: PASS
 Security-sensitive merge-gate baseline:
 - main protected: YES
 - required context: Commit attribution guard (app_id 5032971)
-- exact-head checks after this handoff commit: PENDING by construction
+- required `Commit attribution guard` passed on the prior reviewed head; exact-head checks after this handoff commit are PENDING by construction
 - local git diff --check: NOT AVAILABLE through connector-only execution
 - runtime/build tests: not applicable to this docs/architecture-only slice
 ```
