@@ -1,7 +1,7 @@
 # Workout Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
@@ -20,18 +20,18 @@ The root app bar shows a non-interactive Workout streak status on the right. It
 shows only the icon until real Workout history provides a positive count; it
 never fabricates a number or routes to Progress.
 
-1. **Current plan** — selected Routine or Program, its next scheduled session, session status, and a clear rest-day state. Do not offer a standalone Quick Start workout.
+1. **Current plan** — selected Routine or TrainingPlan/PlannedWorkout context, its next scheduled workout when one exists, session status, and a clear rest-day state. Reusable Program itself does not own scheduled sessions. Do not offer a standalone Quick Start workout.
 2. **Library** — one canonical Workout-owned route (`/workout/library`, W6A), reached from the Workout Home entry below the calendar, with capability-gated sections for Programs, Plans / Training Plans and Exercises; user-owned Routines are managed inside their owning Program. It is not a guided default tab or a Workout-local content tab; a future configurable navigation may promote the same route. See [Library](library.md).
-3. **Programs and Program-owned Routines** — browse/select Programs through Library, then create/select stable Routines inside the owning Program. An active workout starts only from its selected Routine or Program session. See [Routines](routine-library.md) and [Programs](programs.md).
+3. **Programs and Program-owned Routines** — browse/select Programs through Library, then create/select stable Routines inside the owning Program. An active workout starts from an explicitly selected Routine for an unscheduled start or from a scheduled PlannedWorkout/TrainingPlan context. See [Routines](routine-library.md) and [Programs](programs.md).
 4. **Exercises** — a dedicated Exercises screen (Library → Exercises) for catalog, search and filters (W3A), with Exercise detail once W3B is ready, backed first by a local, versioned JSON catalog; the same capability also provides the exercise picker inside Routine/Program builders. It is not a direct workout-start surface. See [Exercises and Exercise Picker](exercise-search.md).
-5. **Active Workout** — run one selected Routine or Program session with set input, rest timer, and finish review. See [Active Workout](active-workout.md).
+5. **Active Workout** — run one selected Routine or scheduled PlannedWorkout context with set input, rest timer, and finish review. See [Active Workout](active-workout.md).
 6. **Weekly plan and history** — completed sessions, scheduled workouts, and a simple completion summary.
 7. **Workout Insights** — the muscle heatmap, training radar map, and workout calendar, each backed by recorded history and accessible without colour-only meaning. See [Workout Insights](workout-insights.md).
 8. **Workout Settings** — training goal, experience level, available equipment, schedule, preferred split, units, and other training defaults. Profile context may seed defaults; Workout owns edits, validation, and plan behavior. See [Workout Settings](workout-settings.md).
 
 ## Key Actions And Navigation
 
-- Selecting a Routine or scheduled Program session opens [Active Workout](active-workout.md). There is no standalone Quick Start path.
+- Selecting a Routine for an unscheduled start or a scheduled PlannedWorkout opens [Active Workout](active-workout.md). There is no standalone Quick Start path.
 - Workout Home provides a Library entry that opens the canonical Library route; an Explore entry is added only when Explore exists. Library, Routines, Programs and Exercises open inside `apps/features/workout`.
 - Library → Exercises opens the dedicated Exercises screen. Add/replace exercise in a builder opens the exercise picker context, then returns to the Routine/Program editor; neither starts a session directly.
 - A calendar day opens its session detail or scheduled-workout action.
@@ -42,10 +42,10 @@ never fabricates a number or routes to Progress.
 
 ## Adaptive Entry Behavior
 
-- When Workout is directly selected, Current Plan and the next valid Routine/Program session provide the primary start entry.
+- When Workout is directly selected, Current Plan and the next valid selected Routine or scheduled PlannedWorkout provide the primary start entry.
 - When Library is promoted, Workout may compact the duplicate Library entry while keeping current-plan and history context.
 - When Workout is eligible but not directly selected in a future custom layout, Home provides the prominent Routine/Program entry and an all-features path remains available.
-- Start always launches the same Workout-owned command with selected Routine/Program context; no entry point creates a standalone Quick Start.
+- Start always launches the same Workout-owned command with selected Routine or scheduled PlannedWorkout context; no entry point creates a standalone Quick Start.
 - During an active session, Home and shell chrome show a persistent Resume entry. Changing mode/layout cannot create a second session or discard the existing one.
 
 ## Data And State Boundaries
