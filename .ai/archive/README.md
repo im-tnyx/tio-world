@@ -25,6 +25,7 @@ This folder keeps concise records of completed or superseded AI task briefs. It 
 
 | Archived | Task | Outcome | Canonical reference |
 |---|---|---|---|
+| 2026-09-28 | [Issue #449 — Measurement Units route extraction](2026-09-issue-449-measurement-units-route.md) | Validated; merged via PR #450 (`b8dc48a8`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-28 | [TNYX-201 C3g — Nutrition Targets route extraction](2026-09-tnyx-201-c3g-nutrition-target-routes.md) | Validated; merged via PR #446 (`d82609e2`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-28 | [TNYX-201 C3f — Meal Categories route registrations](2026-09-tnyx-201-c3f-meal-categories-routes.md) | Validated; merged via PR #442 (`f3646625`) | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md), [MODULE_OWNERSHIP.md](../../docs/architecture/MODULE_OWNERSHIP.md) |
 | 2026-09-27 | [Supabase Foundation](2026-09-supabase-foundation.md) | Superseded historical pre-implementation snapshot; stale no-Supabase/UI-only/device-local-first claims retired from active tasks | [SUPABASE_STRATEGY.md](../../docs/data/SUPABASE_STRATEGY.md), [SUPABASE_SCHEMA.md](../../docs/data/SUPABASE_SCHEMA.md), checked-in `supabase/` runtime/migrations |
