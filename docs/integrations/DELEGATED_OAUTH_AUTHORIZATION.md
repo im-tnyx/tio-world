@@ -26,7 +26,8 @@ As of 2026-09-28:
 - [RFC 7009 — OAuth 2.0 Token Revocation](https://www.rfc-editor.org/rfc/rfc7009.html) defines token revocation behavior.
 - [RFC 8414 — OAuth 2.0 Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html) defines authorization-server metadata.
 - [RFC 8252 — OAuth 2.0 for Native Apps](https://www.rfc-editor.org/rfc/rfc8252.html) applies if Tio later approves native public connector clients.
-- The OAuth 2.1 framework is still an active IETF Internet-Draft, not a final RFC. Tio may track its direction but must not claim final OAuth 2.1 conformance until the standard and implementation actually justify that claim.
+- [RFC 10017 — OAuth 2.0 for Browser-Based Applications](https://www.rfc-editor.org/rfc/rfc10017.html) applies if Tio later approves browser-based public connector clients.
+- [OAuth 2.1 draft-ietf-oauth-v2-1-16](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/) is still an active IETF Internet-Draft, not a final RFC. Tio may track its direction but must not claim final OAuth 2.1 conformance until the standard and implementation actually justify that claim.
 
 When a later implementation begins, TNYX-245 must re-check the current published standards and client-provider requirements rather than assuming this document freezes external standards forever.
 
