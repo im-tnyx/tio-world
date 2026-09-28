@@ -1,0 +1,215 @@
+# TNYX-174 C1.0 Slice A — Vendor-neutral Tio capability contract
+
+**Status:** In progress
+**Primary owner:** Connector Architecture + Application/Domain Architecture
+**Affected platforms:** External connectors / future MCP adapter / future REST/OpenAPI adapter / future Siri/App Intents adapter / current Supabase protected boundary / future services/api
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product task/feature slice
+**Approval status:** Approved
+**Approval evidence:** Owner said `Go` on 2026-09-28 after the fresh post-TNYX-173 sequencing audit and explicitly asked to continue through PR + Codex review.
+**Approved product/UI/data-shape boundaries:** Architecture/readiness only: freeze the vendor-neutral Tio capability identity, request/result envelope semantics, capability discovery semantics, bounded pagination/range rules, error categories, compatibility/versioning expectations, correlation/audit metadata, read retry expectations, async handoff boundary, and adapter ownership rules.
+**Explicit non-changes:** No MCP server/SDK/package; no REST/HTTP routes; no OpenAPI generation; no Supabase Edge Function implementation; no Supabase table/column/RLS/RPC changes; no `services/api` scaffold; no Workout/Nutrition/Profile tool implementation; no ChatGPT client/publishing work; no Siri/App Intents implementation; no write capability enablement; no queue/worker implementation.
+
+## Active Handoff
+
+**Planning owner:** ChatGPT
+**Implementation owner:** ChatGPT
+**Review owner:** Codex / independent PR review
+**Implementation ownership state:** Active
+**Ownership transition:** Not applicable
+**Repository state last verified:** `main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`
+**Branch:** `tnyx/tnyx-174-c10-capability-contract`
+**HEAD SHA:** `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea` at branch creation
+**Observed working-tree state:** GitHub connector branch; no local working tree available.
+**Observed uncommitted/dirty files:** Not applicable through GitHub connector.
+**PR / tracker:** Linear TNYX-174 In Progress; no PR yet.
+**Current implementation state:** TNYX-172 trust boundary and TNYX-173 delegated OAuth contract are merged/validated. No MCP server, connector gateway runtime, connector tool implementation, or services/api runtime exists on `main`.
+**Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
+**Validation completed at SHA:** `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea` — current connector/Auth/API lifecycle/architecture docs, relevant Linear dependencies, repository searches, and current MCP 2026-07-28 protocol documentation inspected.
+**Validation remaining:** author canonical capability contract + ADR, reconcile canonical links, audit exact branch scope, publish PR, run exact-head checks, request Codex review, resolve only validated in-scope findings.
+**Current blocker:** none.
+**Open review finding IDs:** none.
+**Next exact action:** create the canonical vendor-neutral connector capability contract and ADR-0014 without adding runtime/schema/UI implementation.
+
+## 1. Discovery
+
+### User Outcome
+
+Define one stable Tio capability contract that can be exposed through ChatGPT/MCP, future REST/OpenAPI, Siri/App Intents, mobile/web orchestration, and later execution hosts without duplicating domain logic or leaking persistence/runtime details.
+
+### Success Criteria
+
+- Capability identity is Tio-owned and independent of MCP method names, HTTP paths, provider names, or database shape.
+- Inputs/outputs are explicit, structured, minimum-necessary, versionable, and testable.
+- Read capabilities have bounded pagination/range/timezone semantics and deterministic missing/not-found/authorization behavior.
+- Capability discovery communicates supported behavior/availability, not authorization or entitlement.
+- Connector adapters are thin translations over Tio application/domain capabilities.
+- MCP wire-version changes do not force Tio domain capability renames or DTO rewrites.
+- HTTP/OpenAPI global lifecycle/error/pagination owners remain authoritative; this slice defines connector/domain semantics and mapping only.
+- Async/long-running capability semantics can later map to an approved MCP task/job or Tio async primitive without creating a worker now.
+- Raw tables/RPC/provider payloads/service-role access never become the public connector contract.
+
+### Scope
+
+- logical gateway/capability boundary;
+- capability naming/identity;
+- request/result schema principles;
+- scope/domain authorization handoff;
+- pagination/range/timezone conventions at capability level;
+- machine-readable capability error categories;
+- discovery/availability semantics;
+- correlation/audit metadata expectations;
+- read retry/idempotency classification;
+- async/deferred-result abstraction boundary;
+- compatibility/versioning rules;
+- MCP adapter mapping principles;
+- REST/OpenAPI and Siri/App Intents mapping principles;
+- initial read-only candidate registry/classification without implementing domain contracts.
+
+### Non-Goals
+
+- MCP server implementation or protocol package selection;
+- HTTP route/path definitions;
+- OpenAPI runtime/schema implementation;
+- connector OAuth/grant persistence implementation;
+- domain-specific Workout/Nutrition schemas owned by TNYX-247/TNYX-252;
+- profile/health summary schemas owned by TNYX-175;
+- write-action semantics owned by TNYX-176;
+- operational rate-limit/kill-switch implementation owned by TNYX-177;
+- cross-app health egress policy owned by TNYX-251;
+- ChatGPT/Siri adapter implementation;
+- services/api/worker scaffolding.
+
+## 2. Codebase Exploration
+
+### Verified Evidence
+
+- Root `AGENTS.md` requires audit-first bounded slices and no speculative backend/runtime expansion.
+- `main@da7e05b6...` has no open PRs at slice start.
+- TNYX-172 and TNYX-173 are Done/archived and establish delegated trust + OAuth authorization boundaries.
+- TNYX-174 blocks TNYX-247, TNYX-252, TNYX-175, TNYX-176, TNYX-177, TNYX-248 and other downstream connector work.
+- Repository search found no MCP/tool gateway implementation, MCP server package, `get_profile`/connector tool runtime, or services/api connector route.
+- `API_LIFECYCLE.md` owns public API compatibility/versioning and keeps DB schema separate from public contracts.
+- TNYX-43 locks TypeBox -> JSON Schema -> OpenAPI for future protected HTTP routes; connector capability semantics must not create a competing HTTP schema source.
+- TNYX-28 owns global HTTP validation/error envelope rules; TNYX-29 owns protected API rate limits/timeouts/logging; TNYX-134 owns HTTP pagination/mutation/concurrency semantics.
+- `OBSERVABILITY.md` owns safe correlation/telemetry principles; connector capability metadata should map to it, not duplicate it.
+- Current MCP final revision is 2026-07-28. It introduces the modern `server/discover` lifecycle and a stateless per-request era. MCP SDK/spec behavior is adapter-level external protocol behavior, not Tio domain ownership.
+- MCP 2026-07-28 supports structured tool results and current SDKs expose JSON Schema-based tool input/output contracts; Tio can map stable DTOs to those schemas without making MCP the canonical domain schema owner.
+- MCP Tasks is an extension for deferred execution, not permission to add a Tio worker/job runtime in this slice.
+
+### Existing Pattern To Follow
+
+Preserve the connector migration invariant:
+
+```text
+external adapter contract
+  -> delegated authorization
+  -> Tio capability/application contract
+  -> implementation adapter
+  -> canonical domain owner/data
+```
+
+Keep capability identity and DTO semantics stable while adapters translate to protocol-specific shapes.
+
+## 3. Clarification
+
+### Decisions Required or Made
+
+| Decision | Status | Rationale | Owner |
+|---|---|---|---|
+| Tio capability identity is canonical; MCP/HTTP/Siri names are adapter mappings | Approved for contract | Prevents vendor/protocol coupling | Connector Architecture |
+| V1 capability contract is read-only | Locked by ADR-0012 | First connector release remains bounded read-only | Connector Architecture |
+| Capability schemas are explicit JSON-compatible DTO contracts, not DB rows | Approved for contract | Stable/testable/minimum-necessary output | Domain owners + Connector |
+| MCP protocol revision is not a Tio capability version | Approved for contract | External protocol revisions evolve independently | Connector Adapter |
+| Capability discovery reports support/availability, not authorization | Approved for contract | Discovery must not leak or grant authority | Connector + Security |
+| HTTP error/pagination/versioning global policy remains owned by Backend docs/tasks | Approved boundary | Avoid duplicate sources of truth | Backend & Platform |
+| Adapter-specific tool descriptions/prompts are non-canonical presentation metadata | Approved boundary | Domain meaning must remain vendor neutral | Adapter owner |
+| Async/deferred work uses a transport-neutral operation/result concept only when needed | Approved boundary | Avoid speculative queue/worker/runtime | Future owning slice |
+| Exact MCP SDK/package/server host | Deferred | Implementation-time adapter decision | TNYX-248 / owning runtime slice |
+| Exact domain tool schemas for Workout/Nutrition/Profile summaries | Deferred | Owned by TNYX-247/TNYX-252/TNYX-175 | Domain owners |
+
+## 4. Architecture Design
+
+### Chosen Approach
+
+A logical Tio capability registry/contract sits between delegated authorization and protocol adapters. Each capability has a stable semantic identity, owner, required scope family, input/output contract, boundedness/privacy rules, availability state, error categories, and compatibility policy.
+
+```text
+ChatGPT / MCP / Siri / future HTTP client
+        ↓ thin protocol adapter
+Tio capability identity + typed request/result
+        ↓
+delegated client/grant/scope resolution where external
+        ↓
+domain/resource authorization
+        ↓
+feature-owned application/domain contract
+        ↓
+current approved execution boundary
+        ↓
+canonical Tio data
+```
+
+The logical gateway is not a new service. It is an architecture boundary that can later be implemented in an approved Supabase protected function or future `services/api` without changing the capability contract.
+
+### Alternative Rejected
+
+- MCP-native tool schemas as Tio's canonical domain schema: rejected because protocol versions/SDKs evolve independently.
+- REST/OpenAPI paths as canonical capability identity: rejected because HTTP is one adapter/transport.
+- Generic CRUD/table tools: rejected because they leak persistence and bypass domain ownership/minimization.
+- One giant `get_health_data` capability: rejected because it weakens purpose limitation and bounded authorization.
+- services/api/MCP server scaffolding now: rejected because this planning slice proves no implementation trigger.
+- Re-defining global HTTP errors/pagination/rate limits here: rejected because those have existing owners.
+
+## 5. Implementation Plan
+
+- [x] Reconcile root governance, current main, TNYX-172/173 outputs, TNYX-174 dependency graph, API lifecycle/architecture ownership, and current source searches.
+- [x] Re-check current MCP final protocol revision and modern lifecycle/tool schema direction.
+- [x] Create approved focused task brief.
+- [ ] Create canonical connector capability/gateway contract under `docs/integrations/`.
+- [ ] Record durable capability/adaptor ownership decision in ADR-0014 and index it.
+- [ ] Reconcile connector trust-boundary / delegated OAuth / docs index links only where needed.
+- [ ] Add active task to `.ai/tasks/README.md`.
+- [ ] Audit exact branch delta and current security-check requirements.
+- [ ] Publish focused PR and move TNYX-174 to In Review.
+- [ ] Request Codex exact-head review and inspect required/supplemental checks.
+- [ ] Resolve only validated in-scope review findings; stop at review handoff, never merge without explicit `Go merge`.
+
+## 6. Quality Review
+
+### Validation Run
+
+```text
+Base: main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
+Runtime/source search: no MCP/tool-gateway/services-api connector implementation
+Canonical docs inspected: connector trust boundary, delegated OAuth, API lifecycle, architecture
+Trackers inspected: TNYX-174, TNYX-247, TNYX-252, TNYX-175, TNYX-176, TNYX-177 plus backend contract owners
+MCP external standard checked: final 2026-07-28 modern era; adapter-level only
+Branch/diff/check validation: pending implementation
+```
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| | | Open | | | |
+
+## 7. Final Handoff
+
+### Changed Files
+
+Pending.
+
+### Actual Behavior
+
+No runtime behavior change is authorized or intended.
+
+### Known Limitations
+
+This slice freezes shared capability semantics only. Domain-specific read schemas, external protocol adapters, OAuth runtime, operational controls, and production publishing remain separately gated.
+
+### Final Status
+
+`REVIEW`
