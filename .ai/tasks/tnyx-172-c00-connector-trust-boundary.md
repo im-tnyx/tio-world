@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Complete
+**Implementation ownership state:** Active
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `c0eb4e4d25b5444e76bc09f8edff895faebd9f69` at the second-pass architecture-fix content head before this handoff update
+**HEAD SHA:** `46c931ccdd7704e45fecc9cf88f50cfe0309b90e` at the third-pass content-fix head before this handoff update
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
 **PR / tracker:** GitHub PR #453; Linear TNYX-172 In Review.
-**Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation, Supabase runtime-host policy reconciliation, and provider privacy pilot gate are written; no connector runtime exists or was authorized.
+**Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation across Auth/Security/Supabase server-access docs, Supabase runtime-host policy, Health-context classification, provider privacy gate, account-deletion lifecycle gate, and audit controls are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
-**Validation completed at SHA:** `02283fc6a967ebd52e095ab2932980775715a0e0` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 13 / behind 0; exactly 9 owned docs/AI files; all seven Codex threads resolved. Current `main` metadata proves `Commit attribution guard` (app_id 5032971) is the required status context and it PASSed on this SHA. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
-**Validation remaining:** this handoff update moves HEAD; re-read exact-head compare, required `Commit attribution guard`, supplemental GHAS cause, and review-thread state before requesting the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation completed at SHA:** `46c931ccdd7704e45fecc9cf88f50cfe0309b90e` content scope verified against `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`: ahead 19 / behind 0; exactly 11 owned docs/AI files. Third-pass fixes are present in `SECURITY.md`, `SUPABASE_SERVER_ACCESS.md`, and `CONNECTOR_TRUST_BOUNDARY.md`. Required/supplemental checks were still running on this content head at handoff-update time.
+**Validation remaining:** this handoff update moves HEAD; re-read exact-head compare, required `Commit attribution guard`, supplemental GHAS outcome/cause, and review-thread state before requesting the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** second-pass thread `PRRT_kwDOTOXwB86mrGpu` — fix applied in `c0eb4e4d`; reply/resolution pending exact-head verification.
-**Next exact action:** verify exact-head state after this handoff update, reply to and resolve the second-pass token-sub derivation finding, refresh PR evidence, then request the next Codex review.
+**Open review finding IDs:** third-pass threads `PRRT_kwDOTOXwB86mrQ_g`, `PRRT_kwDOTOXwB86mrQ_v`, `PRRT_kwDOTOXwB86mrQ_z` — fixes applied; reply/resolution pending exact-head verification.
+**Next exact action:** verify exact-head state after this handoff update, reply to and resolve R9–R11, refresh PR evidence, then request the next Codex review.
 
 ## 1. Discovery
 
@@ -155,37 +155,38 @@ This slice has no UI. Security failures must be designed fail-closed: invalid/re
 ### Validation Run
 
 ```text
-Validated exact head: 02283fc6a967ebd52e095ab2932980775715a0e0
+Validated content head: 46c931ccdd7704e45fecc9cf88f50cfe0309b90e
 Base / merge-base: 4a038c93a4e3b74a87a80ce167977c3ef35ace2f
-Branch compare at that head: ahead 13 / behind 0
-Changed files at that head: exactly 9 owned docs/AI paths
+Branch compare at that head: ahead 19 / behind 0
+Changed files at that head: exactly 11 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-172-c00-connector-trust-boundary.md
 - docs/README.md
 - docs/adr/0012-delegated-external-connector-trust-boundary.md
 - docs/adr/README.md
 - docs/architecture/ARCHITECTURE.md
+- docs/data/SUPABASE_SERVER_ACCESS.md
 - docs/data/SUPABASE_STRATEGY.md
 - docs/integrations/CONNECTOR_TRUST_BOUNDARY.md
 - docs/security/AUTH_ARCHITECTURE.md
+- docs/security/SECURITY.md
 
-Canonical reconciliation: PASS
-- ADR-0012 records the durable connector trust-boundary decision.
-- First-party Supabase-token auth and delegated connector auth are explicitly separate.
-- Supabase narrow-function vs future services/api connector hosting follows ADR-0007 triggers.
-- Production connector pilot explicitly gates provider-specific privacy review.
-- All seven first-pass Codex review threads are resolved.
+Canonical reconciliation: PASS at content head
+- SECURITY.md scopes Supabase token/sub auth to first-party callers and records delegated grant-based identity.
+- SUPABASE_SERVER_ACCESS.md separates caller authentication class from database access mode and forbids manufacturing a Supabase session for delegated traffic.
+- Delegated connector database execution defaults to user-scoped semantics; any server-secret/service-role operation is privileged and separately justified.
+- Workout/nutrition/progress/weight/body metrics and related fitness data are Health-context under the highest applicable class.
+- Production pilot requires provider privacy review, account-deletion lifecycle participation, and operational/audit controls.
+- Account deletion must prevent future delegated access/refresh and define cleanup/expiry/approved-retention outcomes for connector/provider artifacts.
 
-Security merge-gate evidence at 02283fc6...:
-- main protected: YES
-- required context: Commit attribution guard (app_id 5032971)
-- Commit attribution guard: PASS
-- github-advanced-security: FAIL, supplemental/non-required by current main branch metadata
-- GHAS analysis outcome: infrastructure/model failure before meaningful analysis ("The requested model is not supported"), not a concrete security finding and not a security pass
+Security merge-gate evidence:
+- current main remains protected with required context Commit attribution guard (app_id 5032971)
+- content-head required/supplemental checks were still running when this handoff update was authored
+- prior GHAS failures on this PR were supplemental + infrastructure/model failures before meaningful analysis ("The requested model is not supported"), not concrete security findings and not security passes
 
 Local git diff --check: NOT AVAILABLE through connector-only execution
 Runtime/build tests: not applicable to this docs-only slice
-Exact-head validation after this final handoff commit: PENDING by construction and must be re-read before requesting the next review
+Exact-head validation after this handoff commit: PENDING by construction and must be re-read before thread resolution/re-review
 ```
 
 ### Review Findings and Resolution
@@ -200,6 +201,9 @@ Exact-head validation after this final handoff commit: PENDING by construction a
 | R6 | P2 | Resolved | Production pilot lacked provider privacy-review gate | `65e924eaff...` | Connector policy now requires DATA_PRIVACY_GOVERNANCE provider review before sensitive egress |
 | R7 | P2 | Resolved | Owner Approval trigger classification missing | `65e924eaff...` | Added canonical Trigger field: New independently scoped product task/feature slice |
 | R8 | P2 | Resolved | Shared server checklist could derive delegated user identity from connector token `sub` instead of the validated grant | `7bac3423c2...` | `AUTH_ARCHITECTURE.md` now limits Supabase `sub` derivation to first-party callers and makes validated user-owned connector grant the delegated canonical-user source |
+| R9 | P2 | Resolved | Remaining canonical security/server-access docs still required Supabase token/sub for every protected caller | `de1608006b...` | `SECURITY.md` and `SUPABASE_SERVER_ACCESS.md` now distinguish first-party Supabase sessions from delegated grant-based callers and explicitly classify any server-secret DB operation as privileged |
+| R10 | P2 | Resolved | Production pilot did not require connector grant/token/provider artifacts to join account deletion lifecycle | `de1608006b...` | Connector policy now requires access/refresh invalidation plus documented synchronous deletion, bounded queued deletion, short expiry, or approved retention outcome |
+| R11 | P2 | Resolved | Workout/nutrition/progress were classified below canonical Health-context | `de1608006b...` | Connector classification now uses Health-context highest-applicable handling for workout, nutrition, progress, weight/body metrics and related health/fitness context |
 
 ## 7. Final Handoff
 
@@ -211,9 +215,11 @@ Exact-head validation after this final handoff commit: PENDING by construction a
 - `docs/adr/0012-delegated-external-connector-trust-boundary.md`
 - `docs/adr/README.md`
 - `docs/architecture/ARCHITECTURE.md`
+- `docs/data/SUPABASE_SERVER_ACCESS.md`
 - `docs/data/SUPABASE_STRATEGY.md`
 - `docs/integrations/CONNECTOR_TRUST_BOUNDARY.md`
 - `docs/security/AUTH_ARCHITECTURE.md`
+- `docs/security/SECURITY.md`
 
 ### Actual Behavior
 
