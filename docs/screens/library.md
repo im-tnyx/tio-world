@@ -53,7 +53,9 @@ Library
 
 Initial Program creation presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Blank-name fallback is not the user-facing contract.
 
-Description, image, level, goal, type, duration and similar metadata are not required during initial creation. They may be added later through Program editing only when a concrete approved slice needs them. Schedule, start date, current week/progress and following state belong to the later TrainingPlan/following boundary. Optional Program/Routine images do not authorize Supabase schema or Storage work in this slice.
+For a user-created My Program, the initial editable surface is name plus an optional image once media support is approved. Richer source metadata is not requested from the user. Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata under their own source/adoption contracts.
+
+Schedule, start/end or follow-duration/till-date state belongs to the later TrainingPlan/following boundary even when edited from Program context. Optional Program/Routine images do not authorize Supabase schema or Storage work in this slice.
 
 ## Data And State Boundaries
 
