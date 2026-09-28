@@ -41,12 +41,12 @@ Define one stable Tio capability contract that can be exposed through ChatGPT/MC
 
 ### Success Criteria
 
-- Capability identity is Tio-owned and independent of MCP method names, HTTP paths, provider names, or database shape.
+- Capability identity is Tio-owned, follows a stable semantic naming convention, and is independent of MCP tool names, HTTP paths, provider names, or database shape.
 - Inputs/outputs are explicit, structured, minimum-necessary, versionable, and testable.
 - Read capabilities have bounded pagination/range/timezone semantics and deterministic missing/not-found/authorization behavior.
 - Capability discovery communicates supported behavior/availability, not authorization or entitlement.
 - Connector adapters are thin translations over Tio application/domain capabilities.
-- MCP wire-version changes do not force Tio domain capability renames or DTO rewrites.
+- MCP wire-version changes do not force Tio domain capability renames or DTO rewrites; future adapter implementation re-checks the then-current MCP spec.
 - HTTP/OpenAPI global lifecycle/error/pagination owners remain authoritative; this slice defines connector/domain semantics and mapping only.
 - Async/long-running capability semantics can later map to an approved MCP task/job or Tio async primitive without creating a worker now.
 - Raw tables/RPC/provider payloads/service-role access never become the public connector contract.
@@ -97,7 +97,7 @@ Define one stable Tio capability contract that can be exposed through ChatGPT/MC
 - `OBSERVABILITY.md` owns safe correlation/telemetry principles; connector capability metadata should map to it, not duplicate it.
 - Current MCP final revision is 2026-07-28. It introduces the modern `server/discover` lifecycle and a stateless per-request era. MCP SDK/spec behavior is adapter-level external protocol behavior, not Tio domain ownership.
 - MCP 2026-07-28 supports structured tool results and current SDKs expose JSON Schema-based tool input/output contracts; Tio can map stable DTOs to those schemas without making MCP the canonical domain schema owner.
-- MCP Tasks is an extension for deferred execution, not permission to add a Tio worker/job runtime in this slice.
+- MCP Tasks is currently an optional/draft extension for deferred execution, not permission to add a Tio worker/job runtime in this slice.
 
 ### Existing Pattern To Follow
 
