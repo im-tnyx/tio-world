@@ -488,29 +488,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         rootNavigatorKey: rootNavigatorKey,
       ),
       GoRoute(
-        path: AppRoutes.archivedMealCategoriesSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) => ArchivedMealCategoriesPage(
-            repository: ref.watch(mealCategoriesRepositoryProvider),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.mealCategoriesSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        // Composition supplies the repository and the page owns its
-        // controller's lifecycle; the feature never reaches for Supabase.
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) => MealCategoriesDestinationPage(
-            repository: ref.watch(mealCategoriesRepositoryProvider),
-            onArchivedPressed: () => context.push(
-              AppRoutes.archivedMealCategoriesSettings.path,
-            ),
-          ),
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.nutritionTargetsSettings.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
