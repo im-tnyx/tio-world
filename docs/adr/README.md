@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: repository architecture governance
 Truth Boundary: Authoritative for ADR lifecycle, numbering, status meanings, and the decision index; not runtime implementation status.
 
@@ -188,6 +188,7 @@ Existing ADRs remain historical records and are not rewritten merely to match th
 | [0009](0009-settings-local-default-glass-size.md) | Accepted | Settings owns a local-only Default Glass Size convenience preference. |
 | [0010](0010-settings-local-calendar-first-day-of-week.md) | Accepted | Settings owns the local-only app-global Calendar Preferences first-day-of-week value. |
 | [0011](0011-workout-canonical-identities-and-exercise-catalog.md) | Accepted | Workout durable identity/value-object ownership is shared; built-in Exercises use stable bundled `ex_*` catalog identities without Supabase mirroring. |
+| [0012](0012-delegated-external-connector-trust-boundary.md) | Accepted | External connectors use Tio-controlled delegated credentials/grants over stable Tio capabilities; V1 is read-only and runtime-neutral. |
 
 ## Authoring workflow
 
