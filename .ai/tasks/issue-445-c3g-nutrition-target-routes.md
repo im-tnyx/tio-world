@@ -1,6 +1,6 @@
 # Issue #445 — C3g Nutrition Targets route extraction
 
-**Status:** Active
+**Status:** In Review
 **Owner authorization:** “Go agent.md follow kare”
 **Base:** `main@f3646625fd9286b1f7b783f88afd25d36d86a8ea`
 **GitHub:** #445
@@ -45,6 +45,16 @@ Use only `Open`, `Resolved`, or `Deferred`.
 | ID | Severity | Status | Finding | Resolution |
 |---|---|---|---|---|
 
+## Implementation state
+
+Implemented the bounded extraction. The three target route registrations now live in `routing/routes/nutrition_routes.dart`. Root injects the existing `_NutritionLoadFailure` presentation through `NutritionLoadFailureBuilder`, so C3g does not relocate or duplicate that UI. `profileDataProvider` remains app composition and is imported narrowly for the read-only Additional Goals dependency.
+
+API audit against base: 3 commits ahead / 0 behind before this handoff sync; effective diff is exactly this brief, `router.dart`, and `nutrition_routes.dart`. Root no longer registers the three target routes; the Nutrition route module does. No local git/Flutter commands were claimed.
+
+## Validation remaining
+
+Hosted Flutter CI, exact-head diff/reference audit, Codex review, and unresolved-thread audit.
+
 ## Next action
 
-Implement the smallest behavior-preserving extraction, audit exact diff, open Draft PR, then wait for CI/Codex review.
+Open Draft PR, wait for exact-head hosted CI and Codex review, fix findings narrowly, then reconcile trackers before Ready/merge.
