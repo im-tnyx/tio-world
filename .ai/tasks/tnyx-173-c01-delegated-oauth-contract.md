@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f8e861094ed14a125b11d94aac49c0db97479f20`
 **Branch:** `tnyx/tnyx-173-c01-delegated-oauth-contract`
-**HEAD SHA:** `f8e861094ed14a125b11d94aac49c0db97479f20` at branch creation
+**HEAD SHA:** `02f5413e64dabaa1f34ffaf54f0540df4cb63afd` at the latest completed content validation before this review-handoff update
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-173 In Progress; no PR yet.
-**Current implementation state:** TNYX-172 trust boundary is merged/validated. Connector OAuth/client/grant runtime is not implemented on `main`.
+**PR / tracker:** Linear TNYX-173 In Progress; PR publication pending this handoff commit.
+**Current implementation state:** Delegated OAuth authorization semantics, ADR-0013, standards baseline, and canonical Auth/connector authority links are authored; connector OAuth/client/grant runtime remains unimplemented.
 **Relevant execution surface:** Current Supabase Auth + protected functions remain runtime truth; connector OAuth host is intentionally unselected in this slice.
-**Validation completed at SHA:** `f8e861094ed14a125b11d94aac49c0db97479f20` — current source/config, canonical Auth/privacy/secrets/connector docs, ADR-0012, TNYX-173/245/246, and official OAuth standards status inspected.
-**Validation remaining:** author canonical delegated-authorization contract + ADR, reconcile indexes/related canonical docs, audit branch scope, publish PR, inspect exact-head checks/review.
+**Validation completed at SHA:** `02f5413e64dabaa1f34ffaf54f0540df4cb63afd` — `main` unchanged at `f8e861094ed14a125b11d94aac49c0db97479f20`; branch ahead 10 / behind 0 with exactly 9 owned docs/AI files. Canonical delegated OAuth contract, ADR-0013, docs indexes, connector trust-boundary handoff, Auth link, and ADR-0012 follow-up link were reviewed. Official OAuth standards were re-checked: RFC 9700 is the published security BCP; OAuth 2.1 draft-16 remains an active Internet-Draft.
+**Validation remaining:** this handoff update moves HEAD; publish PR, refresh exact-head compare/checks, move Linear to In Review, request/inspect independent review, and resolve only validated findings within scope. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** create the canonical delegated-authorization policy and ADR-0013 without adding runtime/schema/UI implementation.
+**Next exact action:** publish the focused PR from this branch, reconcile Linear to In Review, and inspect exact-head required/supplemental security checks plus Codex review.
 
 ## 1. Discovery
 
@@ -165,12 +165,12 @@ No UI is implemented in this slice. Future authorization/consent surfaces must f
 - [x] Reconcile root governance, current `main`, TNYX-172 archive/canonical output, TNYX-173 dependency graph, TNYX-245/246, and current source/config.
 - [x] Verify current OAuth standards status and published security baseline.
 - [x] Create approved focused task brief.
-- [ ] Create canonical delegated OAuth authorization policy under `docs/integrations/`.
-- [ ] Record durable delegated OAuth decision in ADR-0013 and index it.
-- [ ] Reconcile connector/Auth/privacy/secrets docs only where required to avoid conflicting authority.
-- [ ] Add canonical doc to `docs/README.md`.
-- [ ] Add active task to `.ai/tasks/README.md`.
-- [ ] Audit exact branch delta and security-check requirements.
+- [x] Create canonical delegated OAuth authorization policy under `docs/integrations/`.
+- [x] Record durable delegated OAuth decision in ADR-0013 and index it.
+- [x] Reconcile connector/Auth docs only where required to avoid conflicting authority; privacy/secrets policies already cover the needed boundaries and remain unchanged.
+- [x] Add canonical doc to `docs/README.md`.
+- [x] Add active task to `.ai/tasks/README.md`.
+- [x] Audit exact branch delta and current `main` required-check metadata.
 - [ ] Publish focused PR and move TNYX-173 to In Review only after review-ready.
 - [ ] Inspect exact-head Codex/check state and stop at review handoff.
 
@@ -179,12 +179,43 @@ No UI is implemented in this slice. Future authorization/consent surfaces must f
 ### Validation Run
 
 ```text
-Base: main@f8e861094ed14a125b11d94aac49c0db97479f20
-Runtime/source inspected: supabase/config.toml, representative protected functions, connector OAuth/source searches
-Canonical docs inspected: connector trust boundary, Auth, privacy, secrets, ADR-0012/ADR-0007
-Tracker inspected: TNYX-173, TNYX-245, TNYX-246 and downstream dependency graph
-OAuth standards status: OAuth 2.1 draft-16 active; published RFC 9700 security BCP used as normative security baseline
-Branch/diff/check validation: pending implementation
+Validated content head: 02f5413e64dabaa1f34ffaf54f0540df4cb63afd
+Base / merge-base: f8e861094ed14a125b11d94aac49c0db97479f20
+Branch compare at that head: ahead 10 / behind 0
+Changed files at that head: exactly 9 owned docs/AI paths
+- .ai/tasks/README.md
+- .ai/tasks/tnyx-173-c01-delegated-oauth-contract.md
+- docs/README.md
+- docs/adr/0012-delegated-external-connector-trust-boundary.md
+- docs/adr/0013-delegated-oauth-authorization-contract.md
+- docs/adr/README.md
+- docs/integrations/CONNECTOR_TRUST_BOUNDARY.md
+- docs/integrations/DELEGATED_OAUTH_AUTHORIZATION.md
+- docs/security/AUTH_ARCHITECTURE.md
+
+Runtime/source inspection: PASS
+- no connector OAuth endpoints, PKCE/code exchange runtime, connector_clients, or connector_grants implementation on main
+- current Supabase protected-function patterns remain first-party session auth or narrow external-token admission; no connector runtime is implied
+
+Canonical reconciliation: PASS
+- ADR-0012 trust boundary preserved
+- ADR-0013 records the durable delegated OAuth decision
+- Auth architecture points delegated callers to the new contract without changing Supabase Auth identity authority
+- connector trust-boundary doc hands detailed OAuth semantics to the new canonical contract
+- privacy/secrets existing policies already cover token secrecy, external-provider minimization, and deletion requirements
+
+Standards evidence checked 2026-09-28:
+- RFC 9700 is published OAuth Security BCP
+- RFC 7009 / RFC 7636 / RFC 8252 / RFC 8414 remain applicable published standards
+- RFC 10017 is current browser-based app BCP
+- OAuth 2.1 draft-ietf-oauth-v2-1-16 is active work in progress, not a final RFC
+
+Security-sensitive merge-gate baseline:
+- main protected: YES
+- required context: Commit attribution guard (app_id 5032971)
+- exact-head checks after this handoff commit: PENDING by construction
+- local git diff --check: NOT AVAILABLE through connector-only execution
+- runtime/build tests: not applicable to this docs/architecture-only slice
 ```
 
 ### Review Findings and Resolution
@@ -197,11 +228,19 @@ Branch/diff/check validation: pending implementation
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-173-c01-delegated-oauth-contract.md`
+- `docs/README.md`
+- `docs/adr/0012-delegated-external-connector-trust-boundary.md`
+- `docs/adr/0013-delegated-oauth-authorization-contract.md`
+- `docs/adr/README.md`
+- `docs/integrations/CONNECTOR_TRUST_BOUNDARY.md`
+- `docs/integrations/DELEGATED_OAUTH_AUTHORIZATION.md`
+- `docs/security/AUTH_ARCHITECTURE.md`
 
 ### Actual Behavior
 
-No runtime behavior change is authorized or intended.
+No runtime behavior changed. This slice defines the delegated OAuth client/scope/consent/token-lifecycle/revocation contract and its durable ADR only.
 
 ### Known Limitations
 
