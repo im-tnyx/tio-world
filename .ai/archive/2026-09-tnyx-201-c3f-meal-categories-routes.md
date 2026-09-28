@@ -16,9 +16,11 @@ Only `AppRoutes.mealCategoriesSettings`, `AppRoutes.archivedMealCategoriesSettin
 
 - GitHub issue #441 completed through PR #442.
 - Source PR #442 merged as `f3646625fd9286b1f7b783f88afd25d36d86a8ea`.
-- Exact reviewed source/handoff lifecycle passed hosted Flutter CI and Codex review before merge.
-- Review findings were resolved before merge; no runtime follow-up is carried by this archive.
-- Post-merge audit found only stale execution-handoff text; GitHub #447 reconciles that governance drift without runtime changes.
+- Merged source head `5c3b0cb5ec1a06a0be2f10fcc0b8646abccc867f` passed hosted Flutter CI run `36367117661` / #2829.
+- Codex reviewed merged source head `5c3b0cb5ec...` with no major issues at 2026-09-28T01:45:44Z.
+- A later governance-only P2 (`discussion_r4117919188`) arrived after PR #442 had already merged; it concerned the task brief's invalid `Implementation ownership state: Review`, not runtime/router source. The thread was fixed on the closed branch and resolved, but that post-merge handoff commit did not land on `main`.
+- Codex subsequently reviewed merge commit `f3646625fd...` with no major issues at 2026-09-28T03:13:52Z.
+- GitHub #447 reconciles the stale post-merge execution record on `main`; it does not claim that the post-merge governance correction was part of PR #442 before merge.
 
 ## Durable architecture
 
