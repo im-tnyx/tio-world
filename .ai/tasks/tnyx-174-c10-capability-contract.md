@@ -27,7 +27,7 @@
 **PR / tracker:** GitHub PR #457; Linear TNYX-174 In Review.
 **Current implementation state:** Canonical vendor-neutral capability contract, ADR-0014, and authority links are authored. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime, or services/api runtime is introduced.
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
-**Validation completed at SHA:** `000edae137b4b1285ad85031f33083c18cc17cd7` — branch remained exactly 9 owned docs/AI files; Codex R1-R3 fixes were self-reviewed against the canonical capability contract + ADR-0014; all three review threads received evidence replies and were resolved.
+**Validation completed at SHA:** `71d9685cb246ddbd351af41f29a307f3e3222045` — branch remained exactly 9 owned docs/AI files and ahead 19 / behind 0; Codex R1-R3 fixes were self-reviewed against the canonical capability contract + ADR-0014; all three review threads received evidence replies and were resolved.
 **Validation remaining:** this handoff update moves HEAD; refresh exact-head compare/checks, request a fresh Codex review, and resolve any new validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
 **Current blocker:** none.
 **Open review finding IDs:** none; R1-R3 are fixed, replied to, and resolved. Fresh exact-head re-review pending.
@@ -137,7 +137,7 @@ Keep capability identity and DTO semantics stable while adapters translate to pr
 
 ### Chosen Approach
 
-A logical Tio capability registry/contract sits between delegated authorization and protocol adapters. Each capability has a stable semantic identity, owner, required scope family, input/output contract, boundedness/privacy rules, availability state, error categories, and compatibility policy.
+A logical Tio capability registry/contract sits between delegated authorization and protocol adapters. Each capability has a stable semantic identity, owner, complete required scope-family set plus combination semantics, input/output contract, boundedness/privacy rules, availability state, error categories, and compatibility policy.
 
 ```text
 ChatGPT / MCP / Siri / future HTTP client
@@ -185,9 +185,9 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 ### Validation Run
 
 ```text
-Validated content head: 000edae137b4b1285ad85031f33083c18cc17cd7
+Validated content head: 71d9685cb246ddbd351af41f29a307f3e3222045
 Base / merge-base: da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
-Branch compare at that head: ahead 18 / behind 0
+Branch compare at that head: ahead 19 / behind 0
 Changed files: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-174-c10-capability-contract.md
