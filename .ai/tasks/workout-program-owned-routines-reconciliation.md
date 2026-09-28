@@ -1,6 +1,6 @@
 # Workout Program-owned Routines reconciliation
 
-**Status:** Ready for review
+**Status:** In progress
 **Owner approval:** 2026-09-28, owner requested audit-first start after approving the Program-owned Routine direction and minimal generated-name creation flow.
 **Base:** `main@c0274d03568e0b06c43521918da220bb207c1b89`
 **Implementation owner:** current repository agent
@@ -10,11 +10,11 @@
 
 Lock one pre-implementation contract:
 
-- user-owned Program is the reusable container for one or more user-owned Routines;
+- user-owned Program is the reusable container for zero or more user-owned Routines;
 - every saved user-owned Routine keeps stable identity but belongs to exactly one user-owned Program;
 - Library has no standalone user Routines collection/create action;
 - initial Create Program shows a generated non-blank name such as `Program 1` before confirmation and permits rename before OK;
-- optional Program/Routine metadata and media are deferred from initial creation;
+- My Program initially exposes name and optional image editing; Tio/Coach/AI Programs may carry richer source metadata with restricted edit authority;
 - scheduling/following remains TrainingPlan-owned.
 
 ## Verified evidence
@@ -44,7 +44,9 @@ No Flutter UI/runtime change, Program/Routine entity implementation, repository/
 4. Initial Program creation does not require description, image, level, goal, type, duration or schedule.
 5. Optional Program/Routine image remains future private Workout media and does not authorize Storage work.
 6. TrainingPlan owns user-specific schedule/following state.
-7. Next domain implementation must reconcile W1A3/W1A4 ordering because Routine now requires Program ownership; do not implement the old Routine-first deferral mechanically.
+7. A newly created Program may be empty; execution readiness is a separate later rule.
+8. Tio/Coach/AI source metadata is not automatically user-editable; schedule/follow-duration changes remain TrainingPlan-owned.
+9. Next domain implementation must reconcile W1A3/W1A4 ordering because Routine requires Program ownership; do not implement the old Routine-first deferral mechanically.
 
 ## Validation
 
