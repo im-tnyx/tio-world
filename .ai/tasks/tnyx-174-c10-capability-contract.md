@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`
 **Branch:** `tnyx/tnyx-174-c10-capability-contract`
-**HEAD SHA:** `460322499ec3664c53598fda26eb0853dbda4020` at the latest completed content validation before this review-handoff update
+**HEAD SHA:** `c4da02a583680b984bda244b491516060d229971` at PR publication before this tracker-handoff update
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-174 In Progress; PR publication pending this review-handoff commit.
+**PR / tracker:** GitHub PR #457; Linear TNYX-174 transitioning to In Review.
 **Current implementation state:** Canonical vendor-neutral capability contract, ADR-0014, and authority links are authored. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime, or services/api runtime is introduced.
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
 **Validation completed at SHA:** `460322499ec3664c53598fda26eb0853dbda4020` — `main` remains `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`; branch ahead 12 / behind 0 with exactly 9 owned docs/AI files. Canonical capability contract, ADR-0014, docs/ADR indexes, trust/OAuth handoffs and architecture link were reviewed. MCP 2026-07-28 final spec was re-checked from official MCP documentation; MCP Tasks remains optional/draft and is not adopted.
-**Validation remaining:** this handoff update moves HEAD; publish PR, refresh exact-head compare/checks, move Linear to In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
+**Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** publish the focused PR, reconcile Linear to In Review, then inspect exact-head required/supplemental checks and Codex review.
+**Next exact action:** verify exact-head PR #457 scope/checks, reconcile Linear In Review, request Codex review, and stop at review handoff unless a validated finding requires an in-scope fix.
 
 ## 1. Discovery
 
@@ -173,7 +173,7 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Reconcile connector trust-boundary / delegated OAuth / architecture / docs index links only where needed.
 - [x] Add active task to `.ai/tasks/README.md`.
 - [x] Audit exact branch delta and current security-check requirements.
-- [ ] Publish focused PR and move TNYX-174 to In Review.
+- [x] Publish focused PR; move TNYX-174 to In Review after this handoff update.
 - [ ] Request Codex exact-head review and inspect required/supplemental checks.
 - [ ] Resolve only validated in-scope review findings; stop at review handoff, never merge without explicit `Go merge`.
 
