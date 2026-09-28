@@ -775,44 +775,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           },
         ),
       ),
-      GoRoute(
-        path: AppRoutes.measurementUnitsSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final profileAsync = ref.watch(profileDataProvider);
-            final profileData = profileAsync.valueOrNull;
-
-            if (profileAsync.isLoading && profileData == null) {
-              return Scaffold(
-                body: SafeArea(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: context.tioColors.primary,
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            return MeasurementUnitsSettingsPage(
-              initialPreferences:
-                  profileData?.unitPreferences ?? UnitPreferences.metric,
-              onSave: (preferences) async {
-                final repository =
-                    ref.read(measurementUnitPreferencesRepositoryProvider);
-                if (repository == null) {
-                  throw StateError(
-                    'Measurement unit persistence is unavailable.',
-                  );
-                }
-                await repository.updateMeasurementUnitPreferences(preferences);
-                ref.invalidate(profileDataProvider);
-              },
-            );
-          },
-        ),
-      ),
       ...buildProfileRoutes(
         rootNavigatorKey: rootNavigatorKey,
       ),
