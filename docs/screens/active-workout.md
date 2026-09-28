@@ -1,7 +1,7 @@
 # Active Workout Screen
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the planned Active Workout screen product contract and ownership; not evidence the screen is implemented or scheduled.
 
@@ -12,20 +12,22 @@ Truth Boundary: Authoritative for the planned Active Workout screen product cont
 
 ## Purpose
 
-Guide the user through one already-selected Routine or Program session and record the work performed. It is not a direct entry screen and it does not provide a standalone Quick Start workout.
+Guide the user through one already-selected Routine or scheduled PlannedWorkout context and record the work performed. It is not a direct entry screen and it does not provide a standalone Quick Start workout.
 
 ## Entry Rule
 
 An active session can begin only after the user explicitly selects:
 
-- a Routine from [Routine Library](routine-library.md), or
-- a scheduled session in a [Program](programs.md).
+- a Routine inside its owning [Program](programs.md) for an unscheduled Routine start, or
+- a scheduled PlannedWorkout from TrainingPlan/following state.
+
+A reusable Program by itself does not own a scheduled session.
 
 The screen shows the selected plan context at the top so the user knows what is being performed.
 
 ## Target Content
 
-- Session header: selected Routine/Program, elapsed time, finish/discard action, and truthful save/sync status.
+- Session header: selected Routine/PlannedWorkout context, elapsed time, finish/discard action, and truthful save/sync status.
 - Ordered exercise list from the selected plan.
 - Per-exercise set input for the approved values such as weight, reps, and completion state.
 - Rest timer that is tied to an action only when the configured workout behavior supports it.
@@ -43,7 +45,7 @@ The screen shows the selected plan context at the top so the user knows what is 
 
 ## Acceptance Criteria
 
-- The selected Routine/Program session is visible and cannot change invisibly mid-workout.
+- The selected Routine/PlannedWorkout context is visible and cannot change invisibly mid-workout.
 - Set changes have accessible labels, validation feedback, and a clear saved/pending state.
 - Finishing produces a Workout-owned history event that can later feed Workout Insights and Progress.
 - No active session is created from a global Quick Start button.
@@ -52,6 +54,6 @@ The screen shows the selected plan context at the top so the user knows what is 
 ## Related
 
 - [Workout](workout.md)
-- [Routine Library](routine-library.md)
+- [Program-owned Routines](routine-library.md)
 - [Programs](programs.md)
 - [Workout Insights](workout-insights.md)
