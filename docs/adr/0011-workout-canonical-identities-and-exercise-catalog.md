@@ -1,12 +1,14 @@
 # ADR-0011 — Workout canonical identities and bundled Exercise catalog
 
 Document Status: Architecture Decision Record
-Last Verified: 2026-09-28
+Last Verified: 2026-09-27
 Owner: Workout domain architecture (`apps/features/workout` + `apps/shared`)
 Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0015
 - **Date:** 2026-09-23
+
+Superseded by [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md). This record is preserved as the historical identity/catalog decision that deferred Routine/Program ownership semantics.
 
 ## Context
 
@@ -46,17 +48,8 @@ Repository ownership rules and the validated Nutrition precedent place durable p
    - Existing unused `apps/shared/lib/src/workout/**` scaffolds are non-canonical.
    - They are removed in an isolated W1A7 cleanup before new W1A1 canonical identities are introduced.
 
-6. **Program-owned user Routine boundary**
-   - A user-owned Program is the reusable container for one or more user-owned Routines.
-   - A user-owned Routine keeps a stable `RoutineId` and its own Exercise/prescription composition, but belongs to exactly one user-owned Program.
-   - A saved user Routine is not an orphan top-level Library object. Library exposes Programs; Routine create/edit/manage flows are entered from the owning Program.
-   - Initial Program creation is intentionally minimal: the create flow presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before confirming.
-   - Description, image, level, goal, type, duration and similar metadata are optional later Program-editing concerns and are not required by initial creation.
-   - Scheduling, start date, week/progress and following state remain outside the reusable Program contract and belong to the later TrainingPlan/following boundary.
-   - Optional Program/Routine media does not authorize a Storage bucket or persistence shape; those remain gated by a concrete approved persistence/media slice.
-
-7. **Explicit deferrals**
-   - Routine/Program revision/fork semantics and the exact Program/Routine entity fields are deferred to the next bounded W1 domain slices.
+6. **Explicit deferrals**
+   - Curated Routine/Program namespace and revision/fork semantics are deferred to W1A3/W1A4.
    - Set measurement kinds and `SetPrescription` fields are deferred to W1A3; this ADR does not choose any measurement.
    - Saved/Following/Owned semantics are deferred to W1A4.
    - TrainingPlan/PlannedWorkout provenance and planless scheduling are deferred to W1A5.
@@ -90,12 +83,13 @@ Rejected because it does not distinguish prescribed template state from performe
 - Adding exercises or changing non-identity catalog metadata does not require a domain redesign.
 - Built-in Exercise content stays offline-capable and does not depend on Supabase availability.
 - Supabase persistence design remains intentionally deferred until real user-owned data shapes are approved.
-- Program/Routine domain sequencing must preserve the Program-owned Routine invariant before persistence or UI work starts. The next bounded domain slice establishes `ProgramId` and the minimal Program ownership contract before the saved user Routine contract is introduced.
 - Cross-platform consumers can share stable pure-Dart Workout entities without importing Flutter feature presentation/data-source code.
 - Existing Profile/Targets models remain in their current feature location until a separate migration is justified.
 - This ADR does not resolve the Quick Start/ad-hoc session conflict.
 
 ## Links
+
+- [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md) — superseding decision
 
 - Linear: TNYX-78 — W1 Workout domain identities, IA, persistence & folder ownership
 - [Active decisions](../../.ai/DECISIONS.md)
