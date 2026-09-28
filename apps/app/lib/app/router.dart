@@ -28,7 +28,6 @@ import 'routing/routes/profile_routes.dart';
 import 'routing/routes/settings_routes.dart';
 import 'routing/shell/shell_route.dart';
 import 'session/session.dart';
-import 'settings_persistence_providers.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
