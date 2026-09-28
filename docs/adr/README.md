@@ -189,6 +189,7 @@ Existing ADRs remain historical records and are not rewritten merely to match th
 | [0010](0010-settings-local-calendar-first-day-of-week.md) | Accepted | Settings owns the local-only app-global Calendar Preferences first-day-of-week value. |
 | [0011](0011-workout-canonical-identities-and-exercise-catalog.md) | Accepted | Workout durable identity/value-object ownership is shared; built-in Exercises use stable bundled `ex_*` catalog identities without Supabase mirroring. |
 | [0012](0012-delegated-external-connector-trust-boundary.md) | Accepted | External connectors use Tio-controlled delegated credentials/grants over stable Tio capabilities; V1 is read-only and runtime-neutral. |
+| [0013](0013-delegated-oauth-authorization-contract.md) | Accepted | Pre-registered connector clients use Authorization Code + PKCE with server-authoritative grants/scopes, revocation, and read-only V1 authority. |
 
 ## Authoring workflow
 

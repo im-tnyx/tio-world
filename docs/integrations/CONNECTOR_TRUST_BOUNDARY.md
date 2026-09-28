@@ -65,7 +65,7 @@ resolved Tio user
   -> effective permission
 ~~~
 
-The exact OAuth/token representation is owned by TNYX-173 and TNYX-245. The grant/token persistence model and canonical-user bridge are owned by TNYX-246.
+Delegated client registration, scope, consent, PKCE, token-lifecycle, and revocation semantics are defined by [Delegated OAuth Authorization Contract](DELEGATED_OAUTH_AUTHORIZATION.md) and [ADR-0013](../adr/0013-delegated-oauth-authorization-contract.md). TNYX-245 owns the authorization-server endpoints/token implementation, and TNYX-246 owns grant/token persistence plus the canonical-user bridge.
 
 ## V1 Capability Classification
 
@@ -244,7 +244,7 @@ Escalate to services/api only when an approved implementation slice proves an AD
 - server-only integrations/providers require a coherent protected API boundary;
 - long-running/async execution or operational isolation exceeds a narrow function boundary.
 
-The OAuth authorization-server host itself is **not selected by TNYX-172**. TNYX-173/TNYX-245 must make that implementation decision against this rule.
+The OAuth authorization-server host remains **unselected by the architecture contract**. TNYX-173 keeps the delegated semantics runtime-neutral; TNYX-245 must select an implementation host only after proving the relevant ADR-0007 trigger and current standards/client requirements.
 
 ## Migration Invariant
 
@@ -335,4 +335,6 @@ The first production pilot remains TNYX-178 after its complete blocker set is sa
 - [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
 - [Feature Rollout & Kill Switch](../planning/FEATURE_ROLLOUT.md)
 - [ADR-0007: Active Supabase and Future services/api](../adr/0007-active-supabase-and-future-services-api.md)
+- [Delegated OAuth Authorization Contract](DELEGATED_OAUTH_AUTHORIZATION.md)
 - [ADR-0012: Delegated external connector trust boundary](../adr/0012-delegated-external-connector-trust-boundary.md)
+- [ADR-0013: Delegated OAuth authorization contract](../adr/0013-delegated-oauth-authorization-contract.md)

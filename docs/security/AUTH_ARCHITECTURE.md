@@ -87,9 +87,9 @@ external connector
 
 This does not create a second Tio identity authority. Supabase Auth still owns the canonical Tio user identity; the connector grant resolves delegated access to that canonical user. A client-supplied `user_id`, Email, Phone, conversation claim, or model inference is never authentication proof.
 
-The external connector credential format, OAuth endpoints/lifecycle, client registration, and grant persistence remain separately gated. Runtime hosting may use an approved narrow Supabase protected function when that boundary can safely enforce the complete delegated chain, or future `services/api` only after an ADR-0007 protected-server trigger is proven.
+The delegated client/scope/consent/PKCE/token-lifecycle semantics are defined by [Delegated OAuth Authorization Contract](../integrations/DELEGATED_OAUTH_AUTHORIZATION.md) and [ADR-0013](../adr/0013-delegated-oauth-authorization-contract.md). OAuth endpoint/token-format implementation and connector persistence remain separately gated under TNYX-245/TNYX-246. Runtime hosting may use an approved narrow Supabase protected function when that boundary can safely enforce the complete delegated chain, or future `services/api` only after an ADR-0007 protected-server trigger is proven.
 
-See [Connector Trust Boundary and V1 Exposure Policy](../integrations/CONNECTOR_TRUST_BOUNDARY.md) and [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md).
+See [Connector Trust Boundary and V1 Exposure Policy](../integrations/CONNECTOR_TRUST_BOUNDARY.md), [ADR-0012](../adr/0012-delegated-external-connector-trust-boundary.md), and [ADR-0013](../adr/0013-delegated-oauth-authorization-contract.md).
 
 ## Server Responsibility
 

@@ -74,6 +74,8 @@ Rejected. ADR-0007 requires a concrete approved protected-server trigger; reposi
 
 - Linear issue: https://linear.app/tnyx/issue/TNYX-172/c00-audit-external-agentconnector-platform-requirements-and-threat
 - Canonical connector policy: [Connector Trust Boundary and V1 Exposure Policy](../integrations/CONNECTOR_TRUST_BOUNDARY.md)
+- Follow-up delegated OAuth decision: [ADR-0013](0013-delegated-oauth-authorization-contract.md)
+- Canonical delegated authorization policy: [Delegated OAuth Authorization Contract](../integrations/DELEGATED_OAUTH_AUTHORIZATION.md)
 - Authentication architecture: [Authentication Architecture](../security/AUTH_ARCHITECTURE.md)
 - Supabase/future-service boundary: [ADR-0007](0007-active-supabase-and-future-services-api.md)
 - Data/privacy policy: [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
