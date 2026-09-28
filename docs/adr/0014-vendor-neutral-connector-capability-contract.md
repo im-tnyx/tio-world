@@ -53,7 +53,7 @@ A Tio capability has a stable semantic identity owned by Tio, independent of:
 - Supabase Edge Function names;
 - future `services/api` module paths.
 
-Capability contracts use explicit JSON-compatible request/result schemas and must define the applicable owner, scope family, boundedness/privacy rules, error categories, compatibility semantics, availability, and correlation expectations.
+Capability contracts use explicit JSON-compatible request/result schemas and must define the applicable owner, scope family, boundedness/privacy rules, error categories, compatibility semantics, availability, and correlation expectations. Canonical capability IDs follow a Tio-owned lowercase dot-separated semantic convention; existing `get_*` names in Linear remain candidate adapter/tool names unless a domain follow-up explicitly adopts them.
 
 The first connector capability set remains read-only.
 
@@ -74,11 +74,11 @@ TypeBox
 
 TNYX-174 does not create a competing OpenAPI/schema source of truth.
 
-Global HTTP validation/errors, rate limits/timeouts/logging, and HTTP pagination/mutation/concurrency remain owned by their Backend & Platform policies/tasks. TNYX capability contracts define transport-neutral domain semantics; adapters map those semantics into the owning transport policy.
+Global HTTP validation/errors, rate limits/timeouts/logging, and HTTP pagination/mutation/concurrency remain owned by their Backend & Platform policies/tasks (including TNYX-28, TNYX-29 and TNYX-134). TNYX capability contracts define transport-neutral domain semantics; future adapters map those semantics into the then-current implemented transport policy.
 
 Read list/history capabilities must be bounded by server-enforced pagination/range/field rules. Raw/unrestricted health-history export is not implied by ordinary pagination.
 
-Long-running operations remain conceptual until a real capability proves the need. MCP Tasks, queues, workers, or job persistence are not adopted by this ADR.
+Long-running operations remain conceptual until a real capability proves the need. The current optional/draft MCP Tasks extension, queues, workers, or job persistence are not adopted by this ADR.
 
 The logical connector gateway is an architecture boundary, not a required service/process. A later implementation may execute an approved capability through a narrow Supabase protected function or future `services/api` only under the existing ADR-0007 trigger rules.
 
