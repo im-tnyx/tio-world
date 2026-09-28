@@ -12,7 +12,7 @@ Truth Boundary: Authoritative for the planned Programs product contract and owne
 
 ## Purpose
 
-Program is the reusable user workout container. A user-owned Program owns one or more user-owned Routines. Scheduling/following a Program is a separate TrainingPlan concern.
+Program is the reusable user workout container. A user-owned Program owns zero or more user-owned Routines. A newly created Program may be empty until the user adds its first Routine. Scheduling/following a Program is a separate TrainingPlan concern.
 
 ## Minimal Create Flow
 
@@ -27,7 +27,9 @@ Library
 → Add Routine
 ```
 
-Initial creation does not require description, image, level, goal, type, duration, schedule or other planning metadata. Those fields may be introduced later in Program editing when a concrete approved use case needs them.
+For a user-created My Program, initial editing is intentionally limited to the generated/renamable name and an optional image once the approved media capability exists. Description, goal, level, type and recommended-duration metadata are not requested from the user.
+
+Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata when their owning source slice defines it. That does not grant unrestricted user mutation of source-owned fields.
 
 ## Program-owned Routines
 
@@ -63,15 +65,17 @@ Profile/Workout settings may later suggest defaults, but must not silently mutat
 
 ## Optional Metadata And Media
 
-Description, image, level, goal, type, duration and similar metadata are optional later editing concerns. Program/Routine images are not required for the initial Program/Routine creation slices. Any future media persistence must use the approved private Workout Storage boundary and requires a concrete approved data/media slice.
+A user-created My Program may be renamed and may use an optional image once media support is approved. Tio/Coach/AI Programs may expose richer source metadata, with field-level edit authority defined by their source/adoption slice.
+
+User-adjustable schedule or follow-duration/till-date controls belong to TrainingPlan/following state even when surfaced from Program context. They do not mutate reusable Program source metadata. Any future media persistence requires its own approved private Workout Storage slice.
 
 ## Acceptance Criteria
 
 - Program creation begins with a visible generated non-blank name and permits rename before confirmation.
-- A user-owned Program can own multiple stable user-owned Routines.
+- A user-owned Program can own zero or more stable user-owned Routines; an empty new Program is valid but is not automatically executable.
 - User-owned Routines cannot exist as orphan top-level Library items.
-- Optional metadata is not required to create the initial Program.
-- Program and TrainingPlan remain separate.
+- A user-created My Program initially exposes name and optional image editing only; richer source metadata is not required from the user.
+- Program and TrainingPlan remain separate; personal schedule/follow-duration changes are TrainingPlan-owned.
 - Source/adopted content preserves lineage without silent source-update propagation.
 
 ## Related
