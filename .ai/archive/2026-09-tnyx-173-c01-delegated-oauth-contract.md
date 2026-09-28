@@ -1,6 +1,7 @@
 # TNYX-173 C0.1 Slice A — Delegated OAuth authorization contract
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-28
 **Primary owner:** Security & Identity / Connector Architecture
 **Affected platforms:** External connectors / delegated authorization / current Supabase protected boundary / future services/api
 
@@ -19,19 +20,19 @@
 **Review owner:** Codex / independent PR review
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@f8e861094ed14a125b11d94aac49c0db97479f20`
+**Repository state last verified:** `main@9abff9349880a9114c15d2abfcbaf3a1434b8cc4`
 **Branch:** `tnyx/tnyx-173-c01-delegated-oauth-contract`
-**HEAD SHA:** `ff592b7ae2853696ac8bfd338a78a6031988de55` at PR publication before this tracker-handoff update
+**HEAD SHA:** `e8296b97fe790dfb5e05db3e0c447fba25ecd0c3` — reviewed exact PR head merged by PR #455
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** GitHub PR #455; Linear TNYX-173 transitioning to In Review.
+**PR / tracker:** GitHub PR #455 merged; Linear TNYX-173 Done.
 **Current implementation state:** Delegated OAuth authorization semantics, ADR-0013, standards baseline, and canonical Auth/connector authority links are authored; connector OAuth/client/grant runtime remains unimplemented.
 **Relevant execution surface:** Current Supabase Auth + protected functions remain runtime truth; connector OAuth host is intentionally unselected in this slice.
-**Validation completed at SHA:** `02f5413e64dabaa1f34ffaf54f0540df4cb63afd` — `main` unchanged at `f8e861094ed14a125b11d94aac49c0db97479f20`; branch ahead 10 / behind 0 with exactly 9 owned docs/AI files. Canonical delegated OAuth contract, ADR-0013, docs indexes, connector trust-boundary handoff, Auth link, and ADR-0012 follow-up link were reviewed. Official OAuth standards were re-checked: RFC 9700 is the published security BCP; OAuth 2.1 draft-16 remains an active Internet-Draft.
-**Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect independent review, and resolve only validated findings within scope. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
+**Validation completed at SHA:** `e8296b97fe790dfb5e05db3e0c447fba25ecd0c3` — Codex exact-head review reported “Didn't find any major issues”; unresolved review threads 0; required `Commit attribution guard` PASS. Supplemental `github-advanced-security` failed before meaningful analysis with unsupported-model infrastructure error and was non-required; it is neither a concrete security finding nor a security pass. PR #455 merged into `main` as `9abff9349880a9114c15d2abfcbaf3a1434b8cc4`.
+**Validation remaining:** none for the delivered architecture/docs outcome. Local `git diff --check` was unavailable through connector-only execution and was not claimed as run.
 **Current blocker:** none.
-**Open review finding IDs:** none.
-**Next exact action:** verify exact-head PR #455 checks/scope, reconcile Linear In Review, request Codex review, and stop at review handoff unless a validated finding requires an in-scope fix.
+**Open review finding IDs:** none; Codex exact-head review found no major issues.
+**Next exact action:** none for TNYX-173. Future connector work must start from its live successor issue and re-audit current repository/runtime/standards state.
 
 ## 1. Discovery
 
@@ -172,17 +173,17 @@ No UI is implemented in this slice. Future authorization/consent surfaces must f
 - [x] Add active task to `.ai/tasks/README.md`.
 - [x] Audit exact branch delta and current `main` required-check metadata.
 - [x] Publish focused PR; move TNYX-173 to In Review after this handoff update.
-- [ ] Inspect exact-head Codex/check state and stop at review handoff.
+- [x] Inspect exact-head Codex/check state and complete merge handoff.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Validated content head: 02f5413e64dabaa1f34ffaf54f0540df4cb63afd
-Base / merge-base: f8e861094ed14a125b11d94aac49c0db97479f20
-Branch compare at that head: ahead 10 / behind 0
-Changed files at that head: exactly 9 owned docs/AI paths
+Validated exact reviewed head: e8296b97fe790dfb5e05db3e0c447fba25ecd0c3
+Base / merge-base before merge: f8e861094ed14a125b11d94aac49c0db97479f20
+Branch compare before merge: ahead 12 / behind 0
+Changed files before merge: exactly 9 owned docs/AI paths
 - .ai/tasks/README.md
 - .ai/tasks/tnyx-173-c01-delegated-oauth-contract.md
 - docs/README.md
@@ -194,28 +195,31 @@ Changed files at that head: exactly 9 owned docs/AI paths
 - docs/security/AUTH_ARCHITECTURE.md
 
 Runtime/source inspection: PASS
-- no connector OAuth endpoints, PKCE/code exchange runtime, connector_clients, or connector_grants implementation on main
-- current Supabase protected-function patterns remain first-party session auth or narrow external-token admission; no connector runtime is implied
+- no connector OAuth endpoints, PKCE/code exchange runtime, connector_clients, or connector_grants implementation was introduced
+- current Supabase protected-function patterns remain runtime truth
 
 Canonical reconciliation: PASS
 - ADR-0012 trust boundary preserved
-- ADR-0013 records the durable delegated OAuth decision
-- Auth architecture points delegated callers to the new contract without changing Supabase Auth identity authority
-- connector trust-boundary doc hands detailed OAuth semantics to the new canonical contract
-- privacy/secrets existing policies already cover token secrecy, external-provider minimization, and deletion requirements
+- ADR-0013 records the delegated OAuth decision
+- canonical delegated OAuth document owns client/scope/consent/token-lifecycle/revocation semantics
+- Auth and connector trust-boundary docs point to the new canonical contract
+- no conflicting runtime implementation was added
 
 Standards evidence checked 2026-09-28:
-- RFC 9700 is published OAuth Security BCP
-- RFC 7009 / RFC 7636 / RFC 8252 / RFC 8414 remain applicable published standards
-- RFC 10017 is current browser-based app BCP
-- OAuth 2.1 draft-ietf-oauth-v2-1-16 is active work in progress, not a final RFC
+- RFC 9700 published OAuth Security BCP
+- RFC 7009 / RFC 7636 / RFC 8252 / RFC 8414 applicable published standards
+- RFC 10017 current browser-based app BCP
+- OAuth 2.1 draft-ietf-oauth-v2-1-16 active work in progress, not a final RFC
 
-Security-sensitive merge-gate baseline:
-- main protected: YES
-- required context: Commit attribution guard (app_id 5032971)
-- exact-head checks after this handoff commit: PENDING by construction
-- local git diff --check: NOT AVAILABLE through connector-only execution
-- runtime/build tests: not applicable to this docs/architecture-only slice
+Review / merge evidence:
+- Codex exact-head review: “Didn't find any major issues.”
+- unresolved review threads: 0
+- Commit attribution guard: PASS
+- github-advanced-security: supplemental/non-required infrastructure/model failure before meaningful analysis (“The requested model is not supported”)
+- PR #455 merged into main as 9abff9349880a9114c15d2abfcbaf3a1434b8cc4
+
+Local git diff --check: NOT AVAILABLE through connector-only execution
+Runtime/build tests: not applicable to this docs/architecture-only slice
 ```
 
 ### Review Findings and Resolution
@@ -248,4 +252,4 @@ This slice defines architecture/security semantics only. OAuth endpoints, creden
 
 ### Final Status
 
-`REVIEW`
+`PASS`

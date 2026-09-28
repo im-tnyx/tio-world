@@ -6,7 +6,6 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
-| [TNYX-173 C0.1 Slice A — Delegated OAuth authorization contract](tnyx-173-c01-delegated-oauth-contract.md) | In progress | Security & Identity / Connector Architecture | Any connector OAuth/grant/token/client-registration implementation; freezes delegated authorization semantics before TNYX-245/TNYX-246 |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
