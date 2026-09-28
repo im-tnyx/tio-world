@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Codex / independent PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`
 **Branch:** `tnyx/tnyx-174-c10-capability-contract`
-**HEAD SHA:** `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea` at branch creation
+**HEAD SHA:** `460322499ec3664c53598fda26eb0853dbda4020` at the latest completed content validation before this review-handoff update
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-174 In Progress; no PR yet.
-**Current implementation state:** TNYX-172 trust boundary and TNYX-173 delegated OAuth contract are merged/validated. No MCP server, connector gateway runtime, connector tool implementation, or services/api runtime exists on `main`.
+**PR / tracker:** Linear TNYX-174 In Progress; PR publication pending this review-handoff commit.
+**Current implementation state:** Canonical vendor-neutral capability contract, ADR-0014, and authority links are authored. No MCP server, connector gateway runtime, connector tool implementation, Supabase connector runtime, or services/api runtime is introduced.
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
-**Validation completed at SHA:** `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea` — current connector/Auth/API lifecycle/architecture docs, relevant Linear dependencies, repository searches, and current MCP 2026-07-28 protocol documentation inspected.
-**Validation remaining:** author canonical capability contract + ADR, reconcile canonical links, audit exact branch scope, publish PR, run exact-head checks, request Codex review, resolve only validated in-scope findings.
+**Validation completed at SHA:** `460322499ec3664c53598fda26eb0853dbda4020` — `main` remains `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`; branch ahead 12 / behind 0 with exactly 9 owned docs/AI files. Canonical capability contract, ADR-0014, docs/ADR indexes, trust/OAuth handoffs and architecture link were reviewed. MCP 2026-07-28 final spec was re-checked from official MCP documentation; MCP Tasks remains optional/draft and is not adopted.
+**Validation remaining:** this handoff update moves HEAD; publish PR, refresh exact-head compare/checks, move Linear to In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** create the canonical vendor-neutral connector capability contract and ADR-0014 without adding runtime/schema/UI implementation.
+**Next exact action:** publish the focused PR, reconcile Linear to In Review, then inspect exact-head required/supplemental checks and Codex review.
 
 ## 1. Discovery
 
@@ -168,11 +168,11 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Reconcile root governance, current main, TNYX-172/173 outputs, TNYX-174 dependency graph, API lifecycle/architecture ownership, and current source searches.
 - [x] Re-check current MCP final protocol revision and modern lifecycle/tool schema direction.
 - [x] Create approved focused task brief.
-- [ ] Create canonical connector capability/gateway contract under `docs/integrations/`.
-- [ ] Record durable capability/adaptor ownership decision in ADR-0014 and index it.
-- [ ] Reconcile connector trust-boundary / delegated OAuth / docs index links only where needed.
-- [ ] Add active task to `.ai/tasks/README.md`.
-- [ ] Audit exact branch delta and current security-check requirements.
+- [x] Create canonical connector capability/gateway contract under `docs/integrations/`.
+- [x] Record durable capability/adaptor ownership decision in ADR-0014 and index it.
+- [x] Reconcile connector trust-boundary / delegated OAuth / architecture / docs index links only where needed.
+- [x] Add active task to `.ai/tasks/README.md`.
+- [x] Audit exact branch delta and current security-check requirements.
 - [ ] Publish focused PR and move TNYX-174 to In Review.
 - [ ] Request Codex exact-head review and inspect required/supplemental checks.
 - [ ] Resolve only validated in-scope review findings; stop at review handoff, never merge without explicit `Go merge`.
@@ -182,12 +182,38 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 ### Validation Run
 
 ```text
-Base: main@da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
-Runtime/source search: no MCP/tool-gateway/services-api connector implementation
-Canonical docs inspected: connector trust boundary, delegated OAuth, API lifecycle, architecture
-Trackers inspected: TNYX-174, TNYX-247, TNYX-252, TNYX-175, TNYX-176, TNYX-177 plus backend contract owners
-MCP external standard checked: final 2026-07-28 modern era; adapter-level only
-Branch/diff/check validation: pending implementation
+Validated content head: 460322499ec3664c53598fda26eb0853dbda4020
+Base / merge-base: da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea
+Branch compare at that head: ahead 12 / behind 0
+Changed files: exactly 9 owned docs/AI paths
+- .ai/tasks/README.md
+- .ai/tasks/tnyx-174-c10-capability-contract.md
+- docs/README.md
+- docs/adr/0014-vendor-neutral-connector-capability-contract.md
+- docs/adr/README.md
+- docs/architecture/ARCHITECTURE.md
+- docs/integrations/CONNECTOR_CAPABILITY_CONTRACT.md
+- docs/integrations/CONNECTOR_TRUST_BOUNDARY.md
+- docs/integrations/DELEGATED_OAUTH_AUTHORIZATION.md
+
+Runtime/source inspection: PASS
+- no MCP server/SDK, connector gateway/tool runtime, connector Supabase function/schema, REST route/OpenAPI runtime, services/api or worker implementation added
+
+Canonical reconciliation: PASS
+- trust and delegated OAuth boundaries preserved
+- ADR-0014 records Tio-owned capability semantics and thin adapter ownership
+- capability naming convention is Tio semantic dot notation; existing get_* names remain adapter candidates
+- API lifecycle/OpenAPI ownership remains under Backend & Platform
+- detailed HTTP error/rate/pagination tasks are referenced without being falsely marked implemented
+- MCP 2026-07-28 is an external adapter protocol revision, not a Tio capability version
+- optional/draft MCP Tasks is not adopted
+
+Security-sensitive merge-gate baseline:
+- main protected: YES
+- required context: Commit attribution guard (app_id 5032971)
+- exact-head checks after this handoff commit: PENDING by construction
+- local git diff --check: NOT AVAILABLE through connector-only execution
+- runtime/build tests: not applicable to this docs/architecture-only slice
 ```
 
 ### Review Findings and Resolution
@@ -200,11 +226,19 @@ Branch/diff/check validation: pending implementation
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-174-c10-capability-contract.md`
+- `docs/README.md`
+- `docs/adr/0014-vendor-neutral-connector-capability-contract.md`
+- `docs/adr/README.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/integrations/CONNECTOR_CAPABILITY_CONTRACT.md`
+- `docs/integrations/CONNECTOR_TRUST_BOUNDARY.md`
+- `docs/integrations/DELEGATED_OAUTH_AUTHORIZATION.md`
 
 ### Actual Behavior
 
-No runtime behavior change is authorized or intended.
+No runtime behavior changed. This slice freezes vendor-neutral Tio capability semantics, adapter ownership and ADR-0014 only.
 
 ### Known Limitations
 
