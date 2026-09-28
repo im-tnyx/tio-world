@@ -20,7 +20,7 @@
 **Implementation ownership state:** Complete
 **Repository state last verified:** `main@4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Branch:** `tnyx/tnyx-172-c00-connector-trust-boundary`
-**HEAD SHA:** `02283fc6a967ebd52e095ab2932980775715a0e0` at the latest exact-head validation before this final review-handoff record
+**HEAD SHA:** `c0eb4e4d25b5444e76bc09f8edff895faebd9f69` at the second-pass architecture-fix content head before this handoff update
 **Base/parent SHA:** `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
@@ -28,10 +28,10 @@
 **Current implementation state:** Canonical connector trust-boundary baseline, ADR-0012, first-party-vs-delegated Auth reconciliation, Supabase runtime-host policy reconciliation, and provider privacy pilot gate are written; no connector runtime exists or was authorized.
 **Relevant execution surface:** `supabase/` current protected boundary; future `services/api` remains architecture-only under ADR-0007.
 **Validation completed at SHA:** `02283fc6a967ebd52e095ab2932980775715a0e0` — merge-base `4a038c93a4e3b74a87a80ce167977c3ef35ace2f`; ahead 13 / behind 0; exactly 9 owned docs/AI files; all seven Codex threads resolved. Current `main` metadata proves `Commit attribution guard` (app_id 5032971) is the required status context and it PASSed on this SHA. Supplemental `github-advanced-security` FAILED before meaningful analysis because its requested model was unsupported; classification: **supplemental + infrastructure/model failure**, not a concrete security finding and not a security pass.
-**Validation remaining:** this final handoff-record commit moves HEAD only in the task brief, so re-read exact-head checks after the commit and trigger the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
+**Validation remaining:** this handoff update moves HEAD; re-read exact-head compare, required `Commit attribution guard`, supplemental GHAS cause, and review-thread state before requesting the next Codex review. Local `git diff --check` remains unavailable through connector-only execution.
 **Current blocker:** none.
-**Open review finding IDs:** none; all seven Codex threads from the first review are resolved.
-**Next exact action:** verify checks on the final handoff HEAD, refresh PR evidence, then comment `@codex review` for the next review pass.
+**Open review finding IDs:** second-pass thread `PRRT_kwDOTOXwB86mrGpu` — fix applied in `c0eb4e4d`; reply/resolution pending exact-head verification.
+**Next exact action:** verify exact-head state after this handoff update, reply to and resolve the second-pass token-sub derivation finding, refresh PR evidence, then request the next Codex review.
 
 ## 1. Discovery
 
@@ -199,6 +199,7 @@ Exact-head validation after this final handoff commit: PENDING by construction a
 | R5 | P2 | Resolved | Delegated auth conflicted with canonical first-party auth/runtime docs | `65e924eaff...` | Reconciled AUTH_ARCHITECTURE, ARCHITECTURE and SUPABASE_STRATEGY; linked ADR-0012 |
 | R6 | P2 | Resolved | Production pilot lacked provider privacy-review gate | `65e924eaff...` | Connector policy now requires DATA_PRIVACY_GOVERNANCE provider review before sensitive egress |
 | R7 | P2 | Resolved | Owner Approval trigger classification missing | `65e924eaff...` | Added canonical Trigger field: New independently scoped product task/feature slice |
+| R8 | P2 | Resolved | Shared server checklist could derive delegated user identity from connector token `sub` instead of the validated grant | `7bac3423c2...` | `AUTH_ARCHITECTURE.md` now limits Supabase `sub` derivation to first-party callers and makes validated user-owned connector grant the delegated canonical-user source |
 
 ## 7. Final Handoff
 
