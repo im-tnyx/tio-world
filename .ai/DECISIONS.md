@@ -67,7 +67,7 @@ Library sections (Programs, Plans / Training Plans, Exercises) are capability-ga
 
 Initial Program creation is minimal: an already generated non-blank name such as `Program 1` is visible before confirmation and may be renamed. Optional Program metadata is deferred to later editing, and scheduling/following remains TrainingPlan-owned. No Supabase or Storage shape is implied by this decision.
 
-See [Library](../docs/screens/library.md) and [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
+See [Library](../docs/screens/library.md), [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md), and the superseding Program/Routine ownership decision [ADR-0015](../docs/adr/0015-program-owned-routine-and-program-source-boundary.md).
 
 ## D-021 — Active; implemented: authenticated App Mode uses canonical App Preferences persistence
 
