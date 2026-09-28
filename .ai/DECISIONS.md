@@ -1,7 +1,7 @@
 # Active Decisions
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: repository AI governance
 Truth Boundary: Current AI-facing decision index and durable execution constraints; canonical docs, accepted ADRs, and runtime source remain authoritative for architecture and implementation state.
 
@@ -63,9 +63,11 @@ See [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalo
 
 Workout Library is one canonical Workout-owned route/screen. Its approved initial Workout Home entry was implemented in W6A; it is not a bottom-nav destination and not a Workout-local content tab. Future configurable navigation (D-014, [ADR-0005](../docs/adr/0005-adaptive-navigation-and-action-entry.md)) may promote the same route, and the Workout Home entry remains when it does not.
 
-Library sections (Programs, Routines, Plans / Training Plans, Exercises) are capability-gated and Library owns none of their truth. Exercises is a dedicated capability/screen reached from Library; the Library root does not render the Exercise catalog. Its presentation subtree is co-located under `presentation/library/exercises/` because Library is the shipped entry and presentation hierarchy, while canonical Exercise domain/data ownership remains under the Workout Exercise capability. Where older text says "Routine Library" for this promoted route, it means this Workout Library. D-010's nested Exercise Search remains true: the dedicated Exercises screen and the builder picker are both nested Workout contexts over one Exercise capability, never a primary tab. Exercise detail ships only with its own capability slice (W3B), not with the first Exercises screen (W3A). D-010, D-014 and ADR-0005 are otherwise unchanged.
+Library sections (Programs, Plans / Training Plans, Exercises) are capability-gated and Library owns none of their truth. User-owned Routines have stable identity but are owned by exactly one user-owned Program and are managed from that Program; there is no standalone Library Routines collection. Exercises is a dedicated capability/screen reached from Library; the Library root does not render the Exercise catalog. Its presentation subtree is co-located under `presentation/library/exercises/` because Library is the shipped entry and presentation hierarchy, while canonical Exercise domain/data ownership remains under the Workout Exercise capability. Where older historical text says "Routine Library" for the promoted Library route, it means this Workout Library; it does not authorize a standalone user Routines collection. D-010's nested Exercise Search remains true: the dedicated Exercises screen and the builder picker are both nested Workout contexts over one Exercise capability, never a primary tab. Exercise detail ships only with its own capability slice (W3B), not with the first Exercises screen (W3A). D-010, D-014 and ADR-0005 are otherwise unchanged.
 
-See [Library](../docs/screens/library.md).
+Initial Program creation is minimal: an already generated non-blank name such as `Program 1` is visible before confirmation and may be renamed. Optional Program metadata is deferred to later editing, and scheduling/following remains TrainingPlan-owned. No Supabase or Storage shape is implied by this decision.
+
+See [Library](../docs/screens/library.md) and [ADR-0011](../docs/adr/0011-workout-canonical-identities-and-exercise-catalog.md).
 
 ## D-021 — Active; implemented: authenticated App Mode uses canonical App Preferences persistence
 
