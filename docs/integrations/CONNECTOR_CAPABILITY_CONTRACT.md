@@ -88,7 +88,8 @@ A capability contract should define, at minimum:
 id
 owner
 operation_class        # read now; future write/generation separately gated
-required_scope_family
+required_scope_families
+scope_combination       # V1 default: all_of
 availability_state
 request_schema
 result_schema
@@ -116,11 +117,20 @@ Examples:
 
 Connector code does not become a parallel owner.
 
-### Required scope family
+### Required scope families
 
-A capability declares the delegated scope family needed to evaluate it, such as `workout.read` or `nutrition.read`.
+A capability declares the complete set of delegated scope families needed to evaluate it, such as `[\"workout.read\"]` or an aggregate set such as `[\"profile.read\", \"nutrition.read\", \"workout.read\"]`.
 
-Scope presence is necessary but never sufficient. Effective permission still follows the delegated OAuth contract and domain authorization.
+Rules:
+
+- the descriptor uses `required_scope_families`, even when only one scope is required;
+- V1 combination semantics are `all_of`: every listed scope family must be present in the current effective grant before the capability is eligible to execute;
+- an empty list is allowed only for an explicitly public/non-user capability that has been separately approved; no V1 health/profile connector capability is public;
+- aggregate capabilities such as `profile.audit.run` must list every domain scope needed for the fields/analysis they may return;
+- a capability must not return data from a domain whose required scope is absent merely because another listed scope is present;
+- future `any_of` or conditional scope expressions require a separately documented semantic extension and must fail closed in older implementations.
+
+Scope presence is necessary but never sufficient. Effective permission still follows the delegated OAuth contract, capability availability, domain/resource authorization, entitlement/rollout/quota, and any other applicable policy.
 
 ## Request Contract
 
@@ -166,14 +176,17 @@ A list/history/summary capability must define applicable bounds such as:
 
 - maximum page size;
 - bounded cursor/page semantics;
-- maximum time range;
+- maximum time range per request;
+- **maximum total lookback/coverage boundary for the capability**, enforced server-side across pagination and adjacent-window requests;
 - allowed aggregate windows;
 - stable ordering;
 - explicit timezone/date interpretation;
 - safe field projection;
 - unavailable-data behavior.
 
-Exact domain limits belong to the owning domain contract when TNYX-247/TNYX-252/TNYX-175 define those capabilities.
+The cumulative boundary is part of the capability/domain policy, not merely a per-request validation rule. A client must not reconstruct unrestricted history by paging through every cursor or issuing adjacent otherwise-valid windows. Implementations may enforce this with a fixed approved lookback horizon, a bounded coverage budget, a purpose-specific summary contract, or another server-authoritative mechanism that preserves the same no-unrestricted-export invariant.
+
+Exact domain limits and the chosen cumulative-control mechanism belong to the owning domain contract when TNYX-247/TNYX-252/TNYX-175 define those capabilities.
 
 Broad export is not an accidental side effect of repeated pagination. If Tio ever offers export, it requires a separately designed capability/policy.
 
@@ -250,8 +263,8 @@ capability id
 semantic revision
 operation class
 availability
-required scope family
-supported bounded range/pagination features
+required scope families + combination semantics
+supported bounded range/pagination/coverage features
 adapter compatibility hints
 ```
 
@@ -348,12 +361,14 @@ TNYX-237 owns that planning lane.
 
 A deterministic read may be retried when:
 
-- the request is side-effect-free;
+- it creates no user-visible/domain mutation;
 - authorization is re-evaluated on each attempt;
-- the same request does not create durable state;
+- separately attributed operational effects such as audit events, correlation records, metrics, rate-limit counters, or security telemetry are allowed and must remain safe/idempotency-aware for repeated attempts;
 - dependency/rate guidance permits retry.
 
-Reads must not create hidden mutation merely to support connector convenience.
+Operational evidence must not be suppressed merely to classify a read as retryable. Conversely, operational side effects must not be used to smuggle domain mutation into a read capability.
+
+Reads must not create hidden user/domain mutation merely to support connector convenience.
 
 ### Future writes
 
