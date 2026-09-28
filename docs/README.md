@@ -1,7 +1,7 @@
 # tio-world Documentation
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: repository documentation governance
 Truth Boundary: Authoritative for documentation authority, status labels, ownership taxonomy, and conflict resolution; not runtime behavior or live task status.
 
@@ -68,6 +68,7 @@ P5 and P6 apply the four-line governance headers only after the separately gated
 | [`DATA_PRIVACY_GOVERNANCE.md`](security/DATA_PRIVACY_GOVERNANCE.md) | Data classification, minimization, logging/analytics, AI/provider, deletion/export, retention, and environment-separation policy. |
 | [`DATABASE_BACKUP_RECOVERY.md`](data/DATABASE_BACKUP_RECOVERY.md) | Backup/PITR readiness, RPO/RTO, restore ownership, Storage recovery, and migration-safety policy. |
 | [`API_LIFECYCLE.md`](backend/API_LIFECYCLE.md) | `/v1` compatibility, deprecation, minimum-client, capability negotiation, and generated-client traceability policy. |
+| [`CONNECTOR_TRUST_BOUNDARY.md`](integrations/CONNECTOR_TRUST_BOUNDARY.md) | External connector/ChatGPT trust boundary, V1 read-only exposure classes, threat baseline, and Supabase-to-`services/api` runtime-host escalation rule. |
 | [`FEATURE_ROLLOUT.md`](planning/FEATURE_ROLLOUT.md) | Provider-neutral capability rollout, safe defaults, cohorting, cache/offline behavior, and emergency kill-switch policy. |
 | [`ONBOARDING_ARCHITECTURE.md`](architecture/ONBOARDING_ARCHITECTURE.md) | Single-route parent shell, mode-derived child flow, state, persistence gates, and delivery slices for onboarding. |
 | [`screens/README.md`](screens/README.md) | Per-screen product specifications, module owners, state rules, and implementation order. |
@@ -99,10 +100,11 @@ Canonical documentation is grouped by durable ownership, not by current task sta
 | `docs/backend/` | Future protected API/worker, async reliability, observability, deployment, scaling, and API lifecycle policy. |
 | `docs/security/` | Auth/identity, security, privacy, secrets, and environment policy. |
 | `docs/development/` | Developer setup and testing guidance. |
+| `docs/integrations/` | Canonical connector/OAuth/external-agent integration architecture and platform-neutral exposure policy. |
 | `docs/adr/` | Durable architecture decision records and decision history. |
 | `docs/screens/` | Per-screen product specifications and screen ownership. |
 
-Canonical connector/OAuth/ChatGPT integration documentation belongs under `docs/integrations/` once a real integration document exists. Do not create an empty directory only to reserve that destination.
+Canonical connector/OAuth/ChatGPT integration documentation lives under `docs/integrations/`. The first canonical baseline is [`CONNECTOR_TRUST_BOUNDARY.md`](integrations/CONNECTOR_TRUST_BOUNDARY.md); live task sequencing remains owned by Linear plus linked GitHub state.
 
 Do not create `docs/status/` for live project/task status. Linear plus linked GitHub issues/PRs own current sequencing, blockers, acceptance, implementation, and review state; `.ai/` remains the compact execution/routing/handoff layer.
 
