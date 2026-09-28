@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f8e861094ed14a125b11d94aac49c0db97479f20`
 **Branch:** `tnyx/tnyx-173-c01-delegated-oauth-contract`
-**HEAD SHA:** `02f5413e64dabaa1f34ffaf54f0540df4cb63afd` at the latest completed content validation before this review-handoff update
+**HEAD SHA:** `ff592b7ae2853696ac8bfd338a78a6031988de55` at PR publication before this tracker-handoff update
 **Observed working-tree state:** GitHub connector branch; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable through GitHub connector.
-**PR / tracker:** Linear TNYX-173 In Progress; PR publication pending this handoff commit.
+**PR / tracker:** GitHub PR #455; Linear TNYX-173 transitioning to In Review.
 **Current implementation state:** Delegated OAuth authorization semantics, ADR-0013, standards baseline, and canonical Auth/connector authority links are authored; connector OAuth/client/grant runtime remains unimplemented.
 **Relevant execution surface:** Current Supabase Auth + protected functions remain runtime truth; connector OAuth host is intentionally unselected in this slice.
 **Validation completed at SHA:** `02f5413e64dabaa1f34ffaf54f0540df4cb63afd` — `main` unchanged at `f8e861094ed14a125b11d94aac49c0db97479f20`; branch ahead 10 / behind 0 with exactly 9 owned docs/AI files. Canonical delegated OAuth contract, ADR-0013, docs indexes, connector trust-boundary handoff, Auth link, and ADR-0012 follow-up link were reviewed. Official OAuth standards were re-checked: RFC 9700 is the published security BCP; OAuth 2.1 draft-16 remains an active Internet-Draft.
-**Validation remaining:** this handoff update moves HEAD; publish PR, refresh exact-head compare/checks, move Linear to In Review, request/inspect independent review, and resolve only validated findings within scope. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
+**Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect independent review, and resolve only validated findings within scope. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
 **Current blocker:** none.
 **Open review finding IDs:** none.
-**Next exact action:** publish the focused PR from this branch, reconcile Linear to In Review, and inspect exact-head required/supplemental security checks plus Codex review.
+**Next exact action:** verify exact-head PR #455 checks/scope, reconcile Linear In Review, request Codex review, and stop at review handoff unless a validated finding requires an in-scope fix.
 
 ## 1. Discovery
 
@@ -171,7 +171,7 @@ No UI is implemented in this slice. Future authorization/consent surfaces must f
 - [x] Add canonical doc to `docs/README.md`.
 - [x] Add active task to `.ai/tasks/README.md`.
 - [x] Audit exact branch delta and current `main` required-check metadata.
-- [ ] Publish focused PR and move TNYX-173 to In Review only after review-ready.
+- [x] Publish focused PR; move TNYX-173 to In Review after this handoff update.
 - [ ] Inspect exact-head Codex/check state and stop at review handoff.
 
 ## 6. Quality Review
