@@ -29,9 +29,9 @@
 **Relevant execution surface:** Current product/domain ownership remains Flutter/domain + Supabase; this slice defines a logical capability boundary only.
 **Validation completed at SHA:** `460322499ec3664c53598fda26eb0853dbda4020` — `main` remains `da7e05b6488a92fefd4d9a67aa2e01f7c65b52ea`; branch ahead 12 / behind 0 with exactly 9 owned docs/AI files. Canonical capability contract, ADR-0014, docs/ADR indexes, trust/OAuth handoffs and architecture link were reviewed. MCP 2026-07-28 final spec was re-checked from official MCP documentation; MCP Tasks remains optional/draft and is not adopted.
 **Validation remaining:** this tracker-handoff update moves HEAD; refresh exact-head compare/checks, confirm Linear In Review, request/inspect Codex review, and resolve only validated in-scope findings. Local `git diff --check` is unavailable through connector-only execution and is not claimed as run.
-**Current blocker:** Codex GitHub code-review usage limit. Automatic PR review and one explicit exact-head `@codex review` retry both returned the usage-limit message; no Codex review result/finding exists yet.
-**Open review finding IDs:** none; Codex has not produced a review because of the code-review usage limit.
-**Next exact action:** when Codex code-review capacity is available, request review against the then-current exact PR #457 head before any merge. Do not treat the quota response as a clean review.
+**Current blocker:** none. Codex review capacity returned and exact-head review produced three P2 findings now being resolved in-scope.
+**Open review finding IDs:** R1 multi-scope aggregate authorization; R2 cumulative history-export boundary; R3 retryable-read operational telemetry.
+**Next exact action:** apply R1-R3 fixes, record evidence, reply/resolve the three Codex threads, then request a fresh Codex review against the new exact head.
 
 ## 1. Discovery
 
@@ -125,6 +125,9 @@ Keep capability identity and DTO semantics stable while adapters translate to pr
 | MCP protocol revision is not a Tio capability version | Approved for contract | External protocol revisions evolve independently | Connector Adapter |
 | Capability discovery reports support/availability, not authorization | Approved for contract | Discovery must not leak or grant authority | Connector + Security |
 | HTTP error/pagination/versioning global policy remains owned by Backend docs/tasks | Approved boundary | Avoid duplicate sources of truth | Backend & Platform |
+| Aggregate capabilities declare all required scope families with V1 `all_of` semantics | Approved after Codex R1 | Prevent single-scope authorization of multi-domain aggregates | Connector + Security |
+| Bounded history includes cumulative server-side lookback/coverage control | Approved after Codex R2 | Prevent repeated pages/windows from reconstructing unrestricted history | Domain owner + Connector |
+| Retryable reads may emit operational audit/telemetry but no user/domain mutation | Approved after Codex R3 | Preserve required audit evidence without misclassifying reads as mutations | Connector + Observability |
 | Adapter-specific tool descriptions/prompts are non-canonical presentation metadata | Approved boundary | Domain meaning must remain vendor neutral | Adapter owner |
 | Async/deferred work uses a transport-neutral operation/result concept only when needed | Approved boundary | Avoid speculative queue/worker/runtime | Future owning slice |
 | Exact MCP SDK/package/server host | Deferred | Implementation-time adapter decision | TNYX-248 / owning runtime slice |
@@ -174,8 +177,8 @@ The logical gateway is not a new service. It is an architecture boundary that ca
 - [x] Add active task to `.ai/tasks/README.md`.
 - [x] Audit exact branch delta and current security-check requirements.
 - [x] Publish focused PR; move TNYX-174 to In Review after this handoff update.
-- [x] Request Codex exact-head review and inspect required/supplemental checks; review result is blocked by Codex usage limit.
-- [ ] Resolve only validated in-scope review findings after Codex can review; stop at review handoff, never merge without explicit `Go merge`.
+- [x] Request Codex exact-head review and inspect required/supplemental checks; first substantive review produced R1-R3.
+- [x] Resolve validated in-scope findings R1-R3 in docs/ADR; thread replies/resolution and fresh exact-head review remain pending.
 
 ## 6. Quality Review
 
@@ -220,7 +223,9 @@ Security-sensitive merge-gate baseline:
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| R1 | P2 | Resolved in branch | Capability descriptor modeled only one required scope; aggregate capabilities need complete scope sets and combination semantics. | `d144a28639` | `required_scope_families` + V1 `all_of`; aggregate capabilities list every needed domain scope. |
+| R2 | P2 | Resolved in branch | Per-request pagination/range bounds could still permit cumulative full-history reconstruction. | `d144a28639` | Require server-authoritative cumulative lookback/coverage control across pages and adjacent windows. |
+| R3 | P2 | Resolved in branch | Retry rule forbade all durable state, conflicting with required audit/metrics/rate-limit records. | `d144a28639` | Retryable reads forbid user/domain mutation while allowing separately attributed operational evidence. |
 
 ## 7. Final Handoff
 
@@ -246,4 +251,4 @@ This slice freezes shared capability semantics only. Domain-specific read schema
 
 ### Final Status
 
-`BLOCKED — CODEX REVIEW QUOTA`
+`REVIEW`
