@@ -1,18 +1,18 @@
 # Library Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout Library product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** W6A (TNYX-266) implemented: Workout Home entry and a Library root with the Exercises section. Programs, Routines and Plans sections remain planned (W6B/W6C).
+**Status:** W6A (TNYX-266) implemented: Workout Home entry and a Library root with the Exercises section. Programs and Plans remain planned (W6B/W6C); user-owned Routines are managed inside their owning Program.
 
 ## Purpose
 
-Give the user one canonical hub for their Workout content: Programs, Routines, Training Plans and Exercises. Library is a navigation/collection surface. It does not own Program, Routine, TrainingPlan or Exercise truth; each section reads from and hands off to the owning capability.
+Give the user one canonical hub for their Workout content: Programs, Training Plans and Exercises. Library is a navigation/collection surface. It does not own Program, Routine, TrainingPlan or Exercise truth. User-owned Routines keep stable identity but are managed inside their owning Program rather than a standalone Library collection.
 
 ## Entry Points
 
@@ -39,22 +39,30 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 ```text
 Library
 ├─ Programs
-├─ Routines
+│  └─ Program detail/builder → Program-owned Routines
 ├─ Plans / Training Plans
 └─ Exercises → dedicated Exercises screen
 ```
 
 - Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
-- **Programs** and **Routines** are relationship/ownership views (for example Saved/Following and Created by me) over canonical Program and Routine identities; create/edit hands off to their builders. See [Programs](programs.md) and [Routines](routine-library.md).
+- **Programs** is the user-owned Program collection/management entry. Routine create/edit is nested inside the owning Program; there is no standalone user Routines section or top-level Create Routine action. See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
 - **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
 - **Exercises** opens the dedicated Exercises screen. It is the first real section: since W6A the Library root shows one `Exercises` row (fitness icon, `Browse all exercises`, chevron) that pushes `/workout/exercises`, so back returns to Library. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
+
+## Minimal Program Creation Contract
+
+Initial Program creation presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Blank-name fallback is not the user-facing contract.
+
+For a user-created My Program, the initial editable surface is name plus an optional image once media support is approved. Richer source metadata is not requested from the user. Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata under their own source/adoption contracts.
+
+Schedule, start/end or follow-duration/till-date state belongs to the later TrainingPlan/following boundary even when edited from Program context. Optional Program/Routine images do not authorize Supabase schema or Storage work in this slice.
 
 ## Data And State Boundaries
 
 ```text
-Program capability      → Program truth
-Routine capability      → Routine truth
-TrainingPlan capability → TrainingPlan truth
+Program capability      → Program truth + Program→Routine ownership
+Routine capability      → stable Routine identity/composition inside owning Program
+TrainingPlan capability → scheduling/following truth
 Exercise capability     → Exercise truth (including Favorites, Custom, Folders)
 Library                 → navigation + user relationship/collection queries + presentation
 ```
@@ -66,6 +74,8 @@ Library                 → navigation + user relationship/collection queries + 
 
 - One canonical Library route is reused by every entry point.
 - The root shows only sections whose capability is ready.
+- User-owned Routines are managed inside their owning Program, not a standalone Library collection.
+- Initial Program creation uses a visible generated non-blank name with optional rename before confirmation; optional metadata/scheduling is not a prerequisite.
 - Library → Exercises opens the dedicated Exercises screen; the Library root shows no Exercise rows.
 - No Library-owned domain truth.
 
@@ -73,6 +83,6 @@ Library                 → navigation + user relationship/collection queries + 
 
 - [Workout](workout.md)
 - [Exercises and Exercise Picker](exercise-search.md)
-- [Routines](routine-library.md)
+- [Program-owned Routines](routine-library.md)
 - [Programs](programs.md)
 - [Module ownership](../architecture/MODULE_OWNERSHIP.md)

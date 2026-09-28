@@ -1,7 +1,7 @@
 # Screen Catalog And Module Plan
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: screen/product architecture
 Truth Boundary: Authoritative for the screen catalog, module ownership, state/navigation planning, and implementation order; runtime source proves shipped behavior and trackers own live delivery status.
 
@@ -94,11 +94,11 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Login](login.md) | Implemented Phone-first auth entry backed by real Supabase Auth use cases; Email and Google remain supported through the canonical auth composition. |
 | Phone | [Home](home.md) | Routed Home feature placeholder; current `HomePage` intentionally renders an empty surface while Home-owned content remains future work. |
 | Phone | [Workout](workout.md) | Implemented Workout Home date surface with Library entry; Library and Exercises nested routes are shipped while broader Workout capabilities remain later slices. |
-| Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs, Routines and Plans remain later capability slices. |
+| Phone | [Library](library.md) | Implemented Workout Library root with the Exercises section; Programs and Plans remain later capability slices; user-owned Routines are managed inside their owning Program. |
 | Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
-| Phone | [Routines](routine-library.md) | Future Routines capability, reached through Library → Routines. |
-| Phone | [Programs](programs.md) | Future nested multi-week Workout program flow. |
-| Phone | [Active Workout](active-workout.md) | Future selected Routine/Program execution flow. |
+| Phone | [Program-owned Routines](routine-library.md) | Future Routine capability, created/managed inside its owning Program. |
+| Phone | [Programs](programs.md) | Future Program collection/detail flow; reusable Program truth stays separate from TrainingPlan scheduling/following. |
+| Phone | [Active Workout](active-workout.md) | Future selected Routine or scheduled PlannedWorkout execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
 | Phone | [Nutrition](nutrition.md) | `/nutrition` now renders the Nutrition-owned Meal Diary date-navigation surface; later Nutrition sections remain target work. |

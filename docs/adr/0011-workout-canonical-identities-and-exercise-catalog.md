@@ -8,6 +8,8 @@ Truth Boundary: Authoritative for this architecture decision and its historical 
 - **Status:** Accepted
 - **Date:** 2026-09-23
 
+The identity/catalog decisions in this ADR remain accepted. Its intentionally deferred Routine/Program ownership semantics are now resolved by [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md).
+
 ## Context
 
 TNYX-78 must establish one Workout identity model before Exercise Library, Programs/Routines, Training Plans, Active Workout, and history are implemented. The repository has legacy unused Workout scaffolds under `apps/shared`, while older planning text placed future capability folders under `apps/features/workout`.
@@ -86,6 +88,8 @@ Rejected because it does not distinguish prescribed template state from performe
 - This ADR does not resolve the Quick Start/ad-hoc session conflict.
 
 ## Links
+
+- [ADR-0015: Program-owned Routine and Program source boundary](0015-program-owned-routine-and-program-source-boundary.md) — superseding decision
 
 - Linear: TNYX-78 — W1 Workout domain identities, IA, persistence & folder ownership
 - [Active decisions](../../.ai/DECISIONS.md)

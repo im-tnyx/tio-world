@@ -109,8 +109,8 @@ Do not pre-create empty Workout capability folders before a real slice requires 
   calculations, normalization, validation, and durable feature data.
 - Profile is an account and fitness hub, not the owner of workout, nutrition, coaching, or progress logic.
 - Workout owns workout plans, exercises, sets, reps, rest timers, routines, history, and workout settings.
-- Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Workout also owns its local exercise catalog, muscle heatmap, training radar map, and workout calendar when recorded history is available.
-- Workout owns one canonical start/resume workflow. Home, Workout, Routine Library, or a persistent shell entry may launch it, but no other module duplicates its validation or active-session state.
+- Workout is Program/Routine-first: a user-owned Program owns zero or more stable user-owned Routines; an empty Program may exist before its first Routine, and a user Routine is not an orphan top-level Library item. An active session starts from a selected Routine or scheduled PlannedWorkout context, not a standalone Quick Start. Workout also owns its local exercise catalog, muscle heatmap, training radar map, and workout calendar when recorded history is available.
+- Workout owns one canonical start/resume workflow. Home, Workout, Workout Library, or a persistent shell entry may launch it, but no other module duplicates its validation or active-session state.
 - Nutrition owns meals, foods, calories, macros, nutrition targets, and nutrition settings. Daily Water Goal remains the existing Wellness owner; Default Glass Size is the separate Settings-owned preference, not Nutrition data.
 - Nutrition owns one canonical meal-log workflow. Home, Nutrition, Meal Diary, or future Meal Plan may launch it with context, but no other module duplicates its save or target logic.
 - Profile provides approved personal and fitness context; Nutrition owns Nutrition Target calculations and overrides, while Workout owns Workout Settings and training defaults. Cross-feature reads use stable contracts only.

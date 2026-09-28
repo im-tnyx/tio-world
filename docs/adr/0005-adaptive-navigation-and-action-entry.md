@@ -10,7 +10,7 @@ Truth Boundary: Authoritative for this architecture decision and its historical 
 
 ## Context
 
-The three App Modes provide useful guided defaults, but a mature Tio app may contain more eligible destinations than every user wants in primary navigation. Promoting feature routes such as Routine Library or Meal Plan also changes where start-workout and meal-log actions should appear. If each screen directly checks raw tab indexes or duplicates these workflows, the number of mode/layout combinations becomes difficult to maintain.
+The three App Modes provide useful guided defaults, but a mature Tio app may contain more eligible destinations than every user wants in primary navigation. Promoting feature routes such as Workout Library or Meal Plan also changes where start-workout and meal-log actions should appear. If each screen directly checks raw tab indexes or duplicates these workflows, the number of mode/layout combinations becomes difficult to maintain.
 
 The current runtime implements the three App Modes and their guided layouts. It does not implement navigation personalization, adaptive Home sections, or feature action placement. This ADR records those final-stage capabilities only.
 
@@ -20,7 +20,7 @@ The current runtime implements the three App Modes and their guided layouts. It 
 - Use each App Mode's documented tab list as the guided default for the first implementation.
 - Add a later Navigation & Tabs setting that saves three to six eligible destinations, with Home required and first.
 - Determine destination eligibility from App Mode, implemented feature availability, and release-stage policy.
-- Distinguish root destinations from promoted shortcuts. Routine Library remains Workout-owned; Meal Plan remains Nutrition-owned.
+- Distinguish root destinations from promoted shortcuts. Workout Library remains Workout-owned; Meal Plan remains Nutrition-owned.
 - Derive Home and feature surface composition from App Mode, navigation layout, feature availability, and prepared user-data state rather than numeric tab indexes.
 - Keep each feature action canonical. Tab layout may change where a command is presented, but the owning feature retains validation, state, persistence, and workflow behavior.
 - Preserve an active workout through a persistent resume entry even when Workout is hidden or reordered.

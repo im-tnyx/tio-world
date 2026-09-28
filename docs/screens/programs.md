@@ -1,46 +1,86 @@
 # Programs Screen
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-28
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for the planned Programs screen product contract and ownership; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for the planned Programs product contract and ownership; not evidence the screen is implemented or scheduled.
 
-**Surface:** Nested Phone Workout flow
+**Surface:** Nested Phone Workout flow reached from Library
 **Route:** No route exists yet
 **Primary owner:** `apps/features/workout`
 **Status:** Planned only.
 
 ## Purpose
 
-Let the user choose and follow a structured multi-week Program. A Program sequences scheduled Routine sessions; it is not a loose collection of unrelated Quick Start workouts.
+Program is the reusable user workout container. A user-owned Program owns zero or more user-owned Routines. A newly created Program may be empty until the user adds its first Routine. Scheduling/following a Program is a separate TrainingPlan concern.
 
-## Target Content
+## Minimal Create Flow
 
-- Program Library with goal, duration, experience level, required equipment, and current enrolment state.
-- Program detail with week/session sequence, upcoming Routine, completed sessions, and any supported schedule adjustment.
-- Enrol/leave/replace Program actions with clear effects on future scheduled sessions.
-- A Program session detail that opens the selected Routine and then the active-workout flow only after explicit confirmation.
+```text
+Library
+→ Programs
+→ Create Program
+→ Program 1              // generated and visible, never a blank-name state
+→ user may rename
+→ OK
+→ Program detail
+→ Add Routine
+```
 
-## Navigation And Rules
+For a user-created My Program, initial editing is intentionally limited to the generated/renamable name and an optional image once the approved media capability exists. Description, goal, level, type and recommended-duration metadata are not requested from the user.
 
-- Programs is a Workout-owned top-level flow, not a primary tab.
-- The next scheduled Program session is a valid entry to the active-workout flow; an unselected program is not.
-- Routine Library can supply a Routine to a Program editor, but Program scheduling/business rules stay in Workout.
+Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata when their owning source slice defines it. That does not grant unrestricted user mutation of source-owned fields.
 
-## Data And States
+## Program-owned Routines
 
-- Start with curated/local program content only when the source, licensing, and schema are approved.
-- Show empty availability, no active Program, schedule conflict, invalid session, loading, failed update, and offline/pending state explicitly.
-- Profile-derived training defaults may suggest a Program, but never enrol or replace one without the user's confirmation.
+A Routine has its own stable identity/composition but belongs to exactly one user-owned Program. Program detail/builder is therefore the management surface for its Routines.
+
+```text
+Program 1
+├─ Routine 1
+├─ Routine 2
+└─ Routine 3
+```
+
+Routine creation follows the same generated-name direction inside the Program. There is no standalone user Routines collection in Library.
+
+## Provenance And Adoption
+
+Tio-curated source Programs remain read-only. Explicit Add to Library / Use creates a user-owned Program copy and the editable Program-owned Routine structure required for independent changes while retaining approved source/revision lineage. Source updates must never silently mutate the user copy.
+
+User-created, accepted AI-generated and future coach-created reusable content remain one canonical Program capability distinguished by provenance/ownership, not parallel Program models.
+
+## TrainingPlan Boundary
+
+Reusable Program structure does not own the user's actual start date, current week/progress or follow schedule.
+
+```text
+Program
+→ explicit Start / Schedule
+→ TrainingPlan setup
+→ user-specific schedule / PlannedWorkout state
+```
+
+Profile/Workout settings may later suggest defaults, but must not silently mutate existing Program or TrainingPlan truth.
+
+## Optional Metadata And Media
+
+A user-created My Program may be renamed and may use an optional image once media support is approved. Tio/Coach/AI Programs may expose richer source metadata, with field-level edit authority defined by their source/adoption slice.
+
+User-adjustable schedule or follow-duration/till-date controls belong to TrainingPlan/following state even when surfaced from Program context. They do not mutate reusable Program source metadata. Any future media persistence requires its own approved private Workout Storage slice.
 
 ## Acceptance Criteria
 
-- A Program shows its session sequence and the next actionable Routine clearly.
-- Starting a workout requires a selected Routine/Program session.
-- Changing a Program explains which future sessions change and preserves completed history.
+- Program creation begins with a visible generated non-blank name and permits rename before confirmation.
+- A user-owned Program can own zero or more stable user-owned Routines; an empty new Program is valid but is not automatically executable.
+- User-owned Routines cannot exist as orphan top-level Library items.
+- A user-created My Program initially exposes name and optional image editing only; richer source metadata is not required from the user.
+- Program and TrainingPlan remain separate; personal schedule/follow-duration changes are TrainingPlan-owned.
+- Source/adopted content preserves lineage without silent source-update propagation.
 
 ## Related
 
 - [Workout](workout.md)
-- [Routine Library](routine-library.md)
+- [Program-owned Routines](routine-library.md)
+- [Library](library.md)
 - [Workout Insights](workout-insights.md)
