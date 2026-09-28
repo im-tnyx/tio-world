@@ -154,7 +154,7 @@ Feature commands remain canonical even when their entry point moves:
 
 | Action | Owner | Possible entry surfaces |
 | :--- | :--- | :--- |
-| Start or resume selected workout | Workout | Home, Workout, Routine Library, persistent active-workout strip |
+| Start or resume selected workout | Workout | Home, Workout, Workout Library → Program/Routine context, persistent active-workout strip |
 | Log meal or water | Nutrition | Home, Nutrition, Meal Diary |
 | Log a planned meal | Nutrition | Meal Plan, Nutrition summary, contextual Home card |
 
