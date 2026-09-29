@@ -11,7 +11,7 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 Verified on **2026-09-29** against:
 
-- repository base `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`, plus the content-preserving Program migration identity reconciliation under review;
+- repository base `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a` plus the content-preserving Program migration identity reconciliation included with this inventory refresh;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
