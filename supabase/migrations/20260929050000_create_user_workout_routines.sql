@@ -33,7 +33,8 @@ alter table public.user_workout_routines enable row level security;
 
 revoke all on table public.user_workout_routines from anon;
 revoke all on table public.user_workout_routines from authenticated;
-grant select, insert, update, delete on table public.user_workout_routines to authenticated;
+grant select, insert on table public.user_workout_routines to authenticated;
+grant update (name) on table public.user_workout_routines to authenticated;
 grant select, insert, update, delete on table public.user_workout_routines to service_role;
 
 create policy user_workout_routines_select_own
@@ -51,8 +52,3 @@ on public.user_workout_routines
 for update to authenticated
 using ((select auth.uid()) = user_id)
 with check ((select auth.uid()) = user_id);
-
-create policy user_workout_routines_delete_own
-on public.user_workout_routines
-for delete to authenticated
-using ((select auth.uid()) = user_id);
