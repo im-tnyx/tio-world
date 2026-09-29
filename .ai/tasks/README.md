@@ -6,7 +6,6 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
-| [Workout migration lineage reconciliation](workout-migration-lineage-reconciliation.md) | In progress | `supabase/migrations` + data docs | Before any live Routine migration deployment while Program migration identity drift is being reconciled |
 | [My Routine persistence foundation](my-routine-persistence-foundation.md) | In progress | `supabase/` + `apps/features/workout` | Repository implementation merged via PR #463; live Routine migration still requires explicit deployment authorization |
 | [My Program domain foundation](my-program-domain-foundation.md) | In progress | `apps/shared` Workout domain | Active bounded ProgramId + minimal Program contract; no UI/persistence |
 | [Workout Program-owned Routines reconciliation](workout-program-owned-routines-reconciliation.md) | In progress | Workout domain architecture | Before Program/Routine domain, Library W6B, persistence or UI work |

@@ -1,6 +1,7 @@
 # Workout migration lineage reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `supabase/migrations` + data documentation governance
 **Affected platforms:** Repository migration lineage and Supabase documentation only
 
@@ -14,22 +15,21 @@
 
 ## Active Handoff
 
-**Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
-**Review owner:** Current repository agent; independent post-implementation review complete
-**Implementation ownership state:** Active
-**Repository state last verified:** remote `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`
-**Branch:** `tnyx/workout-migration-lineage-reconciliation`
-**Observed working-tree state:** Connector-only session; local status unavailable.
-**PR / tracker:** GitHub PR #464; TNYX-78 context remains In Progress.
-**Current implementation state:** Program migration identity renamed content-preservingly; live schema docs and Program/Routine handoffs reconciled; source-head validation passed at `4ec21b0def0ec2a6b62fe7c8e9712fd20582ae66`.
-**Current blocker:** None for repository reconciliation. Routine live deployment is intentionally outside this PR.
-**Next exact action:** Verify final exact-head CI after this handoff-only update; do not merge without explicit owner instruction.
+**Planning owner:** None; reconciliation completed.
+**Implementation owner:** None; PR #464 merged.
+**Review owner:** Completed.
+**Implementation ownership state:** Inactive.
+**Repository state:** `main@9e278f6830a7d756bb2401ea20dfe5e3a28697af`.
+**PR / tracker:** PR #464 squash-merged; TNYX-78 remains In Progress because broader W1 work and Routine live deployment are separate.
+**Final validation:** Exact PR head `4a7e71cf8f39f8196d556bc5065142660ce1c853`; Supabase Database CI #86 success; commit attribution guard success; 0 unresolved review threads.
+**Hosted state:** No hosted mutation occurred. Live ledger remains 50 migrations; `user_workout_programs` is present and `user_workout_routines` is absent.
+**Final repo/live parity:** 51 repository migrations, 50 exact live version+name matches, exactly one repo-only pending migration `20260929050000_create_user_workout_routines`, 0 live-only.
+**Follow-up boundary:** Routine deployment remains a separate explicitly authorized step and must preserve checked-in migration version identity.
 
 ## Discovery / Verified Evidence
 
 - Live ledger has 50 rows and ends at `20260929040034 create_user_workout_programs`.
-- Repository `main` has 51 migration files: Program at `20260929000001` plus pending Routine at `20260929050000`.
+- At discovery on pre-reconciliation `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`, the repository had 51 migration files: Program at drifted repo version `20260929000001` plus pending Routine at `20260929050000`.
 - Live `20260929040034` stored statement content matches the checked-in Program migration after terminal-newline normalization only: hosted storage omits the file's final `\n`; the first raw difference is EOF and `trimEnd()` content is identical.
 - Live public schema has 15 base tables: `user_workout_programs` exists and `user_workout_routines` does not.
 - The Routine migration depends on the live Program table and adds the missing `(id,user_id)` ownership key before creating `user_workout_routines`.
@@ -50,7 +50,7 @@
 
 ### Validation
 
-- Supabase Database CI #85: **success** at source head `4ec21b0def0ec2a6b62fe7c8e9712fd20582ae66`.
+- Supabase Database CI #86: **success** at final PR head `4a7e71cf8f39f8196d556bc5065142660ce1c853`.
 - Full repository migration replay: **success**.
 - Complete local migration ledger verification: **success**.
 - TNYX-78 Routine ownership/RLS SQL matrix: **success**.
@@ -74,12 +74,17 @@ The currently available Supabase MCP `apply_migration` action accepts a migratio
 
 ### Actual Behavior
 
-No runtime or hosted behavior changes. After this reconciliation lands, the first 50 checked-in migrations align 1:1 with the 50 live ledger entries by version + name, and `20260929050000_create_user_workout_routines` remains the sole repository-only pending migration.
+No runtime or hosted behavior changes. After this reconciliation landed, the first 50 checked-in migrations align 1:1 with the 50 live ledger entries by version + name, and `20260929050000_create_user_workout_routines` remains the sole repository-only pending migration.
 
 ### Known Limitations
 
-Routine is not deployed live. Current connector-only session cannot perform or claim a version-preserving CLI deployment. Live Routine deployment remains a separate explicitly authorized step.
+Routine is not deployed live. At completion, the connector-only session could not perform or claim a version-preserving CLI deployment. Live Routine deployment remains a separate explicitly authorized step.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
+
+
+## Post-merge verification
+
+PR #464 merged as `9e278f6830a7d756bb2401ea20dfe5e3a28697af`. Fresh post-merge read-only verification confirmed the renamed Program migration on `main`, canonical Supabase docs updated, live migration count still 50, live Routine table still absent, and exact repo/live parity of 50 applied migrations plus one pending Routine migration. No hosted deployment was performed by the reconciliation.
