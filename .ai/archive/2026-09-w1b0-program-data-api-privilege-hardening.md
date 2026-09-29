@@ -1,6 +1,7 @@
 # W1B0 — Program Data API privilege hardening
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** Supabase Workout persistence + `apps/features/workout`
 **Affected platforms:** Supabase Postgres/Data API; no visible client behavior change
 
@@ -15,15 +16,15 @@
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
+**Implementation owner:** Completed on `tnyx/tnyx-78-w1b0-program-privilege-hardening`
 **Review owner:** Manual Codex-style review because automated Codex code-review quota is exhausted
-**Implementation ownership state:** Complete
-**Repository state last verified:** 2026-09-29, `main@6c2e6d9139cfb3ae43e222c70af3c4fc031dbafe`
-**Branch:** `tnyx/tnyx-78-w1b0-program-privilege-hardening`
+**Implementation ownership state:** Completed
+**Repository state last verified:** 2026-09-29 after PR #473 merge and hosted deployment; remote `main@69290bd33b104e6633241903a6325f65b5c36e98`
+**Branch:** `tnyx/tnyx-78-w1b0-program-privilege-hardening` (merged; branch cleanup not requested)
 **Tracker:** TNYX-78 remains In Progress; no focused W1B0 child exists.
-**Current implementation state:** Migration, focused SQL privilege matrix, and Supabase DB CI wiring are complete. Source head `5c2a4c557ad35e1e1ad16853fffc86878975d6b6` passed Supabase Database CI #87, including full replay, complete migration ledger, the new Program privilege matrix, existing DB matrices, concurrency test, and lint-diff. Required Commit attribution guard passed. No live Supabase mutation has been performed.
-**Current blocker:** None. The repository-required migration filename was generated locally by the owner using the pinned Supabase CLI.
-**Next exact action:** Revalidate the new handoff-only exact head, then hand PR #473 back for owner merge approval. Live deployment remains post-merge only.
+**Current implementation state:** Validated on `main` and deployed to hosted Supabase. PR #473 merged as `69290bd33b104e6633241903a6325f65b5c36e98`; migration `20260929133232_harden_user_workout_program_privileges` is applied live. Authenticated Program access is now SELECT/INSERT + `UPDATE(name)` only, with no DELETE or table-wide UPDATE.
+**Current blocker:** None for this validated slice. TNYX-78 remains `In Progress` because broader W1 acceptance is still incomplete.
+**Next exact action:** None for this slice. Any next W1B0 persistence decision must start from fresh `main`, live Supabase, and current TNYX-78/W3 evidence.
 
 ## 1. Discovery
 
@@ -135,24 +136,24 @@ Do not add delete/archive UI or repository APIs merely because the original tabl
 - [x] Add migration with only grant/policy hardening.
 - [x] Add focused Program privilege SQL matrix.
 - [x] Wire the focused matrix into Supabase Database CI.
-- [x] Run source-head Supabase Database CI and applicable repository checks; final handoff-only exact-head revalidation remains.
-- [ ] Run live deployment only after merge through the normal owner/local Supabase workflow.
-- [ ] Verify live grants/policies and advisors after deployment.
-- [ ] Archive this task only after validated merge/deployment reconciliation.
+- [x] Run exact-head Supabase Database CI and applicable repository checks.
+- [x] Run live deployment only after merge through the normal owner/local Supabase workflow.
+- [x] Verify live grants/policies and advisors after deployment.
+- [x] Archive this task after validated merge/deployment reconciliation.
 
 ## 6. Quality Review
 
 ### Current Audit Result
 
-PASS for read-only readiness. The mandatory CLI-generated migration filename is now available; implementation is active. No live mutation has been performed.
+PASS / VALIDATED. Hosted migration `20260929133232_harden_user_workout_program_privileges` is applied. Live verification confirms RLS remains enabled, authenticated Program access is narrowed as intended, and service_role full CRUD remains intact.
 
-Security Advisor does not currently identify a Program-specific cross-user RLS issue. The relevant finding is source/live contract breadth discovered by direct privilege inspection, not an advisor-reported vulnerability.
+Post-deploy Security Advisor has no Program-specific finding. Existing warnings concern unrelated SECURITY DEFINER RPC exposure and leaked-password protection. Performance Advisor still reports the pre-existing Routine composite-FK index advisory and unrelated RLS/init-plan/unused-index findings; this Program hardening introduced no new Program-specific advisor finding.
 
 ### Validation Completed
 
-PR #473 source head `5c2a4c557ad35e1e1ad16853fffc86878975d6b6`:
+PR #473 exact reviewed head `0bb17c30d6ea6cb83d7dd1167707b0d767f2374a`:
 
-- Supabase Database CI #87: PASS
+- Supabase Database CI #88: PASS
 - full repository migration replay: PASS
 - complete migration ledger: PASS
 - TNYX-78 Program privilege hardening SQL matrix: PASS
@@ -165,9 +166,25 @@ PR #473 source head `5c2a4c557ad35e1e1ad16853fffc86878975d6b6`:
 - manual Codex-style security review: no blocker
 - PR review threads: 0
 
+### Post-Deploy Validation
+
+Hosted Supabase verification after owner-run `supabase db push`:
+
+- migration ledger includes `20260929133232_harden_user_workout_program_privileges`;
+- `authenticated`: SELECT = yes, INSERT = yes, table-wide UPDATE = no, DELETE = no;
+- `authenticated` column UPDATE: `name` = yes; `id`, `user_id`, `created_at`, `updated_at` = no;
+- Program RLS remains enabled;
+- owner policies present: SELECT / INSERT / UPDATE;
+- DELETE policy count = 0;
+- service_role SELECT / INSERT / UPDATE / DELETE = yes;
+- table remains the same five-column shape;
+- no new Program-specific Security or Performance Advisor finding.
+
+Reviewed PR head `0bb17c30d6ea6cb83d7dd1167707b0d767f2374a` and squash merge `69290bd33b104e6633241903a6325f65b5c36e98` have the same tree `2774935e9347b1d8a48c4be01cccae4cc779b3ec`.
+
 ### Validation Remaining
 
-Final exact-head revalidation after this handoff-only update, owner merge gate, live deployment, and post-deploy privilege/advisor verification.
+None for this bounded slice.
 
 ## 7. Final Handoff
 
@@ -177,7 +194,7 @@ Migration, focused SQL security matrix, Supabase DB CI wiring, and task governan
 
 ### Actual Behavior
 
-After deployment, authenticated Data API clients will retain Program SELECT/INSERT and owner-scoped rename while losing direct Program DELETE and updates to Program identity, ownership, and timestamps. This behavior is not live yet because the migration has not been deployed.
+Hosted behavior is now live: authenticated Data API clients retain Program SELECT/INSERT and owner-scoped rename while direct Program DELETE and updates to Program identity, ownership, and timestamps are denied.
 
 ### Known Limitations
 
@@ -185,4 +202,4 @@ This slice does not decide Routine composition persistence, Favorites/Custom/Fol
 
 ### Final Status
 
-`IN PROGRESS / IMPLEMENTATION COMPLETE / FINAL EXACT-HEAD REVALIDATION PENDING`
+`PASS / VALIDATED`: PR #473 merged to `main` as `69290bd33b104e6633241903a6325f65b5c36e98`, migration `20260929133232_harden_user_workout_program_privileges` deployed successfully, and live grants/RLS/advisors verified. Parent TNYX-78 remains `In Progress` for broader W1 work.
