@@ -3,8 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+const __ownerUserId = '11111111-1111-4111-8111-111111111111';
+
 void main() {
-  const ownerUserId = '11111111-1111-4111-8111-111111111111';
   final exerciseId =
       UserCreatedExerciseRef('22222222-2222-4222-8222-222222222222');
   final sourceRef = CatalogExerciseRef('ex_barbell_bench_press');
@@ -75,7 +76,7 @@ void main() {
         ),
       ]);
       expect(gateway.listCalls, [
-        (userId: ownerUserId, includeArchived: true),
+        (userId: _ownerUserId, includeArchived: true),
       ]);
     });
 
@@ -86,7 +87,7 @@ void main() {
       await repository.list();
 
       expect(gateway.listCalls, [
-        (userId: ownerUserId, includeArchived: false),
+        (userId: _ownerUserId, includeArchived: false),
       ]);
     });
 
@@ -142,7 +143,7 @@ void main() {
       expect(gateway.insertPayloads, [
         {
           'id': exerciseId.value,
-          'user_id': userId,
+          'user_id': _ownerUserId,
           'display_name': ' My Paused Bench ',
           'based_on_catalog_exercise_id': sourceRef.value,
         },
@@ -161,7 +162,7 @@ void main() {
       expect(gateway.insertPayloads, [
         {
           'id': exerciseId.value,
-          'user_id': userId,
+          'user_id': _ownerUserId,
           'display_name': 'My Exercise',
         },
       ]);
@@ -197,13 +198,13 @@ void main() {
 
       expect(gateway.renameCalls, [
         (
-          userId: ownerUserId,
+          userId: _ownerUserId,
           exerciseId: exerciseId.value,
           displayName: ' Renamed ',
         ),
       ]);
       expect(gateway.archiveCalls, [
-        (userId: ownerUserId, exerciseId: exerciseId.value),
+        (userId: _ownerUserId, exerciseId: exerciseId.value),
       ]);
     });
   });
@@ -211,7 +212,7 @@ void main() {
 
 SupabaseUserExerciseRepository _repository({
   required _FakeUserExerciseGateway gateway,
-  String? currentUserId = ownerUserId,
+  String? currentUserId = _ownerUserId,
 }) {
   return SupabaseUserExerciseRepository(
     client: _UnusedSupabaseClient(),
@@ -242,7 +243,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required bool includeArchived,
   }) async {
     listCalls.add((
-      userId: ownerUserId,
+      userId: userId,
       includeArchived: includeArchived,
     ));
     return rows;
@@ -260,7 +261,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required String displayName,
   }) async {
     renameCalls.add((
-      userId: ownerUserId,
+      userId: userId,
       exerciseId: exerciseId,
       displayName: displayName,
     ));
@@ -272,7 +273,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required String exerciseId,
   }) async {
     archiveCalls.add((
-      userId: ownerUserId,
+      userId: userId,
       exerciseId: exerciseId,
     ));
   }
