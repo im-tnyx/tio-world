@@ -6,7 +6,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
-| [W1A3 — Routine composition & SetPrescription domain foundation](w1a3-routine-composition-set-prescription.md) | Ready | `apps/shared` Workout domain | Next bounded W1 domain slice; implementation awaits owner approval; focused Linear child creation is blocked by workspace issue limit |
+| [W1A3 — Routine composition & SetPrescription domain foundation](w1a3-routine-composition-set-prescription.md) | In progress | `apps/shared` Workout domain | Owner-approved pure-Dart composition slice; no UI/persistence/repository widening; parent TNYX-78 remains the tracker |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
