@@ -10,7 +10,7 @@
 **Approval status:** APPROVED
 **Approval evidence:** Owner explicitly approved the exact W1B1 minimum shape in chat on 2026-09-29 with `Go`.
 **Approved product/UI/data-shape boundaries:** `public.user_workout_exercises` with exactly `id`, `user_id`, `display_name`, `status`, nullable immutable `based_on_catalog_exercise_id`, `created_at`, `updated_at`; no bundled catalog mirroring and no additional W3D fields in this slice.
-**Explicit non-changes until approval:** No migration, live Supabase mutation, repository implementation, UI, route, Favorites, Folders, Routine composition, instructions, media, Storage, AI/Coach exercise provenance, or WorkoutSession changes.
+**Explicit non-changes:** No live Supabase mutation before merge/deploy approval; no UI, route, Favorites, Folders, Routine composition, instructions, media, Storage, AI/Coach exercise provenance, or WorkoutSession changes.
 
 ## Active Handoff
 
@@ -21,8 +21,9 @@
 **Repository state last verified:** 2026-09-29, `main@50b74fd5c48c1f41d1a24806e259a45ead483e06`
 **Branch:** `tnyx/w1b1-user-exercise-persistence-readiness`
 **Trackers:** TNYX-78 (W1) and TNYX-264 (W3D)
-**Current blocker:** Repository/data contract and focused unit tests are implemented on the branch. The migration filename must now be generated with the repository-pinned Supabase CLI before DB SQL/SQL-matrix implementation can continue.
-**Next exact action:** In a clean local checkout of this branch, run `supabase migration new create_user_workout_exercises` with the pinned CLI and report the generated filename. Then add the locked table/RLS/grant SQL + focused DB matrix and continue to PR validation.
+**Current implementation state:** Repository/data contract, focused unit tests, CLI-generated migration `20260929181247_create_user_workout_exercises.sql`, least-privilege RLS/grants, focused SQL security matrix, and Supabase Database CI wiring are implemented on the active branch.
+**Current blocker:** Exact-head validation and review are still pending; no hosted migration has been applied.
+**Next exact action:** Open a focused PR from this branch, run Flutter + Supabase Database CI on the exact head, resolve any review/CI findings, then merge only after gates pass. Hosted deployment remains a separate explicit post-merge owner step.
 
 ## 1. Discovery
 
@@ -44,7 +45,7 @@ Favorites, Folders and Routine composition may all reference a user-created Exer
 
 This slice therefore establishes only the durable user-created Exercise identity/lifecycle target. It is not the full W3D editor.
 
-## 3. Proposed Physical Boundary — OWNER APPROVAL REQUIRED
+## 3. Approved Physical Boundary
 
 ### Table
 
@@ -52,7 +53,7 @@ This slice therefore establishes only the durable user-created Exercise identity
 
 This table stores only user-owned dynamic Exercises. Bundled `ex_*` catalog Exercises remain outside Supabase.
 
-### Proposed columns
+### Approved columns
 
 | Column | Type | Null | Default | Contract |
 |---|---|---:|---|---|
@@ -145,20 +146,24 @@ Do NOT add in this foundation:
 
 Reason: these fields are not required to establish stable user-created Exercise identity/lifecycle, and several still need concrete W3D/W3B product decisions. Adding them now would pre-authorize speculative schema.
 
-## 7. Validation Required After Approval
+## 7. Validation
 
-- [ ] migration filename generated with pinned Supabase CLI; never invented;
+- [x] migration filename generated with pinned Supabase CLI v2.116.0: `20260929181247_create_user_workout_exercises.sql`;
 - [x] feature-owned `UserExerciseRepository` contract implemented;
 - [x] Supabase user Exercise adapter/gateway implemented;
 - [x] focused repository unit tests added;
-- full migration replay;
-- focused SQL matrix for grants/RLS and allow/deny paths;
-- repository unit tests;
-- exact-head repository CI;
-- post-merge owner-run `db push --dry-run` then explicit live push;
-- hosted migration/grant/RLS/advisor verification;
-- canonical Supabase inventory refresh;
-- task archive only after live verification.
+- [x] approved migration SQL implemented with owner RLS, column-level authenticated grants, immutable lineage, archive-not-delete and server-owned timestamps;
+- [x] focused SQL matrix added for grants/RLS and allow/deny paths;
+- [x] Supabase Database CI wired to run the focused matrix;
+- [ ] full migration replay on exact PR head;
+- [ ] focused SQL matrix pass on exact PR head;
+- [ ] repository unit tests pass on exact PR head;
+- [ ] exact-head repository CI and required attribution gate;
+- [ ] security review/advisor delta disposition;
+- [ ] post-merge owner-run `db push --dry-run` then explicit live push;
+- [ ] hosted migration/grant/RLS/advisor verification;
+- [ ] canonical Supabase inventory refresh;
+- [ ] task archive only after live verification.
 
 ## 8. Current Audit Findings
 
@@ -174,4 +179,4 @@ Reason: these fields are not required to establish stable user-created Exercise 
 
 ## 9. Final Status
 
-`IN PROGRESS / SOURCE FOUNDATION COMPLETE / MIGRATION FILENAME PENDING`
+`IN PROGRESS / IMPLEMENTATION COMPLETE / EXACT-HEAD VALIDATION PENDING`
