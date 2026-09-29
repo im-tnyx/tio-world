@@ -1,29 +1,29 @@
 # My Programs Library collection & create foundation
 
-**Status:** Ready
+**Status:** In progress
 **Primary owner:** `apps/features/workout` Programs capability + app composition/routing
 **Affected platforms:** Flutter phone only; existing Supabase Program persistence is consumed, not changed
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New visible UI/UX product slice
-**Approval status:** `AWAITING OWNER APPROVAL`
-**Approval evidence:** Owner requested the audit and planning lock after confirming Library currently has no Program/Routine creation option. No visible UI implementation has been approved yet.
-**Approved planning boundary:** Audit and lock the smallest user-visible Program capability that can ship before Routine composition.
+**Approval status:** `APPROVED — 2026-09-29`
+**Approval evidence:** After PR #468 merged, the owner explicitly approved the proposed Programs row, Programs collection screen, and Create Program editor by replying `go` on 2026-09-29.
+**Approved implementation boundary:** Add the Programs row above Exercises; a persisted Programs collection; AppBar Create (+); an empty-state Create Program action; generated editable initial naming such as `Program 1`; real loading/load-failure-retry/create-failure states; display-only Program rows; existing live Program persistence only in production.
 **Explicit non-changes:** No Routine create/edit UI, no Routine composition, no `SetPrescription`, no Exercise picker, no Program detail/builder, no post-create rename flow, no delete/archive, no images/media, no TrainingPlan/scheduling, no Explore/adoption/provenance UI, no Supabase migration/table/column/RLS/grant change, no live data mutation, and no W1A3 source change.
 
 ## Active Handoff
 
 **Planning owner:** Workout architecture audit
-**Implementation owner:** None
+**Implementation owner:** Active implementation agent on `tnyx/tnyx-267-programs-library-create`
 **Review owner:** Unassigned
-**Implementation ownership state:** Not started
-**Repository state last verified:** 2026-09-29, `main@9652e63a64ea11ad75505eb912fb02a9aa77fef6`
-**Planning branch:** `docs/my-programs-library-create-plan`
+**Implementation ownership state:** Active
+**Repository state last verified:** 2026-09-29, `main@9244f503fc48e9ab2caefe7f3778469225896cec`
+**Implementation branch:** `tnyx/tnyx-267-programs-library-create`
 **Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No new Linear child can currently be created because the workspace free issue limit is exceeded.
 **Current implementation state:** Program domain and live persistence exist, but there is no Programs route/page/controller/provider wiring and Library renders only Exercises.
-**Current blocker:** Visible UI shape requires owner approval before source changes.
-**Next exact action:** Owner approves or adjusts the proposed minimal UI contract below; then create a focused implementation branch from fresh `main` and update this brief to In progress.
+**Current blocker:** None inside the approved bounded slice. TNYX-81 remains the broader W4 parent and its unfinished Routine/builder work remains outside this implementation.
+**Next exact action:** Implement the approved Program-only slice, run focused Flutter validation, then open an exact-head PR for review.
 
 ## 1. Discovery
 
@@ -70,7 +70,7 @@ ProgramId + Program(name)
 
 Therefore no Linear dependency relation is mutated in this planning slice. The implementation should be treated as a bounded early W6B/W4 Program-only slice under the existing parents, not as evidence that TNYX-81 or TNYX-267 is complete.
 
-## 3. Proposed UI Contract — Requires Owner Approval
+## 3. Approved UI Contract
 
 ### Library root
 
@@ -222,7 +222,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 |---|---|---|---|---|
 | MP-P1 | Planning | Open | TNYX-81's broad W3 parent blocker is wider than minimal Program creation requires | Do not mutate relation in this planning PR; record bounded early slice under existing parents |
 | MP-P2 | Planning | Open | Linear workspace free issue limit prevents focused child creation | Use TNYX-267/TNYX-81 comments + this repo task until capacity exists |
-| MP-P3 | Product/UI | Needs owner decision | Exact Programs row copy/icon, create affordance placement and empty-state composition are visible UI decisions | Owner approves/adjusts before implementation |
+| MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implement only the approved shape |
 
 ## 9. Final Handoff
 
@@ -236,4 +236,4 @@ Routine creation remains unavailable until its canonical composition and builder
 
 ### Final Status
 
-`READY / AWAITING OWNER APPROVAL`
+`IN PROGRESS / OWNER-APPROVED`
