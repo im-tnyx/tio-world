@@ -133,9 +133,9 @@ Domain validation must reject structurally invalid prescription/composition valu
 - [x] Re-audit current main, open PRs, canonical docs and TNYX-78 immediately before source edits.
 - [x] Obtain explicit owner approval for this exact bounded slice.
 - [x] Lock minimal ordered composition shape and exact `SetPrescription` fields from current requirements.
-- [ ] Implement pure-Dart contracts in `apps/shared`.
-- [ ] Export through the canonical Workout barrel.
-- [ ] Add focused value/validation/order tests.
+- [x] Implement pure-Dart contracts in `apps/shared`.
+- [x] Export through the canonical Workout barrel.
+- [x] Add focused value/validation/order tests.
 - [ ] Run applicable analyze/tests and exact-head PR review.
 - [ ] Archive this brief only after validated merge.
 
@@ -144,7 +144,7 @@ Domain validation must reject structurally invalid prescription/composition valu
 ### Validation Run
 
 ```text
-Fresh pre-implementation audit completed at `main@013299af005bc54e1a3d8afecece6486174f228b`. Source validation is still pending because implementation has not yet been committed.
+Fresh pre-implementation audit completed at `main@013299af005bc54e1a3d8afecece6486174f228b`. Source implementation is committed on the branch; repository CI validation is still pending.
 ```
 
 ### Review Findings and Resolution
@@ -157,11 +157,11 @@ Fresh pre-implementation audit completed at `main@013299af005bc54e1a3d8afecece64
 
 ### Changed Files
 
-Task/index governance checkpoint only at this stage; source implementation follows on the same branch.
+`apps/shared/lib/src/workout/{set_prescription,routine_exercise,routine_composition}.dart`, Workout barrel exports, focused shared tests, ADR-0011, `.ai/DECISIONS.md`, and task/index governance.
 
 ### Actual Behavior
 
-No runtime behavior change at this checkpoint.
+Shared pure-Dart callers can construct immutable ordered Routine composition and prescribed sets. Existing Routine persistence behavior is unchanged and does not claim composition durability.
 
 ### Known Limitations
 
