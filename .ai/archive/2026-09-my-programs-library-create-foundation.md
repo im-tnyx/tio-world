@@ -1,6 +1,7 @@
 # My Programs Library collection & create foundation
 
-**Status:** In review
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `apps/features/workout` Programs capability + app composition/routing
 **Affected platforms:** Flutter phone only; existing Supabase Program persistence is consumed, not changed
 
@@ -18,12 +19,12 @@
 **Implementation owner:** Completed on `tnyx/tnyx-267-programs-library-create`
 **Review owner:** Manual repository review while Codex code-review quota is exhausted
 **Implementation ownership state:** Complete
-**Repository state last verified:** 2026-09-29, `main@9244f503fc48e9ab2caefe7f3778469225896cec`
-**Implementation branch:** `tnyx/tnyx-267-programs-library-create`
-**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No focused child was created for this bounded slice; TNYX-267 comments plus this repository task are the execution record.
-**Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
-**Current blocker:** Manual runtime review found MP-R4 and its retry-name follow-up MP-R5 in ambiguous create reconciliation. Both source fixes and regression tests are included in the current head and require exact-head repository revalidation. Automated Codex review remains unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security continues to fail before analysis on the known unsupported-model infrastructure error and is non-required.
-**Next exact action:** Complete exact-head repository validation for the MP-R4 runtime fix, then triage any new review/check finding before owner merge approval.
+**Repository state last verified:** 2026-09-29 after PR #469 merge; remote `main@6f8bc58cf16e261df92a3379fcca966596afbfed`
+**Implementation branch:** `tnyx/tnyx-267-programs-library-create` (merged; branch cleanup not requested)
+**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. PR #469 merge auto-transitioned TNYX-267 to `Done`; it was reconciled back to `Backlog` because full W6B acceptance remains blocked by TNYX-81 and is not complete.
+**Current implementation state:** Validated. The bounded Program-only slice is on `main`: Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; ambiguous durable-create retries preserve one Program identity and latest confirmed name; Program rows remain display-only; production has no in-memory Program durability fallback.
+**Current blocker:** None for this bounded validated slice. Full W6B remains blocked by TNYX-81.
+**Next exact action:** None for this slice. Future Program-owned Routine/adoption work must start from fresh `main` under the still-open TNYX-267/TNYX-81 planning state.
 
 ## 1. Discovery
 
@@ -196,7 +197,7 @@ Library continues to receive navigation callbacks from app composition. The Prog
 - [x] Add focused controller/widget/router/composition tests.
 - [x] Run applicable Flutter analyze/tests on runtime head `d5334c987674dac644799649a7dff59db1a74410`; manual PR review found only the stale-handoff issue recorded below.
 - [x] Update canonical Library/Programs docs only for behavior actually shipped.
-- [ ] Revalidate the current exact head after the MP-R4 runtime correction.
+- [x] Revalidate exact PR head `7847114c0c58e91d88e0d99d1be55c8c3b7860f3`; Flutter CI #2860 passed before merge.
 
 ## 7. Acceptance
 
@@ -227,8 +228,8 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 | MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
 | MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
 | MP-R3 | P2 | Resolved | Historical discovery bullets were still labeled as current verified runtime evidence, and the handoff next-action text referred to an already-pushed correction | Re-labeled those bullets as pre-implementation discovery evidence and made the active next action current-head revalidation |
-| MP-R4 | P1 | Resolved pending exact-head validation | A failed `create()` response could be transport-ambiguous: the row may already be durable, but the controller generated a fresh UUID on retry, allowing one user action to create duplicate Programs | Retain the pending client-generated `ProgramId` across retries and reconcile the canonical list after a create error; if that ID already exists, treat the durable write as success. Added regressions for ambiguous-after-write reconciliation and same-ID retry |
-| MP-R5 | P1 | Resolved pending exact-head validation | After MP-R4, a rarer path remained: if the first durable write lost its response, reconciliation read also failed, and the user edited the name before retry, the stable ID prevented duplicates but could reconcile success with the old durable name | When the retained ID exists with different text, use the existing repository `rename()` boundary to reconcile the latest confirmed name on that same identity, then re-read canonical state. Added a regression covering response loss + failed reconciliation + edited retry |
+| MP-R4 | P1 | Resolved | A failed `create()` response could be transport-ambiguous: the row may already be durable, but the controller generated a fresh UUID on retry, allowing one user action to create duplicate Programs | Retain the pending client-generated `ProgramId` across retries and reconcile the canonical list after a create error; if that ID already exists, treat the durable write as success. Added regressions for ambiguous-after-write reconciliation and same-ID retry |
+| MP-R5 | P1 | Resolved | After MP-R4, a rarer path remained: if the first durable write lost its response, reconciliation read also failed, and the user edited the name before retry, the stable ID prevented duplicates but could reconcile success with the old durable name | When the retained ID exists with different text, use the existing repository `rename()` boundary to reconcile the latest confirmed name on that same identity, then re-read canonical state. Added a regression covering response loss + failed reconciliation + edited retry |
 
 ## 9. Final Handoff
 
@@ -243,15 +244,16 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 
 ### Validation Evidence
 
-Pre-MP-R4 runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
+Exact reviewed PR head `7847114c0c58e91d88e0d99d1be55c8c3b7860f3`:
+- Flutter CI #2860 (`36561694916`): PASS
 - `Analyze Flutter packages`: PASS
 - `Analyze Dart packages`: PASS
 - `Test Flutter packages`: PASS
 - `Test Dart packages`: PASS
 - required `Commit attribution guard`: PASS
-- supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
+- supplemental/non-required `github-advanced-security`: infrastructure failure before repository analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
 
-Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then found MP-R4 in runtime create retry semantics and MP-R5 in the edited-name retry edge of that reconciliation. MP-R4/MP-R5 are fixed in source with regression tests and are pending exact-head validation.
+Automated Codex review was unavailable because the Codex connector reported exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then MP-R4 in ambiguous create retry semantics and MP-R5 in the edited-name retry edge. MP-R4/MP-R5 are covered by regression tests and passed exact-head CI. PR #469 then squash-merged as `6f8bc58cf16e261df92a3379fcca966596afbfed`; the merge tree `66e466230ff0340747c5cc11871b8b6b36d39e59` exactly matches the reviewed head tree.
 
 ### Known Limitations
 
@@ -259,4 +261,4 @@ Routine creation, Program detail/builder, post-create rename management, delete/
 
 ### Final Status
 
-`IN REVIEW / IMPLEMENTATION COMPLETE / HANDOFF-ONLY EXACT-HEAD REVALIDATION PENDING`
+`PASS / VALIDATED`: PR #469 merged to `main` as `6f8bc58cf16e261df92a3379fcca966596afbfed` after exact-head Flutter CI #2860 passed. This archive closes only the bounded Program collection/create foundation; TNYX-267 remains Backlog for broader W6B work.
