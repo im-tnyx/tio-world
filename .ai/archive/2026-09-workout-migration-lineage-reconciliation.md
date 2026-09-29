@@ -29,7 +29,7 @@
 ## Discovery / Verified Evidence
 
 - Live ledger has 50 rows and ends at `20260929040034 create_user_workout_programs`.
-- Repository `main` has 51 migration files: Program at `20260929000001` plus pending Routine at `20260929050000`.
+- At discovery on pre-reconciliation `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`, the repository had 51 migration files: Program at drifted repo version `20260929000001` plus pending Routine at `20260929050000`.
 - Live `20260929040034` stored statement content matches the checked-in Program migration after terminal-newline normalization only: hosted storage omits the file's final `\n`; the first raw difference is EOF and `trimEnd()` content is identical.
 - Live public schema has 15 base tables: `user_workout_programs` exists and `user_workout_routines` does not.
 - The Routine migration depends on the live Program table and adds the missing `(id,user_id)` ownership key before creating `user_workout_routines`.
@@ -74,11 +74,11 @@ The currently available Supabase MCP `apply_migration` action accepts a migratio
 
 ### Actual Behavior
 
-No runtime or hosted behavior changes. After this reconciliation lands, the first 50 checked-in migrations align 1:1 with the 50 live ledger entries by version + name, and `20260929050000_create_user_workout_routines` remains the sole repository-only pending migration.
+No runtime or hosted behavior changes. After this reconciliation landed, the first 50 checked-in migrations align 1:1 with the 50 live ledger entries by version + name, and `20260929050000_create_user_workout_routines` remains the sole repository-only pending migration.
 
 ### Known Limitations
 
-Routine is not deployed live. Current connector-only session cannot perform or claim a version-preserving CLI deployment. Live Routine deployment remains a separate explicitly authorized step.
+Routine is not deployed live. At completion, the connector-only session could not perform or claim a version-preserving CLI deployment. Live Routine deployment remains a separate explicitly authorized step.
 
 ### Final Status
 
