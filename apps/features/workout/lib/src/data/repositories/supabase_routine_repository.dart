@@ -105,15 +105,17 @@ final class SupabaseRoutineRepository implements RoutineRepository {
     required String name,
   }) async {
     final userId = _requireUserId();
-    final validated = Routine(
-      id: id,
-      programId: ProgramId('00000000-0000-0000-0000-000000000000'),
-      name: name,
-    );
+    if (name.trim().isEmpty) {
+      throw ArgumentError.value(
+        name,
+        'name',
+        'must contain at least one non-whitespace character',
+      );
+    }
     await _gateway.renameRow(
       userId: userId,
       routineId: id.value,
-      name: validated.name,
+      name: name,
     );
   }
 
