@@ -11,7 +11,7 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 Verified on **2026-09-29** against:
 
-- repository base `main@e9aa69b5f1176d87bcf79bca7ccdf407645da28e`;
+- repository base `main@69290bd33b104e6633241903a6325f65b5c36e98`;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
@@ -53,10 +53,10 @@ This inventory intentionally excludes:
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 51 / 51 |
+| Applied live migrations matched to repository | 52 / 52 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration history currently ends at `20260929050000_create_user_workout_routines`. Repository and live migration history are aligned 51 / 51 by version + name at this snapshot.
+The verified live migration history currently ends at `20260929133232_harden_user_workout_program_privileges`. Repository and live migration history are aligned 52 / 52 by version + name at this snapshot.
 
 ## Table Overview
 
@@ -495,6 +495,8 @@ The verified live migration history currently ends at `20260929050000_create_use
 ### `public.user_workout_programs`
 
 **RLS:** Enabled
+
+**Verified Data API access:** `authenticated` has `SELECT`, `INSERT`, and column-level `UPDATE(name)` only; it has no table-wide `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies remain; there is no authenticated `DELETE` policy. `service_role` retains full table CRUD.
 
 #### Columns
 
