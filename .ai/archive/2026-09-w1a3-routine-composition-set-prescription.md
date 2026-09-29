@@ -1,6 +1,7 @@
 # W1A3 — Routine composition & SetPrescription domain foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `apps/shared` Workout domain
 **Affected platforms:** shared pure-Dart Workout contracts; no UI/runtime route/persistence change
 
@@ -15,23 +16,23 @@
 ## Active Handoff
 
 **Planning owner:** Repository architecture audit
-**Implementation owner:** Current repository agent on `tnyx/tnyx-78-w1a3-routine-composition`
+**Implementation owner:** Completed on `tnyx/tnyx-78-w1a3-routine-composition`
 **Review owner:** Manual Codex-style review because automated Codex code-review quota is exhausted
-**Implementation ownership state:** Implementation complete; final handoff validation pending
+**Implementation ownership state:** Completed
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-29, `main@013299af005bc54e1a3d8afecece6486174f228b`
-**Branch:** `tnyx/tnyx-78-w1a3-routine-composition`
-**HEAD SHA:** branch created from `013299af005bc54e1a3d8afecece6486174f228b`; source implementation not yet written at this checkpoint
+**Repository state last verified:** 2026-09-29 after PR #471 merge; remote `main@d914bbb6c0d84246219eb268e99bf59ae7a36b0d`
+**Branch:** `tnyx/tnyx-78-w1a3-routine-composition` (merged; branch cleanup not requested)
+**HEAD SHA:** reviewed PR head `44fbefede921a3b415b2df8ed29d8bd94f985a1b`; squash merge `d914bbb6c0d84246219eb268e99bf59ae7a36b0d`
 **Observed working-tree state:** GitHub connector branch; no local checkout claimed
 **Observed uncommitted/dirty files:** Not observable through connector
 **PR / tracker:** Parent Linear TNYX-78 is In Progress. Attempt to create a focused W1A3 child on 2026-09-29 failed because the Linear workspace exceeded its free issue limit; no child ID exists.
-**Current implementation state:** Owner-approved and ready for source implementation. Canonical Program/Routine identity and persistence are complete; Routine composition is absent. Fresh audit also confirmed that adding composition directly to `Routine` would create a misleading persistence contract because `RoutineRepository.create(Routine)` currently persists only `id/programId/name`; W1A3 therefore uses a separate canonical composition value contract.
+**Current implementation state:** Validated on `main`. Shared pure-Dart `RoutineComposition`, ordered/repeatable `RoutineExercise`, and immutable `SetPrescription` contracts are live. Existing minimal `Routine` persistence remains unchanged and does not imply composition durability.
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/test/workout/**`, this task brief, and the canonical Workout ADR/decision text that currently defers `SetPrescription` fields.
-**Validation completed at SHA:** PR #471 source head `07ed2915bd59706237943e379a400b252d905088`: Flutter Analyze PASS, Dart Analyze PASS, Flutter tests PASS, Dart tests PASS, required Commit attribution guard PASS. Supplemental GitHub Advanced Security failed before repository analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; no repository finding was produced. Manual Codex-style review found no source/domain blocker.
-**Validation remaining:** final exact-head repository revalidation after this handoff-only task update.
-**Current blocker:** None inside the approved slice. Automated Codex review is unavailable because code-review quota is exhausted; focused Linear child creation remains unavailable because of the workspace free issue limit, so parent TNYX-78 remains the tracker.
+**Validation completed at SHA:** exact PR head `44fbefede921a3b415b2df8ed29d8bd94f985a1b`: Flutter Analyze PASS, Dart Analyze PASS, Flutter tests PASS, Dart tests PASS, required Commit attribution guard PASS. Supplemental GitHub Advanced Security failed before repository analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; no repository finding was produced. Manual Codex-style review found no source/domain blocker. Squash merge `d914bbb6c0d84246219eb268e99bf59ae7a36b0d` has the same tree `51d93453c76d2be3b1a2fe921d7782cdd1e5f9ba` as the reviewed head.
+**Validation remaining:** None for this bounded slice.
+**Current blocker:** None for this validated slice. TNYX-78 remains `In Progress` because broader W1 acceptance is still incomplete. Automated Codex review was unavailable because code-review quota was exhausted; the parent tracker remained authoritative.
 **Open review finding IDs:** None
-**Next exact action:** Revalidate the new docs-only exact head, then hand PR #471 back for owner merge approval.
+**Next exact action:** None for W1A3. Any next W1 slice must start from fresh `main` and current tracker/runtime evidence.
 
 ## 1. Discovery
 
@@ -136,14 +137,14 @@ Domain validation must reject structurally invalid prescription/composition valu
 - [x] Implement pure-Dart contracts in `apps/shared`.
 - [x] Export through the canonical Workout barrel.
 - [x] Add focused value/validation/order tests.
-- [x] Run applicable analyze/tests and source-head PR review; final docs-only exact-head revalidation remains.
-- [ ] Archive this brief only after validated merge.
+- [x] Run applicable analyze/tests and exact-head PR review.
+- [x] Archive this brief after validated merge.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Source head `07ed2915bd59706237943e379a400b252d905088` on PR #471:
+Exact reviewed head `44fbefede921a3b415b2df8ed29d8bd94f985a1b` on PR #471:
 
 ```text
 Analyze Flutter packages: PASS
@@ -151,16 +152,16 @@ Analyze Dart packages: PASS
 Test Flutter packages: PASS
 Test Dart packages: PASS
 Commit attribution guard: PASS (required by current main branch protection)
-github-advanced-security: supplemental/non-required infrastructure failure before analysis; requested model unsupported; no repository finding
+github-advanced-security: supplemental/non-required infrastructure failure before repository analysis; requested model unsupported; no repository finding
 ```
 
-Automated Codex code review is unavailable because the repository bot reports exhausted review quota. Manual Codex-style review found no source/domain blocker. This task-handoff edit moves HEAD, so final exact-head revalidation remains required.
+Automated Codex code review was unavailable because the repository bot reported exhausted review quota. Manual Codex-style review found no source/domain blocker. PR #471 squash-merged as `d914bbb6c0d84246219eb268e99bf59ae7a36b0d`; the merge tree exactly matches the reviewed head tree.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| W1A3-P1 | Planning | Open | Focused Linear child could not be created because workspace free issue limit is exceeded | 2026-09-29 | Keep TNYX-78 as tracker; do not invent an issue ID |
+| W1A3-P1 | Planning | Deferred | Focused Linear child could not be created because workspace free issue limit is exceeded | 2026-09-29 | Parent TNYX-78 remained the authoritative tracker; no invented issue ID |
 
 ## 7. Final Handoff
 
@@ -178,4 +179,4 @@ Composition persistence, performed-set history, duration/distance prescriptions,
 
 ### Final Status
 
-`IN PROGRESS / IMPLEMENTATION COMPLETE / FINAL EXACT-HEAD REVALIDATION PENDING`
+`PASS / VALIDATED`: PR #471 merged to `main` as `d914bbb6c0d84246219eb268e99bf59ae7a36b0d` after exact-head Analyze/Test and required attribution checks passed. This archive closes only W1A3; parent TNYX-78 remains `In Progress` for broader W1 work.
