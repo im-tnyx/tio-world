@@ -4,7 +4,7 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  const userId = '11111111-1111-4111-8111-111111111111';
+  const ownerUserId = '11111111-1111-4111-8111-111111111111';
   final exerciseId =
       UserCreatedExerciseRef('22222222-2222-4222-8222-222222222222');
   final sourceRef = CatalogExerciseRef('ex_barbell_bench_press');
@@ -13,7 +13,7 @@ void main() {
     test('signed-out list is empty and writes fail before gateway access',
         () async {
       final gateway = _FakeUserExerciseGateway();
-      final repository = _repository(gateway: gateway, userId: null);
+      final repository = _repository(gateway: gateway, currentUserId: null);
 
       expect(await repository.list(), isEmpty);
       await expectLater(
@@ -75,7 +75,7 @@ void main() {
         ),
       ]);
       expect(gateway.listCalls, [
-        (userId: userId, includeArchived: true),
+        (userId: ownerUserId, includeArchived: true),
       ]);
     });
 
@@ -86,7 +86,7 @@ void main() {
       await repository.list();
 
       expect(gateway.listCalls, [
-        (userId: userId, includeArchived: false),
+        (userId: ownerUserId, includeArchived: false),
       ]);
     });
 
@@ -197,13 +197,13 @@ void main() {
 
       expect(gateway.renameCalls, [
         (
-          userId: userId,
+          userId: ownerUserId,
           exerciseId: exerciseId.value,
           displayName: ' Renamed ',
         ),
       ]);
       expect(gateway.archiveCalls, [
-        (userId: userId, exerciseId: exerciseId.value),
+        (userId: ownerUserId, exerciseId: exerciseId.value),
       ]);
     });
   });
@@ -211,12 +211,12 @@ void main() {
 
 SupabaseUserExerciseRepository _repository({
   required _FakeUserExerciseGateway gateway,
-  String? userId = userId,
+  String? currentUserId = ownerUserId,
 }) {
   return SupabaseUserExerciseRepository(
     client: _UnusedSupabaseClient(),
     gateway: gateway,
-    currentUserId: () => userId,
+    currentUserId: () => currentUserId,
   );
 }
 
@@ -242,7 +242,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required bool includeArchived,
   }) async {
     listCalls.add((
-      userId: userId,
+      userId: ownerUserId,
       includeArchived: includeArchived,
     ));
     return rows;
@@ -260,7 +260,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required String displayName,
   }) async {
     renameCalls.add((
-      userId: userId,
+      userId: ownerUserId,
       exerciseId: exerciseId,
       displayName: displayName,
     ));
@@ -272,7 +272,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
     required String exerciseId,
   }) async {
     archiveCalls.add((
-      userId: userId,
+      userId: ownerUserId,
       exerciseId: exerciseId,
     ));
   }
