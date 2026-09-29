@@ -71,6 +71,8 @@ List<RouteBase> _shellBranchChildRoutes(
       parentNavigatorKey: rootNavigatorKey,
       // Library → Exercises pushes, so back from Exercises returns here.
       builder: (context, state) => LibraryPage(
+        onProgramsPressed: () =>
+            context.push(AppRoutes.workoutPrograms.path),
         onExercisesPressed: () =>
             context.push(AppRoutes.workoutExercises.path),
         onSearchPressed: () => context.push(
@@ -78,6 +80,15 @@ List<RouteBase> _shellBranchChildRoutes(
             path: AppRoutes.workoutExercises.path,
             queryParameters: const {_exercisesSearchParameter: 'true'},
           ).toString(),
+        ),
+      ),
+    ),
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutPrograms),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) => ProgramsPage(
+          repository: ref.watch(programRepositoryProvider),
         ),
       ),
     ),

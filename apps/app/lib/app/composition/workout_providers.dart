@@ -22,3 +22,14 @@ final workoutTargetsRepositoryProvider =
   }
   return InMemoryWorkoutTargetsRepository();
 });
+
+/// User-owned Program persistence.
+///
+/// Unlike onboarding-era profile/target adapters, Programs must never report a
+/// production success through an in-memory fallback. Null means durable Program
+/// persistence is unavailable and the Programs screen fails closed.
+final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient == null) return null;
+  return SupabaseProgramRepository(client: supabaseClient);
+});

@@ -1,29 +1,29 @@
 # My Programs Library collection & create foundation
 
-**Status:** Ready
+**Status:** In review
 **Primary owner:** `apps/features/workout` Programs capability + app composition/routing
 **Affected platforms:** Flutter phone only; existing Supabase Program persistence is consumed, not changed
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New visible UI/UX product slice
-**Approval status:** `AWAITING OWNER APPROVAL`
-**Approval evidence:** Owner requested the audit and planning lock after confirming Library currently has no Program/Routine creation option. No visible UI implementation has been approved yet.
-**Approved planning boundary:** Audit and lock the smallest user-visible Program capability that can ship before Routine composition.
-**Explicit non-changes:** No Routine create/edit UI, no Routine composition, no `SetPrescription`, no Exercise picker, no Program detail/builder, no post-create rename flow, no delete/archive, no images/media, no TrainingPlan/scheduling, no Explore/adoption/provenance UI, no Supabase migration/table/column/RLS/grant change, no live data mutation, and no W1A3 source change.
+**Approval status:** `APPROVED — 2026-09-29`
+**Approval evidence:** After PR #468 merged, the owner explicitly approved the proposed Programs row, Programs collection screen, and Create Program editor by replying `go` on 2026-09-29.
+**Approved implementation boundary:** Add the Programs row above Exercises; a persisted Programs collection; AppBar Create (+); an empty-state Create Program action; generated editable initial naming such as `Program 1`; real loading/load-failure-retry/create-failure states; display-only Program rows; existing live Program persistence only in production.
+**Explicit non-changes:** No Routine create/edit UI, no Routine composition, no `SetPrescription`, no Exercise picker, no Program detail/builder, no post-create rename flow, no delete/archive, no images/media, no TrainingPlan/scheduling, no Explore/adoption/provenance UI, no Supabase migration/table/column/RLS/grant/deployment change, and no W1A3 source change. The approved user action does persist a new user-owned Program through the already-live repository/table; that runtime write is the purpose of this slice, not an infrastructure mutation.
 
 ## Active Handoff
 
 **Planning owner:** Workout architecture audit
-**Implementation owner:** None
-**Review owner:** Unassigned
-**Implementation ownership state:** Not started
-**Repository state last verified:** 2026-09-29, `main@9652e63a64ea11ad75505eb912fb02a9aa77fef6`
-**Planning branch:** `docs/my-programs-library-create-plan`
-**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No new Linear child can currently be created because the workspace free issue limit is exceeded.
-**Current implementation state:** Program domain and live persistence exist, but there is no Programs route/page/controller/provider wiring and Library renders only Exercises.
-**Current blocker:** Visible UI shape requires owner approval before source changes.
-**Next exact action:** Owner approves or adjusts the proposed minimal UI contract below; then create a focused implementation branch from fresh `main` and update this brief to In progress.
+**Implementation owner:** Completed on `tnyx/tnyx-267-programs-library-create`
+**Review owner:** Manual repository review while Codex code-review quota is exhausted
+**Implementation ownership state:** Complete
+**Repository state last verified:** 2026-09-29, `main@9244f503fc48e9ab2caefe7f3778469225896cec`
+**Implementation branch:** `tnyx/tnyx-267-programs-library-create`
+**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No focused child was created for this bounded slice; TNYX-267 comments plus this repository task are the execution record.
+**Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
+**Current blocker:** Manual runtime review found MP-R4 and its retry-name follow-up MP-R5 in ambiguous create reconciliation. Both source fixes and regression tests are included in the current head and require exact-head repository revalidation. Automated Codex review remains unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security continues to fail before analysis on the known unsupported-model infrastructure error and is non-required.
+**Next exact action:** Complete exact-head repository validation for the MP-R4 runtime fix, then triage any new review/check finding before owner merge approval.
 
 ## 1. Discovery
 
@@ -33,18 +33,18 @@ From Workout Library, a signed-in user can reach their persisted Programs, creat
 
 This first slice deliberately does not pretend Routine creation is ready.
 
-### Verified Runtime Evidence
+### Pre-implementation Discovery Evidence
 
-- `LibraryPage` currently renders only one ready section: Exercises.
-- `AppRoutes` has Library and Exercises only; no Program route exists.
-- App Workout composition currently wires Workout Profile/Targets repositories only; no Program repository provider exists.
+- At discovery time, `LibraryPage` rendered only one ready section: Exercises.
+- At discovery time, `AppRoutes` had Library and Exercises only; no Program route existed.
+- At discovery time, app Workout composition wired Workout Profile/Targets repositories only; no Program repository provider existed.
 - `ProgramRepository` already supports `list()`, `create(Program)`, and `rename(...)`.
 - `SupabaseProgramRepository` persists only `id`, `user_id`, and `name` to live `public.user_workout_programs`.
 - Program persistence and owner RLS/grants are already deployed and independently verified.
 - Canonical `Program` is intentionally minimal: `ProgramId + non-blank name`.
 - ADR-0015 allows a newly created Program to contain zero Routines.
-- `docs/screens/library.md` capability-gates Programs until the capability is real.
-- `docs/screens/programs.md` defines generated/renamable initial naming but the route/screen is still planned only.
+- At discovery time, `docs/screens/library.md` capability-gated Programs until the capability became real.
+- At discovery time, `docs/screens/programs.md` defined generated/renamable initial naming while the route/screen was still planned only.
 - W1A3 remains `Ready / AWAITING OWNER APPROVAL`; this Programs slice must not absorb Routine composition.
 - Dedicated Exercises browse/search/filter is shipped; Exercise picker mode is still planned and therefore cannot be silently pulled into this slice.
 
@@ -70,7 +70,7 @@ ProgramId + Program(name)
 
 Therefore no Linear dependency relation is mutated in this planning slice. The implementation should be treated as a bounded early W6B/W4 Program-only slice under the existing parents, not as evidence that TNYX-81 or TNYX-267 is complete.
 
-## 3. Proposed UI Contract — Requires Owner Approval
+## 3. Approved UI Contract
 
 ### Library root
 
@@ -183,32 +183,33 @@ Library continues to receive navigation callbacks from app composition. The Prog
 
 ## 6. Implementation Plan
 
-- [ ] Re-read fresh main, AGENTS, active task and tracker state immediately before source edits.
-- [ ] Obtain explicit owner approval for the proposed visible UI contract.
-- [ ] Update this task to In progress and record the approved UI boundary.
-- [ ] Add canonical Program repository composition without a production in-memory durability fallback.
-- [ ] Add feature-owned Program ID generation.
-- [ ] Add Programs state/controller with load/create/error/retry behavior.
-- [ ] Add one canonical Programs route and app navigation callback.
-- [ ] Add Programs row to Library only as part of the now-real capability.
-- [ ] Add Programs collection screen.
-- [ ] Add generated-name Create Program editor.
-- [ ] Add focused controller/widget/router/composition tests.
-- [ ] Run applicable Flutter analyze/tests and exact-head PR review.
-- [ ] Update canonical Library/Programs docs only for behavior actually shipped.
+- [x] Re-read fresh main, AGENTS, active task and tracker state immediately before source edits.
+- [x] Obtain explicit owner approval for the proposed visible UI contract.
+- [x] Update this task to In progress and record the approved UI boundary.
+- [x] Add canonical Program repository composition without a production in-memory durability fallback.
+- [x] Add feature-owned Program ID generation.
+- [x] Add Programs state/controller with load/create/error/retry behavior.
+- [x] Add one canonical Programs route and app navigation callback.
+- [x] Add Programs row to Library only as part of the now-real capability.
+- [x] Add Programs collection screen.
+- [x] Add generated-name Create Program editor.
+- [x] Add focused controller/widget/router/composition tests.
+- [x] Run applicable Flutter analyze/tests on runtime head `d5334c987674dac644799649a7dff59db1a74410`; manual PR review found only the stale-handoff issue recorded below.
+- [x] Update canonical Library/Programs docs only for behavior actually shipped.
+- [ ] Revalidate the current exact head after the MP-R4 runtime correction.
 
 ## 7. Acceptance
 
-- [ ] Library exposes a working Programs entry, not a placeholder.
-- [ ] Programs screen reads persisted user Programs through `ProgramRepository`.
-- [ ] loading, empty, load-failure/retry and create-failure states are real.
-- [ ] create starts with a visible non-blank generated Program name and permits edit before confirmation.
-- [ ] confirmed create persists exactly one Program and updates the collection.
-- [ ] no fake in-memory production success path exists.
-- [ ] no Program row has a dead or fake detail action.
-- [ ] no standalone Routines section or top-level Create Routine exists.
-- [ ] no W1A3/Routine composition/Exercise picker/persistence-schema scope is introduced.
-- [ ] TNYX-81/TNYX-267 remain incomplete after this bounded slice.
+- [x] Library exposes a working Programs entry, not a placeholder.
+- [x] Programs screen reads persisted user Programs through `ProgramRepository`.
+- [x] loading, empty, load-failure/retry and create-failure states are real.
+- [x] create starts with a visible non-blank generated Program name and permits edit before confirmation.
+- [x] confirmed create persists exactly one Program and updates the collection.
+- [x] no fake in-memory production success path exists.
+- [x] no Program row has a dead or fake detail action.
+- [x] no standalone Routines section or top-level Create Routine exists.
+- [x] no W1A3/Routine composition/Exercise picker/persistence-schema scope is introduced.
+- [x] TNYX-81/TNYX-267 remain incomplete after this bounded slice.
 
 ## 8. Quality Review
 
@@ -220,20 +221,42 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 
 | ID | Severity | Status | Finding | Follow-up |
 |---|---|---|---|---|
-| MP-P1 | Planning | Open | TNYX-81's broad W3 parent blocker is wider than minimal Program creation requires | Do not mutate relation in this planning PR; record bounded early slice under existing parents |
-| MP-P2 | Planning | Open | Linear workspace free issue limit prevents focused child creation | Use TNYX-267/TNYX-81 comments + this repo task until capacity exists |
-| MP-P3 | Product/UI | Needs owner decision | Exact Programs row copy/icon, create affordance placement and empty-state composition are visible UI decisions | Owner approves/adjusts before implementation |
+| MP-P1 | Planning | Deferred | TNYX-81's broad W3 parent blocker is wider than minimal Program creation requires | Existing dependency relation intentionally remains unchanged; this slice does not claim full W4/W6B completion |
+| MP-P2 | Planning | Deferred | Linear workspace free issue limit prevented focused child creation during planning | TNYX-267 + this repository task remain the bounded execution record |
+| MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implemented without widening into Routine/detail/media/TrainingPlan work |
+| MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
+| MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
+| MP-R3 | P2 | Resolved | Historical discovery bullets were still labeled as current verified runtime evidence, and the handoff next-action text referred to an already-pushed correction | Re-labeled those bullets as pre-implementation discovery evidence and made the active next action current-head revalidation |
+| MP-R4 | P1 | Resolved pending exact-head validation | A failed `create()` response could be transport-ambiguous: the row may already be durable, but the controller generated a fresh UUID on retry, allowing one user action to create duplicate Programs | Retain the pending client-generated `ProgramId` across retries and reconcile the canonical list after a create error; if that ID already exists, treat the durable write as success. Added regressions for ambiguous-after-write reconciliation and same-ID retry |
+| MP-R5 | P1 | Resolved pending exact-head validation | After MP-R4, a rarer path remained: if the first durable write lost its response, reconciliation read also failed, and the user edited the name before retry, the stable ID prevented duplicates but could reconcile success with the old durable name | When the retained ID exists with different text, use the existing repository `rename()` boundary to reconcile the latest confirmed name on that same identity, then re-read canonical state. Added a regression covering response loss + failed reconciliation + edited retry |
 
 ## 9. Final Handoff
 
 ### Actual Behavior
 
-No runtime behavior changes in this planning slice.
+- Library now shows a real `Programs` row above Exercises.
+- Programs opens the canonical `/workout/programs` route without bottom navigation.
+- The page loads persisted user Programs through `ProgramRepository`; app composition uses `SupabaseProgramRepository` when durable Supabase is available and fails closed when it is not.
+- Empty users see `Create Program`; the AppBar also exposes Create (+).
+- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, and preserves one client-generated `ProgramId` across retries. After a create error it reconciles the canonical list by that ID, so a durable-but-response-lost write is treated as success instead of creating a duplicate on retry. If the user changes the name after an unresolved ambiguous attempt, the latest confirmed name is reconciled onto that same durable identity through the existing repository rename boundary.
+- Existing Program rows are display-only. No fake Program detail or Routine action exists.
+
+### Validation Evidence
+
+Pre-MP-R4 runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
+- `Analyze Flutter packages`: PASS
+- `Analyze Dart packages`: PASS
+- `Test Flutter packages`: PASS
+- `Test Dart packages`: PASS
+- required `Commit attribution guard`: PASS
+- supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
+
+Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then found MP-R4 in runtime create retry semantics and MP-R5 in the edited-name retry edge of that reconciliation. MP-R4/MP-R5 are fixed in source with regression tests and are pending exact-head validation.
 
 ### Known Limitations
 
-Routine creation remains unavailable until its canonical composition and builder slices land. This is intentional and must not be hidden behind a fake action.
+Routine creation, Program detail/builder, post-create rename management, delete/archive, media, provenance/adoption and TrainingPlan scheduling remain unavailable by design. TNYX-81 and the full TNYX-267 outcome remain incomplete.
 
 ### Final Status
 
-`READY / AWAITING OWNER APPROVAL`
+`IN REVIEW / IMPLEMENTATION COMPLETE / HANDOFF-ONLY EXACT-HEAD REVALIDATION PENDING`

@@ -114,6 +114,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.themeSettings,
     AppRoutes.calendarSettings,
     AppRoutes.workoutLibrary,
+    AppRoutes.workoutPrograms,
     AppRoutes.workoutExercises,
     AppRoutes.login,
     AppRoutes.emailLogin,

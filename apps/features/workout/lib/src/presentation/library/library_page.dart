@@ -3,18 +3,18 @@ import 'package:tio_core/core.dart';
 
 /// Canonical Workout Library root.
 ///
-/// Lists only capability sections that are ready; today that is Exercises.
-/// Programs, Routines and Training Plans join when their capabilities land,
-/// never as placeholders. Library owns no Exercise, Program, Routine or
-/// TrainingPlan truth: each section hands off to its owning route, which the
-/// app shell supplies.
+/// Lists only capabilities that are ready. Programs and Exercises are real
+/// destinations in this slice; Routines remain owned by Program context and
+/// Training Plans join only when their own capability lands.
 class LibraryPage extends StatelessWidget {
   const LibraryPage({
+    required this.onProgramsPressed,
     required this.onExercisesPressed,
     required this.onSearchPressed,
     super.key,
   });
 
+  final VoidCallback onProgramsPressed;
   final VoidCallback onExercisesPressed;
 
   /// Opens Exercises with its search field active and focused.
@@ -60,6 +60,16 @@ class LibraryPage extends StatelessWidget {
             TioGroupCard(
               children: [
                 TioSettingsNavigationRow(
+                  key: const ValueKey('library-programs-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.view_list_rounded,
+                  ),
+                  title: 'Programs',
+                  supportingText: 'Create and manage programs',
+                  onTap: onProgramsPressed,
+                ),
+                const _LibraryDivider(),
+                TioSettingsNavigationRow(
                   key: const ValueKey('library-exercises-entry'),
                   leading: const TioSettingsLeadingIcon(
                     icon: Icons.fitness_center_rounded,
@@ -73,6 +83,21 @@ class LibraryPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LibraryDivider extends StatelessWidget {
+  const _LibraryDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Divider(
+      height: TioSize.dp1,
+      thickness: TioStroke.width1,
+      indent: TioSize.dp64,
+      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
 }

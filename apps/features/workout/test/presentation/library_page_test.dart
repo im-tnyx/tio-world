@@ -5,6 +5,7 @@ import 'package:tio_feature_workout/workout.dart';
 
 Future<void> _pump(
   WidgetTester tester, {
+  VoidCallback? onProgramsPressed,
   VoidCallback? onExercisesPressed,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
@@ -16,6 +17,7 @@ Future<void> _pump(
         child: child ?? const SizedBox.shrink(),
       ),
       home: LibraryPage(
+        onProgramsPressed: onProgramsPressed ?? () {},
         onExercisesPressed: onExercisesPressed ?? () {},
         onSearchPressed: onSearchPressed ?? () {},
       ),
@@ -35,21 +37,41 @@ void main() {
     expect(find.byType(BackButton), findsOneWidget);
   });
 
-  testWidgets('lists only the ready Exercises section', (tester) async {
+  testWidgets('lists ready Programs above Exercises', (tester) async {
     await _pump(tester);
 
-    expect(find.byType(TioSettingsNavigationRow), findsOneWidget);
-    final entry = find.byKey(const ValueKey('library-exercises-entry'));
+    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(2));
+    final programs = find.byKey(const ValueKey('library-programs-entry'));
+    final exercises = find.byKey(const ValueKey('library-exercises-entry'));
+
     expect(
-      find.descendant(of: entry, matching: find.text('Exercises')),
+      find.descendant(of: programs, matching: find.text('Programs')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: entry, matching: find.text('Browse all exercises')),
+      find.descendant(
+        of: programs,
+        matching: find.text('Create and manage programs'),
+      ),
       findsOneWidget,
     );
+    expect(
+      find.descendant(of: exercises, matching: find.text('Exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: exercises,
+        matching: find.text('Browse all exercises'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(programs).dy,
+      lessThan(tester.getTopLeft(exercises).dy),
+    );
+
     for (final placeholder in [
-      'Programs',
       'Routines',
       'Plans',
       'Training Plans',
@@ -59,7 +81,7 @@ void main() {
     ]) {
       expect(find.text(placeholder), findsNothing, reason: placeholder);
     }
-    // The root never renders the Exercise catalog itself.
+    expect(find.byType(ProgramsPage), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(TabBar), findsNothing);
   });
@@ -80,6 +102,16 @@ void main() {
     await tester.tap(search);
     await tester.pump();
     expect(searched, 1);
+  });
+
+  testWidgets('Programs hands off to the owning route', (tester) async {
+    var opened = 0;
+    await _pump(tester, onProgramsPressed: () => opened++);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-entry')));
+    await tester.pump();
+
+    expect(opened, 1);
   });
 
   testWidgets('Exercises hands off to the owning route', (tester) async {
