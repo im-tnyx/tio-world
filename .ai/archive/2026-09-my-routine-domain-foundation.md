@@ -1,6 +1,7 @@
 # My Routine domain foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `apps/shared` Workout domain
 **Affected platforms:** Shared pure-Dart Workout domain
 
@@ -15,9 +16,9 @@
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation owner:** None; completed implementation is merged.
+**Review owner:** Completed
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** remote `main@50cca711e8f617cd8eda3d9be590ef7e2ed33d19`
 **Branch:** `tnyx/my-routine-domain-foundation`
@@ -28,8 +29,8 @@
 **Current implementation state:** Approved domain slice started; source changes not yet written.
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/test/workout/**`.
 **Validation completed at SHA:** Read-only architecture/runtime audit only.
-**Validation remaining:** focused tests/analyze via exact-head GitHub CI, independent review.
-**Current blocker:** None.
+**Validation remaining:** None for this bounded task.
+**Current blocker:** None; task is complete and archived.
 **Open review finding IDs:** None.
 **Next exact action:** Implement RoutineId and minimal Routine contract/tests only.
 
@@ -121,4 +122,9 @@ Connector-only session has no local checkout, so local commands cannot be claime
 
 ### Final Status
 
-`PARTIAL`
+`VALIDATED`
+
+
+## Archive closure
+
+PR #462 merged the approved `RoutineId` + minimal `Routine(id, programId, name)` foundation as `537fcbd5f973e13208206ed4099d75f119607cf9`. Exact PR head `259a1ec8e39e3e1f6bac53534562f98319c36704` had Flutter CI run #2846 complete successfully. Routine composition and `SetPrescription` remain separate W1 work.

@@ -1,9 +1,10 @@
 # Workout Program-owned Routines reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-28
 **Owner approval:** 2026-09-28, owner requested audit-first start after approving the Program-owned Routine direction and minimal generated-name creation flow.
 **Base:** `main@c0274d03568e0b06c43521918da220bb207c1b89`
-**Implementation owner:** current repository agent
+**Implementation owner:** None; completed implementation is merged.
 **Runtime scope:** None. Planning/canonical docs only.
 
 ## Outcome
@@ -60,3 +61,8 @@ No Flutter UI/runtime change, Program/Routine entity implementation, repository/
 ## Handoff
 
 Do not begin Program/Routine runtime or Supabase work until this canonical reconciliation is reviewed/merged. After merge, audit the smallest Program identity/entity foundation slice first, then the Program-owned Routine identity/composition slice.
+
+
+## Archive closure
+
+PR #459 merged the owner-approved Program-owned Routine architecture as `fbc5f0d4507c4a23644b0f4f41eec10c592b09b6`. Durable ownership/source boundaries are now canonical in ADR-0015 and D-020, and the subsequent Program/Routine domain and persistence slices implemented that direction.

@@ -1,6 +1,7 @@
 # My Program domain foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `apps/shared` Workout domain
 **Affected platforms:** shared pure-Dart contract; no UI/runtime route/persistence change
 
@@ -15,9 +16,9 @@
 ## Active Handoff
 
 **Planning owner:** current repository agent
-**Implementation owner:** current repository agent
-**Review owner:** current repository agent after implementation ownership is complete
-**Implementation ownership state:** Active
+**Implementation owner:** None; completed implementation is merged.
+**Review owner:** Completed
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-29, branch created from current `main` after PR #459 merge
 **Branch:** `tnyx/my-program-domain-foundation`
@@ -27,8 +28,8 @@
 **Current implementation state:** ProgramId + minimal Program + exports + focused tests implemented; self-review complete
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`
 **Validation completed at SHA:** `dc163bb57546e85925c25a8a951e678dc4471681` API scope/ancestry audit: branch ahead 7, behind 0, merge-base equals main `fbc5f0d`; exactly 7 expected files changed
-**Validation remaining:** repository CI/analyze/test evidence after PR; local commands unavailable in connector-only environment
-**Current blocker:** None
+**Validation remaining:** None for this bounded task.
+**Current blocker:** None; task is complete and archived.
 **Open review finding IDs:** None
 **Next exact action:** open PR, inspect exact-head CI, then independent review
 
@@ -135,4 +136,9 @@ Persistence, Program creation naming, Routine ownership implementation and UI re
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
+
+
+## Archive closure
+
+PR #460 merged the approved `ProgramId` + minimal `Program(id, name)` foundation as `e36c10f51f3b10882983912dddd99237791fc6e4`. Exact PR head `ca2059e411c645c9032f0b817929638a7c92393b` had Flutter CI run #2842 complete successfully. Later Program persistence work was delivered separately; this archived task remains domain-foundation evidence only.
