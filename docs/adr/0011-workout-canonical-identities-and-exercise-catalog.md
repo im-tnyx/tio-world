@@ -1,7 +1,7 @@
 # ADR-0011 — Workout canonical identities and bundled Exercise catalog
 
 Document Status: Architecture Decision Record
-Last Verified: 2026-09-27
+Last Verified: 2026-09-29
 Owner: Workout domain architecture (`apps/features/workout` + `apps/shared`)
 Truth Boundary: Authoritative for this architecture decision and its historical context/lifecycle status; not evidence that implementation is live or complete.
 
@@ -39,10 +39,13 @@ Repository ownership rules and the validated Nutrition precedent place durable p
    - Routine/Program/PlannedWorkout/WorkoutSession/Favorite/Folder contracts reference canonical Exercise identity rather than cloning built-in catalog truth.
    - Completed WorkoutSession design must snapshot the performed data needed to keep history stable if catalog/template content later changes.
 
-4. **Set terminology**
+4. **Set terminology and first prescription shape**
    - Template/prescription sets are `SetPrescription`.
    - Actual performed historical sets are `PerformedSet`.
    - `WorkoutSet` is not part of the new canonical model.
+   - W1A3 resolves the first `SetPrescription` shape as required positive `reps`, optional finite non-negative `loadKg`, and optional non-negative `restSeconds`. `null` means unspecified; zero is an explicit optional load/rest value.
+   - Duration, distance, RPE/RIR and other prescription measurements remain deferred until a concrete product slice requires them.
+   - W1A3 models ordered Routine composition as a separate `RoutineComposition` value keyed by `RoutineId`, containing ordered `RoutineExercise` entries over canonical `ExerciseRef`. Repeated Exercise references are allowed. Composition is intentionally not added to the currently persisted minimal `Routine` entity until an approved persistence slice can store it.
 
 5. **Legacy shared scaffolds**
    - Existing unused `apps/shared/lib/src/workout/**` scaffolds are non-canonical.
@@ -50,7 +53,7 @@ Repository ownership rules and the validated Nutrition precedent place durable p
 
 6. **Explicit deferrals**
    - Curated Routine/Program namespace and revision/fork semantics are deferred to W1A3/W1A4.
-   - Set measurement kinds and `SetPrescription` fields are deferred to W1A3; this ADR does not choose any measurement.
+   - Additional `SetPrescription` measurement kinds beyond reps/load/rest, `PerformedSet` fields, composition persistence encoding and any durable composition-row identity remain deferred to later approved slices.
    - Saved/Following/Owned semantics are deferred to W1A4.
    - TrainingPlan/PlannedWorkout provenance and planless scheduling are deferred to W1A5.
    - Quick Start/ad-hoc session, PlannedWorkout→WorkoutSession cardinality, and session local-date/timezone semantics are deferred to W1A6a.
