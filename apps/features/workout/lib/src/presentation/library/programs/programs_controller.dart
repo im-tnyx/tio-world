@@ -160,13 +160,32 @@ final class ProgramsController extends ChangeNotifier {
 
   Future<List<Program>?> _reconcileCreate(Program attempted) async {
     try {
-      final programs = await repository.list();
-      if (programs.any((program) => program.id == attempted.id)) {
+      var programs = await repository.list();
+      Program? persisted;
+      for (final program in programs) {
+        if (program.id == attempted.id) {
+          persisted = program;
+          break;
+        }
+      }
+      if (persisted == null) return null;
+      if (persisted.name == attempted.name) return programs;
+
+      // A prior ambiguous attempt may already be durable with the same stable
+      // identity while the user edited the name before retrying. Reconcile the
+      // latest confirmed name onto that same Program rather than creating a
+      // second identity or silently accepting stale text.
+      await repository.rename(id: attempted.id, name: attempted.name);
+      programs = await repository.list();
+      if (programs.any(
+        (program) =>
+            program.id == attempted.id && program.name == attempted.name,
+      )) {
         return programs;
       }
     } catch (_) {
-      // The original create outcome remains unknown. Retain its ProgramId so a
-      // retry cannot create a second durable Program with a fresh identity.
+      // The original create/rename outcome remains unknown. Retain its
+      // ProgramId so another retry cannot create a second durable Program.
     }
     return null;
   }

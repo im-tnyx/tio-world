@@ -124,6 +124,34 @@ void main() {
     expect(controller.state.programs, [_program(1, 'Strength')]);
   });
 
+  test('edited retry reconciles the latest name onto the durable Program',
+      () async {
+    final repository = _FakeProgramRepository(
+      createErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = ProgramsController(
+      repository: repository,
+      idGenerator: _QueueProgramIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    repository.loadFailuresRemaining = 1;
+    expect(await controller.create('Strength'), isFalse);
+
+    repository.createErrorAfterWrite = null;
+    expect(await controller.create('Power'), isTrue);
+
+    expect(repository.attempted, [
+      _program(1, 'Strength'),
+      _program(1, 'Power'),
+    ]);
+    expect(repository.created, [_program(1, 'Strength')]);
+    expect(repository.programs, [_program(1, 'Power')]);
+    expect(repository.renameCalls, 1);
+    expect(controller.state.programs, [_program(1, 'Power')]);
+  });
+
   test('create failure keeps the canonical list unchanged', () async {
     final repository = _FakeProgramRepository(
       programs: [_program(1, 'Existing')],
@@ -175,6 +203,7 @@ final class _FakeProgramRepository implements ProgramRepository {
   Object? createError;
   Object? createErrorAfterWrite;
   int listCalls = 0;
+  int renameCalls = 0;
 
   @override
   Future<List<Program>> list() async {
@@ -191,6 +220,9 @@ final class _FakeProgramRepository implements ProgramRepository {
     attempted.add(program);
     final error = createError;
     if (error != null) throw error;
+    if (programs.any((existing) => existing.id == program.id)) {
+      throw StateError('duplicate Program id');
+    }
     created.add(program);
     programs.add(program);
     final errorAfterWrite = createErrorAfterWrite;
@@ -202,6 +234,9 @@ final class _FakeProgramRepository implements ProgramRepository {
     required ProgramId id,
     required String name,
   }) async {
-    throw UnimplementedError();
+    renameCalls++;
+    final index = programs.indexWhere((program) => program.id == id);
+    if (index < 0) throw StateError('Program not found');
+    programs[index] = Program(id: id, name: name);
   }
 }

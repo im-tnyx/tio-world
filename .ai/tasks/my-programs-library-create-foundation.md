@@ -22,7 +22,7 @@
 **Implementation branch:** `tnyx/tnyx-267-programs-library-create`
 **Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No focused child was created for this bounded slice; TNYX-267 comments plus this repository task are the execution record.
 **Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
-**Current blocker:** Manual runtime review found MP-R4, an ambiguous-create retry data-integrity defect. The source fix and regression tests are included in the current head and now require exact-head repository revalidation. Automated Codex review remains unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security continues to fail before analysis on the known unsupported-model infrastructure error and is non-required.
+**Current blocker:** Manual runtime review found MP-R4 and its retry-name follow-up MP-R5 in ambiguous create reconciliation. Both source fixes and regression tests are included in the current head and require exact-head repository revalidation. Automated Codex review remains unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security continues to fail before analysis on the known unsupported-model infrastructure error and is non-required.
 **Next exact action:** Complete exact-head repository validation for the MP-R4 runtime fix, then triage any new review/check finding before owner merge approval.
 
 ## 1. Discovery
@@ -228,6 +228,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 | MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
 | MP-R3 | P2 | Resolved | Historical discovery bullets were still labeled as current verified runtime evidence, and the handoff next-action text referred to an already-pushed correction | Re-labeled those bullets as pre-implementation discovery evidence and made the active next action current-head revalidation |
 | MP-R4 | P1 | Resolved pending exact-head validation | A failed `create()` response could be transport-ambiguous: the row may already be durable, but the controller generated a fresh UUID on retry, allowing one user action to create duplicate Programs | Retain the pending client-generated `ProgramId` across retries and reconcile the canonical list after a create error; if that ID already exists, treat the durable write as success. Added regressions for ambiguous-after-write reconciliation and same-ID retry |
+| MP-R5 | P1 | Resolved pending exact-head validation | After MP-R4, a rarer path remained: if the first durable write lost its response, reconciliation read also failed, and the user edited the name before retry, the stable ID prevented duplicates but could reconcile success with the old durable name | When the retained ID exists with different text, use the existing repository `rename()` boundary to reconcile the latest confirmed name on that same identity, then re-read canonical state. Added a regression covering response loss + failed reconciliation + edited retry |
 
 ## 9. Final Handoff
 
@@ -237,7 +238,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 - Programs opens the canonical `/workout/programs` route without bottom navigation.
 - The page loads persisted user Programs through `ProgramRepository`; app composition uses `SupabaseProgramRepository` when durable Supabase is available and fails closed when it is not.
 - Empty users see `Create Program`; the AppBar also exposes Create (+).
-- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, and preserves one client-generated `ProgramId` across retries. After a create error it reconciles the canonical list by that ID, so a durable-but-response-lost write is treated as success instead of creating a duplicate on retry.
+- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, and preserves one client-generated `ProgramId` across retries. After a create error it reconciles the canonical list by that ID, so a durable-but-response-lost write is treated as success instead of creating a duplicate on retry. If the user changes the name after an unresolved ambiguous attempt, the latest confirmed name is reconciled onto that same durable identity through the existing repository rename boundary.
 - Existing Program rows are display-only. No fake Program detail or Routine action exists.
 
 ### Validation Evidence
@@ -250,7 +251,7 @@ Pre-MP-R4 runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
 - required `Commit attribution guard`: PASS
 - supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
 
-Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then found MP-R4 in runtime create retry semantics. MP-R4 is fixed in source with regression tests and is pending exact-head validation.
+Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then found MP-R4 in runtime create retry semantics and MP-R5 in the edited-name retry edge of that reconciliation. MP-R4/MP-R5 are fixed in source with regression tests and are pending exact-head validation.
 
 ### Known Limitations
 
