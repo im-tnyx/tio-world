@@ -11,7 +11,7 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 Verified on **2026-09-29** against:
 
-- repository base `main@69290bd33b104e6633241903a6325f65b5c36e98`;
+- repository base `main@b9ad993ed076d98ec78f79882658b3e345443d2a`;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
@@ -40,23 +40,23 @@ This inventory intentionally excludes:
 
 | Measure | Verified value |
 | :--- | ---: |
-| Active ordinary `public` tables | 16 |
-| Columns | 158 |
-| Primary-key constraints | 16 |
-| Foreign-key constraints | 17 |
-| Unique constraints | 5 |
-| Check constraints | 56 |
+| Active ordinary `public` tables | 17 |
+| Columns | 165 |
+| Primary-key constraints | 17 |
+| Foreign-key constraints | 18 |
+| Unique constraints | 6 |
+| Check constraints | 59 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 96 |
-| Indexes | 44 |
-| Tables with RLS enabled | 16 / 16 |
+| Total catalog constraint records | 102 |
+| Indexes | 47 |
+| Tables with RLS enabled | 17 / 17 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 52 / 52 |
+| Applied live migrations matched to repository | 53 / 53 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration history currently ends at `20260929133232_harden_user_workout_program_privileges`. Repository and live migration history are aligned 52 / 52 by version + name at this snapshot.
+The verified live migration history currently ends at `20260929181247_create_user_workout_exercises`. Repository and live migration history are aligned 53 / 53 by version + name at this snapshot.
 
 ## Table Overview
 
@@ -73,6 +73,7 @@ The verified live migration history currently ends at `20260929133232_harden_use
 | `public.user_nutrition_targets` | 12 | Enabled |
 | `public.user_profiles` | 12 | Enabled |
 | `public.user_wellness_targets` | 8 | Enabled |
+| `public.user_workout_exercises` | 7 | Enabled |
 | `public.user_workout_programs` | 5 | Enabled |
 | `public.user_workout_routines` | 6 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
@@ -491,6 +492,43 @@ The verified live migration history currently ends at `20260929133232_harden_use
 | Name | Definition |
 | :--- | :--- |
 | `user_wellness_targets_pkey` | `CREATE UNIQUE INDEX user_wellness_targets_pkey ON public.user_wellness_targets USING btree (user_id)` |
+
+### `public.user_workout_exercises`
+
+**RLS:** Enabled
+
+**Verified Data API access:** `anon` has no table privileges. `authenticated` has table `SELECT`, column-level `INSERT(id, user_id, display_name, based_on_catalog_exercise_id)`, and column-level `UPDATE(display_name, status)`; it has no table-wide `INSERT` / `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies are present with no authenticated `DELETE` policy. `service_role` retains full table CRUD.
+
+#### Columns
+
+| Column | Type | Nullable | Default |
+| :--- | :--- | :---: | :--- |
+| `id` | `uuid` | No | — |
+| `user_id` | `uuid` | No | — |
+| `display_name` | `text` | No | — |
+| `status` | `text` | No | `'active'::text` |
+| `based_on_catalog_exercise_id` | `text` | Yes | — |
+| `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+
+#### Constraints
+
+| Name | Type | Definition |
+| :--- | :--- | :--- |
+| `user_workout_exercises_catalog_lineage_format_check` | `CHECK` | `CHECK (based_on_catalog_exercise_id IS NULL OR based_on_catalog_exercise_id ~ '^ex_[a-z0-9]+(?:_[a-z0-9]+)*$'::text)` |
+| `user_workout_exercises_display_name_nonblank` | `CHECK` | `CHECK ((btrim(display_name) <> ''::text))` |
+| `user_workout_exercises_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
+| `user_workout_exercises_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `user_workout_exercises_status_check` | `CHECK` | `CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text])))` |
+| `user_workout_exercises_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
+
+#### Indexes
+
+| Name | Definition |
+| :--- | :--- |
+| `idx_user_workout_exercises_user_status_created_at` | `CREATE INDEX idx_user_workout_exercises_user_status_created_at ON public.user_workout_exercises USING btree (user_id, status, created_at DESC)` |
+| `user_workout_exercises_id_user_id_key` | `CREATE UNIQUE INDEX user_workout_exercises_id_user_id_key ON public.user_workout_exercises USING btree (id, user_id)` |
+| `user_workout_exercises_pkey` | `CREATE UNIQUE INDEX user_workout_exercises_pkey ON public.user_workout_exercises USING btree (id)` |
 
 ### `public.user_workout_programs`
 

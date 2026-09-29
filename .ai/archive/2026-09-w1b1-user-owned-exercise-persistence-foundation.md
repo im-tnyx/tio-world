@@ -1,6 +1,7 @@
 # W1B1 — User-owned Exercise persistence foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** Workout Exercise capability + Supabase persistence
 **Affected platforms:** Phone Workout data layer + Supabase; no visible UI in this slice
 
@@ -14,16 +15,16 @@
 
 ## Active Handoff
 
-**Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
-**Repository state last verified:** 2026-09-29, `main@50b74fd5c48c1f41d1a24806e259a45ead483e06`
-**Branch:** `tnyx/w1b1-user-exercise-persistence-readiness`
-**Trackers:** TNYX-78 (W1) and TNYX-264 (W3D)
-**Current implementation state:** Repository/data contract, focused unit tests, CLI-generated migration `20260929181247_create_user_workout_exercises.sql`, least-privilege RLS/grants, focused SQL security matrix, and Supabase Database CI wiring are implemented on the active branch.
-**Current blocker:** Exact-head validation and review are still pending; no hosted migration has been applied.
-**Next exact action:** Open a focused PR from this branch, run Flutter + Supabase Database CI on the exact head, resolve any review/CI findings, then merge only after gates pass. Hosted deployment remains a separate explicit post-merge owner step.
+**Planning owner:** Completed
+**Implementation owner:** Completed on `tnyx/w1b1-user-exercise-persistence-readiness`
+**Review owner:** Codex exact-head review plus manual Supabase security verification
+**Implementation ownership state:** Completed
+**Repository state last verified:** 2026-09-29 after PR #476 merge and hosted deployment; remote `main@b9ad993ed076d98ec78f79882658b3e345443d2a`
+**Branch:** `tnyx/w1b1-user-exercise-persistence-readiness` (merged via PR #476; cleanup remains optional)
+**Trackers:** TNYX-78 remains In Progress for broader W1; TNYX-264 remains Backlog for visible W3D Custom Exercise capability
+**Current implementation state:** Validated on `main` and deployed to hosted Supabase. Migration `20260929181247_create_user_workout_exercises` is applied live and the repository/live migration ledger is aligned 53 / 53.
+**Current blocker:** None for this bounded persistence foundation.
+**Next exact action:** None for W1B1. Any visible Custom Exercise UI/editor work remains a separate TNYX-264 slice with fresh audit and owner approval.
 
 ## 1. Discovery
 
@@ -37,7 +38,7 @@ Canonical `ExerciseRef` has two variants:
 
 Built-in catalog truth remains bundled application content and must not be mirrored into Supabase.
 
-Live Supabase currently has no dynamic Exercise table.
+At discovery time, live Supabase had no dynamic Exercise table.
 
 ## 2. Why This Foundation Comes First
 
@@ -155,28 +156,67 @@ Reason: these fields are not required to establish stable user-created Exercise 
 - [x] approved migration SQL implemented with owner RLS, column-level authenticated grants, immutable lineage, archive-not-delete and server-owned timestamps;
 - [x] focused SQL matrix added for grants/RLS and allow/deny paths;
 - [x] Supabase Database CI wired to run the focused matrix;
-- [ ] full migration replay on exact PR head;
-- [ ] focused SQL matrix pass on exact PR head;
-- [ ] repository unit tests pass on exact PR head;
-- [ ] exact-head repository CI and required attribution gate;
-- [ ] security review/advisor delta disposition;
-- [ ] post-merge owner-run `db push --dry-run` then explicit live push;
-- [ ] hosted migration/grant/RLS/advisor verification;
-- [ ] canonical Supabase inventory refresh;
-- [ ] task archive only after live verification.
+- [x] full migration replay on exact PR head;
+- [x] focused SQL matrix pass on exact PR head;
+- [x] repository unit tests pass on exact PR head;
+- [x] exact-head Flutter + Supabase Database CI pass; current connector did not expose the external required-check/ruleset list, so no unseen-check claim is made;
+- [x] security review/advisor delta disposition;
+- [x] post-merge owner-run `db push --dry-run` then explicit live push;
+- [x] hosted migration/grant/RLS/advisor verification;
+- [x] canonical Supabase inventory refresh in the archive follow-up branch;
+- [x] task archive only after live verification.
 
-## 8. Current Audit Findings
+## 8. Quality Review
 
-- W3A: Done.
-- No `user_workout_exercises` or equivalent table exists live.
-- No Custom Exercise repository/data source exists.
-- Existing `Exercise` can validly represent a minimal user-created Exercise with optional taxonomy empty/null.
-- `ExerciseStatus.active/archived` already provides the required non-destructive lifecycle contract.
-- `ExerciseRef.userCreated` already locks UUID identity.
-- Bundled catalog IDs already have a stable `ex_*` syntax contract.
-- Current Supabase guidance requires both least-privilege grants and RLS on exposed tables; column privileges can narrow update capabilities.
-- Existing Program/Routine owner-RLS pattern uses `(select auth.uid()) = user_id`.
+### Exact-Head PR Validation
 
-## 9. Final Status
+PR #476 reviewed head `b741844b48747caa5ec08810b2d4af5d2fae494a`:
 
-`IN PROGRESS / IMPLEMENTATION COMPLETE / EXACT-HEAD VALIDATION PENDING`
+- Flutter CI run `36611023104`: PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests).
+- Supabase Database CI run `36611023066`: PASS (full replay, complete ledger, all existing matrices, focused W1B1 matrix, concurrency test, lint-diff).
+- Codex exact-head review: “Didn't find any major issues.”
+- Unresolved review threads: 0.
+- Manual RLS/grant/schema review: no blocker.
+- PR #476 squash-merged to `main` as `b9ad993ed076d98ec78f79882658b3e345443d2a`.
+
+### Post-Deploy Validation
+
+Owner-run Supabase CLI v2.116.0:
+
+- `db push --dry-run` reported only `20260929181247_create_user_workout_exercises.sql`;
+- live `db push` applied that migration successfully;
+- post-push `migration list` shows local/remote `20260929181247` aligned;
+- local `main` is clean and matches `origin/main`.
+
+Hosted structural verification confirms:
+
+- `public.user_workout_exercises` exists with RLS enabled;
+- exact seven-column approved shape is live;
+- PK, owner FK, `(id, user_id)` unique constraint, three CHECK constraints, composite list index, and `updated_at` trigger are live;
+- `anon`: no table privileges;
+- `authenticated`: table SELECT; column INSERT on `id/user_id/display_name/based_on_catalog_exercise_id`; column UPDATE on `display_name/status`; no DELETE and no table-wide INSERT/UPDATE;
+- owner SELECT/INSERT/UPDATE RLS policies are present; no DELETE policy;
+- `service_role`: full CRUD;
+- migration ledger contains `20260929181247` and is aligned 53 / 53.
+
+Advisor disposition:
+
+- Security Advisor: no `user_workout_exercises`-specific finding. Existing warnings concern unrelated authenticated SECURITY DEFINER RPCs and leaked-password protection.
+- Performance Advisor: the only new-table item is INFO `unused_index` for `idx_user_workout_exercises_user_status_created_at`, expected for a newly deployed table with no established workload yet. No corrective schema expansion is justified by this initial observation.
+- Existing unrelated Routine FK/index and older RLS-initplan findings remain outside this slice.
+
+The September 2026 Supabase breaking-change review also confirms explicit grants are the correct Data API direction; this migration already uses explicit least-privilege grants.
+
+## 9. Final Handoff
+
+### Actual Behavior
+
+User-created canonical Exercises now have a durable owner-scoped Supabase persistence target. Bundled catalog Exercises remain application-owned content and are not mirrored into Postgres. Authenticated clients can list, create the approved minimum row, rename, and archive; they cannot hard-delete rows or mutate identity, ownership, lineage, or server-owned timestamps.
+
+### Known Limitations
+
+This foundation does not implement visible Custom Exercise UI/editor flows, richer taxonomy/instructions/media, Favorites, Folders, Routine composition, or completed-session snapshots. Those remain separate approved slices.
+
+## 10. Final Status
+
+`PASS / VALIDATED`: PR #476 merged to `main` as `b9ad993ed076d98ec78f79882658b3e345443d2a`, migration `20260929181247_create_user_workout_exercises` deployed successfully, live schema/RLS/grants/advisors verified, and canonical Supabase inventory refreshed. TNYX-78 remains In Progress for broader W1; TNYX-264 remains Backlog for visible W3D work.
