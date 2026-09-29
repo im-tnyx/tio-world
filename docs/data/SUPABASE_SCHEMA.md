@@ -511,7 +511,7 @@ The verified live migration history currently ends at `20260929040034_create_use
 | :--- | :--- | :--- |
 | `user_workout_programs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_programs_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
-| `user_workout_programs_name_nonblank` | `CHECK` | `CHECK (btrim(name) <> ''::text)` |
+| `user_workout_programs_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 
 #### Indexes
 
