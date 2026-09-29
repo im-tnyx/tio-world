@@ -10,7 +10,7 @@
 **Approval status:** `APPROVED — 2026-09-29`
 **Approval evidence:** After PR #468 merged, the owner explicitly approved the proposed Programs row, Programs collection screen, and Create Program editor by replying `go` on 2026-09-29.
 **Approved implementation boundary:** Add the Programs row above Exercises; a persisted Programs collection; AppBar Create (+); an empty-state Create Program action; generated editable initial naming such as `Program 1`; real loading/load-failure-retry/create-failure states; display-only Program rows; existing live Program persistence only in production.
-**Explicit non-changes:** No Routine create/edit UI, no Routine composition, no `SetPrescription`, no Exercise picker, no Program detail/builder, no post-create rename flow, no delete/archive, no images/media, no TrainingPlan/scheduling, no Explore/adoption/provenance UI, no Supabase migration/table/column/RLS/grant change, no live data mutation, and no W1A3 source change.
+**Explicit non-changes:** No Routine create/edit UI, no Routine composition, no `SetPrescription`, no Exercise picker, no Program detail/builder, no post-create rename flow, no delete/archive, no images/media, no TrainingPlan/scheduling, no Explore/adoption/provenance UI, no Supabase migration/table/column/RLS/grant/deployment change, and no W1A3 source change. The approved user action does persist a new user-owned Program through the already-live repository/table; that runtime write is the purpose of this slice, not an infrastructure mutation.
 
 ## Active Handoff
 
@@ -225,6 +225,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 | MP-P2 | Planning | Deferred | Linear workspace free issue limit prevented focused child creation during planning | TNYX-267 + this repository task remain the bounded execution record |
 | MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implemented without widening into Routine/detail/media/TrainingPlan work |
 | MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
+| MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
 
 ## 9. Final Handoff
 
