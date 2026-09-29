@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_shared/shared.dart';
-import 'package:tio_feature_workout/src/data/repositories/supabase_routine_repository.dart';
+import 'package:tio_feature_workout/workout.dart';
 
 void main() {
   const userId = '11111111-1111-4111-8111-111111111111';
@@ -8,7 +8,7 @@ void main() {
   final routineId = RoutineId('33333333-3333-4333-8333-333333333333');
 
   group('SupabaseRoutineRepository', () {
-    test('signed-out list returns empty without querying gateway', () async {
+    test('signed-out or blank-user list returns empty without querying gateway', () async {
       final gateway = _FakeRoutineGateway();
       final repository = SupabaseRoutineRepository(
         gateway: gateway,
@@ -16,6 +16,13 @@ void main() {
       );
 
       expect(await repository.list(programId), isEmpty);
+      expect(gateway.listCalls, 0);
+
+      final blankRepository = SupabaseRoutineRepository(
+        gateway: gateway,
+        currentUserId: () => '   ',
+      );
+      expect(await blankRepository.list(programId), isEmpty);
       expect(gateway.listCalls, 0);
     });
 
