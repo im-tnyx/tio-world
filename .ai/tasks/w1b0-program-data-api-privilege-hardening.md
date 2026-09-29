@@ -1,6 +1,6 @@
 # W1B0 — Program Data API privilege hardening
 
-**Status:** Ready
+**Status:** Blocked
 **Primary owner:** Supabase Workout persistence + `apps/features/workout`
 **Affected platforms:** Supabase Postgres/Data API; no visible client behavior change
 
@@ -17,13 +17,13 @@
 **Planning owner:** Current repository agent
 **Implementation owner:** None
 **Review owner:** Unassigned
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Blocked
 **Repository state last verified:** 2026-09-29, `main@6c2e6d9139cfb3ae43e222c70af3c4fc031dbafe`
 **Branch:** `tnyx/tnyx-78-w1b0-program-privilege-hardening`
 **Tracker:** TNYX-78 remains In Progress; no focused W1B0 child exists.
 **Current implementation state:** Audit complete; no migration/source implementation yet.
-**Current blocker:** Repository Supabase workflow requires creating migration filenames with `supabase migration new <name>`. This connector session has no local Supabase CLI/checkout, so a migration filename will not be invented.
-**Next exact action:** In a clean local checkout on this branch, run `supabase migration new harden_user_workout_program_privileges`, then implement only the locked grant/policy hardening plus focused SQL matrix/CI wiring.
+**Current blocker:** Repository Supabase workflow requires creating migration filenames with `supabase migration new <name>`. This session has no local checkout or Supabase CLI, the pinned `2.116.0` CLI is not cached locally, and outbound DNS/network is unavailable for installing it. The migration filename therefore cannot be generated here without violating repository/Supabase workflow.
+**Next exact action:** In a clean local checkout on this branch, run `supabase migration new harden_user_workout_program_privileges`. Commit/push the generated empty migration file to this same branch (or continue locally with the locked SQL/test plan), then resume implementation without changing scope.
 
 ## 1. Discovery
 
@@ -144,7 +144,7 @@ Do not add delete/archive UI or repository APIs merely because the original tabl
 
 ### Current Audit Result
 
-PASS for read-only readiness. No live mutation was performed.
+PASS for read-only readiness. Implementation is BLOCKED only on the mandatory CLI-generated migration filename. No live mutation was performed.
 
 Security Advisor does not currently identify a Program-specific cross-user RLS issue. The relevant finding is source/live contract breadth discovered by direct privilege inspection, not an advisor-reported vulnerability.
 
@@ -168,4 +168,4 @@ This slice does not decide Routine composition persistence, Favorites/Custom/Fol
 
 ### Final Status
 
-`READY / IMPLEMENTATION HANDOFF PENDING LOCAL SUPABASE CLI`
+`BLOCKED / WAITING FOR CLI-GENERATED MIGRATION FILE`
