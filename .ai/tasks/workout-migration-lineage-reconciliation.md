@@ -30,7 +30,7 @@
 
 - Live ledger has 50 rows and ends at `20260929040034 create_user_workout_programs`.
 - Repository `main` has 51 migration files: Program at `20260929000001` plus pending Routine at `20260929050000`.
-- Live `20260929040034` stored statement content matches the checked-in Program migration body.
+- Live `20260929040034` stored statement content matches the checked-in Program migration after terminal-newline normalization only: hosted storage omits the file's final `\n`; the first raw difference is EOF and `trimEnd()` content is identical.
 - Live public schema has 15 base tables: `user_workout_programs` exists and `user_workout_routines` does not.
 - The Routine migration depends on the live Program table and adds the missing `(id,user_id)` ownership key before creating `user_workout_routines`.
 - Existing repository precedent reconciles timestamp identity drift by renaming the repository migration to the hosted version rather than mutating the hosted ledger when the logical/applied migration is the same.
@@ -38,8 +38,8 @@
 ## Success Criteria
 
 - [x] Program migration path is `20260929040034_create_user_workout_programs.sql`.
-- [x] Program migration body is byte-for-byte unchanged (same Git blob SHA `3881245c93cdd0e0801a44b003d84c14feb8bf44`).
-- [x] Repository historical migrations through Program match the 50 live ledger versions/names in a fresh read-only comparison.
+- [x] Program migration body is byte-for-byte unchanged across the repository rename (same Git blob SHA `3881245c93cdd0e0801a44b003d84c14feb8bf44`). Hosted stored SQL differs only by the stripped terminal newline.
+- [x] Repository historical migrations through Program match all 50 live ledger versions/names in a fresh read-only comparison: 51 repo migrations total, 50 exact applied matches, exactly one repo-only pending Routine migration, 0 live-only migrations.
 - [x] Routine migration remains `20260929050000_create_user_workout_routines.sql` and remains unapplied live.
 - [x] Supabase strategy/schema inventory reflect verified current live state, not future Routine state.
 - [x] Program handoff archived as validated/live; Routine handoff now records merged source + pending live deployment.
