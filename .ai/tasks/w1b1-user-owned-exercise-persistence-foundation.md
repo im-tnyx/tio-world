@@ -1,28 +1,28 @@
 # W1B1 — User-owned Exercise persistence foundation
 
-**Status:** Awaiting Owner Approval
+**Status:** In progress
 **Primary owner:** Workout Exercise capability + Supabase persistence
 **Affected platforms:** Phone Workout data layer + Supabase; no visible UI in this slice
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** Supabase table/column shape change
-**Approval status:** AWAITING OWNER APPROVAL
-**Approval evidence:** Pending explicit owner `Go` for the exact shape below.
-**Approved product/UI/data-shape boundaries:** Not yet approved.
+**Approval status:** APPROVED
+**Approval evidence:** Owner explicitly approved the exact W1B1 minimum shape in chat on 2026-09-29 with `Go`.
+**Approved product/UI/data-shape boundaries:** `public.user_workout_exercises` with exactly `id`, `user_id`, `display_name`, `status`, nullable immutable `based_on_catalog_exercise_id`, `created_at`, `updated_at`; no bundled catalog mirroring and no additional W3D fields in this slice.
 **Explicit non-changes until approval:** No migration, live Supabase mutation, repository implementation, UI, route, Favorites, Folders, Routine composition, instructions, media, Storage, AI/Coach exercise provenance, or WorkoutSession changes.
 
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** None
+**Implementation owner:** Current repository agent
 **Review owner:** Unassigned
-**Implementation ownership state:** Planning complete; blocked on owner approval
+**Implementation ownership state:** Active
 **Repository state last verified:** 2026-09-29, `main@50b74fd5c48c1f41d1a24806e259a45ead483e06`
 **Branch:** `tnyx/w1b1-user-exercise-persistence-readiness`
 **Trackers:** TNYX-78 (W1) and TNYX-264 (W3D)
-**Current blocker:** Owner approval for the exact Supabase table/column shape.
-**Next exact action:** Owner reviews the locked proposal below. On explicit approval, create the migration with the repository-pinned Supabase CLI and implement only this bounded persistence foundation.
+**Current blocker:** Migration filename must be generated with the repository-pinned Supabase CLI before the migration file can be added. Source/repository work that does not require the filename may proceed.
+**Next exact action:** Implement the approved repository/data contract and tests, then generate the migration filename with the pinned Supabase CLI and add the locked table/RLS/grant SQL + focused DB matrix.
 
 ## 1. Discovery
 
@@ -171,4 +171,4 @@ Reason: these fields are not required to establish stable user-created Exercise 
 
 ## 9. Final Status
 
-`AWAITING OWNER APPROVAL / NO SCHEMA CHANGE MADE`
+`IN PROGRESS / OWNER-APPROVED / MIGRATION FILENAME PENDING`
