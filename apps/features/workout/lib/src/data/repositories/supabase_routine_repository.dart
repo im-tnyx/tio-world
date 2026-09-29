@@ -76,8 +76,8 @@ final class SupabaseRoutineRepository implements RoutineRepository {
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
-    final userId = _currentUserId();
-    if (userId == null) {
+    final userId = _currentUserId()?.trim();
+    if (userId == null || userId.isEmpty) {
       return const [];
     }
 
@@ -120,8 +120,8 @@ final class SupabaseRoutineRepository implements RoutineRepository {
   }
 
   String _requireUserId() {
-    final userId = _currentUserId();
-    if (userId == null) {
+    final userId = _currentUserId()?.trim();
+    if (userId == null || userId.isEmpty) {
       throw StateError('Please sign in to save Routines.');
     }
     return userId;
