@@ -16,8 +16,8 @@
 
 **Planning owner:** Repository architecture audit
 **Implementation owner:** Current repository agent on `tnyx/tnyx-78-w1a3-routine-composition`
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** Manual Codex-style review because automated Codex code-review quota is exhausted
+**Implementation ownership state:** Implementation complete; final handoff validation pending
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-29, `main@013299af005bc54e1a3d8afecece6486174f228b`
 **Branch:** `tnyx/tnyx-78-w1a3-routine-composition`
@@ -27,11 +27,11 @@
 **PR / tracker:** Parent Linear TNYX-78 is In Progress. Attempt to create a focused W1A3 child on 2026-09-29 failed because the Linear workspace exceeded its free issue limit; no child ID exists.
 **Current implementation state:** Owner-approved and ready for source implementation. Canonical Program/Routine identity and persistence are complete; Routine composition is absent. Fresh audit also confirmed that adding composition directly to `Routine` would create a misleading persistence contract because `RoutineRepository.create(Routine)` currently persists only `id/programId/name`; W1A3 therefore uses a separate canonical composition value contract.
 **Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/test/workout/**`, this task brief, and the canonical Workout ADR/decision text that currently defers `SetPrescription` fields.
-**Validation completed at SHA:** Fresh read-only architecture/source/tracker audit at `main@013299af005bc54e1a3d8afecece6486174f228b`; no open W1A3 PR exists.
-**Validation remaining:** focused shared-package analyze/tests through repository CI; exact-head PR review.
-**Current blocker:** None inside the approved slice. Focused Linear child creation remains unavailable because of the workspace free issue limit, so parent TNYX-78 remains the tracker.
+**Validation completed at SHA:** PR #471 source head `07ed2915bd59706237943e379a400b252d905088`: Flutter Analyze PASS, Dart Analyze PASS, Flutter tests PASS, Dart tests PASS, required Commit attribution guard PASS. Supplemental GitHub Advanced Security failed before repository analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; no repository finding was produced. Manual Codex-style review found no source/domain blocker.
+**Validation remaining:** final exact-head repository revalidation after this handoff-only task update.
+**Current blocker:** None inside the approved slice. Automated Codex review is unavailable because code-review quota is exhausted; focused Linear child creation remains unavailable because of the workspace free issue limit, so parent TNYX-78 remains the tracker.
 **Open review finding IDs:** None
-**Next exact action:** Implement the locked pure-Dart contracts and focused tests only, then open an exact-head PR.
+**Next exact action:** Revalidate the new docs-only exact head, then hand PR #471 back for owner merge approval.
 
 ## 1. Discovery
 
@@ -136,16 +136,25 @@ Domain validation must reject structurally invalid prescription/composition valu
 - [x] Implement pure-Dart contracts in `apps/shared`.
 - [x] Export through the canonical Workout barrel.
 - [x] Add focused value/validation/order tests.
-- [ ] Run applicable analyze/tests and exact-head PR review.
+- [x] Run applicable analyze/tests and source-head PR review; final docs-only exact-head revalidation remains.
 - [ ] Archive this brief only after validated merge.
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Source head `07ed2915bd59706237943e379a400b252d905088` on PR #471:
+
 ```text
-Fresh pre-implementation audit completed at `main@013299af005bc54e1a3d8afecece6486174f228b`. Source implementation is committed on the branch; repository CI validation is still pending.
+Analyze Flutter packages: PASS
+Analyze Dart packages: PASS
+Test Flutter packages: PASS
+Test Dart packages: PASS
+Commit attribution guard: PASS (required by current main branch protection)
+github-advanced-security: supplemental/non-required infrastructure failure before analysis; requested model unsupported; no repository finding
 ```
+
+Automated Codex code review is unavailable because the repository bot reports exhausted review quota. Manual Codex-style review found no source/domain blocker. This task-handoff edit moves HEAD, so final exact-head revalidation remains required.
 
 ### Review Findings and Resolution
 
@@ -161,7 +170,7 @@ Fresh pre-implementation audit completed at `main@013299af005bc54e1a3d8afecece64
 
 ### Actual Behavior
 
-Shared pure-Dart callers can construct immutable ordered Routine composition and prescribed sets. Existing Routine persistence behavior is unchanged and does not claim composition durability.
+Shared pure-Dart callers can construct immutable ordered `RoutineComposition` values keyed by `RoutineId`, with ordered/repeatable `RoutineExercise` entries and immutable `SetPrescription` values. Existing Routine persistence behavior is unchanged and does not claim composition durability.
 
 ### Known Limitations
 
@@ -169,4 +178,4 @@ Composition persistence, performed-set history, duration/distance prescriptions,
 
 ### Final Status
 
-`IN PROGRESS / OWNER-APPROVED`
+`IN PROGRESS / IMPLEMENTATION COMPLETE / FINAL EXACT-HEAD REVALIDATION PENDING`
