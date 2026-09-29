@@ -22,8 +22,8 @@
 **Implementation branch:** `tnyx/tnyx-267-programs-library-create`
 **Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No focused child was created for this bounded slice; TNYX-267 comments plus this repository task are the execution record.
 **Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
-**Current blocker:** No product/runtime blocker is known. Automated Codex review is currently unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security is separately failing before analysis on the known unsupported-model infrastructure error and is non-required; exact-head Flutter/Dart analyze + tests passed on runtime head `d5334c987674dac644799649a7dff59db1a74410`.
-**Next exact action:** Complete exact-head repository revalidation on the current PR head, then triage any new review/check finding before owner merge approval.
+**Current blocker:** Manual runtime review found MP-R4, an ambiguous-create retry data-integrity defect. The source fix and regression tests are included in the current head and now require exact-head repository revalidation. Automated Codex review remains unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security continues to fail before analysis on the known unsupported-model infrastructure error and is non-required.
+**Next exact action:** Complete exact-head repository validation for the MP-R4 runtime fix, then triage any new review/check finding before owner merge approval.
 
 ## 1. Discovery
 
@@ -196,7 +196,7 @@ Library continues to receive navigation callbacks from app composition. The Prog
 - [x] Add focused controller/widget/router/composition tests.
 - [x] Run applicable Flutter analyze/tests on runtime head `d5334c987674dac644799649a7dff59db1a74410`; manual PR review found only the stale-handoff issue recorded below.
 - [x] Update canonical Library/Programs docs only for behavior actually shipped.
-- [ ] Revalidate the current exact head after the handoff-only manual-review corrections.
+- [ ] Revalidate the current exact head after the MP-R4 runtime correction.
 
 ## 7. Acceptance
 
@@ -227,6 +227,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 | MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
 | MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
 | MP-R3 | P2 | Resolved | Historical discovery bullets were still labeled as current verified runtime evidence, and the handoff next-action text referred to an already-pushed correction | Re-labeled those bullets as pre-implementation discovery evidence and made the active next action current-head revalidation |
+| MP-R4 | P1 | Resolved pending exact-head validation | A failed `create()` response could be transport-ambiguous: the row may already be durable, but the controller generated a fresh UUID on retry, allowing one user action to create duplicate Programs | Retain the pending client-generated `ProgramId` across retries and reconcile the canonical list after a create error; if that ID already exists, treat the durable write as success. Added regressions for ambiguous-after-write reconciliation and same-ID retry |
 
 ## 9. Final Handoff
 
@@ -236,12 +237,12 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 - Programs opens the canonical `/workout/programs` route without bottom navigation.
 - The page loads persisted user Programs through `ProgramRepository`; app composition uses `SupabaseProgramRepository` when durable Supabase is available and fails closed when it is not.
 - Empty users see `Create Program`; the AppBar also exposes Create (+).
-- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, writes exactly one Program, keeps failure visible without fake success, and updates the in-memory canonical collection after a successful durable write.
+- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, and preserves one client-generated `ProgramId` across retries. After a create error it reconciles the canonical list by that ID, so a durable-but-response-lost write is treated as success instead of creating a duplicate on retry.
 - Existing Program rows are display-only. No fake Program detail or Routine action exists.
 
 ### Validation Evidence
 
-Runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
+Pre-MP-R4 runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
 - `Analyze Flutter packages`: PASS
 - `Analyze Dart packages`: PASS
 - `Test Flutter packages`: PASS
@@ -249,7 +250,7 @@ Runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
 - required `Commit attribution guard`: PASS
 - supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
 
-Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review found MP-R1 and MP-R2 in the handoff text; both are resolved. No runtime/data/routing blocker was identified.
+Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review resolved MP-R1/MP-R2/MP-R3 in the handoff text, then found MP-R4 in runtime create retry semantics. MP-R4 is fixed in source with regression tests and is pending exact-head validation.
 
 ### Known Limitations
 

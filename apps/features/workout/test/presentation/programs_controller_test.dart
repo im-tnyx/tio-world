@@ -77,6 +77,53 @@ void main() {
     expect(controller.state.createError, isNull);
   });
 
+  test('ambiguous create response reconciles the durable Program', () async {
+    final repository = _FakeProgramRepository(
+      createErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = ProgramsController(
+      repository: repository,
+      idGenerator: _QueueProgramIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final created = await controller.create('Strength');
+
+    expect(created, isTrue);
+    expect(repository.attempted, [_program(1, 'Strength')]);
+    expect(repository.created, [_program(1, 'Strength')]);
+    expect(repository.programs, [_program(1, 'Strength')]);
+    expect(controller.state.programs, [_program(1, 'Strength')]);
+    expect(controller.state.createError, isNull);
+    expect(repository.listCalls, 2);
+  });
+
+  test('retry after an unreconciled failure reuses the same ProgramId',
+      () async {
+    final repository = _FakeProgramRepository(
+      createError: Exception('network down'),
+    );
+    final controller = ProgramsController(
+      repository: repository,
+      idGenerator: _QueueProgramIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('Strength'), isFalse);
+    repository.createError = null;
+    expect(await controller.create('Strength'), isTrue);
+
+    expect(repository.attempted, [
+      _program(1, 'Strength'),
+      _program(1, 'Strength'),
+    ]);
+    expect(repository.created, [_program(1, 'Strength')]);
+    expect(repository.programs, [_program(1, 'Strength')]);
+    expect(controller.state.programs, [_program(1, 'Strength')]);
+  });
+
   test('create failure keeps the canonical list unchanged', () async {
     final repository = _FakeProgramRepository(
       programs: [_program(1, 'Existing')],
@@ -118,12 +165,15 @@ final class _FakeProgramRepository implements ProgramRepository {
     List<Program>? programs,
     this.loadFailuresRemaining = 0,
     this.createError,
+    this.createErrorAfterWrite,
   }) : programs = [...?programs];
 
   final List<Program> programs;
+  final List<Program> attempted = [];
   final List<Program> created = [];
   int loadFailuresRemaining;
   Object? createError;
+  Object? createErrorAfterWrite;
   int listCalls = 0;
 
   @override
@@ -138,10 +188,13 @@ final class _FakeProgramRepository implements ProgramRepository {
 
   @override
   Future<void> create(Program program) async {
+    attempted.add(program);
     final error = createError;
     if (error != null) throw error;
     created.add(program);
     programs.add(program);
+    final errorAfterWrite = createErrorAfterWrite;
+    if (errorAfterWrite != null) throw errorAfterWrite;
   }
 
   @override

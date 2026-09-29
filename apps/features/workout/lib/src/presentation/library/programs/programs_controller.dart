@@ -50,6 +50,7 @@ final class ProgramsController extends ChangeNotifier {
 
   var _loadVersion = 0;
   var _disposed = false;
+  ProgramId? _pendingCreateId;
 
   Future<void> load() async {
     final version = ++_loadVersion;
@@ -58,6 +59,11 @@ final class ProgramsController extends ChangeNotifier {
     try {
       final programs = await repository.list();
       if (_disposed || version != _loadVersion) return;
+      final pendingCreateId = _pendingCreateId;
+      if (pendingCreateId != null &&
+          programs.any((program) => program.id == pendingCreateId)) {
+        _pendingCreateId = null;
+      }
       _publish(ProgramsState.ready(programs: programs));
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
@@ -100,10 +106,13 @@ final class ProgramsController extends ChangeNotifier {
 
     late final Program program;
     try {
+      final pendingCreateId = _pendingCreateId;
       program = Program(
-        id: idGenerator.generate(current.programs.map((item) => item.id)),
+        id: pendingCreateId ??
+            idGenerator.generate(current.programs.map((item) => item.id)),
         name: name,
       );
+      _pendingCreateId ??= program.id;
     } catch (_) {
       _publish(
         ProgramsState.ready(
@@ -124,6 +133,7 @@ final class ProgramsController extends ChangeNotifier {
     try {
       await repository.create(program);
       if (_disposed) return false;
+      _pendingCreateId = null;
       _publish(
         ProgramsState.ready(
           programs: [...current.programs, program],
@@ -131,7 +141,13 @@ final class ProgramsController extends ChangeNotifier {
       );
       return true;
     } catch (error) {
+      final reconciled = await _reconcileCreate(program);
       if (_disposed) return false;
+      if (reconciled != null) {
+        _pendingCreateId = null;
+        _publish(ProgramsState.ready(programs: reconciled));
+        return true;
+      }
       _publish(
         ProgramsState.ready(
           programs: current.programs,
@@ -140,6 +156,19 @@ final class ProgramsController extends ChangeNotifier {
       );
       return false;
     }
+  }
+
+  Future<List<Program>?> _reconcileCreate(Program attempted) async {
+    try {
+      final programs = await repository.list();
+      if (programs.any((program) => program.id == attempted.id)) {
+        return programs;
+      }
+    } catch (_) {
+      // The original create outcome remains unknown. Retain its ProgramId so a
+      // retry cannot create a second durable Program with a fresh identity.
+    }
+    return null;
   }
 
   String _createFailureMessage(Object error) {
