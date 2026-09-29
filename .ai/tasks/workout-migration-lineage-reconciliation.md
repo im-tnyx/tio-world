@@ -22,9 +22,9 @@
 **Branch:** `tnyx/workout-migration-lineage-reconciliation`
 **Observed working-tree state:** Connector-only session; local status unavailable.
 **PR / tracker:** TNYX-78 context; PR pending.
-**Current implementation state:** Read-only audit complete; repository changes not yet applied.
+**Current implementation state:** Program migration identity renamed content-preservingly; live schema docs and Program/Routine handoffs reconciled; validation pending.
 **Current blocker:** None.
-**Next exact action:** Content-preserving migration rename, then bounded docs/handoff reconciliation and CI.
+**Next exact action:** Verify exact branch diff and repo/live lineage parity, then open PR and gate on Supabase Database CI/review.
 
 ## Discovery / Verified Evidence
 
@@ -37,12 +37,12 @@
 
 ## Success Criteria
 
-- [ ] Program migration path is `20260929040034_create_user_workout_programs.sql`.
-- [ ] Program migration body is byte-for-byte unchanged.
-- [ ] Repository historical migrations through Program match the 50 live ledger versions/names.
-- [ ] Routine migration remains `20260929050000_create_user_workout_routines.sql` and remains unapplied live.
-- [ ] Supabase strategy/schema inventory reflect verified current live state, not future Routine state.
-- [ ] Program/Routine handoffs no longer claim stale pre-merge PR/branch state.
+- [x] Program migration path is `20260929040034_create_user_workout_programs.sql`.
+- [x] Program migration body is byte-for-byte unchanged (same Git blob SHA `3881245c93cdd0e0801a44b003d84c14feb8bf44`).
+- [x] Repository historical migrations through Program match the 50 live ledger versions/names in a fresh read-only comparison.
+- [x] Routine migration remains `20260929050000_create_user_workout_routines.sql` and remains unapplied live.
+- [x] Supabase strategy/schema inventory reflect verified current live state, not future Routine state.
+- [x] Program handoff archived as validated/live; Routine handoff now records merged source + pending live deployment.
 - [ ] Supabase Database CI passes on the exact PR head.
 - [ ] No hosted mutation occurs.
 
