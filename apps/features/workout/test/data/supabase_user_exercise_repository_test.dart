@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
-const __ownerUserId = '11111111-1111-4111-8111-111111111111';
+const _ownerUserId = '11111111-1111-4111-8111-111111111111';
 
 void main() {
   final exerciseId =
