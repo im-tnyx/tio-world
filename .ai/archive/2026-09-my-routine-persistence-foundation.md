@@ -1,6 +1,7 @@
 # My Routine persistence foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** `supabase/` + `apps/features/workout`
 **Affected platforms:** Supabase Postgres/RLS and Workout feature data/domain repository boundary
 
@@ -14,19 +15,18 @@
 
 ## Active Handoff
 
-**Planning owner:** Current repository agent for deployment readiness only.
-**Implementation owner:** None; repository implementation merged.
-**Review owner:** Completed for PR #463.
-**Implementation ownership state:** Inactive until a separately authorized live deployment step.
-**Repository state last verified:** remote `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`.
-**Branch / PR:** Source branch merged; GitHub PR #463 squash-merged as `71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`.
-**Tracker:** TNYX-78 remains In Progress because W1 is broader than this slice.
-**Current implementation state:** Repository migration, owner-safe Routine repository, focused Flutter tests and focused database security matrix are merged.
-**Validation completed:** Final PR head `0674cc502066fd9cddb3f4f35e80322707584254`; Flutter CI #2853 and Supabase Database CI #84 passed; 0 unresolved review threads.
-**Hosted state:** `public.user_workout_routines` is still absent. No Routine migration has been applied live.
-**Migration lineage prerequisite:** Program migration identity is being reconciled repo-only to the existing hosted version `20260929040034`; Routine remains `20260929050000`.
-**Current blocker:** No product/code blocker. Live deployment remains intentionally unperformed and requires explicit owner authorization after migration-lineage reconciliation is merged.
-**Next exact action:** Finish the repo-only lineage reconciliation, then perform a fresh live deployment gate before any `apply_migration`.
+**Planning owner:** None; this bounded persistence slice is complete.
+**Implementation owner:** None; source merged and hosted migration deployed.
+**Review owner:** Completed.
+**Implementation ownership state:** Inactive.
+**Repository state:** Source merged via PR #463 as `71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`; current post-deploy reconciliation base is `main@e9aa69b5f1176d87bcf79bca7ccdf407645da28e`.
+**Tracker:** TNYX-78 remains In Progress because W1 is broader than this persistence slice.
+**Source validation:** Final PR head `0674cc502066fd9cddb3f4f35e80322707584254`; Flutter CI #2853 and Supabase Database CI #84 passed; 0 unresolved review threads.
+**Hosted deployment:** `20260929050000_create_user_workout_routines` was deployed on 2026-09-29 using Supabase CLI v2.116.0 after `migration list` and `db push --dry-run` proved it was the only pending migration.
+**Hosted verification:** Repository/live migration history is 51 / 51 by version + name; `public.user_workout_routines` is live with the approved six-column shape, owner-safe composite FK, trigger, RLS, grants and policies; no production rows were inserted.
+**Security result:** No new Routine-specific Security Advisor finding.
+**Performance follow-up:** Supabase Performance Advisor reports INFO `unindexed_foreign_keys` for `user_workout_routines_program_owner_fkey`. The existing `(user_id, program_id, created_at DESC)` index contains both columns but is not recognized as a covering index for FK order `(program_id,user_id)`. This is a non-blocking optimization follow-up, not a deployment/security failure.
+**Follow-up boundary:** Composition, ordering, generated naming, move/copy/delete/archive product semantics, UI, source provenance and TrainingPlan/session behavior remain separate future slices.
 
 ## Discovery / Architecture
 
@@ -55,7 +55,7 @@ Authenticated clients receive only `SELECT`, `INSERT`, and column-level `UPDATE(
 - [x] Add focused repository tests.
 - [x] Add focused SQL matrix for same-owner FK, RLS and least-privilege grants.
 - [x] Run exact-source-head Flutter and Supabase Database CI.
-- [ ] Verify final PR head after this handoff-only update.
+- [x] Verify final PR head and post-merge hosted deployment.
 
 ## Quality Review
 
@@ -93,8 +93,22 @@ Signed-in users can list Routines for one owned Program, create a Routine only u
 
 ### Known Limitations
 
-Composition, ordering, generated naming, move/copy/delete/archive product semantics, UI, source provenance and TrainingPlan/session behavior remain intentionally deferred. Live deployment and live advisor verification remain pending after the merged PR and require a separately authorized hosted step.
+Composition, ordering, generated naming, move/copy/delete/archive product semantics, UI, source provenance and TrainingPlan/session behavior remain intentionally deferred. Supabase Performance Advisor INFO `unindexed_foreign_keys` for the composite Program-owner FK remains a separate non-blocking optimization follow-up.
 
 ### Final Status
 
-`MERGED / AWAITING LIVE DEPLOYMENT`
+`VALIDATED`
+
+
+## Post-deploy verification
+
+- Supabase CLI v2.116.0 matched the repository DB CI version.
+- Pre-deploy `migration list` showed the first 50 migrations aligned and only `20260929050000` pending remotely.
+- `db push --dry-run` listed only `20260929050000_create_user_workout_routines.sql`.
+- `db push` applied exactly that migration.
+- Final CLI list and independent Supabase verification show 51 repository migrations and 51 live migrations with zero repo-only or live-only versions.
+- Live catalog snapshot: 16 ordinary `public` tables, 158 columns, 16 primary keys, 17 foreign keys, 5 unique constraints, 56 checks, 96 total constraint records, 44 indexes and RLS enabled on all 16 tables.
+- `user_workout_routines` has 0 rows after deployment; no production test fixtures were inserted.
+- Authenticated privileges are SELECT, INSERT and column-level UPDATE on `name`; DELETE, table-level UPDATE, `program_id` UPDATE and `user_id` UPDATE are not granted.
+- Security Advisor has no Routine-specific finding. Pre-existing SECURITY DEFINER executable warnings and leaked-password-protection warning remain outside this slice.
+- Performance Advisor reports one new Routine-specific INFO finding for the composite FK index order. No schema mutation was made during post-deploy reconciliation.

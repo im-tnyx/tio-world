@@ -9,8 +9,8 @@ Truth Boundary: Authoritative for current Supabase ownership and future protecte
 
 **Active current Supabase foundation.**
 - The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
-- On 2026-09-29, the 50 applied live migrations match the first 50 checked-in migrations by version + name after reconciling the already-applied Workout Program migration to its hosted identity `20260929040034_create_user_workout_programs`. One newer repository migration, `20260929050000_create_user_workout_routines`, remains intentionally unapplied live.
-- The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 15 ordinary live tables, with RLS enabled on all 15 at the verified snapshot. `user_workout_programs` is live; `user_workout_routines` is not live yet.
+- On 2026-09-29, all 51 checked-in migrations match the 51 applied live migrations by version + name. The latest applied migration is `20260929050000_create_user_workout_routines`; there are no repository-only or live-only migrations at the verified snapshot.
+- The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 16 ordinary live tables, with RLS enabled on all 16 at the verified snapshot. Both `user_workout_programs` and `user_workout_routines` are live.
 - Flutter startup initializes configured Supabase through `SupabaseRuntimeConfig` and `initializeSupabaseRuntime`; current feature persistence/auth integrations use feature-owned Supabase repositories behind composition/provider boundaries.
 - Future HTTP/backend adapters remain architecture-preserved only where current source still contains them; future `services/api` remains unimplemented until a separately authorized protected-service slice.
 

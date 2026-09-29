@@ -11,7 +11,7 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 Verified on **2026-09-29** against:
 
-- repository base `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a` plus the content-preserving Program migration identity reconciliation included with this inventory refresh;
+- repository base `main@e9aa69b5f1176d87bcf79bca7ccdf407645da28e`;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
@@ -40,23 +40,23 @@ This inventory intentionally excludes:
 
 | Measure | Verified value |
 | :--- | ---: |
-| Active ordinary `public` tables | 15 |
-| Columns | 152 |
-| Primary-key constraints | 15 |
-| Foreign-key constraints | 15 |
-| Unique constraints | 4 |
-| Check constraints | 55 |
+| Active ordinary `public` tables | 16 |
+| Columns | 158 |
+| Primary-key constraints | 16 |
+| Foreign-key constraints | 17 |
+| Unique constraints | 5 |
+| Check constraints | 56 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 91 |
-| Indexes | 41 |
-| Tables with RLS enabled | 15 / 15 |
+| Total catalog constraint records | 96 |
+| Indexes | 44 |
+| Tables with RLS enabled | 16 / 16 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 50 / 50 |
-| Repository-only pending migrations | 1 |
+| Applied live migrations matched to repository | 51 / 51 |
+| Repository-only pending migrations | 0 |
 
-The verified live migration history currently ends at `20260929040034_create_user_workout_programs`. The repository also contains the newer, intentionally unapplied `20260929050000_create_user_workout_routines` migration; this inventory does not describe that future table until it is deployed and verified live.
+The verified live migration history currently ends at `20260929050000_create_user_workout_routines`. Repository and live migration history are aligned 51 / 51 by version + name at this snapshot.
 
 ## Table Overview
 
@@ -74,6 +74,7 @@ The verified live migration history currently ends at `20260929040034_create_use
 | `public.user_profiles` | 12 | Enabled |
 | `public.user_wellness_targets` | 8 | Enabled |
 | `public.user_workout_programs` | 5 | Enabled |
+| `public.user_workout_routines` | 6 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
 | `public.user_workout_targets` | 12 | Enabled |
 | `public.users` | 21 | Enabled |
@@ -509,16 +510,49 @@ The verified live migration history currently ends at `20260929040034_create_use
 
 | Name | Type | Definition |
 | :--- | :--- | :--- |
+| `user_workout_programs_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
+| `user_workout_programs_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 | `user_workout_programs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_programs_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
-| `user_workout_programs_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 
 #### Indexes
 
 | Name | Definition |
 | :--- | :--- |
 | `idx_user_workout_programs_user_created_at` | `CREATE INDEX idx_user_workout_programs_user_created_at ON public.user_workout_programs USING btree (user_id, created_at DESC)` |
+| `user_workout_programs_id_user_id_key` | `CREATE UNIQUE INDEX user_workout_programs_id_user_id_key ON public.user_workout_programs USING btree (id, user_id)` |
 | `user_workout_programs_pkey` | `CREATE UNIQUE INDEX user_workout_programs_pkey ON public.user_workout_programs USING btree (id)` |
+
+### `public.user_workout_routines`
+
+**RLS:** Enabled
+
+#### Columns
+
+| Column | Type | Nullable | Default |
+| :--- | :--- | :---: | :--- |
+| `id` | `uuid` | No | — |
+| `user_id` | `uuid` | No | — |
+| `program_id` | `uuid` | No | — |
+| `name` | `text` | No | — |
+| `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+
+#### Constraints
+
+| Name | Type | Definition |
+| :--- | :--- | :--- |
+| `user_workout_routines_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
+| `user_workout_routines_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `user_workout_routines_program_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (program_id, user_id) REFERENCES user_workout_programs(id, user_id) ON DELETE CASCADE` |
+| `user_workout_routines_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
+
+#### Indexes
+
+| Name | Definition |
+| :--- | :--- |
+| `idx_user_workout_routines_user_program_created_at` | `CREATE INDEX idx_user_workout_routines_user_program_created_at ON public.user_workout_routines USING btree (user_id, program_id, created_at DESC)` |
+| `user_workout_routines_pkey` | `CREATE UNIQUE INDEX user_workout_routines_pkey ON public.user_workout_routines USING btree (id)` |
 
 ### `public.user_workout_profiles`
 
