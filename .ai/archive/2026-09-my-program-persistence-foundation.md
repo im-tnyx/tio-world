@@ -88,44 +88,49 @@ No UI in this slice. Missing auth must fail writes rather than creating unowned 
 
 ## 5. Implementation Plan
 
-- [ ] Add focused migration with table, constraints, updated_at trigger, RLS, grants and owner policies.
-- [ ] Add minimal Program repository interface.
-- [ ] Add Supabase adapter with explicit row mapping.
-- [ ] Add focused repository tests.
-- [ ] Validate exact branch scope and CI.
+- [x] Add focused migration with table, constraints, updated_at trigger, RLS, grants and owner policies.
+- [x] Add minimal Program repository interface.
+- [x] Add Supabase adapter with explicit row mapping.
+- [x] Add focused repository tests.
+- [x] Validate exact PR head and merge.
+- [x] Apply the approved migration live and verify deployed metadata.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-```text
-Not run yet.
-```
+- PR #461 exact head `3168d81fb8cd404424517eca0b3cc7a4056c275d`.
+- Flutter CI #2844: **success**.
+- Supabase Database CI #78: **success**.
+- PR merged as `50cca711e8f617cd8eda3d9be590ef7e2ed33d19`.
+- Post-merge live verification confirmed exactly the approved five columns, nonblank-name CHECK, owner FK, index, updated-at trigger, RLS, owner policies and authenticated CRUD grants.
+- No production test rows were inserted.
+- Current live migration ledger identity for this already-applied migration is `20260929040034_create_user_workout_programs`.
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
-|---|---|---|---|---|---|
+No open Program persistence review findings remain.
 
 ## 7. Final Handoff
 
-### Changed Files
+### Changed Areas
 
-Pending.
+- `public.user_workout_programs` migration and owner RLS/grants;
+- Workout feature `ProgramRepository` and Supabase adapter;
+- focused repository tests.
 
 ### Actual Behavior
 
-Pending.
+Authenticated users can list, create and rename user-owned Programs through the feature repository boundary. The live table enforces canonical user ownership and nonblank names. No Program UI, generated naming, media, provenance, source Program persistence or destructive repository API was added.
 
 ### Known Limitations
 
-No local checkout in this connector-only session; local commands cannot be claimed.
+Routine persistence/composition, Program lifecycle semantics, media, provenance/source persistence, generated naming, UI and TrainingPlan behavior remain separate slices.
 
 ### Final Status
 
 `VALIDATED`
 
-
 ## Post-merge reconciliation
 
-On 2026-09-29 the repository migration filename was reconciled, without changing its SQL body, from `20260929000001_create_user_workout_programs.sql` to the already-applied hosted identity `20260929040034_create_user_workout_programs.sql`. The migration blob is byte-for-byte unchanged. This is repository lineage repair only, not a second deployment.
+On 2026-09-29 the repository migration filename was reconciled, without changing its SQL body, from `20260929000001_create_user_workout_programs.sql` to the already-applied hosted identity `20260929040034_create_user_workout_programs.sql`. The old and new repository paths have the same Git blob SHA `3881245c93cdd0e0801a44b003d84c14feb8bf44`. Hosted ledger statement storage omits only the file's terminal newline; normalized SQL content otherwise matches. This is repository lineage repair only, not a second deployment.
