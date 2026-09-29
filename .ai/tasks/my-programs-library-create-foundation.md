@@ -15,15 +15,15 @@
 ## Active Handoff
 
 **Planning owner:** Workout architecture audit
-**Implementation owner:** Active implementation agent on `tnyx/tnyx-267-programs-library-create`
+**Implementation owner:** Completed on `tnyx/tnyx-267-programs-library-create`
 **Review owner:** Manual repository review while Codex code-review quota is exhausted
 **Implementation ownership state:** Complete
 **Repository state last verified:** 2026-09-29, `main@9244f503fc48e9ab2caefe7f3778469225896cec`
 **Implementation branch:** `tnyx/tnyx-267-programs-library-create`
-**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No new Linear child can currently be created because the workspace free issue limit is exceeded.
+**Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No focused child was created for this bounded slice; TNYX-267 comments plus this repository task are the execution record.
 **Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
 **Current blocker:** No product/runtime blocker is known. Automated Codex review is currently unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security is separately failing before analysis on the known unsupported-model infrastructure error and is non-required; exact-head Flutter/Dart analyze + tests passed on runtime head `d5334c987674dac644799649a7dff59db1a74410`.
-**Next exact action:** Push this handoff-only correction, re-run exact-head repository checks, then triage any new review/check finding before owner merge approval.
+**Next exact action:** Complete exact-head repository revalidation on the current PR head, then triage any new review/check finding before owner merge approval.
 
 ## 1. Discovery
 
@@ -33,18 +33,18 @@ From Workout Library, a signed-in user can reach their persisted Programs, creat
 
 This first slice deliberately does not pretend Routine creation is ready.
 
-### Verified Runtime Evidence
+### Pre-implementation Discovery Evidence
 
-- `LibraryPage` currently renders only one ready section: Exercises.
-- `AppRoutes` has Library and Exercises only; no Program route exists.
-- App Workout composition currently wires Workout Profile/Targets repositories only; no Program repository provider exists.
+- At discovery time, `LibraryPage` rendered only one ready section: Exercises.
+- At discovery time, `AppRoutes` had Library and Exercises only; no Program route existed.
+- At discovery time, app Workout composition wired Workout Profile/Targets repositories only; no Program repository provider existed.
 - `ProgramRepository` already supports `list()`, `create(Program)`, and `rename(...)`.
 - `SupabaseProgramRepository` persists only `id`, `user_id`, and `name` to live `public.user_workout_programs`.
 - Program persistence and owner RLS/grants are already deployed and independently verified.
 - Canonical `Program` is intentionally minimal: `ProgramId + non-blank name`.
 - ADR-0015 allows a newly created Program to contain zero Routines.
-- `docs/screens/library.md` capability-gates Programs until the capability is real.
-- `docs/screens/programs.md` defines generated/renamable initial naming but the route/screen is still planned only.
+- At discovery time, `docs/screens/library.md` capability-gated Programs until the capability became real.
+- At discovery time, `docs/screens/programs.md` defined generated/renamable initial naming while the route/screen was still planned only.
 - W1A3 remains `Ready / AWAITING OWNER APPROVAL`; this Programs slice must not absorb Routine composition.
 - Dedicated Exercises browse/search/filter is shipped; Exercise picker mode is still planned and therefore cannot be silently pulled into this slice.
 
@@ -196,7 +196,7 @@ Library continues to receive navigation callbacks from app composition. The Prog
 - [x] Add focused controller/widget/router/composition tests.
 - [x] Run applicable Flutter analyze/tests on runtime head `d5334c987674dac644799649a7dff59db1a74410`; manual PR review found only the stale-handoff issue recorded below.
 - [x] Update canonical Library/Programs docs only for behavior actually shipped.
-- [ ] Revalidate the new exact head after this handoff-only correction.
+- [ ] Revalidate the current exact head after the handoff-only manual-review corrections.
 
 ## 7. Acceptance
 
@@ -226,6 +226,7 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 | MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implemented without widening into Routine/detail/media/TrainingPlan work |
 | MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
 | MP-R2 | P2 | Resolved | Scope wording still said `no live data mutation` even though the approved feature's core behavior is persisting a new user-owned Program | Clarified that schema/RLS/grant/deployment changes remain out of scope while the existing live Program repository write is explicitly in scope |
+| MP-R3 | P2 | Resolved | Historical discovery bullets were still labeled as current verified runtime evidence, and the handoff next-action text referred to an already-pushed correction | Re-labeled those bullets as pre-implementation discovery evidence and made the active next action current-head revalidation |
 
 ## 9. Final Handoff
 
@@ -248,7 +249,7 @@ Runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
 - required `Commit attribution guard`: PASS
 - supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
 
-Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. A manual Codex-style review found only MP-R1 in this pass; no runtime/data/routing blocker was identified.
+Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. Manual Codex-style review found MP-R1 and MP-R2 in the handoff text; both are resolved. No runtime/data/routing blocker was identified.
 
 ### Known Limitations
 
