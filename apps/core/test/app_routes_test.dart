@@ -50,6 +50,19 @@ void main() {
     );
   });
 
+  test('Programs route nests under the Workout branch without bottom nav',
+      () {
+    expect(AppRoutes.workoutPrograms.path, '/workout/programs');
+    expect(
+      AppRoutes.workoutPrograms.path
+          .startsWith('${FeatureRoutes.workout.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.workoutPrograms.title, 'Programs');
+    expect(AppRoutes.workoutPrograms.chromePolicy, ChromePolicy.noBottomBar);
+    expect(AppRoutes.workoutPrograms.chromePolicy.showsBottomNav, isFalse);
+  });
+
   test('Exercises route nests under the Workout branch without bottom nav',
       () {
     expect(AppRoutes.workoutExercises.path, '/workout/exercises');

@@ -177,6 +177,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// Persisted user Programs collection, nested under the Workout branch.
+  static const workoutPrograms = TioRouteContract(
+    path: '/workout/programs',
+    title: 'Programs',
+    description: 'View and create your saved workout Programs.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Dedicated Exercises screen, nested under the Workout branch.
   ///
   /// Opened from Library → Exercises, or directly by deep link.

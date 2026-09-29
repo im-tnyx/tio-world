@@ -19,6 +19,7 @@ import 'package:tio_feature_settings/settings.dart'
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+const _programsPath = '/workout/programs';
 const _exercisesPath = '/workout/exercises';
 const _libraryPath = '/workout/library';
 
@@ -29,6 +30,15 @@ void main() {
     expect(policy, ChromePolicy.noBottomBar);
     expect(policy.showsRootTopBar, isFalse);
     expect(AppRoutes.workoutLibrary.path, _libraryPath);
+  });
+
+  test('Programs hides the bottom navigation and root top bar', () {
+    final policy = shellChromePolicyForPath(_programsPath);
+
+    expect(policy, ChromePolicy.noBottomBar);
+    expect(policy.showsBottomNav, isFalse);
+    expect(policy.showsRootTopBar, isFalse);
+    expect(AppRoutes.workoutPrograms.path, _programsPath);
   });
 
   test('Exercises hides the bottom navigation and root top bar', () {
@@ -53,6 +63,10 @@ void main() {
               );
 
           expect(
+            redirect(_programsPath),
+            redirect(FeatureRoutes.workout.path),
+          );
+          expect(
             redirect(_exercisesPath),
             redirect(FeatureRoutes.workout.path),
           );
@@ -61,6 +75,10 @@ void main() {
             redirect(FeatureRoutes.workout.path),
           );
           const nutritionOnly = [AppDestination.home, AppDestination.nutrition];
+          expect(
+            redirect(_programsPath, nutritionOnly),
+            redirect(FeatureRoutes.workout.path, nutritionOnly),
+          );
           expect(
             redirect(_exercisesPath, nutritionOnly),
             redirect(FeatureRoutes.workout.path, nutritionOnly),
@@ -161,6 +179,31 @@ void main() {
     );
     expect(find.text('Exercises'), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
+  });
+
+  testWidgets(
+      'Workout Home → Library → Programs, and back through the same stack',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramsPage), findsOneWidget);
+    expect(find.byType(LibraryPage), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const ValueKey('programs-unavailable')), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramsPage), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 
   testWidgets(

@@ -1,39 +1,47 @@
 # Programs Screen
 
-Document Status: Planned/Future Doc
-Last Verified: 2026-09-28
+Document Status: Canonical Live Doc
+Last Verified: 2026-09-29
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for the planned Programs product contract and ownership; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for the Programs product contract and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested Phone Workout flow reached from Library
-**Route:** No route exists yet
+**Route:** `/workout/programs` (`AppRoutes.workoutPrograms`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Planned only.
+**Status:** Minimal persisted Programs collection/create is implemented. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
 
 ## Purpose
 
 Program is the reusable user workout container. A user-owned Program owns zero or more user-owned Routines. A newly created Program may be empty until the user adds its first Routine. Scheduling/following a Program is a separate TrainingPlan concern.
 
-## Minimal Create Flow
+## Current Runtime
 
 ```text
 Library
 → Programs
+→ persisted Programs collection
 → Create Program
 → Program 1              // generated and visible, never a blank-name state
-→ user may rename
-→ OK
-→ Program detail
-→ Add Routine
+→ user may rename before confirmation
+→ Create
+→ persisted Program appears in the collection
 ```
 
-For a user-created My Program, initial editing is intentionally limited to the generated/renamable name and an optional image once the approved media capability exists. Description, goal, level, type and recommended-duration metadata are not requested from the user.
+Current behavior:
 
-Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata when their owning source slice defines it. That does not grant unrestricted user mutation of source-owned fields.
+- Library shows a real `Programs` navigation row above Exercises.
+- The Programs screen reads through the canonical `ProgramRepository`; production app composition uses `SupabaseProgramRepository` when durable Supabase persistence is available and does not substitute an in-memory success path.
+- Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
+- Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
+- The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
+- Program rows are display-only in this first slice. There is no chevron, tap target or fake detail destination.
+- No standalone Routines row or top-level Create Routine action exists.
 
-## Program-owned Routines
+For a user-created My Program, initial creation is intentionally limited to the generated/renamable name. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
 
-A Routine has its own stable identity/composition but belongs to exactly one user-owned Program. Program detail/builder is therefore the management surface for its Routines.
+## Future Program Detail And Program-owned Routines
+
+A Routine has its own stable identity/composition but belongs to exactly one user-owned Program. Program detail/builder will therefore be the management surface for its Routines when that separately approved capability lands.
 
 ```text
 Program 1
@@ -48,7 +56,7 @@ Routine creation follows the same generated-name direction inside the Program. T
 
 Tio-curated source Programs remain read-only. Explicit Add to Library / Use creates a user-owned Program copy and the editable Program-owned Routine structure required for independent changes while retaining approved source/revision lineage. Source updates must never silently mutate the user copy.
 
-User-created, accepted AI-generated and future coach-created reusable content remain one canonical Program capability distinguished by provenance/ownership, not parallel Program models.
+User-created, accepted AI-generated and future coach-created reusable content remain one canonical Program capability distinguished by provenance/ownership, not parallel Program models. Those source/adoption flows are not implemented by the current minimal collection/create slice.
 
 ## TrainingPlan Boundary
 
@@ -65,18 +73,24 @@ Profile/Workout settings may later suggest defaults, but must not silently mutat
 
 ## Optional Metadata And Media
 
-A user-created My Program may be renamed and may use an optional image once media support is approved. Tio/Coach/AI Programs may expose richer source metadata, with field-level edit authority defined by their source/adoption slice.
+A future approved Program detail slice may allow rename management and optional image/media under the appropriate private Workout Storage contract. Tio/Coach/AI Programs may expose richer source metadata, with field-level edit authority defined by their source/adoption slice.
 
-User-adjustable schedule or follow-duration/till-date controls belong to TrainingPlan/following state even when surfaced from Program context. They do not mutate reusable Program source metadata. Any future media persistence requires its own approved private Workout Storage slice.
+User-adjustable schedule or follow-duration/till-date controls belong to TrainingPlan/following state even when surfaced from Program context. They do not mutate reusable Program source metadata.
 
 ## Acceptance Criteria
 
-- Program creation begins with a visible generated non-blank name and permits rename before confirmation.
-- A user-owned Program can own zero or more stable user-owned Routines; an empty new Program is valid but is not automatically executable.
-- User-owned Routines cannot exist as orphan top-level Library items.
-- A user-created My Program initially exposes name and optional image editing only; richer source metadata is not required from the user.
-- Program and TrainingPlan remain separate; personal schedule/follow-duration changes are TrainingPlan-owned.
-- Source/adopted content preserves lineage without silent source-update propagation.
+Current shipped foundation:
+
+- Program creation begins with a visible generated non-blank name and permits editing before confirmation.
+- The Programs collection is persisted through the canonical Program repository boundary.
+- Loading, empty, load-failure/retry and create-failure states are honest.
+- Production has no in-memory Program durability fallback.
+- A user-owned Program can exist with zero Routines.
+- Program rows do not pretend detail/builder capability exists.
+- User-owned Routines are not exposed as orphan top-level Library items.
+- Program and TrainingPlan remain separate.
+
+Future acceptance remains owned by later slices for Program detail/builder, Program-owned Routine composition/management, provenance/adoption, media, archive/delete and TrainingPlan handoff.
 
 ## Related
 

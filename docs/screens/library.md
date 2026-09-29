@@ -1,14 +1,14 @@
 # Library Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-28
+Last Verified: 2026-09-29
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout Library product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** W6A (TNYX-266) implemented: Workout Home entry and a Library root with the Exercises section. Programs and Plans remain planned (W6B/W6C); user-owned Routines are managed inside their owning Program.
+**Status:** W6A plus the bounded W6B Program collection/create foundation are implemented: Workout Home entry, Library Programs + Exercises entries, persisted Programs collection/create, and Exercises browse/search. Program detail/Routine management and Plans remain planned; user-owned Routines stay inside their owning Program.
 
 ## Purpose
 
@@ -27,12 +27,13 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 - The Workout Home → Library entry remains available whether or not Library is selected in bottom navigation.
 - Library is not a Workout-local content tab inside Workout Home.
 
-## W6A Runtime
+## Current Runtime
 
 - `/workout/library` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath does not jump while Library slides in or out. The page has an AppBar with back and the title `Library`. A direct deep link lands with `/workout` beneath it and follows `/workout` onboarding and App Mode gating.
 - Workout Home → Library and Library → Exercises use `push`, so back retraces Exercises → Library → Workout Home. The app shell supplies both callbacks (`WorkoutHomePage.onLibraryPressed`, `LibraryPage.onExercisesPressed`); Workout presentation does not import route paths.
 - The Library top bar has one search icon (tooltip `Search exercises`). It pushes `/workout/exercises?search=true`, which opens Exercises with its top-bar search field already active and focused; back returns to Library.
-- There are no sub-tabs, grid/list toggle, placeholders, or Create/Favorites/Custom rows until their capabilities exist.
+- Library now shows `Programs` above `Exercises`. Programs pushes `/workout/programs`, where persisted user Programs load through the canonical `ProgramRepository`. The screen has AppBar Create (+), a generated editable initial name, honest loading/empty/load-failure-retry/create-failure states, and display-only Program rows until detail/builder work lands.
+- There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, or Create/Favorites/Custom Exercise rows until their capabilities exist.
 
 ## Target Sections
 
@@ -45,7 +46,7 @@ Library
 ```
 
 - Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
-- **Programs** is the user-owned Program collection/management entry. Routine create/edit is nested inside the owning Program; there is no standalone user Routines section or top-level Create Routine action. See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
+- **Programs** is the user-owned Program collection/management entry. The current shipped slice lists persisted Programs and creates a new empty Program with a generated editable name. Program rows are display-only until Program detail/builder lands. Routine create/edit remains nested inside the owning Program; there is no standalone user Routines section or top-level Create Routine action. See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
 - **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
 - **Exercises** opens the dedicated Exercises screen. It is the first real section: since W6A the Library root shows one `Exercises` row (fitness icon, `Browse all exercises`, chevron) that pushes `/workout/exercises`, so back returns to Library. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
 
