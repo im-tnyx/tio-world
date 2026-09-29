@@ -14,24 +14,19 @@
 
 ## Active Handoff
 
-**Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
-**Review owner:** Current repository agent, independent post-implementation pass
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** remote `main@537fcbd5f973e13208206ed4099d75f119607cf9`
-**Branch:** `tnyx/my-routine-persistence-foundation`
-**HEAD SHA:** Source/security validation passed at `3a84a334f6185c245b1e15ee020f2c65dc591b49`; this handoff-only task update follows it.
-**Observed working-tree state:** Connector-only session; local status unavailable.
-**Observed uncommitted/dirty files:** Not observable in connector-only session.
-**PR / tracker:** GitHub PR #463; Linear TNYX-78 remains In Progress because W1 is broader than this slice.
-**Current implementation state:** Migration, owner-safe Routine repository, focused Flutter tests, and focused database security matrix implemented; independent review findings resolved.
-**Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, Supabase DB CI, Workout feature domain/data/tests.
-**Validation completed at SHA:** `3a84a334f6185c245b1e15ee020f2c65dc591b49`: Flutter CI #2852 success; Supabase Database CI #83 success including the TNYX-78 Routine persistence SQL matrix; PR mergeable and branch was 0 behind main during review.
-**Validation remaining:** Final exact-head gate after this handoff-only task update; live schema/RLS/Security Advisor verification only after an explicitly authorized post-merge deployment.
-**Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Verify final exact-head CI/review state; do not merge without explicit owner instruction.
+**Planning owner:** Current repository agent for deployment readiness only.
+**Implementation owner:** None; repository implementation merged.
+**Review owner:** Completed for PR #463.
+**Implementation ownership state:** Inactive until a separately authorized live deployment step.
+**Repository state last verified:** remote `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`.
+**Branch / PR:** Source branch merged; GitHub PR #463 squash-merged as `71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a`.
+**Tracker:** TNYX-78 remains In Progress because W1 is broader than this slice.
+**Current implementation state:** Repository migration, owner-safe Routine repository, focused Flutter tests and focused database security matrix are merged.
+**Validation completed:** Final PR head `0674cc502066fd9cddb3f4f35e80322707584254`; Flutter CI #2853 and Supabase Database CI #84 passed; 0 unresolved review threads.
+**Hosted state:** `public.user_workout_routines` is still absent. No Routine migration has been applied live.
+**Migration lineage prerequisite:** Program migration identity is being reconciled repo-only to the existing hosted version `20260929040034`; Routine remains `20260929050000`.
+**Current blocker:** No product/code blocker. Live deployment remains intentionally unperformed and requires explicit owner authorization after migration-lineage reconciliation is merged.
+**Next exact action:** Finish the repo-only lineage reconciliation, then perform a fresh live deployment gate before any `apply_migration`.
 
 ## Discovery / Architecture
 
@@ -98,8 +93,8 @@ Signed-in users can list Routines for one owned Program, create a Routine only u
 
 ### Known Limitations
 
-Composition, ordering, generated naming, move/copy/delete/archive product semantics, UI, source provenance and TrainingPlan/session behavior remain intentionally deferred. Live deployment and live advisor verification are not part of the unmerged PR.
+Composition, ordering, generated naming, move/copy/delete/archive product semantics, UI, source provenance and TrainingPlan/session behavior remain intentionally deferred. Live deployment and live advisor verification remain pending after the merged PR and require a separately authorized hosted step.
 
 ### Final Status
 
-`REVIEW`
+`MERGED / AWAITING LIVE DEPLOYMENT`
