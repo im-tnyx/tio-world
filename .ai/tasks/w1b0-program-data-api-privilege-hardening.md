@@ -16,14 +16,14 @@
 
 **Planning owner:** Current repository agent
 **Implementation owner:** Current repository agent
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** Manual Codex-style review because automated Codex code-review quota is exhausted
+**Implementation ownership state:** Complete
 **Repository state last verified:** 2026-09-29, `main@6c2e6d9139cfb3ae43e222c70af3c4fc031dbafe`
 **Branch:** `tnyx/tnyx-78-w1b0-program-privilege-hardening`
 **Tracker:** TNYX-78 remains In Progress; no focused W1B0 child exists.
-**Current implementation state:** Migration, focused SQL privilege matrix, and Supabase DB CI wiring are committed on the branch. No live Supabase mutation has been performed. Exact-head CI validation remains.
+**Current implementation state:** Migration, focused SQL privilege matrix, and Supabase DB CI wiring are complete. Source head `5c2a4c557ad35e1e1ad16853fffc86878975d6b6` passed Supabase Database CI #87, including full replay, complete migration ledger, the new Program privilege matrix, existing DB matrices, concurrency test, and lint-diff. Required Commit attribution guard passed. No live Supabase mutation has been performed.
 **Current blocker:** None. The repository-required migration filename was generated locally by the owner using the pinned Supabase CLI.
-**Next exact action:** Audit branch scope, open the PR, and validate exact-head Supabase Database CI plus required branch checks.
+**Next exact action:** Revalidate the new handoff-only exact head, then hand PR #473 back for owner merge approval. Live deployment remains post-merge only.
 
 ## 1. Discovery
 
@@ -135,7 +135,7 @@ Do not add delete/archive UI or repository APIs merely because the original tabl
 - [x] Add migration with only grant/policy hardening.
 - [x] Add focused Program privilege SQL matrix.
 - [x] Wire the focused matrix into Supabase Database CI.
-- [ ] Run exact-head Supabase Database CI and applicable repository checks.
+- [x] Run source-head Supabase Database CI and applicable repository checks; final handoff-only exact-head revalidation remains.
 - [ ] Run live deployment only after merge through the normal owner/local Supabase workflow.
 - [ ] Verify live grants/policies and advisors after deployment.
 - [ ] Archive this task only after validated merge/deployment reconciliation.
@@ -148,19 +148,36 @@ PASS for read-only readiness. The mandatory CLI-generated migration filename is 
 
 Security Advisor does not currently identify a Program-specific cross-user RLS issue. The relevant finding is source/live contract breadth discovered by direct privilege inspection, not an advisor-reported vulnerability.
 
+### Validation Completed
+
+PR #473 source head `5c2a4c557ad35e1e1ad16853fffc86878975d6b6`:
+
+- Supabase Database CI #87: PASS
+- full repository migration replay: PASS
+- complete migration ledger: PASS
+- TNYX-78 Program privilege hardening SQL matrix: PASS
+- existing DB SQL matrices: PASS
+- real two-session concurrency test: PASS
+- database lint-diff: PASS
+- required Commit attribution guard: PASS
+- supplemental GitHub Advanced Security: pre-analysis infrastructure failure because the requested model is unsupported; no repository security finding
+- automated Codex code review: unavailable because review quota is exhausted
+- manual Codex-style security review: no blocker
+- PR review threads: 0
+
 ### Validation Remaining
 
-Implementation, replay SQL matrix, exact-head CI, merge gate, live deployment, post-deploy privilege verification.
+Final exact-head revalidation after this handoff-only update, owner merge gate, live deployment, and post-deploy privilege/advisor verification.
 
 ## 7. Final Handoff
 
 ### Changed Areas
 
-Planning/task governance only at this checkpoint.
+Migration, focused SQL security matrix, Supabase DB CI wiring, and task governance.
 
 ### Actual Behavior
 
-No runtime or database behavior changed.
+After deployment, authenticated Data API clients will retain Program SELECT/INSERT and owner-scoped rename while losing direct Program DELETE and updates to Program identity, ownership, and timestamps. This behavior is not live yet because the migration has not been deployed.
 
 ### Known Limitations
 
@@ -168,4 +185,4 @@ This slice does not decide Routine composition persistence, Favorites/Custom/Fol
 
 ### Final Status
 
-`IN PROGRESS / IMPLEMENTATION COMPLETE / EXACT-HEAD CI PENDING`
+`IN PROGRESS / IMPLEMENTATION COMPLETE / FINAL EXACT-HEAD REVALIDATION PENDING`
