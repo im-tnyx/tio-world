@@ -1,7 +1,7 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-09-29
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
@@ -9,9 +9,9 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**
 
-Verified on **2026-09-27** against:
+Verified on **2026-09-29** against:
 
-- repository base `main@5faa41472be7fc2ad1fda88b637e566fb3ef7465`;
+- repository base `main@71fef2c9e2393e89c4cf415799a5ae8f5e7e4d8a` plus the content-preserving Program migration identity reconciliation included with this inventory refresh;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
@@ -40,22 +40,23 @@ This inventory intentionally excludes:
 
 | Measure | Verified value |
 | :--- | ---: |
-| Active ordinary `public` tables | 14 |
-| Columns | 147 |
-| Primary-key constraints | 14 |
-| Foreign-key constraints | 14 |
+| Active ordinary `public` tables | 15 |
+| Columns | 152 |
+| Primary-key constraints | 15 |
+| Foreign-key constraints | 15 |
 | Unique constraints | 4 |
-| Check constraints | 54 |
+| Check constraints | 55 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 88 |
-| Indexes | 39 |
-| Tables with RLS enabled | 14 / 14 |
+| Total catalog constraint records | 91 |
+| Indexes | 41 |
+| Tables with RLS enabled | 15 / 15 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied migrations verified against repository | 49 / 49 |
+| Applied live migrations matched to repository | 50 / 50 |
+| Repository-only pending migrations | 1 |
 
-The verified migration history currently ends at `20260918184442_add_user_profile_country_code`.
+The verified live migration history currently ends at `20260929040034_create_user_workout_programs`. The repository also contains the newer, intentionally unapplied `20260929050000_create_user_workout_routines` migration; this inventory does not describe that future table until it is deployed and verified live.
 
 ## Table Overview
 
@@ -72,6 +73,7 @@ The verified migration history currently ends at `20260918184442_add_user_profil
 | `public.user_nutrition_targets` | 12 | Enabled |
 | `public.user_profiles` | 12 | Enabled |
 | `public.user_wellness_targets` | 8 | Enabled |
+| `public.user_workout_programs` | 5 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
 | `public.user_workout_targets` | 12 | Enabled |
 | `public.users` | 21 | Enabled |
@@ -488,6 +490,35 @@ The verified migration history currently ends at `20260918184442_add_user_profil
 | Name | Definition |
 | :--- | :--- |
 | `user_wellness_targets_pkey` | `CREATE UNIQUE INDEX user_wellness_targets_pkey ON public.user_wellness_targets USING btree (user_id)` |
+
+### `public.user_workout_programs`
+
+**RLS:** Enabled
+
+#### Columns
+
+| Column | Type | Nullable | Default |
+| :--- | :--- | :---: | :--- |
+| `id` | `uuid` | No | — |
+| `user_id` | `uuid` | No | — |
+| `name` | `text` | No | — |
+| `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+
+#### Constraints
+
+| Name | Type | Definition |
+| :--- | :--- | :--- |
+| `user_workout_programs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `user_workout_programs_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
+| `user_workout_programs_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
+
+#### Indexes
+
+| Name | Definition |
+| :--- | :--- |
+| `idx_user_workout_programs_user_created_at` | `CREATE INDEX idx_user_workout_programs_user_created_at ON public.user_workout_programs USING btree (user_id, created_at DESC)` |
+| `user_workout_programs_pkey` | `CREATE UNIQUE INDEX user_workout_programs_pkey ON public.user_workout_programs USING btree (id)` |
 
 ### `public.user_workout_profiles`
 

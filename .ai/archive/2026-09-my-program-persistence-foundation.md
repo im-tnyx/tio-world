@@ -1,6 +1,7 @@
 # My Program persistence foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completion date:** 2026-09-29
 **Primary owner:** Workout user-owned Program persistence
 **Affected platforms:** Supabase + Flutter Workout data/domain boundaries
 
@@ -14,24 +15,14 @@
 
 ## Active Handoff
 
-**Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** Fresh remote `main@e36c10f51f3b10882983912dddd99237791fc6e4`
-**Branch:** `tnyx/my-program-persistence-foundation`
-**HEAD SHA:** `e36c10f51f3b10882983912dddd99237791fc6e4` at branch creation
-**Observed working-tree state:** Connector-only session; no local checkout available.
-**Observed uncommitted/dirty files:** Not observable in connector-only session.
-**PR / tracker:** Linear TNYX-78; no PR yet.
-**Current implementation state:** Approved persistence slice started; source changes not yet written.
-**Relevant execution surface:** `supabase/migrations`, Workout domain/data repositories, shared `Program` contract.
-**Validation completed at SHA:** Read-only live schema/RLS audit only.
-**Validation remaining:** Migration/static review, repository tests, GitHub CI, live schema verification only after an approved migration deployment path.
-**Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Add migration and minimal repository contract/adapter/tests without widening lifecycle semantics.
+**Planning owner:** None; task completed.
+**Implementation owner:** None; implementation merged.
+**Review owner:** Completed.
+**Implementation ownership state:** Inactive.
+**Repository state:** Program persistence merged via PR #461 as `50cca711e8f617cd8eda3d9be590ef7e2ed33d19`.
+**Hosted state:** Live Supabase contains `public.user_workout_programs`; hosted migration identity is `20260929040034_create_user_workout_programs`.
+**Validation:** PR exact-head Flutter CI and Supabase Database CI passed before merge; live schema/RLS/grants were verified after deployment.
+**Final limitation:** Destructive Program lifecycle API, media, provenance/source persistence, generated naming, UI and TrainingPlan behavior remain separate future slices.
 
 ## 1. Discovery
 
@@ -97,39 +88,49 @@ No UI in this slice. Missing auth must fail writes rather than creating unowned 
 
 ## 5. Implementation Plan
 
-- [ ] Add focused migration with table, constraints, updated_at trigger, RLS, grants and owner policies.
-- [ ] Add minimal Program repository interface.
-- [ ] Add Supabase adapter with explicit row mapping.
-- [ ] Add focused repository tests.
-- [ ] Validate exact branch scope and CI.
+- [x] Add focused migration with table, constraints, updated_at trigger, RLS, grants and owner policies.
+- [x] Add minimal Program repository interface.
+- [x] Add Supabase adapter with explicit row mapping.
+- [x] Add focused repository tests.
+- [x] Validate exact PR head and merge.
+- [x] Apply the approved migration live and verify deployed metadata.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-```text
-Not run yet.
-```
+- PR #461 exact head `3168d81fb8cd404424517eca0b3cc7a4056c275d`.
+- Flutter CI #2844: **success**.
+- Supabase Database CI #78: **success**.
+- PR merged as `50cca711e8f617cd8eda3d9be590ef7e2ed33d19`.
+- Post-merge live verification confirmed exactly the approved five columns, nonblank-name CHECK, owner FK, index, updated-at trigger, RLS, owner policies and authenticated CRUD grants.
+- No production test rows were inserted.
+- Current live migration ledger identity for this already-applied migration is `20260929040034_create_user_workout_programs`.
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
-|---|---|---|---|---|---|
+No open Program persistence review findings remain.
 
 ## 7. Final Handoff
 
-### Changed Files
+### Changed Areas
 
-Pending.
+- `public.user_workout_programs` migration and owner RLS/grants;
+- Workout feature `ProgramRepository` and Supabase adapter;
+- focused repository tests.
 
 ### Actual Behavior
 
-Pending.
+Authenticated users can list, create and rename user-owned Programs through the feature repository boundary. The live table enforces canonical user ownership and nonblank names. No Program UI, generated naming, media, provenance, source Program persistence or destructive repository API was added.
 
 ### Known Limitations
 
-No local checkout in this connector-only session; local commands cannot be claimed.
+Routine persistence/composition, Program lifecycle semantics, media, provenance/source persistence, generated naming, UI and TrainingPlan behavior remain separate slices.
 
 ### Final Status
 
-`PARTIAL`
+`VALIDATED`
+
+## Post-merge reconciliation
+
+On 2026-09-29 the repository migration filename was reconciled, without changing its SQL body, from `20260929000001_create_user_workout_programs.sql` to the already-applied hosted identity `20260929040034_create_user_workout_programs.sql`. The old and new repository paths have the same Git blob SHA `3881245c93cdd0e0801a44b003d84c14feb8bf44`. Hosted ledger statement storage omits only the file's terminal newline; normalized SQL content otherwise matches. This is repository lineage repair only, not a second deployment.
