@@ -87,7 +87,7 @@ class _ProgramsPageState extends State<ProgramsPage> {
       context: context,
       useRootNavigator: true,
       useSafeArea: true,
-      builder: (sheetContext) => _CreateProgramSheet(
+      builder: (_) => _CreateProgramSheet(
         controller: controller,
         initialName: controller.suggestedName(),
       ),
