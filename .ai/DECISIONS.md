@@ -1,7 +1,7 @@
 # Active Decisions
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-28
+Last Verified: 2026-09-29
 Owner: repository AI governance
 Truth Boundary: Current AI-facing decision index and durable execution constraints; canonical docs, accepted ADRs, and runtime source remain authoritative for architecture and implementation state.
 
@@ -51,7 +51,7 @@ The built-in Exercise catalog is versioned bundled application content. Its stab
 
 The catalog is intentionally evolving: adding future well-formed `ex_*` identities must not require redesigning Workout domain contracts. Once an `ex_*` ID ships, rename/reuse/removal requires an explicit migration rather than deriving identity again from mutable title/slug content.
 
-Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. The unused shared Workout scaffolds were removed by the isolated W1A7 cleanup (TNYX-258) before new W1A1 identities are introduced.
+Template/prescribed sets use `SetPrescription`; actual historical sets use `PerformedSet`. The stale `WorkoutSet` name is not part of the new canonical design. W1A3 defines the first prescription shape as positive `reps`, optional finite non-negative `loadKg`, and optional non-negative `restSeconds`; additional measurement kinds remain deferred. Ordered Routine composition is a separate shared `RoutineComposition` value keyed by `RoutineId`, with ordered `RoutineExercise` entries over canonical `ExerciseRef`; it is not silently embedded into the currently persisted minimal `Routine` contract. The unused shared Workout scaffolds were removed by the isolated W1A7 cleanup (TNYX-258) before new W1A1 identities are introduced.
 
 W1A1 (TNYX-259) identities are exactly `ExerciseRef`, `TrainingPlanId`, `PlannedWorkoutId` and `WorkoutSessionId`. `ExerciseRef` has two distinct variants: a built-in catalog reference over the stable `ex_*` value and a user-created reference over a canonical UUID; neither needs a catalog lookup to be constructed. The three root IDs are distinct UUID-backed types, separated by Dart type rather than prefixes. `RoutineId` and `ProgramId` were originally deferred by W1A1 to W1A3 and W1A4 respectively. The 2026-09-28 Program-owned Routine reconciliation changes execution ordering: the next bounded domain work must establish `ProgramId`/minimal Program ownership before a saved user Routine contract can require its owning Program. The old W1A3/W1A4 labels remain historical planning references, not permission to implement an orphan Routine first. Persistence remains deferred.
 

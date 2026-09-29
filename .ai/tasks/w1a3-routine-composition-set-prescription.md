@@ -1,37 +1,37 @@
 # W1A3 — Routine composition & SetPrescription domain foundation
 
-**Status:** Ready
+**Status:** In progress
 **Primary owner:** `apps/shared` Workout domain
 **Affected platforms:** shared pure-Dart Workout contracts; no UI/runtime route/persistence change
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product task/feature slice
-**Approval status:** `AWAITING OWNER APPROVAL`
-**Approval evidence:** Owner approved the 2026-09-29 governance cleanup and next-slice planning only. Source implementation has not been approved.
-**Approved product/UI/data-shape boundaries:** Planning/handoff only. Proposed implementation boundary is the smallest pure-Dart Routine composition + `SetPrescription` contract after a fresh implementation audit.
+**Approval status:** `APPROVED`
+**Approval evidence:** Owner said `Go` on 2026-09-29 after the fresh next-slice audit identified W1A3 as the smallest unblocked Workout domain slice and presented the exact pure-Dart boundary.
+**Approved product/UI/data-shape boundaries:** Implement only the shared pure-Dart Routine composition contract: `RoutineComposition` keyed by `RoutineId`, ordered `RoutineExercise` entries referencing canonical `ExerciseRef`, and `SetPrescription` with required positive `reps`, optional non-negative finite `loadKg`, and optional non-negative `restSeconds`. `null` means unspecified; zero remains an explicit value for optional load/rest. Composition stays separate from the currently persisted minimal `Routine` entity so the existing repository cannot silently drop composition.
 **Explicit non-changes:** No Flutter UI/routes, Supabase table/column/RLS/grant changes, repository/data-source/controller changes, `PerformedSet`/`WorkoutSession`, `TrainingPlan`/`PlannedWorkout`, generated Routine naming, move/copy/archive/delete lifecycle, Program provenance/adoption, Exercise Favorite/Folder/Custom persistence, media, or Quick Start decision.
 
 ## Active Handoff
 
 **Planning owner:** Repository architecture audit
-**Implementation owner:** None
-**Review owner:** Unassigned
-**Implementation ownership state:** Not started
+**Implementation owner:** Current repository agent on `tnyx/tnyx-78-w1a3-routine-composition`
+**Review owner:** Manual Codex-style review because automated Codex code-review quota is exhausted
+**Implementation ownership state:** Implementation complete; final handoff validation pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-29, `main@bb525d5ba6ce938d5b5a01b12221389cb5b8f7fd`
-**Branch:** `docs/w1-handoff-cleanup-routine-composition-plan` for planning/governance only
-**HEAD SHA:** Planning branch; implementation branch not created
+**Repository state last verified:** 2026-09-29, `main@013299af005bc54e1a3d8afecece6486174f228b`
+**Branch:** `tnyx/tnyx-78-w1a3-routine-composition`
+**HEAD SHA:** branch created from `013299af005bc54e1a3d8afecece6486174f228b`; source implementation not yet written at this checkpoint
 **Observed working-tree state:** GitHub connector branch; no local checkout claimed
 **Observed uncommitted/dirty files:** Not observable through connector
 **PR / tracker:** Parent Linear TNYX-78 is In Progress. Attempt to create a focused W1A3 child on 2026-09-29 failed because the Linear workspace exceeded its free issue limit; no child ID exists.
-**Current implementation state:** Not started. Canonical Program/Routine identity and persistence are already complete; Routine composition is still absent.
-**Relevant execution surface:** Proposed future implementation: `apps/shared/lib/src/workout/**` and `apps/shared/test/workout/**`.
-**Validation completed at SHA:** Read-only architecture/source/tracker audit at `main@bb525d5ba6ce938d5b5a01b12221389cb5b8f7fd`.
-**Validation remaining:** Fresh source audit immediately before implementation; focused pure-Dart tests/analyze; exact-head PR/CI review.
-**Current blocker:** Implementation requires explicit owner approval. Focused Linear child creation is additionally blocked by workspace free issue limit.
+**Current implementation state:** Owner-approved and ready for source implementation. Canonical Program/Routine identity and persistence are complete; Routine composition is absent. Fresh audit also confirmed that adding composition directly to `Routine` would create a misleading persistence contract because `RoutineRepository.create(Routine)` currently persists only `id/programId/name`; W1A3 therefore uses a separate canonical composition value contract.
+**Relevant execution surface:** `apps/shared/lib/src/workout/**`, `apps/shared/test/workout/**`, this task brief, and the canonical Workout ADR/decision text that currently defers `SetPrescription` fields.
+**Validation completed at SHA:** PR #471 source head `07ed2915bd59706237943e379a400b252d905088`: Flutter Analyze PASS, Dart Analyze PASS, Flutter tests PASS, Dart tests PASS, required Commit attribution guard PASS. Supplemental GitHub Advanced Security failed before repository analysis because `claude-opus-5[ReasoningEffort=medium]` is unsupported; no repository finding was produced. Manual Codex-style review found no source/domain blocker.
+**Validation remaining:** final exact-head repository revalidation after this handoff-only task update.
+**Current blocker:** None inside the approved slice. Automated Codex review is unavailable because code-review quota is exhausted; focused Linear child creation remains unavailable because of the workspace free issue limit, so parent TNYX-78 remains the tracker.
 **Open review finding IDs:** None
-**Next exact action:** Owner approves or adjusts this exact bounded pure-Dart slice; then create an implementation branch/task checkpoint and implement only the approved contract.
+**Next exact action:** Revalidate the new docs-only exact head, then hand PR #471 back for owner merge approval.
 
 ## 1. Discovery
 
@@ -53,13 +53,15 @@ Establish one canonical reusable Routine composition contract so later Program/R
 Proposed future implementation, after owner approval:
 
 ```text
-Routine
-  -> ordered composition entries
+Routine(id/program/name)                 existing persisted metadata contract
+
+RoutineComposition(routineId)            new W1A3 value contract
+  -> ordered RoutineExercise[]
        -> ExerciseRef
        -> SetPrescription[]
 ```
 
-Exact type names and exact `SetPrescription` fields are not frozen by this planning brief. They must be chosen from the fresh implementation audit and existing canonical product contracts.
+The composition contract is intentionally separate from the persisted minimal `Routine` entity until a later persistence slice explicitly stores composition.
 
 ### Non-Goals
 
@@ -94,8 +96,11 @@ Focused tests exist for `ExerciseRef`, `Exercise`, `Program`, `ProgramId`, `Rout
 |---|---|---|---|
 | Routine composition references canonical `ExerciseRef` | Architecture-locked | ADR-0011 forbids cloned catalog Exercise truth | ADR-0011 |
 | Template sets are `SetPrescription`; performed history uses `PerformedSet` | Architecture-locked | Prevents template/history conflation | ADR-0011 |
-| Exact ordered-entry type/name | To decide in implementation audit | Avoid speculative abstraction | Future approved slice |
-| Exact `SetPrescription` fields/measurement kinds | To decide in implementation audit | ADR-0011 explicitly deferred these fields | Future approved slice |
+| Ordered-entry type | Approved: `RoutineExercise` | Small value contract; preserves list order and canonical `ExerciseRef` without inventing persistence identity | Owner-approved implementation audit |
+| Repeated Exercise in one Routine | Approved: allowed | No product rule forbids repeats; list order distinguishes entries and avoids an invented uniqueness constraint | Architecture |
+| Separate durable composition-entry ID | Deferred | Current slice has no composition persistence/update contract; adding a row identity now would be speculative | Architecture |
+| `SetPrescription` fields | Approved: `reps`, optional `loadKg`, optional `restSeconds` | Current W7/Active Workout requirements explicitly need sets/reps/load/rest; kg matches canonical mass storage convention; duration/distance/RPE/RIR are not yet locked | Owner-approved implementation audit |
+| Empty composition / empty set list | Approved: allowed | Existing Routine can already exist before composition; execution-readiness is a later W4/W7 policy, not this value contract | Architecture |
 | Persist composition now | Rejected for this slice | No approved schema shape; keep domain decision independent | Architecture |
 | Implement `PerformedSet` now | Rejected for this slice | Belongs to performed-session/history contract | Future W1/W7 slice |
 
@@ -103,7 +108,7 @@ Focused tests exist for `ExerciseRef`, `Exercise`, `Program`, `ProgramId`, `Rout
 
 ### Chosen Approach
 
-Extend canonical shared Workout domain only after owner approval. Prefer a small immutable ordered composition model that references `ExerciseRef` and contains prescription values without importing Flutter, Supabase, repositories, or presentation concerns.
+Add immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` contracts in `apps/shared`. `RoutineComposition` holds `RoutineId` plus an ordered, defensively copied list of entries. `RoutineExercise` holds canonical `ExerciseRef` plus an ordered, defensively copied list of prescribed sets. `SetPrescription` validates positive reps, finite non-negative kg load when supplied, and non-negative rest seconds when supplied. Do not add composition to `Routine` or change repository/persistence contracts in this slice.
 
 ### Ownership and Data Flow
 
@@ -125,22 +130,31 @@ Domain validation must reject structurally invalid prescription/composition valu
 
 ## 5. Implementation Plan
 
-- [ ] Re-audit current main, open PRs, canonical docs and TNYX-78 immediately before source edits.
-- [ ] Obtain explicit owner approval for this exact bounded slice.
-- [ ] Lock minimal ordered composition shape and exact `SetPrescription` fields from current requirements.
-- [ ] Implement pure-Dart contracts in `apps/shared`.
-- [ ] Export through the canonical Workout barrel.
-- [ ] Add focused value/validation/order tests.
-- [ ] Run applicable analyze/tests and exact-head PR review.
+- [x] Re-audit current main, open PRs, canonical docs and TNYX-78 immediately before source edits.
+- [x] Obtain explicit owner approval for this exact bounded slice.
+- [x] Lock minimal ordered composition shape and exact `SetPrescription` fields from current requirements.
+- [x] Implement pure-Dart contracts in `apps/shared`.
+- [x] Export through the canonical Workout barrel.
+- [x] Add focused value/validation/order tests.
+- [x] Run applicable analyze/tests and source-head PR review; final docs-only exact-head revalidation remains.
 - [ ] Archive this brief only after validated merge.
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Source head `07ed2915bd59706237943e379a400b252d905088` on PR #471:
+
 ```text
-Planning/read-only audit only. No source implementation or runtime validation has been performed for W1A3.
+Analyze Flutter packages: PASS
+Analyze Dart packages: PASS
+Test Flutter packages: PASS
+Test Dart packages: PASS
+Commit attribution guard: PASS (required by current main branch protection)
+github-advanced-security: supplemental/non-required infrastructure failure before analysis; requested model unsupported; no repository finding
 ```
+
+Automated Codex code review is unavailable because the repository bot reports exhausted review quota. Manual Codex-style review found no source/domain blocker. This task-handoff edit moves HEAD, so final exact-head revalidation remains required.
 
 ### Review Findings and Resolution
 
@@ -152,16 +166,16 @@ Planning/read-only audit only. No source implementation or runtime validation ha
 
 ### Changed Files
 
-Planning brief only until owner approval.
+`apps/shared/lib/src/workout/{set_prescription,routine_exercise,routine_composition}.dart`, Workout barrel exports, focused shared tests, ADR-0011, `.ai/DECISIONS.md`, and task/index governance.
 
 ### Actual Behavior
 
-No runtime behavior changes.
+Shared pure-Dart callers can construct immutable ordered `RoutineComposition` values keyed by `RoutineId`, with ordered/repeatable `RoutineExercise` entries and immutable `SetPrescription` values. Existing Routine persistence behavior is unchanged and does not claim composition durability.
 
 ### Known Limitations
 
-Exact composition entry naming and `SetPrescription` measurement fields remain intentionally unresolved until the implementation audit. Linear child tracking is blocked by workspace issue limit.
+Composition persistence, performed-set history, duration/distance prescriptions, RPE/RIR, builder UI and execution-readiness remain outside this slice. Linear child tracking is blocked by workspace issue limit.
 
 ### Final Status
 
-`READY / AWAITING OWNER APPROVAL`
+`IN PROGRESS / IMPLEMENTATION COMPLETE / FINAL EXACT-HEAD REVALIDATION PENDING`
