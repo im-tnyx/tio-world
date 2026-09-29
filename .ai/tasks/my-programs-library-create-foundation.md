@@ -1,6 +1,6 @@
 # My Programs Library collection & create foundation
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** `apps/features/workout` Programs capability + app composition/routing
 **Affected platforms:** Flutter phone only; existing Supabase Program persistence is consumed, not changed
 
@@ -16,14 +16,14 @@
 
 **Planning owner:** Workout architecture audit
 **Implementation owner:** Active implementation agent on `tnyx/tnyx-267-programs-library-create`
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** Manual repository review while Codex code-review quota is exhausted
+**Implementation ownership state:** Complete
 **Repository state last verified:** 2026-09-29, `main@9244f503fc48e9ab2caefe7f3778469225896cec`
 **Implementation branch:** `tnyx/tnyx-267-programs-library-create`
 **Tracker:** TNYX-267 (W6B) + TNYX-81 (W4) context. No new Linear child can currently be created because the workspace free issue limit is exceeded.
-**Current implementation state:** Program domain and live persistence exist, but there is no Programs route/page/controller/provider wiring and Library renders only Exercises.
-**Current blocker:** None inside the approved bounded slice. TNYX-81 remains the broader W4 parent and its unfinished Routine/builder work remains outside this implementation.
-**Next exact action:** Implement the approved Program-only slice, run focused Flutter validation, then open an exact-head PR for review.
+**Current implementation state:** The bounded Program-only slice is implemented in PR #469. Library exposes Programs above Exercises; `/workout/programs` loads the persisted collection through the canonical Program repository; Create Program uses generated editable naming; loading/empty/retry/create-failure states are real; Program rows remain display-only; production has no in-memory Program durability fallback.
+**Current blocker:** No product/runtime blocker is known. Automated Codex review is currently unavailable because the repository bot reports exhausted code-review usage limits. GitHub Advanced Security is separately failing before analysis on the known unsupported-model infrastructure error and is non-required; exact-head Flutter/Dart analyze + tests passed on runtime head `d5334c987674dac644799649a7dff59db1a74410`.
+**Next exact action:** Push this handoff-only correction, re-run exact-head repository checks, then triage any new review/check finding before owner merge approval.
 
 ## 1. Discovery
 
@@ -183,32 +183,33 @@ Library continues to receive navigation callbacks from app composition. The Prog
 
 ## 6. Implementation Plan
 
-- [ ] Re-read fresh main, AGENTS, active task and tracker state immediately before source edits.
-- [ ] Obtain explicit owner approval for the proposed visible UI contract.
-- [ ] Update this task to In progress and record the approved UI boundary.
-- [ ] Add canonical Program repository composition without a production in-memory durability fallback.
-- [ ] Add feature-owned Program ID generation.
-- [ ] Add Programs state/controller with load/create/error/retry behavior.
-- [ ] Add one canonical Programs route and app navigation callback.
-- [ ] Add Programs row to Library only as part of the now-real capability.
-- [ ] Add Programs collection screen.
-- [ ] Add generated-name Create Program editor.
-- [ ] Add focused controller/widget/router/composition tests.
-- [ ] Run applicable Flutter analyze/tests and exact-head PR review.
-- [ ] Update canonical Library/Programs docs only for behavior actually shipped.
+- [x] Re-read fresh main, AGENTS, active task and tracker state immediately before source edits.
+- [x] Obtain explicit owner approval for the proposed visible UI contract.
+- [x] Update this task to In progress and record the approved UI boundary.
+- [x] Add canonical Program repository composition without a production in-memory durability fallback.
+- [x] Add feature-owned Program ID generation.
+- [x] Add Programs state/controller with load/create/error/retry behavior.
+- [x] Add one canonical Programs route and app navigation callback.
+- [x] Add Programs row to Library only as part of the now-real capability.
+- [x] Add Programs collection screen.
+- [x] Add generated-name Create Program editor.
+- [x] Add focused controller/widget/router/composition tests.
+- [x] Run applicable Flutter analyze/tests on runtime head `d5334c987674dac644799649a7dff59db1a74410`; manual PR review found only the stale-handoff issue recorded below.
+- [x] Update canonical Library/Programs docs only for behavior actually shipped.
+- [ ] Revalidate the new exact head after this handoff-only correction.
 
 ## 7. Acceptance
 
-- [ ] Library exposes a working Programs entry, not a placeholder.
-- [ ] Programs screen reads persisted user Programs through `ProgramRepository`.
-- [ ] loading, empty, load-failure/retry and create-failure states are real.
-- [ ] create starts with a visible non-blank generated Program name and permits edit before confirmation.
-- [ ] confirmed create persists exactly one Program and updates the collection.
-- [ ] no fake in-memory production success path exists.
-- [ ] no Program row has a dead or fake detail action.
-- [ ] no standalone Routines section or top-level Create Routine exists.
-- [ ] no W1A3/Routine composition/Exercise picker/persistence-schema scope is introduced.
-- [ ] TNYX-81/TNYX-267 remain incomplete after this bounded slice.
+- [x] Library exposes a working Programs entry, not a placeholder.
+- [x] Programs screen reads persisted user Programs through `ProgramRepository`.
+- [x] loading, empty, load-failure/retry and create-failure states are real.
+- [x] create starts with a visible non-blank generated Program name and permits edit before confirmation.
+- [x] confirmed create persists exactly one Program and updates the collection.
+- [x] no fake in-memory production success path exists.
+- [x] no Program row has a dead or fake detail action.
+- [x] no standalone Routines section or top-level Create Routine exists.
+- [x] no W1A3/Routine composition/Exercise picker/persistence-schema scope is introduced.
+- [x] TNYX-81/TNYX-267 remain incomplete after this bounded slice.
 
 ## 8. Quality Review
 
@@ -220,20 +221,38 @@ Read-only audit reconciled fresh source, canonical docs, ADR-0015, W1A3 handoff,
 
 | ID | Severity | Status | Finding | Follow-up |
 |---|---|---|---|---|
-| MP-P1 | Planning | Open | TNYX-81's broad W3 parent blocker is wider than minimal Program creation requires | Do not mutate relation in this planning PR; record bounded early slice under existing parents |
-| MP-P2 | Planning | Open | Linear workspace free issue limit prevents focused child creation | Use TNYX-267/TNYX-81 comments + this repo task until capacity exists |
-| MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implement only the approved shape |
+| MP-P1 | Planning | Deferred | TNYX-81's broad W3 parent blocker is wider than minimal Program creation requires | Existing dependency relation intentionally remains unchanged; this slice does not claim full W4/W6B completion |
+| MP-P2 | Planning | Deferred | Linear workspace free issue limit prevented focused child creation during planning | TNYX-267 + this repository task remain the bounded execution record |
+| MP-P3 | Product/UI | Resolved | Exact Programs row, AppBar Create (+), empty state and Create Program editor were owner-approved on 2026-09-29 | Implemented without widening into Routine/detail/media/TrainingPlan work |
+| MP-R1 | P2 | Resolved | Manual PR review found this active handoff still described the pre-implementation state, unchecked implementation/acceptance, and “no runtime behavior changes” after the feature had shipped on the branch | Reconciled this brief to PR #469 runtime behavior, exact validated runtime head `d5334c987674dac644799649a7dff59db1a74410`, CI/security-check classification and current review state |
 
 ## 9. Final Handoff
 
 ### Actual Behavior
 
-No runtime behavior changes in this planning slice.
+- Library now shows a real `Programs` row above Exercises.
+- Programs opens the canonical `/workout/programs` route without bottom navigation.
+- The page loads persisted user Programs through `ProgramRepository`; app composition uses `SupabaseProgramRepository` when durable Supabase is available and fails closed when it is not.
+- Empty users see `Create Program`; the AppBar also exposes Create (+).
+- Create starts with a generated non-blank name such as `Program 1`, permits editing before confirmation, writes exactly one Program, keeps failure visible without fake success, and updates the in-memory canonical collection after a successful durable write.
+- Existing Program rows are display-only. No fake Program detail or Routine action exists.
+
+### Validation Evidence
+
+Runtime head `d5334c987674dac644799649a7dff59db1a74410` on PR #469:
+- `Analyze Flutter packages`: PASS
+- `Analyze Dart packages`: PASS
+- `Test Flutter packages`: PASS
+- `Test Dart packages`: PASS
+- required `Commit attribution guard`: PASS
+- supplemental/non-required `github-advanced-security`: infrastructure failure before analysis because the requested `claude-opus-5[ReasoningEffort=medium]` model is unsupported; no repository security finding was produced
+
+Automated Codex review is currently unavailable because the Codex connector reports exhausted code-review usage limits. A manual Codex-style review found only MP-R1 in this pass; no runtime/data/routing blocker was identified.
 
 ### Known Limitations
 
-Routine creation remains unavailable until its canonical composition and builder slices land. This is intentional and must not be hidden behind a fake action.
+Routine creation, Program detail/builder, post-create rename management, delete/archive, media, provenance/adoption and TrainingPlan scheduling remain unavailable by design. TNYX-81 and the full TNYX-267 outcome remain incomplete.
 
 ### Final Status
 
-`IN PROGRESS / OWNER-APPROVED`
+`IN REVIEW / IMPLEMENTATION COMPLETE / HANDOFF-ONLY EXACT-HEAD REVALIDATION PENDING`
