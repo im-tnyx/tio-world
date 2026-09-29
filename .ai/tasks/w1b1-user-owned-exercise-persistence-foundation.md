@@ -21,8 +21,8 @@
 **Repository state last verified:** 2026-09-29, `main@50b74fd5c48c1f41d1a24806e259a45ead483e06`
 **Branch:** `tnyx/w1b1-user-exercise-persistence-readiness`
 **Trackers:** TNYX-78 (W1) and TNYX-264 (W3D)
-**Current blocker:** Migration filename must be generated with the repository-pinned Supabase CLI before the migration file can be added. Source/repository work that does not require the filename may proceed.
-**Next exact action:** Implement the approved repository/data contract and tests, then generate the migration filename with the pinned Supabase CLI and add the locked table/RLS/grant SQL + focused DB matrix.
+**Current blocker:** Repository/data contract and focused unit tests are implemented on the branch. The migration filename must now be generated with the repository-pinned Supabase CLI before DB SQL/SQL-matrix implementation can continue.
+**Next exact action:** In a clean local checkout of this branch, run `supabase migration new create_user_workout_exercises` with the pinned CLI and report the generated filename. Then add the locked table/RLS/grant SQL + focused DB matrix and continue to PR validation.
 
 ## 1. Discovery
 
@@ -147,7 +147,10 @@ Reason: these fields are not required to establish stable user-created Exercise 
 
 ## 7. Validation Required After Approval
 
-- migration filename generated with pinned Supabase CLI; never invented;
+- [ ] migration filename generated with pinned Supabase CLI; never invented;
+- [x] feature-owned `UserExerciseRepository` contract implemented;
+- [x] Supabase user Exercise adapter/gateway implemented;
+- [x] focused repository unit tests added;
 - full migration replay;
 - focused SQL matrix for grants/RLS and allow/deny paths;
 - repository unit tests;
@@ -171,4 +174,4 @@ Reason: these fields are not required to establish stable user-created Exercise 
 
 ## 9. Final Status
 
-`IN PROGRESS / OWNER-APPROVED / MIGRATION FILENAME PENDING`
+`IN PROGRESS / SOURCE FOUNDATION COMPLETE / MIGRATION FILENAME PENDING`
