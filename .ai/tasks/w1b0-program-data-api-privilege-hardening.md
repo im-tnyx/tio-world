@@ -21,9 +21,9 @@
 **Repository state last verified:** 2026-09-29, `main@6c2e6d9139cfb3ae43e222c70af3c4fc031dbafe`
 **Branch:** `tnyx/tnyx-78-w1b0-program-privilege-hardening`
 **Tracker:** TNYX-78 remains In Progress; no focused W1B0 child exists.
-**Current implementation state:** Audit complete. Owner generated the required migration filename locally with Supabase CLI v2.116.0: `20260929133232_harden_user_workout_program_privileges.sql`. Implementation is now active on the same branch.
+**Current implementation state:** Migration, focused SQL privilege matrix, and Supabase DB CI wiring are committed on the branch. No live Supabase mutation has been performed. Exact-head CI validation remains.
 **Current blocker:** None. The repository-required migration filename was generated locally by the owner using the pinned Supabase CLI.
-**Next exact action:** Implement the locked grant/policy hardening in `20260929133232_harden_user_workout_program_privileges.sql`, add the focused SQL matrix + CI wiring, then open a PR and validate exact-head DB CI.
+**Next exact action:** Audit branch scope, open the PR, and validate exact-head Supabase Database CI plus required branch checks.
 
 ## 1. Discovery
 
@@ -132,9 +132,9 @@ Do not add delete/archive UI or repository APIs merely because the original tabl
 - [x] Verify exact live Program/Routine privilege matrix and RLS.
 - [x] Lock the minimum forward-only hardening contract.
 - [x] Generate migration filename with local Supabase CLI; do not invent it.
-- [ ] Add migration with only grant/policy hardening.
-- [ ] Add focused Program privilege SQL matrix.
-- [ ] Wire the focused matrix into Supabase Database CI.
+- [x] Add migration with only grant/policy hardening.
+- [x] Add focused Program privilege SQL matrix.
+- [x] Wire the focused matrix into Supabase Database CI.
 - [ ] Run exact-head Supabase Database CI and applicable repository checks.
 - [ ] Run live deployment only after merge through the normal owner/local Supabase workflow.
 - [ ] Verify live grants/policies and advisors after deployment.
@@ -168,4 +168,4 @@ This slice does not decide Routine composition persistence, Favorites/Custom/Fol
 
 ### Final Status
 
-`IN PROGRESS / MIGRATION + SQL MATRIX IMPLEMENTATION`
+`IN PROGRESS / IMPLEMENTATION COMPLETE / EXACT-HEAD CI PENDING`
