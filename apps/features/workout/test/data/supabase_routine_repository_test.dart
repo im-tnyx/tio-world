@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_shared/shared.dart';
-import 'package:workout/src/data/repositories/supabase_routine_repository.dart';
+import 'package:tio_feature_workout/src/data/repositories/supabase_routine_repository.dart';
 
 void main() {
   const userId = '11111111-1111-4111-8111-111111111111';
