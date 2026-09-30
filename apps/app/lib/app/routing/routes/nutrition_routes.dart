@@ -30,6 +30,39 @@ List<RouteBase> buildNutritionRoutes({
       ),
     ),
     GoRoute(
+      path: AppRoutes.nutritionProfileSettings.path,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final profileAsync = ref.watch(nutritionProfileDataProvider);
+
+          if (profileAsync.isLoading && !profileAsync.hasValue) {
+            return const Scaffold(
+              body: SafeArea(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
+          }
+
+          if (profileAsync.hasError && !profileAsync.hasValue) {
+            return loadFailureBuilder(
+              title: 'Could not load Nutrition Profile',
+              onRetry: () => ref.invalidate(nutritionProfileDataProvider),
+            );
+          }
+
+          return NutritionProfileSettingsPage(
+            profile: profileAsync.valueOrNull ?? const NutritionProfileData(),
+            onSave: (profile) async {
+              final repository = ref.read(nutritionProfileRepositoryProvider);
+              await repository.upsert(profile);
+              ref.invalidate(nutritionProfileDataProvider);
+            },
+          );
+        },
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.nutritionTargetsSettings.path,
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => Consumer(
