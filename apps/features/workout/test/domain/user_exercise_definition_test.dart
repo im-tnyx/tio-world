@@ -1,8 +1,34 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
+  test('migration taxonomy matches the canonical Dart storage contracts', () {
+    final migration = File(
+      '../../../supabase/migrations/'
+      '20260930180700_add_custom_exercise_definition_fields.sql',
+    ).readAsStringSync();
+    Set<String> sqlTokens(String marker) {
+      final section = migration.substring(migration.indexOf(marker));
+      final array = RegExp(r'array\[([\s\S]*?)\]::text\[\]')
+          .firstMatch(section)!
+          .group(1)!;
+      return RegExp("'([^']+)'")
+          .allMatches(array)
+          .map((match) => match.group(1)!)
+          .toSet();
+    }
+
+    expect(sqlTokens('-- W3D2 muscle tokens'),
+        UserExerciseDefinition.muscleTokens);
+    expect(sqlTokens('-- W3D2 equipment tokens'),
+        UserExerciseDefinition.equipmentTokens);
+    expect(sqlTokens('-- W3D2 type tokens'),
+        ExerciseType.values.map((type) => type.storageValue).toSet());
+  });
+
   group('UserExerciseDefinition', () {
     test('normalizes blank description to null', () {
       expect(UserExerciseDefinition(description: '   ').description, isNull);
@@ -12,7 +38,8 @@ void main() {
       );
     });
 
-    test('accepts approved taxonomy and exposes immutable secondary muscles', () {
+    test('accepts approved taxonomy and exposes immutable secondary muscles',
+        () {
       final definition = UserExerciseDefinition(
         exerciseType: ExerciseType.dumbbellX2Simultaneous,
         primaryMuscle: 'pectoralis_major_sternal_head',
@@ -28,7 +55,8 @@ void main() {
       );
     });
 
-    test('rejects unknown, duplicate and primary-as-secondary muscle tokens', () {
+    test('rejects unknown, duplicate and primary-as-secondary muscle tokens',
+        () {
       expect(
         () => UserExerciseDefinition(primaryMuscle: 'unknown'),
         throwsArgumentError,

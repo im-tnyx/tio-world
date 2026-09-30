@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/exercises/user_exercise_definition.dart';
 import '../../domain/exercises/user_exercise_repository.dart';
 
 typedef CurrentUserExerciseUserId = String? Function();
@@ -250,9 +251,14 @@ final class SupabaseUserExerciseRepository implements UserExerciseRepository {
         primaryMuscle != null && primaryMuscle is! String ||
         primaryEquipment != null && primaryEquipment is! String ||
         secondaryMuscles is! List) {
-      throw const FormatException('Invalid canonical user Exercise definition.');
+      throw const FormatException(
+          'Invalid canonical user Exercise definition.');
     }
     final secondary = secondaryMuscles.cast<Object?>();
+    if (description is String && description.trim().isEmpty) {
+      throw const FormatException(
+          'Invalid canonical user Exercise description.');
+    }
     if (secondary.any((value) => value is! String)) {
       throw const FormatException('Invalid canonical user Exercise muscles.');
     }

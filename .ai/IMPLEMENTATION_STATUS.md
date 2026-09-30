@@ -26,6 +26,7 @@ Use these terms only after checking the relevant source and evidence:
 | Flutter mobile application | Active runtime | Source under `apps/` proves behavior; canonical mobile/architecture docs define intended boundaries. |
 | Supabase Auth/session | Active runtime | Supabase is the current identity/session boundary; verify source and security docs before auth changes. |
 | Supabase public data model | Live, canonical inventory available | `docs/data/SUPABASE_SCHEMA.md` records the readable verified inventory; migrations plus verified live schema remain executable truth. |
+| W3D2 Custom Exercise definitions | Source and local validation; CI/review pending | Approved optional description/type/muscle/equipment contract and additive migration; live W1B1 remains seven columns until separately authorized deployment. No visible editor/media/execution expansion. See `.ai/tasks/tnyx-264-w3d2-custom-exercise-definition-persistence.md`. |
 | Product Onboarding O1–O11 | Validated / complete historical lane | GitHub #40 is complete/frozen and #54 cleanup is complete; historical per-slice CI remains evidence, not current sequencing. |
 | Product Onboarding implementation PR #50 | Merged / closed | Not an active PR and must not be used as a current blocker. |
 | Product Onboarding execution handoff | Superseded / archived | PR #423 removed the stale handoff from active tasks; its archived checkpoint is historical only. |

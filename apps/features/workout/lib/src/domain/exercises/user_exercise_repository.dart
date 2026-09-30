@@ -1,5 +1,7 @@
 import 'package:tio_shared/shared.dart';
 
+import 'user_exercise_definition.dart';
+
 /// Persistence boundary for user-owned canonical Exercises.
 ///
 /// Built-in catalog Exercises remain bundled application content and never
@@ -24,7 +26,7 @@ abstract interface class UserExerciseRepository {
   });
 
   /// Replaces the mutable structured definition while preserving identity,
-  /// owner, source lineage, lifecycle and timestamps.
+  /// owner, source lineage and lifecycle; timestamps remain server-managed.
   Future<void> updateDefinition({
     required UserCreatedExerciseRef id,
     required UserExerciseDefinition definition,

@@ -32,7 +32,8 @@ void main() {
 
     await controller.load();
     expect(controller.state.status, CustomExercisesStatus.loadFailed);
-    expect(controller.state.loadError, contains('Could not load custom exercises'));
+    expect(controller.state.loadError,
+        contains('Could not load custom exercises'));
 
     await controller.retryLoad();
     expect(controller.state.status, CustomExercisesStatus.ready);
@@ -166,6 +167,8 @@ void main() {
     final original = Exercise(
       ref: _id(1),
       displayName: 'Paused Squat',
+      description: 'Pause at depth',
+      exerciseType: ExerciseType.weightReps,
       muscleGroup: 'upper_legs',
       primaryMuscles: const ['quadriceps'],
       primaryEquipment: 'barbell',
@@ -185,6 +188,8 @@ void main() {
 
     final renamed = controller.state.exercises.single;
     expect(renamed.displayName, 'Tempo Squat');
+    expect(renamed.description, original.description);
+    expect(renamed.exerciseType, original.exerciseType);
     expect(renamed.muscleGroup, original.muscleGroup);
     expect(renamed.primaryMuscles, original.primaryMuscles);
     expect(renamed.primaryEquipment, original.primaryEquipment);
@@ -267,6 +272,8 @@ Exercise _copyExercise(
     Exercise(
       ref: exercise.ref,
       displayName: displayName ?? exercise.displayName,
+      description: exercise.description,
+      exerciseType: exercise.exerciseType,
       muscleGroup: exercise.muscleGroup,
       primaryMuscles: exercise.primaryMuscles,
       secondaryMuscles: exercise.secondaryMuscles,
@@ -320,7 +327,8 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     }
     return List.unmodifiable(
       exercises.where(
-        (exercise) => includeArchived || exercise.status == ExerciseStatus.active,
+        (exercise) =>
+            includeArchived || exercise.status == ExerciseStatus.active,
       ),
     );
   }
@@ -330,6 +338,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     required UserCreatedExerciseRef id,
     required String displayName,
     CatalogExerciseRef? basedOnCatalogExercise,
+    UserExerciseDefinition? definition,
   }) async {
     attemptedCreateIds.add(id);
     final gate = createGate;
@@ -343,11 +352,40 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
       Exercise(
         ref: id,
         displayName: displayName,
+        description: definition?.description,
+        exerciseType: definition?.exerciseType,
+        primaryMuscles: definition?.primaryMuscle == null
+            ? const []
+            : [definition!.primaryMuscle!],
+        secondaryMuscles: definition?.secondaryMuscles ?? const [],
+        primaryEquipment: definition?.primaryEquipment,
         status: ExerciseStatus.active,
       ),
     );
     final afterWrite = createErrorAfterWrite;
     if (afterWrite != null) throw afterWrite;
+  }
+
+  @override
+  Future<void> updateDefinition({
+    required UserCreatedExerciseRef id,
+    required UserExerciseDefinition definition,
+  }) async {
+    final index = exercises.indexWhere((exercise) => exercise.ref == id);
+    if (index < 0) throw StateError('Exercise not found');
+    final exercise = exercises[index];
+    exercises[index] = Exercise(
+      ref: exercise.ref,
+      displayName: exercise.displayName,
+      description: definition.description,
+      exerciseType: definition.exerciseType,
+      primaryMuscles: definition.primaryMuscle == null
+          ? const []
+          : [definition.primaryMuscle!],
+      secondaryMuscles: definition.secondaryMuscles,
+      primaryEquipment: definition.primaryEquipment,
+      status: exercise.status,
+    );
   }
 
   @override

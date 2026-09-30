@@ -7,6 +7,8 @@ void main() {
   Exercise createExercise({
     ExerciseRef? ref,
     String displayName = 'Bench Press',
+    String? description,
+    ExerciseType? exerciseType,
     String? muscleGroup = 'chest',
     List<String> primaryMuscles = const ['pectoralis_major'],
     List<String> secondaryMuscles = const ['triceps', 'anterior_deltoid'],
@@ -18,6 +20,8 @@ void main() {
       Exercise(
         ref: ref ?? ExerciseRef.catalog('ex_barbell_bench_press'),
         displayName: displayName,
+        description: description,
+        exerciseType: exerciseType,
         muscleGroup: muscleGroup,
         primaryMuscles: primaryMuscles,
         secondaryMuscles: secondaryMuscles,
@@ -204,6 +208,27 @@ void main() {
   });
 
   group('value semantics', () {
+    test('normalized descriptions and exercise types retain value semantics',
+        () {
+      final a = createExercise(
+        description: ' Tempo ',
+        exerciseType: ExerciseType.duration,
+      );
+      final b = createExercise(
+        description: 'Tempo',
+        exerciseType: ExerciseType.duration,
+      );
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(createExercise(description: ' \t\n ').description, isNull);
+      expect(
+          a,
+          isNot(createExercise(
+            description: 'Tempo',
+            exerciseType: ExerciseType.weightReps,
+          )));
+    });
+
     test('equal values have equal hashes with different list instances', () {
       final a = createExercise(
         primaryMuscles: <String>['pectoralis_major'],
@@ -234,6 +259,8 @@ void main() {
       final baseline = createExercise();
       final variants = <Exercise>[
         createExercise(displayName: 'Incline Bench Press'),
+        createExercise(description: 'Pause at the bottom'),
+        createExercise(exerciseType: ExerciseType.weightReps),
         createExercise(muscleGroup: 'upper_body'),
         createExercise(primaryMuscles: const ['upper_pectoralis']),
         createExercise(secondaryMuscles: const ['triceps']),

@@ -13,7 +13,7 @@ final class Exercise {
     required this.ref,
     required String displayName,
     String? description,
-    ExerciseType? exerciseType,
+    this.exerciseType,
     String? muscleGroup,
     List<String> primaryMuscles = const [],
     List<String> secondaryMuscles = const [],
@@ -24,7 +24,6 @@ final class Exercise {
     this.media,
   })  : displayName = _requireNonBlankText(displayName, 'displayName'),
         description = _normalizeOptionalText(description),
-        exerciseType = exerciseType,
         muscleGroup = _validateOptionalTaxonomy(muscleGroup, 'muscleGroup'),
         primaryMuscles = _validateTaxonomyList(
           primaryMuscles,

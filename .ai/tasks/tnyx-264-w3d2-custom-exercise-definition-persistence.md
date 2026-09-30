@@ -15,23 +15,23 @@
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent
+**Implementation owner:** Local Codex repository agent
 **Review owner:** Unassigned
 **Implementation ownership state:** Active
-**Ownership transition:** Not applicable
+**Ownership transition:** Connector repository agent → Local Codex repository agent; owner requested continuation of the same approved W3D2 scope. No concurrent source writer is known.
 **Repository state last verified:** 2026-09-30, remote `main@aac2f8d50ec650c4f729fce506328d50c04b822a`; no open PRs
 **Branch:** `tnyx/tnyx-264-w3d2-custom-exercise-definition-persistence`
-**HEAD SHA:** `aac2f8d50ec650c4f729fce506328d50c04b822a` at branch creation
-**Observed working-tree state:** Connector-managed remote branch from clean/synced main; no local working-tree state is claimed.
-**Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
+**HEAD SHA:** `c5df1fb700c71017c4e72ea504612f6f6b2aeae5` at local takeover; 14 ahead / 0 behind `origin/main@aac2f8d50ec650c4f729fce506328d50c04b822a`.
+**Observed working-tree state:** Clean local checkout reconstructed from the existing remote implementation branch after fast-forwarding local main. The separate readiness branch contains planning only and is not the implementation owner.
+**Observed uncommitted/dirty files:** None at takeover.
 **PR / tracker:** Linear TNYX-264 (parent TNYX-80)
-**Current implementation state:** Exact W3D2 five-column shape is owner-approved. Domain/repository/test implementation has started on the implementation branch; migration source is not yet written because the repository-pinned Supabase CLI filename-generation gate is unavailable in this connector environment. No live Supabase DDL has been applied.
+**Current implementation state:** Approved domain/repository contract, five-column migration, SQL security matrix and CI integration are implemented. Connector compile/interface issues, rename metadata loss and a record/map test assertion were corrected. No live Supabase DDL has been applied; client deployment requires migration-first verification.
 **Relevant execution surface:** `apps/shared/lib/src/workout/exercise.dart`; Workout Exercise domain/data; `public.user_workout_exercises`; focused Dart/repository/SQL matrix; canonical Exercise/Supabase docs
 **Validation completed at SHA:** Read-only audit on `main@aac2f8d50...` plus live Supabase project `tio-world`: production `user_workout_exercises` has only id/user/display_name/status/lineage/timestamps; migration `20260929181247` is applied; RLS is enabled with owner-scoped SELECT/INSERT/UPDATE; authenticated has table SELECT plus column-scoped INSERT(id/user_id/display_name/lineage) and UPDATE(display_name/status), no DELETE; service_role retains full table privileges. Current repository reads id/display_name/status only; catalog uses string taxonomy; current SetPrescription remains reps/load/rest.
-**Validation remaining:** Repository-pinned migration generation + SQL/RLS/grant matrix, local/CI Flutter/Dart validation of the current source pass, canonical docs/schema inventory, PR CI/review. Supabase docs/changelog check is complete for this planning checkpoint.
-**Current blocker:** This connector environment has no mounted repository checkout or Supabase CLI, and outbound git clone is unavailable. Per repository rules, the migration timestamp/name will not be invented manually; repository-pinned Supabase CLI migration generation is required before migration source is written.
+**Validation remaining:** Exact-head PR Flutter/DB CI and independent Codex review. Deployment remains a separate authorized post-merge step.
+**Current blocker:** No implementation blocker. Installed Melos 8.6.0 cannot recognize this repo's Melos 2.9.0 workspace; focused package validation was used without changing shared tooling. Hosted schema remains W1B1, so the widened client must not be released yet.
 **Open review finding IDs:** None.
-**Next exact action:** Implement the approved W3D2 domain/repository shape and generate the migration filename with the repository-pinned Supabase CLI before writing migration source.
+**Next exact action:** Push the bounded W3D2 changes, open the focused PR, inspect exact-head CI and request Codex review; resolve legitimate findings within scope. Do not merge or apply live migrations.
 
 ## Global UI / Design-System Guardrail
 
@@ -271,7 +271,7 @@ Visible labels remain the owner-approved names (`Body weight`, `EZ Barbell`, `Me
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
 | W3D2 is non-UI structured-definition persistence | Planning approved | Prevent visible editor data loss | Owner |
-| Existing `user_workout_exercises` table is widened; no second table | Proposed | Same user-owned Exercise identity/owner lifecycle | Architecture |
+| Existing `user_workout_exercises` table is widened; no second table | Approved | Same user-owned Exercise identity/owner lifecycle | Architecture |
 | Five additive columns exactly as listed above | **Approved 2026-09-30** | Supabase table/column trigger; owner replied `Next go` after exact-shape/naming reconciliation | Owner |
 | Live Supabase verification | Complete | Production schema/RLS/grants match W1B1 and require explicit new-column grants | Supabase audit |
 | Body Part is not persisted | Locked by existing owner direction | It is grouping/navigation, not second truth | Owner |
@@ -322,21 +322,33 @@ selected Primary muscle token
 ## 5. Implementation Plan
 
 - [x] Owner approves the exact five-column shape and privilege boundary.
-- [ ] Verify current Supabase changelog/docs relevant to additive Postgres/RLS/Data API changes.
-- [ ] Generate migration filename with repository-pinned Supabase CLI; never invent timestamp.
-- [ ] Add typed Exercise Type + Custom Exercise definition validation.
-- [ ] Widen canonical Exercise read model only as approved.
-- [ ] Add migration constraints/grants without changing RLS ownership or delete policy.
-- [ ] Widen Supabase repository read/create/update-definition contract.
-- [ ] Add focused domain/repository tests and SQL grant/RLS/integrity matrix.
-- [ ] Update Supabase schema inventory + canonical Exercise screen status.
+- [x] Verify current Supabase changelog/docs relevant to additive Postgres/RLS/Data API changes.
+- [x] Generate migration filename with repository-pinned Supabase CLI; never invent timestamp.
+- [x] Add typed Exercise Type + Custom Exercise definition validation.
+- [x] Widen canonical Exercise read model only as approved.
+- [x] Add migration constraints/grants without changing RLS ownership or delete policy.
+- [x] Widen Supabase repository read/create/update-definition contract.
+- [x] Add focused domain/repository tests and SQL grant/RLS/integrity matrix.
+- [x] Update Supabase schema inventory + canonical Exercise screen status.
 - [ ] Run exact-head Flutter/Dart + Supabase DB CI and review gates.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Planning/read-only audit plus owner-approval reconciliation complete. No W3D2 implementation validation has run yet.
+Local implementation validation completed before PR creation:
+
+- `git diff --check`: PASS.
+- Supabase CLI `2.116.0` (same version as DB CI) generated `20260930180700_add_custom_exercise_definition_fields.sql`.
+- `flutter pub get` in Workout: PASS.
+- `flutter analyze --no-pub` in Workout and app: PASS; `dart analyze .` in shared: PASS.
+- Workout full `flutter test --no-pub`: 221 PASS; shared full `dart test`: 199 PASS; app `test/app/network_providers_test.dart`: 10 PASS.
+- `melos bootstrap` via installed 8.6.0: unavailable for this workspace (`Your current directory does not appear to be within a Melos workspace`). No claim that `melos analyze`/`melos test` ran; direct affected-package commands used. CI retains pinned Melos 2.9.0.
+- Local Postgres container had an older `20260909131518` baseline. Pending repository migrations through W1B1 and W3D2 were replayed inside one transaction, followed by the existing W1B1 and new W3D2 SQL matrices. PASS for exact types/defaults/nullability, CHECK rules, pre-migration legacy row preservation, owner SELECT/INSERT/UPDATE, cross-owner denial, exact column privileges, immutable-column/DELETE denial, service-role CRUD and anonymous denial. Entire transaction rolled back; baseline ledger and absence of the Workout table were verified afterward. This is local rollback-based validation, not hosted deployment or a from-zero replay; full replay is delegated to DB CI.
+- Current Supabase changelog and column-privilege docs verified. Relevant Data API exposure change requires explicit grants. The Postgres 15.19/17.11 breaking changes concern ltree/crypto/GiST/custom operators that W3D2 does not introduce.
+- Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). No unrelated fix. Advisor observes the undeployed baseline and cannot certify W3D2 post-deployment state.
+- Live branch protection + branch rules inspected: only `Commit attribution guard` is required; branch rules API returns no extra rules. Flutter, DB and scanner outcomes must still be recorded independently; supplemental concrete findings remain real findings.
+- Non-failing existing Workout test warning: core `uses-material-design: true` versus package primary setting. No unrelated pubspec edit.
 
 Verified live against Supabase project `tio-world`:
 - migration `20260929181247_create_user_workout_exercises` is applied;
@@ -351,16 +363,19 @@ Current Supabase docs/changelog were checked. The 2026 Data API exposure change 
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| W3D2-01 | P1 | Resolved locally | Missing definition imports and incomplete controller fake interface | `c5df1fb7` | Focused analyze and complete Workout tests pass |
+| W3D2-02 | P1 | Resolved locally | Controller rename discarded description/type metadata | `c5df1fb7` | Preservation regression and Workout suite pass |
+| W3D2-03 | P2 | Resolved locally | Record comparison did not deeply compare the nested definition map | `c5df1fb7` | Compare call identity and map separately; repository tests pass |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Planning brief/index only until data-shape approval.
+W3D2-owned shared Workout contract/exports/tests; Workout definition/repository/controller/tests; generated-filename migration source and SQL matrix; DB CI matrix step; task/index/status and Supabase/Exercise docs. Complete parent-to-head file list belongs in PR Scope evidence.
 
 ### Actual Behavior
 
-No W3D2 runtime/database behavior change yet.
+User-owned definitions round-trip description/type/muscle/equipment; malformed rows fail closed; rename preserves canonical definition data. Existing name-only creation is compatible. Migration adds only the approved five fields and integrity/grant enforcement without changing owner RLS or lifecycle. Source is locally validated, but hosted schema remains W1B1 and client release is gated on deployment verification.
 
 ### Known Limitations
 
@@ -368,4 +383,4 @@ Body-part grouping map, media/Storage, visible editor/list, Favorites/Folders, a
 
 ### Final Status
 
-`PARTIAL` — exact data shape approved and source implementation started; migration generation/validation remains blocked on repository-pinned Supabase CLI access.
+`REVIEW` — implementation and local validation complete; exact-head CI and independent review remain pending. No live apply and no PR merge.
