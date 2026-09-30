@@ -16,22 +16,22 @@
 
 **Planning owner:** Current repository agent
 **Implementation owner:** Local Codex repository agent
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** Codex GitHub review + local repository review
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Connector repository agent → Local Codex repository agent; owner requested continuation of the same approved W3D2 scope. No concurrent source writer is known.
-**Repository state last verified:** 2026-09-30, remote `main@aac2f8d50ec650c4f729fce506328d50c04b822a`; no open PRs
+**Repository state last verified:** 2026-10-01, remote `main@aac2f8d50ec650c4f729fce506328d50c04b822a`; PR #495 open, mergeable/CLEAN at the verified implementation anchor.
 **Branch:** `tnyx/tnyx-264-w3d2-custom-exercise-definition-persistence`
-**HEAD SHA:** `c5df1fb700c71017c4e72ea504612f6f6b2aeae5` at local takeover; 14 ahead / 0 behind `origin/main@aac2f8d50ec650c4f729fce506328d50c04b822a`.
+**HEAD SHA:** `065d789a9be5ac4af203241b6876754d94294c49` is the validated/reviewed implementation anchor (15 ahead / 0 behind main). This evidence-only handoff update follows it; resolve the final current HEAD from Git/PR #495, and recheck final-head CI/review before merge.
 **Observed working-tree state:** Clean local checkout reconstructed from the existing remote implementation branch after fast-forwarding local main. The separate readiness branch contains planning only and is not the implementation owner.
 **Observed uncommitted/dirty files:** None at takeover.
-**PR / tracker:** Linear TNYX-264 (parent TNYX-80)
+**PR / tracker:** [GitHub PR #495](https://github.com/im-tnyx/tio-world/pull/495); Linear TNYX-264 (parent TNYX-80), In Progress. W3D parent is not complete.
 **Current implementation state:** Approved domain/repository contract, five-column migration, SQL security matrix and CI integration are implemented. Connector compile/interface issues, rename metadata loss and a record/map test assertion were corrected. No live Supabase DDL has been applied; client deployment requires migration-first verification.
 **Relevant execution surface:** `apps/shared/lib/src/workout/exercise.dart`; Workout Exercise domain/data; `public.user_workout_exercises`; focused Dart/repository/SQL matrix; canonical Exercise/Supabase docs
-**Validation completed at SHA:** Read-only audit on `main@aac2f8d50...` plus live Supabase project `tio-world`: production `user_workout_exercises` has only id/user/display_name/status/lineage/timestamps; migration `20260929181247` is applied; RLS is enabled with owner-scoped SELECT/INSERT/UPDATE; authenticated has table SELECT plus column-scoped INSERT(id/user_id/display_name/lineage) and UPDATE(display_name/status), no DELETE; service_role retains full table privileges. Current repository reads id/display_name/status only; catalog uses string taxonomy; current SetPrescription remains reps/load/rest.
-**Validation remaining:** Exact-head PR Flutter/DB CI and independent Codex review. Deployment remains a separate authorized post-merge step.
+**Validation completed at SHA:** `065d789a9be5ac4af203241b6876754d94294c49`: local Workout analyze/tests rerun after commit (221 PASS), shared analyze/tests (199 PASS), app analyze/composition (10 PASS), rollback-based SQL matrix. Flutter CI 36759161040 PASS; Supabase Database CI 36759160893 PASS; required attribution guard PASS. Codex reviewed this commit with no major issues; zero review threads. Live Supabase audit still confirms seven-column W1B1, 53 migrations and owner RLS/column grants. Current widened repository SELECT requires W3D2 deployment before client release; catalog and SetPrescription behavior remain unchanged.
+**Validation remaining:** Reverify final metadata head after this handoff update. Deployment remains a separate authorized post-merge step; no live apply in this task.
 **Current blocker:** No implementation blocker. Installed Melos 8.6.0 cannot recognize this repo's Melos 2.9.0 workspace; focused package validation was used without changing shared tooling. Hosted schema remains W1B1, so the widened client must not be released yet.
 **Open review finding IDs:** None.
-**Next exact action:** Push the bounded W3D2 changes, open the focused PR, inspect exact-head CI and request Codex review; resolve legitimate findings within scope. Do not merge or apply live migrations.
+**Next exact action:** Final metadata-head CI/review verification, then stop at the owner merge gate. Do not merge or apply live migrations. GitHub Advanced Security is supplemental and failed before meaningful analysis with unsupported-model CAPIError; it is not a security pass or a code vulnerability finding.
 
 ## Global UI / Design-System Guardrail
 
@@ -349,6 +349,9 @@ Local implementation validation completed before PR creation:
 - Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). No unrelated fix. Advisor observes the undeployed baseline and cannot certify W3D2 post-deployment state.
 - Live branch protection + branch rules inspected: only `Commit attribution guard` is required; branch rules API returns no extra rules. Flutter, DB and scanner outcomes must still be recorded independently; supplemental concrete findings remain real findings.
 - Non-failing existing Workout test warning: core `uses-material-design: true` versus package primary setting. No unrelated pubspec edit.
+- Implementation-anchor exact-head CI: [Flutter 36759161040](https://github.com/im-tnyx/tio-world/actions/runs/36759161040) PASS; [Supabase DB 36759160893](https://github.com/im-tnyx/tio-world/actions/runs/36759160893) PASS, including full migration replay, the W3D2 SQL matrix, existing matrices/concurrency and no newly introduced lint errors. Required attribution guard PASS.
+- [Codex review](https://github.com/im-tnyx/tio-world/pull/495#issuecomment-5917353173) explicitly reviewed `065d789a9b` and found no major issues. Review-thread query returned zero threads.
+- [GitHub Advanced Security 36758982112](https://github.com/im-tnyx/tio-world/actions/runs/36758982112): supplemental + infrastructure failure before meaningful analysis, `CAPIError: 400 The requested model is not supported`. Not a security pass; no product vulnerability is inferred. No rules/check suppression or scanner configuration change.
 
 Verified live against Supabase project `tio-world`:
 - migration `20260929181247_create_user_workout_exercises` is applied;
@@ -371,7 +374,29 @@ Current Supabase docs/changelog were checked. The 2026 Data API exposure change 
 
 ### Changed Files
 
-W3D2-owned shared Workout contract/exports/tests; Workout definition/repository/controller/tests; generated-filename migration source and SQL matrix; DB CI matrix step; task/index/status and Supabase/Exercise docs. Complete parent-to-head file list belongs in PR Scope evidence.
+Complete parent-to-head scope: 21 W3D2-owned files, including the existing connector-created source and local corrections:
+
+- `.ai/IMPLEMENTATION_STATUS.md`
+- `.ai/tasks/README.md`
+- `.ai/tasks/tnyx-264-w3d2-custom-exercise-definition-persistence.md`
+- `.github/workflows/supabase-db-ci.yml`
+- `apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart`
+- `apps/features/workout/lib/src/domain/exercises/exercises.dart`
+- `apps/features/workout/lib/src/domain/exercises/user_exercise_definition.dart`
+- `apps/features/workout/lib/src/domain/exercises/user_exercise_repository.dart`
+- `apps/features/workout/lib/src/presentation/library/exercises/custom_exercises_controller.dart`
+- `apps/features/workout/test/data/supabase_user_exercise_repository_test.dart`
+- `apps/features/workout/test/domain/user_exercise_definition_test.dart`
+- `apps/features/workout/test/presentation/custom_exercises_controller_test.dart`
+- `apps/shared/lib/src/workout/exercise.dart`
+- `apps/shared/lib/src/workout/exercise_type.dart`
+- `apps/shared/lib/src/workout/workout.dart`
+- `apps/shared/test/workout/exercise_test.dart`
+- `docs/data/SUPABASE_SCHEMA.md`
+- `docs/data/SUPABASE_STRATEGY.md`
+- `docs/screens/exercise-search.md`
+- `supabase/migrations/20260930180700_add_custom_exercise_definition_fields.sql`
+- `supabase/tests/database/tnyx_264_user_exercise_definition.test.sql`
 
 ### Actual Behavior
 
@@ -383,4 +408,4 @@ Body-part grouping map, media/Storage, visible editor/list, Favorites/Folders, a
 
 ### Final Status
 
-`REVIEW` — implementation and local validation complete; exact-head CI and independent review remain pending. No live apply and no PR merge.
+`REVIEW` — implementation anchor is locally/CI validated and Codex reviewed. The evidence-only handoff head must be reverified before merge. Supplemental scanner infrastructure failure remains disclosed. No live apply and no PR merge.
