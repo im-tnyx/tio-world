@@ -1,7 +1,7 @@
 # Supabase-First Platform Strategy
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-29
+Last Verified: 2026-10-01
 Owner: Supabase data ownership + Backend & Platform
 Truth Boundary: Authoritative for current Supabase ownership and future protected-service boundaries; runtime source and verified live schema prove actual implementation.
 
@@ -9,8 +9,8 @@ Truth Boundary: Authoritative for current Supabase ownership and future protecte
 
 **Active current Supabase foundation.**
 - The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
-- On 2026-09-29, all 53 checked-in migrations match the 53 applied live migrations by version + name. The latest applied migration is `20260929181247_create_user_workout_exercises`; there are no repository-only or live-only migrations at the verified snapshot.
-- W3D2 adds repository migration `20260930180700_add_custom_exercise_definition_fields.sql` for approved optional Custom Exercise definition fields. Local rollback-based baseline replay and SQL matrices are validated; deployment is pending. Live verification still shows 53 migrations and the seven-column W1B1 table. The earlier 53/53 statement is its dated baseline, not a claim that W3D2 is deployed.
+- On 2026-10-01, all 54 checked-in migrations match the 54 applied live migrations by version + name. The latest applied migration is `20260930180700_add_custom_exercise_definition_fields`; there are no repository-only or live-only migrations at the verified snapshot.
+- W3D2 is deployed and hosted-verified. `public.user_workout_exercises` has 12 columns, with the approved optional description/type/primary-muscle/secondary-muscles/primary-equipment definition fields. Owner RLS and least-privilege authenticated grants remain in force; authenticated DELETE remains unavailable.
 - The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 17 ordinary live tables, with RLS enabled on all 17 at the verified snapshot. `user_workout_programs`, `user_workout_routines`, and `user_workout_exercises` are live.
 - Flutter startup initializes configured Supabase through `SupabaseRuntimeConfig` and `initializeSupabaseRuntime`; current feature persistence/auth integrations use feature-owned Supabase repositories behind composition/provider boundaries.
 - Future HTTP/backend adapters remain architecture-preserved only where current source still contains them; future `services/api` remains unimplemented until a separately authorized protected-service slice.
