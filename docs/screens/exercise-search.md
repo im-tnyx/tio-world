@@ -46,7 +46,7 @@ Exercises category
 └─ user-created folders...     // W3E
 ```
 
-The current dedicated `/workout/exercises` screen remains the canonical shipped catalog/search/filter surface. The exact target navigation from the future Exercises category into catalog browse/search is not changed by this reconciliation slice and must not be invented implicitly. Until W3C/W3D/W3E are implemented, Library must not render fake Favorite/Custom/Folder production entries.
+The current dedicated `/workout/exercises` screen remains the canonical shipped catalog/search/filter surface. In the future #475 Library Exercises category, a separate secondary **Browse exercises** action opens this same canonical route. It is not one of the three approved default collection entries (Create a custom exercise, Favorite Exercises, Custom Exercises). Until W3C/W3D/W3E are implemented, Library must not render fake Favorite/Custom/Folder production entries; the real Browse exercises action keeps catalog/search discoverable without inventing placeholder collection rows.
 
 ## Entry And Exit Flow
 
@@ -70,7 +70,7 @@ Routine or Program builder
   -> return to the owning Routine or Program editor
 ```
 
-- Neither context is a bottom tab or the first Workout screen. In the current runtime, the dedicated Exercises screen is reached from [Library](library.md) through the Exercises navigation row; the Library root itself does not render the catalog list. The future #475 Exercises category may compose Exercise-owned smart-view entries but still must not duplicate catalog truth.
+- Neither context is a bottom tab or the first Workout screen. In the current runtime, the dedicated Exercises screen is reached from [Library](library.md) through the Exercises navigation row. In the future #475 category UI, the secondary Browse exercises action opens the same `/workout/exercises` route; Library still does not duplicate catalog truth or render a second catalog implementation.
 - Browsing the dedicated Exercises screen never starts a WorkoutSession.
 - In picker mode, selecting an exercise only adds or replaces it in the in-progress Routine/Program edit state and returns to that builder. It does not start a workout session.
 - The active workout flow may show exercise information for its already-selected exercises, but it must not turn either context into an unscoped global Quick Start path.
@@ -115,7 +115,7 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 
 ## Acceptance Criteria
 
-- The dedicated Exercises screen is reached from Library → Exercises (user-facing since W6A); picker mode is reached only from a Routine/Program exercise-selection context.
+- The dedicated Exercises screen is currently reached from Library → Exercises (user-facing since W6A); after the #475 category UI lands, the Exercises category's secondary **Browse exercises** action opens the same canonical route. Picker mode is reached only from a Routine/Program exercise-selection context.
 - Both contexts use the same canonical Exercise and catalog repository.
 - W3A exposes no Exercise detail navigation; detail appears only once W3B is ready.
 - In picker mode, search, filter, selection, and return preserve the editor state safely.
