@@ -16,7 +16,7 @@
 
 **Planning owner:** Current repository agent
 **Implementation owner:** Current repository agent (docs/tracker reconciliation only)
-**Review owner:** Unassigned
+**Review owner:** Codex through head `5371bc92...`; manual repository review fallback on `47f07077...` because the Codex code-review quota was exhausted
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `f21e75734588226574a1f33ca19946d9e507c8d8`, 21 commits ahead / 0 behind
@@ -28,10 +28,10 @@
 **Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; the screenshot reference is explicitly scoped to category-pill selection only; no runtime implementation started.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
 **Validation completed at content checkpoint:** `f21e75734588226574a1f33ca19946d9e507c8d8`: GitHub compare against `main@f5e02a22...` reports 21 ahead / 0 behind with exactly 9 docs/task paths. The checkpoint includes the shipped Programs status correction, ROADMAP Routine-entry reconciliation, Programs → Exercises → conditional Your Plan alignment, capability-gated Routine/Explore quick-action acceptance, and the canonical Exercises browse path via a secondary `Browse exercises` action to `/workout/exercises`. Connector text scans are rerun after each metadata update; live exact-head results are recorded in PR #491.
-**Validation remaining:** Codex exact-head re-review. Live current-head scope/text validation is recorded in PR #491 because embedding the moving PR-head SHA inside this same handoff file would be self-referential. Local `git diff --check` cannot be claimed from the connector-only environment.
+**Validation remaining:** Final live exact-head metadata/scope review is recorded in PR #491 after this handoff update. Codex could not review head `47f07077...` because the code-review quota was exhausted; that limitation is recorded explicitly and is not treated as a Codex pass. Local `git diff --check` cannot be claimed from the connector-only environment.
 **Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
-**Open review finding IDs:** `PRRT_kwDOTOXwB86njWY7` (validated checkpoint mismatch), `PRRT_kwDOTOXwB86njWZC` (review-thread count/action mismatch), `PRRT_kwDOTOXwB86njWZL` (noncanonical finding statuses), `PRRT_kwDOTOXwB86njWZP` (Exercises catalog browse path). All four are addressed in this branch and remain Open until exact-head validation, reply/resolve, and Codex re-review.
-**Next exact action:** Validate the current exact PR head, reply to and resolve all four current Codex threads with evidence, request Codex review on that exact head, and merge only after the review gate is clear.
+**Open review finding IDs:** None. All 11 Codex review threads raised across earlier reviewed heads were addressed with evidence and resolved. The final `47f07077...` Codex request returned a quota-limit message rather than analysis, so manual exact-head review is used only as the documented fallback.
+**Next exact action:** Run the final exact-head scope/text/manual review after this metadata-only handoff update, record the exact head in PR #491, and merge only after that gate is clear and the owner explicitly says to merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -181,7 +181,7 @@ Deferred to later UI implementation. That slice must preserve loading/error/empt
 - [x] Reconcile Linear TNYX-83 and TNYX-267 with dated owner-approved IA sections and replace explicitly conflicting acceptance wording.
 - [x] Run connector-visible docs-only scope, trailing-whitespace, conflict-marker and stale-wording checks.
 - [x] Open docs-only PR #491.
-- [ ] Resolve Codex review findings and obtain clean exact-head re-review.
+- [x] Resolve all Codex review findings/threads. The final Codex re-review request was quota-blocked; manual exact-head review is the documented fallback and must be PR-recorded.
 
 ## 6. Quality Review
 
@@ -226,6 +226,12 @@ Live exact-head validation is maintained in PR #491 rather than embedding a self
 
 Local `git diff --check` was not available in the connector-only environment and is not claimed as run.
 
+Codex quota fallback:
+
+- Codex reviewed heads `6729ba36...`, `0e194c57...`, and `5371bc92...` and raised findings that were addressed/resolved.
+- A final review request on `47f07077...` returned the Codex usage-limit message before analysis.
+- Therefore no Codex pass is claimed for `47f07077...`; PR #491 records the manual exact-head diff/contract review used as fallback.
+
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -240,10 +246,10 @@ Local `git diff --check` was not available in the connector-only environment and
 | IA-008 | Medium | Resolved | ROADMAP still allowed Routine creation only from inside Program flow. | PR #491 @ 0e194c57 | ROADMAP now includes the guarded Library-level Create Routine entry and preserves Program ownership/start invariants. |
 | IA-009 | Medium | Resolved | Workout doc category wording conflicted with Programs → Exercises → conditional Your Plan. | PR #491 @ 0e194c57 | `workout.md` now uses the same order and conditional visibility as Library. |
 | IA-010 | Medium | Resolved | Target acceptance did not require approved Routine/Explore quick actions when capabilities are ready. | PR #491 @ 0e194c57 | `library.md` now makes each quick action required when its prerequisite capability is real and forbids fake affordances before readiness. |
-| IA-011 | Medium | Open | Active handoff summary referenced an older validated checkpoint than the Quality Review block. | PR #491 @ 5371bc92 | Summary and validation now use stable content checkpoint `f21e7573...`; live exact-head evidence remains in PR #491. |
-| IA-012 | Low | Open | Next action said three threads while four current finding IDs were listed. | PR #491 @ 5371bc92 | Next action now requires all four current threads. |
-| IA-013 | Medium | Open | Several finding rows used noncanonical `Addressed / re-review pending` status. | PR #491 @ 5371bc92 | Prior validated findings use `Resolved`; current findings remain `Open` until clean exact-head re-review. |
-| IA-014 | Medium | Open | Future Exercises category left the shipped catalog browse path undefined. | PR #491 @ 5371bc92 | Three default entries remain unchanged; secondary Browse exercises opens canonical `/workout/exercises`. |
+| IA-011 | Medium | Resolved | Active handoff summary referenced an older validated checkpoint than the Quality Review block. | PR #491 @ 5371bc92 | Summary and validation now use stable content checkpoint `f21e7573...`; live exact-head evidence remains in PR #491. |
+| IA-012 | Low | Resolved | Next action said three threads while four current finding IDs were listed. | PR #491 @ 5371bc92 | Next action now requires all four current threads. |
+| IA-013 | Medium | Resolved | Several finding rows used noncanonical `Addressed / re-review pending` status. | PR #491 @ 5371bc92 | Prior validated findings use `Resolved`; current findings remain `Open` until clean exact-head re-review. |
+| IA-014 | Medium | Resolved | Future Exercises category left the shipped catalog browse path undefined. | PR #491 @ 5371bc92 | Three default entries remain unchanged; secondary Browse exercises opens canonical `/workout/exercises`. |
 
 ## 7. Final Handoff
 
