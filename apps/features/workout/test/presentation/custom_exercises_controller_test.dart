@@ -185,6 +185,24 @@ void main() {
     );
   });
 
+  test('archive failure keeps the active list unchanged', () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveError: Exception('network down'),
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.archive(_id(1)), isFalse);
+
+    expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
+    expect(
+      controller.state.actionError,
+      'Could not archive exercise. Please try again.',
+    );
+  });
+
   test('write failure keeps active list and exposes sign-in error', () async {
     final repository = _FakeUserExerciseRepository(
       exercises: [_exercise(1, 'Paused Squat')],
