@@ -349,12 +349,7 @@ Local implementation validation completed before PR creation:
 - [Codex review](https://github.com/im-tnyx/tio-world/pull/495#issuecomment-5917353173) explicitly reviewed `065d789a9b` and found no major issues. Review-thread query returned zero threads.
 - [GitHub Advanced Security 36758982112](https://github.com/im-tnyx/tio-world/actions/runs/36758982112): supplemental + infrastructure failure before meaningful analysis, `CAPIError: 400 The requested model is not supported`. Not a security pass; no product vulnerability is inferred. No rules/check suppression or scanner configuration change.
 
-Verified live against Supabase project `tio-world`:
-- migration `20260929181247_create_user_workout_exercises` is applied;
-- table has the expected 7 W1B1 columns and RLS enabled;
-- policies: owner SELECT, owner INSERT, owner UPDATE;
-- authenticated: SELECT table-wide; INSERT only approved identity/name/lineage columns; UPDATE only display_name/status; no DELETE;
-- service_role: full table privileges.
+Pre-deployment baseline verification against Supabase project `tio-world` confirmed the W1B1 seven-column table, owner SELECT/INSERT/UPDATE RLS, least-privilege authenticated grants, no authenticated DELETE and full service-role CRUD. Post-deployment verification on 2026-10-01 confirmed migration `20260930180700_add_custom_exercise_definition_fields`, the 12-column table, the widened approved definition-column grants, unchanged owner RLS/no-DELETE boundary and full service-role CRUD.
 
 Current Supabase docs/changelog were checked. The 2026 Data API exposure change reinforces explicit grants, and column-level privilege guidance supports keeping authenticated UPDATE restricted to approved mutable columns.
 
@@ -374,7 +369,7 @@ Complete parent-to-head scope: 21 W3D2-owned files, including the existing conne
 
 - `.ai/IMPLEMENTATION_STATUS.md`
 - `.ai/tasks/README.md`
-- `.ai/tasks/tnyx-264-w3d2-custom-exercise-definition-persistence.md`
+- `.ai/archive/2026-10-tnyx-264-w3d2-custom-exercise-definition-persistence.md`
 - `.github/workflows/supabase-db-ci.yml`
 - `apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart`
 - `apps/features/workout/lib/src/domain/exercises/exercises.dart`
@@ -396,7 +391,7 @@ Complete parent-to-head scope: 21 W3D2-owned files, including the existing conne
 
 ### Actual Behavior
 
-User-owned definitions round-trip description/type/muscle/equipment; malformed rows fail closed; rename preserves canonical definition data. Existing name-only creation is compatible. Migration adds only the approved five fields and integrity/grant enforcement without changing owner RLS or lifecycle. Source is locally validated, but hosted schema remains W1B1 and client release is gated on deployment verification.
+User-owned definitions round-trip description/type/muscle/equipment; malformed rows fail closed; rename preserves canonical definition data. Existing name-only creation is compatible. Migration adds only the approved five fields and integrity/grant enforcement without changing owner RLS or lifecycle. The migration is deployed and hosted-verified; repository/live migration identity is reconciled.
 
 ### Known Limitations
 
