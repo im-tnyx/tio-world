@@ -1,3 +1,5 @@
+export 'custom_exercises_controller.dart';
+export 'custom_exercises_state.dart';
 export 'exercise_taxonomy_labels.dart';
 export 'exercises_controller.dart';
 export 'exercises_page.dart';
