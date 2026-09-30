@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@9ee75d8994de4f8348563191f68a07d2a845c24a`
 **Branch:** `tnyx/issue-486-profile-routes`
-**HEAD SHA:** `792c0b215dc1029cb2706174c0d8e961e0fcb89f` after route + focused test implementation
+**HEAD SHA:** `81030dca8137eaa6e097f905999d822d60c29d64` after route extraction and removal of the redundant isolated route harness
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
 **PR / tracker:** Draft PR #487; GitHub #486; parents #357/#260; Linear TNYX-201
-**Current implementation state:** Profile + Profile Avatar registrations moved into existing `profile_routes.dart`; root direct registrations/helper import removed; focused route navigation test added; upload-helper source assertion updated to the new composition owner.
+**Current implementation state:** Profile + Profile Avatar registrations moved into existing `profile_routes.dart`; root direct registrations/helper import removed; upload-helper source assertion updated to the new composition owner. Existing full-app route coverage is retained; the redundant isolated harness was removed after CI proved it was the only failing test.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/profile_routes.dart`, Profile app-composition helpers, focused app route tests
 **Validation completed at SHA:** Current-main read-only audit only.
-**Validation remaining:** hosted Flutter CI; exact-head Codex review; final merge-readiness audit.
+**Validation remaining:** rerun hosted Flutter CI + exact-head Codex review on the current head; final merge-readiness audit.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Validate exact PR #487 head with hosted Flutter CI and Codex review; fix only in-scope findings before Ready.
+**Next exact action:** Re-run PR #487 hosted Flutter CI + Codex on the current head after removing the redundant isolated harness.
 
 ## 1. Discovery
 
@@ -110,7 +110,7 @@ No new state or UI. Preserve all current loading, avatar fallback, confirmation/
 - [x] Inspect exact route/helper/test dependencies.
 - [x] Move Profile + Profile Avatar registrations into `profile_routes.dart`.
 - [x] Remove only proven-unused root imports/references.
-- [x] Add/adjust focused route-level regression coverage.
+- [x] Reuse existing full-app `Profile avatar opens the full-screen photo route` regression coverage and update the upload-helper source assertion.
 - [x] Audit exact diff for scope and route uniqueness.
 - [x] Open Draft PR #487.
 - [ ] Run hosted CI + Codex gate.
@@ -121,7 +121,7 @@ No new state or UI. Preserve all current loading, avatar fallback, confirmation/
 
 ```text
 Static branch audit at `792c0b215dc1029cb2706174c0d8e961e0fcb89f`:
-- 5 changed paths total: task brief, root router, Profile route module, focused route test, upload-helper source assertion
+- 4 changed paths total: task brief, root router, Profile route module, upload-helper source assertion
 - root direct Profile registrations: 0
 - root direct Profile Avatar registrations: 0
 - `profile_routes.dart`: exactly one Profile, one Profile Avatar, one Profile Settings registration
@@ -136,6 +136,7 @@ Local Flutter commands were not run because connector-only execution has no loca
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| `CI-2872-1` | Test | Resolved | Newly added isolated `profile_routes_test.dart` did not reach `AvatarPreviewPage`; existing full-app `app_mode_router_test.dart` Profile→Avatar route test passed on the same moved production code | `09458d7ca83710a93298bcf18f2340fdcfc9ef95` | Removed the redundant isolated harness in `81030dca...`; production route code unchanged |
 
 ## 7. Final Handoff
 
@@ -144,7 +145,6 @@ Local Flutter commands were not run because connector-only execution has no loca
 - `.ai/tasks/issue-486-profile-routes.md`
 - `apps/app/lib/app/router.dart`
 - `apps/app/lib/app/routing/routes/profile_routes.dart`
-- `apps/app/test/app/profile_routes_test.dart`
 - `apps/app/test/profile/profile_avatar_upload_test.dart`
 
 ### Actual Behavior
