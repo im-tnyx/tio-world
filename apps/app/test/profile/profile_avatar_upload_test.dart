@@ -324,7 +324,7 @@ void main() {
     // matters is that no composition rebuilds the pick/upload sequence
     // locally, which is exactly what would let one of them drift again.
     const entryPoints = [
-      'lib/app/router.dart',
+      'lib/app/routing/routes/profile_routes.dart',
       'lib/app/profile/profile_settings_route.dart',
     ];
 
