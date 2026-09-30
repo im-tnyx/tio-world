@@ -326,7 +326,7 @@ selected Primary muscle token
 - [x] Widen Supabase repository read/create/update-definition contract.
 - [x] Add focused domain/repository tests and SQL grant/RLS/integrity matrix.
 - [x] Update Supabase schema inventory + canonical Exercise screen status.
-- [ ] Run exact-head Flutter/Dart + Supabase DB CI and review gates.
+- [x] Run exact-head Flutter/Dart + Supabase DB CI and review gates.
 
 ## 6. Quality Review
 
@@ -342,7 +342,8 @@ Local implementation validation completed before PR creation:
 - `melos bootstrap` via installed 8.6.0: unavailable for this workspace (`Your current directory does not appear to be within a Melos workspace`). No claim that `melos analyze`/`melos test` ran; direct affected-package commands used. CI retains pinned Melos 2.9.0.
 - Local Postgres container had an older `20260909131518` baseline. Pending repository migrations through W1B1 and W3D2 were replayed inside one transaction, followed by the existing W1B1 and new W3D2 SQL matrices. PASS for exact types/defaults/nullability, CHECK rules, pre-migration legacy row preservation, owner SELECT/INSERT/UPDATE, cross-owner denial, exact column privileges, immutable-column/DELETE denial, service-role CRUD and anonymous denial. Entire transaction rolled back; baseline ledger and absence of the Workout table were verified afterward. This is local rollback-based validation, not hosted deployment or a from-zero replay; full replay is delegated to DB CI.
 - Current Supabase changelog and column-privilege docs verified. Relevant Data API exposure change requires explicit grants. The Postgres 15.19/17.11 breaking changes concern ltree/crypto/GiST/custom operators that W3D2 does not introduce.
-- Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). No unrelated fix. Advisor observes the undeployed baseline and cannot certify W3D2 post-deployment state.
+- Pre-deployment Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). That run observed the undeployed baseline and did not certify W3D2 post-deployment state.
+- Post-deployment Security Advisor was rerun after the W3D2 migration and migration-history reconciliation: it returned the same six pre-existing WARN findings, with no new W3D2-specific finding. No unrelated security fix was included in this slice.
 - Live branch protection + branch rules inspected: only `Commit attribution guard` is required; branch rules API returns no extra rules. Flutter, DB and scanner outcomes must still be recorded independently; supplemental concrete findings remain real findings.
 - Non-failing existing Workout test warning: core `uses-material-design: true` versus package primary setting. No unrelated pubspec edit.
 - Implementation-anchor exact-head CI: [Flutter 36759161040](https://github.com/im-tnyx/tio-world/actions/runs/36759161040) PASS; [Supabase DB 36759160893](https://github.com/im-tnyx/tio-world/actions/runs/36759160893) PASS, including full migration replay, the W3D2 SQL matrix, existing matrices/concurrency and no newly introduced lint errors. Required attribution guard PASS.
