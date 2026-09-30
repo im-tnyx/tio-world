@@ -28,10 +28,10 @@
 **Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; the screenshot reference is explicitly scoped to category-pill selection only; no runtime implementation started.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
 **Validation completed at content checkpoint:** `d83efc63b96223d5be3fc0c8b7211476b2ff806c`: GitHub compare against `main@f5e02a22...` reported 13 ahead / 0 behind with exactly 8 docs/task paths; connector text scans had 0 trailing-whitespace findings and 0 conflict markers on the previously changed text files; GitHub #475 stale `Exercise + Explore` and top-bar-reference wording were removed; `docs/screens/workout.md` was reconciled with the direct Routine-create entry while preserving the no-standalone-Quick-Start invariant.
-**Validation remaining:** Exact current PR-head scope/text scan after this handoff metadata commit, then Codex exact-head re-review. Local `git diff --check` cannot be claimed from the connector-only environment.
+**Validation remaining:** Codex exact-head re-review. Live current-head scope/text validation is recorded in PR #491 because embedding the moving PR-head SHA inside this same handoff file would be self-referential. Local `git diff --check` cannot be claimed from the connector-only environment.
 **Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
 **Open review finding IDs:** `PRRT_kwDOTOXwB86niDCv` (Workout contract mismatch), `PRRT_kwDOTOXwB86niDC9` (validation evidence), `PRRT_kwDOTOXwB86niDDF` (mixed handoff checkpoint). All three are addressed in source/docs on this branch and remain open only until reply/resolve + exact-head re-review.
-**Next exact action:** Run exact current-head connector scope/text validation, reply to and resolve the three Codex threads with evidence, request Codex review on that exact head, and merge only after the review gate is clear.
+**Next exact action:** Reply to and resolve the three Codex threads with the PR-recorded exact-head validation evidence, request Codex review on the resulting exact head, and merge only after the review gate is clear.
 
 ## Global UI / Design-System Guardrail
 
@@ -214,7 +214,7 @@ Issue/doc reconciliation:
                     or scheduled PlannedWorkout
 ```
 
-Exact-head validation is intentionally listed as remaining because this handoff metadata edit changes the branch head. The live PR head must be fetched and validated after this commit; that exact-head evidence belongs in the PR/review record rather than being falsely claimed here.
+Live exact-head validation is maintained in PR #491 rather than embedding a self-referential moving head SHA in this file. The task brief keeps the stable content checkpoint above; the PR/review record carries the current-head compare, changed-path, whitespace and conflict-marker evidence.
 
 Local `git diff --check` was not available in the connector-only environment and is not claimed as run.
 
