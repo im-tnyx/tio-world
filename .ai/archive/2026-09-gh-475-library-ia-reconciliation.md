@@ -1,6 +1,7 @@
 # GitHub #475 — Workout Library IA reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-30
 **Primary owner:** Workout Library planning/docs (`apps/features/workout` canonical contract)
 **Affected platforms:** Flutter phone planning/docs only in this slice
 
@@ -17,21 +18,21 @@
 **Planning owner:** Current repository agent
 **Implementation owner:** Current repository agent (docs/tracker reconciliation only)
 **Review owner:** Codex through head `5371bc92...`; manual repository review fallback on `47f07077...` because the Codex code-review quota was exhausted
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `f21e75734588226574a1f33ca19946d9e507c8d8`, 21 commits ahead / 0 behind
-**Branch:** `tnyx/gh-475-library-ia-reconciliation`
-**Checkpoint note:** `f21e7573...` is the single repository/content checkpoint used by the validation evidence below. This handoff-file metadata update necessarily advances the branch after that checkpoint; the live PR head must be read from GitHub and revalidated/re-reviewed rather than inferred from this embedded checkpoint.
+**Repository checkpoint last verified:** 2026-09-30, merged `main@359cc5932a208091f24d869e545d57534fc32591` via PR #491
+**Branch:** Historical implementation branch `tnyx/gh-475-library-ia-reconciliation`; outcome merged to `main`
+**Checkpoint note:** Final docs reconciliation merged via PR #491. The last exact implementation head was `1799089f4c56f05712a8c57546a139bc11a226e7`; merge commit is `359cc5932a208091f24d869e545d57534fc32591`.
 **Observed working-tree state:** Remote branch created from clean/synced `main`; no local working-tree mutation is being claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** GitHub #475; Linear TNYX-83 / TNYX-267 with related TNYX-81, TNYX-263, TNYX-264, TNYX-265, TNYX-268, TNYX-86
-**Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; the screenshot reference is explicitly scoped to category-pill selection only; no runtime implementation started.
+**Current implementation state:** Validated docs/architecture reconciliation merged. No Flutter runtime or Supabase implementation was part of this slice.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
-**Validation completed at content checkpoint:** `f21e75734588226574a1f33ca19946d9e507c8d8`: GitHub compare against `main@f5e02a22...` reports 21 ahead / 0 behind with exactly 9 docs/task paths. The checkpoint includes the shipped Programs status correction, ROADMAP Routine-entry reconciliation, Programs → Exercises → conditional Your Plan alignment, capability-gated Routine/Explore quick-action acceptance, and the canonical Exercises browse path via a secondary `Browse exercises` action to `/workout/exercises`. Connector text scans are rerun after each metadata update; live exact-head results are recorded in PR #491.
-**Validation remaining:** Final live exact-head metadata/scope review is recorded in PR #491 after this handoff update. Codex could not review head `47f07077...` because the code-review quota was exhausted; that limitation is recorded explicitly and is not treated as a Codex pass. Local `git diff --check` cannot be claimed from the connector-only environment.
-**Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
-**Open review finding IDs:** None. All 11 Codex review threads raised across earlier reviewed heads were addressed with evidence and resolved. The final `47f07077...` Codex request returned a quota-limit message rather than analysis, so manual exact-head review is used only as the documented fallback.
-**Next exact action:** Run the final exact-head scope/text/manual review after this metadata-only handoff update, record the exact head in PR #491, and merge only after that gate is clear and the owner explicitly says to merge.
+**Validation completed:** Final exact-head manual docs/architecture review on `1799089f4c56f05712a8c57546a139bc11a226e7`; 23 ahead / 0 behind from reviewed base, exactly 9 docs/task paths, trailing-whitespace 0, conflict markers 0, unresolved review threads 0. Earlier Codex-reviewed heads raised 11 findings; all were addressed and resolved. The final Codex request was quota-blocked before analysis and was not claimed as a pass. PR #491 then squash-merged as `359cc5932a208091f24d869e545d57534fc32591`.
+**Validation remaining:** None for this reconciliation slice. Future #475 runtime slices require their own source/runtime validation.
+**Current blocker:** None for this validated reconciliation slice. Future runtime implementation remains separately gated by stable default `My Program` identity, capability readiness, and unresolved Start Empty Workout ownership semantics.
+**Open review finding IDs:** None.
+**Next exact action:** Any #475 runtime implementation must start a new focused `.ai/tasks` brief from fresh `main`, re-read current Linear/GitHub/runtime state, and preserve the canonical contracts recorded by PR #491.
 
 ## Global UI / Design-System Guardrail
 
@@ -277,4 +278,4 @@ Full #475 UI remains dependency/capability gated.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
