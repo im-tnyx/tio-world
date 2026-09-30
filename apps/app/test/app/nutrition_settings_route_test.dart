@@ -227,6 +227,38 @@ void main() {
     expect(find.text('Gluten'), findsOneWidget);
   });
 
+  testWidgets('Nutrition Profile load failure retries the canonical read',
+      (tester) async {
+    final repository = _FakeNutritionProfileRepository(
+      stored: const NutritionProfileData(preferredDiet: 'vegan'),
+      failReads: true,
+    );
+    final container = await buildContainer(
+      appMode: AppMode.nutrition,
+      repository: repository,
+    );
+    addTearDown(container.dispose);
+
+    final router = container.read(goRouterProvider);
+    router.go(AppRoutes.nutritionProfileSettings.path);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const TioApp()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load Nutrition Profile'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    final readsBeforeRetry = repository.readCount;
+
+    repository.failReads = false;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(repository.readCount, greaterThan(readsBeforeRetry));
+    expect(find.text('Could not load Nutrition Profile'), findsNothing);
+    expect(find.text('Vegan'), findsOneWidget);
+  });
+
   testWidgets('Nutrition hub navigates to Nutrition Targets and loads values',
       (tester) async {
     final repository = _FakeNutritionProfileRepository();
@@ -475,15 +507,22 @@ void main() {
 }
 
 class _FakeNutritionProfileRepository implements NutritionProfileRepository {
-  _FakeNutritionProfileRepository({this.stored});
+  _FakeNutritionProfileRepository({
+    this.stored,
+    this.failReads = false,
+  });
 
   NutritionProfileData? stored;
+  bool failReads;
   final writes = <NutritionProfileData>[];
   var readCount = 0;
 
   @override
   Future<NutritionProfileData?> read() async {
     readCount++;
+    if (failReads) {
+      throw StateError('Nutrition Profile read failed');
+    }
     return stored;
   }
 
