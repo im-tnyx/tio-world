@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@6cec394956b37bd2901b9c21ca754b785e80e19c`
 **Branch:** `tnyx/issue-482-nutrition-profile-route`
-**HEAD SHA:** branch created from `main@6cec394956b37bd2901b9c21ca754b785e80e19c`
+**HEAD SHA:** `925d67cf0ccb6bfc3eaa453d4e8b0a1df516ea79` after source + focused test implementation
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
 **PR / tracker:** GitHub #482; parents #357/#260; Linear TNYX-201
-**Current implementation state:** Task brief created; source mutation not started yet.
+**Current implementation state:** Nutrition Profile route registration moved into existing `nutrition_routes.dart`; root registration/import removed; focused failed-read + Retry route coverage added.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/nutrition_routes.dart`, `apps/app/test/app/nutrition_settings_route_test.dart`
 **Validation completed at SHA:** Audit only on `main@6cec3949...`
-**Validation remaining:** focused diff audit; hosted Flutter CI; exact-head Codex review.
+**Validation remaining:** hosted Flutter CI; exact-head Codex review; final merge-readiness audit.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Move only `AppRoutes.nutritionProfileSettings` into existing `buildNutritionRoutes`, then add focused load-error/retry coverage.
+**Next exact action:** Open Draft PR from the audited four-path branch, then use hosted Flutter CI and exact-head Codex review as merge gates.
 
 ## 1. Discovery
 
@@ -107,10 +107,10 @@ Preserve the current loading scaffold and existing shared retryable Nutrition fa
 
 ## 5. Implementation Plan
 
-- [ ] Move Nutrition Profile route registration into `nutrition_routes.dart`.
-- [ ] Remove only proven-unused root Nutrition imports.
-- [ ] Add focused failed-read + Retry route test.
-- [ ] Audit exact branch diff for scope.
+- [x] Move Nutrition Profile route registration into `nutrition_routes.dart`.
+- [x] Remove only proven-unused root Nutrition imports.
+- [x] Add focused failed-read + Retry route test.
+- [x] Audit exact branch diff for scope.
 - [ ] Open Draft PR and run hosted CI + Codex gate.
 
 ## 6. Quality Review
@@ -118,7 +118,14 @@ Preserve the current loading scaffold and existing shared retryable Nutrition fa
 ### Validation Run
 
 ```text
-Not run yet. Connector-only execution cannot claim local flutter analyze/test.
+Static branch audit complete at `925d67cf0ccb6bfc3eaa453d4e8b0a1df516ea79`:
+- 4 changed paths total (task brief + router + nutrition route module + focused app test)
+- root direct Nutrition Profile registrations: 0
+- Nutrition route module direct Nutrition Profile registrations: 1
+- root `tio_feature_nutrition` import removed after becoming unused
+- focused failed-read + Retry test present
+
+Local Flutter commands were not run because connector-only execution has no local worktree/toolchain. Hosted CI remains required.
 ```
 
 ### Review Findings and Resolution
@@ -130,11 +137,14 @@ Not run yet. Connector-only execution cannot claim local flutter analyze/test.
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/issue-482-nutrition-profile-route.md`
+- `apps/app/lib/app/router.dart`
+- `apps/app/lib/app/routing/routes/nutrition_routes.dart`
+- `apps/app/test/app/nutrition_settings_route_test.dart`
 
 ### Actual Behavior
 
-Pending implementation.
+No intended behavior change. Nutrition Profile still uses the same route path/root navigator, canonical provider read/loading/failure/retry flow, `NutritionProfileSettingsPage`, repository `upsert`, and provider invalidation; only the registration owner moved from root router into the existing Nutrition route module.
 
 ### Known Limitations
 
