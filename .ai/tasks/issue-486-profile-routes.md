@@ -24,14 +24,14 @@
 **HEAD SHA:** `792c0b215dc1029cb2706174c0d8e961e0fcb89f` after route + focused test implementation
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
-**PR / tracker:** GitHub #486; parents #357/#260; Linear TNYX-201
+**PR / tracker:** Draft PR #487; GitHub #486; parents #357/#260; Linear TNYX-201
 **Current implementation state:** Profile + Profile Avatar registrations moved into existing `profile_routes.dart`; root direct registrations/helper import removed; focused route navigation test added; upload-helper source assertion updated to the new composition owner.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/profile_routes.dart`, Profile app-composition helpers, focused app route tests
 **Validation completed at SHA:** Current-main read-only audit only.
 **Validation remaining:** hosted Flutter CI; exact-head Codex review; final merge-readiness audit.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Open Draft PR from the audited five-path branch, then validate with hosted Flutter CI and exact-head Codex review.
+**Next exact action:** Validate exact PR #487 head with hosted Flutter CI and Codex review; fix only in-scope findings before Ready.
 
 ## 1. Discovery
 
@@ -112,7 +112,8 @@ No new state or UI. Preserve all current loading, avatar fallback, confirmation/
 - [x] Remove only proven-unused root imports/references.
 - [x] Add/adjust focused route-level regression coverage.
 - [x] Audit exact diff for scope and route uniqueness.
-- [ ] Open Draft PR; run hosted CI + Codex gate.
+- [x] Open Draft PR #487.
+- [ ] Run hosted CI + Codex gate.
 
 ## 6. Quality Review
 
