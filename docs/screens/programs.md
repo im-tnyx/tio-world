@@ -1,7 +1,7 @@
 # Programs Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-29
+Last Verified: 2026-09-30
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Programs product contract and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
