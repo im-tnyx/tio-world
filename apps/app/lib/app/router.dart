@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
-import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_profile/profile.dart';
@@ -489,39 +488,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         rootNavigatorKey: rootNavigatorKey,
         loadFailureBuilder: ({required title, required onRetry}) =>
             _NutritionLoadFailure(title: title, onRetry: onRetry),
-      ),
-      GoRoute(
-        path: AppRoutes.nutritionProfileSettings.path,
-        parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => Consumer(
-          builder: (context, ref, _) {
-            final profileAsync = ref.watch(nutritionProfileDataProvider);
-
-            if (profileAsync.isLoading && !profileAsync.hasValue) {
-              return const Scaffold(
-                body: SafeArea(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              );
-            }
-
-            if (profileAsync.hasError && !profileAsync.hasValue) {
-              return _NutritionLoadFailure(
-                title: 'Could not load Nutrition Profile',
-                onRetry: () => ref.invalidate(nutritionProfileDataProvider),
-              );
-            }
-
-            return NutritionProfileSettingsPage(
-              profile: profileAsync.valueOrNull ?? const NutritionProfileData(),
-              onSave: (profile) async {
-                final repository = ref.read(nutritionProfileRepositoryProvider);
-                await repository.upsert(profile);
-                ref.invalidate(nutritionProfileDataProvider);
-              },
-            );
-          },
-        ),
       ),
       GoRoute(
         path: AppRoutes.dailyWellnessSettings.path,
