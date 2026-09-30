@@ -110,7 +110,9 @@ Custom Exercises
 - user-created folders are W3E many-to-many Exercise collections.
 - These entries appear only when their real capability is implemented; Library must not render fake production affordances.
 - Library composes/navigates these Exercise-owned views and never duplicates their repositories or domain truth.
-- The existing dedicated `/workout/exercises` catalog/search screen remains the canonical browse/search surface until a later implementation slice explicitly reconciles how catalog browsing is reached from the new category UI.
+- The shipped dedicated `/workout/exercises` screen remains the canonical catalog/search/filter surface.
+- The Exercises category must expose a separate secondary **Browse exercises** action that opens `/workout/exercises`. It is not a fourth default collection card and does not replace the three approved default entries above.
+- Because Browse exercises uses an already shipped capability, the Exercises category must never become an empty selectable shell while W3C/W3D/W3E are unavailable.
 
 ### Your Plan
 
@@ -171,6 +173,7 @@ Current runtime remains truth until the target slices ship. Target acceptance is
 - Direct Library Routine creation targets one canonical default `My Program`; the durable/idempotent identity mechanism must be defined before runtime implementation.
 - Programs may render directly on Library while the Programs collection/manage route remains optional secondary navigation.
 - Exercises category composes W3-owned Create Custom, Favorites, Custom and folder views only as those capabilities become real.
+- Exercises category always keeps the shipped catalog discoverable through a secondary **Browse exercises** action that opens the canonical `/workout/exercises` route; this action is not a fourth default collection card.
 - Library never owns competing Program, Routine, Exercise or TrainingPlan truth.
 - Existing dedicated Program/Exercise routes remain current runtime until explicitly reconciled by an approved implementation slice.
 
