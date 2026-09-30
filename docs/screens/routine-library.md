@@ -1,7 +1,7 @@
 # Program-owned Routines
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-28
+Last Verified: 2026-09-30
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the planned user-owned Routine product contract; not evidence the screen is implemented or scheduled.
 
@@ -18,9 +18,10 @@ Routine keeps its own `RoutineId`, ordering, Exercise references and prescriptio
 
 ## Target Flow
 
+Primary Program-context flow:
+
 ```text
 Library
-→ Programs
 → Program
 → Add Routine
 → generated non-blank name is visible (for example Routine 1)
@@ -29,7 +30,17 @@ Library
 → save inside the owning Program
 ```
 
-There is no standalone `Library → Routines` collection and no top-level Create Routine action.
+Approved direct Library entry:
+
+```text
+Library
+→ Routine quick action / Create Routine
+→ resolve exactly one canonical default My Program
+→ create/edit Routine
+→ save inside My Program
+```
+
+There is no standalone `Library → Routines` collection/category. A Library-level create entry is permitted because entry location is not ownership: the Routine still cannot be persisted until exactly one owning Program is resolved. The default `My Program` must be resolved idempotently through a stable identity contract; mutable display-name matching is not sufficient and runtime implementation remains gated until W1 defines that mechanism.
 
 ## Initial Routine Metadata
 
@@ -39,7 +50,7 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 
 ## Navigation And Rules
 
-- Routine create/edit is entered from its owning Program.
+- Routine create/edit is normally entered from its owning Program. A Library-level create entry may also start the flow, but it must resolve the canonical owning `My Program` before persistence.
 - A Routine cannot be saved as an orphan user Library item.
 - Program adoption/copy may create user-owned Routine copies as part of the adopted Program structure while retaining approved source lineage.
 - Starting an active workout from a Routine remains a deliberate selected-context flow; this document does not implement Active Workout.
@@ -55,7 +66,7 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 
 - Every saved user-owned Routine has one owning Program.
 - Routine has stable identity and is not anonymous nested data.
-- No standalone Library Routines collection exists.
+- No standalone Library Routines collection/category exists; a create entry action does not create standalone Routine ownership.
 - Exercise selection is nested in Routine editing and cannot start a workout by itself.
 - Optional image/metadata does not block initial Routine creation.
 - Scheduling/following remains separate from reusable Routine truth.
