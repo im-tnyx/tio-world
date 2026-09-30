@@ -1,14 +1,14 @@
 # Library Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-29
+Last Verified: 2026-09-30
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout Library product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** W6A plus the bounded W6B Program collection/create foundation are implemented: Workout Home entry, Library Programs + Exercises entries, persisted Programs collection/create, and Exercises browse/search. Program detail/Routine management and Plans remain planned; user-owned Routines stay inside their owning Program.
+**Status:** Current runtime remains W6A plus the bounded W6B Program collection/create foundation: Workout Home entry, Library Programs + Exercises navigation rows, persisted Programs collection/create, and dedicated Exercises browse/search. GitHub #475 now defines a newer owner-approved Library category IA, but that target is not yet implemented. Program detail/Routine management, Exercise Favorites/Custom/Folders UI and TrainingPlan/Your Plan remain capability-gated.
 
 ## Purpose
 
@@ -37,24 +37,80 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 
 ## Target Sections
 
+GitHub #475 defines the approved target Library navigation while preserving capability ownership:
+
 ```text
 Library
-├─ Programs
-│  └─ Program detail/builder → Program-owned Routines
-├─ Plans / Training Plans
-└─ Exercises → dedicated Exercises screen
+├─ Programs        // default selected category
+├─ Exercises       // second category
+└─ Your Plan       // only when a real followed/applicable TrainingPlan exists
+
+quick actions
+├─ Routine
+└─ Explore
 ```
 
-- Sections are capability-gated: a section appears only when its owning capability is implemented. No placeholder or production-looking empty section stands in for an unbuilt capability.
-- **Programs** is the user-owned Program collection/management entry. The current shipped slice lists persisted Programs and creates a new empty Program with a generated editable name. Program rows are display-only until Program detail/builder lands. Routine create/edit remains nested inside the owning Program; there is no standalone user Routines section or top-level Create Routine action. See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
-- **Plans / Training Plans** is a view over the canonical TrainingPlan capability and appears only once that capability exists.
-- **Exercises** opens the dedicated Exercises screen. It is the first real section: since W6A the Library root shows one `Exercises` row (fitness icon, `Browse all exercises`, chevron) that pushes `/workout/exercises`, so back returns to Library. The Library root never renders the Exercise catalog, list, search, Favorites, Custom Exercises or Folders; those belong to the Exercises capability. See [Exercises and Exercise Picker](exercise-search.md).
+The target category strip is presentation/navigation only; it never creates Library-owned Program, Routine, Exercise or TrainingPlan truth.
+
+### Programs
+
+Programs is the default category.
+
+- Programs render directly on Library when the W4/W6B Program-owned Routine capability is ready.
+- The Programs header may open the secondary Programs collection/manage route, but that route is not a mandatory intermediate step before an individual Program.
+- An individual Program opens Program detail directly.
+- Program-owned Routine rows may expand/collapse inline in Library presentation without changing persistence.
+- There is no standalone Routines category or Routines collection.
+- Library may expose a **Routine** quick-create entry. That entry is not orphan ownership: before a Routine is persisted it must resolve exactly one owning Program.
+- The approved direct Library Routine behavior targets the canonical default `My Program`. If that Program does not yet exist, runtime implementation must create/resolve it idempotently before Routine persistence. Display name alone is not a sufficient identity contract, so the W1 persistence/domain mechanism remains a prerequisite.
+
+See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
+
+### Exercises
+
+Exercises is the second category.
+
+Target Library Exercises content begins with these capability-owned entries:
+
+```text
+Create a custom exercise
+Favorite Exercises
+Custom Exercises
+<user-created Exercise folders...>
+```
+
+- **Create a custom exercise** and **Custom Exercises** are W3D capabilities.
+- **Favorite Exercises** is the W3C relationship/smart view.
+- user-created folders are W3E many-to-many Exercise collections.
+- These entries appear only when their real capability is implemented; Library must not render fake production affordances.
+- Library composes/navigates these Exercise-owned views and never duplicates their repositories or domain truth.
+- The existing dedicated `/workout/exercises` catalog/search screen remains the canonical browse/search surface until a later implementation slice explicitly reconciles how catalog browsing is reached from the new category UI.
+
+### Your Plan
+
+`Your Plan` is the third category **only when** the user has a real followed/applicable canonical TrainingPlan.
+
+```text
+real followed/applicable TrainingPlan
+→ show Your Plan
+
+no applicable TrainingPlan
+→ hide Your Plan completely
+```
+
+There is no disabled/empty placeholder tab. The view is supplied by W9/TNYX-86 and W6C/TNYX-268; Library owns no scheduling or TrainingPlan truth.
+
+### Current-runtime distinction
+
+The current shipped Library still shows Programs and Exercises as navigation rows and pushes the dedicated Programs/Exercises routes. It does not yet render this target category strip, Routine/Explore quick cards, inline Program content, Exercise smart-view entries or Your Plan. Those remain future capability-gated implementation slices.
 
 ## Minimal Program Creation Contract
 
-Initial Program creation presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Blank-name fallback is not the user-facing contract.
+Explicit Program creation presents an already generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Blank-name fallback is not the user-facing contract.
 
-For a user-created My Program, the initial editable surface is name plus an optional image once media support is approved. Richer source metadata is not requested from the user. Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata under their own source/adoption contracts.
+The approved direct Library Create Routine entry has a separate ownership requirement: it targets one canonical default Program presented as `My Program`. Runtime implementation must resolve/create that default idempotently and must not treat the mutable display name as the durable identity. Any Supabase table/column shape needed to provide a stable default-Program discriminator requires its own approved persistence slice.
+
+For a user-created Program, the initial editable surface remains minimal. Richer source metadata is not requested from the user. Tio-curated, coach-created and accepted AI-generated Programs may carry richer source metadata under their own source/adoption contracts.
 
 Schedule, start/end or follow-duration/till-date state belongs to the later TrainingPlan/following boundary even when edited from Program context. Optional Program/Routine images do not authorize Supabase schema or Storage work in this slice.
 
@@ -73,12 +129,18 @@ Library                 → navigation + user relationship/collection queries + 
 
 ## Acceptance Criteria
 
+Current runtime remains truth until the target slices ship. Target acceptance is:
+
 - One canonical Library route is reused by every entry point.
-- The root shows only sections whose capability is ready.
-- User-owned Routines are managed inside their owning Program, not a standalone Library collection.
-- Initial Program creation uses a visible generated non-blank name with optional rename before confirmation; optional metadata/scheduling is not a prerequisite.
-- Library → Exercises opens the dedicated Exercises screen; the Library root shows no Exercise rows.
-- No Library-owned domain truth.
+- Programs is the default target category; Exercises is second.
+- Your Plan is shown only with a real followed/applicable canonical TrainingPlan and hidden otherwise.
+- No standalone Routines category/collection exists.
+- A Library-level Routine create entry may exist only when the saved Routine resolves exactly one owning Program before persistence.
+- Direct Library Routine creation targets one canonical default `My Program`; the durable/idempotent identity mechanism must be defined before runtime implementation.
+- Programs may render directly on Library while the Programs collection/manage route remains optional secondary navigation.
+- Exercises category composes W3-owned Create Custom, Favorites, Custom and folder views only as those capabilities become real.
+- Library never owns competing Program, Routine, Exercise or TrainingPlan truth.
+- Existing dedicated Program/Exercise routes remain current runtime until explicitly reconciled by an approved implementation slice.
 
 ## Related
 
