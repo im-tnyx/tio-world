@@ -52,9 +52,9 @@ quick actions
 
 The target category strip is presentation/navigation only; it never creates Library-owned Program, Routine, Exercise or TrainingPlan truth.
 
-### Target top bar and category-selection interaction
+### Target category-selection interaction
 
-The owner-approved visual interaction follows the provided reference pattern while using Tio-owned categories and design-system styling:
+The owner-provided screenshots are reference only for the category-pill selection interaction. They do not define the Tio Library top bar. Category names/content remain Tio-owned and selected/unselected visuals must use the Tio design system:
 
 ```text
 [close/back]   Your Library                         [+]
@@ -70,7 +70,6 @@ explicit selection
 [ X ] [ Your Plan selected ]
 ```
 
-- the top bar uses a left close/back control, title **Your Library**, and right-side `+` create action;
 - the full selector row shows all currently available category pills horizontally;
 - Programs is the default Library content when the screen opens;
 - selecting a category collapses the selector to a circular X/clear control plus the selected highlighted pill and temporarily hides the other pills;
@@ -78,7 +77,7 @@ explicit selection
 - Exercises is always available after Programs;
 - Your Plan is rendered only when a real followed/applicable TrainingPlan exists;
 - there is no Routines category/tab;
-- selected/unselected pill appearance must use the Tio design system; the reference establishes layout/interaction behavior, not a pixel-for-pixel style copy.
+- selected/unselected pill appearance must use the Tio design system; the reference establishes only the pill-selection interaction, not the Library top-bar design or a pixel-for-pixel style copy.
 
 
 ### Programs
@@ -162,7 +161,7 @@ Current runtime remains truth until the target slices ship. Target acceptance is
 
 - One canonical Library route is reused by every entry point.
 - Programs is the default target category; Exercises is second.
-- The target top bar is close/back + **Your Library** + `+`.
+- The provided reference is used only for category-pill selection interaction, not for top-bar design.
 - The category selector can show the full available pill strip, then collapse to circular X + selected highlighted pill after an explicit selection.
 - Clearing selection restores the full strip and default Programs content.
 - Your Plan is shown only with a real followed/applicable canonical TrainingPlan and hidden otherwise.
