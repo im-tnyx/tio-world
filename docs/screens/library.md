@@ -57,8 +57,6 @@ The target category strip is presentation/navigation only; it never creates Libr
 The owner-provided screenshots are reference only for the category-pill selection interaction. They do not define the Tio Library top bar. Category names/content remain Tio-owned and selected/unselected visuals must use the Tio design system:
 
 ```text
-[close/back]   Your Library                         [+]
-
 all-category state
 [ Programs ] [ Exercises ] [ Your Plan* ]
 
@@ -166,6 +164,9 @@ Current runtime remains truth until the target slices ship. Target acceptance is
 - Clearing selection restores the full strip and default Programs content.
 - Your Plan is shown only with a real followed/applicable canonical TrainingPlan and hidden otherwise.
 - No standalone Routines category/collection exists.
+- When the direct Routine-create prerequisite is ready (including stable/idempotent canonical `My Program` identity), the approved **Routine** quick-action card is required and must start that Program-owned creation flow.
+- When the Explore capability/route is ready, the approved **Explore** quick-action card is required and must hand off to the canonical Explore capability rather than a Library-owned copy.
+- If either prerequisite capability is not ready, Library must not show a fake/non-functional production quick-action for it.
 - A Library-level Routine create entry may exist only when the saved Routine resolves exactly one owning Program before persistence.
 - Direct Library Routine creation targets one canonical default `My Program`; the durable/idempotent identity mechanism must be defined before runtime implementation.
 - Programs may render directly on Library while the Programs collection/manage route remains optional secondary navigation.
