@@ -9,7 +9,7 @@
 **Trigger:** New independently scoped product task/feature slice + approved product-visible UI/UX direction
 **Approval status:** Approved
 **Approval evidence:** Owner approved continuing the bounded reconciliation slice with “Go next” on 2026-09-30 after the audit proposed reconciling GitHub #475, canonical docs/ADR and Linear before any Flutter UI work.
-**Approved product/UI/data-shape boundaries:** Reconcile the approved Library IA: Programs default category; Exercises second; conditional Your Plan; Routine + Explore quick actions; Programs visible directly on Library; optional Programs manage route; Program-owned Routine ownership; top-level Routine create entry may exist only if saved Routine resolves to one owning Program; Exercise Favorites/Custom/Folders remain capability-owned; Your Plan remains TrainingPlan-owned.
+**Approved product/UI/data-shape boundaries:** Reconcile the approved Library IA: Programs default category; Exercises second; conditional Your Plan; owner-provided screenshots define only the category-pill selection interaction (full strip → X + selected pill → clear back to full strip), not the Library top-bar design; Routine + Explore quick actions; Programs visible directly on Library; optional Programs manage route; Program-owned Routine ownership; top-level Routine create entry may exist only if saved Routine resolves to one owning Program; Exercise Favorites/Custom/Folders remain capability-owned; Your Plan remains TrainingPlan-owned.
 **Explicit non-changes:** No Flutter runtime/source changes, no router changes, no Supabase schema/RLS/grant changes, no Program/Routine persistence changes, no Custom Exercise/Favorites/Folders implementation, no TrainingPlan implementation, no Program delete implementation, no Start Empty Workout behavior implementation.
 
 ## Active Handoff
@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-30, remote `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6`; task branch is 8 commits ahead / 0 behind
 **Branch:** `tnyx/gh-475-library-ia-reconciliation`
-**HEAD SHA:** `d0768536614c7dfb5fdf48f0107321f67b5a9459` after canonical docs reconciliation
+**HEAD SHA:** `5fc2b7f9af55dddc6f4d76bff66dd8a2306e4a6a` after screenshot-reference clarification
 **Observed working-tree state:** Remote branch created from clean/synced `main`; no local working-tree mutation is being claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** GitHub #475; Linear TNYX-83 / TNYX-267 with related TNYX-81, TNYX-263, TNYX-264, TNYX-265, TNYX-268, TNYX-86
-**Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; no runtime implementation started.
+**Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; the screenshot reference is explicitly scoped to category-pill selection only; no runtime implementation started.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
 **Validation completed at SHA:** `d0768536614c7dfb5fdf48f0107321f67b5a9459`: branch scope audit; 7 changed docs/task paths only; trailing-whitespace scan 0; conflict-marker scan 0; #475 stale quick-action wording scan clean.
 **Validation remaining:** GitHub PR review. A local `git diff --check` cannot be claimed from the connector-only environment; equivalent text scans were run, and PR/CI remains the review gate.
 **Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
 **Open review finding IDs:** None
-**Next exact action:** Open the docs-only PR, request exact-head review, resolve any documentation/architecture findings, and merge only after the review gate is clear.
+**Next exact action:** Refresh PR #491 scope/head evidence, request Codex review on the new exact head, resolve any documentation/architecture findings, and merge only after the review gate is clear.
 
 ## Global UI / Design-System Guardrail
 
@@ -121,6 +121,7 @@ Programs remain the owner/container for saved Routines. Exercises composes capab
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
 | Library category order is Programs → Exercises → Your Plan | Approved | Latest owner direction; Programs is default | Owner |
+| Reference screenshots define only pill/category selection behavior, not Library top-bar design | Approved | Owner clarification after PR #491 opened | Owner |
 | Your Plan is hidden without a real followed/applicable TrainingPlan | Approved | Matches W6C/W9 capability gating; no placeholder plan truth | Owner + TNYX-268/TNYX-86 |
 | No standalone Routines category | Approved | Preserves Program ownership | ADR-0015 |
 | Quick cards are Routine + Explore | Approved | Latest correction supersedes older Exercise + Explore wording | Owner |
