@@ -20,6 +20,14 @@ abstract interface class UserExerciseRepository {
     required UserCreatedExerciseRef id,
     required String displayName,
     CatalogExerciseRef? basedOnCatalogExercise,
+    UserExerciseDefinition? definition,
+  });
+
+  /// Replaces the mutable structured definition while preserving identity,
+  /// owner, source lineage, lifecycle and timestamps.
+  Future<void> updateDefinition({
+    required UserCreatedExerciseRef id,
+    required UserExerciseDefinition definition,
   });
 
   Future<void> rename({
