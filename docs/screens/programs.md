@@ -37,7 +37,20 @@ Current behavior:
 - Program rows are display-only in this first slice. There is no chevron, tap target or fake detail destination.
 - No standalone Routines row or top-level Create Routine action exists.
 
-For a user-created My Program, initial creation is intentionally limited to the generated/renamable name. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
+For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
+
+## Target Library Integration
+
+GitHub #475 changes how this capability is entered without changing Program ownership:
+
+- Programs is the default target Library category.
+- Program content may render directly on Library.
+- `/workout/programs` may remain as an optional secondary Programs collection/manage screen reached from the Programs header.
+- The collection/manage screen is not a mandatory intermediate step before an individual Program.
+- Tapping an individual Program opens Program detail directly once W4 supplies that capability.
+- Program expand/collapse on Library is presentation state only.
+
+The current runtime remains the dedicated Programs screen described above until the approved Library implementation slice lands.
 
 ## Future Program Detail And Program-owned Routines
 
@@ -50,7 +63,7 @@ Program 1
 └─ Routine 3
 ```
 
-Routine creation follows the same generated-name direction inside the Program. There is no standalone user Routines collection in Library.
+Routine creation inside a selected Program follows the same generated-name direction. There is no standalone user Routines collection/category in Library. The approved Library-level Routine quick-create entry is also allowed, but it must resolve exactly one owning Program before persistence; the direct entry targets the canonical default `My Program`, whose stable/idempotent identity mechanism is still a prerequisite and must not rely on mutable display-name matching.
 
 ## Provenance And Adoption
 
