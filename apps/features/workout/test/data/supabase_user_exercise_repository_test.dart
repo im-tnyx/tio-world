@@ -49,11 +49,21 @@ void main() {
             'id': exerciseId.value,
             'display_name': 'My Exercise',
             'status': 'active',
+            'description': null,
+            'exercise_type': null,
+            'primary_muscle': null,
+            'secondary_muscles': <String>[],
+            'primary_equipment': null,
           },
           {
             'id': '33333333-3333-4333-8333-333333333333',
             'display_name': 'Old Exercise',
             'status': 'archived',
+            'description': null,
+            'exercise_type': null,
+            'primary_muscle': null,
+            'secondary_muscles': <String>[],
+            'primary_equipment': null,
           },
         ],
       );
@@ -168,6 +178,58 @@ void main() {
       ]);
     });
 
+    test('create round-trips approved structured definition fields', () async {
+      final gateway = _FakeUserExerciseGateway();
+      final repository = _repository(gateway: gateway);
+      final definition = UserExerciseDefinition(
+        description: ' Tempo focus ',
+        exerciseType: ExerciseType.weightReps,
+        primaryMuscle: 'pectoralis_major_sternal_head',
+        secondaryMuscles: const ['triceps_brachii', 'deltoid_anterior'],
+        primaryEquipment: 'dumbbell',
+      );
+
+      await repository.create(
+        id: exerciseId,
+        displayName: 'Incline Dumbbell Press',
+        definition: definition,
+      );
+
+      expect(gateway.insertPayloads.single, {
+        'id': exerciseId.value,
+        'user_id': _ownerUserId,
+        'display_name': 'Incline Dumbbell Press',
+        'description': 'Tempo focus',
+        'exercise_type': 'weight_reps',
+        'primary_muscle': 'pectoralis_major_sternal_head',
+        'secondary_muscles': ['triceps_brachii', 'deltoid_anterior'],
+        'primary_equipment': 'dumbbell',
+      });
+    });
+
+    test('updateDefinition writes only mutable definition columns', () async {
+      final gateway = _FakeUserExerciseGateway();
+      final repository = _repository(gateway: gateway);
+      final definition = UserExerciseDefinition(
+        exerciseType: ExerciseType.duration,
+        primaryMuscle: 'rectus_abdominis',
+      );
+
+      await repository.updateDefinition(id: exerciseId, definition: definition);
+
+      expect(gateway.definitionCalls.single, (
+        userId: _ownerUserId,
+        exerciseId: exerciseId.value,
+        definition: {
+          'description': null,
+          'exercise_type': 'duration',
+          'primary_muscle': 'rectus_abdominis',
+          'secondary_muscles': <String>[],
+          'primary_equipment': null,
+        },
+      ));
+    });
+
     test('create and rename reject blank names before gateway writes',
         () async {
       final gateway = _FakeUserExerciseGateway();
@@ -260,6 +322,8 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
   final bool archiveAffectsRow;
   final List<({String userId, bool includeArchived})> listCalls = [];
   final List<Map<String, dynamic>> insertPayloads = [];
+  final List<({String userId, String exerciseId, Map<String, dynamic> definition})>
+      definitionCalls = [];
   final List<
       ({
         String userId,
@@ -283,6 +347,20 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
   @override
   Future<void> insertRow(Map<String, dynamic> payload) async {
     insertPayloads.add(Map<String, dynamic>.from(payload));
+  }
+
+  @override
+  Future<bool> updateDefinitionRow({
+    required String userId,
+    required String exerciseId,
+    required Map<String, dynamic> definition,
+  }) async {
+    definitionCalls.add((
+      userId: userId,
+      exerciseId: exerciseId,
+      definition: Map<String, dynamic>.from(definition),
+    ));
+    return true;
   }
 
   @override
