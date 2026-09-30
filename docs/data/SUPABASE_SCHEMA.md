@@ -499,6 +499,8 @@ The verified live migration history currently ends at `20260929181247_create_use
 
 **Verified Data API access:** `anon` has no table privileges. `authenticated` has table `SELECT`, column-level `INSERT(id, user_id, display_name, based_on_catalog_exercise_id)`, and column-level `UPDATE(display_name, status)`; it has no table-wide `INSERT` / `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies are present with no authenticated `DELETE` policy. `service_role` retains full table CRUD.
 
+**W3D2 repository migration, not yet live:** `20260930180700_add_custom_exercise_definition_fields.sql` adds nullable text `description`, `exercise_type`, `primary_muscle`, `primary_equipment`, plus `secondary_muscles text[] NOT NULL DEFAULT '{}'`. It explicitly extends authenticated column-level INSERT/UPDATE to these five fields without changing the owner RLS policies, immutable identity/lineage/timestamps, or DELETE boundary. Existing rows retain NULL scalars and an empty array. CHECK constraints enforce nonblank descriptions, the 11 stable Exercise Type tokens, the 44 approved muscle tokens (single primary, unique secondary array without nulls/primary overlap), and 18 equipment tokens. `private.valid_user_exercise_muscles` is an immutable SECURITY INVOKER validator with empty search_path and restricted EXECUTE. Dart/SQL token parity is tested. The live columns below remain the verified W1B1 baseline until separately authorized deployment and verification.
+
 #### Columns
 
 | Column | Type | Nullable | Default |

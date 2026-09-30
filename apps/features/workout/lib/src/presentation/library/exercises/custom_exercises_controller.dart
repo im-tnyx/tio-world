@@ -255,8 +255,7 @@ final class CustomExercisesController extends ChangeNotifier {
       await repository.rename(id: id, displayName: displayName);
       exercises = await repository.list();
       if (exercises.any(
-        (exercise) =>
-            exercise.ref == id && exercise.displayName == displayName,
+        (exercise) => exercise.ref == id && exercise.displayName == displayName,
       )) {
         return exercises;
       }
@@ -282,6 +281,8 @@ final class CustomExercisesController extends ChangeNotifier {
       Exercise(
         ref: exercise.ref,
         displayName: displayName,
+        description: exercise.description,
+        exerciseType: exercise.exerciseType,
         muscleGroup: exercise.muscleGroup,
         primaryMuscles: exercise.primaryMuscles,
         secondaryMuscles: exercise.secondaryMuscles,

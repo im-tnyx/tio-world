@@ -1,6 +1,7 @@
 import 'exercise_media.dart';
 import 'exercise_ref.dart';
 import 'exercise_status.dart';
+import 'exercise_type.dart';
 
 /// Canonical pure-Dart read model for one Exercise.
 ///
@@ -11,6 +12,8 @@ final class Exercise {
   Exercise({
     required this.ref,
     required String displayName,
+    String? description,
+    this.exerciseType,
     String? muscleGroup,
     List<String> primaryMuscles = const [],
     List<String> secondaryMuscles = const [],
@@ -20,6 +23,7 @@ final class Exercise {
     required this.status,
     this.media,
   })  : displayName = _requireNonBlankText(displayName, 'displayName'),
+        description = _normalizeOptionalText(description),
         muscleGroup = _validateOptionalTaxonomy(muscleGroup, 'muscleGroup'),
         primaryMuscles = _validateTaxonomyList(
           primaryMuscles,
@@ -41,6 +45,12 @@ final class Exercise {
 
   /// Human-readable name supplied by the owning source.
   final String displayName;
+
+  /// Optional user-authored description/instructions.
+  final String? description;
+
+  /// Optional stable Exercise measurement-profile identity.
+  final ExerciseType? exerciseType;
 
   /// Optional broad muscle-group taxonomy token.
   final String? muscleGroup;
@@ -75,6 +85,12 @@ final class Exercise {
       );
     }
     return value;
+  }
+
+  static String? _normalizeOptionalText(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   static String? _validateOptionalTaxonomy(String? value, String name) {
@@ -117,6 +133,8 @@ final class Exercise {
       other is Exercise &&
           other.ref == ref &&
           other.displayName == displayName &&
+          other.description == description &&
+          other.exerciseType == exerciseType &&
           other.muscleGroup == muscleGroup &&
           _listsEqual(other.primaryMuscles, primaryMuscles) &&
           _listsEqual(other.secondaryMuscles, secondaryMuscles) &&
@@ -130,6 +148,8 @@ final class Exercise {
   int get hashCode => Object.hash(
         ref,
         displayName,
+        description,
+        exerciseType,
         muscleGroup,
         Object.hashAll(primaryMuscles),
         Object.hashAll(secondaryMuscles),
