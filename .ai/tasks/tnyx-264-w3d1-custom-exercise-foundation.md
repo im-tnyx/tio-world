@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-30, remote main@4881120c723430d6bda8999ce59bd4c7429d932b; no open PRs at slice start
 **Branch:** tnyx/tnyx-264-w3d1-custom-exercise-foundation
-**HEAD SHA:** 4881120c723430d6bda8999ce59bd4c7429d932b at branch creation
+**Implementation checkpoint:** 0fa54c76be7688f2586ad9277e15f8862d7b9d94. The handoff metadata commit advances the live branch after this stable content checkpoint.
 **Observed working-tree state:** Connector-managed remote branch from clean/synced main; no local working-tree state is claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** Linear TNYX-264 (parent W3 TNYX-80)
-**Current implementation state:** Planning/task brief only; production source not yet changed.
+**Current implementation state:** Approved W3D1 source implemented: fail-closed app composition, user Exercise UUID generator, immutable Custom Exercises state/controller, focused tests, and canonical Exercises status doc update. No visible UI or schema change.
 **Relevant execution surface:** apps/app/lib/app/composition/workout_providers.dart; Workout Exercise domain/data contracts; apps/features/workout/lib/src/presentation/library/exercises/*; focused Workout/app tests
-**Validation completed at SHA:** None yet for this branch.
-**Validation remaining:** Focused generator/controller/provider tests; analyze where available; exact branch scope/text review; PR review.
+**Validation completed at content checkpoint:** 0fa54c76be7688f2586ad9277e15f8862d7b9d94 — parent/branch scope audit showed main as ancestor, 0 behind, only owned W3D1/task/docs paths, trailing-whitespace 0 and conflict-marker 0. Manual source review completed. No Flutter test/analyze pass is claimed yet.
+**Validation remaining:** Exact-head CI/analyze/test through the PR, then review findings and final scope audit.
 **Current blocker:** None for W3D1 foundation. Broader TNYX-264 visible UI remains a later slice.
 **Open review finding IDs:** None.
-**Next exact action:** Implement the approved non-UI foundation, validate, open a focused PR, and stop at review/merge gate.
+**Next exact action:** Open a focused PR from the current branch, inspect exact-head CI, resolve any findings, and stop at the merge gate.
 
 ## Global UI / Design-System Guardrail
 
@@ -98,20 +98,20 @@ Rejected: in-memory production fallback; UUID calls in widgets; richer fields no
 
 ## 5. Implementation Plan
 
-- [ ] Add UserExerciseIdGenerator and UUID-v4 implementation.
-- [ ] Add immutable CustomExercisesState / CustomExercisesController.
-- [ ] Preserve one pending Exercise ID across create retry/reconciliation.
-- [ ] Add app-level userExerciseRepositoryProvider with fail-closed null behavior.
-- [ ] Export new feature contracts through existing barrels only as needed.
-- [ ] Add focused generator/controller/provider tests.
-- [ ] Run exact scope/validation review.
-- [ ] Open PR and request review.
+- [x] Add UserExerciseIdGenerator and UUID-v4 implementation.
+- [x] Add immutable CustomExercisesState / CustomExercisesController.
+- [x] Preserve one pending Exercise ID across create retry/reconciliation.
+- [x] Add app-level userExerciseRepositoryProvider with fail-closed null behavior.
+- [x] Export new feature contracts through existing barrels only as needed.
+- [x] Add focused generator/controller/provider tests.
+- [x] Run pre-PR scope/text/manual source review.
+- [ ] Open PR, inspect exact-head CI, and request review.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Not run yet.
+Pre-PR connector-visible review at implementation checkpoint 0fa54c76: main ancestor, 0 behind, owned paths only; trailing whitespace 0; conflict markers 0. Automated Flutter tests/analyze remain pending PR CI.
 
 ### Review Findings and Resolution
 
@@ -122,11 +122,22 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- .ai/tasks/README.md
+- .ai/tasks/tnyx-264-w3d1-custom-exercise-foundation.md
+- apps/app/lib/app/composition/workout_providers.dart
+- apps/app/test/app/network_providers_test.dart
+- apps/features/workout/lib/src/domain/usecases/usecases.dart
+- apps/features/workout/lib/src/domain/usecases/user_exercise_id_generator.dart
+- apps/features/workout/lib/src/presentation/library/exercises/custom_exercises_controller.dart
+- apps/features/workout/lib/src/presentation/library/exercises/custom_exercises_state.dart
+- apps/features/workout/lib/src/presentation/library/exercises/exercises.dart
+- apps/features/workout/test/domain/user_exercise_id_generator_test.dart
+- apps/features/workout/test/presentation/custom_exercises_controller_test.dart
+- docs/screens/exercise-search.md
 
 ### Actual Behavior
 
-No runtime behavior change yet.
+The app composition now exposes durable user-owned Exercise persistence when Supabase is available and fails closed with null otherwise. Feature code has a non-UI controller/state boundary for active Custom Exercise list/create/rename/archive and stable UUID retry reconciliation. No screen currently instantiates this controller, so there is no product-visible UI change in W3D1.
 
 ### Known Limitations
 
