@@ -19,19 +19,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `4d9fce955873ce11ad2bbef86df5899cab648bcc`, 18 commits ahead / 0 behind
+**Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `f21e75734588226574a1f33ca19946d9e507c8d8`, 21 commits ahead / 0 behind
 **Branch:** `tnyx/gh-475-library-ia-reconciliation`
-**Checkpoint note:** `4d9fce95...` is the single repository/content checkpoint used by the validation evidence below. This handoff-file metadata update necessarily advances the branch after that checkpoint; the live PR head must be read from GitHub and revalidated/re-reviewed rather than inferred from this embedded checkpoint.
+**Checkpoint note:** `f21e7573...` is the single repository/content checkpoint used by the validation evidence below. This handoff-file metadata update necessarily advances the branch after that checkpoint; the live PR head must be read from GitHub and revalidated/re-reviewed rather than inferred from this embedded checkpoint.
 **Observed working-tree state:** Remote branch created from clean/synced `main`; no local working-tree mutation is being claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** GitHub #475; Linear TNYX-83 / TNYX-267 with related TNYX-81, TNYX-263, TNYX-264, TNYX-265, TNYX-268, TNYX-86
 **Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; the screenshot reference is explicitly scoped to category-pill selection only; no runtime implementation started.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
-**Validation completed at content checkpoint:** `d83efc63b96223d5be3fc0c8b7211476b2ff806c`: GitHub compare against `main@f5e02a22...` reported 13 ahead / 0 behind with exactly 8 docs/task paths; connector text scans had 0 trailing-whitespace findings and 0 conflict markers on the previously changed text files; GitHub #475 stale `Exercise + Explore` and top-bar-reference wording were removed; `docs/screens/workout.md` was reconciled with the direct Routine-create entry while preserving the no-standalone-Quick-Start invariant.
+**Validation completed at content checkpoint:** `f21e75734588226574a1f33ca19946d9e507c8d8`: GitHub compare against `main@f5e02a22...` reports 21 ahead / 0 behind with exactly 9 docs/task paths. The checkpoint includes the shipped Programs status correction, ROADMAP Routine-entry reconciliation, Programs → Exercises → conditional Your Plan alignment, capability-gated Routine/Explore quick-action acceptance, and the canonical Exercises browse path via a secondary `Browse exercises` action to `/workout/exercises`. Connector text scans are rerun after each metadata update; live exact-head results are recorded in PR #491.
 **Validation remaining:** Codex exact-head re-review. Live current-head scope/text validation is recorded in PR #491 because embedding the moving PR-head SHA inside this same handoff file would be self-referential. Local `git diff --check` cannot be claimed from the connector-only environment.
 **Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
-**Open review finding IDs:** `PRRT_kwDOTOXwB86ni9e4` (Workout shipped Programs status), `PRRT_kwDOTOXwB86ni9fC` (ROADMAP direct Routine entry), `PRRT_kwDOTOXwB86ni9fK` (Workout Library category order/conditional Your Plan), `PRRT_kwDOTOXwB86ni9fR` (Routine/Explore quick-action acceptance). All four are addressed in docs on this branch and remain open only until exact-head validation, reply/resolve, and Codex re-review.
-**Next exact action:** Reply to and resolve the three Codex threads with the PR-recorded exact-head validation evidence, request Codex review on the resulting exact head, and merge only after the review gate is clear.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86njWY7` (validated checkpoint mismatch), `PRRT_kwDOTOXwB86njWZC` (review-thread count/action mismatch), `PRRT_kwDOTOXwB86njWZL` (noncanonical finding statuses), `PRRT_kwDOTOXwB86njWZP` (Exercises catalog browse path). All four are addressed in this branch and remain Open until exact-head validation, reply/resolve, and Codex re-review.
+**Next exact action:** Validate the current exact PR head, reply to and resolve all four current Codex threads with evidence, request Codex review on that exact head, and merge only after the review gate is clear.
 
 ## Global UI / Design-System Guardrail
 
@@ -129,6 +129,7 @@ Programs remain the owner/container for saved Routines. Exercises composes capab
 | Direct top-level Routine should use canonical default My Program | Approved product behavior; implementation unresolved | Current Program model has no stable default marker; display-name matching is not sufficient | Owner; W1 follow-up required |
 | Programs manage screen may remain secondary | Approved | Program rows still appear directly on Library; individual Program does not require intermediate screen | Owner |
 | Exercises category shows capability-owned smart views/folders | Approved target; capability-gated | W3C/W3D/W3E own data; no fake rows before real capability | Owner + Linear |
+| Exercises catalog browse path | Approved reconciliation | Keep the three approved default entries unchanged; a separate secondary **Browse exercises** action opens the shipped canonical `/workout/exercises` route so catalog/search remains discoverable | #475 reconciliation |
 | Start Empty Workout lower action semantics | Unresolved for runtime | Existing Workout architecture must determine canonical Routine/Session ownership before implementation | Follow-up |
 
 ## 4. Architecture Design
@@ -189,9 +190,9 @@ Deferred to later UI implementation. That slice must preserve loading/error/empt
 Historical/content-checkpoint evidence:
 
 ```text
-Checkpoint: 4d9fce955873ce11ad2bbef86df5899cab648bcc
+Checkpoint: f21e75734588226574a1f33ca19946d9e507c8d8
 Base:       main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6
-Compare:    18 ahead / 0 behind
+Compare:    21 ahead / 0 behind
 Changed paths:
   .ai/tasks/README.md
   .ai/tasks/gh-475-library-ia-reconciliation.md
@@ -217,6 +218,8 @@ Issue/doc reconciliation:
   Library categories: Programs → Exercises → conditional Your Plan aligned
   ROADMAP: direct Routine-create entry reconciled
   Quick actions: Routine/Explore acceptance explicitly capability-gated
+  Exercises browse: secondary Browse exercises action → canonical /workout/exercises;
+                    not a fourth default collection card
 ```
 
 Live exact-head validation is maintained in PR #491 rather than embedding a self-referential moving head SHA in this file. The task brief keeps the stable content checkpoint above; the PR/review record carries the current-head compare, changed-path, whitespace and conflict-marker evidence.
@@ -230,13 +233,17 @@ Local `git diff --check` was not available in the connector-only environment and
 | IA-001 | Medium | Resolved | Canonical docs/ADR previously prohibited any top-level Create Routine action; latest approved UX allows an entry but not orphan persistence. | main@f5e02a22 | ADR-0015 + Library/Programs/Routine docs now distinguish entry action from saved ownership. |
 | IA-002 | Medium | Deferred | Stable/idempotent default My Program identity has no current domain/persistence discriminator. | main@f5e02a22 | Separate W1 implementation decision; no schema invented here. |
 | IA-003 | Medium | Deferred | Start Empty Workout lower action lacks reconciled Routine/WorkoutSession ownership semantics. | main@f5e02a22 | Resolve before runtime implementation; this docs slice does not redefine Quick Start/session ownership. |
-| IA-004 | Medium | Addressed / re-review pending | `workout.md` required Program-first Routine creation while ADR/Library allowed a direct create entry. | PR #491 @ 6729ba36 | `workout.md` now distinguishes direct Routine creation from workout start and preserves Program ownership. |
-| IA-005 | Medium | Addressed / re-review pending | Validation block contained `Not run yet` while other handoff fields claimed completed checks. | PR #491 @ 6729ba36 | Replaced with concrete checkpoint/results and explicit exact-head remaining work. |
+| IA-004 | Medium | Resolved | `workout.md` required Program-first Routine creation while ADR/Library allowed a direct create entry. | PR #491 @ 6729ba36 | `workout.md` now distinguishes direct Routine creation from workout start and preserves Program ownership. |
+| IA-005 | Medium | Resolved | Validation block contained `Not run yet` while other handoff fields claimed completed checks. | PR #491 @ 6729ba36 | Replaced with concrete checkpoint/results and explicit exact-head remaining work. |
 | IA-006 | Medium | Resolved | Handoff mixed an old ahead-count with a newer SHA. | PR #491 @ 6729ba36 | Handoff uses a named stable content checkpoint and separates it from live PR-head validation. |
-| IA-007 | Medium | Addressed / re-review pending | Workout status omitted the already shipped Programs collection/create route/foundation. | PR #491 @ 0e194c57 | `workout.md` now distinguishes shipped Programs foundation from pending detail/Routine work. |
-| IA-008 | Medium | Addressed / re-review pending | ROADMAP still allowed Routine creation only from inside Program flow. | PR #491 @ 0e194c57 | ROADMAP now includes the guarded Library-level Create Routine entry and preserves Program ownership/start invariants. |
-| IA-009 | Medium | Addressed / re-review pending | Workout doc category wording conflicted with Programs → Exercises → conditional Your Plan. | PR #491 @ 0e194c57 | `workout.md` now uses the same order and conditional visibility as Library. |
-| IA-010 | Medium | Addressed / re-review pending | Target acceptance did not require approved Routine/Explore quick actions when capabilities are ready. | PR #491 @ 0e194c57 | `library.md` now makes each quick action required when its prerequisite capability is real and forbids fake affordances before readiness. |
+| IA-007 | Medium | Resolved | Workout status omitted the already shipped Programs collection/create route/foundation. | PR #491 @ 0e194c57 | `workout.md` now distinguishes shipped Programs foundation from pending detail/Routine work. |
+| IA-008 | Medium | Resolved | ROADMAP still allowed Routine creation only from inside Program flow. | PR #491 @ 0e194c57 | ROADMAP now includes the guarded Library-level Create Routine entry and preserves Program ownership/start invariants. |
+| IA-009 | Medium | Resolved | Workout doc category wording conflicted with Programs → Exercises → conditional Your Plan. | PR #491 @ 0e194c57 | `workout.md` now uses the same order and conditional visibility as Library. |
+| IA-010 | Medium | Resolved | Target acceptance did not require approved Routine/Explore quick actions when capabilities are ready. | PR #491 @ 0e194c57 | `library.md` now makes each quick action required when its prerequisite capability is real and forbids fake affordances before readiness. |
+| IA-011 | Medium | Open | Active handoff summary referenced an older validated checkpoint than the Quality Review block. | PR #491 @ 5371bc92 | Summary and validation now use stable content checkpoint `f21e7573...`; live exact-head evidence remains in PR #491. |
+| IA-012 | Low | Open | Next action said three threads while four current finding IDs were listed. | PR #491 @ 5371bc92 | Next action now requires all four current threads. |
+| IA-013 | Medium | Open | Several finding rows used noncanonical `Addressed / re-review pending` status. | PR #491 @ 5371bc92 | Prior validated findings use `Resolved`; current findings remain `Open` until clean exact-head re-review. |
+| IA-014 | Medium | Open | Future Exercises category left the shipped catalog browse path undefined. | PR #491 @ 5371bc92 | Three default entries remain unchanged; secondary Browse exercises opens canonical `/workout/exercises`. |
 
 ## 7. Final Handoff
 
