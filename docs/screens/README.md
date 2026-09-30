@@ -60,7 +60,7 @@ Pre-auth App Mode selection is held as local pending setup state until authentic
 
 Product Onboarding still uses one `/onboarding` parent after account setup. Draft mode, canonical authenticated mode, and onboarding completion status remain distinct ownership/state concepts.
 See [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md), the
-[onboarding task](../../.ai/tasks/onboarding-flow.md), and the
+[onboarding task](../../.ai/archive/2026-09-mode-conditional-onboarding-flow.md), and the
 [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
 
 ## Profile-Derived Configuration

@@ -103,4 +103,4 @@ target boundary.
 - [Onboarding screen specification](../screens/onboarding.md)
 - [ADR-0002: Shared App Mode And Dynamic Navigation](0002-shared-app-mode-and-dynamic-navigation.md)
 - [Module ownership](../architecture/MODULE_OWNERSHIP.md)
-- [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)
+- [Onboarding implementation task](../../.ai/archive/2026-09-mode-conditional-onboarding-flow.md)

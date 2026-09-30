@@ -1,6 +1,6 @@
-# Mode-Conditional Onboarding Flow
+# Mode-Conditional Onboarding Flow — Historical Snapshot
 
-**Status:** PARTIAL (UI & Architecture Ready; Durable Completion Blocked) — App Mode, common Profile section, Workout Intro gate, Workout Preferences (W1/W2/W3), Nutrition Intro, Targets (Bridge, Step Target, Sleep Target, Water Target, Goal Pace, Nutrition Target Recommendation), Review, and Atomic Owner Persistence architecture (`ProfileSetupRepository`, `WorkoutPreferencesRepository`, `TargetsSetupRepository`) with confirmed App Mode & completion transactions are fully implemented and verified. Durable production completion is safely BLOCKED pending client auth & HTTP network infrastructure.
+**Status:** Superseded historical implementation snapshot — App Mode, common Profile section, Workout Intro gate, Workout Preferences (W1/W2/W3), Nutrition Intro, Targets (Bridge, Step Target, Sleep Target, Water Target, Goal Pace, Nutrition Target Recommendation), Review, and Atomic Owner Persistence architecture (`ProfileSetupRepository`, `WorkoutPreferencesRepository`, `TargetsSetupRepository`) with confirmed App Mode & completion transactions are fully implemented and verified. Durable production completion is safely BLOCKED pending client auth & HTTP network infrastructure.
 **Primary owners:** `apps/features/onboarding`, with stable contracts from Profile, Workout, Nutrition, `apps/shared`, and app-level provider/route composition
 **Affected platforms:** Flutter phone app
 
@@ -454,3 +454,8 @@ completion slices remain pending.
   required blocker; hybrid still blocks on Nutrition plus Targets.
 - Review keeps privacy-safe behavior by not exposing raw workout health text.
 - `WorkoutCompatibilityScreen` was removed because Workout no longer uses it.
+
+
+## Supersession note — 2026-09-30
+
+This brief is preserved as historical implementation evidence only. Its `PARTIAL`/blocked wording, unchecked delivery items, and pre-Supabase assumptions no longer describe current Product Onboarding state. GitHub #40 records O1–O11 as COMPLETE / FROZEN; current architecture/status is owned by `docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/screens/onboarding.md`, runtime source, and live GitHub/Linear trackers. Future progressive onboarding is separately tracked by TNYX-159 / GitHub #215 and is not activated by this archive. Onboarding package architecture cleanup is separately tracked by TNYX-202 / GitHub #261.

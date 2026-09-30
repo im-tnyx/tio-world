@@ -131,7 +131,7 @@ apps/features/coaching
 ```
 
 See [Onboarding Flow Architecture](../architecture/ONBOARDING_ARCHITECTURE.md) and the
-[mode-conditional onboarding task](../../.ai/tasks/onboarding-flow.md) before starting
+[mode-conditional onboarding task](../../.ai/archive/2026-09-mode-conditional-onboarding-flow.md) before starting
 that slice.
 
 ## Phase 4: Supabase Data, Storage, Offline, And Sync
