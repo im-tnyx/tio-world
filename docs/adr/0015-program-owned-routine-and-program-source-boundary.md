@@ -1,7 +1,7 @@
 # ADR-0015: Program-owned Routine and Program source boundary
 
 Document Status: Architecture Decision Record
-Last Verified: 2026-09-28
+Last Verified: 2026-09-30
 Owner: Workout domain architecture (`apps/features/workout` + `apps/shared`)
 Truth Boundary: Authoritative for Program/Routine ownership, creation-source editing boundaries, and Program versus TrainingPlan ownership; not evidence runtime implementation is complete.
 
@@ -20,9 +20,9 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 - A user-owned Program is the reusable container for user-owned Routines.
 - A saved user-owned Routine keeps stable `RoutineId` and composition but belongs to exactly one user-owned Program. It is not an orphan top-level Library object.
 - A Program may contain **zero or more** Routines. Zero is valid for a newly created draft/empty Program immediately after confirmation; executable/followable flows may impose stronger readiness requirements later.
-- Library exposes Programs, Plans/Training Plans and Exercises as capabilities become ready. Routine create/edit/manage is entered from the owning Program; there is no standalone user Routines collection or top-level Create Routine action.
-- Initial user-created Program creation presents a generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. The initial My Program slice exposes name only; optional image editing belongs to a later separately approved media slice. Richer metadata is not required from the user.
-- Routine creation inside a Program follows the same minimal direction: generated non-blank name, with optional image as later approved media capability. Exact Routine composition fields remain owned by their bounded domain slice.
+- Library exposes Programs, Exercises and, only when real canonical plan data exists, a TrainingPlan/Your Plan view as capabilities become ready. There is no standalone user Routines collection. Routine create/edit/manage normally stays in Program context, but Library may expose a top-level **Create Routine entry action** when that action resolves exactly one owning Program before persistence; the entry action never creates orphan Routine truth.
+- Explicit user-created Program creation presents a generated non-blank name such as `Program 1` before confirmation. The user may rename it before OK. Separately, the approved direct Library Create Routine flow targets one canonical default Program presented as `My Program`; that default Program must have a stable/idempotent identity contract independent of its mutable display name before runtime implementation. This ADR does not pre-authorize the physical persistence change needed to provide that identity. Optional image editing belongs to a later separately approved media slice. Richer metadata is not required from the user.
+- Routine creation inside a Program follows the same minimal direction: generated non-blank name, with optional image as later approved media capability. A direct Library Create Routine entry follows the same Routine contract after the owning default `My Program` has been resolved. Exact Routine composition fields remain owned by their bounded domain slice.
 - Program remains one canonical domain capability, but persistence separates user-owned Program truth from Tio-owned source/catalog Program truth. User-owned Programs use a dedicated user-owned Program table/source; Tio-curated source Programs must not be mixed into that user-owned table.
 - `user_created`, adopted Tio content, accepted AI-generated content, and eligible coach-derived content become user-owned Program records only at the explicit create/adopt/accept boundary. Their provenance/lineage remains explicit.
 - Tio/Coach/AI source/catalog persistence may use source-specific protected tables/services when those slices are approved; this ADR does not pre-authorize their physical schema.
@@ -34,7 +34,7 @@ The user-created flow must stay minimal, while Tio-curated, coach-created and ac
 
 ## Alternatives
 
-- **Standalone user Routines in Library:** rejected because it permits orphan Routine ownership and creates two competing organization surfaces.
+- **Standalone user Routines collection/category in Library:** rejected because it permits competing organization surfaces and invites orphan Routine ownership. This does not prohibit a create entry action that binds the new Routine to exactly one Program before persistence.
 - **Require a Routine before Program confirmation:** rejected because the approved one-click Program flow creates the container first and lets the user add Routines afterward.
 - **Require all Program metadata from users:** rejected because user-created Programs need only lightweight organization; richer metadata is source-specific or later editing concern.
 - **Store personal schedule directly on Program:** rejected because reusable Program structure and user-specific following state have different lifecycles.
