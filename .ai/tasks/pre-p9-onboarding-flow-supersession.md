@@ -42,13 +42,13 @@ Verified current truth:
 
 ## Validation
 
-- [ ] Exact changed-path scope reviewed.
-- [ ] Repository code search no longer finds canonical/reference links to the removed active path.
+- [x] Exact changed-path scope reviewed: 9 paths; docs/AI lifecycle only.
+- [x] Branch-file verification confirms all five direct canonical/reference links now target the historical archive path and `.ai/tasks/README.md` no longer lists the active task. GitHub code search is default-branch indexed, so it cannot validate unmerged branch contents.
 - [ ] Exact-head review completed.
 - [ ] Required repository checks inspected.
 - `git diff --check` cannot be executed through the connected GitHub API; do not claim it passed.
 
 ## Handoff
 
-Current state: implementation in progress.
+Current state: patch complete; review pending.
 Next exact action: complete reference/index reconciliation, open a focused docs-only PR, request exact-head Codex review, and stop before merge unless explicitly authorized.
