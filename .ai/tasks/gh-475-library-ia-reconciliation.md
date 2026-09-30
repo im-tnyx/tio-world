@@ -19,9 +19,9 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `d83efc63b96223d5be3fc0c8b7211476b2ff806c`, 13 commits ahead / 0 behind
+**Repository checkpoint last verified:** 2026-09-30, `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6` → branch content checkpoint `4d9fce955873ce11ad2bbef86df5899cab648bcc`, 18 commits ahead / 0 behind
 **Branch:** `tnyx/gh-475-library-ia-reconciliation`
-**Checkpoint note:** `d83efc63...` is the single repository/content checkpoint used by the validation evidence below. This handoff-file metadata update necessarily advances the branch after that checkpoint; the live PR head must be read from GitHub and revalidated/re-reviewed rather than inferred from this embedded checkpoint.
+**Checkpoint note:** `4d9fce95...` is the single repository/content checkpoint used by the validation evidence below. This handoff-file metadata update necessarily advances the branch after that checkpoint; the live PR head must be read from GitHub and revalidated/re-reviewed rather than inferred from this embedded checkpoint.
 **Observed working-tree state:** Remote branch created from clean/synced `main`; no local working-tree mutation is being claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** GitHub #475; Linear TNYX-83 / TNYX-267 with related TNYX-81, TNYX-263, TNYX-264, TNYX-265, TNYX-268, TNYX-86
@@ -30,7 +30,7 @@
 **Validation completed at content checkpoint:** `d83efc63b96223d5be3fc0c8b7211476b2ff806c`: GitHub compare against `main@f5e02a22...` reported 13 ahead / 0 behind with exactly 8 docs/task paths; connector text scans had 0 trailing-whitespace findings and 0 conflict markers on the previously changed text files; GitHub #475 stale `Exercise + Explore` and top-bar-reference wording were removed; `docs/screens/workout.md` was reconciled with the direct Routine-create entry while preserving the no-standalone-Quick-Start invariant.
 **Validation remaining:** Codex exact-head re-review. Live current-head scope/text validation is recorded in PR #491 because embedding the moving PR-head SHA inside this same handoff file would be self-referential. Local `git diff --check` cannot be claimed from the connector-only environment.
 **Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
-**Open review finding IDs:** `PRRT_kwDOTOXwB86niDCv` (Workout contract mismatch), `PRRT_kwDOTOXwB86niDC9` (validation evidence), `PRRT_kwDOTOXwB86niDDF` (mixed handoff checkpoint). All three are addressed in source/docs on this branch and remain open only until reply/resolve + exact-head re-review.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86ni9e4` (Workout shipped Programs status), `PRRT_kwDOTOXwB86ni9fC` (ROADMAP direct Routine entry), `PRRT_kwDOTOXwB86ni9fK` (Workout Library category order/conditional Your Plan), `PRRT_kwDOTOXwB86ni9fR` (Routine/Explore quick-action acceptance). All four are addressed in docs on this branch and remain open only until exact-head validation, reply/resolve, and Codex re-review.
 **Next exact action:** Reply to and resolve the three Codex threads with the PR-recorded exact-head validation evidence, request Codex review on the resulting exact head, and merge only after the review gate is clear.
 
 ## Global UI / Design-System Guardrail
@@ -189,13 +189,14 @@ Deferred to later UI implementation. That slice must preserve loading/error/empt
 Historical/content-checkpoint evidence:
 
 ```text
-Checkpoint: d83efc63b96223d5be3fc0c8b7211476b2ff806c
+Checkpoint: 4d9fce955873ce11ad2bbef86df5899cab648bcc
 Base:       main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6
-Compare:    13 ahead / 0 behind
+Compare:    18 ahead / 0 behind
 Changed paths:
   .ai/tasks/README.md
   .ai/tasks/gh-475-library-ia-reconciliation.md
   docs/adr/0015-program-owned-routine-and-program-source-boundary.md
+  docs/planning/ROADMAP.md
   docs/screens/exercise-search.md
   docs/screens/library.md
   docs/screens/programs.md
@@ -212,6 +213,10 @@ Issue/doc reconciliation:
   Workout contract: direct Routine-create entry reconciled;
                     workout start still requires selected saved Routine
                     or scheduled PlannedWorkout
+  Workout live status: shipped Programs collection/create foundation recorded
+  Library categories: Programs → Exercises → conditional Your Plan aligned
+  ROADMAP: direct Routine-create entry reconciled
+  Quick actions: Routine/Explore acceptance explicitly capability-gated
 ```
 
 Live exact-head validation is maintained in PR #491 rather than embedding a self-referential moving head SHA in this file. The task brief keeps the stable content checkpoint above; the PR/review record carries the current-head compare, changed-path, whitespace and conflict-marker evidence.
@@ -227,7 +232,11 @@ Local `git diff --check` was not available in the connector-only environment and
 | IA-003 | Medium | Deferred | Start Empty Workout lower action lacks reconciled Routine/WorkoutSession ownership semantics. | main@f5e02a22 | Resolve before runtime implementation; this docs slice does not redefine Quick Start/session ownership. |
 | IA-004 | Medium | Addressed / re-review pending | `workout.md` required Program-first Routine creation while ADR/Library allowed a direct create entry. | PR #491 @ 6729ba36 | `workout.md` now distinguishes direct Routine creation from workout start and preserves Program ownership. |
 | IA-005 | Medium | Addressed / re-review pending | Validation block contained `Not run yet` while other handoff fields claimed completed checks. | PR #491 @ 6729ba36 | Replaced with concrete checkpoint/results and explicit exact-head remaining work. |
-| IA-006 | Medium | Addressed / re-review pending | Handoff mixed an old ahead-count with a newer SHA. | PR #491 @ 6729ba36 | Handoff now uses one named content checkpoint `d83efc63...` with 13 ahead / 0 behind and explicitly separates later metadata-head validation. |
+| IA-006 | Medium | Resolved | Handoff mixed an old ahead-count with a newer SHA. | PR #491 @ 6729ba36 | Handoff uses a named stable content checkpoint and separates it from live PR-head validation. |
+| IA-007 | Medium | Addressed / re-review pending | Workout status omitted the already shipped Programs collection/create route/foundation. | PR #491 @ 0e194c57 | `workout.md` now distinguishes shipped Programs foundation from pending detail/Routine work. |
+| IA-008 | Medium | Addressed / re-review pending | ROADMAP still allowed Routine creation only from inside Program flow. | PR #491 @ 0e194c57 | ROADMAP now includes the guarded Library-level Create Routine entry and preserves Program ownership/start invariants. |
+| IA-009 | Medium | Addressed / re-review pending | Workout doc category wording conflicted with Programs → Exercises → conditional Your Plan. | PR #491 @ 0e194c57 | `workout.md` now uses the same order and conditional visibility as Library. |
+| IA-010 | Medium | Addressed / re-review pending | Target acceptance did not require approved Routine/Explore quick actions when capabilities are ready. | PR #491 @ 0e194c57 | `library.md` now makes each quick action required when its prerequisite capability is real and forbids fake affordances before readiness. |
 
 ## 7. Final Handoff
 
@@ -236,6 +245,7 @@ Local `git diff --check` was not available in the connector-only environment and
 - `.ai/tasks/gh-475-library-ia-reconciliation.md`
 - `.ai/tasks/README.md`
 - `docs/adr/0015-program-owned-routine-and-program-source-boundary.md`
+- `docs/planning/ROADMAP.md`
 - `docs/screens/library.md`
 - `docs/screens/programs.md`
 - `docs/screens/routine-library.md`
