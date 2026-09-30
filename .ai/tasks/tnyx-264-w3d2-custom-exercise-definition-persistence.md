@@ -27,8 +27,8 @@
 **PR / tracker:** Linear TNYX-264 (parent TNYX-80)
 **Current implementation state:** Planning only. W3D1 foundation is merged/archived; no W3D2 source or migration implementation yet.
 **Relevant execution surface:** `apps/shared/lib/src/workout/exercise.dart`; Workout Exercise domain/data; `public.user_workout_exercises`; focused Dart/repository/SQL matrix; canonical Exercise/Supabase docs
-**Validation completed at SHA:** Read-only audit on `main@aac2f8d50...`: current table has only id/user/name/status/lineage/timestamps; current repository reads id/display_name/status only; catalog uses string taxonomy; current SetPrescription remains reps/load/rest.
-**Validation remaining:** Owner approval of exact additive column shape; then Supabase changelog/docs check, repository-pinned migration generation, implementation, SQL/RLS/grant matrix, Flutter/Dart tests, PR CI/review.
+**Validation completed at SHA:** Read-only audit on `main@aac2f8d50...` plus live Supabase project `tio-world`: production `user_workout_exercises` has only id/user/display_name/status/lineage/timestamps; migration `20260929181247` is applied; RLS is enabled with owner-scoped SELECT/INSERT/UPDATE; authenticated has table SELECT plus column-scoped INSERT(id/user_id/display_name/lineage) and UPDATE(display_name/status), no DELETE; service_role retains full table privileges. Current repository reads id/display_name/status only; catalog uses string taxonomy; current SetPrescription remains reps/load/rest.
+**Validation remaining:** Owner approval of exact additive column shape; then repository-pinned migration generation, implementation, SQL/RLS/grant matrix, Flutter/Dart tests, PR CI/review. Supabase docs/changelog check is complete for this planning checkpoint.
 **Current blocker:** Exact Supabase table/column shape owner approval.
 **Open review finding IDs:** None.
 **Next exact action:** Obtain owner approval for the exact additive `user_workout_exercises` columns and immutability/grant boundary below. Do not generate or write a migration before that approval.
@@ -81,6 +81,9 @@ Visible editor/list UI; body-map assets; Body Part persistence; media/Storage; F
 - Reference `tnyx-hub` confirms the supplied legacy muscle/equipment/body-part names and prior editor concept, but is reference-only; current tio-world architecture remains authoritative.
 - Current `SetPrescription` is still reps + optional loadKg + optional restSeconds.
 - Current repo has no approved Workout Storage bucket for Custom Exercise media.
+- Live Supabase project `tio-world` confirms W1B1 schema/RLS/grants match repository migrations; no drift was found in the user Exercise owner boundary.
+- Current Supabase guidance distinguishes RLS from Data API grants; the 2026 breaking change moves public-schema exposure toward explicit grants, so W3D2 must explicitly grant the new authenticated INSERT/UPDATE columns rather than assume defaults.
+- Supabase column-level privilege guidance confirms that revoking table-wide UPDATE and granting selected update columns is the supported Postgres pattern; W3D2 preserves the existing least-privilege model.
 
 ## 3. Clarification
 
@@ -270,6 +273,7 @@ Visible labels remain the owner-approved names (`Body weight`, `EZ Barbell`, `Me
 | W3D2 is non-UI structured-definition persistence | Planning approved | Prevent visible editor data loss | Owner |
 | Existing `user_workout_exercises` table is widened; no second table | Proposed | Same user-owned Exercise identity/owner lifecycle | Architecture |
 | Five additive columns exactly as listed above | **AWAITING OWNER APPROVAL** | Supabase table/column trigger | Owner |
+| Live Supabase verification | Complete | Production schema/RLS/grants match W1B1 and require explicit new-column grants | Supabase audit |
 | Body Part is not persisted | Locked by existing owner direction | It is grouping/navigation, not second truth | Owner |
 | Legacy numeric IDs are not persisted | Locked | Current canonical architecture uses stable string tokens | Owner |
 | Media/Storage stays out | Locked | Separate security/storage lifecycle required | Owner |
@@ -333,6 +337,15 @@ selected Primary muscle token
 ### Validation Run
 
 Planning/read-only audit only. No W3D2 implementation validation has run.
+
+Verified live against Supabase project `tio-world`:
+- migration `20260929181247_create_user_workout_exercises` is applied;
+- table has the expected 7 W1B1 columns and RLS enabled;
+- policies: owner SELECT, owner INSERT, owner UPDATE;
+- authenticated: SELECT table-wide; INSERT only approved identity/name/lineage columns; UPDATE only display_name/status; no DELETE;
+- service_role: full table privileges.
+
+Current Supabase docs/changelog were checked. The 2026 Data API exposure change reinforces explicit grants, and column-level privilege guidance supports keeping authenticated UPDATE restricted to approved mutable columns.
 
 ### Review Findings and Resolution
 
