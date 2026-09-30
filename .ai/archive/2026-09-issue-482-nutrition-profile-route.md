@@ -1,6 +1,7 @@
 # GitHub #482 — Nutrition Profile route extraction
 
-**Status:** In review
+**Status:** Validated
+**Completed:** 2026-09-30
 **Primary owner:** `apps/app` routing composition
 **Affected platforms:** Flutter Android + iOS
 
@@ -17,21 +18,21 @@
 **Planning owner:** ChatGPT / repository architecture workflow
 **Implementation owner:** ChatGPT
 **Review owner:** Codex after PR creation
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub `main@6cec394956b37bd2901b9c21ca754b785e80e19c`
+**Repository state last verified:** GitHub `main@32d7ecabe9a09fe7b00e96f7aae239e567196fb8`
 **Branch:** `tnyx/issue-482-nutrition-profile-route`
-**HEAD SHA:** source/review head `bbd8c975118f0bf0f419cb1f511838be8ba44d2f`; this handoff refresh will create the final docs-only head
+**HEAD SHA:** final PR head `227918ad1d9f1052634f85200193b1e2ba8e3078`; squash merge `32d7ecabe9a09fe7b00e96f7aae239e567196fb8`
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
-**PR / tracker:** Draft PR #483; GitHub #482; parents #357/#260; Linear TNYX-201
-**Current implementation state:** Nutrition Profile route registration moved into existing `nutrition_routes.dart`; root registration/import removed; focused failed-read + Retry route coverage added.
+**PR / tracker:** PR #483 merged; GitHub #482 closed; parents #357/#260 open; Linear TNYX-201 In Progress
+**Current implementation state:** Merged and validated. Nutrition Profile route registration is owned by existing `nutrition_routes.dart`; root registration/import is removed; focused failed-read + Retry route coverage is merged.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/nutrition_routes.dart`, `apps/app/test/app/nutrition_settings_route_test.dart`
-**Validation completed at SHA:** `bbd8c975118f0bf0f419cb1f511838be8ba44d2f`: Flutter CI run `36666402512` / #2868 PASS; Codex exact-head review found no major issues; unresolved review threads 0
-**Validation remaining:** exact final-head CI/Codex recheck after this handoff-only refresh; Ready-triggered final merge gate.
+**Validation completed at SHA:** final PR head `227918ad1d9f1052634f85200193b1e2ba8e3078`: Flutter CI run `36667055255` / #2869 PASS. Source/review head `bbd8c975118f0bf0f419cb1f511838be8ba44d2f` received a clean Codex review. Delayed final-head Codex review produced two handoff-only P2 findings after merge; both are resolved by GitHub #484 archive reconciliation.
+**Validation remaining:** Docs-only archive follow-up #484 exact-head Codex review.
 **Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Validate the handoff-refresh head with hosted CI + exact-head Codex, then mark PR #483 Ready and run the final merge gate.
+**Open review finding IDs:** None. Resolved delayed findings: `PRRT_kwDOTOXwB86nYehR`, `PRRT_kwDOTOXwB86nYehf`.
+**Next exact action:** Archive this validated brief through GitHub #484 and complete its docs-only Codex gate.
 
 ## 1. Discovery
 
@@ -113,7 +114,9 @@ Preserve the current loading scaffold and existing shared retryable Nutrition fa
 - [x] Audit exact branch diff for scope.
 - [x] Open Draft PR #483.
 - [x] Source/review head `bbd8c975...`: Flutter CI #2868 PASS + Codex clean.
-- [ ] Re-run exact final-head CI + Codex gate after this handoff refresh.
+- [x] Exact final PR head `227918ad...`: Flutter CI #2869 PASS.
+- [x] PR #483 squash-merged as `32d7ecabe9a09fe7b00e96f7aae239e567196fb8`.
+- [x] Reconcile delayed final-head Codex handoff findings through #484.
 
 ## 6. Quality Review
 
@@ -134,7 +137,9 @@ Local Flutter commands were not run because connector-only execution has no loca
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | Clean | Codex found no major issues | `bbd8c975118f0bf0f419cb1f511838be8ba44d2f` | Exact-head review comment on PR #483; unresolved threads 0 |
+| — | — | Clean | Codex found no major issues on the unchanged production/test source | `bbd8c975118f0bf0f419cb1f511838be8ba44d2f` | Exact-head review comment on PR #483 |
+| `PRRT_kwDOTOXwB86nYehR` | P2 | Resolved | Handoff had stale Draft/older-head validation snapshot | `227918ad1d9f1052634f85200193b1e2ba8e3078` | This #484 reconciliation records Ready/final head, CI #2869, and merge evidence |
+| `PRRT_kwDOTOXwB86nYehf` | P2 | Resolved | Top-level `In review` status is unsupported | `227918ad1d9f1052634f85200193b1e2ba8e3078` | Status corrected to `Validated`; ownership state corrected to `Complete` |
 
 ## 7. Final Handoff
 
@@ -151,8 +156,8 @@ No intended behavior change. Nutrition Profile still uses the same route path/ro
 
 ### Known Limitations
 
-Local worktree and local Flutter commands are unavailable in this connector-only execution; hosted CI will be the recorded runtime validation source.
+Local worktree and local Flutter commands were unavailable in this connector-only execution; hosted Flutter CI #2869 is the recorded final runtime validation source. The delayed final-head Codex review identified only handoff-governance issues, not production/test behavior defects.
 
 ### Final Status
 
-`PARTIAL`
+`PASS`
