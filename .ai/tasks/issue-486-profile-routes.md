@@ -1,6 +1,6 @@
 # GitHub #486 — Profile + Profile Avatar route extraction
 
-**Status:** In progress
+**Status:** Ready
 **Primary owner:** `apps/app` routing composition
 **Affected platforms:** Flutter Android + iOS
 
@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT / repository architecture workflow
 **Implementation owner:** ChatGPT
 **Review owner:** Codex after PR creation
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@9ee75d8994de4f8348563191f68a07d2a845c24a`
 **Branch:** `tnyx/issue-486-profile-routes`
-**HEAD SHA:** `81030dca8137eaa6e097f905999d822d60c29d64` after route extraction and removal of the redundant isolated route harness
+**HEAD SHA:** source/review head `9db5fdb5705b33cfd4b5620962dbf257cb4f7ef8`; this handoff refresh will create the final docs-only head
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
 **PR / tracker:** Draft PR #487; GitHub #486; parents #357/#260; Linear TNYX-201
 **Current implementation state:** Profile + Profile Avatar registrations moved into existing `profile_routes.dart`; root direct registrations/helper import removed; upload-helper source assertion updated to the new composition owner. Existing full-app route coverage is retained; the redundant isolated harness was removed after CI proved it was the only failing test.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/profile_routes.dart`, Profile app-composition helpers, focused app route tests
-**Validation completed at SHA:** Current-main read-only audit only.
-**Validation remaining:** rerun hosted Flutter CI + exact-head Codex review on the current head; final merge-readiness audit.
+**Validation completed at SHA:** source/review head `9db5fdb5705b33cfd4b5620962dbf257cb4f7ef8`: Flutter CI run `36669466994` / #2874 PASS; Codex exact-head review found no major issues; unresolved review threads 0.
+**Validation remaining:** exact final-head Flutter CI + Codex recheck after this handoff-only refresh; Ready-state merge gate.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Re-run PR #487 hosted Flutter CI + Codex on the current head after removing the redundant isolated harness.
+**Next exact action:** Validate the handoff-refresh head with hosted Flutter CI + exact-head Codex, then mark PR #487 Ready and run the final merge gate.
 
 ## 1. Discovery
 
@@ -113,14 +113,15 @@ No new state or UI. Preserve all current loading, avatar fallback, confirmation/
 - [x] Reuse existing full-app `Profile avatar opens the full-screen photo route` regression coverage and update the upload-helper source assertion.
 - [x] Audit exact diff for scope and route uniqueness.
 - [x] Open Draft PR #487.
-- [ ] Run hosted CI + Codex gate.
+- [x] Source/review head `9db5fdb570...`: Flutter CI #2874 PASS + Codex clean.
+- [ ] Re-run exact final-head CI + Codex gate after this handoff refresh.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Static branch audit at `792c0b215dc1029cb2706174c0d8e961e0fcb89f`:
+Static branch audit + hosted validation through source/review head `9db5fdb5705b33cfd4b5620962dbf257cb4f7ef8`:
 - 4 changed paths total: task brief, root router, Profile route module, upload-helper source assertion
 - root direct Profile registrations: 0
 - root direct Profile Avatar registrations: 0
@@ -128,15 +129,19 @@ Static branch audit at `792c0b215dc1029cb2706174c0d8e961e0fcb89f`:
 - root router no longer calls `pickAndUploadProfileImage`
 - Profile route module calls the shared upload helper at both active Profile/Avatar entry points
 - `router.dart` reduced from 974 to 862 lines
+- Flutter CI #2874 / run `36669466994`: PASS (Flutter + Dart analyze/tests)
+- Codex exact-head review: no major issues
+- unresolved review threads: 0
 
-Local Flutter commands were not run because connector-only execution has no local worktree/toolchain. Hosted CI remains required.
+Local Flutter commands were not run because connector-only execution has no local worktree/toolchain. Hosted CI is the recorded runtime validation source.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| `CI-2872-1` | Test | Resolved | Newly added isolated `profile_routes_test.dart` did not reach `AvatarPreviewPage`; existing full-app `app_mode_router_test.dart` Profile→Avatar route test passed on the same moved production code | `09458d7ca83710a93298bcf18f2340fdcfc9ef95` | Removed the redundant isolated harness in `81030dca...`; production route code unchanged |
+| `CI-2872-1` | Test | Resolved | Newly added isolated `profile_routes_test.dart` did not reach `AvatarPreviewPage`; existing full-app `app_mode_router_test.dart` Profile→Avatar route test passed on the same moved production code | `09458d7ca83710a93298bcf18f2340fdcfc9ef95` | Removed the redundant isolated harness in `81030dca...`; production route code unchanged; rerun CI #2874 passed |
+| — | — | Clean | Codex found no major issues on the current production/test source | `9db5fdb5705b33cfd4b5620962dbf257cb4f7ef8` | Exact-head review on PR #487; unresolved threads 0 |
 
 ## 7. Final Handoff
 
@@ -153,7 +158,7 @@ No intended behavior change. Profile and Profile Avatar keep the same paths, roo
 
 ### Known Limitations
 
-Local worktree and local Flutter commands are unavailable in connector-only execution; hosted CI will be the runtime validation source.
+Local worktree and local Flutter commands are unavailable in connector-only execution; hosted Flutter CI #2874 is the recorded source-head runtime validation; the final handoff-only head will be rechecked before merge.
 
 ### Final Status
 
