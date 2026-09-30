@@ -1,6 +1,7 @@
 # TNYX-264 W3D1 — Custom Exercise controller/composition foundation
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-30
 **Primary owner:** Workout Custom Exercises (apps/features/workout)
 **Affected platforms:** Flutter phone foundation only; no visible UI in this slice
 
@@ -17,21 +18,21 @@
 **Planning owner:** Current repository agent
 **Implementation owner:** Current repository agent
 **Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-30, remote main@4881120c723430d6bda8999ce59bd4c7429d932b; no open PRs at slice start
-**Branch:** tnyx/tnyx-264-w3d1-custom-exercise-foundation
-**Implementation checkpoint:** 27edf5a1091adfa354696de5b81fffeb0131581a. This is the reviewed/tested W3D1 content checkpoint before the handoff-only correction for final persistence-boundary inventory.
+**Repository state last verified:** 2026-09-30, merged `main@5ba7a2c4b4ebbea5d169d0b69968ee7bf9d65d5f` via PR #493
+**Branch:** Historical implementation branch `tnyx/tnyx-264-w3d1-custom-exercise-foundation`; outcome merged to `main`
+**Implementation checkpoint:** final reviewed implementation head `5ecf3c137f2d18bf332d5f8e3cce405b00e0f129`; merge commit `5ba7a2c4b4ebbea5d169d0b69968ee7bf9d65d5f`.
 **Observed working-tree state:** Connector-managed remote branch from clean/synced main; no local working-tree state is claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** Linear TNYX-264 (parent W3 TNYX-80)
-**Current implementation state:** Approved W3D1 source implemented: fail-closed app composition, user Exercise UUID generator, immutable Custom Exercises state/controller, focused tests, affected-row verification for Supabase rename/archive mutations, and canonical Exercises status doc update. No visible UI or database schema change.
+**Current implementation state:** Validated W3D1 non-UI foundation merged. Production composition, UUID identity generation, Custom Exercises controller/state, durable rename/archive affected-row verification, focused tests, and canonical status documentation are live on `main`. No visible Custom Exercise UI or schema expansion shipped in this slice.
 **Relevant execution surface:** apps/app/lib/app/composition/workout_providers.dart; Workout Exercise domain/data contracts; apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart; apps/features/workout/lib/src/presentation/library/exercises/*; focused Workout/app/data tests
-**Validation completed at content checkpoint:** 27edf5a1091adfa354696de5b81fffeb0131581a — `main@4881120c...` is the merge base; branch is 26 ahead / 0 behind with exactly 14 owned paths. Exact-head Flutter CI run `36733208771` passed. The first Codex pass raised action-lock and durable-mutation findings; both were fixed with focused regressions and resolved. The exact-head Codex re-review then raised only a handoff inventory finding.
-**Validation remaining:** Exact-head CI/review on the handoff-only correction commit, then final scope audit.
-**Current blocker:** None for W3D1 foundation. Broader TNYX-264 visible UI remains a later slice.
-**Open review finding IDs:** None after this handoff correction. Review thread `PRRT_kwDOTOXwB86nl3kY` is addressed by this commit and must be replied/resolved in PR #493 before exact-head re-review.
-**Next exact action:** Reply to and resolve `PRRT_kwDOTOXwB86nl3kY`, run exact-head CI/re-review on this handoff-only correction, perform final scope audit, then stop at the merge gate.
+**Validation completed:** exact-head Flutter CI `36735846069` passed on `5ecf3c137f2d18bf332d5f8e3cce405b00e0f129`; final Codex exact-head review reported no major issues; all review threads resolved; final scope audit was 14 owned W3D1/task/docs paths, 27 ahead / 0 behind from `main@4881120c...`, trailing whitespace 0, conflict markers 0. PR #493 squash-merged as `5ba7a2c4b4ebbea5d169d0b69968ee7bf9d65d5f`.
+**Validation remaining:** None for W3D1. Future visible Custom Exercise slices require their own approval, task brief, source/runtime validation, and any separately approved persistence/storage/domain work.
+**Current blocker:** None for W3D1. Broader TNYX-264 remains active for visible editor/list UX, 11 Exercise Types, muscle/equipment taxonomy, optional media, richer persistence/domain semantics, and Library integration.
+**Open review finding IDs:** None. W3D1-001, W3D1-002, and W3D1-003 are resolved.
+**Next exact action:** Start the next TNYX-264 slice only from fresh `main` after a new bounded owner-approved task brief. Do not treat this archived foundation as approval for visible UI or new database/domain shape.
 
 ## Global UI / Design-System Guardrail
 
@@ -105,7 +106,7 @@ Rejected: in-memory production fallback; UUID calls in widgets; richer fields no
 - [x] Export new feature contracts through existing barrels only as needed.
 - [x] Add focused generator/controller/provider tests.
 - [x] Run pre-PR scope/text/manual source review.
-- [ ] Open PR, inspect exact-head CI, and request review.
+- [x] Open PR, inspect exact-head CI, and request review.
 
 ## 6. Quality Review
 
@@ -156,4 +157,4 @@ Visible Custom Exercise UX, richer definition fields, Favorites, folders, catalo
 
 ### Final Status
 
-REVIEW
+VALIDATED
