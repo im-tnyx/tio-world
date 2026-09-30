@@ -1,7 +1,7 @@
 # Roadmap
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-28
+Last Verified: 2026-09-30
 Owner: product engineering planning
 Truth Boundary: Authoritative for approved roadmap direction and sequencing intent; live trackers own current priority/status and runtime source proves shipped features.
 
@@ -107,8 +107,8 @@ Goal: first usable health and fitness app flow.
   - [x] Add mid-flow Auth checkpoint (`AuthLandingPage` "Let's get you in") with 1-Tap Google Sign-In and dedicated Email Sign Up (`EmailSignupPage` "Create Account")
   - [x] Add validated save/resume and idempotent completion persisting canonical owner data (`height_cm`, `current_weight_kg`, `date_of_birth: DATE`) to Supabase Postgres
 - [x] User profile basics & Account deletion RPC (`delete_user_account`)
-- [ ] Workout Library in `apps/features/workout`: one canonical route reached from the Workout Home entry, with capability-gated Programs, Plans / Training Plans and Exercises sections ([Library](../screens/library.md)); Program-owned Routines are managed inside Program flows; W6A route, entry and Exercises section done, Programs/Plans pending
-- [ ] Program browse/select flow through Library, with Program-owned Routine create/select inside the Program flow; start an active workout only from the selected Routine or Program session
+- [ ] Workout Library in `apps/features/workout`: one canonical route reached from the Workout Home entry. Approved target category order is Programs → Exercises → conditional Your Plan ([Library](../screens/library.md)); Your Plan is hidden unless a real followed/applicable TrainingPlan exists; there is no standalone Routines category. W6A route/entry, dedicated Exercises browse/search, and the persisted Programs collection/create foundation are implemented; inline Program content, W3 smart views/folders, Program detail/Routine management, and Your Plan remain capability-gated.
+- [ ] Program browse/select flow through Library with Program-owned Routine create/select. Library may also expose the approved top-level Create Routine entry, but before persistence it must resolve exactly one owning Program and targets the canonical default `My Program` once W1 supplies a stable/idempotent default-Program identity mechanism. Start an active workout only from a selected saved Routine or scheduled PlannedWorkout/TrainingPlan context; the create entry does not create a standalone Quick Start path.
 - [ ] Dedicated Exercises capability backed first by a validated, versioned local JSON catalog in `apps/features/workout`: catalog/list, search and basic filters first (W3A), Exercise detail once W3B is ready
 - [ ] Routine/Program builder Exercise picker/search mode over the same canonical Exercise catalog
 - [ ] Add Workout history views backed by recorded data: muscle heatmap, accessible training radar map, and training calendar
