@@ -33,3 +33,14 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
   if (supabaseClient == null) return null;
   return SupabaseProgramRepository(client: supabaseClient);
 });
+
+/// User-owned Custom Exercise persistence.
+///
+/// Null means durable user Exercise persistence is unavailable. There is no
+/// in-memory production success fallback for user-created Exercises.
+final userExerciseRepositoryProvider =
+    Provider<UserExerciseRepository?>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient == null) return null;
+  return SupabaseUserExerciseRepository(client: supabaseClient);
+});

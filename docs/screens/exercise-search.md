@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Exercises screen/picker product contract, 
 **Surface:** Nested phone Workout flow; never a primary tab
 **Route:** `/workout/exercises` (`AppRoutes.workoutExercises`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266); detail, picker mode and Favorites/Custom/Folders remain planned.
+**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, and W3D1 adds non-UI repository composition plus Custom Exercise controller/identity-generation foundation; detail, picker mode and visible Favorites/Custom/Folders remain planned.
 
 ## Purpose
 
@@ -81,7 +81,7 @@ The built-in Exercise catalog is versioned, bundled application content owned by
 
 The catalog is intentionally evolving. Its current exercise count is not an architecture constraint, new well-formed `ex_*` identities may be added without redesigning the domain, and identity must never be re-derived from mutable title or slug values. Once shipped, an `ex_*` ID is durable unless an explicit migration is approved.
 
-Built-in catalog rows are not mirrored into Supabase. User-created Exercises are separate user-owned dynamic data for later approved persistence work. Routine/Program/Plan/Session/Favorite/Folder contracts reference Exercises rather than cloning catalog truth, and completed sessions must eventually snapshot the performed data needed to keep history stable when catalog content changes.
+Built-in catalog rows are not mirrored into Supabase. User-created Exercises are separate user-owned dynamic data persisted through the validated W1B1 `user_workout_exercises` boundary; its minimum durable shape supports active/archive lifecycle, display name, stable UUID identity and optional immutable catalog-source lineage. Richer taxonomy, instructions and media persistence remain separately gated. Routine/Program/Plan/Session/Favorite/Folder contracts reference Exercises rather than cloning catalog truth, and completed sessions must eventually snapshot the performed data needed to keep history stable when catalog content changes.
 
 W3A2a (TNYX-270) landed the bundled catalog boundary. The Workout-owned asset `apps/features/workout/assets/exercises/exercise_catalog.json` is registered in `tio_feature_workout` (asset key `packages/tio_feature_workout/assets/exercises/exercise_catalog.json`). `ExerciseCatalogDocumentDecoder` validates its `schemaVersion` / `catalogVersion` / `exercises` document envelope (supported `schemaVersion`: 1), `AssetBundleExerciseCatalogSource` is the production source over an injected `AssetBundle`, and the W3A1 `ExerciseCatalogParser` and repository remain the canonical row validation and mapping to `Exercise`. Missing-asset, asset-load, invalid-document, unsupported-schema and invalid-row failures are distinct typed exceptions.
 

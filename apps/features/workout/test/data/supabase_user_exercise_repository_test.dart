@@ -186,6 +186,31 @@ void main() {
       expect(gateway.renameCalls, isEmpty);
     });
 
+    test('rename and archive fail when no durable row is affected', () async {
+      final renameGateway = _FakeUserExerciseGateway(
+        renameAffectsRow: false,
+      );
+      final renameRepository = _repository(gateway: renameGateway);
+
+      await expectLater(
+        () => renameRepository.rename(
+          id: exerciseId,
+          displayName: 'Renamed',
+        ),
+        throwsStateError,
+      );
+
+      final archiveGateway = _FakeUserExerciseGateway(
+        archiveAffectsRow: false,
+      );
+      final archiveRepository = _repository(gateway: archiveGateway);
+
+      await expectLater(
+        () => archiveRepository.archive(exerciseId),
+        throwsStateError,
+      );
+    });
+
     test('rename and archive scope writes to owner plus Exercise id', () async {
       final gateway = _FakeUserExerciseGateway();
       final repository = _repository(gateway: gateway);
@@ -224,9 +249,15 @@ SupabaseUserExerciseRepository _repository({
 class _UnusedSupabaseClient extends Fake implements SupabaseClient {}
 
 class _FakeUserExerciseGateway implements UserExerciseTableGateway {
-  _FakeUserExerciseGateway({this.rows = const []});
+  _FakeUserExerciseGateway({
+    this.rows = const [],
+    this.renameAffectsRow = true,
+    this.archiveAffectsRow = true,
+  });
 
   final List<Map<String, dynamic>> rows;
+  final bool renameAffectsRow;
+  final bool archiveAffectsRow;
   final List<({String userId, bool includeArchived})> listCalls = [];
   final List<Map<String, dynamic>> insertPayloads = [];
   final List<
@@ -255,7 +286,7 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
   }
 
   @override
-  Future<void> renameRow({
+  Future<bool> renameRow({
     required String userId,
     required String exerciseId,
     required String displayName,
@@ -265,10 +296,11 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
       exerciseId: exerciseId,
       displayName: displayName,
     ));
+    return renameAffectsRow;
   }
 
   @override
-  Future<void> archiveRow({
+  Future<bool> archiveRow({
     required String userId,
     required String exerciseId,
   }) async {
@@ -276,5 +308,6 @@ class _FakeUserExerciseGateway implements UserExerciseTableGateway {
       userId: userId,
       exerciseId: exerciseId,
     ));
+    return archiveAffectsRow;
   }
 }

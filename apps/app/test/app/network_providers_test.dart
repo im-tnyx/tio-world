@@ -50,6 +50,7 @@ void main() {
           container.read(workoutTargetsRepositoryProvider);
       expect(workoutTargetsRepo, isA<InMemoryWorkoutTargetsRepository>());
       expect(container.read(programRepositoryProvider), isNull);
+      expect(container.read(userExerciseRepositoryProvider), isNull);
 
       final nutritionProfileRepo =
           container.read(nutritionProfileRepositoryProvider);
@@ -113,6 +114,7 @@ void main() {
         isA<InMemoryWorkoutTargetsRepository>(),
       );
       expect(container.read(programRepositoryProvider), isNull);
+      expect(container.read(userExerciseRepositoryProvider), isNull);
       expect(
         container.read(nutritionProfileRepositoryProvider),
         isA<InMemoryNutritionProfileRepository>(),
@@ -179,6 +181,10 @@ void main() {
       expect(
         container.read(programRepositoryProvider),
         isA<SupabaseProgramRepository>(),
+      );
+      expect(
+        container.read(userExerciseRepositoryProvider),
+        isA<SupabaseUserExerciseRepository>(),
       );
     });
 
