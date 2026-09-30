@@ -1,7 +1,7 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-29
+Last Verified: 2026-10-01
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
@@ -9,9 +9,9 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**
 
-Verified on **2026-09-29** against:
+Verified on **2026-10-01** against:
 
-- repository base `main@b9ad993ed076d98ec78f79882658b3e345443d2a`;
+- repository migration history through `20260930180700_add_custom_exercise_definition_fields.sql`;
 - checked-in `supabase/migrations/` history;
 - live Supabase project `tio-world` structural metadata.
 
@@ -41,22 +41,22 @@ This inventory intentionally excludes:
 | Measure | Verified value |
 | :--- | ---: |
 | Active ordinary `public` tables | 17 |
-| Columns | 165 |
+| Columns | 170 |
 | Primary-key constraints | 17 |
 | Foreign-key constraints | 18 |
 | Unique constraints | 6 |
-| Check constraints | 59 |
+| Check constraints | 63 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 102 |
+| Total catalog constraint records | 106 |
 | Indexes | 47 |
 | Tables with RLS enabled | 17 / 17 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 53 / 53 |
+| Applied live migrations matched to repository | 54 / 54 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration history currently ends at `20260929181247_create_user_workout_exercises`. Repository and live migration history are aligned 53 / 53 by version + name at this snapshot.
+The verified live migration history currently ends at `20260930180700_add_custom_exercise_definition_fields`. Repository and live migration history are aligned 54 / 54 by version + name at this snapshot.
 
 ## Table Overview
 
@@ -73,7 +73,7 @@ The verified live migration history currently ends at `20260929181247_create_use
 | `public.user_nutrition_targets` | 12 | Enabled |
 | `public.user_profiles` | 12 | Enabled |
 | `public.user_wellness_targets` | 8 | Enabled |
-| `public.user_workout_exercises` | 7 | Enabled |
+| `public.user_workout_exercises` | 12 | Enabled |
 | `public.user_workout_programs` | 5 | Enabled |
 | `public.user_workout_routines` | 6 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
@@ -497,9 +497,9 @@ The verified live migration history currently ends at `20260929181247_create_use
 
 **RLS:** Enabled
 
-**Verified Data API access:** `anon` has no table privileges. `authenticated` has table `SELECT`, column-level `INSERT(id, user_id, display_name, based_on_catalog_exercise_id)`, and column-level `UPDATE(display_name, status)`; it has no table-wide `INSERT` / `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies are present with no authenticated `DELETE` policy. `service_role` retains full table CRUD.
+**Verified Data API access:** `anon` has no table privileges. `authenticated` has table `SELECT`, column-level `INSERT(id, user_id, display_name, based_on_catalog_exercise_id, description, exercise_type, primary_muscle, secondary_muscles, primary_equipment)`, and column-level `UPDATE(display_name, status, description, exercise_type, primary_muscle, secondary_muscles, primary_equipment)`; it has no table-wide `INSERT` / `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies are present with no authenticated `DELETE` policy. `service_role` retains full table CRUD.
 
-**W3D2 repository migration, not yet live:** `20260930180700_add_custom_exercise_definition_fields.sql` adds nullable text `description`, `exercise_type`, `primary_muscle`, `primary_equipment`, plus `secondary_muscles text[] NOT NULL DEFAULT '{}'`. It explicitly extends authenticated column-level INSERT/UPDATE to these five fields without changing the owner RLS policies, immutable identity/lineage/timestamps, or DELETE boundary. Existing rows retain NULL scalars and an empty array. CHECK constraints enforce nonblank descriptions, the 11 stable Exercise Type tokens, the 44 approved muscle tokens (single primary, unique secondary array without nulls/primary overlap), and 18 equipment tokens. `private.valid_user_exercise_muscles` is an immutable SECURITY INVOKER validator with empty search_path and restricted EXECUTE. Dart/SQL token parity is tested. The live columns below remain the verified W1B1 baseline until separately authorized deployment and verification.
+**W3D2 live definition fields:** migration `20260930180700_add_custom_exercise_definition_fields.sql` is applied and hosted-verified. It adds nullable text `description`, `exercise_type`, `primary_muscle`, `primary_equipment`, plus `secondary_muscles text[] NOT NULL DEFAULT '{}'`. Existing W1B1 rows remain compatible with NULL scalars and an empty array. CHECK constraints enforce nonblank descriptions, the 11 stable Exercise Type tokens, the 44 approved muscle tokens (single primary, unique secondary array without nulls/primary overlap), and 18 equipment tokens. `private.valid_user_exercise_muscles` is an immutable SECURITY INVOKER validator with empty search_path and restricted EXECUTE.
 
 #### Columns
 
@@ -512,13 +512,22 @@ The verified live migration history currently ends at `20260929181247_create_use
 | `based_on_catalog_exercise_id` | `text` | Yes | — |
 | `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
 | `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `description` | `text` | Yes | — |
+| `exercise_type` | `text` | Yes | — |
+| `primary_muscle` | `text` | Yes | — |
+| `secondary_muscles` | `ARRAY` (`text[]`) | No | `'{}'::text[]` |
+| `primary_equipment` | `text` | Yes | — |
 
 #### Constraints
 
 | Name | Type | Definition |
 | :--- | :--- | :--- |
 | `user_workout_exercises_catalog_lineage_format_check` | `CHECK` | `CHECK (based_on_catalog_exercise_id IS NULL OR based_on_catalog_exercise_id ~ '^ex_[a-z0-9]+(?:_[a-z0-9]+)*$'::text)` |
+| `user_workout_exercises_description_nonblank` | `CHECK` | description is NULL or contains a non-whitespace character |
 | `user_workout_exercises_display_name_nonblank` | `CHECK` | `CHECK ((btrim(display_name) <> ''::text))` |
+| `user_workout_exercises_equipment_check` | `CHECK` | primary equipment is NULL or one of the 18 approved equipment tokens |
+| `user_workout_exercises_muscles_check` | `CHECK` | primary/secondary muscles satisfy the approved 44-token taxonomy, uniqueness and no-primary-overlap rules |
+| `user_workout_exercises_type_check` | `CHECK` | exercise type is NULL or one of the 11 approved Exercise Type tokens |
 | `user_workout_exercises_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
 | `user_workout_exercises_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_exercises_status_check` | `CHECK` | `CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text])))` |
