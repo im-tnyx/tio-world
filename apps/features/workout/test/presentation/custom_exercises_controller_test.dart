@@ -111,6 +111,29 @@ void main() {
     expect(repository.exercises, [_exercise(1, 'Paused Squat')]);
   });
 
+  test('edited retry reconciles the latest name onto the durable Exercise',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      createErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1), _id(2)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    repository.loadFailuresRemaining = 1;
+    expect(await controller.create('Paused Squat'), isFalse);
+
+    repository.createErrorAfterWrite = null;
+    expect(await controller.create('Tempo Squat'), isTrue);
+
+    expect(repository.attemptedCreateIds, [_id(1), _id(1)]);
+    expect(repository.exercises, [_exercise(1, 'Tempo Squat')]);
+    expect(controller.state.exercises, [_exercise(1, 'Tempo Squat')]);
+  });
+
   test('rename updates the active item and preserves canonical metadata',
       () async {
     final original = Exercise(
