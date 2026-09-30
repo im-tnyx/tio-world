@@ -2,6 +2,7 @@ export 'exercise.dart';
 export 'exercise_media.dart';
 export 'exercise_ref.dart';
 export 'exercise_status.dart';
+export 'exercise_type.dart';
 export 'planned_workout_id.dart';
 export 'program.dart';
 export 'program_id.dart';
