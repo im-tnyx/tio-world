@@ -34,7 +34,6 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
   return SupabaseProgramRepository(client: supabaseClient);
 });
 
-
 /// User-owned Custom Exercise persistence.
 ///
 /// Null means durable user Exercise persistence is unavailable. There is no
