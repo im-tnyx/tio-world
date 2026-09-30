@@ -19,19 +19,19 @@
 **Review owner:** Unassigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-30, remote `main@b0dd0990137bcf72221f1f120657359a807a8687`
+**Repository state last verified:** 2026-09-30, remote `main@f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6`; task branch is 8 commits ahead / 0 behind
 **Branch:** `tnyx/gh-475-library-ia-reconciliation`
-**HEAD SHA:** `b0dd0990137bcf72221f1f120657359a807a8687` at branch creation
+**HEAD SHA:** `d0768536614c7dfb5fdf48f0107321f67b5a9459` after canonical docs reconciliation
 **Observed working-tree state:** Remote branch created from clean/synced `main`; no local working-tree mutation is being claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** GitHub #475; Linear TNYX-83 / TNYX-267 with related TNYX-81, TNYX-263, TNYX-264, TNYX-265, TNYX-268, TNYX-86
-**Current implementation state:** Planning/canonical reconciliation active; no runtime implementation started.
+**Current implementation state:** GitHub #475 wording, ADR-0015, Library/Programs/Routine/Exercises canonical docs, and Linear TNYX-83/TNYX-267 are reconciled; no runtime implementation started.
 **Relevant execution surface:** `docs/screens/library.md`, `docs/screens/programs.md`, `docs/screens/routine-library.md`, ADR-0015, GitHub #475, Linear tracker notes
-**Validation completed at SHA:** None yet for this branch.
-**Validation remaining:** Changed-file scope audit, stale/conflict wording scan, docs whitespace/conflict-marker checks, PR review.
-**Current blocker:** None for docs reconciliation. Full #475 runtime remains blocked by capability sequencing and unresolved default My Program identity implementation / Start Empty Workout semantics.
+**Validation completed at SHA:** `d0768536614c7dfb5fdf48f0107321f67b5a9459`: branch scope audit; 7 changed docs/task paths only; trailing-whitespace scan 0; conflict-marker scan 0; #475 stale quick-action wording scan clean.
+**Validation remaining:** GitHub PR review. A local `git diff --check` cannot be claimed from the connector-only environment; equivalent text scans were run, and PR/CI remains the review gate.
+**Current blocker:** None for this docs reconciliation. Full #475 runtime remains capability-gated; stable default My Program identity implementation and Start Empty Workout ownership semantics remain separate unresolved runtime prerequisites.
 **Open review finding IDs:** None
-**Next exact action:** Reconcile canonical docs/ADR to the latest approved IA without changing runtime behavior, then add Linear reconciliation notes and open a docs-only PR.
+**Next exact action:** Open the docs-only PR, request exact-head review, resolve any documentation/architecture findings, and merge only after the review gate is clear.
 
 ## Global UI / Design-System Guardrail
 
@@ -173,11 +173,11 @@ Deferred to later UI implementation. That slice must preserve loading/error/empt
 ## 5. Implementation Plan
 
 - [x] Clean stale/conflicting GitHub #475 wording.
-- [ ] Clarify ADR-0015 entry-action vs ownership rule.
-- [ ] Update Library canonical target IA and current-runtime distinction.
-- [ ] Update Programs/Routine docs for secondary Programs manage screen and guarded direct Routine entry.
-- [ ] Add Linear reconciliation note to W6/W6B and relevant dependency trackers as needed.
-- [ ] Run docs-only quality/scope checks.
+- [x] Clarify ADR-0015 entry-action vs ownership rule.
+- [x] Update Library canonical target IA and current-runtime distinction.
+- [x] Update Programs/Routine docs for secondary Programs manage screen and guarded direct Routine entry.
+- [x] Reconcile Linear TNYX-83 and TNYX-267 with dated owner-approved IA sections and replace explicitly conflicting acceptance wording.
+- [x] Run connector-visible docs-only scope, trailing-whitespace, conflict-marker and stale-wording checks.
 - [ ] Open docs-only PR and wait for review.
 
 ## 6. Quality Review
@@ -192,19 +192,27 @@ Not run yet.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| IA-001 | Medium | Open | Current canonical docs/ADR still say there is no top-level Create Routine action; latest approved UX allows the entry but not orphan persistence. | main@b0dd0990 | Resolve in this slice. |
-| IA-002 | Medium | Deferred | Stable/idempotent default My Program identity has no current domain/persistence discriminator. | main@b0dd0990 | Separate W1 implementation decision; no schema invented here. |
+| IA-001 | Medium | Resolved | Canonical docs/ADR previously prohibited any top-level Create Routine action; latest approved UX allows an entry but not orphan persistence. | main@f5e02a22 | ADR-0015 + Library/Programs/Routine docs now distinguish entry action from saved ownership. |
+| IA-002 | Medium | Deferred | Stable/idempotent default My Program identity has no current domain/persistence discriminator. | main@f5e02a22 | Separate W1 implementation decision; no schema invented here. |
 | IA-003 | Medium | Deferred | Start Empty Workout lower action lacks reconciled Routine/WorkoutSession ownership semantics. | main@b0dd0990 | Resolve before runtime implementation. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/gh-475-library-ia-reconciliation.md`
+- `.ai/tasks/README.md`
+- `docs/adr/0015-program-owned-routine-and-program-source-boundary.md`
+- `docs/screens/library.md`
+- `docs/screens/programs.md`
+- `docs/screens/routine-library.md`
+- `docs/screens/exercise-search.md`
+
+External tracker reconciliation also updated GitHub #475 and Linear TNYX-83/TNYX-267.
 
 ### Actual Behavior
 
-No runtime behavior changes in this slice.
+No runtime behavior changes in this slice. Current Library still uses the existing Programs/Exercises navigation rows and dedicated routes.
 
 ### Known Limitations
 
