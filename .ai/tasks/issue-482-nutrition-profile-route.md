@@ -24,14 +24,14 @@
 **HEAD SHA:** `925d67cf0ccb6bfc3eaa453d4e8b0a1df516ea79` after source + focused test implementation
 **Observed working-tree state:** Connector-only execution; local worktree is unavailable and no local cleanliness claim is made.
 **Observed uncommitted/dirty files:** Not observable through the GitHub connector.
-**PR / tracker:** GitHub #482; parents #357/#260; Linear TNYX-201
+**PR / tracker:** Draft PR #483; GitHub #482; parents #357/#260; Linear TNYX-201
 **Current implementation state:** Nutrition Profile route registration moved into existing `nutrition_routes.dart`; root registration/import removed; focused failed-read + Retry route coverage added.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/nutrition_routes.dart`, `apps/app/test/app/nutrition_settings_route_test.dart`
 **Validation completed at SHA:** Audit only on `main@6cec3949...`
 **Validation remaining:** hosted Flutter CI; exact-head Codex review; final merge-readiness audit.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Open Draft PR from the audited four-path branch, then use hosted Flutter CI and exact-head Codex review as merge gates.
+**Next exact action:** Validate exact PR #483 head with hosted Flutter CI and Codex review; fix only in-scope findings before Ready.
 
 ## 1. Discovery
 
@@ -111,7 +111,8 @@ Preserve the current loading scaffold and existing shared retryable Nutrition fa
 - [x] Remove only proven-unused root Nutrition imports.
 - [x] Add focused failed-read + Retry route test.
 - [x] Audit exact branch diff for scope.
-- [ ] Open Draft PR and run hosted CI + Codex gate.
+- [x] Open Draft PR #483.
+- [ ] Run hosted CI + Codex gate.
 
 ## 6. Quality Review
 
