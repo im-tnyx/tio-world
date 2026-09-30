@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-30, remote main@4881120c723430d6bda8999ce59bd4c7429d932b; no open PRs at slice start
 **Branch:** tnyx/tnyx-264-w3d1-custom-exercise-foundation
-**Implementation checkpoint:** 0fa54c76be7688f2586ad9277e15f8862d7b9d94. The handoff metadata commit advances the live branch after this stable content checkpoint.
+**Implementation checkpoint:** 27edf5a1091adfa354696de5b81fffeb0131581a. This is the reviewed/tested W3D1 content checkpoint before the handoff-only correction for final persistence-boundary inventory.
 **Observed working-tree state:** Connector-managed remote branch from clean/synced main; no local working-tree state is claimed.
 **Observed uncommitted/dirty files:** Not applicable to connector-only repository edits.
 **PR / tracker:** Linear TNYX-264 (parent W3 TNYX-80)
-**Current implementation state:** Approved W3D1 source implemented: fail-closed app composition, user Exercise UUID generator, immutable Custom Exercises state/controller, focused tests, and canonical Exercises status doc update. No visible UI or schema change.
-**Relevant execution surface:** apps/app/lib/app/composition/workout_providers.dart; Workout Exercise domain/data contracts; apps/features/workout/lib/src/presentation/library/exercises/*; focused Workout/app tests
-**Validation completed at content checkpoint:** 0fa54c76be7688f2586ad9277e15f8862d7b9d94 — parent/branch scope audit showed main as ancestor, 0 behind, only owned W3D1/task/docs paths, trailing-whitespace 0 and conflict-marker 0. Manual source review completed. No Flutter test/analyze pass is claimed yet.
-**Validation remaining:** Exact-head CI/analyze/test through the PR, then review findings and final scope audit.
+**Current implementation state:** Approved W3D1 source implemented: fail-closed app composition, user Exercise UUID generator, immutable Custom Exercises state/controller, focused tests, affected-row verification for Supabase rename/archive mutations, and canonical Exercises status doc update. No visible UI or database schema change.
+**Relevant execution surface:** apps/app/lib/app/composition/workout_providers.dart; Workout Exercise domain/data contracts; apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart; apps/features/workout/lib/src/presentation/library/exercises/*; focused Workout/app/data tests
+**Validation completed at content checkpoint:** 27edf5a1091adfa354696de5b81fffeb0131581a — `main@4881120c...` is the merge base; branch is 26 ahead / 0 behind with exactly 14 owned paths. Exact-head Flutter CI run `36733208771` passed. The first Codex pass raised action-lock and durable-mutation findings; both were fixed with focused regressions and resolved. The exact-head Codex re-review then raised only a handoff inventory finding.
+**Validation remaining:** Exact-head CI/review on the handoff-only correction commit, then final scope audit.
 **Current blocker:** None for W3D1 foundation. Broader TNYX-264 visible UI remains a later slice.
-**Open review finding IDs:** None.
-**Next exact action:** Open a focused PR from the current branch, inspect exact-head CI, resolve any findings, and stop at the merge gate.
+**Open review finding IDs:** None after this handoff correction. Review thread `PRRT_kwDOTOXwB86nl3kY` is addressed by this commit and must be replied/resolved in PR #493 before exact-head re-review.
+**Next exact action:** Reply to and resolve `PRRT_kwDOTOXwB86nl3kY`, run exact-head CI/re-review on this handoff-only correction, perform final scope audit, then stop at the merge gate.
 
 ## Global UI / Design-System Guardrail
 
@@ -63,7 +63,7 @@ Prepare the real Custom Exercise capability so later Library Exercises UI can us
 
 ### Non-Goals
 
-Library selector/cards/pills; visible Custom Exercise editor/list; Favorites; folders; catalog variation UI; new persisted fields; Supabase changes; Program/Routine composition; TrainingPlan/Active Workout.
+Library selector/cards/pills; visible Custom Exercise editor/list; Favorites; folders; catalog variation UI; new persisted fields; Supabase schema/migration/RLS/grant changes; Program/Routine composition; TrainingPlan/Active Workout.
 
 ## 2. Codebase Exploration
 
@@ -111,12 +111,21 @@ Rejected: in-memory production fallback; UUID calls in widgets; richer fields no
 
 ### Validation Run
 
-Pre-PR connector-visible review at implementation checkpoint 0fa54c76: main ancestor, 0 behind, owned paths only; trailing whitespace 0; conflict markers 0. Automated Flutter tests/analyze remain pending PR CI.
+Exact reviewed/tested content checkpoint `27edf5a1091adfa354696de5b81fffeb0131581a`:
+- merge base `main@4881120c...`;
+- 26 ahead / 0 behind;
+- exactly 14 owned W3D1/task/docs paths;
+- Flutter CI `36733208771`: PASS;
+- original Codex findings on mutation serialization and zero-row durable updates: fixed and resolved;
+- exact-head Codex re-review finding: task handoff omitted the data-layer adapter/test paths; this handoff correction records them explicitly.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| W3D1-001 | P2 | Resolved | load/retryLoad could release an in-flight mutation action lock | 792f715edf | load now no-ops while an action is in progress; blocked-create regression verifies serialization |
+| W3D1-002 | P2 | Resolved | rename could report success when zero durable rows were updated; archive had the analogous risk | 792f715edf | gateway returns affected-row confirmation; repository fails on zero rows; focused rename/archive tests added |
+| W3D1-003 | P2 | Resolved | durable task handoff omitted the changed Supabase user-Exercise adapter and focused data test | 27edf5a109 | final 14-file inventory and quality-review record now include both persistence-boundary files |
 
 ## 7. Final Handoff
 
@@ -126,11 +135,13 @@ Pre-PR connector-visible review at implementation checkpoint 0fa54c76: main ance
 - .ai/tasks/tnyx-264-w3d1-custom-exercise-foundation.md
 - apps/app/lib/app/composition/workout_providers.dart
 - apps/app/test/app/network_providers_test.dart
+- apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart
 - apps/features/workout/lib/src/domain/usecases/usecases.dart
 - apps/features/workout/lib/src/domain/usecases/user_exercise_id_generator.dart
 - apps/features/workout/lib/src/presentation/library/exercises/custom_exercises_controller.dart
 - apps/features/workout/lib/src/presentation/library/exercises/custom_exercises_state.dart
 - apps/features/workout/lib/src/presentation/library/exercises/exercises.dart
+- apps/features/workout/test/data/supabase_user_exercise_repository_test.dart
 - apps/features/workout/test/domain/user_exercise_id_generator_test.dart
 - apps/features/workout/test/presentation/custom_exercises_controller_test.dart
 - docs/screens/exercise-search.md
