@@ -1,6 +1,7 @@
 # Nutrition Settings V1 — Nutrition Profile Edit Parity
 
-**Status:** Validated — CI green, migration applied, device acceptance PASS
+**Status:** Validated
+**Completed:** 2026-08-31
 **Primary owner:** Flutter mobile / Nutrition feature (Settings is navigation only)
 **Affected platforms:** Flutter Android and iOS
 
@@ -195,4 +196,7 @@ merged canonical row.
   writes either. `medical_conditions` is diet-plan-safety relevant.
 
 **Current status:** VALIDATED — CI green, migration applied to hosted Supabase,
-owner device acceptance PASS. Awaiting merge authorization.
+owner device acceptance PASS. PR #182 merged on 2026-08-31 as
+`ee65dff3782610b62e5a36d5e109a0bb18a12645` from exact final head
+`00324c5856480549de1cf2eaaf7fb2641b33f43c`; Flutter CI run
+`33369590830` / #2152 succeeded and unresolved review threads were 0.
