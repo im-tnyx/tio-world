@@ -44,11 +44,11 @@ Verified current truth:
 
 - [x] Exact changed-path scope reviewed: 9 paths; docs/AI lifecycle only.
 - [x] Branch-file verification confirms all five direct canonical/reference links now target the historical archive path and `.ai/tasks/README.md` no longer lists the active task. GitHub code search is default-branch indexed, so it cannot validate unmerged branch contents.
-- [ ] Exact-head review completed.
-- [ ] Required repository checks inspected.
+- [x] Exact-head manual patch review completed after Codex returned usage-limit notices instead of a review; no material scope, link-target, historical-evidence, or future-scope finding identified.
+- [x] Required repository checks inspected on reviewed head: no combined statuses or pull-request workflow runs were published; therefore no CI/check-pass claim is made.
 - `git diff --check` cannot be executed through the connected GitHub API; do not claim it passed.
 
 ## Handoff
 
-Current state: patch complete; review pending.
-Next exact action: complete reference/index reconciliation, open a focused docs-only PR, request exact-head Codex review, and stop before merge unless explicitly authorized.
+Current state: patch complete; manual review complete because Codex review quota was unavailable; merge authorization pending.
+Next exact action: re-check the new documentation-only head for drift/check publication and stop before merge unless explicitly authorized.
