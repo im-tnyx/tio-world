@@ -266,7 +266,7 @@ health collection merely because a future module may use it.
 
 - [Onboarding flow architecture](../architecture/ONBOARDING_ARCHITECTURE.md)
 - [ADR-0006: Single-Route Onboarding Parent Flow](../adr/0006-single-route-onboarding-parent-flow.md)
-- [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)
+- [Onboarding implementation task](../../.ai/archive/2026-09-mode-conditional-onboarding-flow.md)
 - [Settings](settings.md)
 - [Profile](profile.md)
 - [Screen catalog](README.md)
