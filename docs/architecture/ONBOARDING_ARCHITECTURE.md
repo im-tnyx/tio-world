@@ -680,4 +680,4 @@ Each slice must be usable and testable before the next grows.
 - [Data and sync](../data/DATA_AND_SYNC.md)
 - [Security](../security/SECURITY.md)
 - [Supabase strategy](../data/SUPABASE_STRATEGY.md)
-- [Onboarding implementation task](../../.ai/tasks/onboarding-flow.md)
+- [Onboarding implementation task](../../.ai/archive/2026-09-mode-conditional-onboarding-flow.md)
