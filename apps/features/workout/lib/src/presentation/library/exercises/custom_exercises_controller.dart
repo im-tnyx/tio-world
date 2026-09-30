@@ -22,6 +22,8 @@ final class CustomExercisesController extends ChangeNotifier {
   UserCreatedExerciseRef? _pendingCreateId;
 
   Future<void> load() async {
+    if (_state.actionInProgress) return;
+
     final version = ++_loadVersion;
     _publish(const CustomExercisesState.loading());
 
