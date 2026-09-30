@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -54,6 +56,31 @@ void main() {
     expect(repository.exercises, [_exercise(1, 'Paused Squat')]);
     expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
     expect(controller.state.actionError, isNull);
+  });
+
+  test('load and retryLoad do not release an in-flight action lock', () async {
+    final gate = Completer<void>();
+    final repository = _FakeUserExerciseRepository(createGate: gate);
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final createFuture = controller.create('Paused Squat');
+    expect(controller.state.actionInProgress, isTrue);
+
+    await controller.load();
+    await controller.retryLoad();
+
+    expect(controller.state.actionInProgress, isTrue);
+    expect(repository.listCalls, 1);
+
+    gate.complete();
+    expect(await createFuture, isTrue);
+    expect(controller.state.actionInProgress, isFalse);
+    expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
   });
 
   test('blank create is rejected without touching persistence', () async {
@@ -269,6 +296,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.loadFailuresRemaining = 0,
     this.createError,
     this.createErrorAfterWrite,
+    this.createGate,
     this.renameError,
     this.archiveError,
   }) : exercises = [...?exercises];
@@ -278,6 +306,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   int loadFailuresRemaining;
   Object? createError;
   Object? createErrorAfterWrite;
+  Completer<void>? createGate;
   Object? renameError;
   Object? archiveError;
   int listCalls = 0;
@@ -303,6 +332,8 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     CatalogExerciseRef? basedOnCatalogExercise,
   }) async {
     attemptedCreateIds.add(id);
+    final gate = createGate;
+    if (gate != null) await gate.future;
     final beforeWrite = createError;
     if (beforeWrite != null) throw beforeWrite;
     if (exercises.any((exercise) => exercise.ref == id)) {
