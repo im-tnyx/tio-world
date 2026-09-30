@@ -13,13 +13,13 @@ abstract interface class UserExerciseTableGateway {
 
   Future<void> insertRow(Map<String, dynamic> payload);
 
-  Future<void> renameRow({
+  Future<bool> renameRow({
     required String userId,
     required String exerciseId,
     required String displayName,
   });
 
-  Future<void> archiveRow({
+  Future<bool> archiveRow({
     required String userId,
     required String exerciseId,
   });
@@ -57,28 +57,32 @@ final class SupabaseUserExerciseTableGateway
   }
 
   @override
-  Future<void> renameRow({
+  Future<bool> renameRow({
     required String userId,
     required String exerciseId,
     required String displayName,
   }) async {
-    await _client
+    final rows = await _client
         .from(_table)
         .update({'display_name': displayName})
         .eq('user_id', userId)
-        .eq('id', exerciseId);
+        .eq('id', exerciseId)
+        .select('id');
+    return rows.isNotEmpty;
   }
 
   @override
-  Future<void> archiveRow({
+  Future<bool> archiveRow({
     required String userId,
     required String exerciseId,
   }) async {
-    await _client
+    final rows = await _client
         .from(_table)
         .update({'status': 'archived'})
         .eq('user_id', userId)
-        .eq('id', exerciseId);
+        .eq('id', exerciseId)
+        .select('id');
+    return rows.isNotEmpty;
   }
 }
 
@@ -140,20 +144,26 @@ final class SupabaseUserExerciseRepository implements UserExerciseRepository {
       status: ExerciseStatus.active,
     );
 
-    await _gateway.renameRow(
+    final updated = await _gateway.renameRow(
       userId: userId,
       exerciseId: id.value,
       displayName: exercise.displayName,
     );
+    if (!updated) {
+      throw StateError('User Exercise not found.');
+    }
   }
 
   @override
   Future<void> archive(UserCreatedExerciseRef id) async {
     final userId = _requireUserId();
-    await _gateway.archiveRow(
+    final updated = await _gateway.archiveRow(
       userId: userId,
       exerciseId: id.value,
     );
+    if (!updated) {
+      throw StateError('User Exercise not found.');
+    }
   }
 
   String _requireUserId() {
