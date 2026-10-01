@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/user_exercise_definition.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/usecases/user_exercise_id_generator.dart';
 import 'custom_exercises_state.dart';
@@ -48,7 +49,10 @@ final class CustomExercisesController extends ChangeNotifier {
 
   Future<void> retryLoad() => load();
 
-  Future<bool> create(String displayName) async {
+  Future<bool> create(
+    String displayName, {
+    UserExerciseDefinition? definition,
+  }) async {
     final current = _state;
     if (current.status != CustomExercisesStatus.ready ||
         current.actionInProgress) {
@@ -92,12 +96,23 @@ final class CustomExercisesController extends ChangeNotifier {
     );
 
     try {
-      await repository.create(id: id, displayName: displayName);
+      await repository.create(
+        id: id,
+        displayName: displayName,
+        definition: definition,
+      );
       if (_disposed) return false;
       _pendingCreateId = null;
       final created = Exercise(
         ref: id,
         displayName: displayName,
+        description: definition?.description,
+        exerciseType: definition?.exerciseType,
+        primaryMuscles: definition?.primaryMuscle == null
+            ? const []
+            : [definition!.primaryMuscle!],
+        secondaryMuscles: definition?.secondaryMuscles ?? const [],
+        primaryEquipment: definition?.primaryEquipment,
         status: ExerciseStatus.active,
       );
       _publish(
@@ -110,6 +125,7 @@ final class CustomExercisesController extends ChangeNotifier {
       final reconciled = await _reconcileCreate(
         id: id,
         displayName: displayName,
+        definition: definition,
       );
       if (_disposed) return false;
       if (reconciled != null) {
@@ -126,6 +142,56 @@ final class CustomExercisesController extends ChangeNotifier {
           ),
         ),
       );
+      return false;
+    }
+  }
+
+  Future<bool> edit({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) async {
+    final current = _state;
+    if (current.status != CustomExercisesStatus.ready ||
+        current.actionInProgress) {
+      return false;
+    }
+    if (displayName.trim().isEmpty) {
+      _publish(CustomExercisesState.ready(
+        exercises: current.exercises,
+        actionError: 'Enter an exercise name.',
+      ));
+      return false;
+    }
+    if (!current.exercises.any((item) => item.ref == id)) {
+      _publish(CustomExercisesState.ready(
+        exercises: current.exercises,
+        actionError: 'Could not update exercise. Please try again.',
+      ));
+      return false;
+    }
+
+    _publish(CustomExercisesState.ready(
+      exercises: current.exercises,
+      actionInProgress: true,
+    ));
+    try {
+      await repository.rename(id: id, displayName: displayName);
+      await repository.updateDefinition(id: id, definition: definition);
+      final reconciled = await repository.list();
+      if (_disposed) return false;
+      _publish(CustomExercisesState.ready(exercises: reconciled));
+      return true;
+    } catch (error) {
+      final reconciled = await _reloadAfterWriteFailure();
+      if (_disposed) return false;
+      _publish(CustomExercisesState.ready(
+        exercises: reconciled ?? current.exercises,
+        actionError: _actionFailureMessage(
+          error,
+          fallback: 'Could not update exercise. Please try again.',
+        ),
+      ));
       return false;
     }
   }
@@ -236,9 +302,18 @@ final class CustomExercisesController extends ChangeNotifier {
     }
   }
 
+  Future<List<Exercise>?> _reloadAfterWriteFailure() async {
+    try {
+      return await repository.list();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Exercise>?> _reconcileCreate({
     required UserCreatedExerciseRef id,
     required String displayName,
+    UserExerciseDefinition? definition,
   }) async {
     try {
       var exercises = await repository.list();
@@ -250,9 +325,25 @@ final class CustomExercisesController extends ChangeNotifier {
         }
       }
       if (persisted == null) return null;
-      if (persisted.displayName == displayName) return exercises;
+      final definitionMatches = definition == null ||
+          (persisted.description == definition.description &&
+              persisted.exerciseType == definition.exerciseType &&
+              persisted.primaryMuscles ==
+                  (definition.primaryMuscle == null
+                      ? const <String>[]
+                      : [definition.primaryMuscle!]) &&
+              persisted.secondaryMuscles == definition.secondaryMuscles &&
+              persisted.primaryEquipment == definition.primaryEquipment);
+      if (persisted.displayName == displayName && definitionMatches) {
+        return exercises;
+      }
 
-      await repository.rename(id: id, displayName: displayName);
+      if (persisted.displayName != displayName) {
+        await repository.rename(id: id, displayName: displayName);
+      }
+      if (definition != null && !definitionMatches) {
+        await repository.updateDefinition(id: id, definition: definition);
+      }
       exercises = await repository.list();
       if (exercises.any(
         (exercise) => exercise.ref == id && exercise.displayName == displayName,
