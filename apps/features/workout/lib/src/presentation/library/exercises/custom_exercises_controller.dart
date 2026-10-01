@@ -328,11 +328,13 @@ final class CustomExercisesController extends ChangeNotifier {
       final definitionMatches = definition == null ||
           (persisted.description == definition.description &&
               persisted.exerciseType == definition.exerciseType &&
-              persisted.primaryMuscles ==
-                  (definition.primaryMuscle == null
+              listEquals(
+                persisted.primaryMuscles,
+                (definition.primaryMuscle == null
                       ? const <String>[]
-                      : [definition.primaryMuscle!]) &&
-              persisted.secondaryMuscles == definition.secondaryMuscles &&
+                      : [definition.primaryMuscle!]),
+              ) &&
+              listEquals(persisted.secondaryMuscles, definition.secondaryMuscles) &&
               persisted.primaryEquipment == definition.primaryEquipment);
       if (persisted.displayName == displayName && definitionMatches) {
         return exercises;
@@ -345,10 +347,24 @@ final class CustomExercisesController extends ChangeNotifier {
         await repository.updateDefinition(id: id, definition: definition);
       }
       exercises = await repository.list();
-      if (exercises.any(
-        (exercise) => exercise.ref == id && exercise.displayName == displayName,
-      )) {
-        return exercises;
+      for (final exercise in exercises) {
+        if (exercise.ref != id || exercise.displayName != displayName) continue;
+        if (definition == null ||
+            (exercise.description == definition.description &&
+                exercise.exerciseType == definition.exerciseType &&
+                listEquals(
+                  exercise.primaryMuscles,
+                  definition.primaryMuscle == null
+                      ? const <String>[]
+                      : [definition.primaryMuscle!],
+                ) &&
+                listEquals(
+                  exercise.secondaryMuscles,
+                  definition.secondaryMuscles,
+                ) &&
+                exercise.primaryEquipment == definition.primaryEquipment)) {
+          return exercises;
+        }
       }
     } catch (_) {
       // Preserve the pending stable identity when the durable outcome is
