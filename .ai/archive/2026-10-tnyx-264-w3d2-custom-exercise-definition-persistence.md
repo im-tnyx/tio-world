@@ -1,6 +1,7 @@
 # TNYX-264 W3D2 — Custom Exercise definition taxonomy & persistence
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-10-01
 **Primary owner:** Workout Custom Exercises (`apps/shared` canonical Exercise contract + `apps/features/workout` domain/data)
 **Affected platforms:** Flutter phone foundation + Supabase Postgres/RLS; no visible UI in this slice
 
@@ -15,23 +16,18 @@
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** Local Codex repository agent
-**Review owner:** Codex GitHub review + local repository review
-**Implementation ownership state:** Handoff pending
-**Ownership transition:** Connector repository agent → Local Codex repository agent; owner requested continuation of the same approved W3D2 scope. No concurrent source writer is known.
-**Repository state last verified:** 2026-10-01, remote `main@aac2f8d50ec650c4f729fce506328d50c04b822a`; PR #495 open, mergeable/CLEAN at the verified implementation anchor.
-**Branch:** `tnyx/tnyx-264-w3d2-custom-exercise-definition-persistence`
-**HEAD SHA:** `065d789a9be5ac4af203241b6876754d94294c49` is the validated/reviewed implementation anchor (15 ahead / 0 behind main). This evidence-only handoff update follows it; resolve the final current HEAD from Git/PR #495, and recheck final-head CI/review before merge.
-**Observed working-tree state:** Clean local checkout reconstructed from the existing remote implementation branch after fast-forwarding local main. The separate readiness branch contains planning only and is not the implementation owner.
-**Observed uncommitted/dirty files:** None at takeover.
-**PR / tracker:** [GitHub PR #495](https://github.com/im-tnyx/tio-world/pull/495); Linear TNYX-264 (parent TNYX-80), In Progress. W3D parent is not complete.
-**Current implementation state:** Approved domain/repository contract, five-column migration, SQL security matrix and CI integration are implemented. Connector compile/interface issues, rename metadata loss and a record/map test assertion were corrected. No live Supabase DDL has been applied; client deployment requires migration-first verification.
-**Relevant execution surface:** `apps/shared/lib/src/workout/exercise.dart`; Workout Exercise domain/data; `public.user_workout_exercises`; focused Dart/repository/SQL matrix; canonical Exercise/Supabase docs
-**Validation completed at SHA:** `065d789a9be5ac4af203241b6876754d94294c49`: local Workout analyze/tests rerun after commit (221 PASS), shared analyze/tests (199 PASS), app analyze/composition (10 PASS), rollback-based SQL matrix. Flutter CI 36759161040 PASS; Supabase Database CI 36759160893 PASS; required attribution guard PASS. Codex reviewed this commit with no major issues; zero review threads. Live Supabase audit still confirms seven-column W1B1, 53 migrations and owner RLS/column grants. Current widened repository SELECT requires W3D2 deployment before client release; catalog and SetPrescription behavior remain unchanged.
-**Validation remaining:** Reverify final metadata head after this handoff update. Deployment remains a separate authorized post-merge step; no live apply in this task.
-**Current blocker:** No implementation blocker. Installed Melos 8.6.0 cannot recognize this repo's Melos 2.9.0 workspace; focused package validation was used without changing shared tooling. Hosted schema remains W1B1, so the widened client must not be released yet.
+**Implementation owner:** Complete
+**Review owner:** Codex GitHub review + repository/hosted verification
+**Implementation ownership state:** Complete
+**Repository state last verified:** 2026-10-01, PR #495 squash-merged to `main` as `d09e4b3571a13a8fb3b02751dd430d59ec0eac1d`.
+**PR / tracker:** GitHub PR #495 merged; Linear TNYX-264 remains In Progress because W3D is broader than this persistence slice.
+**Current implementation state:** Validated and live. The five approved structured-definition columns are deployed on `public.user_workout_exercises`; hosted schema has 12 columns. Owner-scoped RLS remains enabled, authenticated DELETE remains denied, authenticated immutable columns remain non-updatable, and `service_role` retains full CRUD.
+**Validation completed:** Final PR head `f18c182eef9009837829946a9edd88f0e95e2f0d` passed Flutter CI `36767197919`, Supabase DB CI `36767197865`, required attribution guard, and Codex review with zero unresolved threads. Hosted deployment verified the 12-column schema, approved constraints/grants/RLS and SECURITY INVOKER muscle validator. Security Advisor remained at the six pre-existing warnings (five authenticated SECURITY DEFINER RPC warnings plus leaked-password protection disabled), with no new W3D2-specific finding.
+**Migration history:** Canonical repository migration `20260930180700_add_custom_exercise_definition_fields.sql` is applied. The connector initially recorded the same SQL under generated version `20260930202102`; after exact SQL equivalence was verified, the hosted ledger version key was reconciled transactionally to canonical `20260930180700` without rerunning DDL. Remote migration history now matches the repository version.
+**Validation remaining:** A local linked-checkout `supabase db push --dry-run` is optional confirmation and was not run from the connector-only closure session. It is not a blocker because hosted ledger identity, live schema and security boundary were directly verified.
+**Current blocker:** None for W3D2.
 **Open review finding IDs:** None.
-**Next exact action:** Final metadata-head CI/review verification, then stop at the owner merge gate. Do not merge or apply live migrations. GitHub Advanced Security is supplemental and failed before meaningful analysis with unsupported-model CAPIError; it is not a security pass or a code vulnerability finding.
+**Next exact action:** Start a new bounded TNYX-264 slice only after fresh source/tracker audit and the applicable Owner Approval. Visible Custom Exercise editor/list UX, media/Storage and execution-measurement semantics remain outside W3D2.
 
 ## Global UI / Design-System Guardrail
 
@@ -330,7 +326,7 @@ selected Primary muscle token
 - [x] Widen Supabase repository read/create/update-definition contract.
 - [x] Add focused domain/repository tests and SQL grant/RLS/integrity matrix.
 - [x] Update Supabase schema inventory + canonical Exercise screen status.
-- [ ] Run exact-head Flutter/Dart + Supabase DB CI and review gates.
+- [x] Run exact-head Flutter/Dart + Supabase DB CI and review gates.
 
 ## 6. Quality Review
 
@@ -346,19 +342,15 @@ Local implementation validation completed before PR creation:
 - `melos bootstrap` via installed 8.6.0: unavailable for this workspace (`Your current directory does not appear to be within a Melos workspace`). No claim that `melos analyze`/`melos test` ran; direct affected-package commands used. CI retains pinned Melos 2.9.0.
 - Local Postgres container had an older `20260909131518` baseline. Pending repository migrations through W1B1 and W3D2 were replayed inside one transaction, followed by the existing W1B1 and new W3D2 SQL matrices. PASS for exact types/defaults/nullability, CHECK rules, pre-migration legacy row preservation, owner SELECT/INSERT/UPDATE, cross-owner denial, exact column privileges, immutable-column/DELETE denial, service-role CRUD and anonymous denial. Entire transaction rolled back; baseline ledger and absence of the Workout table were verified afterward. This is local rollback-based validation, not hosted deployment or a from-zero replay; full replay is delegated to DB CI.
 - Current Supabase changelog and column-privilege docs verified. Relevant Data API exposure change requires explicit grants. The Postgres 15.19/17.11 breaking changes concern ltree/crypto/GiST/custom operators that W3D2 does not introduce.
-- Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). No unrelated fix. Advisor observes the undeployed baseline and cannot certify W3D2 post-deployment state.
+- Pre-deployment Live Security Advisor completed after local DB validation: six pre-existing WARN findings (five existing public authenticated SECURITY DEFINER RPCs and disabled leaked-password protection). That run observed the undeployed baseline and did not certify W3D2 post-deployment state.
+- Post-deployment Security Advisor was rerun after the W3D2 migration and migration-history reconciliation: it returned the same six pre-existing WARN findings, with no new W3D2-specific finding. No unrelated security fix was included in this slice.
 - Live branch protection + branch rules inspected: only `Commit attribution guard` is required; branch rules API returns no extra rules. Flutter, DB and scanner outcomes must still be recorded independently; supplemental concrete findings remain real findings.
 - Non-failing existing Workout test warning: core `uses-material-design: true` versus package primary setting. No unrelated pubspec edit.
 - Implementation-anchor exact-head CI: [Flutter 36759161040](https://github.com/im-tnyx/tio-world/actions/runs/36759161040) PASS; [Supabase DB 36759160893](https://github.com/im-tnyx/tio-world/actions/runs/36759160893) PASS, including full migration replay, the W3D2 SQL matrix, existing matrices/concurrency and no newly introduced lint errors. Required attribution guard PASS.
 - [Codex review](https://github.com/im-tnyx/tio-world/pull/495#issuecomment-5917353173) explicitly reviewed `065d789a9b` and found no major issues. Review-thread query returned zero threads.
 - [GitHub Advanced Security 36758982112](https://github.com/im-tnyx/tio-world/actions/runs/36758982112): supplemental + infrastructure failure before meaningful analysis, `CAPIError: 400 The requested model is not supported`. Not a security pass; no product vulnerability is inferred. No rules/check suppression or scanner configuration change.
 
-Verified live against Supabase project `tio-world`:
-- migration `20260929181247_create_user_workout_exercises` is applied;
-- table has the expected 7 W1B1 columns and RLS enabled;
-- policies: owner SELECT, owner INSERT, owner UPDATE;
-- authenticated: SELECT table-wide; INSERT only approved identity/name/lineage columns; UPDATE only display_name/status; no DELETE;
-- service_role: full table privileges.
+Pre-deployment baseline verification against Supabase project `tio-world` confirmed the W1B1 seven-column table, owner SELECT/INSERT/UPDATE RLS, least-privilege authenticated grants, no authenticated DELETE and full service-role CRUD. Post-deployment verification on 2026-10-01 confirmed migration `20260930180700_add_custom_exercise_definition_fields`, the 12-column table, the widened approved definition-column grants, unchanged owner RLS/no-DELETE boundary and full service-role CRUD.
 
 Current Supabase docs/changelog were checked. The 2026 Data API exposure change reinforces explicit grants, and column-level privilege guidance supports keeping authenticated UPDATE restricted to approved mutable columns.
 
@@ -378,7 +370,7 @@ Complete parent-to-head scope: 21 W3D2-owned files, including the existing conne
 
 - `.ai/IMPLEMENTATION_STATUS.md`
 - `.ai/tasks/README.md`
-- `.ai/tasks/tnyx-264-w3d2-custom-exercise-definition-persistence.md`
+- `.ai/archive/2026-10-tnyx-264-w3d2-custom-exercise-definition-persistence.md`
 - `.github/workflows/supabase-db-ci.yml`
 - `apps/features/workout/lib/src/data/exercises/supabase_user_exercise_repository.dart`
 - `apps/features/workout/lib/src/domain/exercises/exercises.dart`
@@ -400,7 +392,7 @@ Complete parent-to-head scope: 21 W3D2-owned files, including the existing conne
 
 ### Actual Behavior
 
-User-owned definitions round-trip description/type/muscle/equipment; malformed rows fail closed; rename preserves canonical definition data. Existing name-only creation is compatible. Migration adds only the approved five fields and integrity/grant enforcement without changing owner RLS or lifecycle. Source is locally validated, but hosted schema remains W1B1 and client release is gated on deployment verification.
+User-owned definitions round-trip description/type/muscle/equipment; malformed rows fail closed; rename preserves canonical definition data. Existing name-only creation is compatible. Migration adds only the approved five fields and integrity/grant enforcement without changing owner RLS or lifecycle. The migration is deployed and hosted-verified; repository/live migration identity is reconciled.
 
 ### Known Limitations
 
@@ -408,4 +400,4 @@ Body-part grouping map, media/Storage, visible editor/list, Favorites/Folders, a
 
 ### Final Status
 
-`REVIEW` — implementation anchor is locally/CI validated and Codex reviewed. The evidence-only handoff head must be reverified before merge. Supplemental scanner infrastructure failure remains disclosed. No live apply and no PR merge.
+VALIDATED — merged, deployed, hosted-verified, and migration-history parity reconciled. Broader TNYX-264 remains In Progress.
