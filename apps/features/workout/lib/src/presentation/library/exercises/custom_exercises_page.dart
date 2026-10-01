@@ -256,7 +256,9 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
     _name = TextEditingController(text: exercise?.displayName ?? '');
     _description = TextEditingController(text: exercise?.description ?? '');
     _type = exercise?.exerciseType;
-    _primaryMuscle = exercise?.primaryMuscles.firstOrNull;
+    _primaryMuscle = exercise != null && exercise.primaryMuscles.isNotEmpty
+        ? exercise.primaryMuscles.first
+        : null;
     _secondaryMuscles = {...?exercise?.secondaryMuscles};
     _equipment = exercise?.primaryEquipment;
   }
@@ -344,11 +346,12 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
               onChanged: (_) => setState(() => _error = null),
             ),
             const SizedBox(height: TioSpacing.md),
-            TioInput(
+            TioInput.multiline(
               key: const ValueKey('custom-exercise-description'),
               controller: _description,
               hint: 'Description (optional)',
               enabled: !_saving,
+              minLines: 3,
               maxLines: 4,
               onChanged: (_) {},
             ),
