@@ -1,0 +1,80 @@
+# TNYX-264 W3D3 — Visible Custom Exercise editor and collection
+
+**Status:** In progress
+**Primary owner:** `apps/features/workout` Custom Exercises; `apps/app` only for composition/routing
+**Affected platforms:** Flutter phone UI; existing Supabase persistence only
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product-visible feature slice.
+**Approval status:** Approved.
+**Approval evidence:** Owner said `Go` on 2026-10-01 after the fresh read-only W3D audit identified visible Custom Exercise create/edit/list UX as the next bounded slice.
+
+**Approved visible/data scope:** A real user-owned Custom Exercises collection plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
+
+**Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth.
+
+## Active Handoff
+
+**Planning/implementation owner:** ChatGPT repository architecture workflow
+**Review owner:** Codex after PR creation
+**Repository state last verified:** `main@c58689a8a7f183a0ca5fb644e4f69d67b2157bbe`
+**Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
+**Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
+**Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
+**Current blocker:** None.
+**Next exact action:** implement controller definition writes, feature-owned list/editor UI, minimal app composition/routes, focused tests, then hosted CI/review gate.
+
+## 1. Discovery
+
+### User Outcome
+Users can see their active Custom Exercises, create a complete structured definition, edit that definition later, and archive an Exercise without creating a second domain model.
+
+### Success Criteria
+- Custom list reads active user Exercises through the existing repository/controller boundary.
+- Create writes name + one atomic `UserExerciseDefinition` with a stable UUID.
+- Edit preserves identity/owner/lineage/lifecycle while updating name and definition.
+- Primary/secondary muscle validation remains domain-owned; UI cannot persist duplicate secondary or primary overlap.
+- Archive remains soft lifecycle change.
+- Missing durable persistence fails closed; no in-memory production success.
+- UI uses public Tio Core components/tokens and accessible labels.
+- Existing catalog Browse screen remains canonical and unchanged except bounded navigation/composition if required.
+
+## 2. Codebase Exploration
+
+Verified on 2026-10-01:
+- W3D1 `CustomExercisesController` already owns load/create-name/rename/archive and stable-id reconciliation.
+- W3D2 `UserExerciseDefinition` and `UserExerciseRepository.updateDefinition` own structured definition validation/persistence.
+- App composition already exposes nullable `userExerciseRepositoryProvider` backed by Supabase only.
+- `exerciseTaxonomyLabel` is the existing presentation label helper.
+- `ExerciseType` owns the 11 durable storage identities.
+- Library currently exposes Programs + Browse Exercises only; GitHub #475 documents future Custom Exercise collection composition.
+- No schema change is required.
+
+## 3. Architecture Design
+
+```text
+App route/composition
+  -> Workout feature CustomExercisesPage / CustomExerciseEditorPage
+    -> CustomExercisesController
+      -> UserExerciseRepository
+        -> SupabaseUserExerciseRepository
+          -> existing owner-scoped user_workout_exercises
+```
+
+Feature widgets render state and emit intent only. The controller owns write sequencing/reconciliation. Domain validation remains in `UserExerciseDefinition`.
+
+## 4. Implementation Plan
+
+- [ ] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
+- [ ] Add provider/composition seam for nullable durable repository.
+- [ ] Add active Custom Exercises collection with loading/failure/empty/action states.
+- [ ] Add create/edit form for approved W3D2 fields using Tio Core.
+- [ ] Add minimal route contracts and app composition needed to reach the real W3D capability.
+- [ ] Add focused controller/widget/router tests.
+- [ ] Update canonical Exercises/Library docs only for behavior actually delivered.
+- [ ] Run exact-head hosted Flutter CI and Codex review before merge.
+
+## 5. Validation / Exit
+
+No completion claim until exact-head tests/CI and review are verified. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions must remain unchanged in source/diff audit.
