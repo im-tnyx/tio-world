@@ -328,7 +328,10 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
       key: const ValueKey('custom-exercise-editor'),
       backgroundColor: colors.background,
       appBar: TioAppBar(
-        leading: BackButton(color: colors.textPrimary),
+        leading: BackButton(
+          color: colors.textPrimary,
+          onPressed: _saving ? () {} : null,
+        ),
         title: Text(_editing ? 'Edit Exercise' : 'Create Exercise'),
         actions: [
           TextButton(
