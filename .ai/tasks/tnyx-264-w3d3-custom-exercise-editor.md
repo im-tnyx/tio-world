@@ -23,7 +23,7 @@
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
 **Current blocker:** None.
-**Next exact action:** implement controller definition writes, feature-owned list/editor UI, minimal app composition/routes, focused tests, then hosted CI/review gate.
+**Next exact action:** run hosted exact-head CI through the PR, review failures if any, then wait for Codex review gate.
 
 ## 1. Discovery
 
@@ -66,12 +66,12 @@ Feature widgets render state and emit intent only. The controller owns write seq
 
 ## 4. Implementation Plan
 
-- [ ] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
-- [ ] Add provider/composition seam for nullable durable repository.
-- [ ] Add active Custom Exercises collection with loading/failure/empty/action states.
-- [ ] Add create/edit form for approved W3D2 fields using Tio Core.
-- [ ] Add minimal route contracts and app composition needed to reach the real W3D capability.
-- [ ] Add focused controller/widget/router tests.
+- [x] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
+- [x] Add provider/composition seam for nullable durable repository.
+- [x] Add active Custom Exercises collection with loading/failure/empty/action states.
+- [x] Add create/edit form for approved W3D2 fields using Tio Core.
+- [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
+- [x] Add focused controller/widget/router tests.
 - [ ] Update canonical Exercises/Library docs only for behavior actually delivered.
 - [ ] Run exact-head hosted Flutter CI and Codex review before merge.
 
