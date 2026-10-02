@@ -81,6 +81,9 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('custom-exercise-archive')));
     await tester.tap(find.byKey(const ValueKey('custom-exercise-archive')));
     await tester.pumpAndSettle();
+    expect(find.text('Archive exercise?'), findsOneWidget);
+    await tester.tap(find.text('Archive').last);
+    await tester.pumpAndSettle();
 
     expect(repository.exercises, isEmpty);
     expect(find.byKey(const ValueKey('custom-exercises-empty')), findsOneWidget);
