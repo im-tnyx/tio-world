@@ -8,7 +8,13 @@ Truth Boundary: Authoritative for the Exercises screen/picker product contract, 
 **Surface:** Nested phone Workout flow; never a primary tab
 **Route:** `/workout/exercises` (`AppRoutes.workoutExercises`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, and W3D1 adds non-UI repository composition plus Custom Exercise controller/identity-generation foundation; detail, picker mode and visible Favorites/Custom/Folders remain planned.
+**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, and W3D1 adds non-UI repository composition plus Custom Exercise controller/identity-generation foundation; detail, picker mode and visible Favorites/Folders remain planned; W3D3 now provides a separate visible Custom Exercises collection/editor at `/workout/custom-exercises`.
+
+## Current Custom Exercises Runtime
+
+W3D3 adds a separate `/workout/custom-exercises` route reached from Library → Custom Exercises. It reuses canonical `Exercise` / `UserCreatedExerciseRef` and the existing user Exercise repository; it is not a second catalog or Exercise model.
+
+The collection lists active custom Exercises and supports create/edit/archive. The editor exposes required name plus optional description, Exercise Type, Primary muscle, Secondary muscles, and Equipment using the already-live W3D2 persistence contract. Optional single-value selections can be cleared, secondary muscles cannot duplicate the primary muscle, archive requires destructive confirmation, and pending writes keep the editor mounted until their result is known. Media/Storage and execution-measurement semantics remain outside W3D3.
 
 ## Purpose
 
