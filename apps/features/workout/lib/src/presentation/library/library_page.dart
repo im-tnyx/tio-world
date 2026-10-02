@@ -10,12 +10,14 @@ class LibraryPage extends StatelessWidget {
   const LibraryPage({
     required this.onProgramsPressed,
     required this.onExercisesPressed,
+    required this.onCustomExercisesPressed,
     required this.onSearchPressed,
     super.key,
   });
 
   final VoidCallback onProgramsPressed;
   final VoidCallback onExercisesPressed;
+  final VoidCallback onCustomExercisesPressed;
 
   /// Opens Exercises with its search field active and focused.
   final VoidCallback onSearchPressed;
@@ -77,6 +79,16 @@ class LibraryPage extends StatelessWidget {
                   title: 'Exercises',
                   supportingText: 'Browse all exercises',
                   onTap: onExercisesPressed,
+                ),
+                const _LibraryDivider(),
+                TioSettingsNavigationRow(
+                  key: const ValueKey('library-custom-exercises-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.add_circle_outline_rounded,
+                  ),
+                  title: 'Custom Exercises',
+                  supportingText: 'Create and manage custom exercises',
+                  onTap: onCustomExercisesPressed,
                 ),
               ],
             ),
