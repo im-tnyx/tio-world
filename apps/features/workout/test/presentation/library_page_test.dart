@@ -7,6 +7,7 @@ Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onProgramsPressed,
   VoidCallback? onExercisesPressed,
+  VoidCallback? onCustomExercisesPressed,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
@@ -19,6 +20,7 @@ Future<void> _pump(
       home: LibraryPage(
         onProgramsPressed: onProgramsPressed ?? () {},
         onExercisesPressed: onExercisesPressed ?? () {},
+        onCustomExercisesPressed: onCustomExercisesPressed ?? () {},
         onSearchPressed: onSearchPressed ?? () {},
       ),
     ),
@@ -40,9 +42,10 @@ void main() {
   testWidgets('lists ready Programs above Exercises', (tester) async {
     await _pump(tester);
 
-    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(2));
+    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
     final programs = find.byKey(const ValueKey('library-programs-entry'));
     final exercises = find.byKey(const ValueKey('library-exercises-entry'));
+    final custom = find.byKey(const ValueKey('library-custom-exercises-entry'));
 
     expect(
       find.descendant(of: programs, matching: find.text('Programs')),
@@ -67,6 +70,17 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.descendant(of: custom, matching: find.text('Custom Exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: custom,
+        matching: find.text('Create and manage custom exercises'),
+      ),
+      findsOneWidget,
+    );
+    expect(
       tester.getTopLeft(programs).dy,
       lessThan(tester.getTopLeft(exercises).dy),
     );
@@ -77,8 +91,7 @@ void main() {
       'Training Plans',
       'Create Exercise',
       'Favorite exercises',
-      'Custom exercises',
-    ]) {
+          ]) {
       expect(find.text(placeholder), findsNothing, reason: placeholder);
     }
     expect(find.byType(ProgramsPage), findsNothing);
@@ -119,6 +132,19 @@ void main() {
     await _pump(tester, onExercisesPressed: () => opened++);
 
     await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
+    await tester.pump();
+
+    expect(opened, 1);
+  });
+
+
+  testWidgets('Custom Exercises hands off to the owning route', (tester) async {
+    var opened = 0;
+    await _pump(tester, onCustomExercisesPressed: () => opened++);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-custom-exercises-entry')),
+    );
     await tester.pump();
 
     expect(opened, 1);
