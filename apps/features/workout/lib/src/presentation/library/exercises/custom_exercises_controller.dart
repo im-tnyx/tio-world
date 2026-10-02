@@ -185,6 +185,16 @@ final class CustomExercisesController extends ChangeNotifier {
     } catch (error) {
       final reconciled = await _reloadAfterWriteFailure();
       if (_disposed) return false;
+      if (reconciled != null &&
+          _containsDefinition(
+            reconciled,
+            id: id,
+            displayName: displayName,
+            definition: definition,
+          )) {
+        _publish(CustomExercisesState.ready(exercises: reconciled));
+        return true;
+      }
       _publish(CustomExercisesState.ready(
         exercises: reconciled ?? current.exercises,
         actionError: _actionFailureMessage(
@@ -300,6 +310,31 @@ final class CustomExercisesController extends ChangeNotifier {
       );
       return false;
     }
+  }
+
+  bool _containsDefinition(
+    List<Exercise> exercises, {
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) {
+    for (final exercise in exercises) {
+      if (exercise.ref == id &&
+          exercise.displayName == displayName &&
+          exercise.description == definition.description &&
+          exercise.exerciseType == definition.exerciseType &&
+          listEquals(
+            exercise.primaryMuscles,
+            definition.primaryMuscle == null
+                ? const <String>[]
+                : [definition.primaryMuscle!],
+          ) &&
+          listEquals(exercise.secondaryMuscles, definition.secondaryMuscles) &&
+          exercise.primaryEquipment == definition.primaryEquipment) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<List<Exercise>?> _reloadAfterWriteFailure() async {
