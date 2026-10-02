@@ -80,7 +80,10 @@ class _CustomExercisesPageState extends State<CustomExercisesPage> {
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
-        leading: BackButton(color: colors.textPrimary),
+        leading: BackButton(
+          color: colors.textPrimary,
+          onPressed: _saving ? () {} : null,
+        ),
         title: Text('Custom Exercises',
             style: TextStyle(
               color: colors.textPrimary,
@@ -319,7 +322,9 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return Scaffold(
+    return PopScope(
+      canPop: !_saving,
+      child: Scaffold(
       key: const ValueKey('custom-exercise-editor'),
       backgroundColor: colors.background,
       appBar: TioAppBar(
@@ -409,6 +414,16 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                 onPressed: _saving
                     ? null
                     : () async {
+                        final confirmed = await showTioConfirmationBottomSheet(
+                          context: context,
+                          title: 'Archive exercise?',
+                          message:
+                              'This exercise will be removed from your active Custom Exercises.',
+                          confirmLabel: 'Archive',
+                          cancelLabel: 'Cancel',
+                          intent: TioConfirmationIntent.destructive,
+                        );
+                        if (confirmed != true || !mounted) return;
                         setState(() => _saving = true);
                         final ok = await widget.controller.archive(
                           widget.exercise!.ref as UserCreatedExerciseRef,
@@ -428,6 +443,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
           ],
         ),
       ),
+    ),
     );
   }
 }
@@ -452,10 +468,14 @@ class _ChoiceField<T> extends StatelessWidget {
         child: DropdownButtonFormField<T>(
           value: value,
           decoration: InputDecoration(labelText: label),
-          items: values
-              .map((item) =>
-                  DropdownMenuItem(value: item, child: Text(display(item))))
-              .toList(growable: false),
+          items: [
+            const DropdownMenuItem<T>(
+              value: null,
+              child: Text('None'),
+            ),
+            ...values.map((item) =>
+                DropdownMenuItem(value: item, child: Text(display(item)))),
+          ],
           onChanged: onChanged,
         ),
       );
