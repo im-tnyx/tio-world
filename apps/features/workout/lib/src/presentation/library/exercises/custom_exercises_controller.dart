@@ -183,9 +183,12 @@ final class CustomExercisesController extends ChangeNotifier {
       _publish(CustomExercisesState.ready(exercises: reconciled));
       return true;
     } catch (error) {
-      final reconciled = await _reloadAfterWriteFailure();
+      final isSignInFailure = _isSignInFailure(error);
+      final reconciled =
+          isSignInFailure ? null : await _reloadAfterWriteFailure();
       if (_disposed) return false;
-      if (reconciled != null &&
+      if (!isSignInFailure &&
+          reconciled != null &&
           _containsDefinition(
             reconciled,
             id: id,
