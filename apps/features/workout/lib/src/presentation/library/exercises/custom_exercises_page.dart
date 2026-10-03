@@ -80,10 +80,7 @@ class _CustomExercisesPageState extends State<CustomExercisesPage> {
         backgroundColor: colors.background,
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
-        leading: BackButton(
-          color: colors.textPrimary,
-          onPressed: _saving ? () {} : null,
-        ),
+        leading: BackButton(color: colors.textPrimary),
         title: Text('Custom Exercises',
             style: TextStyle(
               color: colors.textPrimary,
@@ -469,15 +466,19 @@ class _ChoiceField<T> extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: TioSpacing.md),
         child: DropdownButtonFormField<T>(
-          value: value,
+          initialValue: value,
+          isExpanded: true,
           decoration: InputDecoration(labelText: label),
           items: [
-            const DropdownMenuItem<T>(
+            DropdownMenuItem<T>(
               value: null,
-              child: Text('None'),
+              child: const Text('None', overflow: TextOverflow.ellipsis),
             ),
             ...values.map((item) =>
-                DropdownMenuItem(value: item, child: Text(display(item)))),
+                DropdownMenuItem(
+                  value: item,
+                  child: Text(display(item), overflow: TextOverflow.ellipsis),
+                )),
           ],
           onChanged: onChanged,
         ),
