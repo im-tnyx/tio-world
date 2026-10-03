@@ -32,7 +32,7 @@ class _CustomExercisesPageState extends State<CustomExercisesPage> {
   }
 
   void _bind() {
-    _controller?..removeListener(_changed);
+    _controller?.removeListener(_changed);
     _controller?.dispose();
     final repository = widget.repository;
     if (repository == null) {
@@ -51,7 +51,7 @@ class _CustomExercisesPageState extends State<CustomExercisesPage> {
 
   @override
   void dispose() {
-    _controller?..removeListener(_changed);
+    _controller?.removeListener(_changed);
     _controller?.dispose();
     super.dispose();
   }
@@ -423,7 +423,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                           cancelLabel: 'Cancel',
                           intent: TioConfirmationIntent.destructive,
                         );
-                        if (confirmed != true || !mounted) return;
+                        if (confirmed != true || !context.mounted) return;
                         setState(() => _saving = true);
                         final ok = await widget.controller.archive(
                           widget.exercise!.ref as UserCreatedExerciseRef,
