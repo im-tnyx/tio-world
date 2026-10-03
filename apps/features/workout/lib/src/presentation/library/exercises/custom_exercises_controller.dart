@@ -298,9 +298,12 @@ final class CustomExercisesController extends ChangeNotifier {
       _publish(CustomExercisesState.ready(exercises: updated));
       return true;
     } catch (error) {
-      final reconciled = await _reloadAfterWriteFailure();
+      final isSignInFailure = _isSignInFailure(error);
+      final reconciled =
+          isSignInFailure ? null : await _reloadAfterWriteFailure();
       if (_disposed) return false;
-      if (reconciled != null &&
+      if (!isSignInFailure &&
+          reconciled != null &&
           !reconciled.any((exercise) => exercise.ref == id)) {
         _publish(CustomExercisesState.ready(exercises: reconciled));
         return true;
@@ -412,6 +415,11 @@ final class CustomExercisesController extends ChangeNotifier {
       // still unknown so another retry cannot create a second Exercise.
     }
     return null;
+  }
+
+  bool _isSignInFailure(Object error) {
+    return error is StateError &&
+        error.message.toString() == 'Please sign in to save Exercises.';
   }
 
   String _actionFailureMessage(Object error, {required String fallback}) {
