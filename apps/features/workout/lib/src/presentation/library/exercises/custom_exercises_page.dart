@@ -430,7 +430,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                         );
                         if (!mounted) return;
                         if (ok) {
-                          Navigator.of(context).pop();
+                          Navigator.of(this.context).pop();
                         } else {
                           setState(() {
                             _saving = false;
