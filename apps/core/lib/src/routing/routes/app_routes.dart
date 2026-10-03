@@ -195,6 +195,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// User-owned Custom Exercises collection and editor entry.
+  static const workoutCustomExercises = TioRouteContract(
+    path: '/workout/custom-exercises',
+    title: 'Custom Exercises',
+    description: 'Create and manage your custom exercise definitions.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

@@ -162,6 +162,99 @@ void main() {
     expect(controller.state.exercises, [_exercise(1, 'Tempo Squat')]);
   });
 
+
+  test('structured create publishes the persisted definition', () async {
+    final repository = _FakeUserExerciseRepository();
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Pause at depth',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      secondaryMuscles: const ['gluteus_maximus'],
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.create('Paused Squat', definition: definition),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Paused Squat');
+    expect(exercise.description, 'Pause at depth');
+    expect(exercise.exerciseType, ExerciseType.weightReps);
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
+    expect(exercise.primaryEquipment, 'barbell');
+  });
+
+  test('edit reconciles name and structured definition from durable state',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Three second eccentric',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      secondaryMuscles: const ['gluteus_maximus'],
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Tempo Squat');
+    expect(exercise.description, 'Three second eccentric');
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
+  });
+
+  test('edit definition failure reloads a successful rename before error',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      updateDefinitionError: Exception('network down'),
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isFalse,
+    );
+
+    expect(controller.state.exercises.single.displayName, 'Tempo Squat');
+    expect(
+      controller.state.actionError,
+      'Could not update exercise. Please try again.',
+    );
+  });
+
   test('rename updates the active item and preserves canonical metadata',
       () async {
     final original = Exercise(
@@ -305,6 +398,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.createErrorAfterWrite,
     this.createGate,
     this.renameError,
+    this.updateDefinitionError,
     this.archiveError,
   }) : exercises = [...?exercises];
 
@@ -315,6 +409,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   Object? createErrorAfterWrite;
   Completer<void>? createGate;
   Object? renameError;
+  Object? updateDefinitionError;
   Object? archiveError;
   int listCalls = 0;
 
@@ -371,6 +466,8 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     required UserCreatedExerciseRef id,
     required UserExerciseDefinition definition,
   }) async {
+    final error = updateDefinitionError;
+    if (error != null) throw error;
     final index = exercises.indexWhere((exercise) => exercise.ref == id);
     if (index < 0) throw StateError('Exercise not found');
     final exercise = exercises[index];

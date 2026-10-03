@@ -75,6 +75,8 @@ List<RouteBase> _shellBranchChildRoutes(
             context.push(AppRoutes.workoutPrograms.path),
         onExercisesPressed: () =>
             context.push(AppRoutes.workoutExercises.path),
+        onCustomExercisesPressed: () =>
+            context.push(AppRoutes.workoutCustomExercises.path),
         onSearchPressed: () => context.push(
           Uri(
             path: AppRoutes.workoutExercises.path,
@@ -89,6 +91,15 @@ List<RouteBase> _shellBranchChildRoutes(
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ProgramsPage(
           repository: ref.watch(programRepositoryProvider),
+        ),
+      ),
+    ),
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutCustomExercises),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) => CustomExercisesPage(
+          repository: ref.watch(userExerciseRepositoryProvider),
         ),
       ),
     ),
