@@ -298,10 +298,16 @@ final class CustomExercisesController extends ChangeNotifier {
       _publish(CustomExercisesState.ready(exercises: updated));
       return true;
     } catch (error) {
+      final reconciled = await _reloadAfterWriteFailure();
       if (_disposed) return false;
+      if (reconciled != null &&
+          !reconciled.any((exercise) => exercise.ref == id)) {
+        _publish(CustomExercisesState.ready(exercises: reconciled));
+        return true;
+      }
       _publish(
         CustomExercisesState.ready(
-          exercises: current.exercises,
+          exercises: reconciled ?? current.exercises,
           actionError: _actionFailureMessage(
             error,
             fallback: 'Could not archive exercise. Please try again.',
