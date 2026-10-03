@@ -21,6 +21,8 @@ final class CustomExercisesController extends ChangeNotifier {
   var _loadVersion = 0;
   var _disposed = false;
   UserCreatedExerciseRef? _pendingCreateId;
+  String? _pendingCreateDisplayName;
+  UserExerciseDefinition? _pendingCreateDefinition;
 
   Future<void> load() async {
     if (_state.actionInProgress) return;
@@ -69,6 +71,16 @@ final class CustomExercisesController extends ChangeNotifier {
       return false;
     }
 
+    final normalizedName = displayName.trim();
+    final canRetryPending = _pendingCreateId != null &&
+        _pendingCreateDisplayName == normalizedName &&
+        _pendingCreateDefinition == definition;
+    if (!canRetryPending) {
+      _pendingCreateId = null;
+      _pendingCreateDisplayName = null;
+      _pendingCreateDefinition = null;
+    }
+
     late final UserCreatedExerciseRef id;
     try {
       id = _pendingCreateId ??
@@ -77,7 +89,11 @@ final class CustomExercisesController extends ChangeNotifier {
                 .map((exercise) => exercise.ref)
                 .whereType<UserCreatedExerciseRef>(),
           );
-      _pendingCreateId ??= id;
+      if (_pendingCreateId == null) {
+        _pendingCreateId = id;
+        _pendingCreateDisplayName = normalizedName;
+        _pendingCreateDefinition = definition;
+      }
     } catch (_) {
       _publish(
         CustomExercisesState.ready(
@@ -129,7 +145,7 @@ final class CustomExercisesController extends ChangeNotifier {
       );
       if (_disposed) return false;
       if (reconciled != null) {
-        _pendingCreateId = null;
+        _clearPendingCreate();
         _publish(CustomExercisesState.ready(exercises: reconciled));
         return true;
       }
@@ -418,6 +434,12 @@ final class CustomExercisesController extends ChangeNotifier {
       // still unknown so another retry cannot create a second Exercise.
     }
     return null;
+  }
+
+  void _clearPendingCreate() {
+    _pendingCreateId = null;
+    _pendingCreateDisplayName = null;
+    _pendingCreateDefinition = null;
   }
 
   bool _isSignInFailure(Object error) {
