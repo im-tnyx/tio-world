@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** None.
-**Next exact action:** run hosted exact-head CI through the PR, review failures if any, then wait for Codex review gate.
+**Current blocker:** Exact-head validation pending after the create-draft identity repair.
+**Next exact action:** run hosted exact-head Flutter CI on the current PR head, then re-run the Codex review gate and verify zero unresolved threads.
 
 ## 1. Discovery
 
@@ -72,9 +72,9 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Add create/edit form for approved W3D2 fields using Tio Core.
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
-- [ ] Update canonical Exercises/Library docs only for behavior actually delivered.
+- [x] Update canonical Exercises/Library docs only for behavior actually delivered.
 - [ ] Run exact-head hosted Flutter CI and Codex review before merge.
 
 ## 5. Validation / Exit
 
-No completion claim until exact-head tests/CI and review are verified. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions must remain unchanged in source/diff audit.
+No completion claim until exact-head tests/CI and review are verified. Flutter CI run #2910 failed on the prior head because the edited retry generated a second Exercise ID; the current repair scopes pending create identity to one editor draft and adds focused same-draft/new-draft regression coverage. This repair is not validated until a newer exact-head run passes. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions must remain unchanged in source/diff audit.
