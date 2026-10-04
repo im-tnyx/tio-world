@@ -293,43 +293,73 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
 
     final customReady = customState?.status == CustomExercisesStatus.ready;
     final customHasAny = customReady && customState!.exercises.isNotEmpty;
-    final hasAny = catalogState.hasActiveExercises || customHasAny;
-
-    if (catalogState.status == ExercisesStatus.loading && !customHasAny) {
-      return const Center(
-        key: ValueKey('exercises-loading'),
-        child: CircularProgressIndicator(
-          semanticsLabel: ExercisesPage.loadingLabel,
-        ),
-      );
-    }
-
+    final catalogItems = catalogState.status == ExercisesStatus.ready
+        ? catalogState.items
+        : const <ExerciseListItem>[];
+    final hasMatchingItems =
+        customItems.isNotEmpty || catalogItems.isNotEmpty;
+    final anySourceLoading =
+        catalogState.status == ExercisesStatus.loading ||
+        customState?.status == CustomExercisesStatus.loading;
     final catalogFailureMessage = switch (catalogState.status) {
       ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
       ExercisesStatus.malformedCatalog => ExercisesPage.malformedCatalogMessage,
       ExercisesStatus.failed => ExercisesPage.failedMessage,
       _ => null,
     };
+    final customFailureMessage =
+        customState?.status == CustomExercisesStatus.loadFailed
+            ? customState?.loadError ??
+                'Could not load custom exercises. Please try again.'
+            : null;
 
-    if (catalogFailureMessage != null && customItems.isEmpty && !customHasAny) {
-      return _Message(
-        key: ValueKey('exercises-${catalogState.status.name}'),
-        text: catalogFailureMessage,
-      );
-    }
+    if (!hasMatchingItems) {
+      // A unified no-match/empty claim is valid only after every participating
+      // source has resolved. A Custom read may still produce the matching row.
+      if (anySourceLoading) {
+        return const Center(
+          key: ValueKey('exercises-loading'),
+          child: CircularProgressIndicator(
+            semanticsLabel: ExercisesPage.loadingLabel,
+          ),
+        );
+      }
 
-    if (catalogState.status == ExercisesStatus.ready && !hasAny) {
-      return const _Message(
-        key: ValueKey('exercises-empty'),
-        text: ExercisesPage.emptyCatalogMessage,
-      );
-    }
+      if (customFailureMessage != null && catalogFailureMessage != null) {
+        return _ExerciseList(
+          customItems: const [],
+          catalogItems: const [],
+          onCustomTap: _openCustomEditor,
+          customFailure: customFailureMessage,
+          onRetryCustom: _customController?.retryLoad,
+          catalogMessage: catalogFailureMessage,
+        );
+      }
 
-    final catalogItems = catalogState.status == ExercisesStatus.ready
-        ? catalogState.items
-        : const <ExerciseListItem>[];
+      if (customFailureMessage != null) {
+        return _Failure(
+          key: const ValueKey('custom-exercises-load-failure'),
+          message: customFailureMessage,
+          onRetry: _customController!.retryLoad,
+        );
+      }
 
-    if (hasAny && customItems.isEmpty && catalogItems.isEmpty) {
+      if (catalogFailureMessage != null) {
+        return _Message(
+          key: ValueKey('exercises-${catalogState.status.name}'),
+          text: catalogFailureMessage,
+        );
+      }
+
+      final hasAnyExercise =
+          catalogState.hasActiveExercises || customHasAny;
+      if (!hasAnyExercise) {
+        return const _Message(
+          key: ValueKey('exercises-empty'),
+          text: ExercisesPage.emptyCatalogMessage,
+        );
+      }
+
       return const _Message(
         key: ValueKey('exercises-no-match'),
         text: ExercisesPage.noMatchMessage,
@@ -340,10 +370,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
       customItems: customItems,
       catalogItems: catalogItems,
       onCustomTap: _openCustomEditor,
-      customFailure: customState?.status == CustomExercisesStatus.loadFailed
-          ? customState?.loadError ??
-              'Could not load custom exercises. Please try again.'
-          : null,
+      customFailure: customFailureMessage,
       onRetryCustom: _customController?.retryLoad,
       catalogMessage: catalogFailureMessage,
     );
