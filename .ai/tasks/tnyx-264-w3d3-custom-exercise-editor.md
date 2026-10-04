@@ -10,9 +10,9 @@
 **Approval status:** Approved.
 **Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction.
 
-**Approved visible/data scope:** A real user-owned Custom Exercises collection plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. The editor interaction must follow the owner-approved TNYX-264 direction: Exercise Type uses a Tio-owned single-select list with its capability-hint tags; Primary muscle is selected through derived Body Part grouping then a single muscle; Secondary muscles use the complete canonical muscle set as multi-select; Equipment is single-select. Body Part and capability tags are presentation-only and are never persisted. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
+**Approved visible/data scope:** User-created Exercises composed into the canonical Exercises capability plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. The editor interaction must follow the owner-approved TNYX-264 direction: Exercise Type uses a Tio-owned single-select list with its capability-hint tags; Primary muscle is selected through derived Body Part grouping then a single muscle; Secondary muscles use the complete canonical muscle set as multi-select; Equipment is single-select. Body Part and capability tags are presentation-only and are never persisted. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
 
-**Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth.
+**Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth. A separate user-facing Custom Exercises collection is no longer a target.
 
 ## Active Handoff
 
@@ -22,16 +22,17 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** Primary muscle is the only active UI sub-slice. The owner-approved Body Part → muscle interaction is implemented and regression-covered, but the exact full Body Part → 44-muscle membership is not frozen anywhere canonical yet; do not treat an inferred anatomy map as product truth. Exercise Type, Secondary muscles, Equipment and Asset remain on hold until this Primary-muscle decision/evidence is reconciled.
+**Current blocker:** Primary muscle is the only active UI sub-slice. Owner correction on 2026-10-04 also supersedes the earlier separate Custom Exercises collection UI: final presentation must compose catalog + user-created Exercises on the canonical Exercises screen with a `Custom` badge/tag. The owner-approved Body Part → muscle interaction is implemented and regression-covered, but the exact full Body Part → 44-muscle membership is not frozen anywhere canonical yet; do not treat an inferred anatomy map as product truth. Exercise Type, Secondary muscles, Equipment and Asset remain on hold until this Primary-muscle decision/evidence is reconciled.
 **Next exact action:** finish the Primary-muscle sub-slice only: reconcile/freeze the exact Body Part → muscle presentation map, keep Body Part presentation-only, validate the body-part-first widget flow on exact head, then move to the next selector one at a time.
 
 ## 1. Discovery
 
 ### User Outcome
-Users can see their active Custom Exercises, create a complete structured definition, edit that definition later, and archive an Exercise without creating a second domain model.
+Users see user-created Exercises on the same canonical Exercises screen as catalog Exercises, distinguished by a `Custom` badge/tag; they can create a complete structured definition, edit that definition later, and archive an Exercise without creating a second domain model.
 
 ### Success Criteria
-- Custom list reads active user Exercises through the existing repository/controller boundary.
+- The canonical `/workout/exercises` screen composes catalog Exercises and active user-created Exercises in one presentation surface; Custom rows carry a `Custom` badge/tag instead of living behind a separate collection screen.
+- A Custom-focused entry may open the same canonical Exercises surface in a Custom-focused/filter state; it must not introduce a second user-facing collection truth.
 - Create writes name + one atomic `UserExerciseDefinition` with a stable UUID.
 - Edit preserves identity/owner/lineage/lifecycle while updating name and definition.
 - Primary/secondary muscle validation remains domain-owned; UI cannot persist duplicate secondary or primary overlap.
@@ -55,7 +56,8 @@ Verified on 2026-10-01:
 
 ```text
 App route/composition
-  -> Workout feature CustomExercisesPage / CustomExerciseEditorPage
+  -> canonical Workout ExercisesPage (catalog + user-created composition)
+    -> CustomExerciseEditorPage for create/edit
     -> CustomExercisesController
       -> UserExerciseRepository
         -> SupabaseUserExerciseRepository
@@ -68,7 +70,8 @@ Feature widgets render state and emit intent only. The controller owns write seq
 
 - [x] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
 - [x] Add provider/composition seam for nullable durable repository.
-- [x] Add active Custom Exercises collection with loading/failure/empty/action states.
+- [ ] Replace the separate user-facing Custom Exercises collection with unified composition on canonical `/workout/exercises`; Custom rows show a `Custom` badge/tag and remain normal canonical `Exercise` items.
+- [ ] Custom-focused navigation must reuse `/workout/exercises` presentation state instead of maintaining a separate collection route/screen.
 - [ ] Primary muscle sub-slice: Body Part → Primary muscle single-select; exact full grouping still needs canonical reconciliation before validation.
 - [ ] Exercise Type sub-slice: Tio-owned single-select list with capability hints.
 - [ ] Secondary muscle sub-slice: full canonical muscle list, multi-select, excluding Primary.
