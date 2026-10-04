@@ -554,6 +554,58 @@ void main() {
       expect(find.text('Create Exercise'), findsWidgets);
     });
 
+    _testWidgets(
+        'does not claim no-match while the Custom source is still loading',
+        (tester) async {
+      final gate = Completer<void>();
+      final userRepository = _FakeUserExerciseRepository(
+        [_customExercise(1, 'Late Custom Match')],
+        loadGate: gate,
+      );
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await _search(tester, 'late custom');
+
+      expect(
+        find.byKey(const ValueKey('exercises-loading')),
+        findsOneWidget,
+      );
+      expect(_message(ExercisesPage.noMatchMessage), findsNothing);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(find.text('Late Custom Match'), findsOneWidget);
+    });
+
+    _testWidgets(
+        'shows Custom load failure instead of an empty unified claim',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository(
+        const [],
+        loadError: StateError('custom read failed'),
+      );
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(
+          catalog: ExerciseCatalog(const []),
+        ),
+        userExerciseRepository: userRepository,
+      );
+
+      expect(
+        find.byKey(const ValueKey('custom-exercises-load-failure')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('custom read failed'), findsOneWidget);
+      expect(_message(ExercisesPage.emptyCatalogMessage), findsNothing);
+    });
+
     _testWidgets('Custom equipment contributes to the shared filter surface',
         (tester) async {
       final userRepository = _FakeUserExerciseRepository([
@@ -871,19 +923,27 @@ Exercise _customExercise(
     );
 
 final class _FakeUserExerciseRepository implements UserExerciseRepository {
-  _FakeUserExerciseRepository(List<Exercise> exercises)
-      : exercises = [...exercises];
+  _FakeUserExerciseRepository(
+    List<Exercise> exercises, {
+    this.loadGate,
+    this.loadError,
+  }) : exercises = [...exercises];
 
   final List<Exercise> exercises;
+  final Completer<void>? loadGate;
+  final Object? loadError;
 
   @override
-  Future<List<Exercise>> list({bool includeArchived = false}) async =>
-      List<Exercise>.unmodifiable(
-        exercises.where(
-          (exercise) =>
-              includeArchived || exercise.status == ExerciseStatus.active,
-        ),
-      );
+  Future<List<Exercise>> list({bool includeArchived = false}) async {
+    await loadGate?.future;
+    if (loadError case final error?) throw error;
+    return List<Exercise>.unmodifiable(
+      exercises.where(
+        (exercise) =>
+            includeArchived || exercise.status == ExerciseStatus.active,
+      ),
+    );
+  }
 
   @override
   Future<void> create({
