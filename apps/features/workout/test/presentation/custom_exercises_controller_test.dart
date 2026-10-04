@@ -271,7 +271,7 @@ void main() {
     expect(exercise.primaryEquipment, 'barbell');
   });
 
-  test('edit reconciles name and structured definition from durable state',
+  test('edit applies successful writes without a post-write list reload',
       () async {
     final repository = _FakeUserExerciseRepository(
       exercises: [_exercise(1, 'Paused Squat')],
@@ -301,6 +301,7 @@ void main() {
     expect(exercise.description, 'Three second eccentric');
     expect(exercise.primaryMuscles, const ['quadriceps']);
     expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
+    expect(repository.listCalls, 1);
   });
 
   test('edit definition failure reloads a successful rename before error',
