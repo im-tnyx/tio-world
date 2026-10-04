@@ -216,7 +216,10 @@ final class CustomExercisesController extends ChangeNotifier {
         return true;
       }
       _publish(CustomExercisesState.ready(
-        exercises: reconciled ?? current.exercises,
+        exercises: _safeReconciledExercises(
+          reconciled,
+          fallback: current.exercises,
+        ),
         actionError: _actionFailureMessage(
           error,
           fallback: 'Could not update exercise. Please try again.',
@@ -324,13 +327,17 @@ final class CustomExercisesController extends ChangeNotifier {
       if (_disposed) return false;
       if (!isSignInFailure &&
           reconciled != null &&
+          reconciled.isNotEmpty &&
           !reconciled.any((exercise) => exercise.ref == id)) {
         _publish(CustomExercisesState.ready(exercises: reconciled));
         return true;
       }
       _publish(
         CustomExercisesState.ready(
-          exercises: reconciled ?? current.exercises,
+          exercises: _safeReconciledExercises(
+            reconciled,
+            fallback: current.exercises,
+          ),
           actionError: _actionFailureMessage(
             error,
             fallback: 'Could not archive exercise. Please try again.',
@@ -364,6 +371,19 @@ final class CustomExercisesController extends ChangeNotifier {
       }
     }
     return false;
+  }
+
+  List<Exercise> _safeReconciledExercises(
+    List<Exercise>? reconciled, {
+    required List<Exercise> fallback,
+  }) {
+    // Supabase list() intentionally returns [] while signed out. During
+    // ambiguous write reconciliation an empty read therefore cannot prove
+    // that the user's active collection is actually empty. Preserve the last
+    // authenticated/loaded state until a non-empty durable read or a later
+    // normal load can establish the truth.
+    if (reconciled == null || reconciled.isEmpty) return fallback;
+    return reconciled;
   }
 
   Future<List<Exercise>?> _reloadAfterWriteFailure() async {
