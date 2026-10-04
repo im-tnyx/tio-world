@@ -50,7 +50,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final created = await controller.create('Paused Squat');
+    final created = await controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
 
     expect(created, isTrue);
     expect(repository.attemptedCreateIds, [_id(1)]);
@@ -69,7 +72,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final createFuture = controller.create('Paused Squat');
+    final createFuture = controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
     expect(controller.state.actionInProgress, isTrue);
 
     await controller.load();
@@ -93,7 +99,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    expect(await controller.create('   '), isFalse);
+    expect(
+      await controller.create('   ', draftIdentity: Object()),
+      isFalse,
+    );
 
     expect(repository.attemptedCreateIds, isEmpty);
     expect(controller.state.actionError, 'Enter an exercise name.');
@@ -110,7 +119,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final created = await controller.create('Paused Squat');
+    final created = await controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
 
     expect(created, isTrue);
     expect(repository.attemptedCreateIds, [_id(1)]);
@@ -131,9 +143,22 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    expect(await controller.create('Paused Squat'), isFalse);
+    final draftIdentity = Object();
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isFalse,
+    );
     repository.createError = null;
-    expect(await controller.create('Paused Squat'), isTrue);
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isTrue,
+    );
 
     expect(repository.attemptedCreateIds, [_id(1), _id(1)]);
     expect(repository.exercises, [_exercise(1, 'Paused Squat')]);
@@ -151,17 +176,66 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
+    final draftIdentity = Object();
     repository.loadFailuresRemaining = 1;
-    expect(await controller.create('Paused Squat'), isFalse);
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isFalse,
+    );
 
     repository.createErrorAfterWrite = null;
-    expect(await controller.create('Tempo Squat'), isTrue);
+    expect(
+      await controller.create(
+        'Tempo Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isTrue,
+    );
 
     expect(repository.attemptedCreateIds, [_id(1), _id(1)]);
     expect(repository.exercises, [_exercise(1, 'Tempo Squat')]);
     expect(controller.state.exercises, [_exercise(1, 'Tempo Squat')]);
   });
 
+
+  test('new draft after unresolved create uses a fresh Exercise id', () async {
+    final repository = _FakeUserExerciseRepository(
+      createErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1), _id(2)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    repository.loadFailuresRemaining = 1;
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: Object(),
+      ),
+      isFalse,
+    );
+
+    repository.createErrorAfterWrite = null;
+    expect(
+      await controller.create(
+        'Tempo Squat',
+        draftIdentity: Object(),
+      ),
+      isTrue,
+    );
+
+    expect(repository.attemptedCreateIds, [_id(1), _id(2)]);
+    expect(
+      repository.exercises.map((exercise) => exercise.displayName),
+      ['Paused Squat', 'Tempo Squat'],
+    );
+  });
 
   test('structured create publishes the persisted definition', () async {
     final repository = _FakeUserExerciseRepository();
@@ -180,7 +254,11 @@ void main() {
       primaryEquipment: 'barbell',
     );
     expect(
-      await controller.create('Paused Squat', definition: definition),
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: Object(),
+        definition: definition,
+      ),
       isTrue,
     );
 
