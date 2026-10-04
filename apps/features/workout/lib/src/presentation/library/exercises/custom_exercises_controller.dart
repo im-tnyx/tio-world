@@ -21,8 +21,7 @@ final class CustomExercisesController extends ChangeNotifier {
   var _loadVersion = 0;
   var _disposed = false;
   UserCreatedExerciseRef? _pendingCreateId;
-  String? _pendingCreateDisplayName;
-  UserExerciseDefinition? _pendingCreateDefinition;
+  Object? _pendingCreateDraftIdentity;
 
   Future<void> load() async {
     if (_state.actionInProgress) return;
@@ -36,7 +35,7 @@ final class CustomExercisesController extends ChangeNotifier {
       final pendingId = _pendingCreateId;
       if (pendingId != null &&
           exercises.any((exercise) => exercise.ref == pendingId)) {
-        _pendingCreateId = null;
+        _clearPendingCreate();
       }
       _publish(CustomExercisesState.ready(exercises: exercises));
     } catch (_) {
@@ -53,6 +52,7 @@ final class CustomExercisesController extends ChangeNotifier {
 
   Future<bool> create(
     String displayName, {
+    required Object draftIdentity,
     UserExerciseDefinition? definition,
   }) async {
     final current = _state;
@@ -71,14 +71,10 @@ final class CustomExercisesController extends ChangeNotifier {
       return false;
     }
 
-    final normalizedName = displayName.trim();
     final canRetryPending = _pendingCreateId != null &&
-        _pendingCreateDisplayName == normalizedName &&
-        _pendingCreateDefinition == definition;
+        identical(_pendingCreateDraftIdentity, draftIdentity);
     if (!canRetryPending) {
-      _pendingCreateId = null;
-      _pendingCreateDisplayName = null;
-      _pendingCreateDefinition = null;
+      _clearPendingCreate();
     }
 
     late final UserCreatedExerciseRef id;
@@ -91,8 +87,7 @@ final class CustomExercisesController extends ChangeNotifier {
           );
       if (_pendingCreateId == null) {
         _pendingCreateId = id;
-        _pendingCreateDisplayName = normalizedName;
-        _pendingCreateDefinition = definition;
+        _pendingCreateDraftIdentity = draftIdentity;
       }
     } catch (_) {
       _publish(
@@ -438,8 +433,7 @@ final class CustomExercisesController extends ChangeNotifier {
 
   void _clearPendingCreate() {
     _pendingCreateId = null;
-    _pendingCreateDisplayName = null;
-    _pendingCreateDefinition = null;
+    _pendingCreateDraftIdentity = null;
   }
 
   bool _isSignInFailure(Object error) {
