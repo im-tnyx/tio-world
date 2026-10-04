@@ -1,23 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/user_exercise_repository.dart';
+import 'custom_exercise_editor_page.dart';
+import 'custom_exercises_controller.dart';
+import 'custom_exercises_state.dart';
+import 'exercise_taxonomy_labels.dart';
 import 'exercises_controller.dart';
 import 'exercises_providers.dart';
 import 'exercises_state.dart';
 import 'widgets/exercise_filter_sheet.dart';
 import 'widgets/exercise_list_row.dart';
 
-/// Dedicated Exercises screen: search, filter and browse the built-in
-/// catalog.
+/// Canonical Exercises screen.
 ///
-/// Renders [ExercisesController] state and forwards user intent to it; it
-/// never reads the catalog or its JSON itself.
-class ExercisesPage extends ConsumerWidget {
-  const ExercisesPage({super.key, this.startSearching = false});
+/// Bundled and user-created Exercises compose here; a user-created row remains
+/// a canonical [Exercise] and is distinguished only by presentation metadata.
+class ExercisesPage extends ConsumerStatefulWidget {
+  const ExercisesPage({
+    super.key,
+    this.startSearching = false,
+    this.userExerciseRepository,
+    this.customOnly = false,
+  });
 
   /// Opens with the top-bar search field active and focused.
   final bool startSearching;
+
+  /// Durable user-created Exercise source supplied by app composition.
+  ///
+  /// Null keeps the catalog fully usable while create/edit capability fails
+  /// closed instead of reporting in-memory success.
+  final UserExerciseRepository? userExerciseRepository;
+
+  /// Focuses the same canonical screen to user-created rows only.
+  final bool customOnly;
 
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
@@ -29,12 +48,107 @@ class ExercisesPage extends ConsumerWidget {
   static const failedMessage = 'Could not load exercises.';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExercisesPage> createState() => _ExercisesPageState();
+}
+
+class _ExercisesPageState extends ConsumerState<ExercisesPage> {
+  CustomExercisesController? _customController;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindCustomController();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExercisesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(
+      oldWidget.userExerciseRepository,
+      widget.userExerciseRepository,
+    )) {
+      _bindCustomController();
+    }
+  }
+
+  void _bindCustomController() {
+    _customController?.removeListener(_onCustomChanged);
+    _customController?.dispose();
+
+    final repository = widget.userExerciseRepository;
+    if (repository == null) {
+      _customController = null;
+      return;
+    }
+
+    final controller = CustomExercisesController(repository: repository);
+    _customController = controller;
+    controller.addListener(_onCustomChanged);
+    controller.load();
+  }
+
+  void _onCustomChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _customController?.removeListener(_onCustomChanged);
+    _customController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCustomEditor([Exercise? exercise]) async {
+    final controller = _customController;
+    if (controller == null ||
+        controller.state.status != CustomExercisesStatus.ready ||
+        controller.state.actionInProgress) {
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CustomExerciseEditorPage(
+          controller: controller,
+          exercise: exercise,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final controller = ref.watch(exercisesControllerProvider(startSearching));
-    final state = controller.state;
-    final canBrowse =
-        state.status == ExercisesStatus.ready && state.hasActiveExercises;
+    final catalogController =
+        ref.watch(exercisesControllerProvider(widget.startSearching));
+    final catalogState = catalogController.state;
+    final customState = _customController?.state;
+    final customExercises = customState?.status == CustomExercisesStatus.ready
+        ? customState!.exercises
+        : const <Exercise>[];
+    final filteredCustom = [
+      for (final exercise in customExercises)
+        if (catalogState.query.matches(exercise)) exercise,
+    ];
+    final customItems = [
+      for (final exercise in filteredCustom)
+        ExerciseListItem(
+          exercise: exercise,
+          thumbnailUrl: null,
+          metadata: _customMetadataFor(exercise),
+          isCustom: true,
+        ),
+    ];
+    final hasCustomExercises = customExercises.isNotEmpty;
+    final canBrowse = widget.customOnly
+        ? hasCustomExercises
+        : catalogState.hasActiveExercises || hasCustomExercises;
+    final filterState = _withCustomFilterOptions(
+      catalogState,
+      customExercises,
+    );
+    final canCreate = customState?.status == CustomExercisesStatus.ready &&
+        !(customState?.actionInProgress ?? true);
 
     return Scaffold(
       key: const ValueKey('exercises-page'),
@@ -44,13 +158,12 @@ class ExercisesPage extends ConsumerWidget {
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
-        title: state.isSearching
+        title: catalogState.isSearching
             ? TioInput(
                 key: const ValueKey('exercises-search'),
                 hint: 'Search exercises',
-                value: state.query.text,
+                value: catalogState.query.text,
                 autofocus: true,
-                // Compact enough to sit inside the standard top bar.
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: TioInputTokens.horizontalPadding,
                   vertical: TioSpacing.sm,
@@ -59,7 +172,7 @@ class ExercisesPage extends ConsumerWidget {
                     Icon(Icons.search_rounded, color: colors.textSecondary),
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.search,
-                onChanged: controller.setSearchText,
+                onChanged: catalogController.setSearchText,
               )
             : Text(
                 'Exercises',
@@ -69,38 +182,56 @@ class ExercisesPage extends ConsumerWidget {
                   fontSize: TioFontSize.size20,
                 ),
               ),
-        actions: state.isSearching
+        actions: catalogState.isSearching
             ? [
                 IconButton(
                   key: const ValueKey('exercises-search-close'),
                   tooltip: 'Close search',
                   color: colors.textPrimary,
-                  onPressed: controller.closeSearch,
+                  onPressed: catalogController.closeSearch,
                   icon: const Icon(Icons.close_rounded),
                 ),
               ]
             : [
+                if (widget.userExerciseRepository != null)
+                  IconButton(
+                    key: const ValueKey('custom-exercise-create'),
+                    tooltip: 'Create custom exercise',
+                    color: colors.textPrimary,
+                    onPressed: canCreate ? () => _openCustomEditor() : null,
+                    icon: const Icon(Icons.add_rounded),
+                  ),
                 IconButton(
                   key: const ValueKey('exercises-search-open'),
                   tooltip: 'Search exercises',
                   color: colors.textPrimary,
-                  onPressed: canBrowse ? controller.openSearch : null,
+                  onPressed: canBrowse ? catalogController.openSearch : null,
                   icon: const Icon(Icons.search_rounded),
                 ),
                 IconButton(
                   key: const ValueKey('exercises-filter'),
-                  tooltip: _filterSemanticLabel(state.activeFilterCount),
-                  color: state.activeFilterCount > 0
+                  tooltip: _filterSemanticLabel(catalogState.activeFilterCount),
+                  color: catalogState.activeFilterCount > 0
                       ? colors.primary
                       : colors.textPrimary,
                   onPressed: canBrowse
-                      ? () => _openFilters(context, controller)
+                      ? () => _openFilters(
+                            context,
+                            catalogController,
+                            filterState,
+                          )
                       : null,
                   icon: const Icon(Icons.filter_list),
                 ),
               ],
       ),
-      body: SafeArea(child: _body(state)),
+      body: SafeArea(
+        child: _body(
+          catalogState: catalogState,
+          customState: customState,
+          customItems: customItems,
+        ),
+      ),
     );
   }
 
@@ -113,10 +244,11 @@ class ExercisesPage extends ConsumerWidget {
   Future<void> _openFilters(
     BuildContext context,
     ExercisesController controller,
+    ExercisesState state,
   ) async {
     final selection = await showExerciseFilterSheet(
       context: context,
-      state: controller.state,
+      state: state,
     );
     if (selection == null) return;
     controller.applyFilters(
@@ -126,73 +258,366 @@ class ExercisesPage extends ConsumerWidget {
     );
   }
 
-  Widget _body(ExercisesState state) {
-    switch (state.status) {
-      case ExercisesStatus.loading:
-        return const Center(
-          key: ValueKey('exercises-loading'),
-          child: CircularProgressIndicator(semanticsLabel: loadingLabel),
-        );
-      case ExercisesStatus.missingCatalog:
+  Widget _body({
+    required ExercisesState catalogState,
+    required CustomExercisesState? customState,
+    required List<ExerciseListItem> customItems,
+  }) {
+    if (widget.customOnly) {
+      final controller = _customController;
+      if (controller == null) {
         return const _Message(
-          key: ValueKey('exercises-missing-catalog'),
-          text: missingCatalogMessage,
+          key: ValueKey('custom-exercises-unavailable'),
+          text: 'Custom Exercises are unavailable right now.',
         );
-      case ExercisesStatus.malformedCatalog:
-        return const _Message(
-          key: ValueKey('exercises-malformed-catalog'),
-          text: malformedCatalogMessage,
-        );
-      case ExercisesStatus.failed:
-        return const _Message(
-          key: ValueKey('exercises-failed'),
-          text: failedMessage,
-        );
-      case ExercisesStatus.ready:
-        if (state.isEmptyCatalog) {
-          return const _Message(
-            key: ValueKey('exercises-empty'),
-            text: emptyCatalogMessage,
-          );
-        }
-        if (state.isNoMatch) {
-          return const _Message(
-            key: ValueKey('exercises-no-match'),
-            text: noMatchMessage,
-          );
-        }
-        return _ExerciseList(items: state.items);
+      }
+      return switch (customState!.status) {
+        CustomExercisesStatus.loading => const Center(
+            key: ValueKey('custom-exercises-loading'),
+            child: CircularProgressIndicator(
+              semanticsLabel: 'Loading custom exercises',
+            ),
+          ),
+        CustomExercisesStatus.loadFailed => _Failure(
+            key: const ValueKey('custom-exercises-load-failure'),
+            message: customState.loadError ??
+                'Could not load custom exercises. Please try again.',
+            onRetry: controller.retryLoad,
+          ),
+        CustomExercisesStatus.ready => _customOnlyReady(
+            catalogState,
+            customState,
+            customItems,
+          ),
+      };
     }
+
+    final customReady = customState?.status == CustomExercisesStatus.ready;
+    final customHasAny = customReady && customState!.exercises.isNotEmpty;
+    final hasAny = catalogState.hasActiveExercises || customHasAny;
+
+    if (catalogState.status == ExercisesStatus.loading && !customHasAny) {
+      return const Center(
+        key: ValueKey('exercises-loading'),
+        child: CircularProgressIndicator(
+          semanticsLabel: ExercisesPage.loadingLabel,
+        ),
+      );
+    }
+
+    final catalogFailureMessage = switch (catalogState.status) {
+      ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
+      ExercisesStatus.malformedCatalog => ExercisesPage.malformedCatalogMessage,
+      ExercisesStatus.failed => ExercisesPage.failedMessage,
+      _ => null,
+    };
+
+    if (catalogFailureMessage != null && customItems.isEmpty && !customHasAny) {
+      return _Message(
+        key: ValueKey('exercises-${catalogState.status.name}'),
+        text: catalogFailureMessage,
+      );
+    }
+
+    if (catalogState.status == ExercisesStatus.ready && !hasAny) {
+      return const _Message(
+        key: ValueKey('exercises-empty'),
+        text: ExercisesPage.emptyCatalogMessage,
+      );
+    }
+
+    final catalogItems = catalogState.status == ExercisesStatus.ready
+        ? catalogState.items
+        : const <ExerciseListItem>[];
+
+    if (hasAny && customItems.isEmpty && catalogItems.isEmpty) {
+      return const _Message(
+        key: ValueKey('exercises-no-match'),
+        text: ExercisesPage.noMatchMessage,
+      );
+    }
+
+    return _ExerciseList(
+      customItems: customItems,
+      catalogItems: catalogItems,
+      onCustomTap: _openCustomEditor,
+      customFailure: customState?.status == CustomExercisesStatus.loadFailed
+          ? customState?.loadError ??
+              'Could not load custom exercises. Please try again.'
+          : null,
+      onRetryCustom: _customController?.retryLoad,
+      catalogMessage: catalogFailureMessage,
+    );
+  }
+
+  Widget _customOnlyReady(
+    ExercisesState catalogState,
+    CustomExercisesState customState,
+    List<ExerciseListItem> customItems,
+  ) {
+    if (customState.exercises.isEmpty) {
+      return _CustomEmpty(onCreate: () => _openCustomEditor());
+    }
+    if (customItems.isEmpty) {
+      return const _Message(
+        key: ValueKey('exercises-no-match'),
+        text: ExercisesPage.noMatchMessage,
+      );
+    }
+    return _ExerciseList(
+      customItems: customItems,
+      catalogItems: const [],
+      onCustomTap: _openCustomEditor,
+      customOnly: true,
+    );
+  }
+
+  static String? _customMetadataFor(Exercise exercise) {
+    final parts = [
+      if (exercise.primaryEquipment case final equipment?)
+        exerciseTaxonomyLabel(equipment),
+      if (exercise.primaryMuscles.isNotEmpty)
+        exerciseTaxonomyLabel(exercise.primaryMuscles.first),
+    ];
+    return parts.isEmpty ? null : parts.join(' • ');
+  }
+
+  static ExercisesState _withCustomFilterOptions(
+    ExercisesState state,
+    List<Exercise> customExercises,
+  ) {
+    final equipment = <String, ExerciseFilterOption>{
+      for (final option
+          in state.optionsFor(ExerciseFilterDimension.equipment))
+        option.value: option,
+      for (final exercise in customExercises)
+        if (exercise.primaryEquipment case final value?)
+          value: ExerciseFilterOption(
+            value: value,
+            label: exerciseTaxonomyLabel(value),
+          ),
+    };
+    final equipmentOptions = equipment.values.toList()
+      ..sort((a, b) {
+        final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+        return byLabel != 0 ? byLabel : a.value.compareTo(b.value);
+      });
+
+    return ExercisesState(
+      status: state.status,
+      query: state.query,
+      items: state.items,
+      hasActiveExercises:
+          state.hasActiveExercises || customExercises.isNotEmpty,
+      filterOptions: {
+        ...state.filterOptions,
+        ExerciseFilterDimension.equipment:
+            List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
+      },
+      isSearching: state.isSearching,
+    );
   }
 }
 
 class _ExerciseList extends StatelessWidget {
-  const _ExerciseList({required this.items});
+  const _ExerciseList({
+    required this.customItems,
+    required this.catalogItems,
+    required this.onCustomTap,
+    this.customOnly = false,
+    this.customFailure,
+    this.onRetryCustom,
+    this.catalogMessage,
+  });
 
-  final List<ExerciseListItem> items;
+  final List<ExerciseListItem> customItems;
+  final List<ExerciseListItem> catalogItems;
+  final ValueChanged<Exercise> onCustomTap;
+  final bool customOnly;
+  final String? customFailure;
+  final VoidCallback? onRetryCustom;
+  final String? catalogMessage;
 
   @override
   Widget build(BuildContext context) {
     final dividerColor =
         context.tioColors.outlineStrong.withAlpha(TioAlpha.alpha20);
 
-    return ListView.separated(
+    Widget divider() => Divider(
+          height: TioStroke.width1,
+          thickness: TioStroke.width1,
+          indent: TioSpacing.lg,
+          endIndent: TioSpacing.lg,
+          color: dividerColor,
+        );
+
+    final children = <Widget>[
+      if (customFailure case final message?)
+        _InlineFailure(
+          message: message,
+          onRetry: onRetryCustom,
+        ),
+      if (customItems.isNotEmpty) ...[
+        const _SectionHeader(
+          key: ValueKey('custom-exercises-section'),
+          label: 'Custom Exercises',
+        ),
+        for (var i = 0; i < customItems.length; i++) ...[
+          ExerciseListRow(
+            key: ValueKey(
+              'exercise-row-${customItems[i].exercise.ref.value}',
+            ),
+            item: customItems[i],
+            onTap: () => onCustomTap(customItems[i].exercise),
+          ),
+          if (i != customItems.length - 1) divider(),
+        ],
+      ],
+      if (!customOnly && catalogItems.isNotEmpty) ...[
+        const _SectionHeader(
+          key: ValueKey('all-exercises-section'),
+          label: 'All Exercises',
+        ),
+        for (var i = 0; i < catalogItems.length; i++) ...[
+          ExerciseListRow(
+            key: ValueKey(
+              'exercise-row-${catalogItems[i].exercise.ref.value}',
+            ),
+            item: catalogItems[i],
+          ),
+          if (i != catalogItems.length - 1) divider(),
+        ],
+      ],
+      if (catalogMessage case final message?)
+        _InlineMessage(text: message),
+    ];
+
+    return ListView(
       key: const ValueKey('exercises-list'),
       padding: const EdgeInsets.only(bottom: TioSpacing.lg),
-      itemCount: items.length,
-      itemBuilder: (context, index) => ExerciseListRow(
-        key: ValueKey('exercise-row-${items[index].exercise.ref.value}'),
-        item: items[index],
-      ),
-      separatorBuilder: (context, index) => Divider(
-        height: TioStroke.width1,
-        thickness: TioStroke.width1,
-        indent: TioSpacing.lg,
-        endIndent: TioSpacing.lg,
-        color: dividerColor,
-      ),
+      children: children,
     );
   }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label, super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(
+          TioSpacing.lg,
+          TioSpacing.lg,
+          TioSpacing.lg,
+          TioSpacing.sm,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: context.tioColors.textSecondary,
+            fontSize: TioFontSize.size14,
+            fontWeight: TioFontWeight.w700,
+          ),
+        ),
+      );
+}
+
+class _InlineFailure extends StatelessWidget {
+  const _InlineFailure({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(TioSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            if (onRetry != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              TioButton.secondary(
+                label: 'Try again',
+                onPressed: onRetry,
+              ),
+            ],
+          ],
+        ),
+      );
+}
+
+class _InlineMessage extends StatelessWidget {
+  const _InlineMessage({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(TioSpacing.lg),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.tioColors.textSecondary,
+            fontSize: TioFontSize.size14,
+          ),
+        ),
+      );
+}
+
+class _CustomEmpty extends StatelessWidget {
+  const _CustomEmpty({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        key: const ValueKey('custom-exercises-empty'),
+        child: Padding(
+          padding: const EdgeInsets.all(TioSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('No custom exercises yet'),
+              const SizedBox(height: TioSpacing.lg),
+              TioButton.primary(
+                key: const ValueKey('custom-exercises-empty-create'),
+                label: 'Create Exercise',
+                onPressed: onCreate,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _Failure extends StatelessWidget {
+  const _Failure({
+    required this.message,
+    required this.onRetry,
+    super.key,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(TioSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: TioSpacing.lg),
+              TioButton.secondary(label: 'Try again', onPressed: onRetry),
+            ],
+          ),
+        ),
+      );
 }
 
 class _Message extends StatelessWidget {
