@@ -6,6 +6,7 @@ import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/calendar_preferences.dart';
+import 'package:tio_app/app/composition/workout_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/profile/exercise_media_gender.dart';
 import 'package:tio_app/app/router.dart';
@@ -245,6 +246,42 @@ void main() {
   });
 
   testWidgets(
+      'Library Custom Exercises entry reuses the canonical Exercises screen',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-custom-exercises-entry')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'exercise-row-10000000-0000-4000-8000-000000000001',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'exercise-custom-badge-10000000-0000-4000-8000-000000000001',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
+    expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
+  });
+
+  testWidgets(
       'opening Library leaves Workout Home and its chrome still while it '
       'slides in', (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -408,6 +445,7 @@ Future<(ProviderContainer, GoRouter)> _app(
         ),
       ),
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
+      userExerciseRepositoryProvider.overrideWithValue(_RouteUserExercises()),
     ],
   );
   addTearDown(container.dispose);
@@ -431,6 +469,52 @@ final class _RouteCatalog implements ExerciseCatalogRepository {
           status: ExerciseStatus.active,
         ),
       ]);
+}
+
+final class _RouteUserExercises implements UserExerciseRepository {
+  final List<Exercise> _exercises = [
+    Exercise(
+      ref: UserCreatedExerciseRef(
+        '10000000-0000-4000-8000-000000000001',
+      ),
+      displayName: 'Synthetic Route Custom',
+      primaryMuscles: const ['biceps_brachii'],
+      primaryEquipment: 'dumbbell',
+      status: ExerciseStatus.active,
+    ),
+  ];
+
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async =>
+      List<Exercise>.unmodifiable(
+        _exercises.where(
+          (exercise) =>
+              includeArchived || exercise.status == ExerciseStatus.active,
+        ),
+      );
+
+  @override
+  Future<void> create({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    CatalogExerciseRef? basedOnCatalogExercise,
+    UserExerciseDefinition? definition,
+  }) async {}
+
+  @override
+  Future<void> rename({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+  }) async {}
+
+  @override
+  Future<void> updateDefinition({
+    required UserCreatedExerciseRef id,
+    required UserExerciseDefinition definition,
+  }) async {}
+
+  @override
+  Future<void> archive(UserCreatedExerciseRef id) async {}
 }
 
 class _ReadyAppSessionBootstrapController
