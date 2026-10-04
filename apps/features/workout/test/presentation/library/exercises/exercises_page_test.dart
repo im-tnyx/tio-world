@@ -602,7 +602,10 @@ void main() {
         find.byKey(const ValueKey('custom-exercises-load-failure')),
         findsOneWidget,
       );
-      expect(find.textContaining('custom read failed'), findsOneWidget);
+      expect(
+        find.text('Could not load custom exercises. Please try again.'),
+        findsOneWidget,
+      );
       expect(_message(ExercisesPage.emptyCatalogMessage), findsNothing);
     });
 
