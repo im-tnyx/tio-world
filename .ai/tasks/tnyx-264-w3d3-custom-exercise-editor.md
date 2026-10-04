@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** UI interaction reconciliation is in progress after owner review found that the first implementation used simplified generic dropdowns instead of the approved grouped/select-list interaction.
-**Next exact action:** replace the simplified selector UI with the approved Exercise Type, grouped Primary muscle, full Secondary muscle and Equipment interactions using existing Tio Core surfaces; add focused widget coverage; then run exact-head Flutter CI and Codex review.
+**Current blocker:** Primary muscle is the only active UI sub-slice. The owner-approved Body Part → muscle interaction is implemented and regression-covered, but the exact full Body Part → 44-muscle membership is not frozen anywhere canonical yet; do not treat an inferred anatomy map as product truth. Exercise Type, Secondary muscles, Equipment and Asset remain on hold until this Primary-muscle decision/evidence is reconciled.
+**Next exact action:** finish the Primary-muscle sub-slice only: reconcile/freeze the exact Body Part → muscle presentation map, keep Body Part presentation-only, validate the body-part-first widget flow on exact head, then move to the next selector one at a time.
 
 ## 1. Discovery
 
@@ -69,7 +69,10 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
 - [x] Add provider/composition seam for nullable durable repository.
 - [x] Add active Custom Exercises collection with loading/failure/empty/action states.
-- [ ] Reconcile the create/edit form to the approved TNYX-264 interaction: Tio-owned Exercise Type selector with hints; Body Part → Primary muscle; full-list Secondary muscles; Equipment selector.
+- [ ] Primary muscle sub-slice: Body Part → Primary muscle single-select; exact full grouping still needs canonical reconciliation before validation.
+- [ ] Exercise Type sub-slice: Tio-owned single-select list with capability hints.
+- [ ] Secondary muscle sub-slice: full canonical muscle list, multi-select, excluding Primary.
+- [ ] Equipment sub-slice: single-select approved equipment taxonomy.
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
