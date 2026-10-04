@@ -285,7 +285,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
             onRetry: controller.retryLoad,
           ),
         CustomExercisesStatus.ready => _customOnlyReady(
-            catalogState,
             customState,
             customItems,
           ),
@@ -351,7 +350,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   }
 
   Widget _customOnlyReady(
-    ExercisesState catalogState,
     CustomExercisesState customState,
     List<ExerciseListItem> customItems,
   ) {
