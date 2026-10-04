@@ -246,6 +246,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
   String? _equipment;
   bool _saving = false;
   String? _error;
+  final Object _createDraftIdentity = Object();
 
   bool get _editing => widget.exercise != null;
 
@@ -290,7 +291,11 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
       );
       final exercise = widget.exercise;
       final success = exercise == null
-          ? await widget.controller.create(_name.text, definition: definition)
+          ? await widget.controller.create(
+              _name.text,
+              draftIdentity: _createDraftIdentity,
+              definition: definition,
+            )
           : await widget.controller.edit(
               id: exercise.ref as UserCreatedExerciseRef,
               displayName: _name.text,
