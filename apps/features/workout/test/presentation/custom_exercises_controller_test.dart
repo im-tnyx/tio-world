@@ -334,6 +334,37 @@ void main() {
     );
   });
 
+  test('edit failure never replaces a loaded list with ambiguous empty read',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      updateDefinitionError: Exception('network down'),
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: UserExerciseDefinition(
+          exerciseType: ExerciseType.weightReps,
+          primaryMuscle: 'quadriceps',
+        ),
+      ),
+      isFalse,
+    );
+
+    expect(controller.state.exercises, isNotEmpty);
+    expect(controller.state.exercises.single.ref, _id(1));
+    expect(
+      controller.state.actionError,
+      'Could not update exercise. Please try again.',
+    );
+  });
+
   test('rename updates the active item and preserves canonical metadata',
       () async {
     final original = Exercise(
@@ -400,6 +431,25 @@ void main() {
 
     expect(await controller.archive(_id(1)), isFalse);
 
+    expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
+    expect(
+      controller.state.actionError,
+      'Could not archive exercise. Please try again.',
+    );
+  });
+
+  test('archive failure does not treat ambiguous empty read as success',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveError: Exception('network down'),
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.archive(_id(1)), isFalse);
     expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
     expect(
       controller.state.actionError,
@@ -479,6 +529,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.renameError,
     this.updateDefinitionError,
     this.archiveError,
+    this.emptyListsAfterFirstCall = false,
   }) : exercises = [...?exercises];
 
   final List<Exercise> exercises;
@@ -490,6 +541,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   Object? renameError;
   Object? updateDefinitionError;
   Object? archiveError;
+  final bool emptyListsAfterFirstCall;
   int listCalls = 0;
 
   @override
@@ -498,6 +550,9 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     if (loadFailuresRemaining > 0) {
       loadFailuresRemaining--;
       throw Exception('load failed');
+    }
+    if (emptyListsAfterFirstCall && listCalls > 1) {
+      return const <Exercise>[];
     }
     return List.unmodifiable(
       exercises.where(
