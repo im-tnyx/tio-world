@@ -75,8 +75,12 @@ List<RouteBase> _shellBranchChildRoutes(
             context.push(AppRoutes.workoutPrograms.path),
         onExercisesPressed: () =>
             context.push(AppRoutes.workoutExercises.path),
-        onCustomExercisesPressed: () =>
-            context.push(AppRoutes.workoutCustomExercises.path),
+        onCustomExercisesPressed: () => context.push(
+          Uri(
+            path: AppRoutes.workoutExercises.path,
+            queryParameters: const {_exercisesCustomParameter: 'true'},
+          ).toString(),
+        ),
         onSearchPressed: () => context.push(
           Uri(
             path: AppRoutes.workoutExercises.path,
@@ -95,20 +99,16 @@ List<RouteBase> _shellBranchChildRoutes(
       ),
     ),
     GoRoute(
-      path: _childPath(branch, AppRoutes.workoutCustomExercises),
-      parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => Consumer(
-        builder: (context, ref, _) => CustomExercisesPage(
-          repository: ref.watch(userExerciseRepositoryProvider),
-        ),
-      ),
-    ),
-    GoRoute(
       path: _childPath(branch, AppRoutes.workoutExercises),
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => ExercisesPage(
-        startSearching:
-            state.uri.queryParameters[_exercisesSearchParameter] == 'true',
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) => ExercisesPage(
+          startSearching:
+              state.uri.queryParameters[_exercisesSearchParameter] == 'true',
+          customOnly:
+              state.uri.queryParameters[_exercisesCustomParameter] == 'true',
+          userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+        ),
       ),
     ),
   ];
@@ -116,6 +116,9 @@ List<RouteBase> _shellBranchChildRoutes(
 
 /// `/workout/exercises?search=true` opens Exercises with search active.
 const _exercisesSearchParameter = 'search';
+
+/// `/workout/exercises?custom=true` focuses the same screen to Custom rows.
+const _exercisesCustomParameter = 'custom';
 
 String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
   final prefix = '${branch.route.path}/';
