@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** The owner-approved editor selectors are implemented on the branch (Exercise Type bottom sheet, Body Part → Primary muscle, full-list Secondary muscles, Equipment), but exact-head validation is still pending and the inferred full Body Part → 44-muscle membership is not yet backed by a separate canonical mapping source. Owner correction on 2026-10-04 supersedes the separate Custom Exercises collection UI: the active implementation slice is now unified catalog + user-created composition on canonical `/workout/exercises` with a `Custom` badge/tag. Asset remains separately gated by media/Storage architecture.
-**Next exact action:** implement the bounded unified Exercises presentation using the existing catalog and user Exercise sources, retire the separate collection as final UI, add focused composition/search/filter/navigation tests, then run exact-head Flutter CI and Codex review. Do not widen into Favorites/Folders/Recent/media/Library redesign.
+**Current blocker:** The owner-approved editor selectors and unified catalog + user-created Exercises composition are implemented on the branch, including `Custom` badge/tag rows, shared search/filter participation where taxonomy exists, Custom-focused navigation on the same route, and removal of the separate collection page/route. Exact-head Flutter CI and fresh Codex review are still pending. The inferred full Body Part → 44-muscle membership is not yet backed by a separate canonical mapping source, so that mapping remains an explicit validation risk rather than silently claimed product truth. Asset remains separately gated by media/Storage architecture.
+**Next exact action:** run exact-head hosted Flutter CI, repair any compile/test findings, then obtain a fresh Codex review with zero unresolved threads. Do not widen into Favorites/Folders/Recent/media/Library redesign.
 
 ## 1. Discovery
 
@@ -70,8 +70,8 @@ Feature widgets render state and emit intent only. The controller owns write seq
 
 - [x] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
 - [x] Add provider/composition seam for nullable durable repository.
-- [ ] Replace the separate user-facing Custom Exercises collection with unified composition on canonical `/workout/exercises`; Custom rows show a `Custom` badge/tag and remain normal canonical `Exercise` items.
-- [ ] Custom-focused navigation must reuse `/workout/exercises` presentation state instead of maintaining a separate collection route/screen.
+- [x] Replace the separate user-facing Custom Exercises collection with unified composition on canonical `/workout/exercises`; Custom rows show a `Custom` badge/tag and remain normal canonical `Exercise` items.
+- [x] Custom-focused navigation reuses `/workout/exercises?custom=true`; the separate collection route/page is removed from the active branch.
 - [x] Primary muscle UI implemented: Body Part → Primary muscle single-select; focused regression exists. Exact full grouping still needs canonical evidence/reconciliation before final validation.
 - [x] Exercise Type UI implemented: Tio-owned bottom-sheet single-select list with the 11 approved capability hints.
 - [x] Secondary muscle UI implemented: full canonical muscle list, multi-select, excluding Primary.
