@@ -24,21 +24,25 @@ final class ExerciseCatalogQuery {
 
   static final _whitespace = RegExp(r'\s+');
 
-  List<Exercise> apply(ExerciseCatalog catalog) {
-    final needle = _normalize(text);
-    return List<Exercise>.unmodifiable([
-      for (final exercise in catalog.all)
-        if (_matches(exercise, needle)) exercise,
-    ]);
-  }
+  List<Exercise> apply(ExerciseCatalog catalog) => List<Exercise>.unmodifiable([
+        for (final exercise in catalog.all)
+          if (matches(exercise)) exercise,
+      ]);
 
-  bool _matches(Exercise exercise, String needle) =>
-      exercise.status == ExerciseStatus.active &&
-      (muscleGroup == null || exercise.muscleGroup == muscleGroup) &&
-      (primaryEquipment == null ||
-          exercise.primaryEquipment == primaryEquipment) &&
-      (category == null || exercise.category == category) &&
-      (needle.isEmpty || _normalize(exercise.displayName).contains(needle));
+  /// Whether one canonical [Exercise] matches this query.
+  ///
+  /// This is also used for user-created Exercises when the dedicated screen
+  /// composes bundled and dynamic sources. Taxonomy filters naturally exclude
+  /// a source that does not carry that field.
+  bool matches(Exercise exercise) {
+    final needle = _normalize(text);
+    return exercise.status == ExerciseStatus.active &&
+        (muscleGroup == null || exercise.muscleGroup == muscleGroup) &&
+        (primaryEquipment == null ||
+            exercise.primaryEquipment == primaryEquipment) &&
+        (category == null || exercise.category == category) &&
+        (needle.isEmpty || _normalize(exercise.displayName).contains(needle));
+  }
 
   static String _normalize(String value) =>
       value.trim().replaceAll(_whitespace, ' ').toLowerCase();
