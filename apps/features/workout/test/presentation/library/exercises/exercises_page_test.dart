@@ -568,7 +568,18 @@ void main() {
         userExerciseRepository: userRepository,
       );
 
-      await _search(tester, 'late custom');
+      await tester.tap(
+        find.byKey(const ValueKey('exercises-search-open')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('exercises-search')),
+        'late custom',
+      );
+      // The unresolved Custom source intentionally renders an indeterminate
+      // progress indicator, so settling here would wait forever. One frame is
+      // enough to publish the query and assert the in-flight unified state.
+      await tester.pump();
 
       expect(
         find.byKey(const ValueKey('exercises-loading')),
