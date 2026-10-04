@@ -189,9 +189,15 @@ final class CustomExercisesController extends ChangeNotifier {
     try {
       await repository.rename(id: id, displayName: displayName);
       await repository.updateDefinition(id: id, definition: definition);
-      final reconciled = await repository.list();
       if (_disposed) return false;
-      _publish(CustomExercisesState.ready(exercises: reconciled));
+      final updated = [...current.exercises];
+      final index = updated.indexWhere((item) => item.ref == id);
+      updated[index] = _copyWithDefinitionAndDisplayName(
+        updated[index],
+        displayName: displayName,
+        definition: definition,
+      );
+      _publish(CustomExercisesState.ready(exercises: updated));
       return true;
     } catch (error) {
       final isSignInFailure = _isSignInFailure(error);
@@ -448,6 +454,28 @@ final class CustomExercisesController extends ChangeNotifier {
     }
     return fallback;
   }
+
+  static Exercise _copyWithDefinitionAndDisplayName(
+    Exercise exercise, {
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) =>
+      Exercise(
+        ref: exercise.ref,
+        displayName: displayName,
+        description: definition.description,
+        exerciseType: definition.exerciseType,
+        muscleGroup: exercise.muscleGroup,
+        primaryMuscles: definition.primaryMuscle == null
+            ? const <String>[]
+            : [definition.primaryMuscle!],
+        secondaryMuscles: definition.secondaryMuscles,
+        primaryEquipment: definition.primaryEquipment,
+        category: exercise.category,
+        levels: exercise.levels,
+        status: exercise.status,
+        media: exercise.media,
+      );
 
   static Exercise _copyWithDisplayName(
     Exercise exercise,
