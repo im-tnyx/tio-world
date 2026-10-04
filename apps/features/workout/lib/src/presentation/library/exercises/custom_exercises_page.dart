@@ -4,6 +4,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/user_exercise_definition.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
+import 'custom_exercise_editor_options.dart';
 import 'custom_exercises_controller.dart';
 import 'custom_exercises_state.dart';
 import 'exercise_taxonomy_labels.dart';
@@ -151,7 +152,7 @@ class _List extends StatelessWidget {
           final exercise = exercises[index];
           final details = [
             if (exercise.exerciseType != null)
-              _exerciseTypeLabel(exercise.exerciseType!),
+              customExerciseTypeLabel(exercise.exerciseType!),
             if (exercise.primaryMuscles.isNotEmpty)
               exerciseTaxonomyLabel(exercise.primaryMuscles.first),
             if (exercise.primaryEquipment != null)
@@ -271,6 +272,241 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
     super.dispose();
   }
 
+  Future<void> _selectExerciseType() async {
+    final result = await showTioEditorSheet<_SelectionResult<ExerciseType>>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Exercise Type',
+        supportingText: 'Choose how this exercise is measured during workouts.',
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TioSelectableCard(
+              key: const ValueKey('custom-exercise-type-none'),
+              selected: _type == null,
+              semanticLabel: 'No Exercise Type',
+              onTap: () => Navigator.of(sheetContext).pop(
+                const _SelectionResult<ExerciseType>.clear(),
+              ),
+              child: const Text('None'),
+            ),
+            const SizedBox(height: TioSpacing.sm),
+            for (final option in customExerciseTypeOptions) ...[
+              _ExerciseTypeOptionCard(
+                option: option,
+                selected: _type == option.type,
+                onTap: () => Navigator.of(sheetContext).pop(
+                  _SelectionResult<ExerciseType>.value(option.type),
+                ),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+            ],
+          ],
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() => _type = result.clear ? null : result.value);
+  }
+
+  Future<void> _selectPrimaryMuscle() async {
+    final bodyParts = <CustomExerciseBodyPartOption>[
+      ...customExercisePrimaryBodyParts,
+      CustomExerciseBodyPartOption(
+        id: 'full_body',
+        label: 'Full Body',
+        muscles: customExerciseAllMuscles(),
+      ),
+    ];
+    final currentBodyPart = customExerciseBodyPartForMuscle(_primaryMuscle);
+
+    final bodyPartResult =
+        await showTioEditorSheet<_SelectionResult<CustomExerciseBodyPartOption>>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Primary muscle',
+        supportingText: 'Choose a Body Part first.',
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TioSelectableCard(
+              key: const ValueKey('custom-exercise-primary-none'),
+              selected: _primaryMuscle == null,
+              semanticLabel: 'No Primary muscle',
+              onTap: () => Navigator.of(sheetContext).pop(
+                const _SelectionResult<CustomExerciseBodyPartOption>.clear(),
+              ),
+              child: const Text('None'),
+            ),
+            const SizedBox(height: TioSpacing.sm),
+            TioGroupCard(
+              children: [
+                for (final bodyPart in bodyParts)
+                  TioSettingsNavigationRow(
+                    key: ValueKey(
+                      'custom-exercise-primary-group-${bodyPart.id}',
+                    ),
+                    title: bodyPart.label,
+                    supportingText: bodyPart.id == 'full_body'
+                        ? 'All muscles'
+                        : '${bodyPart.muscles.length} muscles',
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      _SelectionResult<CustomExerciseBodyPartOption>.value(
+                        bodyPart,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || bodyPartResult == null) return;
+    if (bodyPartResult.clear) {
+      setState(() => _primaryMuscle = null);
+      return;
+    }
+
+    final bodyPart = bodyPartResult.value!;
+    final selectedMuscle = await showTioEditorSheet<String>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: bodyPart.label,
+        supportingText: 'Choose one Primary muscle.',
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final muscle in bodyPart.muscles) ...[
+              TioSelectableCard(
+                key: ValueKey('custom-exercise-primary-muscle-$muscle'),
+                selected: _primaryMuscle == muscle,
+                semanticLabel: exerciseTaxonomyLabel(muscle),
+                onTap: () => Navigator.of(sheetContext).pop(muscle),
+                child: Text(exerciseTaxonomyLabel(muscle)),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+            ],
+          ],
+        ),
+      ),
+    );
+    if (!mounted || selectedMuscle == null) return;
+    setState(() {
+      _primaryMuscle = selectedMuscle;
+      _secondaryMuscles.remove(selectedMuscle);
+    });
+  }
+
+  Future<void> _selectSecondaryMuscles() async {
+    final available = customExerciseAllMuscles()
+        .where((muscle) => muscle != _primaryMuscle)
+        .toList(growable: false);
+    final draft = <String>{..._secondaryMuscles}
+      ..remove(_primaryMuscle);
+
+    final selected = await showTioEditorSheet<Set<String>>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => TioEditorSheet(
+          title: 'Secondary muscles',
+          supportingText: 'Choose any supporting muscles.',
+          content: TioGroupCard(
+            children: [
+              for (final muscle in available)
+                CheckboxListTile(
+                  key: ValueKey('custom-exercise-secondary-$muscle'),
+                  value: draft.contains(muscle),
+                  title: Text(exerciseTaxonomyLabel(muscle)),
+                  controlAffinity: ListTileControlAffinity.trailing,
+                  onChanged: (checked) => setSheetState(() {
+                    if (checked ?? false) {
+                      draft.add(muscle);
+                    } else {
+                      draft.remove(muscle);
+                    }
+                  }),
+                ),
+            ],
+          ),
+          actions: Row(
+            children: [
+              Expanded(
+                child: TioButton.secondary(
+                  label: 'Cancel',
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  expand: true,
+                ),
+              ),
+              const SizedBox(width: TioSpacing.md),
+              Expanded(
+                child: TioButton.primary(
+                  key: const ValueKey('custom-exercise-secondary-done'),
+                  label: 'Done',
+                  onPressed: () => Navigator.of(sheetContext).pop(draft),
+                  expand: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    setState(() {
+      _secondaryMuscles
+        ..clear()
+        ..addAll(selected);
+    });
+  }
+
+  Future<void> _selectEquipment() async {
+    final equipment = UserExerciseDefinition.equipmentTokens.toList()
+      ..sort((a, b) =>
+          exerciseTaxonomyLabel(a).compareTo(exerciseTaxonomyLabel(b)));
+    final result = await showTioEditorSheet<_SelectionResult<String>>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Equipment',
+        supportingText: 'Choose one equipment option.',
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TioSelectableCard(
+              key: const ValueKey('custom-exercise-equipment-none'),
+              selected: _equipment == null,
+              semanticLabel: 'No Equipment',
+              onTap: () => Navigator.of(sheetContext).pop(
+                const _SelectionResult<String>.clear(),
+              ),
+              child: const Text('None'),
+            ),
+            const SizedBox(height: TioSpacing.sm),
+            for (final item in equipment) ...[
+              TioSelectableCard(
+                key: ValueKey('custom-exercise-equipment-$item'),
+                selected: _equipment == item,
+                semanticLabel: exerciseTaxonomyLabel(item),
+                onTap: () => Navigator.of(sheetContext).pop(
+                  _SelectionResult<String>.value(item),
+                ),
+                child: Text(exerciseTaxonomyLabel(item)),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+            ],
+          ],
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() => _equipment = result.clear ? null : result.value);
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     if (_name.text.trim().isEmpty) {
@@ -370,46 +606,46 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
               Text(_error!, style: TextStyle(color: colors.danger)),
             ],
             const SizedBox(height: TioSpacing.lg),
-            _ChoiceField<ExerciseType>(
+            _EditorSelectorField(
+              key: const ValueKey('custom-exercise-type-field'),
               label: 'Exercise Type',
-              value: _type,
-              values: ExerciseType.values,
-              display: _exerciseTypeLabel,
-              onChanged: _saving ? null : (value) => setState(() => _type = value),
+              value: _type == null
+                  ? 'None'
+                  : [
+                      customExerciseTypeLabel(_type!),
+                      ...customExerciseTypeOptionFor(_type!).hints,
+                    ].join(' · '),
+              onTap: _saving ? null : _selectExerciseType,
             ),
-            _ChoiceField<String>(
+            _EditorSelectorField(
+              key: const ValueKey('custom-exercise-primary-field'),
               label: 'Primary muscle',
-              value: _primaryMuscle,
-              values: UserExerciseDefinition.muscleTokens.toList()..sort(),
-              display: exerciseTaxonomyLabel,
-              onChanged: _saving
-                  ? null
-                  : (value) => setState(() {
-                        _primaryMuscle = value;
-                        _secondaryMuscles.remove(value);
-                      }),
+              value: _primaryMuscle == null
+                  ? 'None'
+                  : [
+                      if (customExerciseBodyPartForMuscle(_primaryMuscle) case final part?)
+                        part.label,
+                      exerciseTaxonomyLabel(_primaryMuscle!),
+                    ].join(' · '),
+              onTap: _saving ? null : _selectPrimaryMuscle,
             ),
-            _MultiChoiceField(
+            _EditorSelectorField(
+              key: const ValueKey('custom-exercise-secondary-field'),
               label: 'Secondary muscles',
-              values: UserExerciseDefinition.muscleTokens
-                  .where((token) => token != _primaryMuscle)
-                  .toList()
-                ..sort(),
-              selected: _secondaryMuscles,
-              enabled: !_saving,
-              onChanged: (value, selected) => setState(() {
-                selected
-                    ? _secondaryMuscles.add(value)
-                    : _secondaryMuscles.remove(value);
-              }),
+              value: _secondaryMuscles.isEmpty
+                  ? 'None'
+                  : _secondaryMuscles
+                      .map(exerciseTaxonomyLabel)
+                      .join(', '),
+              onTap: _saving ? null : _selectSecondaryMuscles,
             ),
-            _ChoiceField<String>(
+            _EditorSelectorField(
+              key: const ValueKey('custom-exercise-equipment-field'),
               label: 'Equipment',
-              value: _equipment,
-              values: UserExerciseDefinition.equipmentTokens.toList()..sort(),
-              display: exerciseTaxonomyLabel,
-              onChanged:
-                  _saving ? null : (value) => setState(() => _equipment = value),
+              value: _equipment == null
+                  ? 'None'
+                  : exerciseTaxonomyLabel(_equipment!),
+              onTap: _saving ? null : _selectEquipment,
             ),
             if (_editing) ...[
               const SizedBox(height: TioSpacing.xl),
@@ -453,88 +689,89 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
   }
 }
 
-class _ChoiceField<T> extends StatelessWidget {
-  const _ChoiceField({
+final class _SelectionResult<T> {
+  const _SelectionResult.value(this.value) : clear = false;
+  const _SelectionResult.clear()
+      : value = null,
+        clear = true;
+
+  final T? value;
+  final bool clear;
+}
+
+class _EditorSelectorField extends StatelessWidget {
+  const _EditorSelectorField({
     required this.label,
     required this.value,
-    required this.values,
-    required this.display,
-    required this.onChanged,
+    required this.onTap,
+    super.key,
   });
+
   final String label;
-  final T? value;
-  final List<T> values;
-  final String Function(T) display;
-  final ValueChanged<T?>? onChanged;
+  final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: TioSpacing.md),
-        child: DropdownButtonFormField<T>(
-          initialValue: value,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: label),
-          items: [
-            DropdownMenuItem<T>(
-              value: null,
-              child: const Text('None', overflow: TextOverflow.ellipsis),
+        child: TioGroupCard(
+          children: [
+            TioSettingsNavigationRow(
+              title: label,
+              supportingText: value,
+              onTap: onTap,
             ),
-            ...values.map((item) =>
-                DropdownMenuItem(
-                  value: item,
-                  child: Text(display(item), overflow: TextOverflow.ellipsis),
-                )),
           ],
-          onChanged: onChanged,
         ),
       );
 }
 
-class _MultiChoiceField extends StatelessWidget {
-  const _MultiChoiceField({
-    required this.label,
-    required this.values,
+class _ExerciseTypeOptionCard extends StatelessWidget {
+  const _ExerciseTypeOptionCard({
+    required this.option,
     required this.selected,
-    required this.enabled,
-    required this.onChanged,
+    required this.onTap,
   });
-  final String label;
-  final List<String> values;
-  final Set<String> selected;
-  final bool enabled;
-  final void Function(String, bool) onChanged;
+
+  final CustomExerciseTypeOption option;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: TioSpacing.md),
-        child: ExpansionTile(
-          title: Text(label),
-          subtitle: Text(selected.isEmpty
-              ? 'None'
-              : selected.map(exerciseTaxonomyLabel).join(', ')),
-          children: values
-              .map((value) => CheckboxListTile(
-                    value: selected.contains(value),
-                    onChanged: enabled
-                        ? (checked) => onChanged(value, checked ?? false)
-                        : null,
-                    title: Text(exerciseTaxonomyLabel(value)),
-                  ))
-              .toList(growable: false),
-        ),
-      );
-}
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
 
-String _exerciseTypeLabel(ExerciseType type) => switch (type) {
-      ExerciseType.weightReps => 'Weight & reps',
-      ExerciseType.distanceDuration => 'Distance & duration',
-      ExerciseType.duration => 'Duration',
-      ExerciseType.dumbbellX2Simultaneous => '2 dumbbells · simultaneous',
-      ExerciseType.dumbbellX1AlternatingSides => '1 dumbbell · alternating sides',
-      ExerciseType.dumbbellX1Simultaneous => '1 dumbbell · simultaneous',
-      ExerciseType.dumbbellX2AlternatingLegs => '2 dumbbells · alternating legs',
-      ExerciseType.dumbbellX1AlternatingLegs => '1 dumbbell · alternating legs',
-      ExerciseType.fullBodyweight => 'Full bodyweight',
-      ExerciseType.assistedBodyweight => 'Assisted bodyweight',
-      ExerciseType.stepsDuration => 'Steps & duration',
-    };
+    return TioSelectableCard(
+      key: ValueKey('custom-exercise-type-${option.type.storageValue}'),
+      selected: selected,
+      semanticLabel:
+          '${option.label}. ${option.hints.join(', ')}. ${option.example}',
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(option.label, style: textTheme.titleSmall),
+          const SizedBox(height: TioSpacing.xs),
+          Text(
+            option.example,
+            style: textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          Wrap(
+            spacing: TioSpacing.xs,
+            runSpacing: TioSpacing.xs,
+            children: [
+              for (final hint in option.hints)
+                Chip(
+                  label: Text(hint),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
