@@ -3,64 +3,134 @@ import 'package:tio_core/core.dart';
 
 import '../exercises_state.dart';
 
-/// One non-interactive Exercise row: thumbnail, name, metadata.
+/// One canonical Exercise row.
 ///
-/// Rows have no tap, icon, chevron or action until Exercise Detail exists.
-/// Without a usable image the row is text-only, never a broken placeholder.
+/// Catalog rows stay non-interactive until Exercise Detail lands. User-created
+/// rows may provide [onTap] to enter their existing edit flow and carry a
+/// presentation-only `Custom` badge; both remain canonical [Exercise] items.
 class ExerciseListRow extends StatelessWidget {
-  const ExerciseListRow({required this.item, super.key});
+  const ExerciseListRow({
+    required this.item,
+    super.key,
+    this.onTap,
+  });
 
   final ExerciseListItem item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final thumbnailUrl = item.thumbnailUrl;
-
-    return MergeSemantics(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.sm,
-        ),
-        child: Row(
-          children: [
-            if (thumbnailUrl != null)
-              ExerciseThumbnail(
-                key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
-                url: thumbnailUrl,
-              ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          if (thumbnailUrl != null)
+            ExerciseThumbnail(
+              key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
+              url: thumbnailUrl,
+            ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size15,
                   ),
-                  if (item.metadata case final metadata?) ...[
-                    const SizedBox(height: TioSpacing.xxs),
-                    Text(
-                      metadata,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
-                    ),
-                  ],
+                ),
+                if (item.metadata != null || item.isCustom) ...[
+                  const SizedBox(height: TioSpacing.xxs),
+                  Wrap(
+                    spacing: TioSpacing.sm,
+                    runSpacing: TioSpacing.xxs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (item.metadata case final metadata?)
+                        Text(
+                          metadata,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: TioFontSize.size13,
+                          ),
+                        ),
+                      if (item.isCustom)
+                        _CustomBadge(
+                          key: ValueKey(
+                            'exercise-custom-badge-${item.exercise.ref.value}',
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
-              ),
+              ],
+            ),
+          ),
+          if (onTap != null) ...[
+            const SizedBox(width: TioSpacing.sm),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: TioSize.dp24,
+              color: colors.textSecondary,
             ),
           ],
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return MergeSemantics(child: body);
+    }
+
+    return Semantics(
+      button: true,
+      onTap: onTap,
+      child: Material(
+        color: TioPalette.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: MergeSemantics(child: body),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomBadge extends StatelessWidget {
+  const _CustomBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(TioRadius.sm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.sm,
+          vertical: TioSpacing.xxs,
+        ),
+        child: Text(
+          'Custom',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: TioFontSize.size13,
+            fontWeight: TioFontWeight.w700,
+          ),
         ),
       ),
     );
