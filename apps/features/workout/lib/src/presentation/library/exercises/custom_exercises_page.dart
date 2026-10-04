@@ -251,6 +251,22 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
 
   bool get _editing => widget.exercise != null;
 
+  String get _primaryMuscleSummary {
+    final muscle = _primaryMuscle;
+    if (muscle == null) return 'None';
+    final label = exerciseTaxonomyLabel(muscle);
+    final bodyPart = customExerciseBodyPartForMuscle(muscle);
+    return bodyPart == null ? label : '${bodyPart.label} · $label';
+  }
+
+  String get _secondaryMuscleSummary {
+    if (_secondaryMuscles.isEmpty) return 'None';
+    final labels = _secondaryMuscles.map(exerciseTaxonomyLabel).toList()
+      ..sort();
+    if (labels.length <= 2) return labels.join(', ');
+    return '${labels.length} selected';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -319,8 +335,6 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
         muscles: customExerciseAllMuscles(),
       ),
     ];
-    final currentBodyPart = customExerciseBodyPartForMuscle(_primaryMuscle);
-
     final bodyPartResult =
         await showTioEditorSheet<_SelectionResult<CustomExerciseBodyPartOption>>(
       context: context,
@@ -347,6 +361,9 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                   TioSettingsNavigationRow(
                     key: ValueKey(
                       'custom-exercise-primary-group-${bodyPart.id}',
+                    ),
+                    leading: const TioSettingsLeadingIcon(
+                      icon: Icons.accessibility_new_rounded,
                     ),
                     title: bodyPart.label,
                     supportingText: bodyPart.id == 'full_body'
@@ -609,6 +626,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
             _EditorSelectorField(
               key: const ValueKey('custom-exercise-type-field'),
               label: 'Exercise Type',
+              icon: Icons.straighten_rounded,
               value: _type == null
                   ? 'None'
                   : [
@@ -620,28 +638,21 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
             _EditorSelectorField(
               key: const ValueKey('custom-exercise-primary-field'),
               label: 'Primary muscle',
-              value: _primaryMuscle == null
-                  ? 'None'
-                  : [
-                      if (customExerciseBodyPartForMuscle(_primaryMuscle) case final part?)
-                        part.label,
-                      exerciseTaxonomyLabel(_primaryMuscle!),
-                    ].join(' · '),
+              icon: Icons.accessibility_new_rounded,
+              value: _primaryMuscleSummary,
               onTap: _saving ? null : _selectPrimaryMuscle,
             ),
             _EditorSelectorField(
               key: const ValueKey('custom-exercise-secondary-field'),
               label: 'Secondary muscles',
-              value: _secondaryMuscles.isEmpty
-                  ? 'None'
-                  : _secondaryMuscles
-                      .map(exerciseTaxonomyLabel)
-                      .join(', '),
+              icon: Icons.checklist_rounded,
+              value: _secondaryMuscleSummary,
               onTap: _saving ? null : _selectSecondaryMuscles,
             ),
             _EditorSelectorField(
               key: const ValueKey('custom-exercise-equipment-field'),
               label: 'Equipment',
+              icon: Icons.fitness_center_rounded,
               value: _equipment == null
                   ? 'None'
                   : exerciseTaxonomyLabel(_equipment!),
@@ -702,12 +713,14 @@ final class _SelectionResult<T> {
 class _EditorSelectorField extends StatelessWidget {
   const _EditorSelectorField({
     required this.label,
+    required this.icon,
     required this.value,
     required this.onTap,
     super.key,
   });
 
   final String label;
+  final IconData icon;
   final String value;
   final VoidCallback? onTap;
 
@@ -717,6 +730,7 @@ class _EditorSelectorField extends StatelessWidget {
         child: TioGroupCard(
           children: [
             TioSettingsNavigationRow(
+              leading: TioSettingsLeadingIcon(icon: icon),
               title: label,
               supportingText: value,
               onTap: onTap,
