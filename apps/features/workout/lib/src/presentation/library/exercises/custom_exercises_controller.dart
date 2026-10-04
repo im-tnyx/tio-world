@@ -113,7 +113,7 @@ final class CustomExercisesController extends ChangeNotifier {
         definition: definition,
       );
       if (_disposed) return false;
-      _pendingCreateId = null;
+      _clearPendingCreate();
       final created = Exercise(
         ref: id,
         displayName: displayName,
