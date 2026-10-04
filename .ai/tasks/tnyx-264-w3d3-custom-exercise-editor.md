@@ -8,9 +8,9 @@
 
 **Trigger:** New independently scoped product-visible feature slice.
 **Approval status:** Approved.
-**Approval evidence:** Owner said `Go` on 2026-10-01 after the fresh read-only W3D audit identified visible Custom Exercise create/edit/list UX as the next bounded slice.
+**Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction.
 
-**Approved visible/data scope:** A real user-owned Custom Exercises collection plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
+**Approved visible/data scope:** A real user-owned Custom Exercises collection plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. The editor interaction must follow the owner-approved TNYX-264 direction: Exercise Type uses a Tio-owned single-select list with its capability-hint tags; Primary muscle is selected through derived Body Part grouping then a single muscle; Secondary muscles use the complete canonical muscle set as multi-select; Equipment is single-select. Body Part and capability tags are presentation-only and are never persisted. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
 
 **Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth.
 
@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** Exact-head validation pending after the create-draft identity repair.
-**Next exact action:** run hosted exact-head Flutter CI on the current PR head, then re-run the Codex review gate and verify zero unresolved threads.
+**Current blocker:** UI interaction reconciliation is in progress after owner review found that the first implementation used simplified generic dropdowns instead of the approved grouped/select-list interaction.
+**Next exact action:** replace the simplified selector UI with the approved Exercise Type, grouped Primary muscle, full Secondary muscle and Equipment interactions using existing Tio Core surfaces; add focused widget coverage; then run exact-head Flutter CI and Codex review.
 
 ## 1. Discovery
 
@@ -69,7 +69,7 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Extend controller create/edit operations to accept validated structured definitions without splitting identity/lifecycle ownership.
 - [x] Add provider/composition seam for nullable durable repository.
 - [x] Add active Custom Exercises collection with loading/failure/empty/action states.
-- [x] Add create/edit form for approved W3D2 fields using Tio Core.
+- [ ] Reconcile the create/edit form to the approved TNYX-264 interaction: Tio-owned Exercise Type selector with hints; Body Part → Primary muscle; full-list Secondary muscles; Equipment selector.
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
