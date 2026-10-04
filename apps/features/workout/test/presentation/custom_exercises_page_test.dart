@@ -39,6 +39,61 @@ void main() {
     expect(find.byKey(const ValueKey('custom-exercise-archive')), findsNothing);
   });
 
+  testWidgets(
+      'Primary muscle opens Body Part groups before any muscle options',
+      (tester) async {
+    final repository = _FakeRepository();
+    await _pump(tester, repository);
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercises-empty-create')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercise-primary-field')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('custom-exercise-primary-group-chest')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('custom-exercise-primary-group-back')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('custom-exercise-primary-group-shoulders')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('custom-exercise-primary-muscle-quadriceps'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercise-primary-group-chest')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'custom-exercise-primary-muscle-pectoralis_major_sternal_head',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('custom-exercise-primary-muscle-quadriceps'),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('create persists name and definition then returns to list', (tester) async {
     final repository = _FakeRepository();
     await _pump(tester, repository);
