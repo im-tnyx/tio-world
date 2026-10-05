@@ -108,6 +108,16 @@ No new Exercise model/repository/collection truth.
 
 ## Validation
 
+Pre-PR connector audit at implementation checkpoint:
+- base/current `main@56617849be27cecded266b1f8b1f6853fe24430c`;
+- branch `11 ahead / 0 behind`;
+- exactly 10 owned paths: 2 task/docs governance files, 2 canonical screen docs, 3 production Flutter files, 3 focused test files;
+- no Supabase, repository/domain model, Program/Routine, Your Plan, Favorites/Folders, editor-field or Core contract file touched;
+- connector-side scan across all changed text: 0 trailing-whitespace lines and 0 conflict markers;
+- runtime/test source has 0 `customOnly`, `onCustomExercisesPressed`, or `_exercisesCustomParameter` references; the old Library Custom key remains only in a negative regression assertion;
+- legacy `?custom=true` is covered as compatibility input and now leaves the canonical unified screen unfiltered;
+- `CustomExercisesController.load()` was re-audited: it publishes ready via `notifyListeners()`, so `startCreating` opens the existing editor after durable source readiness without a second controller or route owner.
+
 Connector-only session:
 - GitHub compare for exact base/head scope;
 - connector-side Markdown hygiene;
@@ -125,4 +135,4 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Implementation owner:** ChatGPT
 **Review owner:** pending PR
 **Current state:** bounded implementation is on the branch: Library now owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Focused Library/Exercises/router tests and canonical docs are updated. No Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added.
-**Next exact action:** run exact parent/head changed-file + hygiene audit, reconcile any source/test inconsistency, then open PR and use GitHub CI + exact-head Codex review as executable validation.
+**Next exact action:** refresh exact parent/head scope after this evidence commit, open the focused PR, request GitHub CI + exact-head Codex review, and stop at the merge decision after all required gates are clean.
