@@ -23,6 +23,7 @@ Future<void> _pumpPage(
   bool startSearching = false,
   UserExerciseRepository? userExerciseRepository,
   bool customOnly = false,
+  double textScale = 1,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -31,9 +32,14 @@ Future<void> _pumpPage(
         exerciseViewerMediaGenderProvider.overrideWithValue(mediaGender),
       ],
       child: MaterialApp(
-        builder: (context, child) => TioTheme(
-          config: TioThemeConfig(mode: mode),
-          child: child ?? const SizedBox.shrink(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: TioTheme(
+            config: TioThemeConfig(mode: mode),
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
         home: ExercisesPage(
           startSearching: startSearching,
@@ -528,6 +534,40 @@ void main() {
       );
       expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
       expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+
+    _testWidgets(
+        'Custom-only title stays single-line on compact scaled layouts',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'My Cable Row'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+        customOnly: true,
+        textScale: 2,
+      );
+
+      final titleFinder = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Custom Exercises'),
+      );
+      final title = tester.widget<Text>(titleFinder);
+      expect(title.maxLines, 1);
+      expect(title.softWrap, isFalse);
+      expect(title.overflow, TextOverflow.ellipsis);
+      expect(
+        tester.getSize(titleFinder).height,
+        lessThanOrEqualTo(TioNavigationTokens.topBarHeight),
+      );
+      expect(tester.takeException(), isNull);
     });
 
     _testWidgets(
