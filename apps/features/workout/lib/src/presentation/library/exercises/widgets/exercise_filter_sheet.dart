@@ -23,21 +23,27 @@ final class ExerciseFilterSelection {
 Future<ExerciseFilterSelection?> showExerciseFilterSheet({
   required BuildContext context,
   required ExercisesState state,
+  String title = 'Filter exercises',
 }) =>
     showTioEditorSheet<ExerciseFilterSelection>(
       context: context,
       useRootNavigator: true,
       useSafeArea: true,
-      builder: (context) => ExerciseFilterSheet(state: state),
+      builder: (context) => ExerciseFilterSheet(state: state, title: title),
     );
 
 /// Single-select draft of the three Exercise filters.
 ///
 /// Choices stay a draft until Show results; Clear all empties the draft.
 class ExerciseFilterSheet extends StatefulWidget {
-  const ExerciseFilterSheet({required this.state, super.key});
+  const ExerciseFilterSheet({
+    required this.state,
+    super.key,
+    this.title = 'Filter exercises',
+  });
 
   final ExercisesState state;
+  final String title;
 
   @override
   State<ExerciseFilterSheet> createState() => _ExerciseFilterSheetState();
@@ -87,7 +93,7 @@ class _ExerciseFilterSheetState extends State<ExerciseFilterSheet> {
 
     return TioEditorSheet(
       key: const ValueKey('exercise-filter-sheet'),
-      title: 'Filter exercises',
+      title: widget.title,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
