@@ -32,7 +32,7 @@ class LibraryPage extends StatefulWidget {
 
   final ProgramRepository? programRepository;
   final ProgramIdGenerator? programIdGenerator;
-  final VoidCallback onProgramsManagePressed;
+  final Future<void> Function() onProgramsManagePressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
