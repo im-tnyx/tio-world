@@ -306,6 +306,42 @@ void main() {
   });
 
   testWidgets(
+      'Library hides Create Exercise when durable repository is unavailable',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withUserExerciseRepository: false,
+    );
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('library-exercises-card')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
+  });
+
+  testWidgets(
       'opening Library leaves Workout Home and its chrome still while it '
       'slides in', (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -450,8 +486,9 @@ void main() {
 
 Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
-  AppMode mode,
-) async {
+  AppMode mode, {
+  bool withUserExerciseRepository = true,
+}) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
   final onboardingRepository = _MemoryOnboardingStatusRepository();
@@ -482,7 +519,9 @@ Future<(ProviderContainer, GoRouter)> _app(
         ),
       ),
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
-      userExerciseRepositoryProvider.overrideWithValue(_RouteUserExercises()),
+      userExerciseRepositoryProvider.overrideWithValue(
+        withUserExerciseRepository ? _RouteUserExercises() : null,
+      ),
     ],
   );
   addTearDown(container.dispose);
