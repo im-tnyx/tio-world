@@ -266,7 +266,7 @@ void main() {
   });
 
   testWidgets(
-      'Library Create Exercise uses the canonical Exercises create flow',
+      'Library Create Exercise opens directly and back returns to selected Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
     router.go(FeatureRoutes.workout.path);
@@ -280,29 +280,64 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ExercisesPage), findsNothing);
-    expect(find.text('Synthetic Route Curl'), findsNothing);
-    expect(find.text('Synthetic Route Custom'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
 
     await tester.tap(
-      find.byKey(const ValueKey('library-create-exercise-entry')),
+      find.byKey(const ValueKey('library-create-exercise-card')),
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(CreateExercisePage), findsOneWidget);
+    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
     expect(
       find.byType(ExercisesPage, skipOffstage: false),
-      findsOneWidget,
-      reason: 'the canonical Exercises route stays mounted under the editor',
+      findsNothing,
+      reason: 'Library Create must not add Exercises to the back stack',
     );
-    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
-    expect(find.text('Create Exercise'), findsWidgets);
+    expect(
+      find.byType(LibraryPage, skipOffstage: false),
+      findsOneWidget,
+      reason: 'Library remains the owner route under the editor',
+    );
 
     await tester.tap(find.byType(BackButton).last);
     await tester.pumpAndSettle();
 
+    expect(find.byType(CreateExercisePage), findsNothing);
     expect(find.byType(CustomExerciseEditorPage), findsNothing);
-    expect(find.byType(ExercisesPage), findsOneWidget);
-    expect(find.text('Synthetic Route Curl'), findsOneWidget);
-    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
