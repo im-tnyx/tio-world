@@ -149,6 +149,9 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                       key: ValueKey(
                         'custom-exercise-primary-group-${bodyPart.id}',
                       ),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.accessibility_new_rounded,
+                      ),
                       label: bodyPart.label,
                       value: TioSettingsValueText(
                         value: bodyPart.id == 'full_body'
