@@ -108,7 +108,7 @@ void main() {
       findsNothing,
     );
 
-    final toggle = find.byKey(const ValueKey('program-expand-Strength'));
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
     expect(toggle, findsOneWidget);
     expect(
       tester.widget<IconButton>(toggle).tooltip,
@@ -180,21 +180,68 @@ void main() {
     expect(find.byType(ProgramsPage), findsNothing);
   });
 
-  testWidgets('Program rows stay display-only until W4 detail exists',
+  testWidgets('Program name stays non-navigable until W4 detail exists',
       (tester) async {
     await _pump(tester);
 
-    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
-    expect(row, findsOneWidget);
+    final name = find.text('Strength');
+    expect(name, findsOneWidget);
     expect(
-      find.descendant(of: row, matching: find.byType(InkWell)),
+      find.ancestor(of: name, matching: find.byType(InkWell)),
       findsNothing,
     );
   });
 
-  testWidgets('missing durable Program repository fails closed inline',
+  testWidgets('Program overflow opens bottom sheet and edits through rename',
       (tester) async {
-    await _pump(tester, withProgramRepository: false);
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    await _pump(tester, programRepository: repository);
+
+    final overflow =
+        find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    expect(overflow, findsOneWidget);
+
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('program-actions-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(find.text('Open / View Program'), findsNothing);
+    expect(find.text('Add New Routine'), findsNothing);
+    expect(find.text('Delete Program'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('program-action-edit')));
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('program-edit-name-field'));
+    final editable = find.descendant(
+      of: field,
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(editable).controller.text, 'Strength');
+
+    await tester.enterText(editable, 'Strength Plus');
+    await tester.tap(find.byKey(const ValueKey('program-edit-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.renamed, [(id: _id(1), name: 'Strength Plus')]);
+    expect(find.text('Strength Plus'), findsOneWidget);
+  });
+
+  testWidgets(
+      'missing durable Program repository fails closed but header still manages',
+      (tester) async {
+    var managed = 0;
+    await _pump(
+      tester,
+      withProgramRepository: false,
+      onProgramsManagePressed: () async => managed++,
+    );
 
     expect(find.byKey(const ValueKey('programs-unavailable')), findsOneWidget);
     expect(find.text('Programs are unavailable right now.'), findsOneWidget);
@@ -202,6 +249,10 @@ void main() {
       find.byKey(const ValueKey('library-programs-create')),
     );
     expect(create.onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-header')));
+    await tester.pumpAndSettle();
+    expect(managed, 1);
   });
 
   testWidgets('Exercises selection collapses pills and shows only two actions',
@@ -419,6 +470,7 @@ final class _FakeProgramRepository implements ProgramRepository {
 
   final List<Program> programs;
   final List<Program> created = [];
+  final List<({ProgramId id, String name})> renamed = [];
 
   @override
   Future<List<Program>> list() async => List.unmodifiable(programs);
@@ -434,6 +486,9 @@ final class _FakeProgramRepository implements ProgramRepository {
     required ProgramId id,
     required String name,
   }) async {
-    throw UnimplementedError();
+    renamed.add((id: id, name: name));
+    final index = programs.indexWhere((program) => program.id == id);
+    if (index == -1) throw StateError('Program not found.');
+    programs[index] = Program(id: id, name: name);
   }
 }
