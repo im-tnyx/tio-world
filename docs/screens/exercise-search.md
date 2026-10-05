@@ -75,7 +75,7 @@ Create Exercise
 Exercises
 ```
 
-- **Create Exercise** enters the existing W3D user-created Exercise editor through the canonical Exercises capability.
+- **Create Exercise** enters the existing W3D user-created Exercise editor through the canonical Exercises capability. Library renders this card only when canonical durable user-Exercise persistence is available; otherwise it fails closed by hiding the create action.
 - **Exercises** opens the canonical `/workout/exercises` screen.
 - The two current actions are separate standalone `TioCard` surfaces; `TioGroupCard` is not used here.
 - Library does not render Exercise rows itself.
