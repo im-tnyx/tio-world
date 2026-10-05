@@ -174,7 +174,7 @@ void main() {
     var opened = 0;
     await _pump(tester, onProgramsPressed: () => opened++);
 
-    await tester.tap(find.byKey(const ValueKey('library-programs-entry')));
+    await tester.tap(find.byKey(const ValueKey('library-programs-content')));
     await tester.pump();
 
     expect(opened, 1);
@@ -196,13 +196,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.byKey(const ValueKey('library-create-exercise-entry')),
+      find.byKey(const ValueKey('library-create-exercise-card')),
     );
     await tester.pump();
     expect(created, 1);
     expect(browsed, 0);
 
-    await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
+    await tester.tap(find.byKey(const ValueKey('library-exercises-card')));
     await tester.pump();
     expect(created, 1);
     expect(browsed, 1);
