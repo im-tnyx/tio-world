@@ -467,10 +467,23 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                         if (ok) {
                           Navigator.of(this.context).pop();
                         } else {
+                          final message =
+                              widget.controller.state.actionError ??
+                                  'Could not archive exercise. Please try again.';
                           setState(() {
                             _saving = false;
-                            _error = widget.controller.state.actionError;
+                            _error = message;
                           });
+                          ScaffoldMessenger.of(this.context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                key: const ValueKey(
+                                  'custom-exercise-archive-error',
+                                ),
+                                content: Text(message),
+                              ),
+                            );
                         }
                       },
               ),
