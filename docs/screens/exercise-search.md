@@ -66,7 +66,7 @@ W3A is the capability foundation: it delivers the Exercises route, screen and ca
 
 ## Library Exercises Category
 
-GitHub #475 defines Library category pills with Programs first and Exercises second. For current real capabilities, selecting Exercises keeps the Library selected-pill chrome and shows only two actions:
+GitHub #475 defines Library category pills with Programs first and Exercises second. For current real capabilities, selecting Exercises keeps the Library selected-pill chrome and shows only two actions, each as its own standalone card:
 
 ```text
 [ X ] [ Exercises selected ]
@@ -77,10 +77,11 @@ Exercises
 
 - **Create Exercise** enters the existing W3D user-created Exercise editor through the canonical Exercises capability.
 - **Exercises** opens the canonical `/workout/exercises` screen.
+- The two current actions are separate standalone `TioCard` surfaces; `TioGroupCard` is not used here.
 - Library does not render Exercise rows itself.
-- Library does not expose a separate Custom Exercises row/screen, a Custom-only state, Favorite/Custom/Folder landing rows, or another Exercise repository.
+- Library does not expose a separate Custom Exercises row/screen, a Custom-only state, or another Exercise repository.
 - Bundled catalog and active user-created Exercises compose together only on the canonical Exercises screen; user-created rows keep the `Custom` badge/tag.
-- Favorites and Folders remain W3C/W3E capabilities over canonical Exercise identity and do not create a second collection truth.
+- Favorites and Folders remain W3C/W3E capabilities over canonical Exercise identity. They stay hidden until real and then join as additional standalone cards rather than grouped rows.
 
 The app may use `/workout/exercises?create=true` as a one-shot navigation seam from Library's **Create Exercise** action. It mounts the canonical Exercises capability and opens the existing editor once the durable user Exercise source is ready; it is not a separate Exercise screen or ownership boundary.
 
