@@ -117,6 +117,12 @@ Pre-PR connector audit:
 - Library uses `ProgramsSurface.library` with the canonical `ProgramRepository?`, and Program rows remain display-only;
 - Programs header retains a normal accessible Material tap target; no shrink-wrapped hit target is introduced.
 
+CI follow-up:
+- PR #507 exact head `53da7d4c0f157aefac421a7c15739d9aedd019e1` failed Flutter analyze on one `library_private_types_in_public_api` lint in `programs_surface.dart`;
+- root cause: the public `ProgramsSurface` exposed a public `mode` field typed with the private `_ProgramsSurfaceMode` enum;
+- fix: the mode field is now private (`_mode`) and remains constructor-internal; no product/UI/runtime behavior changed;
+- Dart/tests were skipped on the failed head and must rerun on the resulting exact head.
+
 Connector-only session:
 - GitHub compare/base/head scope audit;
 - changed-text whitespace/conflict-marker scan;
@@ -140,10 +146,10 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
-**Current implementation state:** implementation complete on branch: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
+**Current implementation state:** implementation complete on branch; the first PR CI head exposed and fixed one analyzer-only public/private API lint: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** planning/audit only
 **Validation remaining:** exact resulting-head Flutter CI, attribution, Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
 **Open review finding IDs:** none
-**Next exact action:** request fresh Codex review on the resulting handoff head, verify exact-head GitHub CI/attribution/unresolved threads/mergeability, fix only bounded findings, then stop at the merge decision.
+**Next exact action:** rerun exact-head GitHub CI after the private-mode API fix, request fresh Codex review, verify attribution/unresolved threads/mergeability, fix only bounded findings, then stop at the merge decision.
