@@ -20,7 +20,7 @@ Merged W3D3 runtime follows the owner correction from 2026-10-04: there is one c
 └─ bundled catalog Exercise rows
 ```
 
-User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row enters its edit/detail flow; successful create/edit returns to the same canonical Exercises surface. A Library `Custom Exercises` entry may open this same surface in a Custom-focused/filter state, but must not establish another collection truth. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
+User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row enters its edit flow; successful create/edit returns to the same canonical Exercises surface. Library does not expose a Custom-only collection/state: its selected Exercises category offers **Create Exercise** and **Exercises**, and only the latter screen renders the unified collection. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
 
 The editor itself remains W3D3-owned and exposes required name plus optional description, Exercise Type, Primary muscle, Secondary muscles, and Equipment using the already-live W3D2 persistence contract. Optional single-value selections can be cleared, secondary muscles cannot duplicate the primary muscle, archive requires destructive confirmation, and pending writes keep the editor mounted until their result is known. Media/Storage and execution-measurement semantics remain outside W3D3.
 
@@ -64,21 +64,25 @@ W3C-W3E         Favorites, Custom Exercises, Folders
 
 W3A is the capability foundation: it delivers the Exercises route, screen and catalog repository, but has no user-facing entry of its own. The user-facing `Workout Home → Library → Exercises` path arrives with W6A. W3A must not add an interim entry elsewhere (for example a temporary Workout Home shortcut) without owner approval, and must not ship a fake, placeholder or unimplemented detail destination. Until W3B is ready, picker mode confirms a selection from the result list.
 
-## Future Library Exercises Category
+## Library Exercises Category
 
-GitHub #475 defines a future Library category selector in which **Exercises** is the second category after Programs.
-
-That target category does not move canonical Exercise truth into Library. It composes/navigates W3-owned collection views as their capabilities become real:
+GitHub #475 defines Library category pills with Programs first and Exercises second. For current real capabilities, selecting Exercises keeps the Library selected-pill chrome and shows only two actions:
 
 ```text
-Exercises category
-├─ Create a custom exercise    // W3D
-├─ Favorite Exercises          // W3C
-├─ Custom Exercises            // W3D
-└─ user-created folders...     // W3E
+[ X ] [ Exercises selected ]
+
+Create Exercise
+Exercises
 ```
 
-The canonical `/workout/exercises` screen is the single Exercise browsing/search/filter surface. Under the corrected W3D direction it composes bundled catalog rows with active user-created rows; `Custom Exercises` is therefore a focused view/state over that same screen, not a second collection route. In the future #475 Library Exercises category, **Browse exercises** opens the normal unified state, while **Custom Exercises** may open the same route focused to user-created rows. `Create a custom exercise` enters the W3D editor and returns to the unified screen. Until W3C/W3D/W3E capabilities are real, Library must not render fake Favorite/Custom/Folder production entries.
+- **Create Exercise** enters the existing W3D user-created Exercise editor through the canonical Exercises capability.
+- **Exercises** opens the canonical `/workout/exercises` screen.
+- Library does not render Exercise rows itself.
+- Library does not expose a separate Custom Exercises row/screen, a Custom-only state, Favorite/Custom/Folder landing rows, or another Exercise repository.
+- Bundled catalog and active user-created Exercises compose together only on the canonical Exercises screen; user-created rows keep the `Custom` badge/tag.
+- Favorites and Folders remain W3C/W3E capabilities over canonical Exercise identity and do not create a second collection truth.
+
+The app may use `/workout/exercises?create=true` as a one-shot navigation seam from Library's **Create Exercise** action. It mounts the canonical Exercises capability and opens the existing editor once the durable user Exercise source is ready; it is not a separate Exercise screen or ownership boundary.
 
 ## Entry And Exit Flow
 
@@ -102,7 +106,7 @@ Routine or Program builder
   -> return to the owning Routine or Program editor
 ```
 
-- Neither context is a bottom tab or the first Workout screen. In the current runtime, the dedicated Exercises screen is reached from [Library](library.md) through the Exercises navigation row. In the future #475 category UI, the secondary Browse exercises action opens the same `/workout/exercises` route; Library still does not duplicate catalog truth or render a second catalog implementation.
+- Neither context is a bottom tab or the first Workout screen. In the current runtime, Library's selected Exercises category exposes an **Exercises** action that opens the same `/workout/exercises` route; Library does not duplicate catalog truth or render a second catalog implementation.
 - Browsing the dedicated Exercises screen never starts a WorkoutSession.
 - In picker mode, selecting an exercise only adds or replaces it in the in-progress Routine/Program edit state and returns to that builder. It does not start a workout session.
 - The active workout flow may show exercise information for its already-selected exercises, but it must not turn either context into an unscoped global Quick Start path.
@@ -127,7 +131,7 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 
 - **Route:** `/workout/exercises` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath never relayouts during the push or pop transition. The page has a standard AppBar with back. A direct deep link opens the screen with `/workout` beneath it, and the screen follows the same onboarding and App Mode gating as `/workout`, so a mode without the Workout tab is redirected exactly as `/workout` would be.
 - **Ownership:** `apps/features/workout/lib/src/presentation/library/exercises/` owns `ExercisesController` (a `ChangeNotifier` behind `exercisesControllerProvider`), the immutable `ExercisesState`, `ExercisesPage`, the filter sheet and the rows. `exerciseCatalogRepositoryProvider` supplies the bundled `AssetBundleExerciseCatalogSource`. The presentation subtree is co-located with its shipped Library entry, but Library remains a navigation/collection surface: canonical Exercise domain/data ownership stays under the Workout Exercise capability, and the Library root still does not render the catalog.
-- **Search and filters:** the top bar reads back, `Exercises`, a search icon and a filter icon. The search icon swaps the title for a `Search exercises` field; its close action hides the field and clears the text. The field is closed by default, except when opened through Library's search icon or the `?search=true` deep link (`ExercisesPage.startSearching`), which open the screen with the field active and focused. While the field is open, the filter icon is hidden. The filter icon turns the primary color while any filter is active, and its tooltip announces the active count. It opens a sheet with single-select Muscle, Equipment and Category chips, `Clear all` and `Show results`. Choices stay a draft until `Show results`, and dismissing the sheet applies nothing. All matching goes through `ExerciseCatalogQuery`, and search applies as the user types. Filter values come from active Exercises, and labels are sentence-case forms of the taxonomy tokens (for example `Upper arms`, `EZ bar`).
+- **Search and filters:** the top bar reads back, `Exercises`, a search icon and a filter icon. The search icon swaps the title for a `Search exercises` field; its close action hides the field and clears the text. The field is closed by default, except when opened through Library's search icon or the `?search=true` deep link (`ExercisesPage.startSearching`), which open the screen with the field active and focused. Library's `?create=true` entry uses `ExercisesPage.startCreating` to open the existing Custom Exercise editor once without changing the unified collection mode. While search is open, the filter icon is hidden. The filter icon turns the primary color while any filter is active, and its tooltip announces the active count. It opens a sheet with single-select Muscle, Equipment and Category chips, `Clear all` and `Show results`. Choices stay a draft until `Show results`, and dismissing the sheet applies nothing. All matching goes through `ExerciseCatalogQuery`, and search applies as the user types. Filter values come from active Exercises, and labels are sentence-case forms of the taxonomy tokens (for example `Upper arms`, `EZ bar`).
 - **Rows:** a thumbnail, the Exercise name and `Primary equipment • Muscle group`. The thumbnail is `urlFor(image)`, then `urlFor(thumbnail)`, for the viewer's media gender. With no usable URL, or when the image fails to load, the row is text-only with no placeholder. Bundled catalog rows have no icon, chevron, favorite/folder action, video or tap behavior until Exercise Detail (W3B) exists. User-created rows are the bounded W3D exception: they carry a `Custom` badge plus chevron and are tappable to open the Custom Exercise edit flow on the same canonical screen.
 - **States:** loading, empty catalog, search/filter no-match, missing bundled catalog, malformed catalog (including an unsupported schema version) and unexpected failure. Every failure comes from the bundled asset, so none of them offers Retry.
 
@@ -149,7 +153,7 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 
 ## Acceptance Criteria
 
-- The dedicated Exercises screen is currently reached from Library → Exercises (user-facing since W6A); after the #475 category UI lands, the Exercises category's secondary **Browse exercises** action opens the same canonical route. Picker mode is reached only from a Routine/Program exercise-selection context.
+- The dedicated Exercises screen is reached from Library's selected Exercises category through its **Exercises** action; **Create Exercise** enters the existing editor through the same canonical capability. Picker mode is reached only from a Routine/Program exercise-selection context.
 - Both contexts use the same canonical Exercise and catalog repository.
 - W3A exposes no Exercise detail navigation; detail appears only once W3B is ready.
 - In picker mode, search, filter, selection, and return preserve the editor state safely.
