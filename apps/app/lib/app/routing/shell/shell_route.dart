@@ -72,10 +72,12 @@ List<RouteBase> _shellBranchChildRoutes(
       // Library → Exercises pushes, so back from Exercises returns here.
       builder: (context, state) => Consumer(
         builder: (context, ref, _) {
+          final programRepository = ref.watch(programRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
           return LibraryPage(
-            onProgramsPressed: () =>
+            programRepository: programRepository,
+            onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>
                 context.push(AppRoutes.workoutExercises.path),
