@@ -89,11 +89,15 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openManage() async {
     final onManagePressed = widget.onManagePressed;
-    final controller = _controller;
-    if (onManagePressed == null || controller == null) return;
+    if (onManagePressed == null) return;
 
+    final controller = _controller;
     await onManagePressed();
-    if (!mounted || !identical(controller, _controller)) return;
+    if (controller == null ||
+        !mounted ||
+        !identical(controller, _controller)) {
+      return;
+    }
     await controller.load();
   }
 
@@ -246,7 +250,7 @@ class _ProgramsLoading extends StatelessWidget {
       );
 }
 
-class _ProgramsList extends StatelessWidget {
+class _ProgramsList extends StatefulWidget {
   const _ProgramsList({
     required this.programs,
     required this.embedded,
@@ -256,26 +260,44 @@ class _ProgramsList extends StatelessWidget {
   final bool embedded;
 
   @override
+  State<_ProgramsList> createState() => _ProgramsListState();
+}
+
+class _ProgramsListState extends State<_ProgramsList> {
+  final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
+
+  void _toggleExpanded(ProgramId id) {
+    setState(() {
+      if (!_collapsedPrograms.add(id)) {
+        _collapsedPrograms.remove(id);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
-    for (var index = 0; index < programs.length; index++) {
-      final program = programs[index];
+    for (var index = 0; index < widget.programs.length; index++) {
+      final program = widget.programs[index];
+      final expanded = !_collapsedPrograms.contains(program.id);
       children.add(
         _ProgramRow(
           key: ValueKey('program-row-${program.id.value}'),
           name: program.name,
+          expanded: expanded,
+          onToggleExpanded: () => _toggleExpanded(program.id),
         ),
       );
-      if (index != programs.length - 1) {
+      if (index != widget.programs.length - 1) {
         children.add(const _ProgramsDivider());
       }
     }
 
-    final card = TioGroupCard(children: children);
-    if (embedded) {
-      return KeyedSubtree(
+    if (widget.embedded) {
+      return Column(
         key: const ValueKey('programs-list'),
-        child: card,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
       );
     }
 
@@ -285,36 +307,54 @@ class _ProgramsList extends StatelessWidget {
         horizontal: TioSpacing.lg,
         vertical: TioSpacing.md,
       ),
-      children: [card],
+      children: [TioGroupCard(children: children)],
     );
   }
 }
 
 class _ProgramRow extends StatelessWidget {
-  const _ProgramRow({required this.name, super.key});
+  const _ProgramRow({
+    required this.name,
+    required this.expanded,
+    required this.onToggleExpanded,
+    super.key,
+  });
 
   final String name;
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.md + TioSize.dp4,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: TioFontWeight.w700,
-            fontSize: TioFontSize.size15,
+      padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+      child: Row(
+        children: [
+          IconButton(
+            key: ValueKey('program-expand-$name'),
+            tooltip: expanded ? 'Collapse $name' : 'Expand $name',
+            onPressed: onToggleExpanded,
+            color: colors.textSecondary,
+            icon: Icon(
+              expanded
+                  ? Icons.keyboard_arrow_down_rounded
+                  : Icons.keyboard_arrow_right_rounded,
+            ),
           ),
-        ),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioFontSize.size15,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -329,8 +369,6 @@ class _ProgramsDivider extends StatelessWidget {
     return Divider(
       height: TioSize.dp1,
       thickness: TioStroke.width1,
-      indent: TioSpacing.lg,
-      endIndent: TioSpacing.lg,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
