@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/exercise_catalog_query.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
@@ -126,9 +127,13 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     final customExercises = customState?.status == CustomExercisesStatus.ready
         ? customState!.exercises
         : const <Exercise>[];
+    final customQuery = _customQueryFor(
+      catalogState.query,
+      customOnly: widget.customOnly,
+    );
     final filteredCustom = [
       for (final exercise in customExercises)
-        if (catalogState.query.matches(exercise)) exercise,
+        if (customQuery.matches(exercise)) exercise,
     ];
     final customItems = [
       for (final exercise in filteredCustom)
@@ -146,6 +151,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     final filterState = _withCustomFilterOptions(
       catalogState,
       customExercises,
+      customOnly: widget.customOnly,
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
@@ -210,8 +216,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 ),
                 IconButton(
                   key: const ValueKey('exercises-filter'),
-                  tooltip: _filterSemanticLabel(catalogState.activeFilterCount),
-                  color: catalogState.activeFilterCount > 0
+                  tooltip: _filterSemanticLabel(filterState.activeFilterCount),
+                  color: filterState.activeFilterCount > 0
                       ? colors.primary
                       : colors.textPrimary,
                   onPressed: canBrowse
@@ -219,6 +225,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                             context,
                             catalogController,
                             filterState,
+                            customOnly: widget.customOnly,
                           )
                       : null,
                   icon: const Icon(Icons.filter_list),
@@ -244,17 +251,18 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   Future<void> _openFilters(
     BuildContext context,
     ExercisesController controller,
-    ExercisesState state,
-  ) async {
+    ExercisesState state, {
+    required bool customOnly,
+  }) async {
     final selection = await showExerciseFilterSheet(
       context: context,
       state: state,
     );
     if (selection == null) return;
     controller.applyFilters(
-      muscleGroup: selection.muscleGroup,
+      muscleGroup: customOnly ? null : selection.muscleGroup,
       primaryEquipment: selection.primaryEquipment,
-      category: selection.category,
+      category: customOnly ? null : selection.category,
     );
   }
 
@@ -407,14 +415,23 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     return parts.isEmpty ? null : parts.join(' • ');
   }
 
+  static ExerciseCatalogQuery _customQueryFor(
+    ExerciseCatalogQuery query, {
+    required bool customOnly,
+  }) =>
+      customOnly
+          ? ExerciseCatalogQuery(
+              text: query.text,
+              primaryEquipment: query.primaryEquipment,
+            )
+          : query;
+
   static ExercisesState _withCustomFilterOptions(
     ExercisesState state,
-    List<Exercise> customExercises,
-  ) {
-    final equipment = <String, ExerciseFilterOption>{
-      for (final option
-          in state.optionsFor(ExerciseFilterDimension.equipment))
-        option.value: option,
+    List<Exercise> customExercises, {
+    required bool customOnly,
+  }) {
+    final customEquipment = <String, ExerciseFilterOption>{
       for (final exercise in customExercises)
         if (exercise.primaryEquipment case final value?)
           value: ExerciseFilterOption(
@@ -422,23 +439,39 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
             label: exerciseTaxonomyLabel(value),
           ),
     };
+    final equipment = <String, ExerciseFilterOption>{
+      if (!customOnly)
+        for (final option
+            in state.optionsFor(ExerciseFilterDimension.equipment))
+          option.value: option,
+      ...customEquipment,
+    };
     final equipmentOptions = equipment.values.toList()
       ..sort((a, b) {
         final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
         return byLabel != 0 ? byLabel : a.value.compareTo(b.value);
       });
+    final query = _customQueryFor(
+      state.query,
+      customOnly: customOnly,
+    );
 
     return ExercisesState(
       status: state.status,
-      query: state.query,
+      query: query,
       items: state.items,
       hasActiveExercises:
           state.hasActiveExercises || customExercises.isNotEmpty,
-      filterOptions: {
-        ...state.filterOptions,
-        ExerciseFilterDimension.equipment:
-            List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
-      },
+      filterOptions: customOnly
+          ? {
+              ExerciseFilterDimension.equipment:
+                  List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
+            }
+          : {
+              ...state.filterOptions,
+              ExerciseFilterDimension.equipment:
+                  List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
+            },
       isSearching: state.isSearching,
     );
   }
