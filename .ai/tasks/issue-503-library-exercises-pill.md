@@ -1,6 +1,6 @@
 # GitHub #503 — Library Exercises pill alignment
 
-**Status:** Ready for merge decision — PR #504 exact-head gates clean before final handoff commit
+**Status:** In progress — owner found Create Exercise back-stack defect after merge gate
 **Primary owner:** `apps/features/workout` presentation + `apps/app` route composition
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #503
@@ -25,7 +25,7 @@ Exercises
 
 No exercise rows render inside Library.
 
-- Create Exercise opens the existing canonical user-created Exercise create flow.
+- Create Exercise opens the existing canonical user-created Exercise editor **directly over Library**; it must not route through or mount `ExercisesPage` first.
 - Exercises opens the canonical `/workout/exercises` screen.
 - Catalog + user-created Exercises compose together only on that canonical screen.
 - User-created rows retain the presentation-only `Custom` tag.
@@ -59,7 +59,7 @@ Core audit:
 - Programs remains default content and reuses the current Programs navigation capability; no inline Program/Routine expansion.
 - Explicit selection collapses strip to circular X + selected pill.
 - Selected Exercises content has exactly two current actions: Create Exercise and Exercises, each in its own standalone `TioCard`.
-- Create Exercise enters existing W3D create flow through the canonical Exercises capability.
+- Create Exercise reuses the existing W3D controller/editor/persistence boundary directly from Library; `ExercisesPage` is browse/search only.
 - Exercises opens canonical unified `/workout/exercises`.
 - remove Library Custom Exercises row and app-shell `?custom=true` handoff.
 - retire `customOnly` from `ExercisesPage` runtime API and tests.
@@ -85,8 +85,10 @@ LibraryPage
   ├─ Programs content
   │    └─ existing onProgramsPressed → /workout/programs
   └─ Exercises content
-       ├─ standalone TioCard: Create Exercise → /workout/exercises?create=true
-       │    └─ existing ExercisesPage + CustomExercisesController → editor
+       ├─ standalone TioCard: Create Exercise
+       │    └─ direct feature-owned CreateExercisePage
+       │         └─ existing CustomExercisesController + CustomExerciseEditorPage
+       │         └─ back/save → selected Exercises Library state
        └─ standalone TioCard: Exercises → /workout/exercises
 
 Future capability-ready entries:
@@ -107,7 +109,7 @@ No new Exercise model/repository/collection truth.
 - [x] Keep only current-capability Programs content in default/Programs state.
 - [x] Add selected Exercises actions: Create Exercise + Exercises.
 - [x] Render each current Exercises action as its own standalone `TioCard` and remove `TioGroupCard` from this Library action surface.
-- [x] Add one-shot `create=true` entry seam to existing ExercisesPage editor flow.
+- [ ] Replace the one-shot `create=true` ExercisesPage seam with a direct feature-owned Create Exercise page so Library → Create does not add Exercises to the back stack.
 - [x] Remove Custom-only Library route/query and `customOnly` page behavior.
 - [x] Update Library/router/Exercises tests.
 - [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
@@ -169,4 +171,4 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
 **Current state:** PR #504 is open and the production slice is validated at exact head `3cee78162bef2f09baf1d9024e6f3c1deb9417e0`: Library uses standalone `TioCard` actions (no `TioGroupCard`), Create Exercise fails closed when durable user-Exercise persistence is unavailable, canonical Exercises remains unified, Flutter/Dart analyze+tests pass, attribution passes, Codex exact-head review is clean, and unresolved review threads are 0. GHAS remains a supplemental HTTP 402 quota failure before analysis. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
-**Next exact action:** after this final handoff-only commit, rerun exact-head CI/Codex checks; if clean, stop at the merge decision and wait for explicit `Go merge`.
+**Next exact action:** remove the `?create=true` / `ExercisesPage.startCreating` path, add a feature-owned direct Create Exercise page with loading/retry lifecycle, update router/tests/docs, then rerun exact-head CI/Codex gates.
