@@ -242,6 +242,58 @@ void main() {
     expect(find.text('Strength Plus'), findsOneWidget);
   });
 
+  testWidgets('ambiguous Program rename reconciles durable state',
+      (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+      renameErrorAfterWrite: Exception('response lost'),
+    );
+    await _pump(tester, programRepository: repository);
+
+    await tester.tap(
+      find.byKey(ValueKey('program-overflow-${_id(1).value}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-edit')));
+    await tester.pumpAndSettle();
+
+    final editable = find.descendant(
+      of: find.byKey(const ValueKey('program-edit-name-field')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(editable, 'Strength Plus');
+    await tester.tap(find.byKey(const ValueKey('program-edit-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.renamed, [(id: _id(1), name: 'Strength Plus')]);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(find.text('Strength Plus'), findsOneWidget);
+  });
+
+  testWidgets('Program actions sheet bounds long Program names',
+      (tester) async {
+    final longName = List.filled(40, 'VeryLongProgramName').join(' ');
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, longName)],
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(ValueKey('program-overflow-${_id(1).value}')),
+    );
+    await tester.pumpAndSettle();
+
+    final title = tester.widget<Text>(
+      find.byKey(const ValueKey('program-actions-title')),
+    );
+    expect(title.maxLines, 2);
+    expect(title.overflow, TextOverflow.ellipsis);
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'missing durable Program repository fails closed but header still manages',
       (tester) async {
@@ -474,12 +526,15 @@ final class _QueueProgramIdGenerator implements ProgramIdGenerator {
 }
 
 final class _FakeProgramRepository implements ProgramRepository {
-  _FakeProgramRepository({List<Program>? programs})
-      : programs = [...?programs];
+  _FakeProgramRepository({
+    List<Program>? programs,
+    this.renameErrorAfterWrite,
+  }) : programs = [...?programs];
 
   final List<Program> programs;
   final List<Program> created = [];
   final List<({ProgramId id, String name})> renamed = [];
+  final Object? renameErrorAfterWrite;
 
   @override
   Future<List<Program>> list() async => List.unmodifiable(programs);
@@ -499,5 +554,7 @@ final class _FakeProgramRepository implements ProgramRepository {
     final index = programs.indexWhere((program) => program.id == id);
     if (index == -1) throw StateError('Program not found.');
     programs[index] = Program(id: id, name: name);
+    final errorAfterWrite = renameErrorAfterWrite;
+    if (errorAfterWrite != null) throw errorAfterWrite;
   }
 }
