@@ -543,7 +543,11 @@ void main() {
         startCreating: true,
       );
 
-      expect(find.byType(ExercisesPage), findsOneWidget);
+      expect(
+        find.byType(ExercisesPage, skipOffstage: false),
+        findsOneWidget,
+        reason: 'the canonical Exercises route stays mounted under the editor',
+      );
       expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
       expect(find.text('Create Exercise'), findsWidgets);
 
