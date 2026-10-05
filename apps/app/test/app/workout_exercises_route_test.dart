@@ -222,12 +222,32 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(TioShellStatusTopBar), findsNothing);
 
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
     await tester.pumpAndSettle();
     expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.byType(LibraryPage), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'exercise-custom-badge-10000000-0000-4000-8000-000000000001',
+        ),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -246,7 +266,7 @@ void main() {
   });
 
   testWidgets(
-      'Library Custom Exercises entry reuses the canonical Exercises screen',
+      'Library Create Exercise uses the canonical Exercises create flow',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
     router.go(FeatureRoutes.workout.path);
@@ -255,30 +275,30 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey('library-custom-exercises-entry')),
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Custom'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
     );
     await tester.pumpAndSettle();
 
     expect(find.byType(ExercisesPage), findsOneWidget);
-    expect(
-      find.byKey(
-        const ValueKey(
-          'exercise-row-10000000-0000-4000-8000-000000000001',
-        ),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey(
-          'exercise-custom-badge-10000000-0000-4000-8000-000000000001',
-        ),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+    expect(find.text('Create Exercise'), findsWidgets);
+
+    await tester.tap(find.byType(BackButton).last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.text('Synthetic Route Custom'), findsOneWidget);
-    expect(find.text('Synthetic Route Curl'), findsNothing);
-    expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
   });
 
   testWidgets(
@@ -347,6 +367,19 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(LibraryPage), findsOneWidget);
+  });
+
+  testWidgets('legacy custom query no longer creates a Custom-only screen',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go('$_exercisesPath?custom=true');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(find.byKey(const ValueKey('all-exercises-section')), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercises-section')), findsOneWidget);
   });
 
   testWidgets('the search deep link opens Exercises in search mode',
