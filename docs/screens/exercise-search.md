@@ -1,7 +1,7 @@
 # Exercises Screen And Exercise Picker
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-01
+Last Verified: 2026-10-05
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Exercises screen/picker product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
@@ -23,6 +23,24 @@ The active W3D3 branch now follows the owner correction from 2026-10-04: there i
 User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row enters its edit/detail flow; successful create/edit returns to the same canonical Exercises surface. A Library `Custom Exercises` entry may open this same surface in a Custom-focused/filter state, but must not establish another collection truth. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
 
 The editor itself remains W3D3-owned and exposes required name plus optional description, Exercise Type, Primary muscle, Secondary muscles, and Equipment using the already-live W3D2 persistence contract. Optional single-value selections can be cleared, secondary muscles cannot duplicate the primary muscle, archive requires destructive confirmation, and pending writes keep the editor mounted until their result is known. Media/Storage and execution-measurement semantics remain outside W3D3.
+
+### Primary muscle Body Part presentation map
+
+The W3D3 Primary muscle selector uses the owner-approved 2026-10-05 presentation-only grouping below. Body Part is navigation metadata only and is never persisted; the durable value remains one canonical muscle token. The named groups cover all 44 canonical muscle tokens exactly once. `Full Body` is a navigation-only all-muscles view and is excluded from that uniqueness accounting.
+
+- **Chest:** `pectoralis_major_sternal_head`, `pectoralis_major_clavicular_head`, `serratus_anterior`, `serratus_anterior_alternate`
+- **Back:** `trapezius_lower_fibers`, `trapezius_upper_fibers`, `trapezius_middle_fibers`, `teres_major`, `latissimus_dorsi`, `erector_spinae`
+- **Shoulders:** `deltoid_anterior`, `deltoid_lateral`, `deltoid_posterior`, `infraspinatus`, `teres_minor`
+- **Biceps:** `biceps_brachii`, `brachialis`
+- **Triceps:** `triceps_brachii`
+- **Quadriceps:** `quadriceps`, `sartorius`
+- **Hamstrings:** `hamstrings`, `popliteus`
+- **Hips:** `pectineus`, `tensor_fasciae_latae`, `iliopsoas`, `adductor_longus`, `adductor_magnus`, `gluteus_maximus`, `gluteus_medius`, `gluteus_minimus`, `gracilis`, `deep_hip_external_rotators`
+- **Calves:** `gastrocnemius`, `soleus`, `tibialis_anterior`
+- **Forearms:** `brachioradialis`, `wrist_extensors`, `wrist_flexors`
+- **Neck:** `sternocleidomastoid`, `splenius`, `levator_scapulae`
+- **Waist / Abs:** `rectus_abdominis`, `transverse_abdominis`, `obliques`
+- **Full Body:** all 44 canonical muscle tokens; presentation/navigation only
 
 ## Purpose
 
