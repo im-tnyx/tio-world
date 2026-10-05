@@ -1,6 +1,6 @@
 # GitHub #503 — Library Exercises pill alignment
 
-**Status:** In review — PR #504 open; exact-head CI/Codex pending
+**Status:** Ready for merge decision — PR #504 exact-head gates clean before final handoff commit
 **Primary owner:** `apps/features/workout` presentation + `apps/app` route composition
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #503
@@ -113,7 +113,7 @@ No new Exercise model/repository/collection truth.
 - [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
 - [x] Run exact pre-PR branch scope audit.
 - [x] Hide Create Exercise when canonical durable user-Exercise repository capability is unavailable and cover the fail-closed route/widget states.
-- [ ] Complete exact-head GitHub CI + Codex review gates.
+- [x] Complete exact-head GitHub CI + Codex review gates.
 
 ## Validation
 
@@ -140,6 +140,18 @@ CI review follow-up:
 - app-route and feature-level create tests now use `find.byType(ExercisesPage, skipOffstage: false)` while the editor is open, then assert normal visible Exercises state after editor pop;
 - no production source behavior changed for this CI repair.
 
+Exact-head review gate before final handoff commit:
+- PR head `3cee78162bef2f09baf1d9024e6f3c1deb9417e0`;
+- branch `32 ahead / 0 behind`, exactly the same 10 owned paths;
+- Flutter CI `Analyze and test`: PASS (bootstrap, Flutter analyze, Dart analyze, Flutter tests, Dart tests);
+- Commit attribution guard: PASS;
+- Attribution guard runner: PASS;
+- Codex exact-head review: "Didn't find any major issues" on `3cee78162b`;
+- unresolved review threads: 0;
+- PR reports `mergeable=true` and `mergeable_state=clean`;
+- GHAS: two runs failed before meaningful analysis with HTTP 402 monthly quota; no concrete security finding and no security pass claimed;
+- current GitHub rulesets API returns `[]`; branch-protection endpoint is not readable by this integration (403). Current repository governance records identify GHAS as supplemental/non-required, and the PR remains mergeable/clean despite the GHAS failure. Required attribution evidence is green.
+
 Connector-only session:
 - GitHub compare for exact base/head scope;
 - connector-side Markdown hygiene;
@@ -156,5 +168,5 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Branch:** `tnyx/issue-503-library-exercises-pill`
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
-**Current state:** PR #504 is open. Owner clarified during review that the Library Exercises action surface must not use `TioGroupCard`: Create Exercise and Exercises are separate standalone cards, with future Favorites/Folders also added as separate capability-gated cards. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
-**Next exact action:** refresh exact-head scope, reply/resolve the Codex create-capability thread with the implemented evidence, request fresh exact-head Codex review, complete CI gates, then stop at the merge decision.
+**Current state:** PR #504 is open and the production slice is validated at exact head `3cee78162bef2f09baf1d9024e6f3c1deb9417e0`: Library uses standalone `TioCard` actions (no `TioGroupCard`), Create Exercise fails closed when durable user-Exercise persistence is unavailable, canonical Exercises remains unified, Flutter/Dart analyze+tests pass, attribution passes, Codex exact-head review is clean, and unresolved review threads are 0. GHAS remains a supplemental HTTP 402 quota failure before analysis. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
+**Next exact action:** after this final handoff-only commit, rerun exact-head CI/Codex checks; if clean, stop at the merge decision and wait for explicit `Go merge`.
