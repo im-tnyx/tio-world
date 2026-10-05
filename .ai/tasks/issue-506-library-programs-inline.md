@@ -23,7 +23,10 @@ default / Programs selected
 
 - Programs header text may open the existing `/workout/programs` screen as an optional secondary management surface.
 - folder-plus reuses the current canonical Create Program flow.
-- Library Program rows use the owner-approved plain header treatment with an expand/collapse chevron, not a large/grouped Program card.\n- The owner also approved the dotted `Add new routine` card beneath expanded Programs. That affordance remains capability-gated until W4 supplies a real Program-owned Routine create handoff; this slice must not ship it as an inert/fake action.\n- Program detail, overflow actions and Routine persistence remain gated by W4.
+- Library Program rows use the owner-approved plain header treatment with an expand/collapse chevron, not a large/grouped Program card.
+- The owner also approved the dotted `Add new routine` card beneath expanded Programs. That affordance remains capability-gated until W4 supplies a real Program-owned Routine create handoff; this slice must not ship it as an inert/fake action.
+- Program detail, Program-owned Routine actions and Delete Program remain gated by W4/lifecycle readiness.
+- Owner-approved follow-up in this same slice: Library Program 3-dot opens a Program-scoped bottom sheet; only the already-real persisted **Edit Program** rename action is exposed now.
 
 ## Verified Baseline
 
@@ -43,15 +46,19 @@ default / Programs selected
 - render persisted Program rows directly on Library default/selected Programs state;
 - keep Programs header → `/workout/programs` optional management route;
 - preserve loading/empty/load-failure/retry/create-failure/fail-closed behavior;
-- replace the Library grouped Program card with plain Program header rows and presentation-only expand/collapse state;\n- keep the dotted `Add new routine` target recorded but do not expose it until a real W4 Routine-create callback is available;
+- replace the Library grouped Program card with plain Program header rows and presentation-only expand/collapse state;
+- keep the dotted `Add new routine` target recorded but do not expose it until a real W4 Routine-create callback is available;
+- add Library-only 3-dot overflow → Program-scoped bottom sheet using reusable Tio sheet/group/settings components;
+- expose only persisted Edit Program rename through the existing `ProgramRepository.rename()` boundary; keep Open/View, Add New Routine and Delete hidden until capability-ready;
 - focused Programs/Library/router tests;
 - reconcile `docs/screens/library.md` and `docs/screens/programs.md`.
 
 ## Out of Scope
 
 - Program detail route or row navigation;
-- Program overflow actions;
-- Routine rows, expand/collapse, Add Routine;
+- Program detail navigation and Open/View action;
+- Routine rows/persistence and active Add Routine;
+- Delete/archive lifecycle;
 - Library top-bar + / default My Program;
 - Program delete/archive/media;
 - Your Plan / TrainingPlan;
@@ -89,7 +96,7 @@ Copying Programs loading/create/list logic into `LibraryPage` would create two p
 
 ## Dependency Guard
 
-TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B completion. Program rows intentionally stay non-interactive.
+TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B completion. Library Program names remain non-navigable; the chevron is presentation-only and the 3-dot sheet exposes only persisted rename, which already exists behind `ProgramRepository.rename()`.
 
 ## Implementation Plan
 
@@ -99,7 +106,9 @@ TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B co
 - [x] Keep header → optional Programs manage route.
 - [x] Add/adjust Programs, Library and app-router tests.
 - [x] Reconcile Library/Programs canonical docs.
-- [x] Run exact branch scope/hygiene audit.
+- [x] Reconcile owner-approved plain Program row, Library-only chevron, and 3-dot bottom-sheet interaction.
+- [x] Wire persisted Edit Program rename while keeping W4/delete actions gated.
+- [ ] Re-run exact branch scope/hygiene audit after the latest owner-approved UI correction.
 - [x] Open PR.
 - [ ] Complete GitHub CI + exact-head Codex review gate.
 
@@ -146,10 +155,10 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
-**Current implementation state:** implementation active on branch; the first PR CI head exposed and fixed one analyzer-only public/private API lint: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
+**Current implementation state:** implementation active on branch. Library renders persisted Programs directly as plain rows, with Library-only expand/collapse chevrons and 3-dot overflow. The overflow opens a Program-scoped Tio bottom sheet and exposes only the already-real persisted Edit Program rename action. The optional standalone Programs page keeps its prior grouped display-only geometry without chevrons/overflow. W4-gated Program detail/Routine actions and delete lifecycle remain hidden. Focused Library/Programs tests and canonical docs are being reconciled.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** `2027b5ac06d03714deb28884c66348f98bf0442b` — Flutter CI and attribution passed; Codex review produced two P2 findings. Runtime refresh fix and focused regression test are now committed after that reviewed head.
 **Validation remaining:** exact resulting-head Flutter CI, attribution, fresh Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
-**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` reconcile implemented HEAD; `4187057150` allowed task status; `4187057155` fail-closed Programs header handoff; `4187057166` required visual baseline validation. Runtime/header and task-status fixes are being reconciled; visual baseline validation remains required.
-**Next exact action:** verify the resulting branch HEAD, let exact-head Flutter CI/attribution run, reply to the two Codex threads with the bounded fixes, request fresh Codex review, then audit unresolved threads/mergeability and stop at the merge decision.
+**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` handoff anchor; `4187057150` allowed task status; `4187057155` fail-closed Programs header handoff; `4187057166` visual baseline validation; `4187147622` standalone inert chevron; `4187147629` W4/current-runtime doc contradiction. Latest implementation addresses the runtime/status/standalone/docs findings; exact-head CI and re-review are still required before resolution.
+**Next exact action:** verify the resulting branch HEAD and complete exact scope audit; inspect exact-head Flutter CI; reply to all addressed Codex threads with evidence; request fresh Codex review; audit unresolved threads/mergeability and stop at the merge decision.
