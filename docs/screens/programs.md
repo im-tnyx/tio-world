@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Programs product contract and documented c
 **Surface:** Persisted Programs collection rendered directly on Library, with an optional nested management route
 **Route:** Library `/workout/library`; optional `/workout/programs` (`AppRoutes.workoutPrograms`) management surface
 **Primary owner:** `apps/features/workout`
-**Status:** Minimal persisted Programs collection/create is implemented and composed directly on Library. The separate Programs route remains optional secondary management. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
+**Status:** Minimal persisted Programs collection/create and rename are implemented and composed directly on Library. The separate Programs route remains optional secondary management. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
 
 ## Purpose
 
@@ -35,7 +35,8 @@ Current behavior:
 - Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
 - Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
 - The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
-- Library Program rows use a plain header treatment rather than a large/grouped Program card and expose a presentation-only expand/collapse chevron. Program-name navigation remains gated until real Program detail exists.\n- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
+- Library Program rows use a plain header treatment rather than a large/grouped Program card and expose a presentation-only expand/collapse chevron plus 3-dot overflow. The overflow opens a Program-scoped bottom sheet. The current real action is **Edit Program**, which persists rename through `ProgramRepository.rename`; Program-name navigation, Add New Routine and Delete remain gated until their owning capabilities are ready.
+- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
 - No standalone Routines row or top-level Create Routine action exists.
 
 For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
