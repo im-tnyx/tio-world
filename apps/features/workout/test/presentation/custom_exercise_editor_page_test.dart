@@ -181,6 +181,10 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('custom-exercise-archive')),
       300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('custom-exercise-editor-list')),
+        matching: find.byType(Scrollable),
+      ),
     );
     await tester.tap(
       find.byKey(const ValueKey('custom-exercise-archive')),
