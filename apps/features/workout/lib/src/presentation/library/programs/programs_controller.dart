@@ -158,6 +158,46 @@ final class ProgramsController extends ChangeNotifier {
     }
   }
 
+  Future<String?> rename({
+    required Program program,
+    required String name,
+  }) async {
+    final current = _state;
+    if (current.status != ProgramsStatus.ready || current.creating) {
+      return 'Could not edit program. Please try again.';
+    }
+
+    late final Program renamed;
+    try {
+      renamed = Program(id: program.id, name: name);
+    } catch (_) {
+      return 'Enter a program name.';
+    }
+
+    if (renamed.name == program.name) return null;
+
+    try {
+      await repository.rename(id: program.id, name: renamed.name);
+      if (_disposed) return 'Could not edit program. Please try again.';
+
+      _publish(
+        ProgramsState.ready(
+          programs: [
+            for (final item in current.programs)
+              if (item.id == program.id) renamed else item,
+          ],
+        ),
+      );
+      return null;
+    } catch (error) {
+      if (error is StateError &&
+          error.message.toString() == 'Please sign in to save Programs.') {
+        return 'Please sign in to save Programs.';
+      }
+      return 'Could not edit program. Please try again.';
+    }
+  }
+
   Future<List<Program>?> _reconcileCreate(Program attempted) async {
     try {
       var programs = await repository.list();
