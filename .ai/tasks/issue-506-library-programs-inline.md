@@ -1,6 +1,6 @@
 # GitHub #506 — Inline Programs on Library
 
-**Status:** In progress
+**Status:** In progress — implementation complete; pre-PR audit clean
 **Primary owner:** `apps/features/workout` Library/Programs presentation + `apps/app` composition
 **GitHub tracker:** #506
 **Planning:** #475, Linear TNYX-81 / TNYX-267 / TNYX-83
@@ -99,10 +99,22 @@ TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B co
 - [x] Keep header → optional Programs manage route.
 - [x] Add/adjust Programs, Library and app-router tests.
 - [x] Reconcile Library/Programs canonical docs.
-- [ ] Run exact branch scope/hygiene audit.
+- [x] Run exact branch scope/hygiene audit.
 - [ ] Open PR and complete GitHub CI + exact-head Codex review gate.
 
 ## Validation
+
+Pre-PR connector audit:
+- base/current `main@f27300ff1da444d38112bca9e7240b9983a040b7`;
+- branch `13 ahead / 0 behind`;
+- exactly 11 owned paths: 2 task-governance files, 2 canonical docs, 4 production Flutter files, 2 focused test files, and 1 app-shell/router test file;
+- no Supabase, Program domain/repository, Routine, TrainingPlan, delete/archive, or default-My-Program contract file touched;
+- changed-text scan: 0 trailing-whitespace lines and 0 conflict markers;
+- current branch runtime has zero `onProgramsPressed` references;
+- retired `library-programs-entry` key remains only as a negative Library regression assertion;
+- existing `ProgramsPage` remains a thin optional manage-route wrapper over the same reusable `ProgramsSurface`;
+- Library uses `ProgramsSurface.library` with the canonical `ProgramRepository?`, and Program rows remain display-only;
+- Programs header retains a normal accessible Material tap target; no shrink-wrapped hit target is introduced.
 
 Connector-only session:
 - GitHub compare/base/head scope audit;
@@ -127,10 +139,10 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** GitHub #506; #475; TNYX-81 / TNYX-267 / TNYX-83
-**Current implementation state:** reusable Programs surface extracted; Library now receives the canonical Program repository and renders Programs header/create/list directly; existing ProgramsPage reuses the same surface as optional secondary management; Program rows remain display-only; focused Library/router tests and canonical docs are updated
+**Current implementation state:** implementation complete on branch: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** planning/audit only
 **Validation remaining:** source scope audit, Flutter CI, attribution, Codex exact-head review
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
 **Open review finding IDs:** none
-**Next exact action:** run exact branch source/scope/hygiene audit, correct any compile/test contract mismatch, then open the focused PR and use GitHub CI + exact-head Codex review as executable validation.
+**Next exact action:** refresh exact main/head scope after this evidence-only commit, open the focused PR, request GitHub CI + exact-head Codex review, and stop at the merge decision after all gates are clean.
