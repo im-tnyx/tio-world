@@ -528,28 +528,6 @@ final class CustomExercisesController extends ChangeNotifier {
     return fallback;
   }
 
-  static Exercise _copyWithDefinitionAndDisplayName(
-    Exercise exercise, {
-    required String displayName,
-    required UserExerciseDefinition definition,
-  }) =>
-      Exercise(
-        ref: exercise.ref,
-        displayName: displayName,
-        description: definition.description,
-        exerciseType: definition.exerciseType,
-        muscleGroup: exercise.muscleGroup,
-        primaryMuscles: definition.primaryMuscle == null
-            ? const <String>[]
-            : [definition.primaryMuscle!],
-        secondaryMuscles: definition.secondaryMuscles,
-        primaryEquipment: definition.primaryEquipment,
-        category: exercise.category,
-        levels: exercise.levels,
-        status: exercise.status,
-        media: exercise.media,
-      );
-
   static Exercise _copyWithDisplayName(
     Exercise exercise,
     String displayName,
