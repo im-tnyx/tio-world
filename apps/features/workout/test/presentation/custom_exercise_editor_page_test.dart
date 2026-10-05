@@ -7,11 +7,14 @@ import 'package:tio_shared/shared.dart';
 Future<CustomExercisesController> _pumpEditor(
   WidgetTester tester, {
   Exercise? exercise,
+  _FakeRepository? repository,
 }) async {
-  final repository = _FakeRepository(
-    exercises: exercise == null ? const [] : [exercise],
-  );
-  final controller = CustomExercisesController(repository: repository);
+  final effectiveRepository = repository ??
+      _FakeRepository(
+        exercises: exercise == null ? const [] : [exercise],
+      );
+  final controller =
+      CustomExercisesController(repository: effectiveRepository);
   await controller.load();
   addTearDown(controller.dispose);
 
@@ -156,6 +159,51 @@ void main() {
     );
   });
 
+  testWidgets('archive failure is visible from the archive viewport',
+      (tester) async {
+    final exercise = Exercise(
+      ref: UserCreatedExerciseRef(
+        '10000000-0000-4000-8000-000000000001',
+      ),
+      displayName: 'My Cable Row',
+      status: ExerciseStatus.active,
+    );
+    final repository = _FakeRepository(
+      exercises: [exercise],
+      archiveError: Exception('network down'),
+    );
+    await _pumpEditor(
+      tester,
+      exercise: exercise,
+      repository: repository,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('custom-exercise-archive')),
+      300,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercise-archive')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(TioButton, 'Archive'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('custom-exercise-archive-error')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Could not archive exercise. Please try again.'),
+      findsWidgets,
+    );
+    expect(
+      find.byKey(const ValueKey('custom-exercise-archive')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Equipment opens approved single-select choices',
       (tester) async {
     await _pumpEditor(tester);
@@ -177,10 +225,13 @@ void main() {
 }
 
 final class _FakeRepository implements UserExerciseRepository {
-  _FakeRepository({required List<Exercise> exercises})
-      : exercises = [...exercises];
+  _FakeRepository({
+    required List<Exercise> exercises,
+    this.archiveError,
+  }) : exercises = [...exercises];
 
   final List<Exercise> exercises;
+  final Object? archiveError;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async =>
@@ -212,5 +263,8 @@ final class _FakeRepository implements UserExerciseRepository {
   }) async {}
 
   @override
-  Future<void> archive(UserCreatedExerciseRef id) async {}
+  Future<void> archive(UserCreatedExerciseRef id) async {
+    final error = archiveError;
+    if (error != null) throw error;
+  }
 }
