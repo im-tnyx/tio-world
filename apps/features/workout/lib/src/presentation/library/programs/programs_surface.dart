@@ -129,21 +129,36 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         top: false,
         child: TioSheet(
           key: const ValueKey('program-actions-sheet'),
-          title: program.name,
-          child: TioGroupCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TioSettingsNavigationRow(
-                key: const ValueKey('program-action-edit'),
-                leading: const TioSettingsLeadingIcon(
-                  icon: Icons.edit_outlined,
-                ),
-                title: 'Edit Program',
-                supportingText: 'Rename this Program',
-                showChevron: false,
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  await _openRename(program);
-                },
+              Text(
+                program.name,
+                key: const ValueKey('program-actions-title'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      color: sheetContext.tioColors.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: TioSpacing.lg),
+              TioGroupCard(
+                children: [
+                  TioSettingsNavigationRow(
+                    key: const ValueKey('program-action-edit'),
+                    leading: const TioSettingsLeadingIcon(
+                      icon: Icons.edit_outlined,
+                    ),
+                    title: 'Edit Program',
+                    supportingText: 'Rename this Program',
+                    showChevron: false,
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      await _openRename(program);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
