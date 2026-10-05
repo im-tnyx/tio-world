@@ -112,7 +112,7 @@ No new Exercise model/repository/collection truth.
 - [x] Update Library/router/Exercises tests.
 - [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
 - [x] Run exact pre-PR branch scope audit.
-- [ ] Hide Create Exercise when canonical durable user-Exercise repository capability is unavailable and cover the fail-closed route/widget states.
+- [x] Hide Create Exercise when canonical durable user-Exercise repository capability is unavailable and cover the fail-closed route/widget states.
 - [ ] Complete exact-head GitHub CI + Codex review gates.
 
 ## Validation
@@ -157,4 +157,4 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
 **Current state:** PR #504 is open. Owner clarified during review that the Library Exercises action surface must not use `TioGroupCard`: Create Exercise and Exercises are separate standalone cards, with future Favorites/Folders also added as separate capability-gated cards. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
-**Next exact action:** implement the Codex fail-closed create-capability fix with focused widget/router coverage, reply/resolve the review thread, then rerun exact-head CI/Codex gates and stop at the merge decision.
+**Next exact action:** refresh exact-head scope, reply/resolve the Codex create-capability thread with the implemented evidence, request fresh exact-head Codex review, complete CI gates, then stop at the merge decision.
