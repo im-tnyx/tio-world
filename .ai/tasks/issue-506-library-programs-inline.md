@@ -116,14 +116,14 @@ TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B co
 
 Pre-PR connector audit:
 - base/current `main@f27300ff1da444d38112bca9e7240b9983a040b7`;
-- branch `13 ahead / 0 behind`;
-- exactly 11 owned paths: 2 task-governance files, 2 canonical docs, 4 production Flutter files, 2 focused test files, and 1 app-shell/router test file;
+- latest scope audit at implementation checkpoint `0bc8d82ea00aed0908b2d85bb956fd1c7ad307e8`: `43 ahead / 0 behind`, merge-base remains `main@f27300ff1da444d38112bca9e7240b9983a040b7`;
+- exactly 13 owned paths: 2 task-governance files, 2 canonical docs, 6 production Flutter files, and 3 focused/router test files;
 - no Supabase, Program domain/repository, Routine, TrainingPlan, delete/archive, or default-My-Program contract file touched;
 - changed-text scan: 0 trailing-whitespace lines and 0 conflict markers;
 - current branch runtime has zero `onProgramsPressed` references;
 - retired `library-programs-entry` key remains only as a negative Library regression assertion;
 - existing `ProgramsPage` remains a thin optional manage-route wrapper over the same reusable `ProgramsSurface`;
-- Library uses `ProgramsSurface.library` with the canonical `ProgramRepository?`, and Program rows remain display-only;
+- Library uses `ProgramsSurface.library` with the canonical `ProgramRepository?`; Program names remain non-navigable, while Library-only chevron/overflow presentation and persisted rename are capability-backed;
 - Programs header retains a normal accessible Material tap target; no shrink-wrapped hit target is introduced.
 
 CI follow-up:
@@ -151,14 +151,14 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f27300ff1da444d38112bca9e7240b9983a040b7`
 **Branch:** `tnyx/issue-506-library-programs-inline`
-**HEAD SHA:** `0937683882d4f87c0f349d0942f22c938708ef6b` — current implementation checkpoint before this handoff-only anchor commit; runtime refresh fix, regression test, and review-handoff reconciliation are committed. Re-read PR metadata for the immutable exact validation/review head.
+**HEAD SHA:** `0bc8d82ea00aed0908b2d85bb956fd1c7ad307e8` — latest implementation checkpoint before this handoff-only update; ambiguous rename reconciliation, bounded action-sheet title, standalone divider restoration and focused regressions are committed. Re-read PR metadata for the immutable exact validation/review head.
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
 **Current implementation state:** implementation active on branch. Library renders persisted Programs directly as plain rows, with Library-only expand/collapse chevrons and 3-dot overflow. The overflow opens a Program-scoped Tio bottom sheet and exposes only the already-real persisted Edit Program rename action. The optional standalone Programs page keeps its prior grouped display-only geometry without chevrons/overflow. W4-gated Program detail/Routine actions and delete lifecycle remain hidden. Focused Library/Programs tests and canonical docs are being reconciled.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
-**Validation completed at SHA:** `2027b5ac06d03714deb28884c66348f98bf0442b` — Flutter CI and attribution passed; Codex review produced two P2 findings. Runtime refresh fix and focused regression test are now committed after that reviewed head.
-**Validation remaining:** exact resulting-head Flutter CI, attribution, fresh Codex review, unresolved-thread and mergeability gate
+**Validation completed at SHA:** `51f42ad6c11ab07a49a2cf78c265320aa1a080fa` — Flutter CI passed. Exact-head Codex review found three additional P2 issues: ambiguous rename reconciliation (`4187456379`), stale 11-path handoff scope (`4187456391`), and unbounded action-sheet title (`4187456408`). All three are addressed after that reviewed head and require exact-resulting-head verification.
+**Validation remaining:** exact resulting-head Flutter CI, attribution/check-state audit, fresh Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
-**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` handoff anchor; `4187057150` allowed task status; `4187057155` fail-closed Programs header handoff; `4187057166` visual baseline validation; `4187147622` standalone inert chevron; `4187147629` W4/current-runtime doc contradiction. Latest implementation addresses the runtime/status/standalone/docs findings; exact-head CI and re-review are still required before resolution.
+**Open review finding IDs:** `4186857060` refresh after management; `4186857092` handoff anchor; `4187057150` allowed task status; `4187057155` fail-closed header handoff; `4187057166` visual baseline validation; `4187147622` standalone inert chevron; `4187147629` W4/current-runtime docs; `4187383262` standalone divider indentation; `4187456379` ambiguous rename reconciliation; `4187456391` exact 13-path handoff scope; `4187456408` bounded action-sheet title. All have implementation/doc fixes on branch; exact-resulting-head CI/re-review are still required before resolution.
 **Next exact action:** verify the resulting branch HEAD and complete exact scope audit; inspect exact-head Flutter CI; reply to all addressed Codex threads with evidence; request fresh Codex review; audit unresolved threads/mergeability and stop at the merge decision.
