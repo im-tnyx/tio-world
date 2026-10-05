@@ -108,6 +108,15 @@ void main() {
       findsNothing,
     );
 
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    final padding = tester.widget<Padding>(
+      find.descendant(of: row, matching: find.byType(Padding)).first,
+    );
+    expect(
+      padding.padding,
+      const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+    );
+
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
     expect(toggle, findsOneWidget);
     expect(
