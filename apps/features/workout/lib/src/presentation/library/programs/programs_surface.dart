@@ -140,9 +140,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                 title: 'Edit Program',
                 supportingText: 'Rename this Program',
                 showChevron: false,
-                onTap: () {
+                onTap: () async {
                   Navigator.of(sheetContext).pop();
-                  _openRename(program);
+                  await _openRename(program);
                 },
               ),
             ],
