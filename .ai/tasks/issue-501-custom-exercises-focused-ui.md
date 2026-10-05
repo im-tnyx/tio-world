@@ -1,6 +1,6 @@
 # GitHub #501 — Custom Exercises focused-state UI polish
 
-**Status:** In progress
+**Status:** In progress — implementation complete; CI/review pending
 **Primary owner:** `apps/features/workout` presentation
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #501
@@ -76,11 +76,11 @@ No ownership, persistence, route identity, domain model or repository contract c
 
 ## Implementation Plan
 
-- [ ] Make focused title/search/filter/no-match copy context-aware.
-- [ ] Let the filter sheet receive a caller-provided title while preserving its default.
-- [ ] Suppress the Custom Exercises section header only when the list itself is already focused.
-- [ ] Add focused widget tests covering title, search, filter sheet, no-match and section-header behavior.
-- [ ] Update app route test to assert Library → Custom Exercises visibly lands in the focused context.
+- [x] Make focused title/search/filter/no-match copy context-aware.
+- [x] Let the filter sheet receive a caller-provided title while preserving its default.
+- [x] Suppress the Custom Exercises section header only when the list itself is already focused.
+- [x] Add focused widget tests covering title, search, filter sheet, no-match and section-header behavior.
+- [x] Update app route test to assert Library → Custom Exercises visibly lands in the focused context.
 - [ ] Run exact branch scope audit and GitHub CI/review gates.
 
 ## Validation Plan
@@ -101,5 +101,5 @@ Local Flutter commands and local `git diff --check` are not claimed unless a loc
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** pending PR review
-**Current state:** fresh audit complete; GitHub #501 created; Linear child creation blocked by workspace free issue limit; source implementation not yet changed.
-**Next exact action:** implement the bounded presentation changes in `ExercisesPage` / filter sheet and focused tests, then run branch scope audit before PR creation.
+**Current state:** bounded presentation implementation and focused tests are on the branch. A pre-PR semantic audit caught and corrected one patch-order error where the Custom no-match copy had briefly landed in the unified branch; unified `ExercisesPage.noMatchMessage` is restored and `customNoMatchMessage` is now scoped only to `customOnly=true`. No route/domain/data/editor-field change.
+**Next exact action:** run final parent/head scope + Markdown hygiene audit, open the focused PR, then use GitHub CI and exact-head Codex review as executable validation.
