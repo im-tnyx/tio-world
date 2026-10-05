@@ -42,6 +42,8 @@ class ExercisesPage extends ConsumerStatefulWidget {
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
   static const noMatchMessage = 'No exercises match your search or filters.';
+  static const customNoMatchMessage =
+      'No custom exercises match your search or filters.';
   static const missingCatalogMessage =
       'Exercises aren’t available in this version of the app.';
   static const malformedCatalogMessage =
@@ -54,6 +56,15 @@ class ExercisesPage extends ConsumerStatefulWidget {
 
 class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   CustomExercisesController? _customController;
+
+  String get _screenTitle =>
+      widget.customOnly ? 'Custom Exercises' : 'Exercises';
+
+  String get _searchHint =>
+      widget.customOnly ? 'Search custom exercises' : 'Search exercises';
+
+  String get _filterTitle =>
+      widget.customOnly ? 'Filter custom exercises' : 'Filter exercises';
 
   @override
   void initState() {
@@ -167,7 +178,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         title: catalogState.isSearching
             ? TioInput(
                 key: const ValueKey('exercises-search'),
-                hint: 'Search exercises',
+                hint: _searchHint,
                 value: catalogState.query.text,
                 autofocus: true,
                 contentPadding: const EdgeInsets.symmetric(
@@ -181,7 +192,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 onChanged: catalogController.setSearchText,
               )
             : Text(
-                'Exercises',
+                _screenTitle,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: TioFontWeight.w800,
@@ -209,14 +220,17 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                   ),
                 IconButton(
                   key: const ValueKey('exercises-search-open'),
-                  tooltip: 'Search exercises',
+                  tooltip: _searchHint,
                   color: colors.textPrimary,
                   onPressed: canBrowse ? catalogController.openSearch : null,
                   icon: const Icon(Icons.search_rounded),
                 ),
                 IconButton(
                   key: const ValueKey('exercises-filter'),
-                  tooltip: _filterSemanticLabel(filterState.activeFilterCount),
+                  tooltip: _filterSemanticLabel(
+                    filterState.activeFilterCount,
+                    customOnly: widget.customOnly,
+                  ),
                   color: filterState.activeFilterCount > 0
                       ? colors.primary
                       : colors.textPrimary,
@@ -242,11 +256,17 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
   }
 
-  static String _filterSemanticLabel(int activeCount) => switch (activeCount) {
-        0 => 'Filter exercises',
-        1 => 'Filter exercises, 1 filter active',
-        _ => 'Filter exercises, $activeCount filters active',
-      };
+  static String _filterSemanticLabel(
+    int activeCount, {
+    required bool customOnly,
+  }) {
+    final title = customOnly ? 'Filter custom exercises' : 'Filter exercises';
+    return switch (activeCount) {
+      0 => title,
+      1 => '$title, 1 filter active',
+      _ => '$title, $activeCount filters active',
+    };
+  }
 
   Future<void> _openFilters(
     BuildContext context,
@@ -257,6 +277,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     final selection = await showExerciseFilterSheet(
       context: context,
       state: state,
+      title: customOnly ? 'Filter custom exercises' : 'Filter exercises',
     );
     if (selection == null) return;
     controller.applyFilters(
@@ -370,7 +391,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
 
       return const _Message(
         key: ValueKey('exercises-no-match'),
-        text: ExercisesPage.noMatchMessage,
+        text: ExercisesPage.customNoMatchMessage,
       );
     }
 
@@ -516,10 +537,11 @@ class _ExerciseList extends StatelessWidget {
           onRetry: onRetryCustom,
         ),
       if (customItems.isNotEmpty) ...[
-        const _SectionHeader(
-          key: ValueKey('custom-exercises-section'),
-          label: 'Custom Exercises',
-        ),
+        if (!customOnly)
+          const _SectionHeader(
+            key: ValueKey('custom-exercises-section'),
+            label: 'Custom Exercises',
+          ),
         for (var i = 0; i < customItems.length; i++) ...[
           ExerciseListRow(
             key: ValueKey(
