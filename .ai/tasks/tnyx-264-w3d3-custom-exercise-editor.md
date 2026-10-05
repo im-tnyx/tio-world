@@ -8,22 +8,25 @@
 
 **Trigger:** New independently scoped product-visible feature slice.
 **Approval status:** Approved.
-**Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction. On 2026-10-05 the exact 44-token Body Part presentation map was shown and the owner continued with `Go`, approving that exact presentation-only grouping for W3D3.
+**Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction. On 2026-10-05 the exact 44-token Body Part presentation map was shown and the owner continued with `Go`, approving that exact presentation-only grouping for W3D3. On 2026-10-05 the owner also confirmed the current functional UI is sufficiently correct for this slice; additional visual polish and icon refinement may follow later and are not a W3D3 merge blocker.
 
 **Approved visible/data scope:** User-created Exercises composed into the canonical Exercises capability plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. The editor interaction must follow the owner-approved TNYX-264 direction: Exercise Type uses a Tio-owned single-select list with its capability-hint tags; Primary muscle is selected in one bottom-sheet accordion: tapping a Body Part expands its relevant muscles inline beneath that row, only one Body Part is expanded at a time, and tapping a muscle completes the single selection without opening a second sheet; Secondary muscles use the complete canonical muscle set as multi-select; Equipment is single-select. Body Part and capability tags are presentation-only and are never persisted. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
 
-**Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth. A separate user-facing Custom Exercises collection is no longer a target.
+**Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth. A separate user-facing Custom Exercises collection is no longer a target. Additional iconography and visual polish are deferred follow-up work and must not silently widen this slice.
 
 ## Active Handoff
 
 **Planning/implementation owner:** ChatGPT repository architecture workflow
 **Review owner:** Codex after PR creation
-**Repository state last verified:** `main@c58689a8a7f183a0ca5fb644e4f69d67b2157bbe`
+**Repository state last verified before this handoff-only update:** `main@c58689a8a7f183a0ca5fb644e4f69d67b2157bbe`
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** No open product-decision blocker remains. The Primary muscle picker now uses the owner-approved single-bottom-sheet accordion with one Body Part expanded at a time; exact-head validation is pending for this correction. The owner-approved editor selectors, unified catalog + user-created Exercises composition, and exact 44-token Body Part presentation map are implemented. Flutter CI #2968 passed on reconciled head `5dd4452e4d0b72d5ac96ceb149dc33e2b0b6cf53`; the branch was 0 behind `main` with zero unresolved review threads. Fresh Codex exact-head review could not run because the Codex bot returned its code-review usage-limit message; the immediately preceding code head `b07d15c3aa718e48382f04f96559da9ebc2be91f` had a clean Codex review, and the two commits after it changed only this task handoff plus the canonical Exercise-search doc. That docs-only delta was manually reviewed against source and the 44-token map matches source exactly with zero duplicates. Asset remains separately gated by media/Storage architecture.
-**Next exact action:** run exact-head Flutter CI and fresh Codex review for the single-sheet Primary muscle correction, verify zero unresolved threads and zero drift from `main`, then stop for explicit merge authorization. Do not widen into Favorites/Folders/Recent/media/Library redesign.
+**Current state:** Functional W3D3 implementation is complete within the approved slice. The canonical `/workout/exercises` screen composes bundled + user-created Exercises; Custom rows carry a presentation-only `Custom` badge, and the Library Custom Exercises entry focuses the same canonical route instead of establishing a second collection. The Primary muscle selector uses the owner-approved single-bottom-sheet inline accordion with the exact approved 44-token Body Part map. Exercise Type, Secondary muscles, Equipment, create/edit/archive and failure reconciliation are implemented with focused coverage. Visual polish/icons are intentionally deferred.
+**Last fully reviewed code head:** `beecb0675725f1a5bc4c27f635d216080b41cbde`.
+**Verified evidence on that head:** Flutter CI `37271874901` PASS; Commit attribution guard PASS; zero unresolved review threads; Codex exact-head review reported no major issues. GitHub Advanced Security failed before meaningful analysis because the scanning agent exceeded its monthly quota (HTTP 402); this is infrastructure/account quota evidence, not a security pass and not a product-vulnerability finding.
+**Supabase verification:** W3D3 introduces no migration/RLS/grant change. Hosted `public.user_workout_exercises` remains the validated 12-column W3D2 contract with owner-scoped SELECT/INSERT/UPDATE policies and least-privilege column grants; no authenticated DELETE is exposed. Security Advisor remains at the pre-existing baseline (five authenticated SECURITY DEFINER warnings plus leaked-password protection disabled), with no W3D3-specific database finding.
+**Next exact action:** after this handoff-only commit, refresh base/head scope evidence, run/inspect exact-head hosted Flutter CI and attribution guard, request Codex review on the new head, verify zero unresolved threads and zero drift from `main`, then stop for explicit merge authorization. Do not widen into visual polish/icons, Favorites/Folders/Recent/media/Library redesign.
 
 ## 1. Discovery
 
@@ -43,14 +46,14 @@ Users see user-created Exercises on the same canonical Exercises screen as catal
 
 ## 2. Codebase Exploration
 
-Verified on 2026-10-01:
-- W3D1 `CustomExercisesController` already owns load/create-name/rename/archive and stable-id reconciliation.
+Verified on 2026-10-01 and reconciled again during PR #497 review:
+- W3D1 `CustomExercisesController` owns load/create-name/rename/archive and stable-id reconciliation.
 - W3D2 `UserExerciseDefinition` and `UserExerciseRepository.updateDefinition` own structured definition validation/persistence.
-- App composition already exposes nullable `userExerciseRepositoryProvider` backed by Supabase only.
+- App composition exposes nullable `userExerciseRepositoryProvider` backed by Supabase only.
 - `exerciseTaxonomyLabel` is the existing presentation label helper.
 - `ExerciseType` owns the 11 durable storage identities.
-- Library currently exposes Programs + Browse Exercises only; GitHub #475 documents future Custom Exercise collection composition.
-- No schema change is required.
+- The canonical Exercises surface remains the single browse/search/filter truth; Custom-focused navigation is a filtered state of that route.
+- No W3D3 schema change is required.
 
 ## 3. Architecture Design
 
@@ -79,8 +82,15 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
-- [ ] Run exact-head hosted Flutter CI on the final handoff-only head; Codex exact-head review is unavailable due verified usage limit, so perform a manual docs-only delta review before merge.
+- [x] Validate code head `beecb0675725f1a5bc4c27f635d216080b41cbde`: Flutter CI PASS, attribution guard PASS, Codex exact-head review clean, zero unresolved threads.
+- [ ] Validate the final evidence-only handoff head after this documentation update before merge authorization.
 
 ## 5. Validation / Exit
 
-Code validation is complete through Flutter CI #2968 on `5dd4452e4d0b72d5ac96ceb149dc33e2b0b6cf53`. Earlier run #2910 failed because edited retry generated a second Exercise ID; that defect and subsequent Codex findings were repaired with focused regression coverage. Fresh Codex exact-head review is currently blocked only by the bot's code-review usage limit; the previous code head `b07d15c3aa718e48382f04f96559da9ebc2be91f` received a clean Codex review, and later changes are governance/docs reconciliation only. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions remain unchanged in source/diff audit.
+The last functional code head `beecb0675725f1a5bc4c27f635d216080b41cbde` is validated by hosted Flutter CI `37271874901`, the Commit attribution guard, and an exact-head Codex review with no major issues; GitHub had zero unresolved review threads. Earlier implementation defects and review findings were corrected with focused regressions before that head.
+
+The GitHub Advanced Security run on `beecb067...` did not complete meaningful analysis because its scanning model session exceeded the monthly quota and returned HTTP 402. Record that as an external scanner/account-quota failure, not as a security pass and not as product-vulnerability evidence.
+
+Supabase W3D2 remains deployed and hosted-verified: migration `20260930180700_add_custom_exercise_definition_fields` is present and `public.user_workout_exercises` has the expected 12-column owner-scoped contract. W3D3 itself changes no migration, RLS policy, database grant, Storage policy or privileged function.
+
+The final merge gate is evidence-only: refresh parent-to-head audit on the new handoff commit, inspect exact-head hosted checks, obtain/inspect a fresh Codex review, ensure zero unresolved threads and zero drift from `main`, then require explicit owner merge authorization. Visual polish and icons remain a later bounded follow-up.
