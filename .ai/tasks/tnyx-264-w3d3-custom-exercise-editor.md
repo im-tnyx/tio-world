@@ -1,4 +1,4 @@
-# TNYX-264 W3D3 — Visible Custom Exercise editor and collection
+# TNYX-264 W3D3 — Custom Exercise editor and unified Exercises composition
 
 **Status:** In progress
 **Primary owner:** `apps/features/workout` Custom Exercises; `apps/app` only for composition/routing
@@ -8,7 +8,7 @@
 
 **Trigger:** New independently scoped product-visible feature slice.
 **Approval status:** Approved.
-**Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction.
+**Approval evidence:** Owner said `Go` on 2026-10-01 for the visible W3D3 slice, then on 2026-10-04 explicitly rejected the simplified generic-selector UI and directed implementation to match the already documented owner-approved Custom Exercise interaction. On 2026-10-05 the exact 44-token Body Part presentation map was shown and the owner continued with `Go`, approving that exact presentation-only grouping for W3D3.
 
 **Approved visible/data scope:** User-created Exercises composed into the canonical Exercises capability plus create/edit form over the already-live W3D2 definition contract: required name, optional description, one of the 11 Exercise Types, Primary muscle, Secondary muscles, Primary equipment, and existing archive lifecycle. The editor interaction must follow the owner-approved TNYX-264 direction: Exercise Type uses a Tio-owned single-select list with its capability-hint tags; Primary muscle is selected through derived Body Part grouping then a single muscle; Secondary muscles use the complete canonical muscle set as multi-select; Equipment is single-select. Body Part and capability tags are presentation-only and are never persisted. Reuse canonical `Exercise`, `UserCreatedExerciseRef`, `UserExerciseDefinition`, `UserExerciseRepository`, W3D1 controller foundation, and Tio Core UI.
 
@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** The owner-approved editor selectors and unified catalog + user-created Exercises composition are implemented on the branch, including `Custom` badge/tag rows, shared search/filter participation where taxonomy exists, Custom-focused navigation on the same route, and removal of the separate collection page/route. Exact-head Flutter CI and fresh Codex review are still pending. The inferred full Body Part → 44-muscle membership is not yet backed by a separate canonical mapping source, so that mapping remains an explicit validation risk rather than silently claimed product truth. Asset remains separately gated by media/Storage architecture.
-**Next exact action:** run exact-head hosted Flutter CI, repair any compile/test findings, then obtain a fresh Codex review with zero unresolved threads. Do not widen into Favorites/Folders/Recent/media/Library redesign.
+**Current blocker:** No unresolved product-decision blocker remains inside W3D3. The owner-approved editor selectors and unified catalog + user-created Exercises composition are implemented, and the exact 44-token Body Part presentation map is now owner-approved/canonical for this slice. Asset remains separately gated by media/Storage architecture. Exact-head validation must be re-run after this handoff/doc reconciliation.
+**Next exact action:** run exact-head hosted Flutter CI and fresh Codex review on the reconciled head, verify zero unresolved threads and zero drift from `main`, then stop for explicit merge authorization. Do not widen into Favorites/Folders/Recent/media/Library redesign.
 
 ## 1. Discovery
 
@@ -72,14 +72,14 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Add provider/composition seam for nullable durable repository.
 - [x] Replace the separate user-facing Custom Exercises collection with unified composition on canonical `/workout/exercises`; Custom rows show a `Custom` badge/tag and remain normal canonical `Exercise` items.
 - [x] Custom-focused navigation reuses `/workout/exercises?custom=true`; the separate collection route/page is removed from the active branch.
-- [x] Primary muscle UI implemented: Body Part → Primary muscle single-select; focused regression exists. Exact full grouping still needs canonical evidence/reconciliation before final validation.
+- [x] Primary muscle UI implemented: Body Part → Primary muscle single-select; focused regression exists; the exact 44-token presentation grouping was owner-approved on 2026-10-05 and is canonical for W3D3.
 - [x] Exercise Type UI implemented: Tio-owned bottom-sheet single-select list with the 11 approved capability hints.
 - [x] Secondary muscle UI implemented: full canonical muscle list, multi-select, excluding Primary.
 - [x] Equipment UI implemented: bottom-sheet single-select over the approved equipment taxonomy.
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
-- [ ] Run exact-head hosted Flutter CI and Codex review before merge.
+- [ ] Re-run exact-head hosted Flutter CI and Codex review after final handoff/doc reconciliation before merge.
 
 ## 5. Validation / Exit
 
