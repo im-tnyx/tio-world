@@ -22,7 +22,6 @@ Future<void> _pumpPage(
   bool settle = true,
   bool startSearching = false,
   UserExerciseRepository? userExerciseRepository,
-  bool customOnly = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -38,7 +37,6 @@ Future<void> _pumpPage(
         home: ExercisesPage(
           startSearching: startSearching,
           userExerciseRepository: userExerciseRepository,
-          customOnly: customOnly,
         ),
       ),
     ),
@@ -498,63 +496,6 @@ void main() {
       expect(_row(_customId(1).value), findsOneWidget);
       expect(_row('ex_synthetic_curl'), findsNothing);
       expect(_row('ex_synthetic_press'), findsNothing);
-    });
-
-    _testWidgets('Custom-only entry reuses the same Exercises screen',
-        (tester) async {
-      final userRepository = _FakeUserExerciseRepository([
-        _customExercise(1, 'My Cable Row'),
-      ]);
-      await _pumpPage(
-        tester,
-        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
-        userExerciseRepository: userRepository,
-        customOnly: true,
-      );
-
-      expect(find.byType(ExercisesPage), findsOneWidget);
-      expect(_row(_customId(1).value), findsOneWidget);
-      expect(find.byKey(const ValueKey('custom-exercises-section')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
-      expect(_row('ex_synthetic_curl'), findsNothing);
-    });
-
-    _testWidgets(
-        'Custom-only filters expose only supported Custom taxonomy',
-        (tester) async {
-      final userRepository = _FakeUserExerciseRepository([
-        _customExercise(1, 'Trap Bar Carry', equipment: 'trap_bar'),
-      ]);
-      await _pumpPage(
-        tester,
-        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
-        userExerciseRepository: userRepository,
-        customOnly: true,
-      );
-
-      await _openFilters(tester);
-
-      expect(find.text('Equipment'), findsOneWidget);
-      expect(find.text('Muscle'), findsNothing);
-      expect(find.text('Category'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('exercise-filter-equipment-dumbbell')),
-        findsNothing,
-        reason: 'catalog-only equipment must not leak into Custom-only filters',
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
-      );
-      await _showResults(tester);
-
-      expect(_row(_customId(1).value), findsOneWidget);
-      expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
     });
 
     _testWidgets('Custom row opens the existing editor on the same flow',

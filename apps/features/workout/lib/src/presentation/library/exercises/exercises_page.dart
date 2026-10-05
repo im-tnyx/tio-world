@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
-import '../../../domain/exercises/exercise_catalog_query.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
@@ -24,7 +23,6 @@ class ExercisesPage extends ConsumerStatefulWidget {
     super.key,
     this.startSearching = false,
     this.userExerciseRepository,
-    this.customOnly = false,
   });
 
   /// Opens with the top-bar search field active and focused.
@@ -35,9 +33,6 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// Null keeps the catalog fully usable while create/edit capability fails
   /// closed instead of reporting in-memory success.
   final UserExerciseRepository? userExerciseRepository;
-
-  /// Focuses the same canonical screen to user-created rows only.
-  final bool customOnly;
 
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
@@ -127,13 +122,9 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     final customExercises = customState?.status == CustomExercisesStatus.ready
         ? customState!.exercises
         : const <Exercise>[];
-    final customQuery = _customQueryFor(
-      catalogState.query,
-      customOnly: widget.customOnly,
-    );
     final filteredCustom = [
       for (final exercise in customExercises)
-        if (customQuery.matches(exercise)) exercise,
+        if (catalogState.query.matches(exercise)) exercise,
     ];
     final customItems = [
       for (final exercise in filteredCustom)
@@ -145,13 +136,10 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         ),
     ];
     final hasCustomExercises = customExercises.isNotEmpty;
-    final canBrowse = widget.customOnly
-        ? hasCustomExercises
-        : catalogState.hasActiveExercises || hasCustomExercises;
+    final canBrowse = catalogState.hasActiveExercises || hasCustomExercises;
     final filterState = _withCustomFilterOptions(
       catalogState,
       customExercises,
-      customOnly: widget.customOnly,
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
@@ -225,7 +213,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                             context,
                             catalogController,
                             filterState,
-                            customOnly: widget.customOnly,
                           )
                       : null,
                   icon: const Icon(Icons.filter_list),
@@ -251,18 +238,17 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   Future<void> _openFilters(
     BuildContext context,
     ExercisesController controller,
-    ExercisesState state, {
-    required bool customOnly,
-  }) async {
+    ExercisesState state,
+  ) async {
     final selection = await showExerciseFilterSheet(
       context: context,
       state: state,
     );
     if (selection == null) return;
     controller.applyFilters(
-      muscleGroup: customOnly ? null : selection.muscleGroup,
+      muscleGroup: selection.muscleGroup,
       primaryEquipment: selection.primaryEquipment,
-      category: customOnly ? null : selection.category,
+      category: selection.category,
     );
   }
 
@@ -271,34 +257,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     required CustomExercisesState? customState,
     required List<ExerciseListItem> customItems,
   }) {
-    if (widget.customOnly) {
-      final controller = _customController;
-      if (controller == null) {
-        return const _Message(
-          key: ValueKey('custom-exercises-unavailable'),
-          text: 'Custom Exercises are unavailable right now.',
-        );
-      }
-      return switch (customState!.status) {
-        CustomExercisesStatus.loading => const Center(
-            key: ValueKey('custom-exercises-loading'),
-            child: CircularProgressIndicator(
-              semanticsLabel: 'Loading custom exercises',
-            ),
-          ),
-        CustomExercisesStatus.loadFailed => _Failure(
-            key: const ValueKey('custom-exercises-load-failure'),
-            message: customState.loadError ??
-                'Could not load custom exercises. Please try again.',
-            onRetry: controller.retryLoad,
-          ),
-        CustomExercisesStatus.ready => _customOnlyReady(
-            customState,
-            customItems,
-          ),
-      };
-    }
-
     final customReady = customState?.status == CustomExercisesStatus.ready;
     final customHasAny = customReady && customState!.exercises.isNotEmpty;
     final catalogItems = catalogState.status == ExercisesStatus.ready
@@ -384,27 +342,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
   }
 
-  Widget _customOnlyReady(
-    CustomExercisesState customState,
-    List<ExerciseListItem> customItems,
-  ) {
-    if (customState.exercises.isEmpty) {
-      return _CustomEmpty(onCreate: () => _openCustomEditor());
-    }
-    if (customItems.isEmpty) {
-      return const _Message(
-        key: ValueKey('exercises-no-match'),
-        text: ExercisesPage.noMatchMessage,
-      );
-    }
-    return _ExerciseList(
-      customItems: customItems,
-      catalogItems: const [],
-      onCustomTap: _openCustomEditor,
-      customOnly: true,
-    );
-  }
-
   static String? _customMetadataFor(Exercise exercise) {
     final parts = [
       if (exercise.primaryEquipment case final equipment?)
@@ -415,22 +352,10 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     return parts.isEmpty ? null : parts.join(' • ');
   }
 
-  static ExerciseCatalogQuery _customQueryFor(
-    ExerciseCatalogQuery query, {
-    required bool customOnly,
-  }) =>
-      customOnly
-          ? ExerciseCatalogQuery(
-              text: query.text,
-              primaryEquipment: query.primaryEquipment,
-            )
-          : query;
-
   static ExercisesState _withCustomFilterOptions(
     ExercisesState state,
-    List<Exercise> customExercises, {
-    required bool customOnly,
-  }) {
+    List<Exercise> customExercises,
+  ) {
     final customEquipment = <String, ExerciseFilterOption>{
       for (final exercise in customExercises)
         if (exercise.primaryEquipment case final value?)
@@ -440,10 +365,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
           ),
     };
     final equipment = <String, ExerciseFilterOption>{
-      if (!customOnly)
-        for (final option
-            in state.optionsFor(ExerciseFilterDimension.equipment))
-          option.value: option,
+      for (final option in state.optionsFor(ExerciseFilterDimension.equipment))
+        option.value: option,
       ...customEquipment,
     };
     final equipmentOptions = equipment.values.toList()
@@ -451,27 +374,17 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
         return byLabel != 0 ? byLabel : a.value.compareTo(b.value);
       });
-    final query = _customQueryFor(
-      state.query,
-      customOnly: customOnly,
-    );
-
     return ExercisesState(
       status: state.status,
-      query: query,
+      query: state.query,
       items: state.items,
       hasActiveExercises:
           state.hasActiveExercises || customExercises.isNotEmpty,
-      filterOptions: customOnly
-          ? {
-              ExerciseFilterDimension.equipment:
-                  List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
-            }
-          : {
-              ...state.filterOptions,
-              ExerciseFilterDimension.equipment:
-                  List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
-            },
+      filterOptions: {
+        ...state.filterOptions,
+        ExerciseFilterDimension.equipment:
+            List<ExerciseFilterOption>.unmodifiable(equipmentOptions),
+      },
       isSearching: state.isSearching,
     );
   }
@@ -482,7 +395,6 @@ class _ExerciseList extends StatelessWidget {
     required this.customItems,
     required this.catalogItems,
     required this.onCustomTap,
-    this.customOnly = false,
     this.customFailure,
     this.onRetryCustom,
     this.catalogMessage,
@@ -491,7 +403,6 @@ class _ExerciseList extends StatelessWidget {
   final List<ExerciseListItem> customItems;
   final List<ExerciseListItem> catalogItems;
   final ValueChanged<Exercise> onCustomTap;
-  final bool customOnly;
   final String? customFailure;
   final VoidCallback? onRetryCustom;
   final String? catalogMessage;
@@ -531,7 +442,7 @@ class _ExerciseList extends StatelessWidget {
           if (i != customItems.length - 1) divider(),
         ],
       ],
-      if (!customOnly && catalogItems.isNotEmpty) ...[
+      if (catalogItems.isNotEmpty) ...[
         const _SectionHeader(
           key: ValueKey('all-exercises-section'),
           label: 'All Exercises',
@@ -621,32 +532,6 @@ class _InlineMessage extends StatelessWidget {
           style: TextStyle(
             color: context.tioColors.textSecondary,
             fontSize: TioFontSize.size14,
-          ),
-        ),
-      );
-}
-
-class _CustomEmpty extends StatelessWidget {
-  const _CustomEmpty({required this.onCreate});
-
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        key: const ValueKey('custom-exercises-empty'),
-        child: Padding(
-          padding: const EdgeInsets.all(TioSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('No custom exercises yet'),
-              const SizedBox(height: TioSpacing.lg),
-              TioButton.primary(
-                key: const ValueKey('custom-exercises-empty-create'),
-                label: 'Create Exercise',
-                onPressed: onCreate,
-              ),
-            ],
           ),
         ),
       );

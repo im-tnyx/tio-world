@@ -222,12 +222,32 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(TioShellStatusTopBar), findsNothing);
 
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
     await tester.pumpAndSettle();
     expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.byType(LibraryPage), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'exercise-custom-badge-10000000-0000-4000-8000-000000000001',
+        ),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -246,7 +266,7 @@ void main() {
   });
 
   testWidgets(
-      'Library Custom Exercises entry reuses the canonical Exercises screen',
+      'Library Create Exercise opens directly and back returns to selected Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
     router.go(FeatureRoutes.workout.path);
@@ -255,30 +275,159 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey('library-custom-exercises-entry')),
+      find.byKey(const ValueKey('library-category-exercises')),
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateExercisePage), findsOneWidget);
+    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+    expect(
+      find.byType(ExercisesPage, skipOffstage: false),
+      findsNothing,
+      reason: 'Library Create must not add Exercises to the back stack',
+    );
+    expect(
+      find.byType(LibraryPage, skipOffstage: false),
+      findsOneWidget,
+      reason: 'Library remains the owner route under the editor',
+    );
+
+    await tester.tap(find.byType(BackButton).last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateExercisePage), findsNothing);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'saving a Library Create Exercise returns to selected Library',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+    expect(find.byType(ExercisesPage, skipOffstage: false), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('custom-exercise-name')),
+      'Direct Library Exercise',
+    );
+    await tester.tap(find.byKey(const ValueKey('custom-exercise-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateExercisePage), findsNothing);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'Library hides Create Exercise when durable repository is unavailable',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withUserExerciseRepository: false,
+    );
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('library-exercises-card')));
+    await tester.pumpAndSettle();
+
     expect(find.byType(ExercisesPage), findsOneWidget);
-    expect(
-      find.byKey(
-        const ValueKey(
-          'exercise-row-10000000-0000-4000-8000-000000000001',
-        ),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey(
-          'exercise-custom-badge-10000000-0000-4000-8000-000000000001',
-        ),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Synthetic Route Custom'), findsOneWidget);
-    expect(find.text('Synthetic Route Curl'), findsNothing);
-    expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
   });
 
   testWidgets(
@@ -349,6 +498,19 @@ void main() {
     expect(find.byType(LibraryPage), findsOneWidget);
   });
 
+  testWidgets('legacy custom query no longer creates a Custom-only screen',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go('$_exercisesPath?custom=true');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+    expect(find.byKey(const ValueKey('all-exercises-section')), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercises-section')), findsOneWidget);
+  });
+
   testWidgets('the search deep link opens Exercises in search mode',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -413,8 +575,9 @@ void main() {
 
 Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
-  AppMode mode,
-) async {
+  AppMode mode, {
+  bool withUserExerciseRepository = true,
+}) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
   final onboardingRepository = _MemoryOnboardingStatusRepository();
@@ -445,7 +608,9 @@ Future<(ProviderContainer, GoRouter)> _app(
         ),
       ),
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
-      userExerciseRepositoryProvider.overrideWithValue(_RouteUserExercises()),
+      userExerciseRepositoryProvider.overrideWithValue(
+        withUserExerciseRepository ? _RouteUserExercises() : null,
+      ),
     ],
   );
   addTearDown(container.dispose);

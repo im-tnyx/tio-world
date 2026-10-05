@@ -70,23 +70,35 @@ List<RouteBase> _shellBranchChildRoutes(
       path: _childPath(branch, AppRoutes.workoutLibrary),
       parentNavigatorKey: rootNavigatorKey,
       // Library → Exercises pushes, so back from Exercises returns here.
-      builder: (context, state) => LibraryPage(
-        onProgramsPressed: () =>
-            context.push(AppRoutes.workoutPrograms.path),
-        onExercisesPressed: () =>
-            context.push(AppRoutes.workoutExercises.path),
-        onCustomExercisesPressed: () => context.push(
-          Uri(
-            path: AppRoutes.workoutExercises.path,
-            queryParameters: const {_exercisesCustomParameter: 'true'},
-          ).toString(),
-        ),
-        onSearchPressed: () => context.push(
-          Uri(
-            path: AppRoutes.workoutExercises.path,
-            queryParameters: const {_exercisesSearchParameter: 'true'},
-          ).toString(),
-        ),
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final userExerciseRepository =
+              ref.watch(userExerciseRepositoryProvider);
+          return LibraryPage(
+            onProgramsPressed: () =>
+                context.push(AppRoutes.workoutPrograms.path),
+            onExercisesPressed: () =>
+                context.push(AppRoutes.workoutExercises.path),
+            onCreateExercisePressed: () {
+              final repository = userExerciseRepository;
+              if (repository == null) return;
+              Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => CreateExercisePage(
+                    repository: repository,
+                  ),
+                ),
+              );
+            },
+            canCreateExercise: userExerciseRepository != null,
+            onSearchPressed: () => context.push(
+              Uri(
+                path: AppRoutes.workoutExercises.path,
+                queryParameters: const {_exercisesSearchParameter: 'true'},
+              ).toString(),
+            ),
+          );
+        },
       ),
     ),
     GoRoute(
@@ -105,8 +117,6 @@ List<RouteBase> _shellBranchChildRoutes(
         builder: (context, ref, _) => ExercisesPage(
           startSearching:
               state.uri.queryParameters[_exercisesSearchParameter] == 'true',
-          customOnly:
-              state.uri.queryParameters[_exercisesCustomParameter] == 'true',
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
         ),
       ),
@@ -116,9 +126,6 @@ List<RouteBase> _shellBranchChildRoutes(
 
 /// `/workout/exercises?search=true` opens Exercises with search active.
 const _exercisesSearchParameter = 'search';
-
-/// `/workout/exercises?custom=true` focuses the same screen to Custom rows.
-const _exercisesCustomParameter = 'custom';
 
 String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
   final prefix = '${branch.route.path}/';

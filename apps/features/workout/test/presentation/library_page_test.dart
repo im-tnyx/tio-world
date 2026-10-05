@@ -7,7 +7,8 @@ Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onProgramsPressed,
   VoidCallback? onExercisesPressed,
-  VoidCallback? onCustomExercisesPressed,
+  VoidCallback? onCreateExercisePressed,
+  bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
@@ -20,7 +21,8 @@ Future<void> _pump(
       home: LibraryPage(
         onProgramsPressed: onProgramsPressed ?? () {},
         onExercisesPressed: onExercisesPressed ?? () {},
-        onCustomExercisesPressed: onCustomExercisesPressed ?? () {},
+        onCreateExercisePressed: onCreateExercisePressed ?? () {},
+        canCreateExercise: canCreateExercise,
         onSearchPressed: onSearchPressed ?? () {},
       ),
     ),
@@ -29,7 +31,8 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('shows the Library title with back', (tester) async {
+  testWidgets('shows Library chrome, full category strip and Programs default',
+      (tester) async {
     await _pump(tester);
 
     expect(
@@ -37,121 +40,225 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(BackButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-category-strip')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('library-category-clear')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-programs-content')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
+    expect(find.byType(TioGroupCard), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-programs-content')),
+      findsOneWidget,
+    );
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-exercises-content')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-custom-exercises-entry')),
+      findsNothing,
+    );
+    expect(find.text('Your Plan'), findsNothing);
+    expect(find.text('Routines'), findsNothing);
   });
 
-  testWidgets('lists ready Programs above Exercises', (tester) async {
+  testWidgets('Exercises selection collapses pills and shows only two actions',
+      (tester) async {
     await _pump(tester);
 
-    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
-    final programs = find.byKey(const ValueKey('library-programs-entry'));
-    final exercises = find.byKey(const ValueKey('library-exercises-entry'));
-    final custom = find.byKey(const ValueKey('library-custom-exercises-entry'));
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
 
+    expect(find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
     expect(
-      find.descendant(of: programs, matching: find.text('Programs')),
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-content')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-content')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
+    expect(find.byType(TioGroupCard), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: programs,
-        matching: find.text('Create and manage programs'),
+        of: find.byKey(const ValueKey('library-exercises-content')),
+        matching: find.byType(TioCard),
       ),
-      findsOneWidget,
+      findsNWidgets(2),
     );
-    expect(
-      find.descendant(of: exercises, matching: find.text('Exercises')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: exercises,
-        matching: find.text('Browse all exercises'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: custom, matching: find.text('Custom Exercises')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: custom,
-        matching: find.text('Create and manage custom exercises'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      tester.getTopLeft(programs).dy,
-      lessThan(tester.getTopLeft(exercises).dy),
-    );
-
-    for (final placeholder in [
-      'Routines',
-      'Plans',
-      'Training Plans',
-      'Create Exercise',
-      'Favorite exercises',
-          ]) {
-      expect(find.text(placeholder), findsNothing, reason: placeholder);
-    }
-    expect(find.byType(ProgramsPage), findsNothing);
+    expect(find.text('Favorite Exercises'), findsNothing);
+    expect(find.text('Custom Exercises'), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
-    expect(find.byType(TabBar), findsNothing);
   });
 
-  testWidgets('the top-bar search icon opens Exercises search', (tester) async {
+  testWidgets(
+      'hides Create Exercise when durable user Exercise capability is absent',
+      (tester) async {
+    await _pump(tester, canCreateExercise: false);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('library-exercises-content')),
+        matching: find.byType(TioCard),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(TioGroupCard), findsNothing);
+  });
+
+  testWidgets('clear restores the full strip and default Programs content',
+      (tester) async {
+    await _pump(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-category-clear')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('library-category-clear')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-content')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Programs explicit selection keeps current Programs capability',
+      (tester) async {
+    await _pump(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-programs')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
+  });
+
+  testWidgets('Programs action hands off to the owning route', (tester) async {
+    var opened = 0;
+    await _pump(tester, onProgramsPressed: () => opened++);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-content')));
+    await tester.pump();
+
+    expect(opened, 1);
+  });
+
+  testWidgets('Exercises actions use separate create and browse handoffs',
+      (tester) async {
+    var created = 0;
+    var browsed = 0;
+    await _pump(
+      tester,
+      onCreateExercisePressed: () => created++,
+      onExercisesPressed: () => browsed++,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+    );
+    await tester.pump();
+    expect(created, 1);
+    expect(browsed, 0);
+
+    await tester.tap(find.byKey(const ValueKey('library-exercises-card')));
+    await tester.pump();
+    expect(created, 1);
+    expect(browsed, 1);
+  });
+
+  testWidgets('the top-bar search icon keeps the existing Exercises search',
+      (tester) async {
     var searched = 0;
     await _pump(tester, onSearchPressed: () => searched++);
 
     final search = find.byKey(const ValueKey('library-search'));
-    expect(
-      find.descendant(of: find.byType(AppBar), matching: search),
-      findsOneWidget,
-    );
     final button = tester.widget<IconButton>(search);
     expect(button.tooltip, 'Search exercises');
-    expect((button.icon as Icon).icon, Icons.search_rounded);
 
     await tester.tap(search);
     await tester.pump();
     expect(searched, 1);
   });
 
-  testWidgets('Programs hands off to the owning route', (tester) async {
-    var opened = 0;
-    await _pump(tester, onProgramsPressed: () => opened++);
-
-    await tester.tap(find.byKey(const ValueKey('library-programs-entry')));
-    await tester.pump();
-
-    expect(opened, 1);
-  });
-
-  testWidgets('Exercises hands off to the owning route', (tester) async {
-    var opened = 0;
-    await _pump(tester, onExercisesPressed: () => opened++);
-
-    await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
-    await tester.pump();
-
-    expect(opened, 1);
-  });
-
-
-  testWidgets('Custom Exercises hands off to the owning route', (tester) async {
-    var opened = 0;
-    await _pump(tester, onCustomExercisesPressed: () => opened++);
-
-    await tester.tap(
-      find.byKey(const ValueKey('library-custom-exercises-entry')),
-    );
-    await tester.pump();
-
-    expect(opened, 1);
-  });
-
   for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
-    testWidgets('renders on the ${mode.name} theme background', (tester) async {
+    testWidgets('renders category UI on the ${mode.name} theme background',
+        (tester) async {
       await _pump(tester, mode: mode);
 
       final context = tester.element(find.byType(LibraryPage));
