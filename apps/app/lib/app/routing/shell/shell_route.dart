@@ -75,10 +75,10 @@ List<RouteBase> _shellBranchChildRoutes(
             context.push(AppRoutes.workoutPrograms.path),
         onExercisesPressed: () =>
             context.push(AppRoutes.workoutExercises.path),
-        onCustomExercisesPressed: () => context.push(
+        onCreateExercisePressed: () => context.push(
           Uri(
             path: AppRoutes.workoutExercises.path,
-            queryParameters: const {_exercisesCustomParameter: 'true'},
+            queryParameters: const {_exercisesCreateParameter: 'true'},
           ).toString(),
         ),
         onSearchPressed: () => context.push(
@@ -105,8 +105,8 @@ List<RouteBase> _shellBranchChildRoutes(
         builder: (context, ref, _) => ExercisesPage(
           startSearching:
               state.uri.queryParameters[_exercisesSearchParameter] == 'true',
-          customOnly:
-              state.uri.queryParameters[_exercisesCustomParameter] == 'true',
+          startCreating:
+              state.uri.queryParameters[_exercisesCreateParameter] == 'true',
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
         ),
       ),
@@ -117,8 +117,8 @@ List<RouteBase> _shellBranchChildRoutes(
 /// `/workout/exercises?search=true` opens Exercises with search active.
 const _exercisesSearchParameter = 'search';
 
-/// `/workout/exercises?custom=true` focuses the same screen to Custom rows.
-const _exercisesCustomParameter = 'custom';
+/// `/workout/exercises?create=true` enters the canonical create flow once.
+const _exercisesCreateParameter = 'create';
 
 String _childPath(ShellBranchDefinition branch, TioRouteContract route) {
   final prefix = '${branch.route.path}/';
