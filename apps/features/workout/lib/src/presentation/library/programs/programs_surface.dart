@@ -18,7 +18,7 @@ class ProgramsSurface extends StatefulWidget {
     required this.repository,
     this.idGenerator,
     super.key,
-  })  : mode = _ProgramsSurfaceMode.standalone,
+  })  : _mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null;
 
   const ProgramsSurface.library({
@@ -26,11 +26,11 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.idGenerator,
     super.key,
-  }) : mode = _ProgramsSurfaceMode.library;
+  }) : _mode = _ProgramsSurfaceMode.library;
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
-  final _ProgramsSurfaceMode mode;
+  final _ProgramsSurfaceMode _mode;
   final VoidCallback? onManagePressed;
 
   @override
@@ -108,7 +108,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   @override
   Widget build(BuildContext context) {
-    return switch (widget.mode) {
+    return switch (widget._mode) {
       _ProgramsSurfaceMode.standalone => _standalone(),
       _ProgramsSurfaceMode.library => _library(),
     };
