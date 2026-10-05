@@ -35,7 +35,7 @@ Current behavior:
 - Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
 - Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
 - The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
-- Program rows are display-only in this first slice. There is no chevron, tap target or fake detail destination.
+- Library Program rows use a plain header treatment rather than a large/grouped Program card and expose a presentation-only expand/collapse chevron. Program-name navigation remains gated until real Program detail exists.\n- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
 - No standalone Routines row or top-level Create Routine action exists.
 
 For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
