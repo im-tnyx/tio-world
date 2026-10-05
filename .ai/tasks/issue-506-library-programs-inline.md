@@ -142,7 +142,7 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f27300ff1da444d38112bca9e7240b9983a040b7`
 **Branch:** `tnyx/issue-506-library-programs-inline`
-**HEAD SHA:** 5590d05ffabd9142af836e8098277df9c3174968 — runtime refresh fix + regression test implemented; this handoff update will advance HEAD once committed
+**HEAD SHA:** `cafb8b1eaaa4a65492ddf8c4960eaf969e423d98` — runtime refresh fix, regression test, and review-handoff reconciliation committed; exact-head validation/re-review pending
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
