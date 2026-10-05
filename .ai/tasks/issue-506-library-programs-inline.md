@@ -1,6 +1,6 @@
 # GitHub #506 — Inline Programs on Library
 
-**Status:** In progress — implementation complete; pre-PR audit clean
+**Status:** In review — PR #507 open; exact-head CI/Codex pending
 **Primary owner:** `apps/features/workout` Library/Programs presentation + `apps/app` composition
 **GitHub tracker:** #506
 **Planning:** #475, Linear TNYX-81 / TNYX-267 / TNYX-83
@@ -100,7 +100,8 @@ TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B co
 - [x] Add/adjust Programs, Library and app-router tests.
 - [x] Reconcile Library/Programs canonical docs.
 - [x] Run exact branch scope/hygiene audit.
-- [ ] Open PR and complete GitHub CI + exact-head Codex review gate.
+- [x] Open PR.
+- [ ] Complete GitHub CI + exact-head Codex review gate.
 
 ## Validation
 
@@ -130,7 +131,7 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** pending PR
+**Review owner:** GitHub PR #507 / exact-head Codex review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f27300ff1da444d38112bca9e7240b9983a040b7`
@@ -138,11 +139,11 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **HEAD SHA:** branch created from base; source change not started
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
-**PR / tracker:** GitHub #506; #475; TNYX-81 / TNYX-267 / TNYX-83
+**PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
 **Current implementation state:** implementation complete on branch: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** planning/audit only
-**Validation remaining:** source scope audit, Flutter CI, attribution, Codex exact-head review
+**Validation remaining:** exact resulting-head Flutter CI, attribution, Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
 **Open review finding IDs:** none
-**Next exact action:** refresh exact main/head scope after this evidence-only commit, open the focused PR, request GitHub CI + exact-head Codex review, and stop at the merge decision after all gates are clean.
+**Next exact action:** request fresh Codex review on the resulting handoff head, verify exact-head GitHub CI/attribution/unresolved threads/mergeability, fix only bounded findings, then stop at the merge decision.
