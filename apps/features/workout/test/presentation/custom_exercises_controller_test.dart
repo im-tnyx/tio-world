@@ -271,8 +271,7 @@ void main() {
     expect(exercise.primaryEquipment, 'barbell');
   });
 
-  test('edit applies successful writes without a post-write list reload',
-      () async {
+  test('edit reconciles durable lifecycle after successful writes', () async {
     final repository = _FakeUserExerciseRepository(
       exercises: [_exercise(1, 'Paused Squat')],
     );
@@ -301,7 +300,35 @@ void main() {
     expect(exercise.description, 'Three second eccentric');
     expect(exercise.primaryMuscles, const ['quadriceps']);
     expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
-    expect(repository.listCalls, 1);
+    expect(repository.listCalls, 2);
+  });
+
+  test('edit drops a row archived remotely during the write', () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveTargetDuringUpdate: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: UserExerciseDefinition(
+          exerciseType: ExerciseType.weightReps,
+          primaryMuscle: 'quadriceps',
+        ),
+      ),
+      isTrue,
+    );
+
+    expect(controller.state.exercises, isEmpty);
+    final durable = await repository.list(includeArchived: true);
+    expect(durable.single.ref, _id(1));
+    expect(durable.single.status, ExerciseStatus.archived);
+    expect(durable.single.displayName, 'Tempo Squat');
   });
 
   test('edit definition failure reloads a successful rename before error',
@@ -546,6 +573,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.createGate,
     this.renameError,
     this.updateDefinitionError,
+    this.archiveTargetDuringUpdate = false,
     this.archiveError,
     this.archiveErrorAfterWrite,
     this.emptyListsAfterFirstCall = false,
@@ -559,6 +587,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   Completer<void>? createGate;
   Object? renameError;
   Object? updateDefinitionError;
+  final bool archiveTargetDuringUpdate;
   Object? archiveError;
   Object? archiveErrorAfterWrite;
   final bool emptyListsAfterFirstCall;
@@ -635,7 +664,9 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
           : [definition.primaryMuscle!],
       secondaryMuscles: definition.secondaryMuscles,
       primaryEquipment: definition.primaryEquipment,
-      status: exercise.status,
+      status: archiveTargetDuringUpdate
+          ? ExerciseStatus.archived
+          : exercise.status,
     );
   }
 
