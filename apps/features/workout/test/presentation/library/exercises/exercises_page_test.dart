@@ -21,6 +21,8 @@ Future<void> _pumpPage(
   TioThemeMode mode = TioThemeMode.light,
   bool settle = true,
   bool startSearching = false,
+  UserExerciseRepository? userExerciseRepository,
+  bool customOnly = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -33,7 +35,11 @@ Future<void> _pumpPage(
           config: TioThemeConfig(mode: mode),
           child: child ?? const SizedBox.shrink(),
         ),
-        home: ExercisesPage(startSearching: startSearching),
+        home: ExercisesPage(
+          startSearching: startSearching,
+          userExerciseRepository: userExerciseRepository,
+          customOnly: customOnly,
+        ),
       ),
     ),
   );
@@ -436,6 +442,247 @@ void main() {
     }
   });
 
+  group('unified Custom Exercises', () {
+    _testWidgets('shows Custom and catalog Exercises on one canonical screen',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(
+          1,
+          'My Cable Row',
+          primaryMuscle: 'latissimus_dorsi',
+          equipment: 'cable',
+        ),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      expect(
+        find.byKey(const ValueKey('custom-exercises-section')),
+        findsOneWidget,
+      );
+      expect(find.text('Custom Exercises'), findsOneWidget);
+      expect(find.byKey(const ValueKey('all-exercises-section')), findsOneWidget);
+      expect(find.text('All Exercises'), findsOneWidget);
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('exercise-custom-badge-${_customId(1).value}')),
+        findsOneWidget,
+      );
+      expect(find.text('Custom'), findsOneWidget);
+      expect(_row('ex_synthetic_curl'), findsOneWidget);
+
+      final customSemantics =
+          tester.getSemantics(_row(_customId(1).value)).getSemanticsData();
+      expect(customSemantics.hasAction(SemanticsAction.tap), isTrue);
+      final catalogSemantics =
+          tester.getSemantics(_row('ex_synthetic_curl')).getSemanticsData();
+      expect(catalogSemantics.hasAction(SemanticsAction.tap), isFalse);
+    });
+
+    _testWidgets('search applies to catalog and Custom Exercises together',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'My Cable Row', equipment: 'cable'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await _search(tester, 'my cable');
+
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(_row('ex_synthetic_curl'), findsNothing);
+      expect(_row('ex_synthetic_press'), findsNothing);
+    });
+
+    _testWidgets('Custom-only entry reuses the same Exercises screen',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'My Cable Row'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+        customOnly: true,
+      );
+
+      expect(find.byType(ExercisesPage), findsOneWidget);
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(find.byKey(const ValueKey('custom-exercises-section')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
+      expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+
+    _testWidgets(
+        'Custom-only filters expose only supported Custom taxonomy',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'Trap Bar Carry', equipment: 'trap_bar'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+        customOnly: true,
+      );
+
+      await _openFilters(tester);
+
+      expect(find.text('Equipment'), findsOneWidget);
+      expect(find.text('Muscle'), findsNothing);
+      expect(find.text('Category'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('exercise-filter-equipment-dumbbell')),
+        findsNothing,
+        reason: 'catalog-only equipment must not leak into Custom-only filters',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
+      );
+      await _showResults(tester);
+
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
+    });
+
+    _testWidgets('Custom row opens the existing editor on the same flow',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'My Cable Row'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await tester.tap(_row(_customId(1).value));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+      expect(find.text('Edit Exercise'), findsOneWidget);
+    });
+
+    _testWidgets('create action opens the Custom Exercise editor',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository(const []);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('custom-exercise-create')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+      expect(find.text('Create Exercise'), findsWidgets);
+    });
+
+    _testWidgets(
+        'does not claim no-match while the Custom source is still loading',
+        (tester) async {
+      final gate = Completer<void>();
+      final userRepository = _FakeUserExerciseRepository(
+        [_customExercise(1, 'Late Custom Match')],
+        loadGate: gate,
+      );
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('exercises-search-open')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('exercises-search')),
+        'late custom',
+      );
+      // The unresolved Custom source intentionally renders an indeterminate
+      // progress indicator, so settling here would wait forever. One frame is
+      // enough to publish the query and assert the in-flight unified state.
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('exercises-loading')),
+        findsOneWidget,
+      );
+      expect(_message(ExercisesPage.noMatchMessage), findsNothing);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(find.text('Late Custom Match'), findsOneWidget);
+    });
+
+    _testWidgets(
+        'shows Custom load failure instead of an empty unified claim',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository(
+        const [],
+        loadError: StateError('custom read failed'),
+      );
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(
+          catalog: ExerciseCatalog(const []),
+        ),
+        userExerciseRepository: userRepository,
+      );
+
+      expect(
+        find.byKey(const ValueKey('custom-exercises-load-failure')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Could not load custom exercises. Please try again.'),
+        findsOneWidget,
+      );
+      expect(_message(ExercisesPage.emptyCatalogMessage), findsNothing);
+    });
+
+    _testWidgets('Custom equipment contributes to the shared filter surface',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'Trap Bar Carry', equipment: 'trap_bar'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+      );
+
+      await _openFilters(tester);
+      expect(
+        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('exercise-filter-equipment-trap_bar')),
+      );
+      await _showResults(tester);
+
+      expect(_row(_customId(1).value), findsOneWidget);
+      expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+  });
+
   group('thumbnails', () {
     _testWidgets('a loaded image renders the viewer-gender URL',
         (tester) async {
@@ -705,6 +952,140 @@ void main() {
       expect(_row('ex_synthetic_curl'), findsOneWidget);
     });
   });
+}
+
+UserCreatedExerciseRef _customId(int value) => UserCreatedExerciseRef(
+      '10000000-0000-4000-8000-${value.toString().padLeft(12, '0')}',
+    );
+
+Exercise _customExercise(
+  int value,
+  String name, {
+  String? primaryMuscle,
+  String? equipment,
+}) =>
+    Exercise(
+      ref: _customId(value),
+      displayName: name,
+      primaryMuscles:
+          primaryMuscle == null ? const [] : <String>[primaryMuscle],
+      primaryEquipment: equipment,
+      status: ExerciseStatus.active,
+    );
+
+final class _FakeUserExerciseRepository implements UserExerciseRepository {
+  _FakeUserExerciseRepository(
+    List<Exercise> exercises, {
+    this.loadGate,
+    this.loadError,
+  }) : exercises = [...exercises];
+
+  final List<Exercise> exercises;
+  final Completer<void>? loadGate;
+  final Object? loadError;
+
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async {
+    await loadGate?.future;
+    if (loadError case final error?) throw error;
+    return List<Exercise>.unmodifiable(
+      exercises.where(
+        (exercise) =>
+            includeArchived || exercise.status == ExerciseStatus.active,
+      ),
+    );
+  }
+
+  @override
+  Future<void> create({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    CatalogExerciseRef? basedOnCatalogExercise,
+    UserExerciseDefinition? definition,
+  }) async {
+    exercises.add(
+      Exercise(
+        ref: id,
+        displayName: displayName,
+        description: definition?.description,
+        exerciseType: definition?.exerciseType,
+        primaryMuscles: definition?.primaryMuscle == null
+            ? const []
+            : [definition!.primaryMuscle!],
+        secondaryMuscles: definition?.secondaryMuscles ?? const [],
+        primaryEquipment: definition?.primaryEquipment,
+        status: ExerciseStatus.active,
+      ),
+    );
+  }
+
+  @override
+  Future<void> rename({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+  }) async {
+    final index = exercises.indexWhere((exercise) => exercise.ref == id);
+    final old = exercises[index];
+    exercises[index] = Exercise(
+      ref: old.ref,
+      displayName: displayName,
+      description: old.description,
+      exerciseType: old.exerciseType,
+      muscleGroup: old.muscleGroup,
+      primaryMuscles: old.primaryMuscles,
+      secondaryMuscles: old.secondaryMuscles,
+      primaryEquipment: old.primaryEquipment,
+      category: old.category,
+      levels: old.levels,
+      status: old.status,
+      media: old.media,
+    );
+  }
+
+  @override
+  Future<void> updateDefinition({
+    required UserCreatedExerciseRef id,
+    required UserExerciseDefinition definition,
+  }) async {
+    final index = exercises.indexWhere((exercise) => exercise.ref == id);
+    final old = exercises[index];
+    exercises[index] = Exercise(
+      ref: old.ref,
+      displayName: old.displayName,
+      description: definition.description,
+      exerciseType: definition.exerciseType,
+      muscleGroup: old.muscleGroup,
+      primaryMuscles: definition.primaryMuscle == null
+          ? const []
+          : [definition.primaryMuscle!],
+      secondaryMuscles: definition.secondaryMuscles,
+      primaryEquipment: definition.primaryEquipment,
+      category: old.category,
+      levels: old.levels,
+      status: old.status,
+      media: old.media,
+    );
+  }
+
+  @override
+  Future<void> archive(UserCreatedExerciseRef id) async {
+    final index = exercises.indexWhere((exercise) => exercise.ref == id);
+    final old = exercises[index];
+    exercises[index] = Exercise(
+      ref: old.ref,
+      displayName: old.displayName,
+      description: old.description,
+      exerciseType: old.exerciseType,
+      muscleGroup: old.muscleGroup,
+      primaryMuscles: old.primaryMuscles,
+      secondaryMuscles: old.secondaryMuscles,
+      primaryEquipment: old.primaryEquipment,
+      category: old.category,
+      levels: old.levels,
+      status: ExerciseStatus.archived,
+      media: old.media,
+    );
+  }
 }
 
 /// 1×1 transparent PNG.

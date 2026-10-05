@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/user_exercise_definition.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/usecases/user_exercise_id_generator.dart';
 import 'custom_exercises_state.dart';
@@ -20,6 +21,7 @@ final class CustomExercisesController extends ChangeNotifier {
   var _loadVersion = 0;
   var _disposed = false;
   UserCreatedExerciseRef? _pendingCreateId;
+  Object? _pendingCreateDraftIdentity;
 
   Future<void> load() async {
     if (_state.actionInProgress) return;
@@ -33,7 +35,7 @@ final class CustomExercisesController extends ChangeNotifier {
       final pendingId = _pendingCreateId;
       if (pendingId != null &&
           exercises.any((exercise) => exercise.ref == pendingId)) {
-        _pendingCreateId = null;
+        _clearPendingCreate();
       }
       _publish(CustomExercisesState.ready(exercises: exercises));
     } catch (_) {
@@ -48,7 +50,11 @@ final class CustomExercisesController extends ChangeNotifier {
 
   Future<void> retryLoad() => load();
 
-  Future<bool> create(String displayName) async {
+  Future<bool> create(
+    String displayName, {
+    required Object draftIdentity,
+    UserExerciseDefinition? definition,
+  }) async {
     final current = _state;
     if (current.status != CustomExercisesStatus.ready ||
         current.actionInProgress) {
@@ -65,6 +71,12 @@ final class CustomExercisesController extends ChangeNotifier {
       return false;
     }
 
+    final canRetryPending = _pendingCreateId != null &&
+        identical(_pendingCreateDraftIdentity, draftIdentity);
+    if (!canRetryPending) {
+      _clearPendingCreate();
+    }
+
     late final UserCreatedExerciseRef id;
     try {
       id = _pendingCreateId ??
@@ -73,7 +85,10 @@ final class CustomExercisesController extends ChangeNotifier {
                 .map((exercise) => exercise.ref)
                 .whereType<UserCreatedExerciseRef>(),
           );
-      _pendingCreateId ??= id;
+      if (_pendingCreateId == null) {
+        _pendingCreateId = id;
+        _pendingCreateDraftIdentity = draftIdentity;
+      }
     } catch (_) {
       _publish(
         CustomExercisesState.ready(
@@ -92,12 +107,23 @@ final class CustomExercisesController extends ChangeNotifier {
     );
 
     try {
-      await repository.create(id: id, displayName: displayName);
+      await repository.create(
+        id: id,
+        displayName: displayName,
+        definition: definition,
+      );
       if (_disposed) return false;
-      _pendingCreateId = null;
+      _clearPendingCreate();
       final created = Exercise(
         ref: id,
         displayName: displayName,
+        description: definition?.description,
+        exerciseType: definition?.exerciseType,
+        primaryMuscles: definition?.primaryMuscle == null
+            ? const []
+            : [definition!.primaryMuscle!],
+        secondaryMuscles: definition?.secondaryMuscles ?? const [],
+        primaryEquipment: definition?.primaryEquipment,
         status: ExerciseStatus.active,
       );
       _publish(
@@ -110,10 +136,11 @@ final class CustomExercisesController extends ChangeNotifier {
       final reconciled = await _reconcileCreate(
         id: id,
         displayName: displayName,
+        definition: definition,
       );
       if (_disposed) return false;
       if (reconciled != null) {
-        _pendingCreateId = null;
+        _clearPendingCreate();
         _publish(CustomExercisesState.ready(exercises: reconciled));
         return true;
       }
@@ -126,6 +153,111 @@ final class CustomExercisesController extends ChangeNotifier {
           ),
         ),
       );
+      return false;
+    }
+  }
+
+  Future<bool> edit({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) async {
+    final current = _state;
+    if (current.status != CustomExercisesStatus.ready ||
+        current.actionInProgress) {
+      return false;
+    }
+    if (displayName.trim().isEmpty) {
+      _publish(CustomExercisesState.ready(
+        exercises: current.exercises,
+        actionError: 'Enter an exercise name.',
+      ));
+      return false;
+    }
+    if (!current.exercises.any((item) => item.ref == id)) {
+      _publish(CustomExercisesState.ready(
+        exercises: current.exercises,
+        actionError: 'Could not update exercise. Please try again.',
+      ));
+      return false;
+    }
+
+    _publish(CustomExercisesState.ready(
+      exercises: current.exercises,
+      actionInProgress: true,
+    ));
+    try {
+      await repository.rename(id: id, displayName: displayName);
+      await repository.updateDefinition(id: id, definition: definition);
+      final reconciled = await repository.list(includeArchived: true);
+      if (_disposed) return false;
+
+      if (reconciled.isEmpty) {
+        final updated = [...current.exercises];
+        final index = updated.indexWhere((item) => item.ref == id);
+        updated[index] = _copyWithDefinitionAndDisplayName(
+          updated[index],
+          displayName: displayName,
+          definition: definition,
+        );
+        _publish(CustomExercisesState.ready(exercises: updated));
+        return true;
+      }
+
+      Exercise? durableTarget;
+      for (final exercise in reconciled) {
+        if (exercise.ref == id) {
+          durableTarget = exercise;
+          break;
+        }
+      }
+
+      if (durableTarget == null) {
+        _publish(
+          CustomExercisesState.ready(
+            exercises: current.exercises,
+            actionError: 'Could not verify exercise state. Please try again.',
+          ),
+        );
+        return false;
+      }
+
+      _publish(
+        CustomExercisesState.ready(
+          exercises: List<Exercise>.unmodifiable(
+            reconciled.where(
+              (exercise) => exercise.status == ExerciseStatus.active,
+            ),
+          ),
+        ),
+      );
+      return true;
+    } catch (error) {
+      final isSignInFailure = _isSignInFailure(error);
+      final reconciled =
+          isSignInFailure ? null : await _reloadAfterWriteFailure();
+      if (_disposed) return false;
+      if (!isSignInFailure &&
+          reconciled != null &&
+          _containsDefinition(
+            reconciled,
+            id: id,
+            displayName: displayName,
+            definition: definition,
+          )) {
+        _publish(CustomExercisesState.ready(exercises: reconciled));
+        return true;
+      }
+      _publish(CustomExercisesState.ready(
+        exercises: _safeReconciledExercises(
+          reconciled,
+          fallback: current.exercises,
+        ),
+        actionError: _actionFailureMessage(
+          error,
+          fallback: 'Could not update exercise. Please try again.',
+        ),
+      ));
       return false;
     }
   }
@@ -222,10 +354,47 @@ final class CustomExercisesController extends ChangeNotifier {
       _publish(CustomExercisesState.ready(exercises: updated));
       return true;
     } catch (error) {
+      final isSignInFailure = _isSignInFailure(error);
+      final reconciled =
+          isSignInFailure ? null : await _reloadAllAfterArchiveFailure();
       if (_disposed) return false;
+
+      Exercise? durableTarget;
+      if (reconciled != null) {
+        for (final exercise in reconciled) {
+          if (exercise.ref == id) {
+            durableTarget = exercise;
+            break;
+          }
+        }
+      }
+
+      if (!isSignInFailure &&
+          durableTarget?.status == ExerciseStatus.archived) {
+        _publish(
+          CustomExercisesState.ready(
+            exercises: List<Exercise>.unmodifiable(
+              reconciled!.where(
+                (exercise) => exercise.status == ExerciseStatus.active,
+              ),
+            ),
+          ),
+        );
+        return true;
+      }
+
+      final durableActive = reconciled == null ||
+              reconciled.isEmpty ||
+              durableTarget == null
+          ? current.exercises
+          : List<Exercise>.unmodifiable(
+              reconciled.where(
+                (exercise) => exercise.status == ExerciseStatus.active,
+              ),
+            );
       _publish(
         CustomExercisesState.ready(
-          exercises: current.exercises,
+          exercises: durableActive,
           actionError: _actionFailureMessage(
             error,
             fallback: 'Could not archive exercise. Please try again.',
@@ -236,9 +405,64 @@ final class CustomExercisesController extends ChangeNotifier {
     }
   }
 
+  bool _containsDefinition(
+    List<Exercise> exercises, {
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) {
+    for (final exercise in exercises) {
+      if (exercise.ref == id &&
+          exercise.displayName == displayName &&
+          exercise.description == definition.description &&
+          exercise.exerciseType == definition.exerciseType &&
+          listEquals(
+            exercise.primaryMuscles,
+            definition.primaryMuscle == null
+                ? const <String>[]
+                : [definition.primaryMuscle!],
+          ) &&
+          listEquals(exercise.secondaryMuscles, definition.secondaryMuscles) &&
+          exercise.primaryEquipment == definition.primaryEquipment) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<Exercise> _safeReconciledExercises(
+    List<Exercise>? reconciled, {
+    required List<Exercise> fallback,
+  }) {
+    // Supabase list() intentionally returns [] while signed out. During
+    // ambiguous write reconciliation an empty read therefore cannot prove
+    // that the user's active collection is actually empty. Preserve the last
+    // authenticated/loaded state until a non-empty durable read or a later
+    // normal load can establish the truth.
+    if (reconciled == null || reconciled.isEmpty) return fallback;
+    return reconciled;
+  }
+
+  Future<List<Exercise>?> _reloadAllAfterArchiveFailure() async {
+    try {
+      return await repository.list(includeArchived: true);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Exercise>?> _reloadAfterWriteFailure() async {
+    try {
+      return await repository.list();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Exercise>?> _reconcileCreate({
     required UserCreatedExerciseRef id,
     required String displayName,
+    UserExerciseDefinition? definition,
   }) async {
     try {
       var exercises = await repository.list();
@@ -250,20 +474,62 @@ final class CustomExercisesController extends ChangeNotifier {
         }
       }
       if (persisted == null) return null;
-      if (persisted.displayName == displayName) return exercises;
-
-      await repository.rename(id: id, displayName: displayName);
-      exercises = await repository.list();
-      if (exercises.any(
-        (exercise) => exercise.ref == id && exercise.displayName == displayName,
-      )) {
+      final definitionMatches = definition == null ||
+          (persisted.description == definition.description &&
+              persisted.exerciseType == definition.exerciseType &&
+              listEquals(
+                persisted.primaryMuscles,
+                (definition.primaryMuscle == null
+                      ? const <String>[]
+                      : [definition.primaryMuscle!]),
+              ) &&
+              listEquals(persisted.secondaryMuscles, definition.secondaryMuscles) &&
+              persisted.primaryEquipment == definition.primaryEquipment);
+      if (persisted.displayName == displayName && definitionMatches) {
         return exercises;
+      }
+
+      if (persisted.displayName != displayName) {
+        await repository.rename(id: id, displayName: displayName);
+      }
+      if (definition != null && !definitionMatches) {
+        await repository.updateDefinition(id: id, definition: definition);
+      }
+      exercises = await repository.list();
+      for (final exercise in exercises) {
+        if (exercise.ref != id || exercise.displayName != displayName) continue;
+        if (definition == null ||
+            (exercise.description == definition.description &&
+                exercise.exerciseType == definition.exerciseType &&
+                listEquals(
+                  exercise.primaryMuscles,
+                  definition.primaryMuscle == null
+                      ? const <String>[]
+                      : [definition.primaryMuscle!],
+                ) &&
+                listEquals(
+                  exercise.secondaryMuscles,
+                  definition.secondaryMuscles,
+                ) &&
+                exercise.primaryEquipment == definition.primaryEquipment)) {
+          return exercises;
+        }
       }
     } catch (_) {
       // Preserve the pending stable identity when the durable outcome is
       // still unknown so another retry cannot create a second Exercise.
     }
     return null;
+  }
+
+  void _clearPendingCreate() {
+    _pendingCreateId = null;
+    _pendingCreateDraftIdentity = null;
+  }
+
+  bool _isSignInFailure(Object error) {
+    return error is StateError &&
+        error.message.toString() == 'Please sign in to save Exercises.';
   }
 
   String _actionFailureMessage(Object error, {required String fallback}) {
@@ -273,6 +539,28 @@ final class CustomExercisesController extends ChangeNotifier {
     }
     return fallback;
   }
+
+  static Exercise _copyWithDefinitionAndDisplayName(
+    Exercise exercise, {
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) =>
+      Exercise(
+        ref: exercise.ref,
+        displayName: displayName,
+        description: definition.description,
+        exerciseType: definition.exerciseType,
+        muscleGroup: exercise.muscleGroup,
+        primaryMuscles: definition.primaryMuscle == null
+            ? const <String>[]
+            : [definition.primaryMuscle!],
+        secondaryMuscles: definition.secondaryMuscles,
+        primaryEquipment: definition.primaryEquipment,
+        category: exercise.category,
+        levels: exercise.levels,
+        status: exercise.status,
+        media: exercise.media,
+      );
 
   static Exercise _copyWithDisplayName(
     Exercise exercise,

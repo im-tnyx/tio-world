@@ -46,6 +46,7 @@ final class ExerciseListItem {
     required this.exercise,
     required this.thumbnailUrl,
     required this.metadata,
+    this.isCustom = false,
   });
 
   final Exercise exercise;
@@ -56,6 +57,9 @@ final class ExerciseListItem {
   /// `Primary equipment • Muscle group`, or whichever part exists.
   final String? metadata;
 
+  /// Presentation marker for a user-created canonical Exercise.
+  final bool isCustom;
+
   String get name => exercise.displayName;
 
   @override
@@ -63,10 +67,12 @@ final class ExerciseListItem {
       other is ExerciseListItem &&
       other.exercise == exercise &&
       other.thumbnailUrl == thumbnailUrl &&
-      other.metadata == metadata;
+      other.metadata == metadata &&
+      other.isCustom == isCustom;
 
   @override
-  int get hashCode => Object.hash(exercise, thumbnailUrl, metadata);
+  int get hashCode =>
+      Object.hash(exercise, thumbnailUrl, metadata, isCustom);
 }
 
 /// Immutable state of the dedicated Exercises screen.

@@ -50,7 +50,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final created = await controller.create('Paused Squat');
+    final created = await controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
 
     expect(created, isTrue);
     expect(repository.attemptedCreateIds, [_id(1)]);
@@ -69,7 +72,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final createFuture = controller.create('Paused Squat');
+    final createFuture = controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
     expect(controller.state.actionInProgress, isTrue);
 
     await controller.load();
@@ -93,7 +99,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    expect(await controller.create('   '), isFalse);
+    expect(
+      await controller.create('   ', draftIdentity: Object()),
+      isFalse,
+    );
 
     expect(repository.attemptedCreateIds, isEmpty);
     expect(controller.state.actionError, 'Enter an exercise name.');
@@ -110,7 +119,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    final created = await controller.create('Paused Squat');
+    final created = await controller.create(
+      'Paused Squat',
+      draftIdentity: Object(),
+    );
 
     expect(created, isTrue);
     expect(repository.attemptedCreateIds, [_id(1)]);
@@ -131,9 +143,22 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
-    expect(await controller.create('Paused Squat'), isFalse);
+    final draftIdentity = Object();
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isFalse,
+    );
     repository.createError = null;
-    expect(await controller.create('Paused Squat'), isTrue);
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isTrue,
+    );
 
     expect(repository.attemptedCreateIds, [_id(1), _id(1)]);
     expect(repository.exercises, [_exercise(1, 'Paused Squat')]);
@@ -151,15 +176,254 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
 
+    final draftIdentity = Object();
     repository.loadFailuresRemaining = 1;
-    expect(await controller.create('Paused Squat'), isFalse);
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isFalse,
+    );
 
     repository.createErrorAfterWrite = null;
-    expect(await controller.create('Tempo Squat'), isTrue);
+    expect(
+      await controller.create(
+        'Tempo Squat',
+        draftIdentity: draftIdentity,
+      ),
+      isTrue,
+    );
 
     expect(repository.attemptedCreateIds, [_id(1), _id(1)]);
     expect(repository.exercises, [_exercise(1, 'Tempo Squat')]);
     expect(controller.state.exercises, [_exercise(1, 'Tempo Squat')]);
+  });
+
+
+  test('new draft after unresolved create uses a fresh Exercise id', () async {
+    final repository = _FakeUserExerciseRepository(
+      createErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1), _id(2)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    repository.loadFailuresRemaining = 1;
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: Object(),
+      ),
+      isFalse,
+    );
+
+    repository.createErrorAfterWrite = null;
+    expect(
+      await controller.create(
+        'Tempo Squat',
+        draftIdentity: Object(),
+      ),
+      isTrue,
+    );
+
+    expect(repository.attemptedCreateIds, [_id(1), _id(2)]);
+    expect(
+      repository.exercises.map((exercise) => exercise.displayName),
+      ['Paused Squat', 'Tempo Squat'],
+    );
+  });
+
+  test('structured create publishes the persisted definition', () async {
+    final repository = _FakeUserExerciseRepository();
+    final controller = CustomExercisesController(
+      repository: repository,
+      idGenerator: _QueueUserExerciseIdGenerator([_id(1)]),
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Pause at depth',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      secondaryMuscles: const ['gluteus_maximus'],
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.create(
+        'Paused Squat',
+        draftIdentity: Object(),
+        definition: definition,
+      ),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Paused Squat');
+    expect(exercise.description, 'Pause at depth');
+    expect(exercise.exerciseType, ExerciseType.weightReps);
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
+    expect(exercise.primaryEquipment, 'barbell');
+  });
+
+  test('edit reconciles durable lifecycle after successful writes', () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Three second eccentric',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      secondaryMuscles: const ['gluteus_maximus'],
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Tempo Squat');
+    expect(exercise.description, 'Three second eccentric');
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.secondaryMuscles, const ['gluteus_maximus']);
+    expect(repository.listCalls, 2);
+  });
+
+  test('edit keeps successful writes when post-write read is empty',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Three second eccentric',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Tempo Squat');
+    expect(exercise.description, 'Three second eccentric');
+    expect(exercise.exerciseType, ExerciseType.weightReps);
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.primaryEquipment, 'barbell');
+    expect(repository.listCalls, 2);
+  });
+
+  test('edit drops a row archived remotely during the write', () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveTargetDuringUpdate: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: UserExerciseDefinition(
+          exerciseType: ExerciseType.weightReps,
+          primaryMuscle: 'quadriceps',
+        ),
+      ),
+      isTrue,
+    );
+
+    expect(controller.state.exercises, isEmpty);
+    final durable = await repository.list(includeArchived: true);
+    expect(durable.single.ref, _id(1));
+    expect(durable.single.status, ExerciseStatus.archived);
+    expect(durable.single.displayName, 'Tempo Squat');
+  });
+
+  test('edit definition failure reloads a successful rename before error',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      updateDefinitionError: Exception('network down'),
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isFalse,
+    );
+
+    expect(controller.state.exercises.single.displayName, 'Tempo Squat');
+    expect(
+      controller.state.actionError,
+      'Could not update exercise. Please try again.',
+    );
+  });
+
+  test('edit failure never replaces a loaded list with ambiguous empty read',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      updateDefinitionError: Exception('network down'),
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: UserExerciseDefinition(
+          exerciseType: ExerciseType.weightReps,
+          primaryMuscle: 'quadriceps',
+        ),
+      ),
+      isFalse,
+    );
+
+    expect(controller.state.exercises, isNotEmpty);
+    expect(controller.state.exercises.single.ref, _id(1));
+    expect(
+      controller.state.actionError,
+      'Could not update exercise. Please try again.',
+    );
   });
 
   test('rename updates the active item and preserves canonical metadata',
@@ -228,6 +492,43 @@ void main() {
 
     expect(await controller.archive(_id(1)), isFalse);
 
+    expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
+    expect(
+      controller.state.actionError,
+      'Could not archive exercise. Please try again.',
+    );
+  });
+
+  test('last archive reconciles committed row after response error',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.archive(_id(1)), isTrue);
+    expect(controller.state.exercises, isEmpty);
+
+    final durable = await repository.list(includeArchived: true);
+    expect(durable.single.ref, _id(1));
+    expect(durable.single.status, ExerciseStatus.archived);
+  });
+
+  test('archive failure does not treat ambiguous empty read as success',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveError: Exception('network down'),
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.archive(_id(1)), isFalse);
     expect(controller.state.exercises, [_exercise(1, 'Paused Squat')]);
     expect(
       controller.state.actionError,
@@ -305,7 +606,11 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.createErrorAfterWrite,
     this.createGate,
     this.renameError,
+    this.updateDefinitionError,
+    this.archiveTargetDuringUpdate = false,
     this.archiveError,
+    this.archiveErrorAfterWrite,
+    this.emptyListsAfterFirstCall = false,
   }) : exercises = [...?exercises];
 
   final List<Exercise> exercises;
@@ -315,7 +620,11 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   Object? createErrorAfterWrite;
   Completer<void>? createGate;
   Object? renameError;
+  Object? updateDefinitionError;
+  final bool archiveTargetDuringUpdate;
   Object? archiveError;
+  Object? archiveErrorAfterWrite;
+  final bool emptyListsAfterFirstCall;
   int listCalls = 0;
 
   @override
@@ -324,6 +633,9 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     if (loadFailuresRemaining > 0) {
       loadFailuresRemaining--;
       throw Exception('load failed');
+    }
+    if (emptyListsAfterFirstCall && listCalls > 1) {
+      return const <Exercise>[];
     }
     return List.unmodifiable(
       exercises.where(
@@ -371,6 +683,8 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     required UserCreatedExerciseRef id,
     required UserExerciseDefinition definition,
   }) async {
+    final error = updateDefinitionError;
+    if (error != null) throw error;
     final index = exercises.indexWhere((exercise) => exercise.ref == id);
     if (index < 0) throw StateError('Exercise not found');
     final exercise = exercises[index];
@@ -384,7 +698,9 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
           : [definition.primaryMuscle!],
       secondaryMuscles: definition.secondaryMuscles,
       primaryEquipment: definition.primaryEquipment,
-      status: exercise.status,
+      status: archiveTargetDuringUpdate
+          ? ExerciseStatus.archived
+          : exercise.status,
     );
   }
 
@@ -413,5 +729,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
       exercises[index],
       status: ExerciseStatus.archived,
     );
+    final afterWrite = archiveErrorAfterWrite;
+    if (afterWrite != null) throw afterWrite;
   }
 }

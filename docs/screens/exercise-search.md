@@ -1,20 +1,52 @@
 # Exercises Screen And Exercise Picker
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-01
+Last Verified: 2026-10-05
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Exercises screen/picker product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout flow; never a primary tab
 **Route:** `/workout/exercises` (`AppRoutes.workoutExercises`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, and W3D1 adds non-UI repository composition plus Custom Exercise controller/identity-generation foundation; detail, picker mode and visible Favorites/Custom/Folders remain planned.
+**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, and W3D1 adds non-UI repository composition plus Custom Exercise controller/identity-generation foundation. The active W3D3 branch now composes catalog + user-created Exercises on the canonical `/workout/exercises` surface, with user-created rows carrying a `Custom` badge/tag; the separate `/workout/custom-exercises` collection route has been retired from the branch. Exact-head validation is still pending. Detail, picker mode and visible Favorites/Folders remain separately planned.
+
+## Custom Exercises Runtime And Corrected Target
+
+The active W3D3 branch now follows the owner correction from 2026-10-04: there is one canonical Exercises presentation surface. The former separate collection route/page has been removed from the branch; the editor remains W3D-owned and is opened from user-created rows or the create action on the canonical screen.
+
+```text
+/workout/exercises
+├─ user-created Exercise rows   [Custom]
+└─ bundled catalog Exercise rows
+```
+
+User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row enters its edit/detail flow; successful create/edit returns to the same canonical Exercises surface. A Library `Custom Exercises` entry may open this same surface in a Custom-focused/filter state, but must not establish another collection truth. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
+
+The editor itself remains W3D3-owned and exposes required name plus optional description, Exercise Type, Primary muscle, Secondary muscles, and Equipment using the already-live W3D2 persistence contract. Optional single-value selections can be cleared, secondary muscles cannot duplicate the primary muscle, archive requires destructive confirmation, and pending writes keep the editor mounted until their result is known. Media/Storage and execution-measurement semantics remain outside W3D3.
+
+### Primary muscle Body Part presentation map
+
+The W3D3 Primary muscle selector uses the owner-approved 2026-10-05 presentation-only grouping below. It is a **single-bottom-sheet inline accordion**: Body Part rows remain in the same sheet, tapping one row expands its muscles directly beneath it, tapping another collapses the previous group and expands the new group in place, and selecting a muscle completes the single selection. A second/nested muscle bottom sheet or forward navigation is not part of this interaction. Body Part is navigation metadata only and is never persisted; the durable value remains one canonical muscle token. The named groups cover all 44 canonical muscle tokens exactly once. `Full Body` is a navigation-only all-muscles view and is excluded from that uniqueness accounting. The selector is one bottom-sheet accordion: tapping a Body Part expands its muscle subset inline beneath that row, only one Body Part is expanded at a time, and selecting a muscle closes that same sheet. It must not open a second/nested muscle sheet.
+
+- **Chest:** `pectoralis_major_sternal_head`, `pectoralis_major_clavicular_head`, `serratus_anterior`, `serratus_anterior_alternate`
+- **Back:** `trapezius_lower_fibers`, `trapezius_upper_fibers`, `trapezius_middle_fibers`, `teres_major`, `latissimus_dorsi`, `erector_spinae`
+- **Shoulders:** `deltoid_anterior`, `deltoid_lateral`, `deltoid_posterior`, `infraspinatus`, `teres_minor`
+- **Biceps:** `biceps_brachii`, `brachialis`
+- **Triceps:** `triceps_brachii`
+- **Quadriceps:** `quadriceps`, `sartorius`
+- **Hamstrings:** `hamstrings`, `popliteus`
+- **Hips:** `pectineus`, `tensor_fasciae_latae`, `iliopsoas`, `adductor_longus`, `adductor_magnus`, `gluteus_maximus`, `gluteus_medius`, `gluteus_minimus`, `gracilis`, `deep_hip_external_rotators`
+- **Calves:** `gastrocnemius`, `soleus`, `tibialis_anterior`
+- **Forearms:** `brachioradialis`, `wrist_extensors`, `wrist_flexors`
+- **Neck:** `sternocleidomastoid`, `splenius`, `levator_scapulae`
+- **Waist / Abs:** `rectus_abdominis`, `transverse_abdominis`, `obliques`
+- **Full Body:** all 44 canonical muscle tokens; presentation/navigation only
 
 ## Purpose
 
 One Exercise capability serves two presentation contexts. Both use the same canonical `Exercise`, the same Workout-owned Exercise repository/catalog data and the same search/filter primitives where appropriate; neither creates a second Exercise truth.
 
-1. **Dedicated Exercises screen** — browse, search and filter the catalog. Exercise detail is added by its own slice. Later W3 slices add Favorites, Custom Exercises and Folders here.
+1. **Dedicated Exercises screen** — browse, search and filter the unified canonical Exercise presentation. The bundled catalog and active user-created Exercises compose here; user-created rows carry a `Custom` badge/tag. Exercise detail is added by its own slice. Later W3 slices add Favorites and Folders without introducing another Exercise truth.
 2. **Exercise picker/search context** — choose, add or replace an Exercise while building or editing a Routine/Program.
 
 Neither context is a direct workout-start surface, and neither replaces the Routine/Program-first flow.
@@ -46,7 +78,7 @@ Exercises category
 └─ user-created folders...     // W3E
 ```
 
-The current dedicated `/workout/exercises` screen remains the canonical shipped catalog/search/filter surface. In the future #475 Library Exercises category, a separate secondary **Browse exercises** action opens this same canonical route. It is not one of the three approved default collection entries (Create a custom exercise, Favorite Exercises, Custom Exercises). Until W3C/W3D/W3E are implemented, Library must not render fake Favorite/Custom/Folder production entries; the real Browse exercises action keeps catalog/search discoverable without inventing placeholder collection rows.
+The canonical `/workout/exercises` screen is the single Exercise browsing/search/filter surface. Under the corrected W3D direction it composes bundled catalog rows with active user-created rows; `Custom Exercises` is therefore a focused view/state over that same screen, not a second collection route. In the future #475 Library Exercises category, **Browse exercises** opens the normal unified state, while **Custom Exercises** may open the same route focused to user-created rows. `Create a custom exercise` enters the W3D editor and returns to the unified screen. Until W3C/W3D/W3E capabilities are real, Library must not render fake Favorite/Custom/Folder production entries.
 
 ## Entry And Exit Flow
 
@@ -83,7 +115,7 @@ The catalog is intentionally evolving. Its current exercise count is not an arch
 
 Built-in catalog rows are not mirrored into Supabase. User-created Exercises are separate user-owned dynamic data persisted through the validated W1B1 `user_workout_exercises` boundary; its minimum durable shape supports active/archive lifecycle, display name, stable UUID identity and optional immutable catalog-source lineage. Additional taxonomy beyond the live W3D2 Exercise Type/muscle/equipment fields, plus instructions and user-created media persistence, remain separately gated. Routine/Program/Plan/Session/Favorite/Folder contracts reference Exercises rather than cloning catalog truth, and completed sessions must eventually snapshot the performed data needed to keep history stable when catalog content changes.
 
-W3D2 is merged and live. Canonical `Exercise` supports optional description and Exercise Type, reuses primary/secondary muscles and primary equipment, and structured user Exercise definitions round-trip through `UserExerciseRepository`; rename preserves these fields. Migration `20260930180700_add_custom_exercise_definition_fields.sql` is deployed and hosted-verified on the existing owner-scoped `public.user_workout_exercises` boundary, which now has 12 columns. Authenticated access remains least-privilege with no DELETE and immutable identity/owner/catalog-lineage/timestamps; repository and hosted migration identity are reconciled. Name-only creation remains supported with no fabricated legacy taxonomy. Body Part stays derived presentation grouping. Visible Custom Exercise editing, media/Storage, and execution measurement semantics remain separate gated slices.
+W3D2 is merged and live. Canonical `Exercise` supports optional description and Exercise Type, reuses primary/secondary muscles and primary equipment, and structured user Exercise definitions round-trip through `UserExerciseRepository`; rename preserves these fields. Migration `20260930180700_add_custom_exercise_definition_fields.sql` is deployed and hosted-verified on the existing owner-scoped `public.user_workout_exercises` boundary, which now has 12 columns. Authenticated access remains least-privilege with no DELETE and immutable identity/owner/catalog-lineage/timestamps; repository and hosted migration identity are reconciled. Name-only creation remains supported with no fabricated legacy taxonomy. Body Part stays derived presentation grouping. Visible Custom Exercise editing is being delivered through W3D3 on the canonical `/workout/exercises` screen with user-created rows marked `Custom`; the separate collection route/page has been removed from the active branch. Media/Storage and execution measurement semantics remain separate gated slices.
 
 W3A2a (TNYX-270) landed the bundled catalog boundary. The Workout-owned asset `apps/features/workout/assets/exercises/exercise_catalog.json` is registered in `tio_feature_workout` (asset key `packages/tio_feature_workout/assets/exercises/exercise_catalog.json`). `ExerciseCatalogDocumentDecoder` validates its `schemaVersion` / `catalogVersion` / `exercises` document envelope (supported `schemaVersion`: 1), `AssetBundleExerciseCatalogSource` is the production source over an injected `AssetBundle`, and the W3A1 `ExerciseCatalogParser` and repository remain the canonical row validation and mapping to `Exercise`. Missing-asset, asset-load, invalid-document, unsupported-schema and invalid-row failures are distinct typed exceptions.
 
@@ -96,7 +128,7 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 - **Route:** `/workout/exercises` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath never relayouts during the push or pop transition. The page has a standard AppBar with back. A direct deep link opens the screen with `/workout` beneath it, and the screen follows the same onboarding and App Mode gating as `/workout`, so a mode without the Workout tab is redirected exactly as `/workout` would be.
 - **Ownership:** `apps/features/workout/lib/src/presentation/library/exercises/` owns `ExercisesController` (a `ChangeNotifier` behind `exercisesControllerProvider`), the immutable `ExercisesState`, `ExercisesPage`, the filter sheet and the rows. `exerciseCatalogRepositoryProvider` supplies the bundled `AssetBundleExerciseCatalogSource`. The presentation subtree is co-located with its shipped Library entry, but Library remains a navigation/collection surface: canonical Exercise domain/data ownership stays under the Workout Exercise capability, and the Library root still does not render the catalog.
 - **Search and filters:** the top bar reads back, `Exercises`, a search icon and a filter icon. The search icon swaps the title for a `Search exercises` field; its close action hides the field and clears the text. The field is closed by default, except when opened through Library's search icon or the `?search=true` deep link (`ExercisesPage.startSearching`), which open the screen with the field active and focused. While the field is open, the filter icon is hidden. The filter icon turns the primary color while any filter is active, and its tooltip announces the active count. It opens a sheet with single-select Muscle, Equipment and Category chips, `Clear all` and `Show results`. Choices stay a draft until `Show results`, and dismissing the sheet applies nothing. All matching goes through `ExerciseCatalogQuery`, and search applies as the user types. Filter values come from active Exercises, and labels are sentence-case forms of the taxonomy tokens (for example `Upper arms`, `EZ bar`).
-- **Rows:** a thumbnail, the Exercise name and `Primary equipment • Muscle group`. The thumbnail is `urlFor(image)`, then `urlFor(thumbnail)`, for the viewer's media gender. With no usable URL, or when the image fails to load, the row is text-only with no placeholder. Rows have no icon, chevron, favorite/folder action, video or tap behavior until Exercise Detail (W3B) exists.
+- **Rows:** a thumbnail, the Exercise name and `Primary equipment • Muscle group`. The thumbnail is `urlFor(image)`, then `urlFor(thumbnail)`, for the viewer's media gender. With no usable URL, or when the image fails to load, the row is text-only with no placeholder. Bundled catalog rows have no icon, chevron, favorite/folder action, video or tap behavior until Exercise Detail (W3B) exists. User-created rows are the bounded W3D exception: they carry a `Custom` badge plus chevron and are tappable to open the Custom Exercise edit flow on the same canonical screen.
 - **States:** loading, empty catalog, search/filter no-match, missing bundled catalog, malformed catalog (including an unsupported schema version) and unexpected failure. Every failure comes from the bundled asset, so none of them offers Retry.
 
 ## Target Content
