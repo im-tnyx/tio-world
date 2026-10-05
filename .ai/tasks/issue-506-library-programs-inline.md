@@ -142,7 +142,7 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f27300ff1da444d38112bca9e7240b9983a040b7`
 **Branch:** `tnyx/issue-506-library-programs-inline`
-**HEAD SHA:** current PR #507 branch head; runtime refresh fix, regression test, and review-handoff reconciliation are committed. Re-read PR metadata for the immutable exact SHA before validation/review decisions.
+**HEAD SHA:** `0937683882d4f87c0f349d0942f22c938708ef6b` — current implementation checkpoint before this handoff-only anchor commit; runtime refresh fix, regression test, and review-handoff reconciliation are committed. Re-read PR metadata for the immutable exact validation/review head.
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
