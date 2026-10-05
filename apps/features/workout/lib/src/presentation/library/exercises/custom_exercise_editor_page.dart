@@ -341,20 +341,36 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
       if (success) {
         Navigator.of(context).pop();
       } else {
+        final message = widget.controller.state.actionError ??
+            'Could not save exercise. Please try again.';
         setState(() {
           _saving = false;
-          _error = widget.controller.state.actionError ??
-              'Could not save exercise. Please try again.';
+          _error = message;
         });
+        _showActionError(message);
       }
     } on ArgumentError {
       if (mounted) {
+        const message = 'Review the selected exercise details.';
         setState(() {
           _saving = false;
-          _error = 'Review the selected exercise details.';
+          _error = message;
         });
+        _showActionError(message);
       }
     }
+  }
+
+  void _showActionError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('custom-exercise-action-error'),
+          content: Text(message),
+        ),
+      );
   }
 
   @override
@@ -475,16 +491,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
                             _saving = false;
                             _error = message;
                           });
-                          ScaffoldMessenger.of(this.context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(
-                              SnackBar(
-                                key: const ValueKey(
-                                  'custom-exercise-archive-error',
-                                ),
-                                content: Text(message),
-                              ),
-                            );
+                          _showActionError(message);
                         }
                       },
               ),
