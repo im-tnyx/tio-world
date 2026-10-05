@@ -104,6 +104,6 @@ Explore/Favorites/Folders/Your Plan remain separately capability-gated and are n
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT (docs/tracker reconciliation only)
 **Review owner:** pending PR review
-**Current state:** fresh audit complete; durable task brief established before reconciliation edits.
+**Current state:** fresh audit complete; GitHub #475 body reconciled to merged W3D3/current Library runtime and canonical no-Quick-Start rule; TNYX-80 parent corrected Backlog → In Progress; TNYX-83/W6 and TNYX-267/W6B remain Backlog because their W4/W3 dependency gates are real.
 **Open blockers:** none for PR-A. PR-B requires exact default-Program identity/data-shape audit and may hit Owner Approval if a Supabase table/column change is required.
-**Next exact action:** reconcile #475 body/current-truth wording and the smallest necessary canonical docs; then run scope audit and open the docs-only PR.
+**Next exact action:** verify canonical docs need no further edits beyond their already-current wording, run complete branch scope audit, then open the docs-only PR for the durable handoff/index.
