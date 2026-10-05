@@ -194,8 +194,31 @@ final class ProgramsController extends ChangeNotifier {
           error.message.toString() == 'Please sign in to save Programs.') {
         return 'Please sign in to save Programs.';
       }
+
+      final reconciled = await _reconcileRename(renamed);
+      if (_disposed) return 'Could not edit program. Please try again.';
+      if (reconciled != null) {
+        _publish(ProgramsState.ready(programs: reconciled));
+        return null;
+      }
       return 'Could not edit program. Please try again.';
     }
+  }
+
+  Future<List<Program>?> _reconcileRename(Program attempted) async {
+    try {
+      final programs = await repository.list();
+      if (programs.any(
+        (program) =>
+            program.id == attempted.id && program.name == attempted.name,
+      )) {
+        return programs;
+      }
+    } catch (_) {
+      // The durable rename outcome remains unknown; keep the editor open so
+      // the user is not told a write succeeded without persisted evidence.
+    }
+    return null;
   }
 
   Future<List<Program>?> _reconcileCreate(Program attempted) async {
