@@ -323,21 +323,45 @@ final class CustomExercisesController extends ChangeNotifier {
     } catch (error) {
       final isSignInFailure = _isSignInFailure(error);
       final reconciled =
-          isSignInFailure ? null : await _reloadAfterWriteFailure();
+          isSignInFailure ? null : await _reloadAllAfterArchiveFailure();
       if (_disposed) return false;
+
+      Exercise? durableTarget;
+      if (reconciled != null) {
+        for (final exercise in reconciled) {
+          if (exercise.ref == id) {
+            durableTarget = exercise;
+            break;
+          }
+        }
+      }
+
       if (!isSignInFailure &&
-          reconciled != null &&
-          reconciled.isNotEmpty &&
-          !reconciled.any((exercise) => exercise.ref == id)) {
-        _publish(CustomExercisesState.ready(exercises: reconciled));
+          durableTarget?.status == ExerciseStatus.archived) {
+        _publish(
+          CustomExercisesState.ready(
+            exercises: List<Exercise>.unmodifiable(
+              reconciled!.where(
+                (exercise) => exercise.status == ExerciseStatus.active,
+              ),
+            ),
+          ),
+        );
         return true;
       }
+
+      final durableActive = reconciled == null ||
+              reconciled.isEmpty ||
+              durableTarget == null
+          ? current.exercises
+          : List<Exercise>.unmodifiable(
+              reconciled.where(
+                (exercise) => exercise.status == ExerciseStatus.active,
+              ),
+            );
       _publish(
         CustomExercisesState.ready(
-          exercises: _safeReconciledExercises(
-            reconciled,
-            fallback: current.exercises,
-          ),
+          exercises: durableActive,
           actionError: _actionFailureMessage(
             error,
             fallback: 'Could not archive exercise. Please try again.',
@@ -384,6 +408,14 @@ final class CustomExercisesController extends ChangeNotifier {
     // normal load can establish the truth.
     if (reconciled == null || reconciled.isEmpty) return fallback;
     return reconciled;
+  }
+
+  Future<List<Exercise>?> _reloadAllAfterArchiveFailure() async {
+    try {
+      return await repository.list(includeArchived: true);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<List<Exercise>?> _reloadAfterWriteFailure() async {
