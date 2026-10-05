@@ -38,7 +38,7 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 - **Create Exercise** opens the feature-owned Create Exercise page directly over Library. That page loads the existing W3D `CustomExercisesController` and renders the existing `CustomExerciseEditorPage`; it does **not** mount `/workout/exercises` first. Back or a successful save returns to the same selected Exercises Library state.
 - **Exercises** pushes normal `/workout/exercises`, where bundled catalog and active user-created Exercises compose together. User-created rows carry the presentation-only `Custom` badge/tag and open the existing edit flow.
 - The previous Library `Custom Exercises` row and Custom-only `?custom=true` product mode are retired. A legacy `custom=true` query no longer filters the canonical page.
-- The Programs section shows an always-visible `Programs` header plus folder-plus Create Program affordance and persisted Programs as plain header rows. Each Library Program header has a presentation-only expand/collapse chevron. The header may open `/workout/programs` as optional management. The approved dotted **Add new routine** card belongs beneath an expanded empty Program, but remains hidden until W4 supplies a real Program-owned Routine create handoff; Library must not expose it as an inert action. There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, or Your Plan placeholder until their capabilities exist. Favorites/Folders are also hidden until real; once ready, each appears as its own standalone card in the selected Exercises state.
+- The Programs section shows an always-visible `Programs` header plus folder-plus Create Program affordance and persisted Programs as plain header rows. Each Library Program header has a presentation-only expand/collapse chevron plus a 3-dot overflow. Tapping the overflow opens a Program-scoped bottom sheet. Today the sheet exposes only the real persisted **Edit Program** rename action; Open/View, Add New Routine, and Delete remain hidden until their owning capabilities are ready. The header may open `/workout/programs` as optional management. The approved dotted **Add new routine** card belongs beneath an expanded empty Program, but remains hidden until W4 supplies a real Program-owned Routine create handoff; Library must not expose it as an inert action. There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, or Your Plan placeholder until their capabilities exist. Favorites/Folders are also hidden until real; once ready, each appears as its own standalone card in the selected Exercises state.
 
 ## Target Sections
 
@@ -87,7 +87,7 @@ explicit selection
 
 Programs is the default category.
 
-- Programs render directly on Library when the W4/W6B Program-owned Routine capability is ready.
+- Persisted Programs may render directly on Library before W4 Routine/detail capability is complete. W4/W6B gates Program detail, Program-owned Routine content/create, and related actions, not the already-real Program collection/create capability.
 - The Programs header may open the secondary Programs collection/manage route, but that route is not a mandatory intermediate step before an individual Program.
 - An individual Program opens Program detail directly.
 - Program-owned Routine rows may expand/collapse inline in Library presentation without changing persistence.
@@ -143,7 +143,7 @@ There is no disabled/empty placeholder tab. The view is supplied by W9/TNYX-86 a
 
 ### Current-runtime distinction
 
-The category strip and corrected Exercises actions are shipped current behavior. Broader #475 work remains capability-gated: inline Program/Routine content, Routine/Explore quick actions, top-bar + behavior, and Your Plan are not implied by this slice.
+The category strip, inline persisted Program collection, Program row expand/collapse presentation, Program overflow bottom sheet with persisted rename, and corrected Exercises actions are current behavior in this active slice. Broader #475 work remains capability-gated: Program detail, Program-owned Routine content/create, dotted Add new routine action, Routine/Explore quick actions, top-bar + behavior, Delete Program, and Your Plan are not implied by this slice.
 
 ## Minimal Program Creation Contract
 
