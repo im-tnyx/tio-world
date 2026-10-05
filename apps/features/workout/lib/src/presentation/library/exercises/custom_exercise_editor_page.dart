@@ -118,83 +118,88 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
         muscles: customExerciseAllMuscles(),
       ),
     ];
-    final bodyPartResult =
-        await showTioEditorSheet<_SelectionResult<CustomExerciseBodyPartOption>>(
+    var expandedBodyPartId =
+        customExerciseBodyPartForMuscle(_primaryMuscle)?.id;
+
+    final result = await showTioEditorSheet<_SelectionResult<String>>(
       context: context,
       useSafeArea: true,
-      builder: (sheetContext) => TioEditorSheet(
-        title: 'Primary muscle',
-        supportingText: 'Choose a Body Part first.',
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TioSelectableCard(
-              key: const ValueKey('custom-exercise-primary-none'),
-              selected: _primaryMuscle == null,
-              semanticLabel: 'No Primary muscle',
-              onTap: () => Navigator.of(sheetContext).pop(
-                const _SelectionResult<CustomExerciseBodyPartOption>.clear(),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => TioEditorSheet(
+          title: 'Primary muscle',
+          supportingText:
+              'Choose a Body Part, then select one muscle from the expanded group.',
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TioSelectableCard(
+                key: const ValueKey('custom-exercise-primary-none'),
+                selected: _primaryMuscle == null,
+                semanticLabel: 'No Primary muscle',
+                onTap: () => Navigator.of(sheetContext).pop(
+                  const _SelectionResult<String>.clear(),
+                ),
+                child: const Text('None'),
               ),
-              child: const Text('None'),
-            ),
-            const SizedBox(height: TioSpacing.sm),
-            TioGroupCard(
-              children: [
-                for (final bodyPart in bodyParts)
-                  TioSettingsNavigationRow(
-                    key: ValueKey(
-                      'custom-exercise-primary-group-${bodyPart.id}',
-                    ),
-                    leading: const TioSettingsLeadingIcon(
-                      icon: Icons.accessibility_new_rounded,
-                    ),
-                    title: bodyPart.label,
-                    supportingText: bodyPart.id == 'full_body'
-                        ? 'All muscles'
-                        : '${bodyPart.muscles.length} muscles',
-                    onTap: () => Navigator.of(sheetContext).pop(
-                      _SelectionResult<CustomExerciseBodyPartOption>.value(
-                        bodyPart,
+              const SizedBox(height: TioSpacing.sm),
+              for (final bodyPart in bodyParts) ...[
+                TioGroupCard(
+                  children: [
+                    TioSettingsValueRow(
+                      key: ValueKey(
+                        'custom-exercise-primary-group-${bodyPart.id}',
+                      ),
+                      label: bodyPart.label,
+                      value: TioSettingsValueText(
+                        value: bodyPart.id == 'full_body'
+                            ? 'All muscles'
+                            : '${bodyPart.muscles.length} muscles',
+                        isUnset: false,
+                      ),
+                      onTap: () => setSheetState(() {
+                        expandedBodyPartId =
+                            expandedBodyPartId == bodyPart.id
+                                ? null
+                                : bodyPart.id;
+                      }),
+                      showEditAffordance: false,
+                      trailing: Icon(
+                        expandedBodyPartId == bodyPart.id
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        size: TioSize.dp20,
+                        color: context.tioColors.textMuted,
                       ),
                     ),
-                  ),
+                    if (expandedBodyPartId == bodyPart.id)
+                      for (final muscle in bodyPart.muscles)
+                        _PrimaryMuscleInlineRow(
+                          key: ValueKey(
+                            'custom-exercise-primary-muscle-$muscle',
+                          ),
+                          label: exerciseTaxonomyLabel(muscle),
+                          selected: _primaryMuscle == muscle,
+                          onTap: () => Navigator.of(sheetContext).pop(
+                            _SelectionResult<String>.value(muscle),
+                          ),
+                        ),
+                  ],
+                ),
+                const SizedBox(height: TioSpacing.sm),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
-    if (!mounted || bodyPartResult == null) return;
-    if (bodyPartResult.clear) {
+    if (!mounted || result == null) return;
+    if (result.clear) {
       setState(() => _primaryMuscle = null);
       return;
     }
 
-    final bodyPart = bodyPartResult.value!;
-    final selectedMuscle = await showTioEditorSheet<String>(
-      context: context,
-      useSafeArea: true,
-      builder: (sheetContext) => TioEditorSheet(
-        title: bodyPart.label,
-        supportingText: 'Choose one Primary muscle.',
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final muscle in bodyPart.muscles) ...[
-              TioSelectableCard(
-                key: ValueKey('custom-exercise-primary-muscle-$muscle'),
-                selected: _primaryMuscle == muscle,
-                semanticLabel: exerciseTaxonomyLabel(muscle),
-                onTap: () => Navigator.of(sheetContext).pop(muscle),
-                child: Text(exerciseTaxonomyLabel(muscle)),
-              ),
-              const SizedBox(height: TioSpacing.sm),
-            ],
-          ],
-        ),
-      ),
-    );
-    if (!mounted || selectedMuscle == null) return;
+    final selectedMuscle = result.value;
+    if (selectedMuscle == null) return;
     setState(() {
       _primaryMuscle = selectedMuscle;
       _secondaryMuscles.remove(selectedMuscle);
@@ -502,6 +507,62 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
         ),
       ),
     ),
+    );
+  }
+}
+
+class _PrimaryMuscleInlineRow extends StatelessWidget {
+  const _PrimaryMuscleInlineRow({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            TioSpacing.xl,
+            TioSpacing.md,
+            TioSpacing.lg,
+            TioSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: TioSpacing.sm),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: TioSize.dp20,
+                color: selected ? colors.primary : colors.textMuted,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
