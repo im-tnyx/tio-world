@@ -119,6 +119,13 @@ Pre-PR connector audit at implementation checkpoint:
 - legacy `?custom=true` is covered as compatibility input and now leaves the canonical unified screen unfiltered;
 - `CustomExercisesController.load()` was re-audited: it publishes ready via `notifyListeners()`, so `startCreating` opens the existing editor after durable source readiness without a second controller or route owner.
 
+CI review follow-up:
+- exact head `d3acffba63d0a7d3af4953d8584b58f76e3ab46b` passed Flutter and Dart analyze, then Flutter tests reported 384 passed / 1 failed;
+- the single failure was the new app-route create-flow assertion: default `find.byType(ExercisesPage)` skips the offstage owner route while `CustomExerciseEditorPage` is pushed above it;
+- production flow was not failing: the canonical Exercises route stays mounted underneath the editor by normal Navigator semantics;
+- app-route and feature-level create tests now use `find.byType(ExercisesPage, skipOffstage: false)` while the editor is open, then assert normal visible Exercises state after editor pop;
+- no production source behavior changed for this CI repair.
+
 Connector-only session:
 - GitHub compare for exact base/head scope;
 - connector-side Markdown hygiene;
@@ -135,5 +142,5 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Branch:** `tnyx/issue-503-library-exercises-pill`
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
-**Current state:** PR #504 is open. At PR creation head `d39ba8dfa0c56325091e96fed06fa2ce34d4bfe6`, the branch was `12 ahead / 0 behind` with exactly 10 owned paths. The bounded implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Focused Library/Exercises/router tests and canonical docs are updated. No Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. Attribution passed on the creation head; GHAS failed before meaningful analysis with HTTP 402 monthly quota. Flutter CI and exact-head Codex are being rerun on the resulting review-handoff head.
-**Next exact action:** verify resulting-head scope/checks, obtain clean exact-head Codex review with zero unresolved threads, then stop at the merge decision.
+**Current state:** PR #504 is open. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
+**Next exact action:** refresh resulting-head scope, rerun GitHub CI and request fresh exact-head Codex review, verify zero unresolved threads, then stop at the merge decision.
