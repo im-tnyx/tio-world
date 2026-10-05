@@ -1,6 +1,6 @@
 # GitHub #503 — Library Exercises pill alignment
 
-**Status:** In progress — owner found Create Exercise back-stack defect after merge gate
+**Status:** Ready for merge decision — direct Create Exercise back-stack fix validated
 **Primary owner:** `apps/features/workout` presentation + `apps/app` route composition
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #503
@@ -154,6 +154,19 @@ Exact-head review gate before final handoff commit:
 - GHAS: two runs failed before meaningful analysis with HTTP 402 monthly quota; no concrete security finding and no security pass claimed;
 - current GitHub rulesets API returns `[]`; branch-protection endpoint is not readable by this integration (403). Current repository governance records identify GHAS as supplemental/non-required, and the PR remains mergeable/clean despite the GHAS failure. Required attribution evidence is green.
 
+Direct-create correction validation:
+- exact code head `b24fc8000b6b721edd950422b4945b417c27e66c`;
+- branch `45 ahead / 0 behind`, exactly 13 owned paths;
+- runtime/test source has zero `startCreating`, `_exercisesCreateParameter`, or `?create=true` references;
+- Library Create opens exported feature-owned `CreateExercisePage` directly; `ExercisesPage` is absent from the create back stack;
+- route regressions cover both Back and successful Save returning to the selected Exercises Library state;
+- direct page lifecycle test covers loading and load-failure Retry without mounting `ExercisesPage`;
+- Flutter CI Analyze and test: PASS (Flutter/Dart analyze + Flutter/Dart tests);
+- Commit attribution guard + Attribution guard runner: PASS;
+- Codex exact-head review on `b24fc8000b`: no major issues;
+- unresolved review threads: 0;
+- GHAS failed before meaningful analysis with HTTP 402 monthly quota; no security pass or vulnerability finding claimed.
+
 Connector-only session:
 - GitHub compare for exact base/head scope;
 - connector-side Markdown hygiene;
@@ -171,4 +184,4 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
 **Current state:** PR #504 is open. After the prior clean gate, the owner identified the create back-stack defect. The correction is now implemented: `CreateExercisePage` directly owns controller load/retry/dispose and renders the existing `CustomExerciseEditorPage`; Library pushes it directly, `ExercisesPage.startCreating` and `?create=true` are removed, and focused router tests assert both Back and successful Save return to the selected Exercises Library state with no Exercises browse page in the stack. The rest of the production slice remains unchanged: Library uses standalone `TioCard` actions (no `TioGroupCard`), Create Exercise fails closed when durable user-Exercise persistence is unavailable, canonical Exercises remains unified, Flutter/Dart analyze+tests pass, attribution passes, Codex exact-head review is clean, and unresolved review threads are 0. GHAS remains a supplemental HTTP 402 quota failure before analysis. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
-**Next exact action:** run exact branch scope/hygiene audit on the direct-create correction, then rerun GitHub CI + exact-head Codex review and stop at the merge decision if clean.
+**Next exact action:** validate this final handoff-only head with GitHub CI + exact-head Codex review; if clean, stop at the merge decision and wait for explicit `Go merge`.
