@@ -161,6 +161,25 @@ void main() {
     );
   });
 
+  testWidgets('standalone divider preserves grouped row indentation',
+      (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [
+        _program(1, 'Strength'),
+        _program(2, 'Hypertrophy'),
+      ],
+    );
+    await _pump(
+      tester,
+      repository: repository,
+      idGenerator: _QueueProgramIdGenerator([_id(3)]),
+    );
+
+    final divider = tester.widget<Divider>(find.byType(Divider).first);
+    expect(divider.indent, TioSpacing.lg);
+    expect(divider.endIndent, TioSpacing.lg);
+  });
+
   testWidgets('missing durable repository fails closed', (tester) async {
     await _pump(tester, repository: null);
 
