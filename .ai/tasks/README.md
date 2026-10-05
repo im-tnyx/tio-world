@@ -31,7 +31,6 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
 | [Material 3 Expressive foundation](material-3-expressive.md) | In progress | `apps/core`, `apps/app` | Changing shared theme, navigation, buttons, motion, or accessibility behavior |
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |
-| [GitHub #475 PR-A — Library current-truth reconciliation](gh-475-pr-a-current-truth-reconciliation.md) | In progress | Workout Library planning/docs | Reconcile #475/current runtime before any Library Programs/Routine implementation |
 
 ## Product Onboarding execution state
 
