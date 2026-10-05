@@ -83,7 +83,15 @@ No ownership, persistence, route identity, domain model or repository contract c
 - [x] Update app route test to assert Library → Custom Exercises visibly lands in the focused context.
 - [ ] Run exact branch scope audit and GitHub CI/review gates.
 
-## Validation Plan
+## Validation
+
+Pre-PR scope audit at branch head before PR creation:
+- base `main@56617849be27cecded266b1f8b1f6853fe24430c`;
+- branch `9 ahead / 0 behind`;
+- exactly 6 changed paths: 2 `.ai/tasks` handoff files, 2 Workout production presentation files, 1 Workout widget test, 1 app route test;
+- no Supabase/data/domain/editor-field/Library IA path touched;
+- connector-side task/index Markdown scan: 0 trailing-whitespace lines, 0 conflict markers;
+- semantic source re-audit confirmed unified `ExercisesPage.noMatchMessage` remains generic and `customNoMatchMessage` is used only in `customOnly=true` no-match state.
 
 Connector-only session:
 - use GitHub API compare for base/head ancestry, ahead/behind and complete changed-file scope;
