@@ -112,6 +112,7 @@ No new Exercise model/repository/collection truth.
 - [x] Update Library/router/Exercises tests.
 - [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
 - [x] Run exact pre-PR branch scope audit.
+- [ ] Hide Create Exercise when canonical durable user-Exercise repository capability is unavailable and cover the fail-closed route/widget states.
 - [ ] Complete exact-head GitHub CI + Codex review gates.
 
 ## Validation
@@ -125,6 +126,12 @@ Pre-PR connector audit at implementation checkpoint:
 - runtime/test source has 0 `customOnly`, `onCustomExercisesPressed`, or `_exercisesCustomParameter` references; the old Library Custom key remains only in a negative regression assertion;
 - legacy `?custom=true` is covered as compatibility input and now leaves the canonical unified screen unfiltered;
 - `CustomExercisesController.load()` was re-audited: it publishes ready via `notifyListeners()`, so `startCreating` opens the existing editor after durable source readiness without a second controller or route owner.
+
+Codex review follow-up:
+- Codex P2 on PR #504 correctly identified a fail-closed gap: when `userExerciseRepositoryProvider` is null, the Create card could navigate to `?create=true` but no editor could open.
+- Fix contract: app composition derives an explicit create capability from the canonical nullable repository; Library hides **Create Exercise** when durable user-Exercise persistence is unavailable, while **Exercises** remains available.
+- No in-memory persistence fallback, fake success, or duplicate repository is introduced.
+- Normal configured production behavior remains the owner-approved standalone Create Exercise + Exercises cards.
 
 CI review follow-up:
 - exact head `d3acffba63d0a7d3af4953d8584b58f76e3ab46b` passed Flutter and Dart analyze, then Flutter tests reported 384 passed / 1 failed;
@@ -150,4 +157,4 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
 **Current state:** PR #504 is open. Owner clarified during review that the Library Exercises action surface must not use `TioGroupCard`: Create Exercise and Exercises are separate standalone cards, with future Favorites/Folders also added as separate capability-gated cards. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
-**Next exact action:** refresh exact-head scope after the standalone-card correction, rerun GitHub CI and request fresh exact-head Codex review, verify zero unresolved threads, then stop at the merge decision.
+**Next exact action:** implement the Codex fail-closed create-capability fix with focused widget/router coverage, reply/resolve the review thread, then rerun exact-head CI/Codex gates and stop at the merge decision.
