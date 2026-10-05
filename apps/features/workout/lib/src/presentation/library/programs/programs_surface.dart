@@ -101,6 +101,57 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     await controller.load();
   }
 
+  Future<void> _openRename(Program program) async {
+    final controller = _controller;
+    if (controller == null ||
+        controller.state.status != ProgramsStatus.ready ||
+        controller.state.creating) {
+      return;
+    }
+
+    await showTioEditorSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
+      builder: (_) => _RenameProgramSheet(
+        controller: controller,
+        program: program,
+      ),
+    );
+  }
+
+  Future<void> _openProgramActions(Program program) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TioPalette.transparent,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: TioSheet(
+          key: const ValueKey('program-actions-sheet'),
+          title: program.name,
+          child: TioGroupCard(
+            children: [
+              TioSettingsNavigationRow(
+                key: const ValueKey('program-action-edit'),
+                leading: const TioSettingsLeadingIcon(
+                  icon: Icons.edit_outlined,
+                ),
+                title: 'Edit Program',
+                supportingText: 'Rename this Program',
+                showChevron: false,
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openRename(program);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openCreate() async {
     final controller = _controller;
     if (controller == null ||
@@ -232,6 +283,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         return _ProgramsList(
           programs: state.programs,
           embedded: embedded,
+          onProgramActions: _openProgramActions,
         );
     }
   }
@@ -254,10 +306,12 @@ class _ProgramsList extends StatefulWidget {
   const _ProgramsList({
     required this.programs,
     required this.embedded,
+    required this.onProgramActions,
   });
 
   final List<Program> programs;
   final bool embedded;
+  final Future<void> Function(Program program) onProgramActions;
 
   @override
   State<_ProgramsList> createState() => _ProgramsListState();
@@ -276,16 +330,42 @@ class _ProgramsListState extends State<_ProgramsList> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.embedded) {
+      final children = <Widget>[];
+      for (var index = 0; index < widget.programs.length; index++) {
+        final program = widget.programs[index];
+        children.add(
+          _StandaloneProgramRow(
+            key: ValueKey('program-row-${program.id.value}'),
+            name: program.name,
+          ),
+        );
+        if (index != widget.programs.length - 1) {
+          children.add(const _ProgramsDivider());
+        }
+      }
+
+      return ListView(
+        key: const ValueKey('programs-list'),
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md,
+        ),
+        children: [TioGroupCard(children: children)],
+      );
+    }
+
     final children = <Widget>[];
     for (var index = 0; index < widget.programs.length; index++) {
       final program = widget.programs[index];
       final expanded = !_collapsedPrograms.contains(program.id);
       children.add(
-        _ProgramRow(
+        _LibraryProgramRow(
           key: ValueKey('program-row-${program.id.value}'),
-          name: program.name,
+          program: program,
           expanded: expanded,
           onToggleExpanded: () => _toggleExpanded(program.id),
+          onOverflowPressed: () => widget.onProgramActions(program),
         ),
       );
       if (index != widget.programs.length - 1) {
@@ -293,36 +373,57 @@ class _ProgramsListState extends State<_ProgramsList> {
       }
     }
 
-    if (widget.embedded) {
-      return Column(
-        key: const ValueKey('programs-list'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
-      );
-    }
-
-    return ListView(
+    return Column(
       key: const ValueKey('programs-list'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.md,
-      ),
-      children: [TioGroupCard(children: children)],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
     );
   }
 }
 
-class _ProgramRow extends StatelessWidget {
-  const _ProgramRow({
-    required this.name,
+class _StandaloneProgramRow extends StatelessWidget {
+  const _StandaloneProgramRow({required this.name, super.key});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md + TioSize.dp4,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontWeight: TioFontWeight.w700,
+            fontSize: TioFontSize.size15,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryProgramRow extends StatelessWidget {
+  const _LibraryProgramRow({
+    required this.program,
     required this.expanded,
     required this.onToggleExpanded,
+    required this.onOverflowPressed,
     super.key,
   });
 
-  final String name;
+  final Program program;
   final bool expanded;
   final VoidCallback onToggleExpanded;
+  final VoidCallback onOverflowPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -332,8 +433,9 @@ class _ProgramRow extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            key: ValueKey('program-expand-$name'),
-            tooltip: expanded ? 'Collapse $name' : 'Expand $name',
+            key: ValueKey('program-expand-${program.id.value}'),
+            tooltip:
+                expanded ? 'Collapse ${program.name}' : 'Expand ${program.name}',
             onPressed: onToggleExpanded,
             color: colors.textSecondary,
             icon: Icon(
@@ -344,7 +446,7 @@ class _ProgramRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              name,
+              program.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -353,6 +455,13 @@ class _ProgramRow extends StatelessWidget {
                 fontSize: TioFontSize.size15,
               ),
             ),
+          ),
+          IconButton(
+            key: ValueKey('program-overflow-${program.id.value}'),
+            tooltip: 'Program actions',
+            onPressed: onOverflowPressed,
+            color: colors.textSecondary,
+            icon: const Icon(Icons.more_horiz_rounded),
           ),
         ],
       ),
@@ -466,6 +575,102 @@ class _ProgramsUnavailable extends StatelessWidget {
             color: colors.textSecondary,
             fontSize: TioFontSize.size14,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RenameProgramSheet extends StatefulWidget {
+  const _RenameProgramSheet({
+    required this.controller,
+    required this.program,
+  });
+
+  final ProgramsController controller;
+  final Program program;
+
+  @override
+  State<_RenameProgramSheet> createState() => _RenameProgramSheetState();
+}
+
+class _RenameProgramSheetState extends State<_RenameProgramSheet> {
+  late final TextEditingController _nameController;
+  var _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.program.name)
+      ..addListener(_onChanged);
+  }
+
+  void _onChanged() {
+    if (!mounted) return;
+    setState(() => _error = null);
+  }
+
+  @override
+  void dispose() {
+    _nameController
+      ..removeListener(_onChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_saving || _nameController.text.trim().isEmpty) return;
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final error = await widget.controller.rename(
+      program: widget.program,
+      name: _nameController.text,
+    );
+    if (!mounted) return;
+
+    if (error == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    setState(() {
+      _saving = false;
+      _error = error;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canSubmit = !_saving && _nameController.text.trim().isNotEmpty;
+
+    return PopScope(
+      canPop: !_saving,
+      child: TioEditorSheet(
+        title: 'Edit Program',
+        canDismiss: !_saving,
+        content: TioInput(
+          key: const ValueKey('program-edit-name-field'),
+          controller: _nameController,
+          onChanged: (_) {},
+          hint: 'Program name',
+          errorText: _error,
+          enabled: !_saving,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (canSubmit) _submit();
+          },
+        ),
+        actions: TioButton.primary(
+          key: const ValueKey('program-edit-submit'),
+          label: _saving ? 'Saving...' : 'Save',
+          onPressed: canSubmit ? _submit : null,
         ),
       ),
     );
