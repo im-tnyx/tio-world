@@ -35,7 +35,7 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 - Library shows the currently available category pills `Programs` and `Exercises`. `Your Plan` is absent until a real applicable/followed TrainingPlan capability is available. Programs is the default content.
 - With no explicit selection, the full pill strip remains visible and Programs content uses the currently shipped Programs navigation capability. Explicit Programs selection collapses the strip to circular X + selected Programs while preserving that same capability.
 - Selecting Exercises collapses the strip to circular X + selected Exercises. With durable user-Exercise persistence available, it shows exactly two current standalone action cards: **Create Exercise** and **Exercises**. If that repository capability is unavailable, Library fails closed by hiding Create Exercise while keeping Exercises available. No `TioGroupCard` wraps the action cards, and no Exercise rows render inside Library.
-- **Create Exercise** pushes `/workout/exercises?create=true`, which mounts the canonical Exercises capability and opens its existing user-created Exercise editor once the durable user Exercise source is ready.
+- **Create Exercise** opens the feature-owned Create Exercise page directly over Library. That page loads the existing W3D `CustomExercisesController` and renders the existing `CustomExerciseEditorPage`; it does **not** mount `/workout/exercises` first. Back or a successful save returns to the same selected Exercises Library state.
 - **Exercises** pushes normal `/workout/exercises`, where bundled catalog and active user-created Exercises compose together. User-created rows carry the presentation-only `Custom` badge/tag and open the existing edit flow.
 - The previous Library `Custom Exercises` row and Custom-only `?custom=true` product mode are retired. A legacy `custom=true` query no longer filters the canonical page.
 - There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, or Your Plan placeholder until their capabilities exist. Favorites/Folders are also hidden until real; once ready, each appears as its own standalone card in the selected Exercises state.
@@ -120,7 +120,7 @@ The selected Library state does **not** render Exercise rows. The current action
 
 - `TioGroupCard` is not used for this Exercises action surface.
 - **Create Exercise** is rendered only when canonical durable user-created Exercise persistence is available; otherwise the card is hidden rather than navigating to a dead create flow.
-- **Create Exercise** enters the existing W3D user-created Exercise flow. It does not create a second editor or Exercise model.
+- **Create Exercise** enters the existing W3D user-created Exercise flow directly over Library. It does not route through the Exercises browse screen, and it does not create a second editor, controller contract, repository, or Exercise model. Back/save returns to the selected Exercises Library state.
 - **Exercises** opens the canonical `/workout/exercises` browse/search/filter screen.
 - Bundled/catalog Exercises and active user-created Exercises compose together only on that canonical screen.
 - User-created rows remain normal canonical `Exercise` items and carry the presentation-only `Custom` badge/tag.
@@ -188,7 +188,7 @@ Current runtime remains truth until the target slices ship. Target acceptance is
 - Selecting Exercises currently shows only **Create Exercise** and **Exercises** actions; it does not embed the Exercise list.
 - Each current action is its own standalone card; do not group them inside `TioGroupCard`.
 - **Create Exercise** is capability-gated on the canonical durable user-Exercise repository and is hidden when that capability is unavailable.
-- **Create Exercise** reuses W3D ownership; **Exercises** opens the canonical unified `/workout/exercises` route.
+- **Create Exercise** reuses W3D ownership through the direct feature-owned create page and returns to selected Library on back/save; **Exercises** alone opens the canonical unified `/workout/exercises` browse route.
 - Future Favorites/Folders entries remain capability-gated and, once real, appear as their own standalone cards.
 - Library never owns competing Program, Routine, Exercise or TrainingPlan truth.
 - Existing dedicated Program/Exercise routes remain current runtime until explicitly reconciled by an approved implementation slice.
