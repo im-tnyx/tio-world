@@ -388,7 +388,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
 
       return const _Message(
         key: ValueKey('exercises-no-match'),
-        text: ExercisesPage.customNoMatchMessage,
+        text: ExercisesPage.noMatchMessage,
       );
     }
 
@@ -412,7 +412,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     if (customItems.isEmpty) {
       return const _Message(
         key: ValueKey('exercises-no-match'),
-        text: ExercisesPage.noMatchMessage,
+        text: ExercisesPage.customNoMatchMessage,
       );
     }
     return _ExerciseList(
