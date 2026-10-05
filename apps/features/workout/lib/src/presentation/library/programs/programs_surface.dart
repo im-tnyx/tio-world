@@ -6,11 +6,11 @@ import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/usecases/program_id_generator.dart';
 import 'programs_controller.dart';
 
-enum ProgramsSurfaceMode { standalone, library }
+enum _ProgramsSurfaceMode { standalone, library }
 
 /// Reusable persisted user-Program collection presentation.
 ///
-/// The standalone mode backs [ProgramsPage]. The Library mode renders the same
+/// The standalone mode backs `ProgramsPage`. The Library mode renders the same
 /// controller/repository/create contract inline without making the management
 /// route a mandatory intermediate screen.
 class ProgramsSurface extends StatefulWidget {
@@ -18,7 +18,7 @@ class ProgramsSurface extends StatefulWidget {
     required this.repository,
     this.idGenerator,
     super.key,
-  })  : mode = ProgramsSurfaceMode.standalone,
+  })  : mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null;
 
   const ProgramsSurface.library({
@@ -26,11 +26,11 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.idGenerator,
     super.key,
-  }) : mode = ProgramsSurfaceMode.library;
+  }) : mode = _ProgramsSurfaceMode.library;
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
-  final ProgramsSurfaceMode mode;
+  final _ProgramsSurfaceMode mode;
   final VoidCallback? onManagePressed;
 
   @override
@@ -109,8 +109,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   @override
   Widget build(BuildContext context) {
     return switch (widget.mode) {
-      ProgramsSurfaceMode.standalone => _standalone(),
-      ProgramsSurfaceMode.library => _library(),
+      _ProgramsSurfaceMode.standalone => _standalone(),
+      _ProgramsSurfaceMode.library => _library(),
     };
   }
 
@@ -164,8 +164,6 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               onPressed: widget.onManagePressed,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 foregroundColor: colors.textPrimary,
               ),
               child: Text(
