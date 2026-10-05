@@ -29,7 +29,9 @@ No exercise rows render inside Library.
 - Exercises opens the canonical `/workout/exercises` screen.
 - Catalog + user-created Exercises compose together only on that canonical screen.
 - User-created rows retain the presentation-only `Custom` tag.
-- No Favorite/Custom/Folder landing rows and no Custom-only product surface.
+- Create Exercise and Exercises are separate standalone `TioCard` surfaces; no `TioGroupCard` on this Library action surface.
+- Favorites/Folders remain capability-gated; when real, each joins as its own standalone card.
+- No Custom-only product surface.
 
 ## Verified Baseline
 
@@ -49,14 +51,14 @@ Current runtime:
 Core audit:
 - no reusable Tio pill/segment component currently exists.
 - feature-local pill composition may consume governed `TioColors`, `TioRadius`, `TioSize`, spacing and typography without introducing a screen-specific token catalog.
-- `TioGroupCard` + `TioSettingsNavigationRow` remain the reusable action-row surface.
+- `TioCard(padding: EdgeInsets.zero)` + `TioSettingsNavigationRow` is the reusable standalone action-card composition for this Library surface. `TioGroupCard` is explicitly not used here.
 
 ## In Scope
 
 - Library full category strip for currently available real categories: Programs + Exercises.
 - Programs remains default content and reuses the current Programs navigation capability; no inline Program/Routine expansion.
 - Explicit selection collapses strip to circular X + selected pill.
-- Selected Exercises content has exactly two actions: Create Exercise and Exercises.
+- Selected Exercises content has exactly two current actions: Create Exercise and Exercises, each in its own standalone `TioCard`.
 - Create Exercise enters existing W3D create flow through the canonical Exercises capability.
 - Exercises opens canonical unified `/workout/exercises`.
 - remove Library Custom Exercises row and app-shell `?custom=true` handoff.
@@ -70,7 +72,7 @@ Core audit:
 - Create Routine/default My Program.
 - top-bar +.
 - Your Plan/TrainingPlan.
-- Favorites/Folders.
+- Favorites/Folders behavior; only their future standalone-card presentation contract is recorded.
 - Exercise Detail.
 - custom editor field/layout redesign.
 - Supabase/schema/RLS/Storage/media changes.
@@ -83,9 +85,13 @@ LibraryPage
   ├─ Programs content
   │    └─ existing onProgramsPressed → /workout/programs
   └─ Exercises content
-       ├─ Create Exercise → /workout/exercises?create=true
+       ├─ standalone TioCard: Create Exercise → /workout/exercises?create=true
        │    └─ existing ExercisesPage + CustomExercisesController → editor
-       └─ Exercises → /workout/exercises
+       └─ standalone TioCard: Exercises → /workout/exercises
+
+Future capability-ready entries:
+       ├─ standalone TioCard: Favorites
+       └─ standalone TioCard(s): Folders
 
 /workout/exercises
   └─ one canonical ExercisesPage
@@ -100,6 +106,7 @@ No new Exercise model/repository/collection truth.
 - [x] Convert Library presentation to owner-approved category strip/selection state.
 - [x] Keep only current-capability Programs content in default/Programs state.
 - [x] Add selected Exercises actions: Create Exercise + Exercises.
+- [ ] Render each current Exercises action as its own standalone `TioCard` and remove `TioGroupCard` from this Library action surface.
 - [x] Add one-shot `create=true` entry seam to existing ExercisesPage editor flow.
 - [x] Remove Custom-only Library route/query and `customOnly` page behavior.
 - [x] Update Library/router/Exercises tests.
@@ -142,5 +149,5 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Branch:** `tnyx/issue-503-library-exercises-pill`
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub PR #504 / Codex exact-head review
-**Current state:** PR #504 is open. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
+**Current state:** PR #504 is open. Owner clarified during review that the Library Exercises action surface must not use `TioGroupCard`: Create Exercise and Exercises are separate standalone cards, with future Favorites/Folders also added as separate capability-gated cards. The bounded production implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Exact head `d3acffba...` passed both analyze phases but one new create-flow test failed because the assertion skipped the offstage canonical Exercises owner route while its editor route was on top; that test-only assumption is corrected on the branch. No production behavior, Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. GHAS remains an HTTP 402 quota failure before meaningful analysis.
 **Next exact action:** refresh resulting-head scope, rerun GitHub CI and request fresh exact-head Codex review, verify zero unresolved threads, then stop at the merge decision.
