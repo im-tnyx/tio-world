@@ -31,7 +31,7 @@ class ProgramsSurface extends StatefulWidget {
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
   final _ProgramsSurfaceMode _mode;
-  final VoidCallback? onManagePressed;
+  final Future<void> Function()? onManagePressed;
 
   @override
   State<ProgramsSurface> createState() => _ProgramsSurfaceState();
@@ -85,6 +85,16 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
       ?..removeListener(_onControllerChanged)
       ..dispose();
     super.dispose();
+  }
+
+  Future<void> _openManage() async {
+    final onManagePressed = widget.onManagePressed;
+    final controller = _controller;
+    if (onManagePressed == null || controller == null) return;
+
+    await onManagePressed();
+    if (!mounted || !identical(controller, _controller)) return;
+    await controller.load();
   }
 
   Future<void> _openCreate() async {
@@ -161,7 +171,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           children: [
             TextButton(
               key: const ValueKey('library-programs-header'),
-              onPressed: widget.onManagePressed,
+              onPressed: _openManage,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 foregroundColor: colors.textPrimary,
