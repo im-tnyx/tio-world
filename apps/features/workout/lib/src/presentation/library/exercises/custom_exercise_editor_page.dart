@@ -381,6 +381,7 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
       ),
       body: SafeArea(
         child: ListView(
+          key: const ValueKey('custom-exercise-editor-list'),
           padding: const EdgeInsets.all(TioSpacing.lg),
           children: [
             TioInput(
