@@ -178,14 +178,11 @@ void main() {
       repository: repository,
     );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('custom-exercise-archive')),
-      300,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('custom-exercise-editor-list')),
-        matching: find.byType(Scrollable),
-      ),
+    await tester.drag(
+      find.byKey(const ValueKey('custom-exercise-editor-list')),
+      const Offset(0, -900),
     );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('custom-exercise-archive')),
     );
@@ -195,7 +192,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('custom-exercise-archive-error')),
+      find.byKey(const ValueKey('custom-exercise-action-error')),
       findsOneWidget,
     );
     expect(
@@ -205,6 +202,45 @@ void main() {
     expect(
       find.byKey(const ValueKey('custom-exercise-archive')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('save failure is visible from a scrolled viewport',
+      (tester) async {
+    final exercise = Exercise(
+      ref: UserCreatedExerciseRef(
+        '10000000-0000-4000-8000-000000000002',
+      ),
+      displayName: 'My Tempo Squat',
+      status: ExerciseStatus.active,
+    );
+    final repository = _FakeRepository(
+      exercises: [exercise],
+      updateDefinitionError: Exception('network down'),
+    );
+    await _pumpEditor(
+      tester,
+      exercise: exercise,
+      repository: repository,
+    );
+
+    await tester.drag(
+      find.byKey(const ValueKey('custom-exercise-editor-list')),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercise-save')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('custom-exercise-action-error')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Could not update exercise. Please try again.'),
+      findsWidgets,
     );
   });
 
@@ -232,10 +268,12 @@ final class _FakeRepository implements UserExerciseRepository {
   _FakeRepository({
     required List<Exercise> exercises,
     this.archiveError,
+    this.updateDefinitionError,
   }) : exercises = [...exercises];
 
   final List<Exercise> exercises;
   final Object? archiveError;
+  final Object? updateDefinitionError;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async =>
@@ -264,7 +302,10 @@ final class _FakeRepository implements UserExerciseRepository {
   Future<void> updateDefinition({
     required UserCreatedExerciseRef id,
     required UserExerciseDefinition definition,
-  }) async {}
+  }) async {
+    final error = updateDefinitionError;
+    if (error != null) throw error;
+  }
 
   @override
   Future<void> archive(UserCreatedExerciseRef id) async {
