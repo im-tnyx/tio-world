@@ -63,9 +63,6 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   String get _searchHint =>
       widget.customOnly ? 'Search custom exercises' : 'Search exercises';
 
-  String get _filterTitle =>
-      widget.customOnly ? 'Filter custom exercises' : 'Filter exercises';
-
   @override
   void initState() {
     super.initState();
