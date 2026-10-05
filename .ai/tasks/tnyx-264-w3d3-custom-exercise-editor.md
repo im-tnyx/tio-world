@@ -22,8 +22,8 @@
 **Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
 **Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
 **Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current blocker:** No unresolved product-decision blocker remains inside W3D3. The owner-approved editor selectors and unified catalog + user-created Exercises composition are implemented, and the exact 44-token Body Part presentation map is now owner-approved/canonical for this slice. Asset remains separately gated by media/Storage architecture. Exact-head validation must be re-run after this handoff/doc reconciliation.
-**Next exact action:** run exact-head hosted Flutter CI and fresh Codex review on the reconciled head, verify zero unresolved threads and zero drift from `main`, then stop for explicit merge authorization. Do not widen into Favorites/Folders/Recent/media/Library redesign.
+**Current blocker:** No product/code blocker remains inside W3D3. The owner-approved editor selectors, unified catalog + user-created Exercises composition, and exact 44-token Body Part presentation map are implemented. Flutter CI #2968 passed on reconciled head `5dd4452e4d0b72d5ac96ceb149dc33e2b0b6cf53`; the branch was 0 behind `main` with zero unresolved review threads. Fresh Codex exact-head review could not run because the Codex bot returned its code-review usage-limit message; the immediately preceding code head `b07d15c3aa718e48382f04f96559da9ebc2be91f` had a clean Codex review, and the two commits after it changed only this task handoff plus the canonical Exercise-search doc. That docs-only delta was manually reviewed against source and the 44-token map matches source exactly with zero duplicates. Asset remains separately gated by media/Storage architecture.
+**Next exact action:** run hosted Flutter CI on this final handoff-only head, verify zero unresolved threads and zero drift from `main`, manually review this docs-only delta because Codex is usage-limited, then stop for explicit merge authorization. Do not widen into Favorites/Folders/Recent/media/Library redesign.
 
 ## 1. Discovery
 
@@ -79,8 +79,8 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Add minimal route contracts and app composition needed to reach the real W3D capability.
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
-- [ ] Re-run exact-head hosted Flutter CI and Codex review after final handoff/doc reconciliation before merge.
+- [ ] Run exact-head hosted Flutter CI on the final handoff-only head; Codex exact-head review is unavailable due verified usage limit, so perform a manual docs-only delta review before merge.
 
 ## 5. Validation / Exit
 
-No completion claim until exact-head tests/CI and review are verified. Flutter CI run #2910 failed on the prior head because the edited retry generated a second Exercise ID; the current repair scopes pending create identity to one editor draft and adds focused same-draft/new-draft regression coverage. This repair is not validated until a newer exact-head run passes. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions must remain unchanged in source/diff audit.
+Code validation is complete through Flutter CI #2968 on `5dd4452e4d0b72d5ac96ceb149dc33e2b0b6cf53`. Earlier run #2910 failed because edited retry generated a second Exercise ID; that defect and subsequent Codex findings were repaired with focused regression coverage. Fresh Codex exact-head review is currently blocked only by the bot's code-review usage limit; the previous code head `b07d15c3aa718e48382f04f96559da9ebc2be91f` received a clean Codex review, and later changes are governance/docs reconciliation only. Supabase migration/security validation is not rerun as a schema deployment because this slice changes no database shape; repository security assumptions remain unchanged in source/diff audit.
