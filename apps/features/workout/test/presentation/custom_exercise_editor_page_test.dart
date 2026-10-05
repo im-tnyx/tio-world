@@ -63,7 +63,7 @@ void main() {
   });
 
   testWidgets(
-      'Primary muscle opens Body Part groups before any muscle options',
+      'Primary muscle expands one Body Part inline in the same bottom sheet',
       (tester) async {
     await _pumpEditor(tester);
 
@@ -72,6 +72,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(TioEditorSheet), findsOneWidget);
     expect(
       find.byKey(const ValueKey('custom-exercise-primary-group-chest')),
       findsOneWidget,
@@ -81,12 +82,10 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('custom-exercise-primary-group-shoulders')),
-      findsOneWidget,
-    );
-    expect(
       find.byKey(
-        const ValueKey('custom-exercise-primary-muscle-quadriceps'),
+        const ValueKey(
+          'custom-exercise-primary-muscle-pectoralis_major_sternal_head',
+        ),
       ),
       findsNothing,
     );
@@ -96,6 +95,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(TioEditorSheet), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey(
@@ -105,11 +105,44 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const ValueKey('custom-exercise-primary-group-back')),
+      findsOneWidget,
+      reason: 'Body Part navigation must remain in the same sheet.',
+    );
+
+    final back = find.byKey(
+      const ValueKey('custom-exercise-primary-group-back'),
+    );
+    await tester.ensureVisible(back);
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TioEditorSheet), findsOneWidget);
+    expect(
       find.byKey(
-        const ValueKey('custom-exercise-primary-muscle-quadriceps'),
+        const ValueKey(
+          'custom-exercise-primary-muscle-pectoralis_major_sternal_head',
+        ),
       ),
       findsNothing,
+      reason: 'Opening Back must collapse the previously expanded Chest group.',
     );
+    expect(
+      find.byKey(
+        const ValueKey('custom-exercise-primary-muscle-latissimus_dorsi'),
+      ),
+      findsOneWidget,
+    );
+
+    final latissimus = find.byKey(
+      const ValueKey('custom-exercise-primary-muscle-latissimus_dorsi'),
+    );
+    await tester.ensureVisible(latissimus);
+    await tester.tap(latissimus);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TioEditorSheet), findsNothing);
+    expect(find.text('Back · Latissimus dorsi'), findsOneWidget);
   });
 
   testWidgets('Exercise Type opens all approved choices in a bottom sheet',
