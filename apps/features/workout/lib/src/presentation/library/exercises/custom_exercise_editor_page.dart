@@ -310,7 +310,9 @@ class _CustomExerciseEditorPageState extends State<CustomExerciseEditorPage> {
   Future<void> _save() async {
     if (_saving) return;
     if (_name.text.trim().isEmpty) {
-      setState(() => _error = 'Enter an exercise name.');
+      const message = 'Enter an exercise name.';
+      setState(() => _error = message);
+      _showActionError(message);
       return;
     }
     setState(() {
