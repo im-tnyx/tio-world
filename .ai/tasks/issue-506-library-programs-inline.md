@@ -1,6 +1,6 @@
 # GitHub #506 — Inline Programs on Library
 
-**Status:** In review — PR #507 open; exact-head CI/Codex pending
+**Status:** In review — PR #507 open; Codex findings addressed; exact-head CI/re-review pending
 **Primary owner:** `apps/features/workout` Library/Programs presentation + `apps/app` composition
 **GitHub tracker:** #506
 **Planning:** #475, Linear TNYX-81 / TNYX-267 / TNYX-83
@@ -142,14 +142,14 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@f27300ff1da444d38112bca9e7240b9983a040b7`
 **Branch:** `tnyx/issue-506-library-programs-inline`
-**HEAD SHA:** branch created from base; source change not started
+**HEAD SHA:** 5590d05ffabd9142af836e8098277df9c3174968 — runtime refresh fix + regression test implemented; this handoff update will advance HEAD once committed
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
 **Current implementation state:** implementation complete on branch; the first PR CI head exposed and fixed one analyzer-only public/private API lint: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
-**Validation completed at SHA:** planning/audit only
-**Validation remaining:** exact resulting-head Flutter CI, attribution, Codex review, unresolved-thread and mergeability gate
+**Validation completed at SHA:** `2027b5ac06d03714deb28884c66348f98bf0442b` — Flutter CI and attribution passed; Codex review produced two P2 findings. Runtime refresh fix and focused regression test are now committed after that reviewed head.
+**Validation remaining:** exact resulting-head Flutter CI, attribution, fresh Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
-**Open review finding IDs:** none
-**Next exact action:** rerun exact-head GitHub CI after the private-mode API fix, request fresh Codex review, verify attribution/unresolved threads/mergeability, fix only bounded findings, then stop at the merge decision.
+**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` reconcile implemented HEAD in durable handoff. Both are addressed on branch and await exact-head verification/re-review before resolution.
+**Next exact action:** verify the resulting branch HEAD, let exact-head Flutter CI/attribution run, reply to the two Codex threads with the bounded fixes, request fresh Codex review, then audit unresolved threads/mergeability and stop at the merge decision.
