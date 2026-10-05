@@ -131,6 +131,7 @@ void main() {
 
     final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
     expect(row, findsOneWidget);
+    expect(find.byType(TioGroupCard), findsOneWidget);
     expect(
       find.descendant(of: row, matching: find.byType(InkWell)),
       findsNothing,
@@ -138,6 +139,25 @@ void main() {
     expect(
       find.descendant(of: row, matching: find.text('Strength')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(ValueKey('program-expand-${_id(1).value}')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(ValueKey('program-overflow-${_id(1).value}')),
+      findsNothing,
+    );
+
+    final padding = tester.widget<Padding>(
+      find.descendant(of: row, matching: find.byType(Padding)).first,
+    );
+    expect(
+      padding.padding,
+      const EdgeInsets.symmetric(
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md + TioSize.dp4,
+      ),
     );
   });
 
