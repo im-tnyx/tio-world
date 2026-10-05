@@ -19,6 +19,7 @@ class LibraryPage extends StatefulWidget {
     required this.onProgramsPressed,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
+    required this.canCreateExercise,
     required this.onSearchPressed,
     super.key,
   });
@@ -26,6 +27,11 @@ class LibraryPage extends StatefulWidget {
   final VoidCallback onProgramsPressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
+
+  /// Whether durable user-created Exercise persistence is available.
+  ///
+  /// Library fails closed by hiding the Create Exercise card when false.
+  final bool canCreateExercise;
 
   /// Opens Exercises with its search field active and focused.
   final VoidCallback onSearchPressed;
@@ -98,6 +104,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   onProgramsPressed: widget.onProgramsPressed,
                 ),
               _LibraryCategory.exercises => _ExercisesContent(
+                  canCreateExercise: widget.canCreateExercise,
                   onCreateExercisePressed: widget.onCreateExercisePressed,
                   onExercisesPressed: widget.onExercisesPressed,
                 ),
@@ -243,10 +250,12 @@ class _ProgramsContent extends StatelessWidget {
 
 class _ExercisesContent extends StatelessWidget {
   const _ExercisesContent({
+    required this.canCreateExercise,
     required this.onCreateExercisePressed,
     required this.onExercisesPressed,
   });
 
+  final bool canCreateExercise;
   final VoidCallback onCreateExercisePressed;
   final VoidCallback onExercisesPressed;
 
@@ -254,20 +263,22 @@ class _ExercisesContent extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         key: const ValueKey('library-exercises-content'),
         children: [
-          TioCard(
-            key: const ValueKey('library-create-exercise-card'),
-            padding: EdgeInsets.zero,
-            onTap: onCreateExercisePressed,
-            child: const TioSettingsNavigationRow(
-              key: ValueKey('library-create-exercise-entry'),
-              leading: TioSettingsLeadingIcon(
-                icon: Icons.add_circle_outline_rounded,
+          if (canCreateExercise) ...[
+            TioCard(
+              key: const ValueKey('library-create-exercise-card'),
+              padding: EdgeInsets.zero,
+              onTap: onCreateExercisePressed,
+              child: const TioSettingsNavigationRow(
+                key: ValueKey('library-create-exercise-entry'),
+                leading: TioSettingsLeadingIcon(
+                  icon: Icons.add_circle_outline_rounded,
+                ),
+                title: 'Create Exercise',
+                supportingText: 'Create a custom exercise',
               ),
-              title: 'Create Exercise',
-              supportingText: 'Create a custom exercise',
             ),
-          ),
-          const SizedBox(height: TioSpacing.md),
+            const SizedBox(height: TioSpacing.md),
+          ],
           TioCard(
             key: const ValueKey('library-exercises-card'),
             padding: EdgeInsets.zero,
