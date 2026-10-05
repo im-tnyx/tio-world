@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Workout Library product contract, ownershi
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Current runtime includes W6A plus the bounded W6B Program collection/create foundation and merged W3D3 Custom Exercise navigation/composition: Workout Home entry, Library Programs + Exercises + Custom Exercises navigation rows, persisted Programs collection/create, and the canonical Exercises browse/search surface. The Custom Exercises row opens that same canonical `/workout/exercises` surface in a Custom-focused state; there is no separate Custom Exercises collection route. GitHub #475 defines the broader owner-approved Library category IA, which is still not implemented. Program detail/Routine management, Exercise Favorites/Folders UI and TrainingPlan/Your Plan remain capability-gated.
+**Status:** Current runtime uses the owner-approved Library category strip for the capabilities that are ready: Programs and Exercises. Programs remains the default content and hands off to the persisted Programs collection/create capability. Selecting Exercises collapses the strip to circular X + selected Exercises and shows only **Create Exercise** and **Exercises** actions; it does not embed Exercise rows. Create Exercise enters the existing W3D create flow, while Exercises opens the canonical unified `/workout/exercises` screen where bundled and user-created rows compose and user-created rows carry the `Custom` tag. Program detail/Routine management, Exercise Favorites/Folders UI, top-bar Routine creation, and TrainingPlan/Your Plan remain capability-gated.
 
 ## Purpose
 
@@ -30,11 +30,15 @@ Future:          Bottom navigation → Library (only if enabled in configurable 
 ## Current Runtime
 
 - `/workout/library` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath does not jump while Library slides in or out. The page has an AppBar with back and the title `Library`. A direct deep link lands with `/workout` beneath it and follows `/workout` onboarding and App Mode gating.
-- Workout Home → Library and Library → Exercises use `push`, so back retraces Exercises → Library → Workout Home. The app shell supplies both callbacks (`WorkoutHomePage.onLibraryPressed`, `LibraryPage.onExercisesPressed`); Workout presentation does not import route paths.
+- Workout Home → Library and Library → canonical Exercises use `push`, so back retraces Exercises → Library → Workout Home. The app shell supplies the callbacks; Workout presentation does not import route paths.
 - The Library top bar has one search icon (tooltip `Search exercises`). It pushes `/workout/exercises?search=true`, which opens Exercises with its top-bar search field already active and focused; back returns to Library.
-- Library now shows `Programs` above `Exercises`. Programs pushes `/workout/programs`, where persisted user Programs load through the canonical `ProgramRepository`. The screen has AppBar Create (+), a generated editable initial name, honest loading/empty/load-failure-retry/create-failure states, and display-only Program rows until detail/builder work lands.
-- Library also shows a `Custom Exercises` navigation row. Since W3D3 merged via PR #497, it pushes `/workout/exercises?custom=true`, which reuses the canonical Exercises page in a Custom-focused state. User-created rows carry a `Custom` badge/tag and open the create/edit/archive editor flow; Library does not own another Exercise collection. This remains narrower than the broader #475 Exercises-category IA.
-- There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, Favorites/Folders rows, or broader #475 category composition until their capabilities exist.
+- Library shows the currently available category pills `Programs` and `Exercises`. `Your Plan` is absent until a real applicable/followed TrainingPlan capability is available. Programs is the default content.
+- With no explicit selection, the full pill strip remains visible and Programs content uses the currently shipped Programs navigation capability. Explicit Programs selection collapses the strip to circular X + selected Programs while preserving that same capability.
+- Selecting Exercises collapses the strip to circular X + selected Exercises and shows exactly two action rows: **Create Exercise** and **Exercises**. No Exercise rows render inside Library.
+- **Create Exercise** pushes `/workout/exercises?create=true`, which mounts the canonical Exercises capability and opens its existing user-created Exercise editor once the durable user Exercise source is ready.
+- **Exercises** pushes normal `/workout/exercises`, where bundled catalog and active user-created Exercises compose together. User-created rows carry the presentation-only `Custom` badge/tag and open the existing edit flow.
+- The previous Library `Custom Exercises` row and Custom-only `?custom=true` product mode are retired. A legacy `custom=true` query no longer filters the canonical page.
+- There are no sub-tabs, grid/list toggle, standalone Routines row, Program-detail placeholder, Favorites/Folders rows, or Your Plan placeholder until their capabilities exist.
 
 ## Target Sections
 
@@ -97,23 +101,23 @@ See [Programs](programs.md) and [Program-owned Routines](routine-library.md).
 
 Exercises is the second category.
 
-Target Library Exercises content begins with these capability-owned entries:
+Selecting it keeps Library chrome in the owner-approved explicit-selection state:
 
 ```text
-Create a custom exercise
-Favorite Exercises
-Custom Exercises
-<user-created Exercise folders...>
+[ X ] [ Exercises selected ]
+
+Create Exercise
+Exercises
 ```
 
-- **Create a custom exercise** and **Custom Exercises** are W3D capabilities.
-- **Favorite Exercises** is the W3C relationship/smart view.
-- user-created folders are W3E many-to-many Exercise collections.
-- These entries appear only when their real capability is implemented; Library must not render fake production affordances.
-- Library composes/navigates these Exercise-owned views and never duplicates their repositories or domain truth.
-- The shipped dedicated `/workout/exercises` screen is the canonical Exercise search/filter surface and composes bundled catalog rows with active user-created rows when W3D persistence is available.
-- The Exercises category must expose a separate secondary **Browse exercises** action that opens `/workout/exercises`. It is not a fourth default collection card and does not replace the three approved default entries above.
-- Because Browse exercises uses an already shipped capability, the Exercises category must never become an empty selectable shell while W3C/W3D/W3E are unavailable.
+The selected Library state does **not** render Exercise rows.
+
+- **Create Exercise** enters the existing W3D user-created Exercise flow. It does not create a second editor or Exercise model.
+- **Exercises** opens the canonical `/workout/exercises` browse/search/filter screen.
+- Bundled/catalog Exercises and active user-created Exercises compose together only on that canonical screen.
+- User-created rows remain normal canonical `Exercise` items and carry the presentation-only `Custom` badge/tag.
+- There is no separate Custom Exercises screen/collection, no Custom-only product state, and no Favorite/Custom/Folder landing rows in Library.
+- Favorites and Folders remain W3C/W3E capabilities and must integrate with canonical Exercise identity when implemented.
 
 ### Your Plan
 
@@ -131,7 +135,7 @@ There is no disabled/empty placeholder tab. The view is supplied by W9/TNYX-86 a
 
 ### Current-runtime distinction
 
-The current shipped Library still shows Programs and Exercises as navigation rows and pushes the dedicated Programs/Exercises routes. It does not yet render this target category strip, Routine/Explore quick cards, inline Program content, Exercise smart-view entries or Your Plan. Those remain future capability-gated implementation slices.
+The category strip and corrected Exercises actions are shipped current behavior. Broader #475 work remains capability-gated: inline Program/Routine content, Routine/Explore quick actions, top-bar + behavior, and Your Plan are not implied by this slice.
 
 ## Minimal Program Creation Contract
 
@@ -173,8 +177,8 @@ Current runtime remains truth until the target slices ship. Target acceptance is
 - A Library-level Routine create entry may exist only when the saved Routine resolves exactly one owning Program before persistence.
 - Direct Library Routine creation targets one canonical default `My Program`; the durable/idempotent identity mechanism must be defined before runtime implementation.
 - Programs may render directly on Library while the Programs collection/manage route remains optional secondary navigation.
-- Exercises category composes W3-owned Create Custom, Favorites, Custom and folder views only as those capabilities become real.
-- Exercises category always keeps the shipped catalog discoverable through a secondary **Browse exercises** action that opens the canonical `/workout/exercises` route; this action is not a fourth default collection card.
+- Selecting Exercises shows only **Create Exercise** and **Exercises** actions; it does not embed the Exercise list or render Favorite/Custom/Folder landing rows.
+- **Create Exercise** reuses W3D ownership; **Exercises** opens the canonical unified `/workout/exercises` route.
 - Library never owns competing Program, Routine, Exercise or TrainingPlan truth.
 - Existing dedicated Program/Exercise routes remain current runtime until explicitly reconciled by an approved implementation slice.
 
