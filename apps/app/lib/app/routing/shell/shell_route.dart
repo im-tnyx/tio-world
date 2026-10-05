@@ -70,22 +70,26 @@ List<RouteBase> _shellBranchChildRoutes(
       path: _childPath(branch, AppRoutes.workoutLibrary),
       parentNavigatorKey: rootNavigatorKey,
       // Library → Exercises pushes, so back from Exercises returns here.
-      builder: (context, state) => LibraryPage(
-        onProgramsPressed: () =>
-            context.push(AppRoutes.workoutPrograms.path),
-        onExercisesPressed: () =>
-            context.push(AppRoutes.workoutExercises.path),
-        onCreateExercisePressed: () => context.push(
-          Uri(
-            path: AppRoutes.workoutExercises.path,
-            queryParameters: const {_exercisesCreateParameter: 'true'},
-          ).toString(),
-        ),
-        onSearchPressed: () => context.push(
-          Uri(
-            path: AppRoutes.workoutExercises.path,
-            queryParameters: const {_exercisesSearchParameter: 'true'},
-          ).toString(),
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) => LibraryPage(
+          onProgramsPressed: () =>
+              context.push(AppRoutes.workoutPrograms.path),
+          onExercisesPressed: () =>
+              context.push(AppRoutes.workoutExercises.path),
+          onCreateExercisePressed: () => context.push(
+            Uri(
+              path: AppRoutes.workoutExercises.path,
+              queryParameters: const {_exercisesCreateParameter: 'true'},
+            ).toString(),
+          ),
+          canCreateExercise:
+              ref.watch(userExerciseRepositoryProvider) != null,
+          onSearchPressed: () => context.push(
+            Uri(
+              path: AppRoutes.workoutExercises.path,
+              queryParameters: const {_exercisesSearchParameter: 'true'},
+            ).toString(),
+          ),
         ),
       ),
     ),
