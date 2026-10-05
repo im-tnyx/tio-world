@@ -341,7 +341,7 @@ class _ProgramsListState extends State<_ProgramsList> {
           ),
         );
         if (index != widget.programs.length - 1) {
-          children.add(const _ProgramsDivider());
+          children.add(const _ProgramsDivider(indented: true));
         }
       }
 
@@ -369,7 +369,7 @@ class _ProgramsListState extends State<_ProgramsList> {
         ),
       );
       if (index != widget.programs.length - 1) {
-        children.add(const _ProgramsDivider());
+        children.add(const _ProgramsDivider(indented: false));
       }
     }
 
@@ -470,7 +470,9 @@ class _LibraryProgramRow extends StatelessWidget {
 }
 
 class _ProgramsDivider extends StatelessWidget {
-  const _ProgramsDivider();
+  const _ProgramsDivider({required this.indented});
+
+  final bool indented;
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +480,8 @@ class _ProgramsDivider extends StatelessWidget {
     return Divider(
       height: TioSize.dp1,
       thickness: TioStroke.width1,
+      indent: indented ? TioSpacing.lg : null,
+      endIndent: indented ? TioSpacing.lg : null,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
