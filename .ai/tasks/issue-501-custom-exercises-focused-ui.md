@@ -1,6 +1,6 @@
 # GitHub #501 — Custom Exercises focused-state UI polish
 
-**Status:** In progress — implementation complete; CI/review pending
+**Status:** In review — PR #502 open; exact-head CI/review pending
 **Primary owner:** `apps/features/workout` presentation
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #501
@@ -85,9 +85,10 @@ No ownership, persistence, route identity, domain model or repository contract c
 
 ## Validation
 
-Pre-PR scope audit at branch head before PR creation:
+Pre-PR scope audit before the evidence/handoff refresh:
 - base `main@56617849be27cecded266b1f8b1f6853fe24430c`;
-- branch `9 ahead / 0 behind`;
+- implementation checkpoint was `9 ahead / 0 behind`;
+- after recording that evidence, PR #502 opened at `c33d871b91b9f4fc3786202eecb1e911c7dab6ff` with `10 ahead / 0 behind`;
 - exactly 6 changed paths: 2 `.ai/tasks` handoff files, 2 Workout production presentation files, 1 Workout widget test, 1 app route test;
 - no Supabase/data/domain/editor-field/Library IA path touched;
 - connector-side task/index Markdown scan: 0 trailing-whitespace lines, 0 conflict markers;
@@ -108,6 +109,6 @@ Local Flutter commands and local `git diff --check` are not claimed unless a loc
 **Branch:** `tnyx/issue-501-custom-exercises-focused-ui`
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** pending PR review
-**Current state:** bounded presentation implementation and focused tests are on the branch. A pre-PR semantic audit caught and corrected one patch-order error where the Custom no-match copy had briefly landed in the unified branch; unified `ExercisesPage.noMatchMessage` is restored and `customNoMatchMessage` is now scoped only to `customOnly=true`. No route/domain/data/editor-field change.
-**Next exact action:** run final parent/head scope + Markdown hygiene audit, open the focused PR, then use GitHub CI and exact-head Codex review as executable validation.
+**Review owner:** GitHub PR #502 / Codex exact-head review
+**Current state:** PR #502 is open. Bounded presentation implementation and focused tests are on the branch. A pre-PR semantic audit caught and corrected one patch-order error where the Custom no-match copy had briefly landed in the unified branch; unified `ExercisesPage.noMatchMessage` is restored and `customNoMatchMessage` is now scoped only to `customOnly=true`. Independent PR diff audit found no ownership/scope widening. No route/domain/data/editor-field change.
+**Next exact action:** re-run scope/checks on the resulting evidence head, obtain clean exact-head Codex review with zero unresolved threads, then stop at the merge decision.
