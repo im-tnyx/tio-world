@@ -438,6 +438,24 @@ void main() {
     );
   });
 
+  test('last archive reconciles committed row after response error',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      archiveErrorAfterWrite: Exception('response lost'),
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.archive(_id(1)), isTrue);
+    expect(controller.state.exercises, isEmpty);
+
+    final durable = await repository.list(includeArchived: true);
+    expect(durable.single.ref, _id(1));
+    expect(durable.single.status, ExerciseStatus.archived);
+  });
+
   test('archive failure does not treat ambiguous empty read as success',
       () async {
     final repository = _FakeUserExerciseRepository(
@@ -529,6 +547,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
     this.renameError,
     this.updateDefinitionError,
     this.archiveError,
+    this.archiveErrorAfterWrite,
     this.emptyListsAfterFirstCall = false,
   }) : exercises = [...?exercises];
 
@@ -541,6 +560,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   Object? renameError;
   Object? updateDefinitionError;
   Object? archiveError;
+  Object? archiveErrorAfterWrite;
   final bool emptyListsAfterFirstCall;
   int listCalls = 0;
 
@@ -644,5 +664,7 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
       exercises[index],
       status: ExerciseStatus.archived,
     );
+    final afterWrite = archiveErrorAfterWrite;
+    if (afterWrite != null) throw afterWrite;
   }
 }
