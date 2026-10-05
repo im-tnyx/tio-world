@@ -1,6 +1,6 @@
 # GitHub #503 — Library Exercises pill alignment
 
-**Status:** In progress — implementation complete; pre-PR audit pending
+**Status:** In review — PR #504 open; exact-head CI/Codex pending
 **Primary owner:** `apps/features/workout` presentation + `apps/app` route composition
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #503
@@ -104,7 +104,8 @@ No new Exercise model/repository/collection truth.
 - [x] Remove Custom-only Library route/query and `customOnly` page behavior.
 - [x] Update Library/router/Exercises tests.
 - [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
-- [ ] Run exact branch scope + CI + Codex review gates.
+- [x] Run exact pre-PR branch scope audit.
+- [ ] Complete exact-head GitHub CI + Codex review gates.
 
 ## Validation
 
@@ -133,6 +134,6 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Repository anchor:** `main@56617849be27cecded266b1f8b1f6853fe24430c`
 **Branch:** `tnyx/issue-503-library-exercises-pill`
 **Implementation owner:** ChatGPT
-**Review owner:** pending PR
-**Current state:** bounded implementation is on the branch: Library now owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Focused Library/Exercises/router tests and canonical docs are updated. No Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added.
-**Next exact action:** refresh exact parent/head scope after this evidence commit, open the focused PR, request GitHub CI + exact-head Codex review, and stop at the merge decision after all required gates are clean.
+**Review owner:** GitHub PR #504 / Codex exact-head review
+**Current state:** PR #504 is open. At PR creation head `d39ba8dfa0c56325091e96fed06fa2ce34d4bfe6`, the branch was `12 ahead / 0 behind` with exactly 10 owned paths. The bounded implementation remains unchanged: Library owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Focused Library/Exercises/router tests and canonical docs are updated. No Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added. Attribution passed on the creation head; GHAS failed before meaningful analysis with HTTP 402 monthly quota. Flutter CI and exact-head Codex are being rerun on the resulting review-handoff head.
+**Next exact action:** verify resulting-head scope/checks, obtain clean exact-head Codex review with zero unresolved threads, then stop at the merge decision.
