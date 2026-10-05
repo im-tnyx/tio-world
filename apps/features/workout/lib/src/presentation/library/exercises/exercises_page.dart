@@ -190,6 +190,9 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
               )
             : Text(
                 _screenTitle,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: TioFontWeight.w800,
