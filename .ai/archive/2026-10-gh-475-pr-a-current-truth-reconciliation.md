@@ -1,14 +1,14 @@
 # GitHub #475 PR-A — Library current-truth reconciliation
 
-**Status:** Validated  
-**Completed:** 2026-10-05  
-**Primary owner:** Workout Library planning/docs (`apps/features/workout`)  
+**Status:** Validated
+**Completed:** 2026-10-05
+**Primary owner:** Workout Library planning/docs (`apps/features/workout`)
 **Affected platforms:** Planning/tracker reconciliation only; no runtime/UI/Supabase mutation
 
 ## Final Handoff
 
-**Outcome:** Validated and merged.  
-**Implementation PR:** GitHub #499, squash-merged to `main` as `3c46ab7f58d5f104bcf52afc328502e9f63d140d`.  
+**Outcome:** Validated and merged.
+**Implementation PR:** GitHub #499, squash-merged to `main` as `3c46ab7f58d5f104bcf52afc328502e9f63d140d`.
 **Final reviewed PR head:** `3b11f096e5f907bcf0c729cf119a757d774a8002`.
 
 Final exact-head evidence:
