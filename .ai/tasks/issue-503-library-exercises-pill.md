@@ -1,6 +1,6 @@
 # GitHub #503 — Library Exercises pill alignment
 
-**Status:** In progress
+**Status:** In progress — implementation complete; pre-PR audit pending
 **Primary owner:** `apps/features/workout` presentation + `apps/app` route composition
 **Affected platform:** Flutter phone UI
 **GitHub tracker:** #503
@@ -97,13 +97,13 @@ No new Exercise model/repository/collection truth.
 
 ## Implementation Plan
 
-- [ ] Convert Library presentation to owner-approved category strip/selection state.
-- [ ] Keep only current-capability Programs content in default/Programs state.
-- [ ] Add selected Exercises actions: Create Exercise + Exercises.
-- [ ] Add one-shot `create=true` entry seam to existing ExercisesPage editor flow.
-- [ ] Remove Custom-only Library route/query and `customOnly` page behavior.
-- [ ] Update Library/router/Exercises tests.
-- [ ] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
+- [x] Convert Library presentation to owner-approved category strip/selection state.
+- [x] Keep only current-capability Programs content in default/Programs state.
+- [x] Add selected Exercises actions: Create Exercise + Exercises.
+- [x] Add one-shot `create=true` entry seam to existing ExercisesPage editor flow.
+- [x] Remove Custom-only Library route/query and `customOnly` page behavior.
+- [x] Update Library/router/Exercises tests.
+- [x] Reconcile `docs/screens/library.md` and `docs/screens/exercise-search.md`.
 - [ ] Run exact branch scope + CI + Codex review gates.
 
 ## Validation
@@ -124,5 +124,5 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Branch:** `tnyx/issue-503-library-exercises-pill`
 **Implementation owner:** ChatGPT
 **Review owner:** pending PR
-**Current state:** owner direction reconciled; #502 closed without merge; #503 branch created; no source change yet.
-**Next exact action:** implement the bounded Library pill/actions + canonical create seam + stale customOnly retirement, then audit scope before PR.
+**Current state:** bounded implementation is on the branch: Library now owns Programs/Exercises pill selection; default Programs reuses only the shipped Programs navigation capability; selected Exercises renders exactly Create Exercise + Exercises actions and no Exercise rows; Create Exercise uses `/workout/exercises?create=true` to open the existing editor once; normal `/workout/exercises` remains the unified catalog + user-created collection; Library Custom Exercises entry, `customOnly`, and the app-shell custom query contract are retired. Focused Library/Exercises/router tests and canonical docs are updated. No Program/Routine/Your Plan/Favorites/Folders/Supabase scope was added.
+**Next exact action:** run exact parent/head changed-file + hygiene audit, reconcile any source/test inconsistency, then open PR and use GitHub CI + exact-head Codex review as executable validation.
