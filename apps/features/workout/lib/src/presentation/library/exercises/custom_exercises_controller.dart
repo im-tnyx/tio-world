@@ -189,15 +189,36 @@ final class CustomExercisesController extends ChangeNotifier {
     try {
       await repository.rename(id: id, displayName: displayName);
       await repository.updateDefinition(id: id, definition: definition);
+      final reconciled = await repository.list(includeArchived: true);
       if (_disposed) return false;
-      final updated = [...current.exercises];
-      final index = updated.indexWhere((item) => item.ref == id);
-      updated[index] = _copyWithDefinitionAndDisplayName(
-        updated[index],
-        displayName: displayName,
-        definition: definition,
+
+      Exercise? durableTarget;
+      for (final exercise in reconciled) {
+        if (exercise.ref == id) {
+          durableTarget = exercise;
+          break;
+        }
+      }
+
+      if (durableTarget == null) {
+        _publish(
+          CustomExercisesState.ready(
+            exercises: current.exercises,
+            actionError: 'Could not verify exercise state. Please try again.',
+          ),
+        );
+        return false;
+      }
+
+      _publish(
+        CustomExercisesState.ready(
+          exercises: List<Exercise>.unmodifiable(
+            reconciled.where(
+              (exercise) => exercise.status == ExerciseStatus.active,
+            ),
+          ),
+        ),
       );
-      _publish(CustomExercisesState.ready(exercises: updated));
       return true;
     } catch (error) {
       final isSignInFailure = _isSignInFailure(error);
