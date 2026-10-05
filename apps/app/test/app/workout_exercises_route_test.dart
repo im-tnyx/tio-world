@@ -341,6 +341,60 @@ void main() {
   });
 
   testWidgets(
+      'saving a Library Create Exercise returns to selected Library',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
+    expect(find.byType(ExercisesPage, skipOffstage: false), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('custom-exercise-name')),
+      'Direct Library Exercise',
+    );
+    await tester.tap(find.byKey(const ValueKey('custom-exercise-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateExercisePage), findsNothing);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-category-clear')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-exercises')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-category-programs')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
       'Library hides Create Exercise when durable repository is unavailable',
       (tester) async {
     final (_, router) = await _app(
