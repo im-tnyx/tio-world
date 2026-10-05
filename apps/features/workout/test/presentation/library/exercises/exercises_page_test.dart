@@ -21,7 +21,6 @@ Future<void> _pumpPage(
   TioThemeMode mode = TioThemeMode.light,
   bool settle = true,
   bool startSearching = false,
-  bool startCreating = false,
   UserExerciseRepository? userExerciseRepository,
 }) async {
   await tester.pumpWidget(
@@ -37,7 +36,6 @@ Future<void> _pumpPage(
         ),
         home: ExercisesPage(
           startSearching: startSearching,
-          startCreating: startCreating,
           userExerciseRepository: userExerciseRepository,
         ),
       ),
@@ -532,34 +530,6 @@ void main() {
 
       expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
       expect(find.text('Create Exercise'), findsWidgets);
-    });
-
-    _testWidgets('startCreating opens the existing editor once', (tester) async {
-      final userRepository = _FakeUserExerciseRepository(const []);
-      await _pumpPage(
-        tester,
-        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
-        userExerciseRepository: userRepository,
-        startCreating: true,
-      );
-
-      expect(
-        find.byType(ExercisesPage, skipOffstage: false),
-        findsOneWidget,
-        reason: 'the canonical Exercises route stays mounted under the editor',
-      );
-      expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
-      expect(find.text('Create Exercise'), findsWidgets);
-
-      await tester.tap(find.byType(BackButton).last);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CustomExerciseEditorPage), findsNothing);
-      expect(find.byType(ExercisesPage), findsOneWidget);
-      expect(find.text('Synthetic Curl'), findsOneWidget);
-
-      await tester.pumpAndSettle();
-      expect(find.byType(CustomExerciseEditorPage), findsNothing);
     });
 
     _testWidgets(
