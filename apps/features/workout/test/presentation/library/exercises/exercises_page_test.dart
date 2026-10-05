@@ -500,7 +500,7 @@ void main() {
       expect(_row('ex_synthetic_press'), findsNothing);
     });
 
-    _testWidgets('Custom-only entry reuses the same Exercises screen',
+    _testWidgets('Custom-only entry reuses the same focused Exercises screen',
         (tester) async {
       final userRepository = _FakeUserExerciseRepository([
         _customExercise(1, 'My Cable Row'),
@@ -513,11 +513,78 @@ void main() {
       );
 
       expect(find.byType(ExercisesPage), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Custom Exercises'),
+        ),
+        findsOneWidget,
+      );
       expect(_row(_customId(1).value), findsOneWidget);
-      expect(find.byKey(const ValueKey('custom-exercises-section')),
-          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('custom-exercises-section')),
+        findsNothing,
+        reason: 'focused state must not repeat its screen title as a section',
+      );
       expect(find.byKey(const ValueKey('all-exercises-section')), findsNothing);
       expect(_row('ex_synthetic_curl'), findsNothing);
+    });
+
+    _testWidgets(
+        'Custom-only search, filter and no-match copy stay context-specific',
+        (tester) async {
+      final userRepository = _FakeUserExerciseRepository([
+        _customExercise(1, 'My Cable Row', equipment: 'cable'),
+      ]);
+      await _pumpPage(
+        tester,
+        repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
+        userExerciseRepository: userRepository,
+        customOnly: true,
+      );
+
+      expect(
+        _iconButton(tester, 'exercises-search-open').tooltip,
+        'Search custom exercises',
+      );
+      expect(
+        _iconButton(tester, 'exercises-filter').tooltip,
+        'Filter custom exercises',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('exercises-filter')));
+      await tester.pumpAndSettle();
+
+      final filterSheet = find.byKey(const ValueKey('exercise-filter-sheet'));
+      expect(filterSheet, findsOneWidget);
+      expect(
+        find.descendant(
+          of: filterSheet,
+          matching: find.text('Filter custom exercises'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: filterSheet,
+          matching: find.text('Filter exercises'),
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('exercise-filter-show-results')),
+      );
+      await tester.pumpAndSettle();
+
+      await _search(tester, 'zzz');
+
+      expect(find.text('Search custom exercises'), findsOneWidget);
+      expect(
+        _message(ExercisesPage.customNoMatchMessage),
+        findsOneWidget,
+      );
+      expect(_message(ExercisesPage.noMatchMessage), findsNothing);
     });
 
     _testWidgets(
