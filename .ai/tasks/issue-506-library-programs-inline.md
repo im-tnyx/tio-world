@@ -1,6 +1,6 @@
 # GitHub #506 — Inline Programs on Library
 
-**Status:** In review — PR #507 open; Codex findings addressed; exact-head CI/re-review pending
+**Status:** In progress — PR #507 open; owner-approved #475 Program-row reconciliation and review findings are active
 **Primary owner:** `apps/features/workout` Library/Programs presentation + `apps/app` composition
 **GitHub tracker:** #506
 **Planning:** #475, Linear TNYX-81 / TNYX-267 / TNYX-83
@@ -23,7 +23,7 @@ default / Programs selected
 
 - Programs header text may open the existing `/workout/programs` screen as an optional secondary management surface.
 - folder-plus reuses the current canonical Create Program flow.
-- Program rows remain display-only until W4 supplies Program detail/Routine capability.
+- Library Program rows use the owner-approved plain header treatment with an expand/collapse chevron, not a large/grouped Program card.\n- The owner also approved the dotted `Add new routine` card beneath expanded Programs. That affordance remains capability-gated until W4 supplies a real Program-owned Routine create handoff; this slice must not ship it as an inert/fake action.\n- Program detail, overflow actions and Routine persistence remain gated by W4.
 
 ## Verified Baseline
 
@@ -43,7 +43,7 @@ default / Programs selected
 - render persisted Program rows directly on Library default/selected Programs state;
 - keep Programs header → `/workout/programs` optional management route;
 - preserve loading/empty/load-failure/retry/create-failure/fail-closed behavior;
-- preserve display-only Program rows;
+- replace the Library grouped Program card with plain Program header rows and presentation-only expand/collapse state;\n- keep the dotted `Add new routine` target recorded but do not expose it until a real W4 Routine-create callback is available;
 - focused Programs/Library/router tests;
 - reconcile `docs/screens/library.md` and `docs/screens/programs.md`.
 
@@ -146,10 +146,10 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** PR #507; GitHub #506 / #475; TNYX-81 / TNYX-267 / TNYX-83
-**Current implementation state:** implementation complete on branch; the first PR CI head exposed and fixed one analyzer-only public/private API lint: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
+**Current implementation state:** implementation active on branch; the first PR CI head exposed and fixed one analyzer-only public/private API lint: one reusable feature-owned `ProgramsSurface` now backs both the optional standalone `ProgramsPage` and Library inline Programs content. Library receives the canonical `ProgramRepository?`, shows a tappable Programs header + folder-plus Create Program affordance + persisted Program rows directly, and no longer uses the old mandatory Programs navigation card. Program rows remain display-only; W4/TNYX-81 and full W6B/TNYX-267 remain gated. Focused Library/router coverage and canonical Library/Programs docs are updated.
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** `2027b5ac06d03714deb28884c66348f98bf0442b` — Flutter CI and attribution passed; Codex review produced two P2 findings. Runtime refresh fix and focused regression test are now committed after that reviewed head.
 **Validation remaining:** exact resulting-head Flutter CI, attribution, fresh Codex review, unresolved-thread and mergeability gate
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
-**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` reconcile implemented HEAD in durable handoff. Both are addressed on branch and await exact-head verification/re-review before resolution.
+**Open review finding IDs:** `4186857060` refresh inline Programs after management; `4186857092` reconcile implemented HEAD; `4187057150` allowed task status; `4187057155` fail-closed Programs header handoff; `4187057166` required visual baseline validation. Runtime/header and task-status fixes are being reconciled; visual baseline validation remains required.
 **Next exact action:** verify the resulting branch HEAD, let exact-head Flutter CI/attribution run, reply to the two Codex threads with the bounded fixes, request fresh Codex review, then audit unresolved threads/mergeability and stop at the merge decision.
