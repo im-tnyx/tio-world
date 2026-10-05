@@ -224,6 +224,10 @@ void main() {
       repository: repository,
     );
 
+    await tester.enterText(
+      find.byKey(const ValueKey('custom-exercise-description')),
+      'Updated definition',
+    );
     await tester.drag(
       find.byKey(const ValueKey('custom-exercise-editor-list')),
       const Offset(0, -700),
@@ -242,6 +246,27 @@ void main() {
       find.text('Could not update exercise. Please try again.'),
       findsWidgets,
     );
+  });
+
+  testWidgets('blank name validation is visible from a scrolled viewport',
+      (tester) async {
+    await _pumpEditor(tester);
+
+    await tester.drag(
+      find.byKey(const ValueKey('custom-exercise-editor-list')),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('custom-exercise-save')),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('custom-exercise-action-error')),
+      findsOneWidget,
+    );
+    expect(find.text('Enter an exercise name.'), findsWidgets);
   });
 
   testWidgets('Equipment opens approved single-select choices',
