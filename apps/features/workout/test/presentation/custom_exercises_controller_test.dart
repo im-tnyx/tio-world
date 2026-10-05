@@ -303,6 +303,40 @@ void main() {
     expect(repository.listCalls, 2);
   });
 
+  test('edit keeps successful writes when post-write read is empty',
+      () async {
+    final repository = _FakeUserExerciseRepository(
+      exercises: [_exercise(1, 'Paused Squat')],
+      emptyListsAfterFirstCall: true,
+    );
+    final controller = CustomExercisesController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final definition = UserExerciseDefinition(
+      description: 'Three second eccentric',
+      exerciseType: ExerciseType.weightReps,
+      primaryMuscle: 'quadriceps',
+      primaryEquipment: 'barbell',
+    );
+    expect(
+      await controller.edit(
+        id: _id(1),
+        displayName: 'Tempo Squat',
+        definition: definition,
+      ),
+      isTrue,
+    );
+
+    final exercise = controller.state.exercises.single;
+    expect(exercise.displayName, 'Tempo Squat');
+    expect(exercise.description, 'Three second eccentric');
+    expect(exercise.exerciseType, ExerciseType.weightReps);
+    expect(exercise.primaryMuscles, const ['quadriceps']);
+    expect(exercise.primaryEquipment, 'barbell');
+    expect(repository.listCalls, 2);
+  });
+
   test('edit drops a row archived remotely during the write', () async {
     final repository = _FakeUserExerciseRepository(
       exercises: [_exercise(1, 'Paused Squat')],
