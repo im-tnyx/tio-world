@@ -2,16 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
 
 Future<void> _pump(
   WidgetTester tester, {
-  VoidCallback? onProgramsPressed,
+  VoidCallback? onProgramsManagePressed,
+  ProgramRepository? programRepository,
+  ProgramIdGenerator? programIdGenerator,
+  bool withProgramRepository = true,
   VoidCallback? onExercisesPressed,
   VoidCallback? onCreateExercisePressed,
   bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
+  final resolvedProgramRepository = withProgramRepository
+      ? programRepository ??
+          _FakeProgramRepository(
+            programs: [_program(1, 'Strength')],
+          )
+      : null;
+
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
@@ -19,7 +30,9 @@ Future<void> _pump(
         child: child ?? const SizedBox.shrink(),
       ),
       home: LibraryPage(
-        onProgramsPressed: onProgramsPressed ?? () {},
+        programRepository: resolvedProgramRepository,
+        programIdGenerator: programIdGenerator,
+        onProgramsManagePressed: onProgramsManagePressed ?? () {},
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -31,7 +44,8 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('shows Library chrome, full category strip and Programs default',
+  testWidgets(
+      'shows Library chrome, full category strip and Programs directly by default',
       (tester) async {
     await _pump(tester);
 
@@ -50,17 +64,28 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('library-category-clear')), findsNothing);
+
     expect(
       find.byKey(const ValueKey('library-programs-content')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
-    expect(find.byType(TioGroupCard), findsNothing);
     expect(
-      find.byKey(const ValueKey('library-programs-content')),
+      find.byKey(const ValueKey('library-programs-section')),
       findsOneWidget,
     );
-    expect(find.byType(TioCard), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-programs-header')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-create')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('programs-list')), findsOneWidget);
+    expect(find.text('Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-programs-entry')), findsNothing);
+    expect(find.byType(ProgramsPage), findsNothing);
+
     expect(
       find.byKey(const ValueKey('library-exercises-content')),
       findsNothing,
@@ -71,6 +96,72 @@ void main() {
     );
     expect(find.text('Your Plan'), findsNothing);
     expect(find.text('Routines'), findsNothing);
+  });
+
+  testWidgets('Programs header hands off to optional management route',
+      (tester) async {
+    var opened = 0;
+    await _pump(tester, onProgramsManagePressed: () => opened++);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-header')));
+    await tester.pump();
+
+    expect(opened, 1);
+  });
+
+  testWidgets('folder-plus reuses generated-name Create Program flow',
+      (tester) async {
+    final repository = _FakeProgramRepository();
+    await _pump(
+      tester,
+      programRepository: repository,
+      programIdGenerator: _QueueProgramIdGenerator([_id(1)]),
+    );
+
+    expect(find.text('No programs yet'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-create')));
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('program-name-field'));
+    final editable = find.descendant(
+      of: field,
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(editable).controller.text, 'Program 1');
+
+    await tester.enterText(editable, 'Library Strength');
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.created, hasLength(1));
+    expect(repository.created.single.name, 'Library Strength');
+    expect(find.text('Library Strength'), findsOneWidget);
+    expect(find.byType(ProgramsPage), findsNothing);
+  });
+
+  testWidgets('Program rows stay display-only until W4 detail exists',
+      (tester) async {
+    await _pump(tester);
+
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    expect(row, findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.byType(InkWell)),
+      findsNothing,
+    );
+  });
+
+  testWidgets('missing durable Program repository fails closed inline',
+      (tester) async {
+    await _pump(tester, withProgramRepository: false);
+
+    expect(find.byKey(const ValueKey('programs-unavailable')), findsOneWidget);
+    expect(find.text('Programs are unavailable right now.'), findsOneWidget);
+    final create = tester.widget<IconButton>(
+      find.byKey(const ValueKey('library-programs-create')),
+    );
+    expect(create.onPressed, isNull);
   });
 
   testWidgets('Exercises selection collapses pills and shows only two actions',
@@ -157,7 +248,7 @@ void main() {
     expect(find.byType(TioGroupCard), findsNothing);
   });
 
-  testWidgets('clear restores the full strip and default Programs content',
+  testWidgets('clear restores full strip and inline Programs content',
       (tester) async {
     await _pump(tester);
 
@@ -178,12 +269,13 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('library-programs-content')),
+      find.byKey(const ValueKey('library-programs-section')),
       findsOneWidget,
     );
+    expect(find.text('Strength'), findsOneWidget);
   });
 
-  testWidgets('Programs explicit selection keeps current Programs capability',
+  testWidgets('explicit Programs selection keeps inline Programs content',
       (tester) async {
     await _pump(tester);
 
@@ -201,17 +293,11 @@ void main() {
       find.byKey(const ValueKey('library-category-exercises')),
       findsNothing,
     );
-    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
-  });
-
-  testWidgets('Programs action hands off to the owning route', (tester) async {
-    var opened = 0;
-    await _pump(tester, onProgramsPressed: () => opened++);
-
-    await tester.tap(find.byKey(const ValueKey('library-programs-content')));
-    await tester.pump();
-
-    expect(opened, 1);
+    expect(
+      find.byKey(const ValueKey('library-programs-section')),
+      findsOneWidget,
+    );
+    expect(find.text('Strength'), findsOneWidget);
   });
 
   testWidgets('Exercises actions use separate create and browse handoffs',
@@ -268,5 +354,46 @@ void main() {
       expect(scaffold.backgroundColor, context.tioColors.background);
       expect(tester.takeException(), isNull);
     });
+  }
+}
+
+ProgramId _id(int value) => ProgramId(
+      '00000000-0000-4000-8000-${value.toString().padLeft(12, '0')}',
+    );
+
+Program _program(int value, String name) => Program(id: _id(value), name: name);
+
+final class _QueueProgramIdGenerator implements ProgramIdGenerator {
+  _QueueProgramIdGenerator(this.ids);
+
+  final List<ProgramId> ids;
+  var index = 0;
+
+  @override
+  ProgramId generate(Iterable<ProgramId> existingIds) => ids[index++];
+}
+
+final class _FakeProgramRepository implements ProgramRepository {
+  _FakeProgramRepository({List<Program>? programs})
+      : programs = [...?programs];
+
+  final List<Program> programs;
+  final List<Program> created = [];
+
+  @override
+  Future<List<Program>> list() async => List.unmodifiable(programs);
+
+  @override
+  Future<void> create(Program program) async {
+    created.add(program);
+    programs.add(program);
+  }
+
+  @override
+  Future<void> rename({
+    required ProgramId id,
+    required String name,
+  }) async {
+    throw UnimplementedError();
   }
 }
