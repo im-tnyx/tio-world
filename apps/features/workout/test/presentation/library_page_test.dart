@@ -98,6 +98,32 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
+  testWidgets('inline Program rows are plain and expose collapse state',
+      (tester) async {
+    await _pump(tester);
+
+    final programs = find.byKey(const ValueKey('library-programs-content'));
+    expect(
+      find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+      findsNothing,
+    );
+
+    final toggle = find.byKey(const ValueKey('program-expand-Strength'));
+    expect(toggle, findsOneWidget);
+    expect(
+      tester.widget<IconButton>(toggle).tooltip,
+      'Collapse Strength',
+    );
+
+    await tester.tap(toggle);
+    await tester.pump();
+
+    expect(
+      tester.widget<IconButton>(toggle).tooltip,
+      'Expand Strength',
+    );
+  });
+
   testWidgets('Programs header refreshes inline rows after management returns',
       (tester) async {
     final repository = _FakeProgramRepository(
