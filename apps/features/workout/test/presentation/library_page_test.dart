@@ -6,7 +6,7 @@ import 'package:tio_shared/shared.dart';
 
 Future<void> _pump(
   WidgetTester tester, {
-  VoidCallback? onProgramsManagePressed,
+  Future<void> Function()? onProgramsManagePressed,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
   bool withProgramRepository = true,
@@ -32,7 +32,7 @@ Future<void> _pump(
       home: LibraryPage(
         programRepository: resolvedProgramRepository,
         programIdGenerator: programIdGenerator,
-        onProgramsManagePressed: onProgramsManagePressed ?? () {},
+        onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -98,15 +98,29 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
-  testWidgets('Programs header hands off to optional management route',
+  testWidgets('Programs header refreshes inline rows after management returns',
       (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
     var opened = 0;
-    await _pump(tester, onProgramsManagePressed: () => opened++);
+    await _pump(
+      tester,
+      programRepository: repository,
+      onProgramsManagePressed: () async {
+        opened++;
+        await repository.create(_program(2, 'Hypertrophy'));
+      },
+    );
+
+    expect(find.text('Hypertrophy'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('library-programs-header')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(opened, 1);
+    expect(find.text('Strength'), findsOneWidget);
+    expect(find.text('Hypertrophy'), findsOneWidget);
   });
 
   testWidgets('folder-plus reuses generated-name Create Program flow',
