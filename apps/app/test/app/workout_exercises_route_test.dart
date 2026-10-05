@@ -261,6 +261,17 @@ void main() {
 
     expect(find.byType(ExercisesPage), findsOneWidget);
     expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Custom Exercises'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('custom-exercises-section')),
+      findsNothing,
+    );
+    expect(
       find.byKey(
         const ValueKey(
           'exercise-row-10000000-0000-4000-8000-000000000001',
