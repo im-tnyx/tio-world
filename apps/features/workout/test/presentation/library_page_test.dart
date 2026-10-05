@@ -8,6 +8,7 @@ Future<void> _pump(
   VoidCallback? onProgramsPressed,
   VoidCallback? onExercisesPressed,
   VoidCallback? onCreateExercisePressed,
+  bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
@@ -21,6 +22,7 @@ Future<void> _pump(
         onProgramsPressed: onProgramsPressed ?? () {},
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
+        canCreateExercise: canCreateExercise,
         onSearchPressed: onSearchPressed ?? () {},
       ),
     ),
@@ -121,6 +123,38 @@ void main() {
     expect(find.text('Favorite Exercises'), findsNothing);
     expect(find.text('Custom Exercises'), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
+  });
+
+  testWidgets(
+      'hides Create Exercise when durable user Exercise capability is absent',
+      (tester) async {
+    await _pump(tester, canCreateExercise: false);
+
+    await tester.tap(
+      find.byKey(const ValueKey('library-category-exercises')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-entry')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('library-exercises-content')),
+        matching: find.byType(TioCard),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(TioGroupCard), findsNothing);
   });
 
   testWidgets('clear restores the full strip and default Programs content',
