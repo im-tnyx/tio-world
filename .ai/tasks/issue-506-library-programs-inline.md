@@ -93,12 +93,12 @@ TNYX-81 and TNYX-267 remain Backlog/blocked. This slice does not claim W4/W6B co
 
 ## Implementation Plan
 
-- [ ] Refactor Programs presentation into reusable standalone/embedded surface without changing existing Programs-page behavior.
-- [ ] Replace Library Programs navigation card with embedded Programs surface.
-- [ ] Wire Program repository into Library composition.
-- [ ] Keep header → optional Programs manage route.
-- [ ] Add/adjust Programs, Library and app-router tests.
-- [ ] Reconcile Library/Programs canonical docs.
+- [x] Refactor Programs presentation into reusable standalone/embedded surface without changing existing Programs-page behavior.
+- [x] Replace Library Programs navigation card with embedded Programs surface.
+- [x] Wire Program repository into Library composition.
+- [x] Keep header → optional Programs manage route.
+- [x] Add/adjust Programs, Library and app-router tests.
+- [x] Reconcile Library/Programs canonical docs.
 - [ ] Run exact branch scope/hygiene audit.
 - [ ] Open PR and complete GitHub CI + exact-head Codex review gate.
 
@@ -127,10 +127,10 @@ Local Flutter commands / local `git diff --check` are not claimed unless a local
 **Observed working-tree state:** connector-only session; no local worktree claim
 **Observed uncommitted/dirty files:** not applicable
 **PR / tracker:** GitHub #506; #475; TNYX-81 / TNYX-267 / TNYX-83
-**Current implementation state:** audit complete; approved bounded slice established; no source change yet
+**Current implementation state:** reusable Programs surface extracted; Library now receives the canonical Program repository and renders Programs header/create/list directly; existing ProgramsPage reuses the same surface as optional secondary management; Program rows remain display-only; focused Library/router tests and canonical docs are updated
 **Relevant execution surface:** Library default/Programs category, optional Programs manage route, persisted Programs collection/create
 **Validation completed at SHA:** planning/audit only
 **Validation remaining:** source scope audit, Flutter CI, attribution, Codex exact-head review
 **Current blocker:** none for this bounded presentation slice; W4 remains blocker for Program detail/Routine behavior
 **Open review finding IDs:** none
-**Next exact action:** refactor Programs UI into reusable embedded/standalone surface and wire Library to the existing Program repository.
+**Next exact action:** run exact branch source/scope/hygiene audit, correct any compile/test contract mismatch, then open the focused PR and use GitHub CI + exact-head Codex review as executable validation.
