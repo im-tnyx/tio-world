@@ -192,6 +192,18 @@ final class CustomExercisesController extends ChangeNotifier {
       final reconciled = await repository.list(includeArchived: true);
       if (_disposed) return false;
 
+      if (reconciled.isEmpty) {
+        final updated = [...current.exercises];
+        final index = updated.indexWhere((item) => item.ref == id);
+        updated[index] = _copyWithDefinitionAndDisplayName(
+          updated[index],
+          displayName: displayName,
+          definition: definition,
+        );
+        _publish(CustomExercisesState.ready(exercises: updated));
+        return true;
+      }
+
       Exercise? durableTarget;
       for (final exercise in reconciled) {
         if (exercise.ref == id) {
@@ -527,6 +539,28 @@ final class CustomExercisesController extends ChangeNotifier {
     }
     return fallback;
   }
+
+  static Exercise _copyWithDefinitionAndDisplayName(
+    Exercise exercise, {
+    required String displayName,
+    required UserExerciseDefinition definition,
+  }) =>
+      Exercise(
+        ref: exercise.ref,
+        displayName: displayName,
+        description: definition.description,
+        exerciseType: definition.exerciseType,
+        muscleGroup: exercise.muscleGroup,
+        primaryMuscles: definition.primaryMuscle == null
+            ? const <String>[]
+            : [definition.primaryMuscle!],
+        secondaryMuscles: definition.secondaryMuscles,
+        primaryEquipment: definition.primaryEquipment,
+        category: exercise.category,
+        levels: exercise.levels,
+        status: exercise.status,
+        media: exercise.media,
+      );
 
   static Exercise _copyWithDisplayName(
     Exercise exercise,
