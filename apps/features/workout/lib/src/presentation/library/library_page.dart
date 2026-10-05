@@ -229,16 +229,16 @@ class _ProgramsContent extends StatelessWidget {
   Widget build(BuildContext context) => TioCard(
         key: const ValueKey('library-programs-content'),
         padding: EdgeInsets.zero,
-        child: TioSettingsNavigationRow(
-          key: const ValueKey('library-programs-entry'),
-          leading: const TioSettingsLeadingIcon(
-            icon: Icons.view_list_rounded,
-          ),
-          title: 'Programs',
-          supportingText: 'Create and manage programs',
-          onTap: onProgramsPressed,
+        onTap: onProgramsPressed,
+      child: const TioSettingsNavigationRow(
+        key: ValueKey('library-programs-entry'),
+        leading: TioSettingsLeadingIcon(
+          icon: Icons.view_list_rounded,
         ),
-      );
+        title: 'Programs',
+        supportingText: 'Create and manage programs',
+      ),
+    );
 }
 
 class _ExercisesContent extends StatelessWidget {
@@ -257,28 +257,28 @@ class _ExercisesContent extends StatelessWidget {
           TioCard(
             key: const ValueKey('library-create-exercise-card'),
             padding: EdgeInsets.zero,
-            child: TioSettingsNavigationRow(
-              key: const ValueKey('library-create-exercise-entry'),
-              leading: const TioSettingsLeadingIcon(
+            onTap: onCreateExercisePressed,
+            child: const TioSettingsNavigationRow(
+              key: ValueKey('library-create-exercise-entry'),
+              leading: TioSettingsLeadingIcon(
                 icon: Icons.add_circle_outline_rounded,
               ),
               title: 'Create Exercise',
               supportingText: 'Create a custom exercise',
-              onTap: onCreateExercisePressed,
             ),
           ),
           const SizedBox(height: TioSpacing.md),
           TioCard(
             key: const ValueKey('library-exercises-card'),
             padding: EdgeInsets.zero,
-            child: TioSettingsNavigationRow(
-              key: const ValueKey('library-exercises-entry'),
-              leading: const TioSettingsLeadingIcon(
+            onTap: onExercisesPressed,
+            child: const TioSettingsNavigationRow(
+              key: ValueKey('library-exercises-entry'),
+              leading: TioSettingsLeadingIcon(
                 icon: Icons.fitness_center_rounded,
               ),
               title: 'Exercises',
               supportingText: 'Browse all exercises',
-              onTap: onExercisesPressed,
             ),
           ),
         ],
