@@ -226,19 +226,18 @@ class _ProgramsContent extends StatelessWidget {
   final VoidCallback onProgramsPressed;
 
   @override
-  Widget build(BuildContext context) => TioGroupCard(
+  Widget build(BuildContext context) => TioCard(
         key: const ValueKey('library-programs-content'),
-        children: [
-          TioSettingsNavigationRow(
-            key: const ValueKey('library-programs-entry'),
-            leading: const TioSettingsLeadingIcon(
-              icon: Icons.view_list_rounded,
-            ),
-            title: 'Programs',
-            supportingText: 'Create and manage programs',
-            onTap: onProgramsPressed,
+        padding: EdgeInsets.zero,
+        child: TioSettingsNavigationRow(
+          key: const ValueKey('library-programs-entry'),
+          leading: const TioSettingsLeadingIcon(
+            icon: Icons.view_list_rounded,
           ),
-        ],
+          title: 'Programs',
+          supportingText: 'Create and manage programs',
+          onTap: onProgramsPressed,
+        ),
       );
 }
 
@@ -252,43 +251,36 @@ class _ExercisesContent extends StatelessWidget {
   final VoidCallback onExercisesPressed;
 
   @override
-  Widget build(BuildContext context) => TioGroupCard(
+  Widget build(BuildContext context) => Column(
         key: const ValueKey('library-exercises-content'),
         children: [
-          TioSettingsNavigationRow(
-            key: const ValueKey('library-create-exercise-entry'),
-            leading: const TioSettingsLeadingIcon(
-              icon: Icons.add_circle_outline_rounded,
+          TioCard(
+            key: const ValueKey('library-create-exercise-card'),
+            padding: EdgeInsets.zero,
+            child: TioSettingsNavigationRow(
+              key: const ValueKey('library-create-exercise-entry'),
+              leading: const TioSettingsLeadingIcon(
+                icon: Icons.add_circle_outline_rounded,
+              ),
+              title: 'Create Exercise',
+              supportingText: 'Create a custom exercise',
+              onTap: onCreateExercisePressed,
             ),
-            title: 'Create Exercise',
-            supportingText: 'Create a custom exercise',
-            onTap: onCreateExercisePressed,
           ),
-          const _LibraryDivider(),
-          TioSettingsNavigationRow(
-            key: const ValueKey('library-exercises-entry'),
-            leading: const TioSettingsLeadingIcon(
-              icon: Icons.fitness_center_rounded,
+          const SizedBox(height: TioSpacing.md),
+          TioCard(
+            key: const ValueKey('library-exercises-card'),
+            padding: EdgeInsets.zero,
+            child: TioSettingsNavigationRow(
+              key: const ValueKey('library-exercises-entry'),
+              leading: const TioSettingsLeadingIcon(
+                icon: Icons.fitness_center_rounded,
+              ),
+              title: 'Exercises',
+              supportingText: 'Browse all exercises',
+              onTap: onExercisesPressed,
             ),
-            title: 'Exercises',
-            supportingText: 'Browse all exercises',
-            onTap: onExercisesPressed,
           ),
         ],
       );
-}
-
-class _LibraryDivider extends StatelessWidget {
-  const _LibraryDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Divider(
-      height: TioSize.dp1,
-      thickness: TioStroke.width1,
-      indent: TioSize.dp64,
-      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
-    );
-  }
 }
