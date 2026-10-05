@@ -1,6 +1,7 @@
 # TNYX-264 W3D3 — Custom Exercise editor and unified Exercises composition
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-10-05
 **Primary owner:** `apps/features/workout` Custom Exercises; `apps/app` only for composition/routing
 **Affected platforms:** Flutter phone UI; existing Supabase persistence only
 
@@ -14,19 +15,17 @@
 
 **Explicit non-goals:** no media/Storage; no distance/duration/steps/weight/reps/+KG/-KG/x1/x2 execution semantics; no Favorites/Folders; no Routine/Program/Active Workout changes; no Supabase table/column/RLS/grant change; no broad GitHub #475 Library redesign; no new competing Exercise truth. A separate user-facing Custom Exercises collection is no longer a target. Additional iconography and visual polish are deferred follow-up work and must not silently widen this slice.
 
-## Active Handoff
+## Final Handoff
 
-**Planning/implementation owner:** ChatGPT repository architecture workflow
-**Review owner:** Codex after PR creation
-**Repository state last verified before this handoff-only update:** `main@c58689a8a7f183a0ca5fb644e4f69d67b2157bbe`
-**Branch:** `tnyx/tnyx-264-w3d3-custom-exercise-editor`
-**Working-tree visibility:** Connector-only execution; local worktree/toolchain is not available, so no local cleanliness or local Flutter-run claim.
-**Tracker:** Linear TNYX-264, In Progress; W3D2 is validated/live.
-**Current state:** Functional W3D3 implementation is complete within the approved slice. The canonical `/workout/exercises` screen composes bundled + user-created Exercises; Custom rows carry a presentation-only `Custom` badge, and the Library Custom Exercises entry focuses the same canonical route instead of establishing a second collection. The Primary muscle selector uses the owner-approved single-bottom-sheet inline accordion with the exact approved 44-token Body Part map. Exercise Type, Secondary muscles, Equipment, create/edit/archive and failure reconciliation are implemented with focused coverage. Visual polish/icons are intentionally deferred.
-**Last fully reviewed code head:** `beecb0675725f1a5bc4c27f635d216080b41cbde`.
-**Verified evidence on that head:** Flutter CI `37271874901` PASS; Commit attribution guard PASS; zero unresolved review threads; Codex exact-head review reported no major issues. GitHub Advanced Security failed before meaningful analysis because the scanning agent exceeded its monthly quota (HTTP 402); this is infrastructure/account quota evidence, not a security pass and not a product-vulnerability finding.
-**Supabase verification:** W3D3 introduces no migration/RLS/grant change. Hosted `public.user_workout_exercises` remains the validated 12-column W3D2 contract with owner-scoped SELECT/INSERT/UPDATE policies and least-privilege column grants; no authenticated DELETE is exposed. Security Advisor remains at the pre-existing baseline (five authenticated SECURITY DEFINER warnings plus leaked-password protection disabled), with no W3D3-specific database finding.
-**Next exact action:** after this handoff-only commit, refresh base/head scope evidence, run/inspect exact-head hosted Flutter CI and attribution guard, request Codex review on the new head, verify zero unresolved threads and zero drift from `main`, then stop for explicit merge authorization. Do not widen into visual polish/icons, Favorites/Folders/Recent/media/Library redesign.
+**Outcome:** Validated and merged.
+**Implementation PR:** GitHub #497, squash-merged to `main` as `e1fb8a61279c5a040bd48e9c4850a4ed85d39dbf`.
+**Final reviewed PR head:** `bd078cbb5c4566bd095d5a69cebba3751c208063`.
+**Final exact-head validation:** Flutter CI run `37274523967` / `Analyze and test` PASS; required Commit attribution guard PASS; Codex exact-head review reported no major issues; unresolved review threads: 0.
+**Security-check disposition:** GitHub Advanced Security failed before meaningful analysis because its model session exceeded the monthly quota (HTTP 402). This is an external scanner/account-quota failure, not a security pass and not product-vulnerability evidence. W3D3 changed no migration, RLS, grants, Storage, RPC or privileged server boundary.
+**Delivered runtime:** canonical `/workout/exercises` composes bundled and active user-created Exercises; Custom rows use a presentation-only `Custom` badge; the Library Custom Exercises entry focuses the same canonical surface; Primary muscle uses the owner-approved single-bottom-sheet inline Body Part accordion with the approved 44-token presentation map; structured create/edit/archive remains on the existing W3D2 durable repository contract.
+**Deferred:** additional visual polish/icons, Add Asset/media/Storage, execution measurement semantics, Favorites/Folders and broader W3D work.
+**Tracker:** Linear TNYX-264 remains **In Progress** because this validated W3D3 slice does not complete the broader parent capability. GitHub merge automation briefly moved it to Done; post-merge reconciliation restored In Progress.
+**Canonical references:** `docs/screens/exercise-search.md` and `docs/screens/library.md`.
 
 ## 1. Discovery
 
@@ -83,14 +82,20 @@ Feature widgets render state and emit intent only. The controller owns write seq
 - [x] Add focused controller/widget/router tests.
 - [x] Update canonical Exercises/Library docs only for behavior actually delivered.
 - [x] Validate code head `beecb0675725f1a5bc4c27f635d216080b41cbde`: Flutter CI PASS, attribution guard PASS, Codex exact-head review clean, zero unresolved threads.
-- [ ] Validate the final evidence-only handoff head after this documentation update before merge authorization.
+- [x] Validate final evidence-only head `bd078cbb5c4566bd095d5a69cebba3751c208063`: Flutter CI PASS, attribution guard PASS, Codex exact-head review clean, zero unresolved threads; owner authorized merge.
 
 ## 5. Validation / Exit
 
-The last functional code head `beecb0675725f1a5bc4c27f635d216080b41cbde` is validated by hosted Flutter CI `37271874901`, the Commit attribution guard, and an exact-head Codex review with no major issues; GitHub had zero unresolved review threads. Earlier implementation defects and review findings were corrected with focused regressions before that head.
+Final status: **VALIDATED**.
 
-The GitHub Advanced Security run on `beecb067...` did not complete meaningful analysis because its scanning model session exceeded the monthly quota and returned HTTP 402. Record that as an external scanner/account-quota failure, not as a security pass and not as product-vulnerability evidence.
-
-Supabase W3D2 remains deployed and hosted-verified: migration `20260930180700_add_custom_exercise_definition_fields` is present and `public.user_workout_exercises` has the expected 12-column owner-scoped contract. W3D3 itself changes no migration, RLS policy, database grant, Storage policy or privileged function.
-
-The final merge gate is evidence-only: refresh parent-to-head audit on the new handoff commit, inspect exact-head hosted checks, obtain/inspect a fresh Codex review, ensure zero unresolved threads and zero drift from `main`, then require explicit owner merge authorization. Visual polish and icons remain a later bounded follow-up.
+- Final PR head `bd078cbb5c4566bd095d5a69cebba3751c208063`: Flutter CI run `37274523967` PASS, including workspace analysis/tests.
+- Required Commit attribution guard: PASS.
+- Codex exact-head review on `bd078cbb5c`: no major issues.
+- Unresolved GitHub review threads: 0.
+- Branch was 100 ahead / 0 behind `main@c58689a8a7f183a0ca5fb644e4f69d67b2157bbe` before merge; changed-file scope remained the approved 21-file W3D3 slice.
+- GHAS: external quota failure (HTTP 402) before meaningful analysis; not a product finding or security pass.
+- Supabase: no W3D3 schema/RLS/grant/Storage change; existing hosted W3D2 contract remained verified.
+- Owner explicitly authorized merge after accepting the current functional UI; polish/icons remain a future bounded follow-up.
+- PR #497 squash-merged on 2026-10-05 as `e1fb8a61279c5a040bd48e9c4850a4ed85d39dbf`.
+- Post-merge `main` was verified at the merge SHA.
+- Linear TNYX-264 remains In Progress for broader Custom Exercise work.
