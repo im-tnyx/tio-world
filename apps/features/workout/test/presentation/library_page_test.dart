@@ -53,6 +53,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
+    expect(find.byType(TioGroupCard), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-programs-content')),
+      findsOneWidget,
+    );
+    expect(find.byType(TioCard), findsOneWidget);
     expect(
       find.byKey(const ValueKey('library-exercises-content')),
       findsNothing,
@@ -96,6 +102,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
+    expect(find.byType(TioGroupCard), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-create-exercise-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-exercises-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('library-exercises-content')),
+        matching: find.byType(TioCard),
+      ),
+      findsNWidgets(2),
+    );
     expect(find.text('Favorite Exercises'), findsNothing);
     expect(find.text('Custom Exercises'), findsNothing);
     expect(find.byType(ExercisesPage), findsNothing);
