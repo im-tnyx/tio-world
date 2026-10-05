@@ -22,16 +22,11 @@ class ExercisesPage extends ConsumerStatefulWidget {
   const ExercisesPage({
     super.key,
     this.startSearching = false,
-    this.startCreating = false,
     this.userExerciseRepository,
   });
 
   /// Opens with the top-bar search field active and focused.
   final bool startSearching;
-
-  /// Opens the existing user-created Exercise editor once the durable source
-  /// is ready. The canonical Exercises page remains mounted underneath.
-  final bool startCreating;
 
   /// Durable user-created Exercise source supplied by app composition.
   ///
@@ -54,7 +49,6 @@ class ExercisesPage extends ConsumerStatefulWidget {
 
 class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   CustomExercisesController? _customController;
-  bool _initialCreateOpened = false;
 
   @override
   void initState() {
@@ -69,11 +63,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
       oldWidget.userExerciseRepository,
       widget.userExerciseRepository,
     )) {
-      _initialCreateOpened = false;
       _bindCustomController();
-    } else if (!oldWidget.startCreating && widget.startCreating) {
-      _initialCreateOpened = false;
-      _maybeOpenInitialCreate();
     }
   }
 
@@ -94,24 +84,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   }
 
   void _onCustomChanged() {
-    if (!mounted) return;
-    setState(() {});
-    _maybeOpenInitialCreate();
-  }
-
-  void _maybeOpenInitialCreate() {
-    if (!widget.startCreating || _initialCreateOpened) return;
-    final controller = _customController;
-    if (controller == null ||
-        controller.state.status != CustomExercisesStatus.ready ||
-        controller.state.actionInProgress) {
-      return;
-    }
-
-    _initialCreateOpened = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _openCustomEditor();
-    });
+    if (mounted) setState(() {});
   }
 
   @override
