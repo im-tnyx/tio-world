@@ -5,10 +5,10 @@ Last Verified: 2026-09-30
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Programs product contract and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
-**Surface:** Nested Phone Workout flow reached from Library
-**Route:** `/workout/programs` (`AppRoutes.workoutPrograms`), nested in the Workout branch
+**Surface:** Persisted Programs collection rendered directly on Library, with an optional nested management route
+**Route:** Library `/workout/library`; optional `/workout/programs` (`AppRoutes.workoutPrograms`) management surface
 **Primary owner:** `apps/features/workout`
-**Status:** Minimal persisted Programs collection/create is implemented. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
+**Status:** Minimal persisted Programs collection/create and rename are implemented and composed directly on Library. The separate Programs route remains optional secondary management. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
 
 ## Purpose
 
@@ -18,8 +18,8 @@ Program is the reusable user workout container. A user-owned Program owns zero o
 
 ```text
 Library
-→ Programs
-→ persisted Programs collection
+→ Programs header + folder-plus
+→ persisted Programs collection directly on Library
 → Create Program
 → Program 1              // generated and visible, never a blank-name state
 → user may rename before confirmation
@@ -29,12 +29,14 @@ Library
 
 Current behavior:
 
-- Library shows a real `Programs` navigation row above Exercises.
-- The Programs screen reads through the canonical `ProgramRepository`; production app composition uses `SupabaseProgramRepository` when durable Supabase persistence is available and does not substitute an in-memory success path.
+- Library renders the Programs collection directly in its default/selected Programs state.
+- The tappable `Programs` header opens the existing Programs screen only as an optional secondary management route; it is not required to see the user's Programs.
+- Library and the optional Programs screen reuse one feature-owned Programs surface/controller/create implementation over the canonical `ProgramRepository`; production app composition uses `SupabaseProgramRepository` when durable Supabase persistence is available and does not substitute an in-memory success path.
 - Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
 - Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
 - The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
-- Program rows are display-only in this first slice. There is no chevron, tap target or fake detail destination.
+- Library Program rows use a plain header treatment rather than a large/grouped Program card and expose a presentation-only expand/collapse chevron plus 3-dot overflow. The overflow opens a Program-scoped bottom sheet. The current real action is **Edit Program**, which persists rename through `ProgramRepository.rename`; Program-name navigation, Add New Routine and Delete remain gated until their owning capabilities are ready.
+- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
 - No standalone Routines row or top-level Create Routine action exists.
 
 For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
@@ -50,7 +52,7 @@ GitHub #475 changes how this capability is entered without changing Program owne
 - Tapping an individual Program opens Program detail directly once W4 supplies that capability.
 - Program expand/collapse on Library is presentation state only.
 
-The current runtime remains the dedicated Programs screen described above until the approved Library implementation slice lands.
+The approved Library collection-composition slice is now the documented runtime direction. Program detail/Routine behavior remains gated by W4 and is not implied by rendering the existing collection on Library.
 
 ## Future Program Detail And Program-owned Routines
 

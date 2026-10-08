@@ -183,7 +183,7 @@ void main() {
   });
 
   testWidgets(
-      'Workout Home → Library → Programs, and back through the same stack',
+      'Library renders Programs directly and header opens optional manage route',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
     router.go(FeatureRoutes.workout.path);
@@ -191,19 +191,38 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
     await tester.pumpAndSettle();
-    expect(find.byType(LibraryPage), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('library-programs-entry')));
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramsPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('library-programs-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-header')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-create')),
+      findsOneWidget,
+    );
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-header')));
     await tester.pumpAndSettle();
+
     expect(find.byType(ProgramsPage), findsOneWidget);
     expect(find.byType(LibraryPage), findsNothing);
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byKey(const ValueKey('programs-unavailable')), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+
     expect(find.byType(LibraryPage), findsOneWidget);
     expect(find.byType(ProgramsPage), findsNothing);
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
@@ -576,6 +595,7 @@ void main() {
 Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
   AppMode mode, {
+  bool withProgramRepository = true,
   bool withUserExerciseRepository = true,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
@@ -608,6 +628,9 @@ Future<(ProviderContainer, GoRouter)> _app(
         ),
       ),
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
+      programRepositoryProvider.overrideWithValue(
+        withProgramRepository ? _RoutePrograms() : null,
+      ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
       ),
@@ -621,6 +644,33 @@ Future<(ProviderContainer, GoRouter)> _app(
   );
   await tester.pumpAndSettle();
   return (container, router);
+}
+
+final class _RoutePrograms implements ProgramRepository {
+  final List<Program> _programs = [
+    Program(
+      id: ProgramId('20000000-0000-4000-8000-000000000001'),
+      name: 'Synthetic Route Program',
+    ),
+  ];
+
+  @override
+  Future<List<Program>> list() async => List.unmodifiable(_programs);
+
+  @override
+  Future<void> create(Program program) async {
+    _programs.add(program);
+  }
+
+  @override
+  Future<void> rename({
+    required ProgramId id,
+    required String name,
+  }) async {
+    final index = _programs.indexWhere((program) => program.id == id);
+    if (index < 0) return;
+    _programs[index] = Program(id: id, name: name);
+  }
 }
 
 final class _RouteCatalog implements ExerciseCatalogRepository {

@@ -158,6 +158,69 @@ final class ProgramsController extends ChangeNotifier {
     }
   }
 
+  Future<String?> rename({
+    required Program program,
+    required String name,
+  }) async {
+    final current = _state;
+    if (current.status != ProgramsStatus.ready || current.creating) {
+      return 'Could not edit program. Please try again.';
+    }
+
+    late final Program renamed;
+    try {
+      renamed = Program(id: program.id, name: name);
+    } catch (_) {
+      return 'Enter a program name.';
+    }
+
+    if (renamed.name == program.name) return null;
+
+    try {
+      await repository.rename(id: program.id, name: renamed.name);
+      if (_disposed) return 'Could not edit program. Please try again.';
+
+      _publish(
+        ProgramsState.ready(
+          programs: [
+            for (final item in current.programs)
+              if (item.id == program.id) renamed else item,
+          ],
+        ),
+      );
+      return null;
+    } catch (error) {
+      if (error is StateError &&
+          error.message.toString() == 'Please sign in to save Programs.') {
+        return 'Please sign in to save Programs.';
+      }
+
+      final reconciled = await _reconcileRename(renamed);
+      if (_disposed) return 'Could not edit program. Please try again.';
+      if (reconciled != null) {
+        _publish(ProgramsState.ready(programs: reconciled));
+        return null;
+      }
+      return 'Could not edit program. Please try again.';
+    }
+  }
+
+  Future<List<Program>?> _reconcileRename(Program attempted) async {
+    try {
+      final programs = await repository.list();
+      if (programs.any(
+        (program) =>
+            program.id == attempted.id && program.name == attempted.name,
+      )) {
+        return programs;
+      }
+    } catch (_) {
+      // The durable rename outcome remains unknown; keep the editor open so
+      // the user is not told a write succeeded without persisted evidence.
+    }
+    return null;
+  }
+
   Future<List<Program>?> _reconcileCreate(Program attempted) async {
     try {
       var programs = await repository.list();

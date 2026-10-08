@@ -2,16 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
 
 Future<void> _pump(
   WidgetTester tester, {
-  VoidCallback? onProgramsPressed,
+  Future<void> Function()? onProgramsManagePressed,
+  ProgramRepository? programRepository,
+  ProgramIdGenerator? programIdGenerator,
+  bool withProgramRepository = true,
   VoidCallback? onExercisesPressed,
   VoidCallback? onCreateExercisePressed,
   bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
 }) async {
+  final resolvedProgramRepository = withProgramRepository
+      ? programRepository ??
+          _FakeProgramRepository(
+            programs: [_program(1, 'Strength')],
+          )
+      : null;
+
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
@@ -19,7 +30,9 @@ Future<void> _pump(
         child: child ?? const SizedBox.shrink(),
       ),
       home: LibraryPage(
-        onProgramsPressed: onProgramsPressed ?? () {},
+        programRepository: resolvedProgramRepository,
+        programIdGenerator: programIdGenerator,
+        onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -31,7 +44,8 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('shows Library chrome, full category strip and Programs default',
+  testWidgets(
+      'shows Library chrome, full category strip and Programs directly by default',
       (tester) async {
     await _pump(tester);
 
@@ -50,17 +64,28 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('library-category-clear')), findsNothing);
+
     expect(
       find.byKey(const ValueKey('library-programs-content')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
-    expect(find.byType(TioGroupCard), findsNothing);
     expect(
-      find.byKey(const ValueKey('library-programs-content')),
+      find.byKey(const ValueKey('library-programs-section')),
       findsOneWidget,
     );
-    expect(find.byType(TioCard), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('library-programs-header')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('library-programs-create')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('programs-list')), findsOneWidget);
+    expect(find.text('Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-programs-entry')), findsNothing);
+    expect(find.byType(ProgramsPage), findsNothing);
+
     expect(
       find.byKey(const ValueKey('library-exercises-content')),
       findsNothing,
@@ -71,6 +96,224 @@ void main() {
     );
     expect(find.text('Your Plan'), findsNothing);
     expect(find.text('Routines'), findsNothing);
+  });
+
+  testWidgets('inline Program rows are plain and expose collapse state',
+      (tester) async {
+    await _pump(tester);
+
+    final programs = find.byKey(const ValueKey('library-programs-content'));
+    expect(
+      find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+      findsNothing,
+    );
+
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    final padding = tester.widget<Padding>(
+      find.descendant(of: row, matching: find.byType(Padding)).first,
+    );
+    expect(
+      padding.padding,
+      const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+    );
+
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    expect(toggle, findsOneWidget);
+    expect(
+      tester.widget<IconButton>(toggle).tooltip,
+      'Collapse Strength',
+    );
+
+    await tester.tap(toggle);
+    await tester.pump();
+
+    expect(
+      tester.widget<IconButton>(toggle).tooltip,
+      'Expand Strength',
+    );
+  });
+
+  testWidgets('Programs header refreshes inline rows after management returns',
+      (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    var opened = 0;
+    await _pump(
+      tester,
+      programRepository: repository,
+      onProgramsManagePressed: () async {
+        opened++;
+        await repository.create(_program(2, 'Hypertrophy'));
+      },
+    );
+
+    expect(find.text('Hypertrophy'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-header')));
+    await tester.pumpAndSettle();
+
+    expect(opened, 1);
+    expect(find.text('Strength'), findsOneWidget);
+    expect(find.text('Hypertrophy'), findsOneWidget);
+  });
+
+  testWidgets('folder-plus reuses generated-name Create Program flow',
+      (tester) async {
+    final repository = _FakeProgramRepository();
+    await _pump(
+      tester,
+      programRepository: repository,
+      programIdGenerator: _QueueProgramIdGenerator([_id(1)]),
+    );
+
+    expect(find.text('No programs yet'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-create')));
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('program-name-field'));
+    final editable = find.descendant(
+      of: field,
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(editable).controller.text, 'Program 1');
+
+    await tester.enterText(editable, 'Library Strength');
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.created, hasLength(1));
+    expect(repository.created.single.name, 'Library Strength');
+    expect(find.text('Library Strength'), findsOneWidget);
+    expect(find.byType(ProgramsPage), findsNothing);
+  });
+
+  testWidgets('Program name stays non-navigable until W4 detail exists',
+      (tester) async {
+    await _pump(tester);
+
+    final name = find.text('Strength');
+    expect(name, findsOneWidget);
+    expect(
+      find.ancestor(of: name, matching: find.byType(InkWell)),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Program overflow opens bottom sheet and edits through rename',
+      (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    await _pump(tester, programRepository: repository);
+
+    final overflow =
+        find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    expect(overflow, findsOneWidget);
+
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('program-actions-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(find.text('Open / View Program'), findsNothing);
+    expect(find.text('Add New Routine'), findsNothing);
+    expect(find.text('Delete Program'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('program-action-edit')));
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('program-edit-name-field'));
+    final editable = find.descendant(
+      of: field,
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(editable).controller.text, 'Strength');
+
+    await tester.enterText(editable, 'Strength Plus');
+    await tester.tap(find.byKey(const ValueKey('program-edit-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.renamed, [(id: _id(1), name: 'Strength Plus')]);
+    expect(find.text('Strength Plus'), findsOneWidget);
+  });
+
+  testWidgets('ambiguous Program rename reconciles durable state',
+      (tester) async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+      renameErrorAfterWrite: Exception('response lost'),
+    );
+    await _pump(tester, programRepository: repository);
+
+    await tester.tap(
+      find.byKey(ValueKey('program-overflow-${_id(1).value}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-edit')));
+    await tester.pumpAndSettle();
+
+    final editable = find.descendant(
+      of: find.byKey(const ValueKey('program-edit-name-field')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(editable, 'Strength Plus');
+    await tester.tap(find.byKey(const ValueKey('program-edit-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.renamed, [(id: _id(1), name: 'Strength Plus')]);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(find.text('Strength Plus'), findsOneWidget);
+  });
+
+  testWidgets('Program actions sheet bounds long Program names',
+      (tester) async {
+    final longName = List.filled(40, 'VeryLongProgramName').join(' ');
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, longName)],
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(ValueKey('program-overflow-${_id(1).value}')),
+    );
+    await tester.pumpAndSettle();
+
+    final title = tester.widget<Text>(
+      find.byKey(const ValueKey('program-actions-title')),
+    );
+    expect(title.maxLines, 2);
+    expect(title.overflow, TextOverflow.ellipsis);
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'missing durable Program repository fails closed but header still manages',
+      (tester) async {
+    var managed = 0;
+    await _pump(
+      tester,
+      withProgramRepository: false,
+      onProgramsManagePressed: () async => managed++,
+    );
+
+    expect(find.byKey(const ValueKey('programs-unavailable')), findsOneWidget);
+    expect(find.text('Programs are unavailable right now.'), findsOneWidget);
+    final create = tester.widget<IconButton>(
+      find.byKey(const ValueKey('library-programs-create')),
+    );
+    expect(create.onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('library-programs-header')));
+    await tester.pumpAndSettle();
+    expect(managed, 1);
   });
 
   testWidgets('Exercises selection collapses pills and shows only two actions',
@@ -157,7 +400,7 @@ void main() {
     expect(find.byType(TioGroupCard), findsNothing);
   });
 
-  testWidgets('clear restores the full strip and default Programs content',
+  testWidgets('clear restores full strip and inline Programs content',
       (tester) async {
     await _pump(tester);
 
@@ -178,12 +421,13 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('library-programs-content')),
+      find.byKey(const ValueKey('library-programs-section')),
       findsOneWidget,
     );
+    expect(find.text('Strength'), findsOneWidget);
   });
 
-  testWidgets('Programs explicit selection keeps current Programs capability',
+  testWidgets('explicit Programs selection keeps inline Programs content',
       (tester) async {
     await _pump(tester);
 
@@ -201,17 +445,11 @@ void main() {
       find.byKey(const ValueKey('library-category-exercises')),
       findsNothing,
     );
-    expect(find.byKey(const ValueKey('library-programs-entry')), findsOneWidget);
-  });
-
-  testWidgets('Programs action hands off to the owning route', (tester) async {
-    var opened = 0;
-    await _pump(tester, onProgramsPressed: () => opened++);
-
-    await tester.tap(find.byKey(const ValueKey('library-programs-content')));
-    await tester.pump();
-
-    expect(opened, 1);
+    expect(
+      find.byKey(const ValueKey('library-programs-section')),
+      findsOneWidget,
+    );
+    expect(find.text('Strength'), findsOneWidget);
   });
 
   testWidgets('Exercises actions use separate create and browse handoffs',
@@ -268,5 +506,55 @@ void main() {
       expect(scaffold.backgroundColor, context.tioColors.background);
       expect(tester.takeException(), isNull);
     });
+  }
+}
+
+ProgramId _id(int value) => ProgramId(
+      '00000000-0000-4000-8000-${value.toString().padLeft(12, '0')}',
+    );
+
+Program _program(int value, String name) => Program(id: _id(value), name: name);
+
+final class _QueueProgramIdGenerator implements ProgramIdGenerator {
+  _QueueProgramIdGenerator(this.ids);
+
+  final List<ProgramId> ids;
+  var index = 0;
+
+  @override
+  ProgramId generate(Iterable<ProgramId> existingIds) => ids[index++];
+}
+
+final class _FakeProgramRepository implements ProgramRepository {
+  _FakeProgramRepository({
+    List<Program>? programs,
+    this.renameErrorAfterWrite,
+  }) : programs = [...?programs];
+
+  final List<Program> programs;
+  final List<Program> created = [];
+  final List<({ProgramId id, String name})> renamed = [];
+  final Object? renameErrorAfterWrite;
+
+  @override
+  Future<List<Program>> list() async => List.unmodifiable(programs);
+
+  @override
+  Future<void> create(Program program) async {
+    created.add(program);
+    programs.add(program);
+  }
+
+  @override
+  Future<void> rename({
+    required ProgramId id,
+    required String name,
+  }) async {
+    renamed.add((id: id, name: name));
+    final index = programs.indexWhere((program) => program.id == id);
+    if (index == -1) throw StateError('Program not found.');
+    programs[index] = Program(id: id, name: name);
+    final errorAfterWrite = renameErrorAfterWrite;
+    if (errorAfterWrite != null) throw errorAfterWrite;
   }
 }

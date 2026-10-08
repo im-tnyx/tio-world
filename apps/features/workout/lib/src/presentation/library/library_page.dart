@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import '../../domain/repositories/program_repository.dart';
+import '../../domain/usecases/program_id_generator.dart';
+import 'programs/programs_surface.dart';
+
 enum _LibraryCategory {
   programs('Programs'),
   exercises('Exercises');
@@ -16,15 +20,19 @@ enum _LibraryCategory {
 /// remain with their owning Workout capabilities.
 class LibraryPage extends StatefulWidget {
   const LibraryPage({
-    required this.onProgramsPressed,
+    required this.programRepository,
+    required this.onProgramsManagePressed,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
     required this.canCreateExercise,
     required this.onSearchPressed,
     super.key,
+    this.programIdGenerator,
   });
 
-  final VoidCallback onProgramsPressed;
+  final ProgramRepository? programRepository;
+  final ProgramIdGenerator? programIdGenerator;
+  final Future<void> Function() onProgramsManagePressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -100,8 +108,11 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
             const SizedBox(height: TioSpacing.lg),
             switch (_contentCategory) {
-              _LibraryCategory.programs => _ProgramsContent(
-                  onProgramsPressed: widget.onProgramsPressed,
+              _LibraryCategory.programs => ProgramsSurface.library(
+                  key: const ValueKey('library-programs-content'),
+                  repository: widget.programRepository,
+                  idGenerator: widget.programIdGenerator,
+                  onManagePressed: widget.onProgramsManagePressed,
                 ),
               _LibraryCategory.exercises => _ExercisesContent(
                   canCreateExercise: widget.canCreateExercise,
@@ -225,27 +236,6 @@ class _ClearCategoryButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ProgramsContent extends StatelessWidget {
-  const _ProgramsContent({required this.onProgramsPressed});
-
-  final VoidCallback onProgramsPressed;
-
-  @override
-  Widget build(BuildContext context) => TioCard(
-        key: const ValueKey('library-programs-content'),
-        padding: EdgeInsets.zero,
-        onTap: onProgramsPressed,
-      child: const TioSettingsNavigationRow(
-        key: ValueKey('library-programs-entry'),
-        leading: TioSettingsLeadingIcon(
-          icon: Icons.view_list_rounded,
-        ),
-        title: 'Programs',
-        supportingText: 'Create and manage programs',
-      ),
-    );
 }
 
 class _ExercisesContent extends StatelessWidget {
