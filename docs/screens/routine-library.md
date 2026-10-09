@@ -1,20 +1,20 @@
 # Program-owned Routines
 
 Document Status: Planned/Future Doc
-Last Verified: 2026-09-30
+Last Verified: 2026-10-09
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the planned user-owned Routine product contract; not evidence the screen is implemented or scheduled.
 
 **Surface:** Nested Phone Workout flow inside an owning Program
 **Route:** No route exists yet
 **Primary owner:** `apps/features/workout`
-**Status:** Planned only. Filename retained for link stability.
+**Status:** Routine screen/builder remains planned. Minimal user-owned Routine identity and name persistence are already implemented; ordered Exercise/set composition is not persisted. Filename retained for link stability.
 
 ## Purpose
 
 A Routine is a stable reusable workout composition built from canonical Exercises. For user-owned content, every saved Routine belongs to exactly one user-owned Program.
 
-Routine keeps its own `RoutineId`, ordering, Exercise references and prescription/template state so editing and history references remain safe. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
+Routine keeps its own `RoutineId` and owning `ProgramId`. Ordered Exercise references and prescription/template state are defined by separate immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` domain values, but remain **unpersisted**. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
 
 ## Target Flow
 
@@ -59,7 +59,11 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 ## Data And States
 
 - Routine identity/composition stays Workout-owned.
-- Persistence/repository/table/RLS shape remains deferred to W1B0 and requires its own approved slice.
+- **Shipped minimal Routine metadata persistence:** `public.user_workout_routines(id, user_id, program_id, name, created_at, updated_at)` exists live, with owner RLS and a composite `(program_id, user_id)` foreign key to the owning `user_workout_programs` record. `RoutineRepository` and `SupabaseRoutineRepository` expose `list(programId)`, `create(routine)`, and `rename(id, name)`. Authenticated clients are limited to `SELECT`, `INSERT`, and `UPDATE(name)`; direct delete, ownership changes and moves are not available.
+- **Not yet implemented:** the Routine repository is not wired through a production app provider/controller or builder UI. `RoutineComposition`, `RoutineExercise`, and `SetPrescription` are domain values only: Exercise entries, ordering and prescribed sets have no durable persistence yet.
+- **Next data gate:** W1/TNYX-78 + [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509) track the planning-only Routine composition persistence decision (ordering/identity, catalog vs user Exercise refs, atomic updates, owner access and migration compatibility). Any new Supabase table/column shape requires separate explicit Owner Approval before migration or UI capability.
+- **Separate W1 decision:** direct Library Create Routine remains blocked on stable, idempotent default `My Program` identity independent of its mutable display name.
+- The historical W1B0 Program privilege-hardening slice is complete; it was not approval for Routine composition or Exercise Favorites/Folders persistence.
 - Completed WorkoutSession history must not be silently rewritten by later Routine edits.
 
 ## Acceptance Criteria
