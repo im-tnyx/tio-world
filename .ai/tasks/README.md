@@ -6,6 +6,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
+| [GitHub #509 — Routine composition persistence](issue-509-routine-composition-persistence.md) | In progress | `supabase/`, `apps/features/workout` persistence | W1/TNYX-78 approved schema; no W4 UI or live deployment |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
