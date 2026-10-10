@@ -24,13 +24,13 @@
 **Observed working-tree state:** Connector-only API session, no local worktree; no local dirty-state claim.
 **Observed uncommitted/dirty files:** Not available from GitHub connector.
 **PR / tracker:** GitHub #509; Linear TNYX-78 and TNYX-81; GitHub #475
-**Current implementation state:** Approved DB-first slice committed to branch: one additive migration/RPC and focused transactional SQL regression matrix. No live deployment; feature repository adapter not yet implemented.
+**Current implementation state:** Approved database-first slice on branch: one additive migration/RPC, focused transactional security matrix and actual two-session Routine race test wired to CI. No live deployment; feature repository adapter not yet implemented.
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `apps/features/workout/lib/src/{domain,data}`, related tests.
-**Validation completed at SHA:** Supabase Database CI run `38031445331` on `92a52b45e0791971e873317885dfd374d716bc03` completed **success**: disposable full migration replay, TNYX-509 SQL matrix, existing matrices, two-session concurrency test and DB lint. Earlier test assertion failure was fixed before successful run. Final handoff-head checks remain pending.
+**Validation completed at SHA:** Supabase Database CI run `38032039764` on `c0b38e1dfa252bfeb54312772e90eecc17f88881`: **SUCCESS** after fixture typo fix; full migration replay, TNYX-509 SQL matrix, focused **two-session Routine revision race** (winner preserved, stale writer rejected), existing concurrency suite and DB lint all passed. This handoff-only commit advances the head; reverify exact-head CI.
 **Validation remaining:** New exact-head CI after this handoff-only commit and Codex review/security findings. No Flutter/UI source changed and no local Flutter/Dart checks are claimed. Live deployment is **not** authorized by PR creation/merge alone.
 **Current blocker:** None for approved bounded implementation; no local Flutter/Dart/Supabase CLI present in connector-only session.
 **Open review finding IDs:** None.
-**Next exact action:** PR #511 is open; prior DB CI PASS at `92a52b45...`. Audit Codex and new exact-head CI after handoff commit, resolve findings and stop at owner merge gate. Feature repository adapter remains a separate later bounded slice.
+**Next exact action:** PR #511 is open. Audit Codex and new exact-head CI after this final handoff update; resolve security/review findings and stop at explicit owner merge gate. Feature repository adapter is the next separate bounded slice.
 
 ## 1. Discovery
 
@@ -92,7 +92,7 @@ Future W4 controller -> feature RoutineCompositionRepository
 ## 6. Quality Review
 
 ### Validation Run
-Supabase Database CI run `38031445331`: PASS at `92a52b45e0791971e873317885dfd374d716bc03` (full replay, TNYX-509 matrix, concurrency, lint). This handoff edit advances the head; rerun exact-head CI before merge. Connector-only session cannot claim local `git diff --check`, Flutter, Dart or Supabase CLI.
+Supabase Database CI `38032039764`: PASS at `c0b38e1dfa252bfeb54312772e90eecc17f88881`. Disposable complete migration replay, Routine matrix, exact Routine two-session stale-writer race, existing concurrency suite and DB lint passed. This handoff edit advances HEAD; current-head CI/Codex remain required. No local `git diff --check`, Flutter, Dart or Supabase CLI execution is claimed.
 
 ### Review Findings and Resolution
 None yet.
@@ -103,7 +103,8 @@ None yet.
 - `.ai/tasks/README.md` + this handoff.
 - `supabase/migrations/20261010061809_create_user_workout_routine_composition.sql`.
 - `supabase/tests/database/tnyx_509_routine_composition.test.sql`.
-- `.github/workflows/supabase-db-ci.yml` — explicit SQL test CI wiring.
+- `supabase/tests/database/tnyx_509_routine_composition_concurrency.sh` — actual simultaneous authenticated saves.
+- `.github/workflows/supabase-db-ci.yml` — both Routine SQL matrices wired into CI.
 
 ### Actual Behavior
 Migration/RPC and SQL regression matrix committed on branch, tested on disposable CI database. Hosted Supabase untouched; no Flutter/UI/runtime capability shipped.
