@@ -26,11 +26,11 @@
 **PR / tracker:** GitHub #509; Linear TNYX-78 and TNYX-81; GitHub #475
 **Current implementation state:** Approved DB-first slice committed to branch: one additive migration/RPC and focused transactional SQL regression matrix. No live deployment; feature repository adapter not yet implemented.
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `apps/features/workout/lib/src/{domain,data}`, related tests.
-**Validation completed at SHA:** Read-only source, live schema/constraints/indexes/privileges and accepted ADR reconciliation only.
-**Validation remaining:** Migration SQL/db regression matrix, Flutter/Dart analyze/tests, Supabase database CI, security/Codex exact-head review. Live deployment is **not** authorized by PR creation/merge alone.
+**Validation completed at SHA:** Supabase Database CI run `38031445331` on `92a52b45e0791971e873317885dfd374d716bc03` completed **success**: disposable full migration replay, TNYX-509 SQL matrix, existing matrices, two-session concurrency test and DB lint. Earlier test assertion failure was fixed before successful run. Final handoff-head checks remain pending.
+**Validation remaining:** New exact-head CI after this handoff-only commit and Codex review/security findings. No Flutter/UI source changed and no local Flutter/Dart checks are claimed. Live deployment is **not** authorized by PR creation/merge alone.
 **Current blocker:** None for approved bounded implementation; no local Flutter/Dart/Supabase CLI present in connector-only session.
 **Open review finding IDs:** None.
-**Next exact action:** Open DB-foundation PR; request exact-head Codex and Supabase Database CI, address findings. Subsequent bounded feature repository adapter remains pending until schema foundation is validated.
+**Next exact action:** PR #511 is open; prior DB CI PASS at `92a52b45...`. Audit Codex and new exact-head CI after handoff commit, resolve findings and stop at owner merge gate. Feature repository adapter remains a separate later bounded slice.
 
 ## 1. Discovery
 
@@ -84,15 +84,15 @@ Future W4 controller -> feature RoutineCompositionRepository
 ## 5. Implementation Plan
 
 - [x] Commit proposed additive migration with exact approved tables/columns, owner-safe FKs/RLS and narrowly scoped save RPC; database execution not yet verified.
-- [x] Add transactional SQL RLS/privilege/integrity/revision/idempotency regression matrix; execution pending CI.
+- [x] Add transactional SQL RLS/privilege/integrity/revision/idempotency matrix; executed PASS in DB CI `38031445331`.
 - [ ] Feature-owned composition gateway/repository with validation and reconciliation.
-- [ ] Tests and exact-head CI/security/Codex gate; no live apply.
+- [ ] Final exact-head CI/Codex gate (prior DB CI `38031445331` PASS); no live apply.
 - [ ] Update schema inventory and completion handoff after observed validation.
 
 ## 6. Quality Review
 
 ### Validation Run
-Not run yet. GitHub connector cannot execute local `git diff --check`, Flutter, Dart or Supabase CLI; request executable checks in PR CI.
+Supabase Database CI run `38031445331`: PASS at `92a52b45e0791971e873317885dfd374d716bc03` (full replay, TNYX-509 matrix, concurrency, lint). This handoff edit advances the head; rerun exact-head CI before merge. Connector-only session cannot claim local `git diff --check`, Flutter, Dart or Supabase CLI.
 
 ### Review Findings and Resolution
 None yet.
@@ -103,9 +103,10 @@ None yet.
 - `.ai/tasks/README.md` + this handoff.
 - `supabase/migrations/20261010061809_create_user_workout_routine_composition.sql`.
 - `supabase/tests/database/tnyx_509_routine_composition.test.sql`.
+- `.github/workflows/supabase-db-ci.yml` — explicit SQL test CI wiring.
 
 ### Actual Behavior
-Migration/RPC and test source proposed on branch only; hosted database untouched. No Flutter/UI/runtime capability shipped.
+Migration/RPC and SQL regression matrix committed on branch, tested on disposable CI database. Hosted Supabase untouched; no Flutter/UI/runtime capability shipped.
 
 ### Known Limitations
 No production editor/wiring until later approved W4; live database remains unchanged until separate deployment gate.
