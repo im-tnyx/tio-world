@@ -141,9 +141,9 @@ begin
   loop
     if pg_catalog.jsonb_typeof(v_entry) <> 'object'
         or v_entry - 'id' - 'exercise_ref' - 'sets' <> '{}'::jsonb
-        or pg_catalog.jsonb_typeof(v_entry -> 'id') <> 'string'
-        or pg_catalog.jsonb_typeof(v_entry -> 'exercise_ref') <> 'string'
-        or pg_catalog.jsonb_typeof(v_entry -> 'sets') <> 'array'
+        or pg_catalog.jsonb_typeof(v_entry -> 'id') is distinct from 'string'
+        or pg_catalog.jsonb_typeof(v_entry -> 'exercise_ref') is distinct from 'string'
+        or pg_catalog.jsonb_typeof(v_entry -> 'sets') is distinct from 'array'
         or (v_entry ->> 'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
       raise exception 'invalid_routine_exercise_entry' using errcode = '22023';
     end if;
@@ -183,9 +183,9 @@ begin
     loop
       if pg_catalog.jsonb_typeof(v_set) <> 'object'
           or v_set - 'id' - 'reps' - 'load_kg' - 'rest_seconds' <> '{}'::jsonb
-          or pg_catalog.jsonb_typeof(v_set -> 'id') <> 'string'
+          or pg_catalog.jsonb_typeof(v_set -> 'id') is distinct from 'string'
           or (v_set ->> 'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-          or pg_catalog.jsonb_typeof(v_set -> 'reps') <> 'number'
+          or pg_catalog.jsonb_typeof(v_set -> 'reps') is distinct from 'number'
           or (v_set ->> 'reps') !~ '^[0-9]+$' then
         raise exception 'invalid_routine_set' using errcode = '22023';
       end if;
