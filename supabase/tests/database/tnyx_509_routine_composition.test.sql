@@ -245,6 +245,14 @@ select pg_temp.assert_raises(
   '22023', 'negative load must be rejected'
 );
 
+-- Invalid saves above cannot alter the committed revision or composition.
+select pg_temp.assert_true(
+  (select composition_revision=2 from public.user_workout_routines
+   where id='a5090000-0000-4000-8000-000000000021')
+  and (select count(*)=2 from public.user_workout_routine_exercises),
+  'successful reordering changes revision and entry count exactly once'
+);
+
 -- A single atomic edit reorders stable entries without changing Routine name.
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
