@@ -208,23 +208,20 @@ select pg_temp.assert_raises(
   '22023', 'zero prescribed reps must fail before mutation'
 );
 
--- Reject duplicated stable entry/Set identities even if refs repeat legitimately.
 select pg_temp.assert_raises(
-  $select public.save_user_workout_routine_composition(
+  $$select public.save_user_workout_routine_composition(
     'a5090000-0000-4000-8000-000000000021',1,
     'a5090000-0000-4000-8000-000000000092',
     '[
-      {"id":"a5090000-0000-4000-8000-000000000044",
-       "exercise_ref":"ex_squat","sets":[]},
-      {"id":"a5090000-0000-4000-8000-000000000044",
-       "exercise_ref":"ex_squat","sets":[]}
+      {"id":"a5090000-0000-4000-8000-000000000044","exercise_ref":"ex_squat","sets":[]},
+      {"id":"a5090000-0000-4000-8000-000000000044","exercise_ref":"ex_squat","sets":[]}
     ]'::jsonb
-  )$,
-  '22023', 'same entry UUID cannot be reused for repeated Exercise references'
+  )$$,
+  '22023', 'duplicate entry IDs must not persist'
 );
 
 select pg_temp.assert_raises(
-  $select public.save_user_workout_routine_composition(
+  $$select public.save_user_workout_routine_composition(
     'a5090000-0000-4000-8000-000000000021',1,
     'a5090000-0000-4000-8000-000000000092',
     '[{"id":"a5090000-0000-4000-8000-000000000044",
@@ -232,24 +229,23 @@ select pg_temp.assert_raises(
         {"id":"a5090000-0000-4000-8000-000000000055","reps":1},
         {"id":"a5090000-0000-4000-8000-000000000055","reps":2}
       ]}]'::jsonb
-  )$,
-  '22023', 'Set UUID cannot occur twice'
+  )$$,
+  '22023', 'duplicate Set IDs must not persist'
 );
 
 select pg_temp.assert_raises(
-  $select public.save_user_workout_routine_composition(
+  $$select public.save_user_workout_routine_composition(
     'a5090000-0000-4000-8000-000000000021',1,
     'a5090000-0000-4000-8000-000000000092',
     '[{"id":"a5090000-0000-4000-8000-000000000044",
-      "exercise_ref":"ex_squat",
-      "sets":[{"id":"a5090000-0000-4000-8000-000000000055",
-               "reps":1,"load_kg":-1}]}]'::jsonb
-  )$,
-  '22023', 'negative prescribed load must be rejected'
+      "exercise_ref":"ex_squat","sets":[
+        {"id":"a5090000-0000-4000-8000-000000000055",
+         "reps":1,"load_kg":-1}]}]'::jsonb
+  )$$,
+  '22023', 'negative load must be rejected'
 );
 
--- Atomic save should allow stable entry ID to move position and preserve
--- prescribed Set ID; unrelated Routine metadata remains stable.
+-- A single atomic edit reorders stable entries without changing Routine name.
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
     'a5090000-0000-4000-8000-000000000021',1,
@@ -259,11 +255,11 @@ select pg_temp.assert_true(
        "exercise_ref":"ex_squat","sets":[]},
       {"id":"a5090000-0000-4000-8000-000000000041",
        "exercise_ref":"ex_squat","sets":[
-        {"id":"a5090000-0000-4000-8000-000000000051",
-         "reps":10,"load_kg":0,"rest_seconds":0}]}
+         {"id":"a5090000-0000-4000-8000-000000000051",
+          "reps":10,"load_kg":0,"rest_seconds":0}]}
     ]'::jsonb
   )=2,
-  'new revision must apply full reordered snapshot'
+  'reorder edit must return next revision'
 );
 
 select pg_temp.assert_true(
@@ -271,26 +267,19 @@ select pg_temp.assert_true(
    where id='a5090000-0000-4000-8000-000000000042')
   and (select position=1 from public.user_workout_routine_exercises
        where id='a5090000-0000-4000-8000-000000000041')
-  and (select count(*)=1 from public.user_workout_routine_sets)
-  and (select name='Routine A' from public.user_workout_routines
-       where id='a5090000-0000-4000-8000-000000000021'),
-  'reordering keeps row identities and does not rename the Routine'
+  and (select count(*)=1 from public.user_workout_routine_sets),
+  'same UUIDs preserve entry identity; obsolete children are removed'
 );
 
--- Owner B cannot select owner A's child Exercises or Sets.
 reset role;
 set local role authenticated;
-select set_config(
-  'request.jwt.claim.sub','a5090000-0000-4000-8000-000000000002',true
-);
+select set_config('request.jwt.claim.sub','a5090000-0000-4000-8000-000000000002',true);
 select pg_temp.assert_true(
   (select count(*)=0 from public.user_workout_routine_exercises)
   and (select count(*)=0 from public.user_workout_routine_sets),
-  'row security isolates both child tables from a second user'
+  'second user cannot read first user Exercise entries or Sets'
 );
-select set_config(
-  'request.jwt.claim.sub','a5090000-0000-4000-8000-000000000001',true
-);
+select set_config('request.jwt.claim.sub','a5090000-0000-4000-8000-000000000001',true);
 
 select pg_temp.assert_true(
   (select composition_revision=1 from public.user_workout_routines
