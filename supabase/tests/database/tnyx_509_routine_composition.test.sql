@@ -247,10 +247,10 @@ select pg_temp.assert_raises(
 
 -- Invalid saves above cannot alter the committed revision or composition.
 select pg_temp.assert_true(
-  (select composition_revision=2 from public.user_workout_routines
+  (select composition_revision=1 from public.user_workout_routines
    where id='a5090000-0000-4000-8000-000000000021')
-  and (select count(*)=2 from public.user_workout_routine_exercises),
-  'successful reordering changes revision and entry count exactly once'
+  and (select count(*)=3 from public.user_workout_routine_exercises),
+  'all rejected writes must leave prior composition intact'
 );
 
 -- A single atomic edit reorders stable entries without changing Routine name.
@@ -290,10 +290,10 @@ select pg_temp.assert_true(
 select set_config('request.jwt.claim.sub','a5090000-0000-4000-8000-000000000001',true);
 
 select pg_temp.assert_true(
-  (select composition_revision=1 from public.user_workout_routines
+  (select composition_revision=2 from public.user_workout_routines
    where id='a5090000-0000-4000-8000-000000000021')
-  and (select count(*)=3 from public.user_workout_routine_exercises),
-  'all rejected writes must leave prior composition intact'
+  and (select count(*)=2 from public.user_workout_routine_exercises),
+  'successful reordering changes revision and entry count exactly once'
 );
 
 select pg_temp.assert_true(
