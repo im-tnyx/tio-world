@@ -59,6 +59,30 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  has_column_privilege('authenticated','public.user_workout_routines','id','INSERT')
+  and has_column_privilege('authenticated','public.user_workout_routines','user_id','INSERT')
+  and has_column_privilege('authenticated','public.user_workout_routines','program_id','INSERT')
+  and has_column_privilege('authenticated','public.user_workout_routines','name','INSERT')
+  and has_column_privilege('authenticated','public.user_workout_routines','created_at','INSERT')
+  and has_column_privilege('authenticated','public.user_workout_routines','updated_at','INSERT')
+  and not has_column_privilege('authenticated','public.user_workout_routines','composition_revision','INSERT')
+  and not has_column_privilege('authenticated','public.user_workout_routines','last_composition_mutation_id','INSERT'),
+  'metadata INSERT is preserved and RPC-owned columns are protected'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1 from pg_indexes
+    where schemaname='public'
+      and tablename='user_workout_routine_exercises'
+      and indexname='idx_user_workout_routine_exercises_custom_fk'
+      and indexdef like '%(user_exercise_id, user_id)%'
+      and indexdef like '%WHERE (user_exercise_id IS NOT NULL)%'
+  ),
+  'custom Exercise FK needs its own partial index'
+);
+
+select pg_temp.assert_true(
   not has_column_privilege('authenticated','public.user_workout_routines','composition_revision','UPDATE')
   and not has_column_privilege('authenticated','public.user_workout_routines','last_composition_mutation_id','UPDATE')
   and has_column_privilege('authenticated','public.user_workout_routines','name','UPDATE'),
@@ -104,6 +128,24 @@ select pg_temp.assert_true(
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a5090000-0000-4000-8000-000000000001',true);
+
+select pg_temp.assert_raises(
+  $$insert into public.user_workout_routines
+    (id,user_id,program_id,name,composition_revision) values
+    ('a5090000-0000-4000-8000-000000000023',
+     'a5090000-0000-4000-8000-000000000001',
+     'a5090000-0000-4000-8000-000000000011','Invalid',9223372036854775807)$$,
+  '42501', 'authenticated cannot write initial revision'
+);
+select pg_temp.assert_raises(
+  $$insert into public.user_workout_routines
+    (id,user_id,program_id,name,last_composition_mutation_id) values
+    ('a5090000-0000-4000-8000-000000000023',
+     'a5090000-0000-4000-8000-000000000001',
+     'a5090000-0000-4000-8000-000000000011','Invalid',
+     'a5090000-0000-4000-8000-000000000091')$$,
+  '42501', 'authenticated cannot inject mutation token'
+);
 
 select pg_temp.assert_raises(
   $$insert into public.user_workout_routine_exercises
@@ -308,6 +350,33 @@ select pg_temp.assert_true(
   (select count(*)=0 from public.user_workout_routine_exercises)
   and (select count(*)=0 from public.user_workout_routine_sets),
   'empty draft save must clear children without orphan Sets'
+);
+
+-- Large valid snapshots should not trip an accidental Exercise/Set count cap.
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5090000-0000-4000-8000-000000000021',3,
+    'a5090000-0000-4000-8000-000000000094',
+    (
+      select pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'id', 'a5090000-0000-4000-8000-000000000044',
+        'exercise_ref', 'ex_squat',
+        'sets', (
+          select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+            'id', pg_catalog.gen_random_uuid()::text,
+            'reps', 8, 'rest_seconds', 0
+          ) order by n)
+          from pg_catalog.generate_series(1, 350) as n
+        )
+      ))
+    )
+  )=4,
+  'bounded 350-set payload is accepted'
+);
+select pg_temp.assert_true(
+  (select count(*)=350 from public.user_workout_routine_sets)
+  and (select count(*)=1 from public.user_workout_routine_exercises),
+  'large ordered composition persisted atomically'
 );
 
 reset role;

@@ -29,7 +29,7 @@
 **Validation completed at SHA:** Supabase Database CI run `38032039764` on `c0b38e1dfa252bfeb54312772e90eecc17f88881`: **SUCCESS** after fixture typo fix; full migration replay, TNYX-509 SQL matrix, focused **two-session Routine revision race** (winner preserved, stale writer rejected), existing concurrency suite and DB lint all passed. This handoff-only commit advances the head; reverify exact-head CI.
 **Validation remaining:** New exact-head CI after this handoff-only commit and Codex review/security findings. No Flutter/UI source changed and no local Flutter/Dart checks are claimed. Live deployment is **not** authorized by PR creation/merge alone.
 **Current blocker:** None for approved bounded implementation; no local Flutter/Dart/Supabase CLI present in connector-only session.
-**Open review finding IDs:** None.
+**Open review finding IDs:** PR #511 threads `PRRT_kwDOTOXwB86rB1pV` (INSERT privilege), `PRRT_kwDOTOXwB86rB1pZ` (custom Exercise FK index), `PRRT_kwDOTOXwB86rB1pc` (quadratic JSONB accumulation). Patches are pending new exact-head CI and review; threads remain unresolved.
 **Next exact action:** PR #511 is open. Audit Codex and new exact-head CI after this final handoff update; resolve security/review findings and stop at explicit owner merge gate. Feature repository adapter is the next separate bounded slice.
 
 ## 1. Discovery
@@ -95,7 +95,7 @@ Future W4 controller -> feature RoutineCompositionRepository
 Supabase Database CI `38032039764`: PASS at `c0b38e1dfa252bfeb54312772e90eecc17f88881`. Disposable complete migration replay, Routine matrix, exact Routine two-session stale-writer race, existing concurrency suite and DB lint passed. This handoff edit advances HEAD; current-head CI/Codex remain required. No local `git diff --check`, Flutter, Dart or Supabase CLI execution is claimed.
 
 ### Review Findings and Resolution
-None yet.
+All three Codex P2 findings confirmed against source and the live old-schema grants. This review-fix commit constrains Routine INSERT to six legacy metadata columns, indexes the partial custom-Exercise FK, moves owner locking ahead of nested JSON work, and replaces quadratic array concatenation/duplicate scans with ordered set-based aggregation. SQL tests add denied revision/token injection, positive metadata INSERT grants, partial FK index existence, and bounded 350-Set payload coverage. **New head has not yet passed CI/re-review.** No live Supabase mutation, UI or Dart code changes.
 
 ## 7. Final Handoff
 
