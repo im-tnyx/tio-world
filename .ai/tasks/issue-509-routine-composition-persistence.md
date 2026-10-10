@@ -24,13 +24,13 @@
 **Observed working-tree state:** Connector-only API session, no local worktree; no local dirty-state claim.
 **Observed uncommitted/dirty files:** Not available from GitHub connector.
 **PR / tracker:** GitHub #509; Linear TNYX-78 and TNYX-81; GitHub #475
-**Current implementation state:** Approved design; no migration committed/applied yet.
+**Current implementation state:** Approved DB-first slice committed to branch: one additive migration/RPC and focused transactional SQL regression matrix. No live deployment; feature repository adapter not yet implemented.
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `apps/features/workout/lib/src/{domain,data}`, related tests.
 **Validation completed at SHA:** Read-only source, live schema/constraints/indexes/privileges and accepted ADR reconciliation only.
 **Validation remaining:** Migration SQL/db regression matrix, Flutter/Dart analyze/tests, Supabase database CI, security/Codex exact-head review. Live deployment is **not** authorized by PR creation/merge alone.
 **Current blocker:** None for approved bounded implementation; no local Flutter/Dart/Supabase CLI present in connector-only session.
 **Open review finding IDs:** None.
-**Next exact action:** Implement approved migration and strict atomic save gateway; validate exact-head via GitHub CI, stop at review/merge gate.
+**Next exact action:** Open DB-foundation PR; request exact-head Codex and Supabase Database CI, address findings. Subsequent bounded feature repository adapter remains pending until schema foundation is validated.
 
 ## 1. Discovery
 
@@ -83,8 +83,8 @@ Future W4 controller -> feature RoutineCompositionRepository
 
 ## 5. Implementation Plan
 
-- [ ] Migration with approved exact shape and narrow RPC.
-- [ ] SQL RLS/privilege/integrity/revision/idempotency regression tests.
+- [x] Commit proposed additive migration with exact approved tables/columns, owner-safe FKs/RLS and narrowly scoped save RPC; database execution not yet verified.
+- [x] Add transactional SQL RLS/privilege/integrity/revision/idempotency regression matrix; execution pending CI.
 - [ ] Feature-owned composition gateway/repository with validation and reconciliation.
 - [ ] Tests and exact-head CI/security/Codex gate; no live apply.
 - [ ] Update schema inventory and completion handoff after observed validation.
@@ -100,10 +100,12 @@ None yet.
 ## 7. Final Handoff
 
 ### Changed Files
-Pending.
+- `.ai/tasks/README.md` + this handoff.
+- `supabase/migrations/20261010061809_create_user_workout_routine_composition.sql`.
+- `supabase/tests/database/tnyx_509_routine_composition.test.sql`.
 
 ### Actual Behavior
-No runtime behavior change yet.
+Migration/RPC and test source proposed on branch only; hosted database untouched. No Flutter/UI/runtime capability shipped.
 
 ### Known Limitations
 No production editor/wiring until later approved W4; live database remains unchanged until separate deployment gate.
