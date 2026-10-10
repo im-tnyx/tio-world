@@ -20,17 +20,17 @@
 **Implementation ownership state:** Active
 **Repository state last verified:** Remote `main@c5a1852d00afeb987a1834a28a39d5c6185d9763` on 2026-10-10; GitHub no competing open Routine composition PR; Linear TNYX-78 In Progress, TNYX-81 Backlog/blocked.
 **Branch:** `tnyx/issue-509-routine-composition-persistence`
-**HEAD SHA:** Branch originally created at main SHA above; refresh before each push.
+**HEAD SHA:** Latest validated implementation SHA `467c4aa109abc60c586c3770a8bc309a2d9f1498`; this brief update will advance HEAD again. Refresh before each push.
 **Observed working-tree state:** Connector-only API session, no local worktree; no local dirty-state claim.
 **Observed uncommitted/dirty files:** Not available from GitHub connector.
 **PR / tracker:** GitHub #509; Linear TNYX-78 and TNYX-81; GitHub #475
 **Current implementation state:** Approved database-first slice on branch: one additive migration/RPC, focused transactional security matrix and actual two-session Routine race test wired to CI. No live deployment; feature repository adapter not yet implemented.
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `apps/features/workout/lib/src/{domain,data}`, related tests.
-**Validation completed at SHA:** Supabase Database CI run `38032039764` on `c0b38e1dfa252bfeb54312772e90eecc17f88881`: **SUCCESS** after fixture typo fix; full migration replay, TNYX-509 SQL matrix, focused **two-session Routine revision race** (winner preserved, stale writer rejected), existing concurrency suite and DB lint all passed. This handoff-only commit advances the head; reverify exact-head CI.
-**Validation remaining:** CI `38034321223` at `7fdf4252...` failed in the *legacy* TNYX-78 Routine SQL matrix (`line 64`, previous table-level `INSERT` assumption), before reaching #509 SQL matrix. Legacy assertion now checks all six permitted metadata-column `INSERT` grants instead of obsolete table-level `INSERT`. New exact-head CI and Codex review still required. No Flutter/UI source changed and no local Flutter/Dart checks are claimed. Live deployment is **not** authorized by PR creation/merge alone.
-**Current blocker:** Prior head CI failed due to out-of-date legacy test assertion; corrected in this commit, **not yet validated**. No local Flutter/Dart/Supabase CLI present in connector-only session.
-**Open review finding IDs:** PR #511 threads `PRRT_kwDOTOXwB86rB1pV` (INSERT privilege), `PRRT_kwDOTOXwB86rB1pZ` (custom Exercise FK index), `PRRT_kwDOTOXwB86rB1pc` (quadratic JSONB accumulation). Patches are pending new exact-head CI and review; threads remain unresolved.
-**Next exact action:** PR #511 is open. Audit Codex and new exact-head CI after this final handoff update; resolve security/review findings and stop at explicit owner merge gate. Feature repository adapter is the next separate bounded slice.
+**Validation completed at SHA:** Exact implementation head `467c4aa109abc60c586c3770a8bc309a2d9f1498`: Supabase Database CI `38034491510` **PASS**, full disposable migration replay, all legacy TNYX-78 SQL matrices, TNYX-509 owner/RLS/privilege/Idempotency/350-set matrix, true simultaneous Routine two-session race, existing Nutrition concurrency and DB lint. Required Commit attribution guard also PASS at same SHA.
+**Validation remaining:** This handoff-only commit changes the PR head again: verify required checks at new HEAD, and await a genuine Codex exact-head review (last bot review still at `122a22490e`). No Flutter/Dart/Supabase local execution claimed. No deployment/merge authorized.
+**Current blocker:** Codex has not submitted a fresh exact-head review despite explicit requests. Supplemental GitHub Advanced Security scanner failed before analysis with external model monthly quota HTTP 402 on `7fdf4252`; this is not a finding or security PASS. Existing live Security Advisor warnings predate undeployed migration.
+**Open review finding IDs:** Three original Codex P2 threads `PRRT_kwDOTOXwB86rB1pV`, `PRRT_kwDOTOXwB86rB1pZ`, `PRRT_kwDOTOXwB86rB1pc` are fixed, replied with exact-head test evidence, and resolved as of 2026-10-10. Zero unresolved; fresh Codex review still pending.
+**Next exact action:** Re-check final docs-only head CI, then fresh Codex review and any new feedback. Stop before merge or production apply pending owner merge/deploy gates. Subsequent feature repository adapter stays out of this PR.
 
 ## 1. Discovery
 
@@ -92,12 +92,12 @@ Future W4 controller -> feature RoutineCompositionRepository
 ## 6. Quality Review
 
 ### Validation Run
-Supabase Database CI `38032039764`: PASS at `c0b38e1dfa252bfeb54312772e90eecc17f88881`. Disposable complete migration replay, Routine matrix, exact Routine two-session stale-writer race, existing concurrency suite and DB lint passed. This handoff edit advances HEAD; current-head CI/Codex remain required. No local `git diff --check`, Flutter, Dart or Supabase CLI execution is claimed.
+Supabase Database CI `38034491510`: PASS at implementation SHA `467c4aa109abc60c586c3770a8bc309a2d9f1498`. Complete migration replay, historical TNYX-78 matrices, focused TNYX-509 authorization/350-Set matrix, two-session Routine race, existing concurrency and DB lint PASS. Required Commit attribution guard PASS. Handoff-only new HEAD must be rechecked; no local `git diff --check`, Flutter, Dart, or Supabase CLI was run.
 
 ### Review Findings and Resolution
-The first CI run after remediation (`38034321223`) reached the legacy TNYX-78 matrix and failed on its table-level `INSERT` privilege assumption. Current review-fix commit updates only that legacy grant assertion to the original six metadata columns; the actual authenticated Routine insert test remains intact. Exact-head CI must now validate this and all later matrices.
+The first CI run after remediation (`38034321223`) reached the legacy TNYX-78 matrix and failed on its table-level `INSERT` privilege assumption. Current review-fix commit updates only that legacy grant assertion to the original six metadata columns; the actual authenticated Routine insert test remains intact. The corrected CI `38034491510` passed all earlier and later matrices on `467c4aa1`.
 
-All three Codex P2 findings confirmed against source and the live old-schema grants. This review-fix commit constrains Routine INSERT to six legacy metadata columns, indexes the partial custom-Exercise FK, moves owner locking ahead of nested JSON work, and replaces quadratic array concatenation/duplicate scans with ordered set-based aggregation. SQL tests add denied revision/token injection, positive metadata INSERT grants, partial FK index existence, and bounded 350-Set payload coverage. **New head has not yet passed CI/re-review.** No live Supabase mutation, UI or Dart code changes.
+All three Codex P2 findings confirmed against source and the live old-schema grants. This review-fix commit constrains Routine INSERT to six legacy metadata columns, indexes the partial custom-Exercise FK, moves owner locking ahead of nested JSON work, and replaces quadratic array concatenation/duplicate scans with ordered set-based aggregation. SQL tests add denied revision/token injection, positive metadata INSERT grants, partial FK index existence, and bounded 350-Set payload coverage. **Implementation head CI PASSED; no new exact-head Codex review yet.** No live Supabase mutation, UI or Dart code changes.
 
 ## 7. Final Handoff
 
@@ -105,6 +105,7 @@ All three Codex P2 findings confirmed against source and the live old-schema gra
 - `.ai/tasks/README.md` + this handoff.
 - `supabase/migrations/20261010061809_create_user_workout_routine_composition.sql`.
 - `supabase/tests/database/tnyx_509_routine_composition.test.sql`.
+- `supabase/tests/database/tnyx_78_user_workout_routines.test.sql` — updated legacy grant expectation to match secure column-scoped INSERT.
 - `supabase/tests/database/tnyx_509_routine_composition_concurrency.sh` — actual simultaneous authenticated saves.
 - `.github/workflows/supabase-db-ci.yml` — both Routine SQL matrices wired into CI.
 
