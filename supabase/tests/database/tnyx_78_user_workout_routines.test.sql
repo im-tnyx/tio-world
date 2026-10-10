@@ -57,10 +57,17 @@ select pg_temp.assert_true(
   'user_workout_routines must have RLS enabled'
 );
 
+-- Composition migration scopes INSERT to the six pre-existing metadata columns.
+-- Table-level INSERT is intentionally revoked to protect revision/token columns.
 select pg_temp.assert_true(
   has_table_privilege('authenticated', 'public.user_workout_routines', 'SELECT')
-  and has_table_privilege('authenticated', 'public.user_workout_routines', 'INSERT'),
-  'authenticated must have Routine SELECT and INSERT'
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'id', 'INSERT')
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'user_id', 'INSERT')
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'program_id', 'INSERT')
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'name', 'INSERT')
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'created_at', 'INSERT')
+  and has_column_privilege('authenticated', 'public.user_workout_routines', 'updated_at', 'INSERT'),
+  'authenticated must retain Routine SELECT and metadata-column INSERT'
 );
 
 select pg_temp.assert_true(
