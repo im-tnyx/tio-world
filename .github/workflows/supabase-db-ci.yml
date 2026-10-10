@@ -204,6 +204,10 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_509_routine_composition.test.sql
 
+      - name: Run TNYX-509 Routine composition two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_509_routine_composition_concurrency.sh
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
