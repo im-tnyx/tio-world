@@ -208,6 +208,90 @@ select pg_temp.assert_raises(
   '22023', 'zero prescribed reps must fail before mutation'
 );
 
+-- Reject duplicated stable entry/Set identities even if refs repeat legitimately.
+select pg_temp.assert_raises(
+  $select public.save_user_workout_routine_composition(
+    'a5090000-0000-4000-8000-000000000021',1,
+    'a5090000-0000-4000-8000-000000000092',
+    '[
+      {"id":"a5090000-0000-4000-8000-000000000044",
+       "exercise_ref":"ex_squat","sets":[]},
+      {"id":"a5090000-0000-4000-8000-000000000044",
+       "exercise_ref":"ex_squat","sets":[]}
+    ]'::jsonb
+  )$,
+  '22023', 'same entry UUID cannot be reused for repeated Exercise references'
+);
+
+select pg_temp.assert_raises(
+  $select public.save_user_workout_routine_composition(
+    'a5090000-0000-4000-8000-000000000021',1,
+    'a5090000-0000-4000-8000-000000000092',
+    '[{"id":"a5090000-0000-4000-8000-000000000044",
+      "exercise_ref":"ex_squat","sets":[
+        {"id":"a5090000-0000-4000-8000-000000000055","reps":1},
+        {"id":"a5090000-0000-4000-8000-000000000055","reps":2}
+      ]}]'::jsonb
+  )$,
+  '22023', 'Set UUID cannot occur twice'
+);
+
+select pg_temp.assert_raises(
+  $select public.save_user_workout_routine_composition(
+    'a5090000-0000-4000-8000-000000000021',1,
+    'a5090000-0000-4000-8000-000000000092',
+    '[{"id":"a5090000-0000-4000-8000-000000000044",
+      "exercise_ref":"ex_squat",
+      "sets":[{"id":"a5090000-0000-4000-8000-000000000055",
+               "reps":1,"load_kg":-1}]}]'::jsonb
+  )$,
+  '22023', 'negative prescribed load must be rejected'
+);
+
+-- Atomic save should allow stable entry ID to move position and preserve
+-- prescribed Set ID; unrelated Routine metadata remains stable.
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5090000-0000-4000-8000-000000000021',1,
+    'a5090000-0000-4000-8000-000000000094',
+    '[
+      {"id":"a5090000-0000-4000-8000-000000000042",
+       "exercise_ref":"ex_squat","sets":[]},
+      {"id":"a5090000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[
+        {"id":"a5090000-0000-4000-8000-000000000051",
+         "reps":10,"load_kg":0,"rest_seconds":0}]}
+    ]'::jsonb
+  )=2,
+  'new revision must apply full reordered snapshot'
+);
+
+select pg_temp.assert_true(
+  (select position=0 from public.user_workout_routine_exercises
+   where id='a5090000-0000-4000-8000-000000000042')
+  and (select position=1 from public.user_workout_routine_exercises
+       where id='a5090000-0000-4000-8000-000000000041')
+  and (select count(*)=1 from public.user_workout_routine_sets)
+  and (select name='Routine A' from public.user_workout_routines
+       where id='a5090000-0000-4000-8000-000000000021'),
+  'reordering keeps row identities and does not rename the Routine'
+);
+
+-- Owner B cannot select owner A's child Exercises or Sets.
+reset role;
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub','a5090000-0000-4000-8000-000000000002',true
+);
+select pg_temp.assert_true(
+  (select count(*)=0 from public.user_workout_routine_exercises)
+  and (select count(*)=0 from public.user_workout_routine_sets),
+  'row security isolates both child tables from a second user'
+);
+select set_config(
+  'request.jwt.claim.sub','a5090000-0000-4000-8000-000000000001',true
+);
+
 select pg_temp.assert_true(
   (select composition_revision=1 from public.user_workout_routines
    where id='a5090000-0000-4000-8000-000000000021')
@@ -217,9 +301,9 @@ select pg_temp.assert_true(
 
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
-    'a5090000-0000-4000-8000-000000000021',1,
+    'a5090000-0000-4000-8000-000000000021',2,
     'a5090000-0000-4000-8000-000000000093','[]'::jsonb
-  )=2,
+  )=3,
   'empty draft composition must save atomically'
 );
 
