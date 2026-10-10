@@ -223,7 +223,7 @@ begin
     v_normalized := v_normalized || pg_catalog.jsonb_build_array(
       pg_catalog.jsonb_build_object(
         'id', v_entry_id::text,
-        'exercise_ref', pg_catalog.coalesce(v_catalog_id, v_user_exercise_id::text),
+        'exercise_ref', coalesce(v_catalog_id, v_user_exercise_id::text),
         'sets', v_sets
       )
     );
@@ -242,14 +242,14 @@ begin
   end if;
 
   if v_last_mutation = p_client_mutation_id then
-    select pg_catalog.coalesce(pg_catalog.jsonb_agg(
+    select coalesce(pg_catalog.jsonb_agg(
       pg_catalog.jsonb_build_object(
         'id', exercise.id::text,
-        'exercise_ref', pg_catalog.coalesce(
+        'exercise_ref', coalesce(
           exercise.catalog_exercise_id, exercise.user_exercise_id::text
         ),
         'sets', (
-          select pg_catalog.coalesce(pg_catalog.jsonb_agg(
+          select coalesce(pg_catalog.jsonb_agg(
             pg_catalog.jsonb_build_object(
               'id', set_row.id::text,
               'reps', set_row.reps,
