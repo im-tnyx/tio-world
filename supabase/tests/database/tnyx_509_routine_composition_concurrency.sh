@@ -57,7 +57,7 @@ values ('$test_user'::uuid, 'issue509-race@example.test');
 insert into public.user_workout_programs (id,user_id,name)
 values ('$program_id'::uuid,'$test_user'::uuid,'Race Program');
 insert into public.user_workout_routines (id,user_id,program_id,name)
-values ('$routine_id'::uuid,'$test_user'::uuid,'Race Routine');
+values ('$routine_id'::uuid,'$test_user'::uuid,'$program_id'::uuid,'Race Routine');
 SQL
 
 mkfifo "$fifo"
