@@ -10,6 +10,7 @@ import '../../app_mode/app_mode.dart';
 import '../../calendar_preferences.dart';
 import '../../meal_diary_today_glyph.dart';
 import '../../network_providers.dart';
+import '../../session/session.dart';
 
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
@@ -83,13 +84,31 @@ List<RouteBase> _shellBranchChildRoutes(
                 routine.programId != program.id) return;
             await Navigator.of(context).push<void>(
               MaterialPageRoute(
-                builder: (_) => RoutineDetailPage(
-                  program: program,
-                  routine: routine,
-                  routineRepository: routineRepository,
-                  compositionRepository: compositions,
-                  catalogRepository: catalog,
-                  userExerciseRepository: userExerciseRepository,
+                builder: (_) => Consumer(
+                  builder: (context, ref, _) {
+                    // The Supabase client instance survives auth transitions.
+                    // Key the preview by the canonical session user so a
+                    // sign-out/account switch disposes its private read state
+                    // immediately, even while catalog resolution is in flight.
+                    final session = ref
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
+                    final ownerId = session is AppSessionBootstrapReady
+                        ? session.userId
+                        : null;
+                    return RoutineDetailPage(
+                      key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
+                      program: program,
+                      routine: routine,
+                      routineRepository:
+                          ownerId == null ? null : routineRepository,
+                      compositionRepository:
+                          ownerId == null ? null : compositions,
+                      catalogRepository: catalog,
+                      userExerciseRepository:
+                          ownerId == null ? null : userExerciseRepository,
+                    );
+                  },
                 ),
               ),
             );

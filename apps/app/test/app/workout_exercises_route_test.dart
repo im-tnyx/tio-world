@@ -276,6 +276,30 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('Routine preview clears private content on session loss',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
   testWidgets('expanded Library Routine tap opens same owner-bound preview',
       (tester) async {
     final (_, router) = await _app(
@@ -939,9 +963,18 @@ class _ReadyAppSessionBootstrapController
           onboardingCompletionRepository: null,
         );
 
-  @override
-  AppSessionBootstrapState get state =>
+  AppSessionBootstrapState _testState =
       const AppSessionBootstrapReady(userId: 'test-user');
+
+  @override
+  AppSessionBootstrapState get state => _testState;
+
+  void transitionTo(String? userId) {
+    _testState = userId == null
+        ? const AppSessionBootstrapUnauthenticated()
+        : AppSessionBootstrapReady(userId: userId);
+    notifyListeners();
+  }
 
   @override
   void start() {}
