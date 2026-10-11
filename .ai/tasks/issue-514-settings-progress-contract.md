@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@dfe9cee7389165f0a485623a1e3e69477eb1dc37` on 2026-10-11
 **Branch:** `tnyx/issue-514-settings-progress-contract`
-**HEAD SHA:** branch created at `dfe9cee7389165f0a485623a1e3e69477eb1dc37`
+**HEAD SHA:** `4b00385f4dc346cb1f70f761f0606f7da23e4f9c` after bounded source, test and canonical ownership edits
 **Observed working-tree state:** Connector-only execution; no local checkout/status available.
 **Observed uncommitted/dirty files:** Not observable; GitHub branch was created from exact main.
 **PR / tracker:** GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
-**Current implementation state:** Discovery and bounded architecture choice complete. Source change pending.
+**Current implementation state:** Narrow `progress_contracts.dart` created with two pure domain exports; two Settings page imports and two focused tests migrated; import-boundary guard added; canonical ownership decision recorded.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
 **Validation completed at SHA:** Read-only source/dependency and tracker audit on `main@dfe9cee...`.
-**Validation remaining:** Static exact diff audit; hosted Flutter/Dart analyze/tests; Codex exact-head review.
+**Validation remaining:** Hosted Flutter/Dart analyze/tests and Codex exact-head review; merge-readiness checks.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Publish narrow Progress domain barrel, migrate exactly two Settings pages and two tests, add import-boundary regression guard, update ownership doc, open Draft PR.
+**Next exact action:** Open Draft PR from the audited eight-path branch, request exact-head Codex review, and validate with hosted Flutter CI.
 
 ## 1. Discovery
 
@@ -110,10 +110,11 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 - [x] Fresh tracker/source ownership audit.
 - [x] TNYX-201 current-main planning correction.
 - [x] Create bounded issue/branch/task.
-- [ ] Add contract-only public barrel and switch Settings imports.
-- [ ] Add focused regression guard.
-- [ ] Update canonical ownership documentation.
-- [ ] Audit exact changed-file scope, open Draft PR.
+- [x] Add contract-only public barrel and switch Settings imports.
+- [x] Add focused regression guard.
+- [x] Update canonical ownership documentation.
+- [x] Audit exact changed-file scope (eight paths only).
+- [ ] Open Draft PR.
 - [ ] Hosted CI + Codex exact-head gate.
 
 ## 6. Quality Review
@@ -121,7 +122,7 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 ### Validation Run
 
 ```text
-Not run. Connector-only; no local working tree or Flutter toolchain.
+Static GitHub compare at `4b00385f4dc346cb1f70f761f0606f7da23e4f9c`: eight changed paths exactly (task brief, Progress contract barrel, two Settings pages, two Settings focused widget tests, one boundary guard, Module Ownership doc), 8 ahead / 0 behind. `progress.dart` unchanged. No routes, persistence, providers, app code or visible UI changed. Local Flutter commands and `git diff --check` not run; connector-only. Hosted CI pending.
 ```
 
 ### Review Findings and Resolution
@@ -133,7 +134,12 @@ Not run. Connector-only; no local working tree or Flutter toolchain.
 
 ### Changed Files
 
-Pending.
+- `.ai/tasks/issue-514-settings-progress-contract.md`
+- `apps/features/progress/lib/progress_contracts.dart`
+- `apps/features/settings/lib/src/presentation/pages/{body_weight_settings_page,daily_wellness_settings_page}.dart`
+- `apps/features/settings/test/presentation/{body_weight_settings_page,daily_wellness_settings_page}_test.dart`
+- `apps/features/settings/test/architecture/progress_contract_boundary_test.dart`
+- `docs/architecture/MODULE_OWNERSHIP.md`
 
 ### Actual Behavior
 
