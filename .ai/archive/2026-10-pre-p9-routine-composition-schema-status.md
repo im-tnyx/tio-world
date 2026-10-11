@@ -1,6 +1,8 @@
 # Pre-P9 — Routine Composition Schema-Status Drift
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-10-11
+**Archived:** 2026-10-11
 **Primary owner:** repository documentation governance (`docs/data/`)
 **Affected platforms:** Documentation only; Flutter/Supabase behavior unchanged
 
@@ -39,3 +41,7 @@
 **Review owner:** Codex and exact-head gate audit
 **Current state:** scoped docs-only patch in progress; awaiting review/merge gate
 **Next action:** finish bounded patch, verify current PR head + source evidence, stop before owner-authorized merge. Archive only after validated merge in a separate lifecycle step.
+
+## Archival completion checkpoint — 2026-10-11
+
+The one-line canonical schema-status correction was reviewed and squash-merged in PR #518 (`e0a340dd902f0490cc819343858db3dabf7f92b4`). Exact-head Codex review was clean, required attribution PASS, and 0 unresolved threads were reported; this was docs-only. `docs/data/SUPABASE_SCHEMA.md` remains the canonical validated destination. Earlier instructions to request review or await merge are historical. No app provider/controller or Routine builder activation and no P9 authorization resulted. No local `git diff --check` was run in the connector execution.

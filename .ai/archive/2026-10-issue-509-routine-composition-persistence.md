@@ -1,6 +1,8 @@
 # GitHub #509 — Program-owned Routine composition persistence
 
-**Status:** In progress — database foundation deployed; Flutter composition adapter implemented and CI-reviewed; PR merge gate pending
+**Status:** Validated — scoped database foundation and Flutter composition adapter; broader W1 remains In Progress
+**Completed:** 2026-10-11
+**Archived:** 2026-10-11
 **Primary owner:** Workout persistence (`supabase/`, `apps/features/workout`)
 **Affected platforms:** Flutter data/domain boundary and Supabase schema/RLS/RPC; no visible UI
 
@@ -126,3 +128,9 @@ Adapter source/focused tests and exact-source-head Flutter PR CI **PASS** at `f2
 ### Final Status
 
 `REVIEW` — approved adapter implemented, source-head CI passed and P2 resolved. Task-governance handoff reconciled; confirm checks/review on final brief-only head, then STOP before owner-authorized merge. TNYX-78 stays In Progress; TNYX-81 stays blocked by TNYX-78/TNYX-80.
+
+## Archival completion checkpoint — 2026-10-11
+
+The separately authorized production database foundation (PR #511, migration `20261010061809`) was applied and hosted-verified as documented in the canonical Supabase schema/strategy. PR #512 reconciled the deployed documentation. The Workout-owned Flutter composition persistence adapter and focused validation merged through PR #513 (`dfe9cee7389165f0a485623a1e3e69477eb1dc37`) after exact-head Flutter CI and required attribution checks passed. GitHub #509 is **Closed**. Earlier instructions within this preserved task (including `REVIEW`, `PR merge gate pending`, and `STOP before merge`) are dated execution history, not a current blocker or permission to implement more work.
+
+This validates **only** the bounded database/adapter deliverables: no app provider/controller activation, visible Routine builder, or production app release. **Linear TNYX-78 remains In Progress** and the broader Program/default `My Program`/Routine builder acceptance stays separately gated. Current authority: `docs/data/SUPABASE_SCHEMA.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/screens/routine-library.md`, accepted ADR-0015, and live source/trackers. No new production deployment or live-data validation occurred during archival.
