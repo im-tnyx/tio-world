@@ -52,6 +52,24 @@ class RoutineMetadataCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null)
+            PopupMenuButton<String>(
+              key: ValueKey('routine-menu-${routine.id.value}'),
+              tooltip: 'Routine options',
+              onSelected: (value) {
+                if (value == 'edit') onTap?.call();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Text('Edit'),
+                ),
+              ],
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: colors.textPrimary,
+              ),
+            ),
         ],
       ),
     );
