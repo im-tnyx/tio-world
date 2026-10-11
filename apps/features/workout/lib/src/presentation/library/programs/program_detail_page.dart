@@ -151,14 +151,17 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
           children: [
             Row(
               children: [
-                Text(
-                  'Routines',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w800,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Routines',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: TioFontWeight.w800,
+                        ),
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   key: const ValueKey('program-detail-add-routine'),
                   tooltip: 'Add Routine',
