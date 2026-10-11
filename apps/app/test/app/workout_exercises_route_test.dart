@@ -226,6 +226,45 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
+  testWidgets('Program name opens real owner-scoped Detail and returns to Library',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    expect(find.byType(ProgramsPage), findsNothing);
+    expect(find.text('Synthetic Route Routine'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+  });
+
+  testWidgets('Program Detail fails closed when Routine repository is unavailable',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineRepository: false,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey(
+          'program-open-20000000-0000-4000-8000-000000000001')),
+      findsNothing,
+    );
+    expect(find.byType(ProgramDetailPage), findsNothing);
+  });
+
   testWidgets(
       'Workout Home → Library → Exercises, and back through the same stack',
       (tester) async {
@@ -596,6 +635,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
   AppMode mode, {
   bool withProgramRepository = true,
+  bool withRoutineRepository = true,
   bool withUserExerciseRepository = true,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
@@ -630,6 +670,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
       programRepositoryProvider.overrideWithValue(
         withProgramRepository ? _RoutePrograms() : null,
+      ),
+      routineRepositoryProvider.overrideWithValue(
+        withRoutineRepository ? _RouteRoutines() : null,
       ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
@@ -670,6 +713,30 @@ final class _RoutePrograms implements ProgramRepository {
     final index = _programs.indexWhere((program) => program.id == id);
     if (index < 0) return;
     _programs[index] = Program(id: id, name: name);
+  }
+}
+
+final class _RouteRoutines implements RoutineRepository {
+  final List<Routine> rows = [
+    Routine(
+      id: RoutineId('30000000-0000-4000-8000-000000000001'),
+      programId: ProgramId('20000000-0000-4000-8000-000000000001'),
+      name: 'Synthetic Route Routine',
+    ),
+  ];
+
+  @override
+  Future<List<Routine>> list(ProgramId programId) async =>
+      List.unmodifiable(rows.where((item) => item.programId == programId));
+
+  @override
+  Future<void> create(Routine routine) async => rows.add(routine);
+
+  @override
+  Future<void> rename({required RoutineId id, required String name}) async {
+    final index = rows.indexWhere((item) => item.id == id);
+    if (index < 0) throw StateError('Routine missing');
+    rows[index] = Routine(id: id, programId: rows[index].programId, name: name);
   }
 }
 
