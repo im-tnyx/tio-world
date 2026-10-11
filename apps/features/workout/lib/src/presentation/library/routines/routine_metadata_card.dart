@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
-/// Shared presentation for one Program-owned Routine metadata row.
+/// One canonical Routine rendered as a standalone Core card.
 ///
-/// Rendering here does not own or mutate Routine data; the owning Program
-/// controller supplies the identity and optional action.
+/// A Library instance is read-only; Program Detail supplies the real rename
+/// action and its supporting label. No second Routine source of truth exists.
 class RoutineMetadataCard extends StatelessWidget {
   const RoutineMetadataCard({
     required this.routine,
@@ -20,16 +20,39 @@ class RoutineMetadataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.tioColors;
     return TioCard(
-      padding: EdgeInsets.zero,
-      child: TioSettingsNavigationRow(
-        leading: const TioSettingsLeadingIcon(
-          icon: Icons.fitness_center_outlined,
-        ),
-        title: routine.name,
-        supportingText: supportingText,
-        showChevron: false,
-        onTap: onTap,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(Icons.fitness_center_outlined, color: colors.textSecondary),
+          const SizedBox(width: TioSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  routine.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: TioFontSize.size15,
+                    fontWeight: TioFontWeight.w700,
+                  ),
+                ),
+                if (supportingText != null)
+                  Text(
+                    supportingText!,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: TioFontSize.size12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
