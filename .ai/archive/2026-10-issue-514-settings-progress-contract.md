@@ -29,7 +29,7 @@
 **Current implementation state:** Narrow `progress_contracts.dart` publishes two Progress domain files; two Settings page imports and two focused tests consume it. Boundary guard now checks both Settings production `lib/` and `test/`. Canonical ownership decision recorded; original broad Progress barrel and app composition unchanged.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
 **Validation completed at SHA:** exact final PR HEAD `379b31cf7e5b934e3f15eeae1855f3636af641b9`: Flutter CI #3061 / run `38131250858` PASS (Flutter/Dart analyze and tests), Commit attribution guard PASS, Attribution guard runner PASS, Codex clean `Didn't find any major issues` (PR comment #6107982137); 0 unresolved threads, 17 ahead/0 behind, exactly eight approved paths, mergeable true. Merged as `5aeba4540dcc0b461096cd6d657377336f388f3e`; remote `main` and the closed GitHub #514 verified. Earlier manual review #5482373566 had no blockers, and its only guard note was resolved at `3224ed2e1ed1dac9d1a54b6cf42d26ea0a6daac9`.
-**Validation remaining:** None for this merged child. Local `git status` / `fetch` / `pull --ff-only` and post-sync Flutter commands were not run because this execution has connector-only GitHub access; the operator's local checkout must be synced separately.
+**Validation remaining:** None for merged GitHub #514. The operator-provided Windows PowerShell output confirms a clean pre-sync local `main`, successful `git fetch origin --prune` and `git pull --ff-only origin main`, with both `HEAD` and `origin/main` resolving to `5aeba4540dcc0b461096cd6d657377336f388f3e`. A separate post-sync `git status` and local Flutter analyze/tests were not observed; these are not claimed.
 **Current blocker:** None for merged #514. The old Codex quota message was superseded by clean exact-head reviews. Broader TNYX-154 remains In Progress, not Done.
 **Open review finding IDs:** None.
 **Next exact action:** Use `main@5aeba4540dcc0b461096cd6d657377336f388f3e` or newer verified main for any separately approved TNYX-154/TNYX-201 slice; inspect active trackers/docs/source first. No implementation action remains in GitHub #514.
@@ -160,7 +160,7 @@ No runtime behavior change intended.
 
 ### Known Limitations
 
-Cannot claim local `git status`, `flutter analyze`, `flutter test`, or `git diff --check` from connector-only execution. Hosted CI must validate.
+GitHub-hosted Flutter CI #3061 passed full Flutter/Dart analysis and tests on the reviewed PR #515 HEAD `379b31cf7e5b934e3f15eeae1855f3636af641b9`, before squash merge. This is completed validation, not a pending gate. No local Flutter test/analyze or `git diff --check` result is claimed; owner-provided PowerShell output verifies local fast-forward sync to the merged `main` commit.
 
 ### Final Status
 
