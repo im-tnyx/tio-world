@@ -15,21 +15,21 @@
 **Planning owner:** Project CTO audit via current GitHub/Linear/Supabase connectors
 **Implementation owner:** Current W4A GitHub-connector implementation session
 **Review owner:** Independent GitHub reviewer/Codex (if available); no self-approval claims
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending (PR validation / independent review)
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-11, remote `main@12ea77880b1382a6e74b5a3c4a9083b06b9a5d87`; owner's earlier local `main@dfe9cee7` is stale. This tool session has no owner-local checkout and cannot claim local `git status`.
 **Branch:** `tnyx/issue-521-w4a-program-routine-metadata-ui`
-**HEAD SHA:** Initially `12ea77880b1382a6e74b5a3c4a9083b06b9a5d87`; update after commits.
+**HEAD SHA:** Source/diff review through `0e8ad4162388c7dd319f8096a129adc8f7159564` (additional handoff commit advances this head; always re-query GitHub). Base `main@12ea77880b1382a6e74b5a3c4a9083b06b9a5d87`.
 **Observed working-tree state:** Remote Git branch clean at base; owner's local working tree not inspected.
 **Observed uncommitted/dirty files:** Cannot inspect owner's Windows filesystem from GitHub connector.
 **PR / tracker:** GitHub #521, Linear TNYX-81 (broad W4 remains Backlog, blocked by TNYX-78/W1 and TNYX-80/W3). Linear child issue creation attempted but rejected by workspace free issue limit.
-**Current implementation state:** Approved bounded slice; source implementation being prepared.
+**Current implementation state:** Feature-owned ProgramRoutinesController and ProgramDetailPage implemented with canonical RoutineRepository, nullable app provider, selected Program-name navigation, no schema or unrelated Library behavior change. Added focused controller, widget and app route tests; this source awaits GitHub CI and independent review.
 **Relevant execution surface:** `LibraryPage` → existing `ProgramsSurface.library` selected Program → new feature-owned `ProgramDetailPage` and `ProgramRoutinesController` backed by `RoutineRepository` / existing Supabase gateway. App shell composes nullable RoutineRepository without memory fallback. Reuse `TioEditorSheet` / `TioButton` / `TioInput`.
-**Validation completed at SHA:** None for this slice. Older Routine composition CI is not W4A test evidence.
+**Validation completed at SHA:** GitHub source diff and expected scope reviewed at `0e8ad416`; no local Flutter/Dart tooling or command execution available. Existing PR #513 CI is not W4A evidence.
 **Validation remaining:** Flutter analyze/test and focused widget/app navigation, static checks, CI and review.
 **Current blocker:** No local Flutter/Dart toolchain in connected session; CI must be inspected and repairs handled without claiming local test runs.
 **Open review finding IDs:** None yet.
-**Next exact action:** Implement smallest approved vertical slice, focused tests; open one PR and STOP before merge.
+**Next exact action:** Open focused PR #521-linked; check exact-head Flutter Analyze/Test + attribution + Codex review, resolve findings within W4A scope, then STOP before owner merge approval.
 
 ## Design and risk
 - Library only passes a Program selected from canonical owner-scoped persisted Program list. ProgramDetail queries `RoutineRepository.list(program.id)` and validates Routine→Program relationship at feature boundary; database RLS and `(program_id,user_id)` FK protect storage.
