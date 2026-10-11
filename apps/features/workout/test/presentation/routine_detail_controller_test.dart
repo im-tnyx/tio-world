@@ -195,7 +195,7 @@ void main() {
     final catalog = _Catalog()..failures = 1;
     final ref = ExerciseRef.userCreated(_custom);
     final users = _Users([
-      Exercise(ref: ref, displayName: 'Custom Curl'),
+      Exercise(ref: ref, displayName: 'Custom Curl', status: ExerciseStatus.active),
     ]);
     final controller = _controller(
       _Routines([_routine(_r1, _p1)]),
