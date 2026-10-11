@@ -103,7 +103,7 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
-          state?.routine?.name ?? widget.routine.name,
+          state?.routine?.name ?? 'Routine',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           softWrap: false,
