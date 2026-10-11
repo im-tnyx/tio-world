@@ -3,12 +3,12 @@
 Document Status: Canonical Live Doc (bounded metadata screen; builder future)
 Last Verified: 2026-10-11
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for the planned user-owned Routine product contract; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for canonical user-owned Routine scope and the bounded W4A metadata UI currently under review in PR #522. Runtime on merged main and CI/trackers determine shipped implementation; the Exercise/Set composition builder remains future.
 
 **Surface:** Nested Phone Workout flow inside an owning Program
 **Route:** Program Detail is pushed from the selected Library Program name above `/workout/library`; no standalone Routine route exists.
 **Primary owner:** `apps/features/workout`
-**Status:** W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) introduces Program-owned Routine metadata list/create/rename UI behind an existing durable Routine repository, without a Routine composition builder. Routine metadata and ordered Exercise/set foundations are deployed; the Workout-owned composition adapter was merged in PR #513 but is not wired into an Exercise/set editor.
+**Status:** W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) / [PR #522](https://github.com/im-tnyx/tio-world/pull/522) adds Program-owned Routine metadata list/create/rename UI behind the durable Routine repository on its review branch; not yet evidence of a merged/shipped builder. Routine metadata and ordered Exercise/set foundations are deployed; the Workout-owned composition adapter was merged in PR #513 but is not wired into an Exercise/set editor.
 
 ## Purpose
 
