@@ -33,10 +33,10 @@
 
 ## Handoff
 
-**Planning:** GitHub #250 / Linear TNYX-193.  
-**Implementation:** Docs-only status reconciliation.  
-**Review:** Codex exact-head PR review plus mandatory GitHub attribution check.  
-**Branch:** `docs/pre-p9-routine-canonical-status-reconciliation`  
-**Baseline:** `main@e0a340dd902f0490cc819343858db3dabf7f92b4`  
-**Current checkpoint:** Documentation correction branch in progress.  
+**Planning:** GitHub #250 / Linear TNYX-193.
+**Implementation:** Docs-only status reconciliation.
+**Review:** Codex exact-head PR review plus mandatory GitHub attribution check.
+**Branch:** `docs/pre-p9-routine-canonical-status-reconciliation`
+**Baseline:** `main@e0a340dd902f0490cc819343858db3dabf7f92b4`
+**Current checkpoint:** Documentation correction branch in progress.
 **Next exact action:** Verify PR diff, required checks and exact-head Codex review; do not merge without owner authorization.
