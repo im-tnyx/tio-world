@@ -1,14 +1,14 @@
 # Programs Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-30
+Last Verified: 2026-10-11
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Programs product contract and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Persisted Programs collection rendered directly on Library, with an optional nested management route
 **Route:** Library `/workout/library`; optional `/workout/programs` (`AppRoutes.workoutPrograms`) management surface
 **Primary owner:** `apps/features/workout`
-**Status:** Minimal persisted Programs collection/create and rename are implemented and composed directly on Library. The separate Programs route remains optional secondary management. Program detail/builder, Routine management, archive/delete, media and TrainingPlan handoff remain future slices.
+**Status:** Persisted Programs collection/create/rename is implemented directly on Library. W4A adds a bounded Program Detail screen with owner-scoped Routine list/create/rename in [#521](https://github.com/im-tnyx/tio-world/issues/521); full Program/Routine builder, media, archive/delete and TrainingPlan remain gated. The separate Programs route remains optional secondary management.
 
 ## Purpose
 
@@ -35,7 +35,7 @@ Current behavior:
 - Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
 - Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
 - The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
-- Library Program rows use a plain header treatment rather than a large/grouped Program card and expose a presentation-only expand/collapse chevron plus 3-dot overflow. The overflow opens a Program-scoped bottom sheet. The current real action is **Edit Program**, which persists rename through `ProgramRepository.rename`; Program-name navigation, Add New Routine and Delete remain gated until their owning capabilities are ready.
+- Library Program rows retain plain header geometry, an expand/collapse chevron and 3-dot overflow. The overflow's real action stays **Edit Program** via `ProgramRepository.rename`. W4A adds a Program-name action that opens the selected Program Detail. Its metadata-only Routine list/create/rename uses the existing `RoutineRepository`, not a second Library domain source. Inline Routine rows, overflow Add Routine/Delete and the Exercise/set builder remain separate gated slices.
 - The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
 - No standalone Routines row or top-level Create Routine action exists.
 
@@ -49,14 +49,14 @@ GitHub #475 changes how this capability is entered without changing Program owne
 - Program content may render directly on Library.
 - `/workout/programs` may remain as an optional secondary Programs collection/manage screen reached from the Programs header.
 - The collection/manage screen is not a mandatory intermediate step before an individual Program.
-- Tapping an individual Program opens Program detail directly once W4 supplies that capability.
+- Tapping the persisted Program name opens Program Detail directly once the W4A Routine repository provider is available; the app fails closed otherwise.
 - Program expand/collapse on Library is presentation state only.
 
-The approved Library collection-composition slice is now the documented runtime direction. Program detail/Routine behavior remains gated by W4 and is not implied by rendering the existing collection on Library.
+The approved Library collection composition remains unchanged. W4A makes only owner-scoped Program Detail and Routine metadata actions real; Program/Routine composition editing still requires later W4 slices.
 
-## Future Program Detail And Program-owned Routines
+## Program Detail Metadata And Future Routine Builder
 
-A Routine has its own stable identity/composition but belongs to exactly one user-owned Program. Program detail/builder will therefore be the management surface for its Routines when that separately approved capability lands.
+A Routine has stable identity/composition and belongs to exactly one user-owned Program. W4A Program Detail loads only that Program's Routine metadata, with generated editable names before create and existing names editable via Tio editor sheets. A save is owner-checked by existing RLS and FK; uncertain writes are reconciled using the same stable UUID. This does not expose Routine composition editing, picker or Workout Start.
 
 ```text
 Program 1
@@ -101,11 +101,11 @@ Current shipped foundation:
 - Loading, empty, load-failure/retry and create-failure states are honest.
 - Production has no in-memory Program durability fallback.
 - A user-owned Program can exist with zero Routines.
-- Program rows do not pretend detail/builder capability exists.
+- Program name opens only the implemented metadata Program Detail when durable Routine persistence is available; no placeholder builder/action is exposed.
 - User-owned Routines are not exposed as orphan top-level Library items.
 - Program and TrainingPlan remain separate.
 
-Future acceptance remains owned by later slices for Program detail/builder, Program-owned Routine composition/management, provenance/adoption, media, archive/delete and TrainingPlan handoff.
+Future acceptance remains owned by later slices for full Program/Routine builder and composition UI, inline Routine content, provenance/adoption, media, archive/delete and TrainingPlan handoff.
 
 ## Related
 
