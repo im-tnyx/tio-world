@@ -1,6 +1,7 @@
 # GitHub #514 — Settings ↔ Progress contract-only public dependency
 
-**Status:** Ready
+**Status:** Validated
+**Completed:** 2026-10-11
 **Primary owner:** `apps/features/progress` public domain contract + `apps/features/settings` consumer
 **Affected platforms:** Flutter Android and iOS
 
@@ -17,21 +18,21 @@
 **Planning owner:** ChatGPT architecture workflow
 **Implementation owner:** ChatGPT (single owner for this slice)
 **Review owner:** Codex on PR
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Closed; merged implementation archived
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub `main@dfe9cee7389165f0a485623a1e3e69477eb1dc37` on 2026-10-11
+**Repository state last verified:** GitHub `main@5aeba4540dcc0b461096cd6d657377336f388f3e` on 2026-10-11 (remote verified; no local checkout)
 **Branch:** `tnyx/issue-514-settings-progress-contract`
-**Last validated PR HEAD (pre-governance refresh):** `bc508abab43a121383323328d201efa97c4276ac`. GitHub Flutter CI #3059 and Codex both passed on this SHA. The follow-up handoff-only commit produced by this brief refresh is **not** covered by those results; check its new HEAD before Ready.
+**Final reviewed PR HEAD:** `379b31cf7e5b934e3f15eeae1855f3636af641b9`. All required exact-head checks and Codex review passed before merge; squash commit on `main` is `5aeba4540dcc0b461096cd6d657377336f388f3e`.
 **Observed working-tree state:** Connector-only execution; no local checkout/status available.
 **Observed uncommitted/dirty files:** Not observable; GitHub branch was created from exact main.
-**PR / tracker:** Draft PR #515; GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
+**PR / tracker:** PR #515 merged (squash) as `5aeba4540dcc0b461096cd6d657377336f388f3e`; GitHub #514 auto-closed as completed; parent #260/#357 and broader Linear TNYX-154/TNYX-201 remain separate/open; TNYX-155 out of scope.
 **Current implementation state:** Narrow `progress_contracts.dart` publishes two Progress domain files; two Settings page imports and two focused tests consume it. Boundary guard now checks both Settings production `lib/` and `test/`. Canonical ownership decision recorded; original broad Progress barrel and app composition unchanged.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
-**Validation completed at SHA:** `bc508abab43a121383323328d201efa97c4276ac`: Flutter CI #3059 / run `38130482762` full PASS (Flutter/Dart analysis and Flutter/Dart tests); Commit attribution guard and Attribution guard runner PASS; Codex exact-head review `Didn't find any major issues` (PR comment #6107857144); 0 unresolved review threads; eight changed paths, 15 ahead/0 behind and mergeable at this checkpoint. Earlier manual review #5482373566 found 0 blockers; the guard hardening note was fixed at `3224ed2e1ed1dac9d1a54b6cf42d26ea0a6daac9`.
-**Validation remaining:** Revalidate the new governance-only commit HEAD (required CI/attribution, Codex exact-head, 0 unresolved threads, bounded diff), then Ready for Review transition and Ready-state recheck. Merge requires separate explicit owner authorization.
-**Current blocker:** No outstanding source/review blocker at validated `bc508abab4...`; the old Codex quota message is historical and superseded by exact-head clean reviews. The new governance-only HEAD requires its own final gate before Ready or merge.
+**Validation completed at SHA:** exact final PR HEAD `379b31cf7e5b934e3f15eeae1855f3636af641b9`: Flutter CI #3061 / run `38131250858` PASS (Flutter/Dart analyze and tests), Commit attribution guard PASS, Attribution guard runner PASS, Codex clean `Didn't find any major issues` (PR comment #6107982137); 0 unresolved threads, 17 ahead/0 behind, exactly eight approved paths, mergeable true. Merged as `5aeba4540dcc0b461096cd6d657377336f388f3e`; remote `main` and the closed GitHub #514 verified. Earlier manual review #5482373566 had no blockers, and its only guard note was resolved at `3224ed2e1ed1dac9d1a54b6cf42d26ea0a6daac9`.
+**Validation remaining:** None for merged GitHub #514. The operator-provided Windows PowerShell output confirms a clean pre-sync local `main`, successful `git fetch origin --prune` and `git pull --ff-only origin main`, with both `HEAD` and `origin/main` resolving to `5aeba4540dcc0b461096cd6d657377336f388f3e`. A separate post-sync `git status` and local Flutter analyze/tests were not observed; these are not claimed.
+**Current blocker:** None for merged #514. The old Codex quota message was superseded by clean exact-head reviews. Broader TNYX-154 remains In Progress, not Done.
 **Open review finding IDs:** None.
-**Next exact action:** Read new PR HEAD after this brief update; verify Flutter CI, attribution, Codex and zero threads on that exact head; mark PR #515 Ready only when green; reconcile TNYX-154 without marking its broad scope Done. Do not merge without separate explicit authorization.
+**Next exact action:** Use `main@5aeba4540dcc0b461096cd6d657377336f388f3e` or newer verified main for any separately approved TNYX-154/TNYX-201 slice; inspect active trackers/docs/source first. No implementation action remains in GitHub #514.
 
 ## 1. Discovery
 
@@ -121,7 +122,8 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 - [x] Flutter CI #3058 full PASS on exact source/review head `e16ecee...`.
 - [x] Codex exact-head review clean on `e16ecee...`; unresolved threads 0.
 - [x] Flutter CI #3059 full PASS and Codex clean on `bc508abab4...` (latest pre-refresh exact HEAD); zero unresolved threads.
-- [ ] Verify final governance-only HEAD Flutter CI/Codex/attribution, then Ready transition and Ready-state recheck.
+- [x] Final HEAD `379b31cf7e...` Flutter CI #3061 full PASS, attribution PASS, Codex clean, threads 0; Ready for Review verified.
+- [x] Owner-authorized squash merge of PR #515 as `5aeba4540dcc0b461096cd6d657377336f388f3e`; main and issue #514 verified.
 
 ## 6. Quality Review
 
@@ -130,7 +132,7 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 ```text
 Static GitHub compare: eight changed paths exactly (task brief, Progress contract barrel, two Settings pages, two Settings focused widget tests, one boundary guard, Module Ownership doc). `progress.dart` unchanged. No routes, persistence, providers, app code or visible UI changed.
 
-Flutter CI #3054 initially failed `dangling_library_doc_comments`; fixed in `80f4ab620a...` without export changes. CI #3055 cancelled on new commit. Flutter CI #3056 passed full Flutter/Dart analyze/tests on `ec3239d89...`. Manual PR review #5482373566 found no blockers but noted a test-root scanning gap; scoped guard-only change at `3224ed2e...` now includes `test/` as well as `lib/`. Flutter CI #3058 / run `38129864107` PASS on `e16ecee...` (Flutter/Dart analyze/tests). Codex's earlier quota limit was superseded: exact-head Codex review completed with `Didn't find any major issues` and 0 unresolved threads on `e16ecee...`. Flutter CI #3059 / run `38130482762` later passed every analysis/test step on `bc508abab4...`, with attribution checks PASS and Codex exact-head clean review (#6107857144); 0 threads. This handoff-only correction produces a newer HEAD, so its own exact-head checks remain mandatory before Ready. No local Flutter/git execution was performed.
+Flutter CI #3054 initially failed `dangling_library_doc_comments`; fixed in `80f4ab620a...` without export changes. CI #3055 cancelled on new commit. Flutter CI #3056 passed full Flutter/Dart analyze/tests on `ec3239d89...`. Manual PR review #5482373566 found no blockers but noted a test-root scanning gap; scoped guard-only change at `3224ed2e...` now includes `test/` as well as `lib/`. Flutter CI #3058 / run `38129864107` PASS on `e16ecee...` (Flutter/Dart analyze/tests). Codex's earlier quota limit was superseded: exact-head Codex review completed with `Didn't find any major issues` and 0 unresolved threads on `e16ecee...`. Flutter CI #3059 / run `38130482762` later passed every analysis/test step on `bc508abab4...`, with attribution checks PASS and Codex exact-head clean review (#6107857144); 0 threads. The final head `379b31cf7e...` subsequently passed Flutter CI #3061, both attribution checks and Codex exact-head review (0 unresolved threads) and was squash-merged to `main` as `5aeba4540dcc0b461096cd6d657377336f388f3e`. The agent did not run local Git or Flutter commands (connector-only execution); the owner separately verified Windows `git fetch origin --prune` and `git pull --ff-only origin main`, with local `HEAD` and `origin/main` matching the merged SHA. Local Flutter analyze/tests were not run, and no post-sync `git status` or local `git diff --check` was observed.
 ```
 
 ### Review Findings and Resolution
@@ -158,8 +160,8 @@ No runtime behavior change intended.
 
 ### Known Limitations
 
-Cannot claim local `git status`, `flutter analyze`, `flutter test`, or `git diff --check` from connector-only execution. Hosted CI must validate.
+GitHub-hosted Flutter CI #3061 passed full Flutter/Dart analysis and tests on the reviewed PR #515 HEAD `379b31cf7e5b934e3f15eeae1855f3636af641b9`, before squash merge. This is completed validation, not a pending gate. No local Flutter test/analyze or `git diff --check` result is claimed; owner-provided PowerShell output verifies local fast-forward sync to the merged `main` commit.
 
 ### Final Status
 
-`READY / HANDOFF PENDING` (source validated at `bc508abab4...`; final governance-only commit requires exact-head gate; PR not merged)
+`VALIDATED` (PR #515 squash-merged as `5aeba4540dcc0b461096cd6d657377336f388f3e`; source and final-head review gate passed, GitHub #514 closed; broader TNYX-154 In Progress)
