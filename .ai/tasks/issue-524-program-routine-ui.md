@@ -15,10 +15,14 @@
 - Reuse `TioAppBar.actions`, `TioCard`, existing `ProgramRoutinesController` for owner-scoped read state, `TioSettingsNavigationRow`, `TioButton`/Core tokens. Preserve current library Program-header geometry and callback ownership.
 
 ## Approved changes
-1. Program Detail: single top-app-bar Add Routine +, no additional heading or extra empty CTA, each Routine in its own TioCard; preserve Rename Routine action.
+1. Program Detail: single top-app-bar Add Routine +, no additional heading or extra empty CTA, each Routine in its own TioCard; keep left icon as thumbnail fallback. Owner's later reference specifies future card anatomy **thumbnail | name | Play | Routine 3-dot**. The available **3-dot → Edit-only** action invokes the existing Rename Routine editor. No fake Play, Change Picture or Delete controls.
 2. Library: expanded Program renders persisted owner-filtered Routines beneath that Program, collapse hides, reopen refreshes; asynchronous owner read/error/retry/no provider fail-closed; after returning from Detail refresh the shown rows without new truth.
 3. Focused widget/controller/navigation tests: multiple Programs, two distinct Routine cards, single action, compact width, dark mode, empty/loading/failure, collapse/re-expand, create-return refresh, provider null, no cross-owner data.
 4. Canonical screens docs for new runtime behavior.
+
+## Additional owner screenshot clarification (2026-10-11)
+
+The owner expressly requested Routine card images on the left, Play on the right, and a 3-dot Routine menu intended to contain Edit / Change Picture / Delete. [GitHub #524](https://github.com/im-tnyx/tio-world/issues/524) now records the complete approved *visual target*. The real data/action capabilities not present in this slice are tracked in [GitHub #526](https://github.com/im-tnyx/tio-world/issues/526): user-private persisted Routine image, eligible Active Workout Start, and safe authenticated cascade-aware Delete. No authorization for new SQL/Storage/API or fake controls follows from a visual reference. Existing Edit-only menu + icon fallback is a truthful partial step in #525, not completion of #526.
 
 ## Exclusions
 No W4B editor/ExercisePicker/Sets, no default My Program Library top-bar quick create, no Program delete/media/TrainingPlan/Favorites/Folders, no Supabase schema/RLS/RPC/production data write, no full W4/W6B blocker removal, no merge/release/branch deletion.
