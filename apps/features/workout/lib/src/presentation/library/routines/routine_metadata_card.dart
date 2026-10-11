@@ -4,19 +4,22 @@ import 'package:tio_shared/shared.dart';
 
 /// One canonical Routine rendered as a standalone Core card.
 ///
-/// A Library instance is read-only; Program Detail supplies the real rename
-/// action and its supporting label. No second Routine source of truth exists.
+/// Primary card navigation and the secondary Edit/rename popup are distinct.
+/// An expanded Library card may navigate without exposing owner-only edits.
+/// No second Routine source of truth exists.
 class RoutineMetadataCard extends StatelessWidget {
   const RoutineMetadataCard({
     required this.routine,
     super.key,
     this.supportingText,
     this.onTap,
+    this.onEdit,
   });
 
   final Routine routine;
   final String? supportingText;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +55,10 @@ class RoutineMetadataCard extends StatelessWidget {
               ],
             ),
           ),
-          if (onTap != null)
+          if (onEdit != null)
             _RoutineOptionsPopup(
               routineId: routine.id.value,
-              onEdit: onTap!,
+              onEdit: onEdit!,
             ),
         ],
       ),
