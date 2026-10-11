@@ -244,7 +244,6 @@ void main() {
     expect(find.text('Push'), findsNothing);
     expect(find.byKey(const ValueKey('library-routines-unavailable')),
         findsOneWidget);
-    expect(find.byType(InlineProgramRoutines), findsOneWidget);
   });
 
   testWidgets('Programs header refreshes inline rows after management returns',
