@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@dfe9cee7389165f0a485623a1e3e69477eb1dc37` on 2026-10-11
 **Branch:** `tnyx/issue-514-settings-progress-contract`
-**HEAD SHA:** corrected source head `80f4ab620aaffe4c6be19b1653bd6e2396d2b187`; this blocker/evidence-only task refresh will create a newer docs-only PR head
+**HEAD SHA:** new source head `3224ed2e1ed1dac9d1a54b6cf42d26ea0a6daac9` (expanded guard to `lib/` and `test/`); this handoff refresh creates a new docs-only final head
 **Observed working-tree state:** Connector-only execution; no local checkout/status available.
 **Observed uncommitted/dirty files:** Not observable; GitHub branch was created from exact main.
 **PR / tracker:** Draft PR #515; GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
-**Current implementation state:** Narrow `progress_contracts.dart` created with two pure domain exports; two Settings page imports and two focused tests migrated; import-boundary guard added; canonical ownership decision recorded.
+**Current implementation state:** Narrow `progress_contracts.dart` publishes two Progress domain files; two Settings page imports and two focused tests consume it. Boundary guard now checks both Settings production `lib/` and `test/`. Canonical ownership decision recorded; original broad Progress barrel and app composition unchanged.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
-**Validation completed at SHA:** CI #3054 at `e7d6100a73d30d3b7c38dfb87481ddc69d7d2d90` failed one analyzer lint in the new Progress contract barrel. Fixed on `80f4ab620aaffe4c6be19b1653bd6e2396d2b187` and CI #3055 passed Flutter analysis; test phases in progress at last check.
-**Validation remaining:** Final-head hosted CI completion plus independent code review; Codex bot review unavailable due usage limit (not a clean review).
-**Current blocker:** Codex bot returned `You have reached your Codex usage limits for code reviews` on PR #515. No clean Codex review; PR must remain Draft until an approved review gate is available. CI #3055 test phase also pending at last check.
+**Validation completed at SHA:** Flutter CI #3056 / run `38119970847` full PASS on `ec3239d89fe3d089b9d6ff2559df6c2307366770` (Flutter/Dart analyze + tests). Manual architecture review #5482373566 on that exact head: 0 blocking findings; non-blocking test-root scan gap was corrected at source head `3224ed2e1ed1dac9d1a54b6cf42d26ea0a6daac9`.
+**Validation remaining:** Final-head Flutter CI after guard + handoff edits, and independent Codex review if quota becomes available. Prior manual COMMENTED review is not a Codex review.
+**Current blocker:** Codex bot returned `You have reached your Codex usage limits for code reviews` on PR #515. Exact-head CI passed on earlier head, but newer guard/handoff changes must pass new CI; no Codex-clean result exists. PR remains Draft.
 **Open review finding IDs:** None.
-**Next exact action:** Check current exact-head CI; complete independent review gate when available, resolve any findings, then reevaluate Ready/merge. Do not merge from this blocked state.
+**Next exact action:** Verify exact final-head CI after test guard + handoff refresh, request Codex review on that head, and keep PR Draft if Codex review is still unavailable. No merge without review gate.
 
 ## 1. Discovery
 
@@ -115,6 +115,9 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 - [x] Update canonical ownership documentation.
 - [x] Audit exact changed-file scope (eight paths only).
 - [x] Open Draft PR #515.
+- [x] Flutter CI #3056 full PASS at reviewed head `ec3239d89...`.
+- [x] Manual COMMENTED review recorded; no blocking findings.
+- [x] Improve import guard to scan both `lib/` and `test/`.
 - [ ] Hosted Flutter CI exact final-head PASS.
 - [ ] Independent Codex review gate (usage limit currently blocks).
 - [ ] Hosted CI + Codex exact-head gate.
@@ -126,7 +129,7 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 ```text
 Static GitHub compare: eight changed paths exactly (task brief, Progress contract barrel, two Settings pages, two Settings focused widget tests, one boundary guard, Module Ownership doc). `progress.dart` unchanged. No routes, persistence, providers, app code or visible UI changed.
 
-Flutter CI #3054 initially failed at `tio_feature_progress` analyzer because a `///` comment at top of new public contract barrel triggered `dangling_library_doc_comments`; fixed to `//` in `80f4ab620a...` without changing exports. Flutter CI #3055 passed analysis and was running tests at last check. Codex returned a usage limit rather than a review. Local Flutter commands and `git diff --check` not run; connector-only.
+Flutter CI #3054 initially failed `dangling_library_doc_comments`; fixed in `80f4ab620a...` without export changes. CI #3055 cancelled on new commit. Flutter CI #3056 passed full Flutter/Dart analyze/tests on `ec3239d89...`. Manual PR review #5482373566 found no blockers but noted a test-root scanning gap; scoped guard-only change at `3224ed2e...` now includes `test/` as well as `lib/`. Awaiting exact final-head CI. Codex bot returned quota limit, **not** a successful review. No local Flutter/git execution was performed.
 ```
 
 ### Review Findings and Resolution
@@ -135,6 +138,7 @@ Flutter CI #3054 initially failed at `tio_feature_progress` analyzer because a `
 |---|---|---|---|---|---|
 | `CI-3054-LINT` | Analyzer | Resolved | Dangling doc comment on new Progress public barrel | `e7d6100a73d30d3b7c38dfb87481ddc69d7d2d90` | Changed comment to ordinary `//` in `80f4ab620a...`; CI #3055 analysis passed |
 | `GATE-CODEX-QUOTA` | Review gate | Deferred | Codex review usage limit reached; no code review returned | PR #515 | Requires available independent reviewer, not a clean-review claim |
+| `MANUAL-515-1` | Hardening | Resolved | Source-only architecture guard missed test-side imports (non-blocking) | Manual review #5482373566, `ec3239d89...` | Guard updated to scan Settings `lib/` + `test/` in `3224ed2e...`; new exact-head CI pending |
 
 ## 7. Final Handoff
 
