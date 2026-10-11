@@ -7,7 +7,8 @@ import 'package:tio_shared/shared.dart';
 Future<void> _pump(
   WidgetTester tester, {
   Future<void> Function()? onProgramsManagePressed,
-  ValueChanged<Program>? onProgramPressed,
+  Future<void> Function(Program)? onProgramPressed,
+  RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
   bool withProgramRepository = true,
@@ -32,6 +33,7 @@ Future<void> _pump(
       ),
       home: LibraryPage(
         programRepository: resolvedProgramRepository,
+        routineRepository: routineRepository,
         programIdGenerator: programIdGenerator,
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
@@ -138,7 +140,9 @@ void main() {
   testWidgets('Program name has a 48dp action target and the right identity',
       (tester) async {
     Program? selected;
-    await _pump(tester, onProgramPressed: (program) => selected = program);
+    await _pump(tester, onProgramPressed: (program) async {
+      selected = program;
+    });
 
     final target = find.byKey(
       ValueKey('program-open-${_id(1).value}'),
@@ -157,6 +161,89 @@ void main() {
       tester.widget<IconButton>(toggle).tooltip,
       'Expand Strength',
     );
+  });
+
+  testWidgets('expanded Programs render only their persisted Routine children',
+      (tester) async {
+    final repository = _FakeRoutineRepository([
+      _routine(1, 101, 'Push'),
+      _routine(1, 102, 'Pull'),
+      _routine(2, 201, 'Legs'),
+    ]);
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: repository,
+    );
+    final one = find.byKey(ValueKey('library-routines-${_id(1).value}'));
+    final two = find.byKey(ValueKey('library-routines-${_id(2).value}'));
+    expect(one, findsOneWidget);
+    expect(two, findsOneWidget);
+    expect(find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
+    expect(find.descendant(of: one, matching: find.text('Pull')), findsOneWidget);
+    expect(find.descendant(of: one, matching: find.text('Legs')), findsNothing);
+    expect(find.descendant(of: two, matching: find.text('Legs')), findsOneWidget);
+    expect(find.descendant(of: one, matching: find.byType(TioCard)),
+        findsNWidgets(2));
+    expect(repository.queries, containsAll([_id(1), _id(2)]));
+
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(one, findsNothing);
+    expect(two, findsOneWidget);
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(one, findsOneWidget);
+    expect(find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
+  });
+
+  testWidgets('Program Detail return refreshes saved Library Routines',
+      (tester) async {
+    final repository = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(
+      tester,
+      routineRepository: repository,
+      onProgramPressed: (program) async {
+        repository.rows.add(_routine(1, 102, 'New Routine'));
+      },
+    );
+    expect(find.text('New Routine'), findsNothing);
+    await tester.tap(find.byKey(ValueKey('program-open-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.text('New Routine'), findsOneWidget);
+    expect(repository.queries.where((p) => p == _id(1)).length,
+        greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('Routine child load error retries without leaking another Program',
+      (tester) async {
+    final repository = _FakeRoutineRepository([_routine(2, 201, 'Foreign')])
+      ..loadFailures = 1;
+    await _pump(tester, routineRepository: repository);
+    expect(find.text('Could not load routines.'), findsOneWidget);
+    expect(find.text('Foreign'), findsNothing);
+    await tester.tap(find.byKey(
+        ValueKey('library-routines-retry-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.text('No routines yet'), findsOneWidget);
+
+    repository.returnForeign = true;
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.text('Foreign'), findsNothing);
+    expect(find.text('Could not load routines.'), findsOneWidget);
+  });
+
+  testWidgets('no Routine repository fails closed under expanded Program',
+      (tester) async {
+    await _pump(tester);
+    expect(find.text('Push'), findsNothing);
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
+        findsOneWidget);
   });
 
   testWidgets('Programs header refreshes inline rows after management returns',
@@ -583,4 +670,40 @@ final class _FakeProgramRepository implements ProgramRepository {
     final errorAfterWrite = renameErrorAfterWrite;
     if (errorAfterWrite != null) throw errorAfterWrite;
   }
+}
+
+Routine _routine(int program, int number, String name) => Routine(
+      id: RoutineId(
+        '20000000-0000-4000-8000-${number.toString().padLeft(12, '0')}',
+      ),
+      programId: _id(program),
+      name: name,
+    );
+
+final class _FakeRoutineRepository implements RoutineRepository {
+  _FakeRoutineRepository(this.rows);
+
+  final List<Routine> rows;
+  final List<ProgramId> queries = [];
+  int loadFailures = 0;
+  bool returnForeign = false;
+
+  @override
+  Future<List<Routine>> list(ProgramId programId) async {
+    queries.add(programId);
+    if (loadFailures > 0) {
+      loadFailures--;
+      throw StateError('temporary failure');
+    }
+    return List.unmodifiable(
+      returnForeign ? rows : rows.where((r) => r.programId == programId),
+    );
+  }
+
+  @override
+  Future<void> create(Routine routine) => throw UnimplementedError();
+
+  @override
+  Future<void> rename({required RoutineId id, required String name}) =>
+      throw UnimplementedError();
 }

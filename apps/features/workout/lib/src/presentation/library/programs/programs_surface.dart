@@ -3,7 +3,9 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/program_repository.dart';
+import '../../../domain/repositories/routine_repository.dart';
 import '../../../domain/usecases/program_id_generator.dart';
+import '../routines/inline_program_routines.dart';
 import 'programs_controller.dart';
 
 enum _ProgramsSurfaceMode { standalone, library }
@@ -20,12 +22,14 @@ class ProgramsSurface extends StatefulWidget {
     super.key,
   })  : _mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null,
-        onProgramPressed = null;
+        onProgramPressed = null,
+        routineRepository = null;
 
   const ProgramsSurface.library({
     required this.repository,
     required this.onManagePressed,
     this.onProgramPressed,
+    this.routineRepository,
     this.idGenerator,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
@@ -34,7 +38,8 @@ class ProgramsSurface extends StatefulWidget {
   final ProgramIdGenerator? idGenerator;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
-  final ValueChanged<Program>? onProgramPressed;
+  final Future<void> Function(Program)? onProgramPressed;
+  final RoutineRepository? routineRepository;
 
   @override
   State<ProgramsSurface> createState() => _ProgramsSurfaceState();
@@ -42,6 +47,7 @@ class ProgramsSurface extends StatefulWidget {
 
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
+  int _routineRefreshVersion = 0;
 
   @override
   void initState() {
@@ -88,6 +94,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
       ?..removeListener(_onControllerChanged)
       ..dispose();
     super.dispose();
+  }
+
+  Future<void> _openProgram(Program program) async {
+    final open = widget.onProgramPressed;
+    if (open == null) return;
+    await open(program);
+    if (!mounted) return;
+    setState(() => _routineRefreshVersion++);
   }
 
   Future<void> _openManage() async {
@@ -302,7 +316,11 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           programs: state.programs,
           embedded: embedded,
           onProgramActions: _openProgramActions,
-          onProgramPressed: widget.onProgramPressed,
+          onProgramPressed: widget.onProgramPressed == null
+              ? null
+              : _openProgram,
+          routineRepository: widget.routineRepository,
+          routineRefreshVersion: _routineRefreshVersion,
         );
     }
   }
@@ -327,12 +345,16 @@ class _ProgramsList extends StatefulWidget {
     required this.embedded,
     required this.onProgramActions,
     required this.onProgramPressed,
+    required this.routineRepository,
+    required this.routineRefreshVersion,
   });
 
   final List<Program> programs;
   final bool embedded;
   final Future<void> Function(Program program) onProgramActions;
-  final ValueChanged<Program>? onProgramPressed;
+  final Future<void> Function(Program)? onProgramPressed;
+  final RoutineRepository? routineRepository;
+  final int routineRefreshVersion;
 
   @override
   State<_ProgramsList> createState() => _ProgramsListState();
@@ -392,6 +414,16 @@ class _ProgramsListState extends State<_ProgramsList> {
               : () => widget.onProgramPressed!(program),
         ),
       );
+      if (expanded) {
+        children.add(
+          InlineProgramRoutines(
+            key: ValueKey('library-program-routines-${program.id.value}'),
+            program: program,
+            repository: widget.routineRepository,
+            refreshVersion: widget.routineRefreshVersion,
+          ),
+        );
+      }
       if (index != widget.programs.length - 1) {
         children.add(const _ProgramsDivider(indented: false));
       }

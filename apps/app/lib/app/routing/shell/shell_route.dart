@@ -78,10 +78,11 @@ List<RouteBase> _shellBranchChildRoutes(
               ref.watch(userExerciseRepositoryProvider);
           return LibraryPage(
             programRepository: programRepository,
+            routineRepository: routineRepository,
             onProgramPressed: routineRepository == null
                 ? null
-                : (program) {
-                    Navigator.of(context).push<void>(
+                : (program) async {
+                    await Navigator.of(context).push<void>(
                       MaterialPageRoute(
                         builder: (_) => ProgramDetailPage(
                           program: program,

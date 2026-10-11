@@ -4,6 +4,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_repository.dart';
 import '../routines/program_routines_controller.dart';
+import '../routines/routine_metadata_card.dart';
 
 /// Minimal Program-owned Routine metadata screen. Exercise composition/editing
 /// and Library-level Routine quick-create are different, still-gated slices.
@@ -141,6 +142,15 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             fontWeight: TioFontWeight.w800,
           ),
         ),
+        actions: [
+          IconButton(
+            key: const ValueKey('program-detail-add-routine'),
+            tooltip: 'Add Routine',
+            color: colors.textPrimary,
+            onPressed: _canEdit ? _openCreate : null,
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -148,32 +158,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             horizontal: TioSpacing.lg,
             vertical: TioSpacing.md,
           ),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Routines',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: TioFontWeight.w800,
-                        ),
-                  ),
-                ),
-                IconButton(
-                  key: const ValueKey('program-detail-add-routine'),
-                  tooltip: 'Add Routine',
-                  color: colors.textPrimary,
-                  onPressed: _canEdit ? _openCreate : null,
-                  icon: const Icon(Icons.add_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            _body(),
-          ],
+          children: [_body()],
         ),
       ),
     );
@@ -212,34 +197,23 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         );
       case ProgramRoutinesStatus.ready:
         if (state.routines.isEmpty) {
-          return Column(
-            key: const ValueKey('program-routines-empty'),
-            children: [
-              const _RoutineMessage(
-                message: 'No routines yet',
-              ),
-              const SizedBox(height: TioSpacing.lg),
-              TioButton.primary(
-                key: const ValueKey('program-routines-empty-create'),
-                label: 'Create Routine',
-                onPressed: _canEdit ? _openCreate : null,
-              ),
-            ],
+          return const _RoutineMessage(
+            key: ValueKey('program-routines-empty'),
+            message: 'No routines yet. Use + above to add one.',
           );
         }
-        return TioGroupCard(
+        return Column(
           key: const ValueKey('program-routines-list'),
           children: [
             for (final routine in state.routines)
-              TioSettingsNavigationRow(
+              Padding(
                 key: ValueKey('program-routine-${routine.id.value}'),
-                leading: const TioSettingsLeadingIcon(
-                  icon: Icons.fitness_center_outlined,
+                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+                child: RoutineMetadataCard(
+                  routine: routine,
+                  supportingText: 'Rename Routine',
+                  onTap: _canEdit ? () => _openRename(routine) : null,
                 ),
-                title: routine.name,
-                supportingText: 'Rename Routine',
-                showChevron: false,
-                onTap: _canEdit ? () => _openRename(routine) : null,
               ),
           ],
         );

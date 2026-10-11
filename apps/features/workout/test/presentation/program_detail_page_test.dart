@@ -46,8 +46,11 @@ void main() {
     expect(find.byKey(const ValueKey('program-detail-page')), findsOneWidget);
     expect(find.text('Strength'), findsOneWidget);
     expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
-    expect(find.text('No routines yet'), findsOneWidget);
+    expect(find.text('No routines yet. Use + above to add one.'), findsOneWidget);
     expect(find.byKey(const ValueKey('program-routines-empty-create')),
+        findsNothing);
+    final add = find.byKey(const ValueKey('program-detail-add-routine'));
+    expect(find.descendant(of: find.byType(TioAppBar), matching: add),
         findsOneWidget);
     expect(find.text('Add Exercises'), findsNothing);
     expect(find.text('Start Workout'), findsNothing);
@@ -58,7 +61,7 @@ void main() {
     final repository = _MemoryRoutines();
     await _pump(tester, repository: repository);
     await tester.tap(
-        find.byKey(const ValueKey('program-routines-empty-create')));
+        find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     final field = find.byKey(const ValueKey('routine-name-field'));
     final editable =
@@ -81,7 +84,7 @@ void main() {
       (tester) async {
     await _pump(tester, repository: _MemoryRoutines());
     await tester.tap(
-      find.byKey(const ValueKey('program-routines-empty-create')),
+      find.byKey(const ValueKey('program-detail-add-routine')),
     );
     await tester.pumpAndSettle();
 
@@ -98,6 +101,34 @@ void main() {
     await tester.enterText(field, 'Upper');
     await tester.pump();
     expect(tester.widget<TioButton>(button).onPressed, isNotNull);
+  });
+
+  testWidgets('two saved Routines use separate cards and one top-bar add',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+      Routine(
+        id: RoutineId('20000000-0000-4000-8000-000000000042'),
+        programId: _program.id,
+        name: 'Pull',
+      ),
+    ]);
+    await _pump(tester, repository: repository);
+
+    final list = find.byKey(const ValueKey('program-routines-list'));
+    expect(find.descendant(of: list, matching: find.byType(TioCard)),
+        findsNWidgets(2));
+    expect(find.descendant(of: list, matching: find.byType(TioGroupCard)),
+        findsNothing);
+    expect(find.text('Routines'), findsNothing);
+    final add = find.byKey(const ValueKey('program-detail-add-routine'));
+    expect(add, findsOneWidget);
+    expect(find.descendant(of: find.byType(TioAppBar), matching: add),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('program-routines-empty-create')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.text('Pull'), findsOneWidget);
   });
 
   testWidgets('persisted Routine row opens only its real rename editor',
@@ -123,11 +154,33 @@ void main() {
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
   });
 
+  testWidgets('Routine 3-dot opens only the real Edit metadata action',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    await _pump(tester, repository: repository);
+    final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Change Picture'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Routine'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsOneWidget);
+  });
+
   testWidgets('create failure retains name and editor', (tester) async {
     final repository = _MemoryRoutines()..failCreate = true;
     await _pump(tester, repository: repository);
     await tester.tap(
-        find.byKey(const ValueKey('program-routines-empty-create')));
+        find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     final field = find.byKey(const ValueKey('routine-name-field'));
     final editable =
@@ -196,7 +249,7 @@ void main() {
       (tester) async {
     await _pump(tester, repository: _MemoryRoutines(), mode: TioThemeMode.dark);
     expect(find.text('Strength'), findsOneWidget);
-    expect(find.text('Routines'), findsOneWidget);
+    expect(find.text('Routines'), findsNothing);
   });
 }
 

@@ -35,8 +35,8 @@ Current behavior:
 - Loading, empty, load-failure with retry, create-in-flight and create-failure states are explicit.
 - Both the AppBar (+) action and the empty-state `Create Program` action open the canonical `showTioEditorSheet` / `TioEditorSheet` editor.
 - The editor starts with a deterministic generated name such as `Program 1`. The user may edit it before confirmation. A failed write keeps the sheet and typed value visible.
-- Library Program rows retain plain header geometry, an expand/collapse chevron and 3-dot overflow. The overflow's real action stays **Edit Program** via `ProgramRepository.rename`. W4A adds a Program-name action that opens the selected Program Detail. Its metadata-only Routine list/create/rename uses the existing `RoutineRepository`, not a second Library domain source. Inline Routine rows, overflow Add Routine/Delete and the Exercise/set builder remain separate gated slices.
-- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains capability-gated until W4 supplies a real Program-owned Routine create handoff; it is not shipped as an inert/fake action.
+- Library Program rows retain plain header geometry, an expand/collapse chevron and 3-dot overflow. The approved [GitHub #524](https://github.com/im-tnyx/tio-world/issues/524) UI correction renders Program-owned Routine children when expanded, refreshes them on return from Detail, and uses standalone Routine cards in Detail (not one grouped Settings card); while #524 is in review these are not yet shipped on `main`. The overflow's real action stays **Edit Program** via `ProgramRepository.rename`. W4A adds a Program-name action that opens the selected Program Detail. Its metadata-only Routine list/create/rename uses the existing `RoutineRepository`, not a second Library domain source. Inline Routine rows, overflow Add Routine/Delete and the Exercise/set builder remain separate gated slices.
+- The approved dotted **Add new routine** card belongs under an expanded empty Program, but remains separately gated. The #524 correction does not add Library create actions; the real Routine create action is the **sole + in Program Detail top app bar**, not a duplicate body Routines header or empty-state button.
 - No standalone Routines row or top-level Create Routine action exists.
 
 For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
@@ -53,6 +53,12 @@ GitHub #475 changes how this capability is entered without changing Program owne
 - Program expand/collapse on Library is presentation state only.
 
 The approved Library collection composition remains unchanged. W4A makes only owner-scoped Program Detail and Routine metadata actions real; Program/Routine composition editing still requires later W4 slices.
+
+### Approved Routine Card Visual Target (2026-10-11)
+
+The owner-supplied reference establishes a horizontal, **one-Routine-per-card** presentation for Program Detail and Program-expanded Library: **left thumbnail/image → Routine title → right Play → right Routine 3-dot overflow**. The intended Routine-scoped overflow entries are **Edit**, **Change Picture** and **Delete**. This Routine menu is not the existing *Program*-scoped overflow bottom sheet. The Program Detail app bar still has the **only** Routine-create `+`; do not restore a second body `Routines` heading/create action.
+
+This is **approved target UI**, not evidence that all actions are implemented. In the bounded [#524](https://github.com/im-tnyx/tio-world/issues/524) / [PR #525](https://github.com/im-tnyx/tio-world/pull/525) source, the separate cards use the existing icon as thumbnail fallback; Program Detail's Routine 3-dot opens an **Edit-only** menu invoking the already-real metadata Rename action. The Library's read-only inline cards do not fabricate a menu without an action. Functional Play/Active Workout, user-private Routine picture upload/change and owner-safe confirmed Delete are separately gated by [#526](https://github.com/im-tnyx/tio-world/issues/526). Do not render enabled but inert/misleading controls or introduce Storage/migration/RPC changes from this visual reference alone. Once the relevant capabilities exist, preserve per-Program ownership, 48dp accessible targets, light/dark support and empty/non-executable Routine behavior.
 
 ## Program Detail Metadata And Future Routine Builder
 
