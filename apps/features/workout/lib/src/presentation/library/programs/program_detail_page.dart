@@ -93,6 +93,12 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         initialName: controller.suggestedName(),
       ),
     );
+    if (!mounted || !identical(controller, _controller)) return;
+    // A dismissed uncertain editor must not donate its pending UUID to the
+    // next Create Routine sheet. Refresh to surface any late durable write.
+    if (controller.abandonCreateAttempt()) {
+      await controller.load();
+    }
   }
 
   Future<void> _openRename(Routine routine) async {
@@ -126,6 +132,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           widget.program.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
           style: TextStyle(
             color: colors.textPrimary,
             fontSize: TioFontSize.size20,
@@ -284,7 +293,9 @@ class _RoutineNameSheetState extends State<_RoutineNameSheet> {
   }
 
   void _clearError() {
-    if (mounted && _error != null) setState(() => _error = null);
+    // Rebuild on *every* edit so the primary action tracks empty/non-empty
+    // names before and after a server validation error.
+    if (mounted) setState(() => _error = null);
   }
 
   @override
