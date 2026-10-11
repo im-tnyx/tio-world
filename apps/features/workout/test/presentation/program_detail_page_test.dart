@@ -76,7 +76,7 @@ void main() {
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
     await _pump(tester, repository: repository);
-    await tester.tap(find.byKey(ValueKey('program-routine-$_routineId')));
+    await tester.tap(find.byKey(const ValueKey('program-routine-$_routineId')));
     await tester.pumpAndSettle();
 
     expect(find.text('Edit Routine'), findsOneWidget);
