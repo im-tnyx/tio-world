@@ -70,7 +70,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
     expect(find.text('Push Day'), findsOneWidget);
-    expect(find.text('1 exercises · 1 sets'), findsOneWidget);
+    expect(find.text('1 exercise · 1 set'), findsOneWidget);
     expect(find.text('1. Bench Press'), findsOneWidget);
     expect(find.text('Set 1 · 8 reps · 0.0 kg · 60 sec rest'),
         findsOneWidget);
