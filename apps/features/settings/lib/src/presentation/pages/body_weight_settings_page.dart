@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_progress/progress_contracts.dart';
 
 /// Canonical Body Goal range/increment constants for this screen.
 ///
