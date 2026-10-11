@@ -6,6 +6,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
+| [GitHub #521 — W4A Program-owned Routine metadata UI](issue-521-w4a-program-routine-metadata-ui.md) | In progress / review pending | `apps/features/workout` + `apps/app` composition | Any Program Detail or Routine metadata UI changes; parent TNYX-81 stays blocked |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |

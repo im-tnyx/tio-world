@@ -1,14 +1,14 @@
 # Library Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-05
+Last Verified: 2026-10-11
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout Library product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout destination; not a bottom-nav tab now
 **Route:** `/workout/library` (`AppRoutes.workoutLibrary`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Current runtime uses the owner-approved Library category strip for the capabilities that are ready: Programs and Exercises. Programs remains the default content and now renders the persisted Programs collection/create capability directly on Library. The Programs header can still open the existing `/workout/programs` screen as an optional secondary management surface, but that screen is no longer a mandatory intermediate. Library Program headers now use the owner-approved plain row treatment with a presentation-only expand/collapse chevron; they are not wrapped in a large/grouped Program card. Program detail/Routine actions remain gated until W4 supplies the real capability. Selecting Exercises collapses the strip to circular X + selected Exercises and shows only **Create Exercise** and **Exercises** as two separate standalone cards; `TioGroupCard` is not used for this action surface and Library does not embed Exercise rows. Create Exercise enters the existing W3D create flow, while Exercises opens the canonical unified `/workout/exercises` screen where bundled and user-created rows compose and user-created rows carry the `Custom` tag. Favorites/Folders remain capability-gated; when those capabilities land, their Library entries join this category as additional standalone cards. Program detail/Routine management, top-bar Routine creation, and TrainingPlan/Your Plan remain capability-gated.
+**Status:** Current runtime uses the owner-approved Library category strip for the capabilities that are ready: Programs and Exercises. Programs remains the default content and now renders the persisted Programs collection/create capability directly on Library. The Programs header can still open the existing `/workout/programs` screen as an optional secondary management surface, but that screen is no longer a mandatory intermediate. Library Program headers now use the owner-approved plain row treatment with a presentation-only expand/collapse chevron; they are not wrapped in a large/grouped Program card. W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) makes selected Program-name navigation to real Program Detail plus owner-scoped Routine metadata list/create/rename available when the durable Routine repository exists; the complete Exercise/Set builder remains gated. Selecting Exercises collapses the strip to circular X + selected Exercises and shows only **Create Exercise** and **Exercises** as two separate standalone cards; `TioGroupCard` is not used for this action surface and Library does not embed Exercise rows. Create Exercise enters the existing W3D create flow, while Exercises opens the canonical unified `/workout/exercises` screen where bundled and user-created rows compose and user-created rows carry the `Custom` tag. Favorites/Folders remain capability-gated; when those capabilities land, their Library entries join this category as additional standalone cards. Routine composition/builder UI, top-bar Routine quick-create, and TrainingPlan/Your Plan remain capability-gated.
 
 ## Purpose
 
@@ -87,7 +87,7 @@ explicit selection
 
 Programs is the default category.
 
-- Persisted Programs may render directly on Library before W4 Routine/detail capability is complete. W4/W6B gates Program detail, Program-owned Routine content/create, and related actions, not the already-real Program collection/create capability.
+- Persisted Programs render directly on Library. W4A adds a detail screen for the selected owner Program and Routine metadata operations only; full Program/Routine builder and direct Library Create Routine remain separately gated.
 - The Programs header may open the secondary Programs collection/manage route, but that route is not a mandatory intermediate step before an individual Program.
 - An individual Program opens Program detail directly.
 - Program-owned Routine rows may expand/collapse inline in Library presentation without changing persistence.
@@ -143,7 +143,7 @@ There is no disabled/empty placeholder tab. The view is supplied by W9/TNYX-86 a
 
 ### Current-runtime distinction
 
-The category strip, inline persisted Program collection, Program row expand/collapse presentation, Program overflow bottom sheet with persisted rename, and corrected Exercises actions are current behavior in this active slice. Broader #475 work remains capability-gated: Program detail, Program-owned Routine content/create, dotted Add new routine action, Routine/Explore quick actions, top-bar + behavior, Delete Program, and Your Plan are not implied by this slice.
+The category strip, inline Programs collection, Program chevron, overflow rename and Exercises actions retain their existing geometry. W4A adds only direct Program-name navigation and scoped Routine metadata actions. Broader #475 behavior is still capability-gated: Exercise/Set builder, inline Routine rows/dotted Add new routine, Routine/Explore quick cards, top-bar +, Delete Program and Your Plan.
 
 ## Minimal Program Creation Contract
 

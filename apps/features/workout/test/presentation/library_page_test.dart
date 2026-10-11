@@ -7,6 +7,7 @@ import 'package:tio_shared/shared.dart';
 Future<void> _pump(
   WidgetTester tester, {
   Future<void> Function()? onProgramsManagePressed,
+  ValueChanged<Program>? onProgramPressed,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
   bool withProgramRepository = true,
@@ -33,6 +34,7 @@ Future<void> _pump(
         programRepository: resolvedProgramRepository,
         programIdGenerator: programIdGenerator,
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
+        onProgramPressed: onProgramPressed,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -127,6 +129,30 @@ void main() {
     await tester.tap(toggle);
     await tester.pump();
 
+    expect(
+      tester.widget<IconButton>(toggle).tooltip,
+      'Expand Strength',
+    );
+  });
+
+  testWidgets('Program name has a 48dp action target and the right identity',
+      (tester) async {
+    Program? selected;
+    await _pump(tester, onProgramPressed: (program) => selected = program);
+
+    final target = find.byKey(
+      ValueKey('program-open-${_id(1).value}'),
+    );
+    expect(target, findsOneWidget);
+    expect(tester.getSize(target).height, greaterThanOrEqualTo(TioSize.dp48));
+    await tester.tap(target);
+    await tester.pump();
+    expect(selected?.id, _id(1));
+
+    // The existing separate collapse/expand control still owns its action.
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    await tester.tap(toggle);
+    await tester.pump();
     expect(
       tester.widget<IconButton>(toggle).tooltip,
       'Expand Strength',

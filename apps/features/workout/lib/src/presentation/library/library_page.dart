@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/program_repository.dart';
 import '../../domain/usecases/program_id_generator.dart';
@@ -22,6 +23,7 @@ class LibraryPage extends StatefulWidget {
   const LibraryPage({
     required this.programRepository,
     required this.onProgramsManagePressed,
+    this.onProgramPressed,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
     required this.canCreateExercise,
@@ -33,6 +35,7 @@ class LibraryPage extends StatefulWidget {
   final ProgramRepository? programRepository;
   final ProgramIdGenerator? programIdGenerator;
   final Future<void> Function() onProgramsManagePressed;
+  final ValueChanged<Program>? onProgramPressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -113,6 +116,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   repository: widget.programRepository,
                   idGenerator: widget.programIdGenerator,
                   onManagePressed: widget.onProgramsManagePressed,
+                  onProgramPressed: widget.onProgramPressed,
                 ),
               _LibraryCategory.exercises => _ExercisesContent(
                   canCreateExercise: widget.canCreateExercise,

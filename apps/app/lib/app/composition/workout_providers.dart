@@ -34,6 +34,14 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
   return SupabaseProgramRepository(client: supabaseClient);
 });
 
+/// Persisted user-owned Routines (metadata only in W4A).
+/// Null disables the Program Detail entry; never fall back to fake local saves.
+final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  return SupabaseRoutineRepository.fromClient(client);
+});
+
 /// User-owned Custom Exercise persistence.
 ///
 /// Null means durable user Exercise persistence is unavailable. There is no
