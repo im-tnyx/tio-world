@@ -239,6 +239,30 @@ void main() {
     }
   });
 
+  for (final code in ['PGRST301', 'PGRST302', 'PGRST303']) {
+    test('SDK structured JWT rejection $code is unauthorized for read and save',
+        () async {
+      final requests = <http.Request>[];
+      final client = _client((request) async {
+        requests.add(request);
+        return _json({'code': code, 'message': 'synthetic JWT failure'}, 401);
+      });
+      final repository = SupabaseRoutineCompositionRepository(
+          gateway: SupabaseRoutineCompositionGateway(client),
+          currentUserId: () => _owner);
+      final unauthorized = throwsA(isA<RoutineCompositionException>().having(
+          (e) => e.kind, 'kind', RoutineCompositionFailureKind.unauthorized));
+      await expectLater(repository.read(RoutineId(_routine)), unauthorized);
+      await expectLater(
+          repository.save(RoutineCompositionSave(
+              routineId: RoutineId(_routine),
+              expectedRevision: 0,
+              mutationId: _mutation)),
+          unauthorized);
+      expect(requests.map((request) => request.method), ['GET', 'POST']);
+    });
+  }
+
   test(
       'SDK permission denial stays sanitized and never uses privileged fallback',
       () async {

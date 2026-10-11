@@ -375,7 +375,13 @@ final class SupabaseRoutineCompositionRepository
 
   static RoutineCompositionException _rpcFailure(PostgrestException error) {
     final kind = switch (error.code) {
-      '28000' || '28P01' || '401' => RoutineCompositionFailureKind.unauthorized,
+      '28000' ||
+      '28P01' ||
+      '401' ||
+      'PGRST301' ||
+      'PGRST302' ||
+      'PGRST303' =>
+        RoutineCompositionFailureKind.unauthorized,
       '42501' || '403' => RoutineCompositionFailureKind.forbidden,
       'P0002' when error.message == 'routine_composition_not_found' =>
         RoutineCompositionFailureKind.notFound,
