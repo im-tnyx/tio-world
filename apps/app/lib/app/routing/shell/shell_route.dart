@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../app_mode/app_mode.dart';
 import '../../calendar_preferences.dart';
@@ -80,8 +81,11 @@ List<RouteBase> _shellBranchChildRoutes(
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
           Future<void> openRoutine(Program program, Routine routine) async {
-            if (routineRepository == null || compositions == null ||
-                routine.programId != program.id) return;
+            if (routineRepository == null ||
+                compositions == null ||
+                routine.programId != program.id) {
+              return;
+            }
             await Navigator.of(context).push<void>(
               MaterialPageRoute(
                 builder: (_) => Consumer(
