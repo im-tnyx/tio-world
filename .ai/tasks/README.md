@@ -8,6 +8,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 |---|---|---|---|
 | [GitHub #509 — Routine composition persistence](issue-509-routine-composition-persistence.md) | In progress | `supabase/`, `apps/features/workout` persistence | Database deployed; approved composition adapter locally validated, PR/review gate next; provider/builder and broader W1 remain gated |
 | [Pre-P9 — Routine composition schema-status drift](pre-p9-routine-composition-schema-status.md) | In progress | `docs/data/` governance | Align canonical schema inventory's adapter status with merged PR #513; do not activate provider/builder or P9 |
+| [Pre-P9 — Routine canonical status reconciliation](pre-p9-routine-canonical-status-reconciliation.md) | In progress | `docs/data/`, `docs/screens/` governance | Reconcile merged Routine adapter / closed #509 in two canonical docs; builder, W1 acceptance and P9 remain separate |
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
 | [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
