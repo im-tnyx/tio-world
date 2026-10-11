@@ -154,6 +154,28 @@ void main() {
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
   });
 
+  testWidgets('Routine 3-dot opens only the real Edit metadata action',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    await _pump(tester, repository: repository);
+    final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Change Picture'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Routine'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsOneWidget);
+  });
+
   testWidgets('create failure retains name and editor', (tester) async {
     final repository = _MemoryRoutines()..failCreate = true;
     await _pump(tester, repository: repository);
