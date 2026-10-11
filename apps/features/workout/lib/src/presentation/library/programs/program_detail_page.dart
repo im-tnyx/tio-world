@@ -3,7 +3,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_repository.dart';
-import 'program_routines_controller.dart';
+import '../routines/program_routines_controller.dart';
 
 /// Minimal Program-owned Routine metadata screen. Exercise composition/editing
 /// and Library-level Routine quick-create are different, still-gated slices.
