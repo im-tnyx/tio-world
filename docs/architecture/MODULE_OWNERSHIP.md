@@ -171,6 +171,7 @@ Allowed examples:
 - `profile` launches a progress route but does not own progress analytics.
 - `settings` launches nutrition target settings but does not own nutrition calculations.
 - `settings` launches Daily Wellness settings and consumes the `progress`-owned `WellnessTargetsRepository` contract.
+- For Body & Weight and Daily Wellness editors, `apps/features/settings` may consume the Progress-owned Body/Wellness **domain contracts** through the narrow public `package:tio_feature_progress/progress_contracts.dart` boundary. Settings must not import the mixed `progress.dart` domain/data/presentation barrel or Progress private `src/` paths. The package dependency is intentionally retained for these accepted Settings-owned editing surfaces; `apps/app` remains responsible for concrete Body/Wellness repository/provider composition. This does not relocate the editors, duplicate canonical state, or resolve the broader TNYX-154/TNYX-155 package-organization work.
 - `wear` sends workout events and nutrition quick actions using stable sync payloads and shared contracts.
 
 ## Anti-Patterns
