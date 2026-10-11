@@ -176,6 +176,41 @@ void main() {
     expect(controller.state.entries.single.exercise, isNull);
   });
 
+  test('empty composition does not depend on the built-in catalog', () async {
+    final catalog = _Catalog()..failures = 1;
+    final controller = _controller(
+      _Routines([_routine(_r1, _p1)]),
+      _Compositions(_snapshot()),
+      catalog: catalog,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(controller.state.status, RoutineDetailStatus.ready);
+    expect(controller.state.entries, isEmpty);
+    expect(catalog.loadCount, 0);
+  });
+
+  test('custom-only composition reads without loading bundled catalog',
+      () async {
+    final catalog = _Catalog()..failures = 1;
+    final ref = ExerciseRef.userCreated(_custom);
+    final users = _Users([
+      Exercise(ref: ref, displayName: 'Custom Curl'),
+    ]);
+    final controller = _controller(
+      _Routines([_routine(_r1, _p1)]),
+      _Compositions(_snapshot(entries: [_entry(_e1, ref)])),
+      catalog: catalog,
+      userExercises: users,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(controller.state.status, RoutineDetailStatus.ready);
+    expect(controller.state.entries.single.exercise?.displayName, 'Custom Curl');
+    expect(catalog.loadCount, 0);
+    expect(users.includeArchived, isTrue);
+  });
+
   test('Exercise source failure hides private snapshot and offers retry',
       () async {
     final catalog = _Catalog()..failures = 1;
@@ -237,9 +272,11 @@ final class _Compositions implements RoutineCompositionRepository {
 
 final class _Catalog implements ExerciseCatalogRepository {
   int failures = 0;
+  int loadCount = 0;
 
   @override
   Future<ExerciseCatalog> load() async {
+    loadCount++;
     if (failures > 0) {
       failures--;
       throw StateError('catalog unavailable');

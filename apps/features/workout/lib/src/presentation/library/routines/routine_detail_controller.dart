@@ -114,7 +114,12 @@ final class RoutineDetailController extends ChangeNotifier {
         throw const FormatException('Composition identity mismatch.');
       }
 
-      final builtIns = await catalog.load();
+      // A purely custom or empty Routine must remain readable even when the
+      // optional bundled catalog cannot be loaded.
+      final needsCatalog = snapshot.entries.any(
+        (entry) => entry.exercise is CatalogExerciseRef,
+      );
+      final builtIns = needsCatalog ? await catalog.load() : null;
       if (_disposed || version != _version) return;
       final needsUserExercises = snapshot.entries.any(
         (entry) => entry.exercise is UserCreatedExerciseRef,
@@ -139,7 +144,7 @@ final class RoutineDetailController extends ChangeNotifier {
             RoutineDetailEntry(
               entry: entry,
               exercise: entry.exercise is CatalogExerciseRef
-                  ? builtIns.byRef(entry.exercise)
+                  ? builtIns?.byRef(entry.exercise)
                   : byUserId[entry.exercise],
             ),
         ],
