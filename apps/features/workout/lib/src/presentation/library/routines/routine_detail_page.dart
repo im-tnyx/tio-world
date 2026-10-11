@@ -171,7 +171,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${state.exerciseCount} exercises · ${state.setCount} sets',
+              '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
+              '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
               key: const ValueKey('routine-detail-counts'),
               style: TextStyle(
                 color: context.tioColors.textSecondary,
