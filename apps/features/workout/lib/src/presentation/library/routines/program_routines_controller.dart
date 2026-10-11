@@ -86,6 +86,15 @@ final class ProgramRoutinesController extends ChangeNotifier {
 
   Future<void> retryLoad() => load();
 
+  /// End one Create Routine editor lifetime. Never reuse its uncertain UUID
+  /// for a later, independent create action after that sheet is dismissed.
+  /// Returns whether a pending uncertain insert needs a fresh owner read.
+  bool abandonCreateAttempt() {
+    final hadPending = _pendingCreateId != null;
+    _pendingCreateId = null;
+    return hadPending;
+  }
+
   String suggestedName() {
     final existing = _state.routines
         .map((routine) => routine.name.trim().toLowerCase())
@@ -177,9 +186,11 @@ final class ProgramRoutinesController extends ChangeNotifier {
     } catch (caught) {
       error = caught;
     }
+    List<Routine>? authoritativeRows;
     try {
       final rows = await _readOwnedRoutines();
       if (_disposed) return 'Could not edit routine. Please try again.';
+      authoritativeRows = rows;
       if (rows.any((r) => r.id == routine.id && r.name == name)) {
         _publish(ProgramRoutinesState.ready(routines: rows));
         return null;
@@ -188,7 +199,11 @@ final class ProgramRoutinesController extends ChangeNotifier {
       // The durable write result is unknown; never advertise a false success.
     }
     if (!_disposed) {
-      _publish(ProgramRoutinesState.ready(routines: current.routines));
+      // Do not keep stale or concurrently deleted rows when the owner read
+      // succeeded, even if this particular rename was not confirmed.
+      _publish(ProgramRoutinesState.ready(
+        routines: authoritativeRows ?? current.routines,
+      ));
     }
     return error == null
         ? 'Could not confirm the routine name. Please try again.'
