@@ -8,13 +8,13 @@ Truth Boundary: Authoritative for the planned user-owned Routine product contrac
 **Surface:** Nested Phone Workout flow inside an owning Program
 **Route:** No route exists yet
 **Primary owner:** `apps/features/workout`
-**Status:** Routine screen/builder remains planned. Routine metadata and the ordered Exercise/set database foundation are deployed; the Flutter composition adapter and visible builder remain unimplemented. Filename retained for link stability.
+**Status:** Routine screen/builder remains planned. Routine metadata and the ordered Exercise/set database foundation are deployed; the approved Flutter composition adapter is locally validated and awaiting PR review/merge. No app provider/controller or visible builder activation is included. Filename retained for link stability.
 
 ## Purpose
 
 A Routine is a stable reusable workout composition built from canonical Exercises. For user-owned content, every saved Routine belongs to exactly one user-owned Program.
 
-Routine keeps its own `RoutineId` and owning `ProgramId`. Ordered Exercise references and prescription/template state use separate immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` domain values. Their relational database/RPC foundation is deployed; client repository integration remains pending. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
+Routine keeps its own `RoutineId` and owning `ProgramId`. Ordered Exercise references and prescription/template state use separate immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` domain values. Their relational database/RPC foundation is deployed; the feature-owned composition adapter projects those models while retaining persisted entry/set UUIDs in immutable envelopes. App provider/controller integration remains pending. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
 
 ## Target Flow
 
@@ -61,8 +61,9 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - Routine identity/composition stays Workout-owned.
 - **Shipped minimal Routine metadata persistence:** The original six columns `public.user_workout_routines(id, user_id, program_id, name, created_at, updated_at)` remain live, with owner RLS and the composite `(program_id, user_id)` Program foreign key. `RoutineRepository` and `SupabaseRoutineRepository` expose `list(programId)`, `create(routine)`, and `rename(id, name)`. Authenticated clients have SELECT, INSERT limited to those six metadata columns, and UPDATE(name); direct delete, ownership changes and moves remain unavailable.
 - **Deployed composition database foundation:** Migration `20261010061809_create_user_workout_routine_composition.sql` from [#511](https://github.com/im-tnyx/tio-world/pull/511) was applied and independently hosted-verified on 2026-10-11. Routine adds `composition_revision` and `last_composition_mutation_id`; ordered Exercise/set child tables have owner-safe FKs and authenticated owner SELECT only. The narrow atomic save RPC manages revision/idempotency and child writes; direct client revision/token writes are denied. See [schema inventory](../data/SUPABASE_SCHEMA.md).
-- **Not yet implemented:** the metadata repository is not wired through a production app provider/controller or builder UI; a feature-owned Routine composition repository adapter is still pending. Deployment does not ship an editor or application release.
-- **Next data gate:** W1/TNYX-78 + [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509) remain active for broader acceptance. After documentation reconciliation, a separately scoped/authorized client adapter must implement mapping, consistent reads and retry/reconciliation before visible builder work. Any additional Supabase table/column shape still requires explicit Owner Approval.
+- **Approved adapter slice:** `RoutineCompositionRepository` / `SupabaseRoutineCompositionRepository` implement owner-scoped reads drained through empty UUID-cursor pages and bracketed by the parent revision/mutation token. These are validated independent requests, not one database transaction. Saves call the existing RPC once with frozen IDs/token/expected revision; ambiguous replies use read-only reconciliation and may remain explicitly unknown. Feature analysis and 84 focused tests pass locally; PR review/merge is pending.
+- **Not yet implemented:** the metadata/composition repositories are not wired through a production app provider/controller or builder UI. This adapter does not ship an editor or application release.
+- **Next data gate:** W1/TNYX-78 + [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509) remain active for broader acceptance. Complete the adapter's exact-head CI/Codex review and owner merge gate before separately approved consuming work. Any additional Supabase table/column shape still requires explicit Owner Approval.
 - **Separate W1 decision:** direct Library Create Routine remains blocked on stable, idempotent default `My Program` identity independent of its mutable display name.
 - The historical W1B0 Program privilege-hardening slice is complete; it was not approval for Routine composition or Exercise Favorites/Folders persistence.
 - Completed WorkoutSession history must not be silently rewritten by later Routine edits.
