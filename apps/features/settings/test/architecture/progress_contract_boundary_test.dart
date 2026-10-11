@@ -4,15 +4,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Settings only imports the public Progress domain contract boundary', () {
-    final library = Directory('lib');
-    expect(library.existsSync(), isTrue);
+    final roots = [Directory('lib'), Directory('test')];
+    for (final root in roots) {
+      expect(root.existsSync(), isTrue);
+    }
 
     final violations = <String>[];
     final progressImport = RegExp(
       r'''import\s+['"]package:tio_feature_progress/([^'"]+)['"]''',
     );
 
-    for (final file in library.listSync(recursive: true).whereType<File>()) {
+    for (final file in roots
+        .expand((root) => root.listSync(recursive: true))
+        .whereType<File>()) {
       if (!file.path.endsWith('.dart')) continue;
       final source = file.readAsStringSync();
       for (final match in progressImport.allMatches(source)) {
