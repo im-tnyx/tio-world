@@ -13,15 +13,22 @@ Future<void> _pump(
   WidgetTester tester, {
   required RoutineRepository? repository,
   TioThemeMode mode = TioThemeMode.light,
+  Program? selectedProgram,
+  double textScale = 1,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: mode),
-        child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+        ),
+        child: TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       home: ProgramDetailPage(
-        program: _program,
+        program: selectedProgram ?? _program,
         routineRepository: repository,
         newRoutineUuid: () => _routineId,
       ),
@@ -68,6 +75,29 @@ void main() {
     expect(repository.created.single.name, 'Upper Body');
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
     expect(find.text('Upper Body'), findsOneWidget);
+  });
+
+  testWidgets('create action tracks empty and restored Routine name',
+      (tester) async {
+    await _pump(tester, repository: _MemoryRoutines());
+    await tester.tap(
+      find.byKey(const ValueKey('program-routines-empty-create')),
+    );
+    await tester.pumpAndSettle();
+
+    final field = find.descendant(
+      of: find.byKey(const ValueKey('routine-name-field')),
+      matching: find.byType(EditableText),
+    );
+    final button = find.byKey(const ValueKey('routine-name-submit'));
+
+    expect(tester.widget<TioButton>(button).onPressed, isNotNull);
+    await tester.enterText(field, '');
+    await tester.pump();
+    expect(tester.widget<TioButton>(button).onPressed, isNull);
+    await tester.enterText(field, 'Upper');
+    await tester.pump();
+    expect(tester.widget<TioButton>(button).onPressed, isNotNull);
   });
 
   testWidgets('persisted Routine row opens only its real rename editor',
@@ -135,6 +165,31 @@ void main() {
         find.byKey(const ValueKey('program-detail-add-routine')));
     expect(create.onPressed, isNull);
     expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
+  });
+
+  testWidgets('long title stays single-line in compact large-text layout',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final name = List.filled(18, 'Long Program').join(' ');
+    final program = Program(id: _program.id, name: name);
+
+    await _pump(
+      tester,
+      repository: _MemoryRoutines(),
+      selectedProgram: program,
+      textScale: 2,
+    );
+    final title = find.descendant(
+      of: find.byType(TioAppBar),
+      matching: find.text(name),
+    );
+    expect(title, findsOneWidget);
+    expect(tester.widget<Text>(title).maxLines, 1);
+    expect(tester.widget<Text>(title).overflow, TextOverflow.ellipsis);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('dark theme retains readable Program and Routine headers',
