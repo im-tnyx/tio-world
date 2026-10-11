@@ -63,7 +63,6 @@ class RoutineMetadataCard extends StatelessWidget {
   }
 }
 
-
 /// Anchors the real Edit action to the Routine's unchanged overflow trigger.
 /// Core owns the floating popup card, placement, and outside-tap dismissal.
 class _RoutineOptionsPopup extends StatefulWidget {
@@ -155,7 +154,11 @@ class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
               width: TioSize.dp48,
               height: TioSize.dp48,
             ),
-            icon: const Icon(Icons.more_vert_rounded, size: TioSize.dp24),
+            icon: Icon(
+              Icons.more_vert_rounded,
+              size: TioSize.dp24,
+              color: colors.textPrimary,
+            ),
           ),
         ),
       ),
