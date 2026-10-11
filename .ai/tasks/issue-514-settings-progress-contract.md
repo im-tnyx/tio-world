@@ -24,14 +24,14 @@
 **HEAD SHA:** `4b00385f4dc346cb1f70f761f0606f7da23e4f9c` after bounded source, test and canonical ownership edits
 **Observed working-tree state:** Connector-only execution; no local checkout/status available.
 **Observed uncommitted/dirty files:** Not observable; GitHub branch was created from exact main.
-**PR / tracker:** GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
+**PR / tracker:** Draft PR #515; GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
 **Current implementation state:** Narrow `progress_contracts.dart` created with two pure domain exports; two Settings page imports and two focused tests migrated; import-boundary guard added; canonical ownership decision recorded.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
 **Validation completed at SHA:** Read-only source/dependency and tracker audit on `main@dfe9cee...`.
 **Validation remaining:** Hosted Flutter/Dart analyze/tests and Codex exact-head review; merge-readiness checks.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Open Draft PR from the audited eight-path branch, request exact-head Codex review, and validate with hosted Flutter CI.
+**Next exact action:** Validate exact Draft PR #515 head with hosted Flutter CI and Codex review; address in-scope findings before Ready.
 
 ## 1. Discovery
 
@@ -114,7 +114,8 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 - [x] Add focused regression guard.
 - [x] Update canonical ownership documentation.
 - [x] Audit exact changed-file scope (eight paths only).
-- [ ] Open Draft PR.
+- [x] Open Draft PR #515.
+- [ ] Hosted Flutter CI + Codex exact-head gate.
 - [ ] Hosted CI + Codex exact-head gate.
 
 ## 6. Quality Review
