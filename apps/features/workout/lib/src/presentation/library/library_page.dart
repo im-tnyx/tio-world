@@ -3,6 +3,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/program_repository.dart';
+import '../../domain/repositories/routine_repository.dart';
 import '../../domain/usecases/program_id_generator.dart';
 import 'programs/programs_surface.dart';
 
@@ -22,6 +23,7 @@ enum _LibraryCategory {
 class LibraryPage extends StatefulWidget {
   const LibraryPage({
     required this.programRepository,
+    this.routineRepository,
     required this.onProgramsManagePressed,
     this.onProgramPressed,
     required this.onExercisesPressed,
@@ -33,9 +35,10 @@ class LibraryPage extends StatefulWidget {
   });
 
   final ProgramRepository? programRepository;
+  final RoutineRepository? routineRepository;
   final ProgramIdGenerator? programIdGenerator;
   final Future<void> Function() onProgramsManagePressed;
-  final ValueChanged<Program>? onProgramPressed;
+  final Future<void> Function(Program)? onProgramPressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -114,6 +117,7 @@ class _LibraryPageState extends State<LibraryPage> {
               _LibraryCategory.programs => ProgramsSurface.library(
                   key: const ValueKey('library-programs-content'),
                   repository: widget.programRepository,
+                  routineRepository: widget.routineRepository,
                   idGenerator: widget.programIdGenerator,
                   onManagePressed: widget.onProgramsManagePressed,
                   onProgramPressed: widget.onProgramPressed,
