@@ -99,6 +99,36 @@ void main() {
     expect(repository.rows.single.name, 'Second attempt');
   });
 
+  test('abandoned uncertain create gets a fresh identity for a new editor',
+      () async {
+    final repository = _FakeRoutines()..throwAfterCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    // First write is durable, but both its response and reconciliation are lost.
+    repository.loadFailures = 1;
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.rows.single.name, 'Original');
+
+    // Dismissing that editor ends the operation; opening a different editor
+    // must never recycle the old UUID and accidentally rename Original.
+    expect(controller.abandonCreateAttempt(), isTrue);
+    repository.throwAfterCreate = false;
+    await controller.load();
+    expect(await controller.create('Second'), isTrue);
+
+    expect(generated, 2);
+    expect(repository.rows.map((item) => item.id), [_rid(41), _rid(42)]);
+    expect(repository.rows.map((item) => item.name), ['Original', 'Second']);
+    expect(controller.abandonCreateAttempt(), isFalse);
+  });
+
   test('unauthenticated creates expose sign-in requirement', () async {
     final repository = _FakeRoutines()..unauthenticated = true;
     final controller = _controller(repository);
@@ -156,6 +186,25 @@ void main() {
     expect(repository.renameCount, 0);
   });
 
+  test('unconfirmed rename publishes concurrent authoritative changes',
+      () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..externalRename = 'Changed on another device';
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final error = await controller.rename(
+      routine: controller.state.routines.single,
+      name: 'Evening',
+    );
+
+    expect(error, contains('Could not confirm'));
+    expect(controller.state.routines.single.name,
+        'Changed on another device');
+    expect(repository.rows.single.name, 'Changed on another device');
+  });
+
   test('zero-row rename does not falsely report success', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
       ..ignoreRename = true;
@@ -207,6 +256,7 @@ final class _FakeRoutines implements RoutineRepository {
   bool throwAfterCreate = false;
   bool throwAfterRename = false;
   bool ignoreRename = false;
+  String? externalRename;
   bool unauthenticated = false;
 
   @override
@@ -242,7 +292,11 @@ final class _FakeRoutines implements RoutineRepository {
     final idx = rows.indexWhere((r) => r.id == id);
     if (idx == -1) throw StateError('missing');
     final old = rows[idx];
-    rows[idx] = Routine(id: old.id, programId: old.programId, name: name);
+    rows[idx] = Routine(
+      id: old.id,
+      programId: old.programId,
+      name: externalRename ?? name,
+    );
     if (throwAfterRename) throw Exception('lost response');
   }
 }
