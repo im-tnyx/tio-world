@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_progress/progress_contracts.dart';
 
 import '../../domain/hydration_preferences.dart';
 import '../widgets/glass_size_bottom_sheet.dart';
