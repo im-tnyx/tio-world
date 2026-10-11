@@ -19,11 +19,13 @@ class ProgramsSurface extends StatefulWidget {
     this.idGenerator,
     super.key,
   })  : _mode = _ProgramsSurfaceMode.standalone,
-        onManagePressed = null;
+        onManagePressed = null,
+        onProgramPressed = null;
 
   const ProgramsSurface.library({
     required this.repository,
     required this.onManagePressed,
+    this.onProgramPressed,
     this.idGenerator,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
@@ -32,6 +34,7 @@ class ProgramsSurface extends StatefulWidget {
   final ProgramIdGenerator? idGenerator;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
+  final ValueChanged<Program>? onProgramPressed;
 
   @override
   State<ProgramsSurface> createState() => _ProgramsSurfaceState();
@@ -299,6 +302,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           programs: state.programs,
           embedded: embedded,
           onProgramActions: _openProgramActions,
+          onProgramPressed: widget.onProgramPressed,
         );
     }
   }
@@ -322,11 +326,13 @@ class _ProgramsList extends StatefulWidget {
     required this.programs,
     required this.embedded,
     required this.onProgramActions,
+    required this.onProgramPressed,
   });
 
   final List<Program> programs;
   final bool embedded;
   final Future<void> Function(Program program) onProgramActions;
+  final ValueChanged<Program>? onProgramPressed;
 
   @override
   State<_ProgramsList> createState() => _ProgramsListState();
@@ -381,6 +387,9 @@ class _ProgramsListState extends State<_ProgramsList> {
           expanded: expanded,
           onToggleExpanded: () => _toggleExpanded(program.id),
           onOverflowPressed: () => widget.onProgramActions(program),
+          onProgramPressed: widget.onProgramPressed == null
+              ? null
+              : () => widget.onProgramPressed!(program),
         ),
       );
       if (index != widget.programs.length - 1) {
@@ -432,6 +441,7 @@ class _LibraryProgramRow extends StatelessWidget {
     required this.expanded,
     required this.onToggleExpanded,
     required this.onOverflowPressed,
+    required this.onProgramPressed,
     super.key,
   });
 
@@ -439,6 +449,7 @@ class _LibraryProgramRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggleExpanded;
   final VoidCallback onOverflowPressed;
+  final VoidCallback? onProgramPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -460,14 +471,18 @@ class _LibraryProgramRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              program.name,
+            child: InkWell(
+              key: ValueKey('program-open-${program.id.value}'),
+              onTap: onProgramPressed,
+              child: Text(
+                program.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontWeight: TioFontWeight.w700,
-                fontSize: TioFontSize.size15,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                ),
               ),
             ),
           ),
