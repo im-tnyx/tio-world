@@ -61,7 +61,7 @@ Route extraction, `router.dart` changes, UI/design, Body/Wellness persistence, d
 
 - Root `AGENTS.md`, `apps/features/AGENTS.md`; no package-specific AGENTS found under Settings/Progress.
 - Canonical: `docs/architecture/ARCHITECTURE.md`, `MODULE_OWNERSHIP.md`, `docs/screens/settings.md`.
-- TNYX-154: Backlog, option A is an explicitly supported safe outcome; TNYX-201 In Progress, #260/#357 open.
+- TNYX-154: In Progress on 2026-10-11 (was Backlog before this bounded child), option A is an explicitly supported safe outcome; TNYX-201 remains In Progress, #260/#357 open.
 - Runtime `router.dart` remains 862 lines / 4 direct routes on exact main.
 - `apps/features/progress/lib/progress.dart` exports domain + `src/data/*` + `src/progress_presentation.dart`.
 - `DailyWellnessSettingsPage` consumes `WellnessTargetsData`; `BodyWeightSettingsPage` consumes `BodyState`, `BodyGoalState`, `BodyGoalType`, `BodyGoalUpdate` from Progress.
