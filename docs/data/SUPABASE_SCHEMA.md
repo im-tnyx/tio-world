@@ -1,7 +1,7 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-01
+Last Verified: 2026-10-11
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
@@ -9,11 +9,11 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**
 
-Verified on **2026-10-01** against:
+Verified on **2026-10-11** against:
 
-- repository migration history through `20260930180700_add_custom_exercise_definition_fields.sql`;
+- repository migration history through `20261010061809_create_user_workout_routine_composition.sql`;
 - checked-in `supabase/migrations/` history;
-- live Supabase project `tio-world` structural metadata.
+- live Supabase project `tio-world` (`oykupyiitspujzpwwvuj`) structural metadata after the owner-authorized single-migration deployment.
 
 ## Truth Boundary
 
@@ -40,23 +40,23 @@ This inventory intentionally excludes:
 
 | Measure | Verified value |
 | :--- | ---: |
-| Active ordinary `public` tables | 17 |
-| Columns | 170 |
-| Primary-key constraints | 17 |
-| Foreign-key constraints | 18 |
-| Unique constraints | 6 |
-| Check constraints | 63 |
+| Active ordinary `public` tables | 19 |
+| Columns | 185 |
+| Primary-key constraints | 19 |
+| Foreign-key constraints | 21 |
+| Unique constraints | 10 |
+| Check constraints | 71 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 106 |
-| Indexes | 47 |
-| Tables with RLS enabled | 17 / 17 |
+| Total catalog constraint records | 123 |
+| Indexes | 54 |
+| Tables with RLS enabled | 19 / 19 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 54 / 54 |
+| Applied live migrations matched to repository | 55 / 55 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration history currently ends at `20260930180700_add_custom_exercise_definition_fields`. Repository and live migration history are aligned 54 / 54 by version + name at this snapshot.
+The verified live migration history ends at `20261010061809_create_user_workout_routine_composition`. Repository and live history are aligned 55 / 55 by version + name, with no pending or live-only migrations. Post-apply CLI dry-run reports the remote database up to date.
 
 ## Table Overview
 
@@ -75,7 +75,9 @@ The verified live migration history currently ends at `20260930180700_add_custom
 | `public.user_wellness_targets` | 8 | Enabled |
 | `public.user_workout_exercises` | 12 | Enabled |
 | `public.user_workout_programs` | 5 | Enabled |
-| `public.user_workout_routines` | 6 | Enabled |
+| `public.user_workout_routines` | 8 | Enabled |
+| `public.user_workout_routine_exercises` | 6 | Enabled |
+| `public.user_workout_routine_sets` | 7 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
 | `public.user_workout_targets` | 12 | Enabled |
 | `public.users` | 21 | Enabled |
@@ -578,6 +580,8 @@ The verified live migration history currently ends at `20260930180700_add_custom
 
 **RLS:** Enabled
 
+**Verified Data API access:** `authenticated` has SELECT, column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`), and UPDATE(name) only. Owner SELECT/INSERT/UPDATE RLS remains. Direct INSERT/UPDATE of `composition_revision` or `last_composition_mutation_id`, DELETE, ownership changes and moves are denied; composition writes use the narrow RPC below.
+
 #### Columns
 
 | Column | Type | Nullable | Default |
@@ -588,11 +592,15 @@ The verified live migration history currently ends at `20260930180700_add_custom
 | `name` | `text` | No | — |
 | `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
 | `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `composition_revision` | `bigint` | No | `0` |
+| `last_composition_mutation_id` | `uuid` | Yes | — |
 
 #### Constraints
 
 | Name | Type | Definition |
 | :--- | :--- | :--- |
+| `user_workout_routines_composition_revision_nonnegative` | `CHECK` | `CHECK ((composition_revision >= 0))` |
+| `user_workout_routines_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
 | `user_workout_routines_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 | `user_workout_routines_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_routines_program_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (program_id, user_id) REFERENCES user_workout_programs(id, user_id) ON DELETE CASCADE` |
@@ -603,7 +611,84 @@ The verified live migration history currently ends at `20260930180700_add_custom
 | Name | Definition |
 | :--- | :--- |
 | `idx_user_workout_routines_user_program_created_at` | `CREATE INDEX idx_user_workout_routines_user_program_created_at ON public.user_workout_routines USING btree (user_id, program_id, created_at DESC)` |
+| `user_workout_routines_id_user_id_key` | `CREATE UNIQUE INDEX user_workout_routines_id_user_id_key ON public.user_workout_routines USING btree (id, user_id)` |
 | `user_workout_routines_pkey` | `CREATE UNIQUE INDEX user_workout_routines_pkey ON public.user_workout_routines USING btree (id)` |
+
+### `public.user_workout_routine_exercises`
+
+**RLS:** Enabled
+
+**Verified Data API access:** `authenticated` has SELECT only, restricted by the sole owner SELECT RLS policy (`user_id = (select auth.uid())`). No direct INSERT/UPDATE/DELETE grants or write policies; no anon/PUBLIC table or column privileges. Composition writes use the narrow RPC below.
+
+#### Columns
+
+| Column | Type | Nullable | Default |
+| :--- | :--- | :---: | :--- |
+| `id` | `uuid` | No | — |
+| `user_id` | `uuid` | No | — |
+| `routine_id` | `uuid` | No | — |
+| `position` | `integer` | No | — |
+| `catalog_exercise_id` | `text` | Yes | — |
+| `user_exercise_id` | `uuid` | Yes | — |
+
+#### Constraints
+
+| Name | Type | Definition |
+| :--- | :--- | :--- |
+| `user_workout_routine_exercises_catalog_ref_format` | `CHECK` | `CHECK (((catalog_exercise_id IS NULL) OR (catalog_exercise_id ~ '^ex_[a-z0-9]+(?:_[a-z0-9]+)*$'::text)))` |
+| `user_workout_routine_exercises_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
+| `user_workout_routine_exercises_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (routine_id, user_id) REFERENCES user_workout_routines(id, user_id) ON DELETE CASCADE` |
+| `user_workout_routine_exercises_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `user_workout_routine_exercises_position_key` | `UNIQUE` | `UNIQUE (routine_id, user_id, "position")` |
+| `user_workout_routine_exercises_position_nonnegative` | `CHECK` | `CHECK (("position" >= 0))` |
+| `user_workout_routine_exercises_reference_exclusive` | `CHECK` | `CHECK (((catalog_exercise_id IS NOT NULL) <> (user_exercise_id IS NOT NULL)))` |
+| `user_workout_routine_exercises_user_exercise_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_exercise_id, user_id) REFERENCES user_workout_exercises(id, user_id) DEFERRABLE INITIALLY DEFERRED` |
+
+#### Indexes
+
+| Name | Definition |
+| :--- | :--- |
+| `idx_user_workout_routine_exercises_custom_fk` | `CREATE INDEX idx_user_workout_routine_exercises_custom_fk ON public.user_workout_routine_exercises USING btree (user_exercise_id, user_id) WHERE (user_exercise_id IS NOT NULL)` |
+| `user_workout_routine_exercises_id_user_id_key` | `CREATE UNIQUE INDEX user_workout_routine_exercises_id_user_id_key ON public.user_workout_routine_exercises USING btree (id, user_id)` |
+| `user_workout_routine_exercises_pkey` | `CREATE UNIQUE INDEX user_workout_routine_exercises_pkey ON public.user_workout_routine_exercises USING btree (id)` |
+| `user_workout_routine_exercises_position_key` | `CREATE UNIQUE INDEX user_workout_routine_exercises_position_key ON public.user_workout_routine_exercises USING btree (routine_id, user_id, "position")` |
+
+### `public.user_workout_routine_sets`
+
+**RLS:** Enabled
+
+**Verified Data API access:** `authenticated` has SELECT only, restricted by the sole owner SELECT RLS policy (`user_id = (select auth.uid())`). No direct INSERT/UPDATE/DELETE grants or write policies; no anon/PUBLIC table or column privileges. Composition writes use the narrow RPC below.
+
+#### Columns
+
+| Column | Type | Nullable | Default |
+| :--- | :--- | :---: | :--- |
+| `id` | `uuid` | No | — |
+| `user_id` | `uuid` | No | — |
+| `routine_exercise_id` | `uuid` | No | — |
+| `position` | `integer` | No | — |
+| `reps` | `integer` | No | — |
+| `load_kg` | `double precision` | Yes | — |
+| `rest_seconds` | `integer` | Yes | — |
+
+#### Constraints
+
+| Name | Type | Definition |
+| :--- | :--- | :--- |
+| `user_workout_routine_sets_exercise_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (routine_exercise_id, user_id) REFERENCES user_workout_routine_exercises(id, user_id) ON DELETE CASCADE` |
+| `user_workout_routine_sets_load_nonnegative_finite` | `CHECK` | `CHECK (((load_kg IS NULL) OR ((load_kg >= (0)::double precision) AND (load_kg < 'Infinity'::double precision) AND (load_kg <> 'NaN'::double precision))))` |
+| `user_workout_routine_sets_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
+| `user_workout_routine_sets_position_key` | `UNIQUE` | `UNIQUE (routine_exercise_id, user_id, "position")` |
+| `user_workout_routine_sets_position_nonnegative` | `CHECK` | `CHECK (("position" >= 0))` |
+| `user_workout_routine_sets_reps_positive` | `CHECK` | `CHECK ((reps > 0))` |
+| `user_workout_routine_sets_rest_nonnegative` | `CHECK` | `CHECK (((rest_seconds IS NULL) OR (rest_seconds >= 0)))` |
+
+#### Indexes
+
+| Name | Definition |
+| :--- | :--- |
+| `user_workout_routine_sets_pkey` | `CREATE UNIQUE INDEX user_workout_routine_sets_pkey ON public.user_workout_routine_sets USING btree (id)` |
+| `user_workout_routine_sets_position_key` | `CREATE UNIQUE INDEX user_workout_routine_sets_position_key ON public.user_workout_routine_sets USING btree (routine_exercise_id, user_id, "position")` |
 
 ### `public.user_workout_profiles`
 
@@ -733,6 +818,12 @@ The verified live migration history currently ends at `20260930180700_add_custom
 | `users_username_key` | `CREATE UNIQUE INDEX users_username_key ON public.users USING btree (username)` |
 | `users_verified_email_identity_uidx` | `CREATE UNIQUE INDEX users_verified_email_identity_uidx ON public.users USING btree (private.canonical_email_identity((email)::text)) WHERE (email_verified_at IS NOT NULL)` |
 | `users_verified_mobile_uidx` | `CREATE UNIQUE INDEX users_verified_mobile_uidx ON public.users USING btree (mobile) WHERE (mobile_verified_at IS NOT NULL)` |
+
+## Routine Composition RPC
+
+Verified `public.save_user_workout_routine_composition(uuid, bigint, uuid, jsonb)` returns bigint. It is owned by postgres, uses SECURITY DEFINER with empty `search_path`, and grants EXECUTE only to postgres/authenticated; anon/PUBLIC have no EXECUTE.
+
+The hosted function body matches the reviewed migration source after line-ending normalization: server-side `auth.uid()` owner verification, Routine row lock, expected revision comparison, mutation-token/payload equality on retry, and atomic child replacement/revision advance. Behavior under writes and concurrency is covered by the existing disposable database CI, not production data mutations. The Flutter composition adapter and visible builder remain pending.
 
 ## Maintenance Rule
 

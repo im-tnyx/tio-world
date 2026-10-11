@@ -1,119 +1,113 @@
 # GitHub #509 — Program-owned Routine composition persistence
 
-**Status:** In progress
+**Status:** In progress — database foundation deployed and hosted-verified; client adapter pending
 **Primary owner:** Workout persistence (`supabase/`, `apps/features/workout`)
 **Affected platforms:** Flutter data/domain boundary and Supabase schema/RLS/RPC; no visible UI
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** New bounded persistence slice + Supabase table/column shape change
-**Approval status:** Approved for the exact physical contract documented in GitHub #509 on 2026-10-10.
-**Approval evidence:** After the assistant explicitly asked whether the owner approved the exact #509 database schema/RPC proposal and described both new tables/two new Routine columns, the owner replied `go with follow agent.md` on 2026-10-10.
-**Approved boundaries:** Two additive columns `user_workout_routines.composition_revision` and `last_composition_mutation_id`, owner-safe unique key, two relational child tables with positions and stable row identities, owner RLS/read-only Data API, narrow authenticated atomic save RPC, and repository/test support. Explicit physical details: GitHub #509.
-**Explicit non-changes:** No product-visible UI, Routine builder, Program detail, default My Program identity, Exercise Favorites/Folders, TrainingPlan/WorkoutSession, Exercise measurements outside reps/loadKg/restSeconds, source/adoption, media/Storage, new services/API or production rollout.
+**Trigger:** Bounded persistence slice + Supabase table/column shape change
+**Approval status:** Exact physical contract approved in GitHub #509 on 2026-10-10; exact production deployment separately approved on 2026-10-11.
+**Approval evidence:** Original owner response `go with follow agent.md`; subsequent `GO APPLY MIGRATION` names only `20261010061809_create_user_workout_routine_composition.sql`, project `oykupyiitspujzpwwvuj`, merged PR #511 and expected `main@f974559084bbf47472e91b2a6c424f6d663a4e3c`.
+**Approved boundaries:** Two Routine composition columns, owner-safe unique key, two relational child tables, owner RLS/read-only child Data API, narrow authenticated atomic save RPC, SQL security/concurrency tests; exact deployment, read-only production verification, tracker updates and bounded documentation PR.
+**Explicit non-changes:** No other migration, production user-data writes, schema redesign, application release, Flutter composition adapter, builder/Program detail UI, default My Program identity, Favorites/Folders, TrainingPlan/WorkoutSession, source/adoption, media/Storage or new service/API. No source-branch deletion or documentation PR merge authorized.
 
 ## Active Handoff
 
 **Planning owner:** Current repository agent
-**Implementation owner:** Current repository agent — one bounded #509 slice
-**Review owner:** Codex GitHub review and exact-head CI
-**Implementation ownership state:** Active
-**Repository state last verified:** Remote `main@c5a1852d00afeb987a1834a28a39d5c6185d9763` on 2026-10-10; GitHub no competing open Routine composition PR; Linear TNYX-78 In Progress, TNYX-81 Backlog/blocked.
-**Branch:** `tnyx/issue-509-routine-composition-persistence`
-**HEAD SHA:** Latest validated implementation SHA `467c4aa109abc60c586c3770a8bc309a2d9f1498`; this brief update will advance HEAD again. Refresh before each push.
-**Observed working-tree state:** Connector-only API session, no local worktree; no local dirty-state claim.
-**Observed uncommitted/dirty files:** Not available from GitHub connector.
-**PR / tracker:** GitHub #509; Linear TNYX-78 and TNYX-81; GitHub #475
-**Current implementation state:** Approved database-first slice on branch: one additive migration/RPC, focused transactional security matrix and actual two-session Routine race test wired to CI. No live deployment; feature repository adapter not yet implemented.
-**Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `apps/features/workout/lib/src/{domain,data}`, related tests.
-**Validation completed at SHA:** Exact implementation head `467c4aa109abc60c586c3770a8bc309a2d9f1498`: Supabase Database CI `38034491510` **PASS**, full disposable migration replay, all legacy TNYX-78 SQL matrices, TNYX-509 owner/RLS/privilege/Idempotency/350-set matrix, true simultaneous Routine two-session race, existing Nutrition concurrency and DB lint. Required Commit attribution guard also PASS at same SHA.
-**Validation remaining:** This handoff-only commit changes the PR head again: verify required checks at new HEAD, and await a genuine Codex exact-head review (last bot review still at `122a22490e`). No Flutter/Dart/Supabase local execution claimed. No deployment/merge authorized.
-**Current blocker:** Codex has not submitted a fresh exact-head review despite explicit requests. Supplemental GitHub Advanced Security scanner failed before analysis with external model monthly quota HTTP 402 on `7fdf4252`; this is not a finding or security PASS. Existing live Security Advisor warnings predate undeployed migration.
-**Open review finding IDs:** Three original Codex P2 threads `PRRT_kwDOTOXwB86rB1pV`, `PRRT_kwDOTOXwB86rB1pZ`, `PRRT_kwDOTOXwB86rB1pc` are fixed, replied with exact-head test evidence, and resolved as of 2026-10-10. Zero unresolved; fresh Codex review still pending.
-**Next exact action:** Re-check final docs-only head CI, then fresh Codex review and any new feedback. Stop before merge or production apply pending owner merge/deploy gates. Subsequent feature repository adapter stays out of this PR.
+**Implementation owner:** Current repository agent — deployment verification/documentation only
+**Review owner:** Independent read-only review; documentation PR review and exact-head required CI
+**Implementation ownership state:** Active for this bounded handoff; prior source implementation is merged. Ownership reconstructed from #511, current trackers, local Git and live catalogs before takeover; no competing implementation owner observed.
+**Repository state last verified:** Clean local `main` and `origin/main` at `f974559084bbf47472e91b2a6c424f6d663a4e3c` on 2026-10-11 after fetch and `git pull --ff-only origin main`.
+**Branch:** `tnyx/routine-composition-deployment-evidence` from that verified main; refresh HEAD/checks before each push.
+**HEAD SHA:** `f974559084bbf47472e91b2a6c424f6d663a4e3c` before the documentation commit; the PR records the resulting documentation HEAD rather than a self-referential SHA here.
+**Observed uncommitted/dirty files:** None before this documentation slice; only the five owned documentation files below are intended.
+**PR / tracker:** [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509); [merged #511](https://github.com/im-tnyx/tio-world/pull/511); Linear TNYX-78 In Progress; TNYX-81 remains blocked by TNYX-78 and TNYX-80.
+**Current implementation state:** Production database foundation applied and independently verified. Flutter composition adapter/provider/controller and visible builder remain unimplemented.
+**Relevant execution surface:** Existing `supabase/migrations` and database tests; this change edits only `.ai/tasks/` and canonical `docs/`.
+**Validation completed at SHA:** Reviewed source head `142e01608ca5635b73049ee1bbeeaacf91372a7d` has passing Supabase Database CI `38034796318` and clean Codex review `6095180973`. The merged main has identical `supabase/` and database-CI source. Hosted verification below ran against production on 2026-10-11.
+**Documentation validation:** Five-file diff/scope audit and `git diff --check` PASS; independent read-only review CLEAN with no actionable findings. No `supabase/`, `apps/` or workflow changes.
+**Validation remaining:** New documentation PR exact-head required CI and review/merge. Broader W1 client acceptance remains incomplete.
+**Current blocker:** No deployment blocker. Default My Program and remaining W1/W3 dependencies still gate TNYX-81; this deployment does not clear them.
+**Open review finding IDs:** All three original #511 Codex P2 threads resolved; final source review clean. No unresolved deployment finding.
+**Next exact action:** Review/merge the bounded documentation PR through required gates, then separately authorize the feature-owned composition adapter slice. Do not start adapter or UI from this deployment handoff.
 
 ## 1. Discovery
 
-### User Outcome
-Durably store ordered Routine Exercise references and prescribed sets inside exactly one user-owned Program/Routine without losing data, mixing user ownership, or enabling incomplete execution UI.
-
-### Success Criteria
-- Persist repeated canonical Exercise references with independent entry IDs/order.
-- Persist ordered prescribed sets with positive reps, nullable finite nonnegative kg, nullable nonnegative rest seconds.
-- Atomic RPC with authenticated owner identity, revision check and safe idempotent retry.
-- Read owner-isolated ordered composition; preserve old Routine metadata repository semantics.
-- SQL security/constraint/regression tests and Dart mapping/retry tests; no UI change.
-
-### Scope
-GitHub #509 exact approved database physical shape; new feature-owned repository boundary.
-
-### Non-Goals
-Default My Program, builder/detail/UI, delete/move Program/Routine, TrainingPlan/session, catalog mirroring, new backend.
+Durably store ordered Routine Exercise references and prescribed sets inside exactly one user-owned Program/Routine, preserving metadata behavior and ownership isolation. This deployment closes only the approved database foundation gate, not broader W1 or builder acceptance.
 
 ## 2. Codebase Exploration
 
-### Verified Evidence
-- `RoutineComposition`, `RoutineExercise`, `SetPrescription`, `ExerciseRef` exist as immutable `apps/shared` contracts.
-- `RoutineRepository` is metadata-only `list/create/rename`; preserve it.
-- Live `public.user_workout_routines` has 6 columns, composite Program owner FK; `user_workout_exercises` has 12 columns and unique `(id,user_id)`.
-- Existing grants: `authenticated` SELECT/INSERT/UPDATE(name) only on Program and Routine; both owner RLS enabled.
-- Existing atomic security-definer RPC precedent: `supabase/migrations/20260917092920_create_detailed_meal_log_rpc.sql`; revision precedent: `20260912064635_add_meal_log_revision.sql`.
+- `RoutineComposition`, `RoutineExercise`, `SetPrescription` and `ExerciseRef` are immutable `apps/shared` contracts.
+- `RoutineRepository` / `SupabaseRoutineRepository` remain metadata-only `list/create/rename`; no composition adapter is claimed.
+- PR #511 merged the reviewed migration and transactional authorization/revision/idempotency/350-Set matrix plus actual two-session Routine race test.
+- Original six Routine columns and Program owner FK are preserved. Live Routine now has eight columns; Custom Exercise retains twelve and unique `(id, user_id)`.
 
 ## 3. Clarification
 
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Two relational child tables rather than one JSONB column | Approved | Separate durable entries and owner-safe User Exercise FK | Owner via #509 |
-| RPC transaction rather than direct child Data API writes | Approved | Atomic complete snapshot, least privilege | Owner via #509 |
-| No new WorkoutSession snapshot model now | Approved non-goal | Preserve W4/W7 ownership | Owner via #509 |
+| Decision | Status | Owner |
+|---|---|---|
+| Two ordered relational child tables with stable UUID identities | Approved and deployed | Owner via #509 |
+| RPC transaction instead of direct child writes | Approved and deployed | Owner via #509 |
+| Exact one-migration production apply | Authorized and verified | Owner on 2026-10-11 |
+| Client adapter, default My Program, builder and session execution | Separate gates; not part of deployment | Owner |
 
 ## 4. Architecture Design
 
-```text
-Future W4 controller -> feature RoutineCompositionRepository
- -> Supabase RPC (owner-checked atomic save) + owner-scoped consistent read
- -> Routine -> RoutineExercise[] -> SetPrescription[]
-```
-
-- Independent stable UUIDs for repeated Exercise entries and Sets.
-- Monotonic `composition_revision` and last mutation token for stale-write/retry checks.
-- Schema-qualified SECURITY DEFINER with locked owner Routine and restricted execute; child tables SELECT-only authenticated with owner RLS.
-
-**Rejected:** Client-side multi-request writes, duplicate catalog tables, premature `services/api`.
+Future feature repository calls the owner-checked atomic save RPC and owner-scoped reads. The RPC uses an owner Routine lock, revision comparison and mutation-token/payload equality for safe retries. Children retain stable UUIDs and ordered positions; composite FKs enforce Routine/Custom Exercise ownership. No architecture redesign was made during deployment.
 
 ## 5. Implementation Plan
 
-- [x] Commit proposed additive migration with exact approved tables/columns, owner-safe FKs/RLS and narrowly scoped save RPC; database execution not yet verified.
-- [x] Add transactional SQL RLS/privilege/integrity/revision/idempotency matrix; executed PASS in DB CI `38031445331`.
-- [ ] Feature-owned composition gateway/repository with validation and reconciliation.
-- [ ] Final exact-head CI/Codex gate (prior DB CI `38031445331` PASS); no live apply.
-- [ ] Update schema inventory and completion handoff after observed validation.
+- [x] Approved migration/RPC and SQL security/concurrency tests merged in #511.
+- [x] Exact source-head CI and Codex review verified; merged source parity confirmed.
+- [x] Fresh main/link/ledger/schema/dependency preflight and CLI dry-run passed.
+- [x] Exact migration applied once; independent hosted schema/security/ledger verification passed.
+- [ ] Documentation PR review/CI and merge.
+- [ ] Separately scoped feature-owned composition adapter with Dart mapping/retry tests.
+- [ ] Remaining W1 acceptance; TNYX-81 dependency reconciliation before builder work.
 
 ## 6. Quality Review
 
-### Validation Run
-Supabase Database CI `38034491510`: PASS at implementation SHA `467c4aa109abc60c586c3770a8bc309a2d9f1498`. Complete migration replay, historical TNYX-78 matrices, focused TNYX-509 authorization/350-Set matrix, two-session Routine race, existing concurrency and DB lint PASS. Required Commit attribution guard PASS. Handoff-only new HEAD must be rechecked; no local `git diff --check`, Flutter, Dart, or Supabase CLI was run.
+### Deployment and Hosted Evidence — 2026-10-11
 
-### Review Findings and Resolution
-The first CI run after remediation (`38034321223`) reached the legacy TNYX-78 matrix and failed on its table-level `INSERT` privilege assumption. Current review-fix commit updates only that legacy grant assertion to the original six metadata columns; the actual authenticated Routine insert test remains intact. The corrected CI `38034491510` passed all earlier and later matrices on `467c4aa1`.
+- Linked Supabase CLI `2.116.0` targeted `oykupyiitspujzpwwvuj`. Repository had 55 migrations; production had 54. Version/name comparison and `db push --dry-run --linked --skip-vault` identified only `20261010061809_create_user_workout_routine_composition.sql`; no seeds/roles or competing DDL were observed.
+- `db push --linked --skip-vault` exited **0**, listed only that migration and returned `Finished supabase db push.` No interactive prompt appeared. No retry, repair, reset, force, manual ledger edit or MCP migration apply was used.
+- Independent read-only live ledger is **55 / 55**, exact version/name match, no repository-only/live-only entries. CLI `migration list --linked` agrees; post-apply dry-run exits 0 with `upToDate: true` and `migrations: []`.
+- Catalogs verify Routine's two added columns, both child tables, UUID identities, checks, unique ordering, owner-safe FKs and all supporting indexes valid/ready. All 19 public tables have RLS enabled. All inspected constraints are validated.
+- Effective table/column privileges and policies verify child owner-only authenticated SELECT, no direct child writes, original six-column Routine INSERT and name-only UPDATE. Revision/token INSERT/UPDATE are denied. No anon/PUBLIC table or column grants were introduced.
+- Exactly one `public.save_user_workout_routine_composition(uuid, bigint, uuid, jsonb)` returns bigint; owner postgres, SECURITY DEFINER, empty `search_path`. EXECUTE is limited to postgres/authenticated; anon/PUBLIC have none. Hosted function body equals reviewed migration source after line-ending normalization, including `auth.uid()` ownership, lock, atomic revision and idempotency checks.
+- Existing Program/Routine/Custom Exercise aggregate counts and content digests compare unchanged before/after. No user rows or digests are recorded here. No production behavioral writes were run; write/race behavior evidence is the existing disposable CI matrix.
 
-All three Codex P2 findings confirmed against source and the live old-schema grants. This review-fix commit constrains Routine INSERT to six legacy metadata columns, indexes the partial custom-Exercise FK, moves owner locking ahead of nested JSON work, and replaces quadratic array concatenation/duplicate scans with ordered set-based aggregation. SQL tests add denied revision/token injection, positive metadata INSERT grants, partial FK index existence, and bounded 350-Set payload coverage. **Implementation head CI PASSED; no new exact-head Codex review yet.** No live Supabase mutation, UI or Dart code changes.
+### Advisor Dispositions
+
+| Advisor | Before | After | Disposition |
+|---|---|---|---|
+| Authenticated SECURITY DEFINER WARN | 5 | 6 | One added warning for the approved save RPC. Investigated owner authorization, exact source parity, safe search path and restricted EXECUTE; intentional reviewed boundary retained. |
+| Leaked-password-protection WARN | 1 | 1 | Existing setting warning unchanged; no Auth configuration change authorized. |
+| Unindexed FK INFO | 1 | 1 | Existing Routine-to-Program FK notice unchanged. |
+| Auth RLS initplan WARN | 18 | 18 | Existing notices unchanged. |
+| Unused index INFO | 13 | 14 | Added partial Custom Exercise FK index is currently unused; required supporting index retained. No tuning change authorized. |
+
+No new actionable operational/security defect was identified. Expected new notices have separate dispositions above; no policy or index was weakened to silence them.
+
+### Security Check Requiredness
+
+Current main protection requires **Commit attribution guard**; effective rulesets returned no additional requirements. Required guard passed on reviewed source. GitHub Advanced Security is **supplemental + infrastructure failure**: HTTP 402 monthly external-model quota before meaningful analysis, tracked by TNYX-256. This is neither a security pass nor a product vulnerability. New documentation PR must satisfy its current required checks independently.
 
 ## 7. Final Handoff
 
-### Changed Files
-- `.ai/tasks/README.md` + this handoff.
-- `supabase/migrations/20261010061809_create_user_workout_routine_composition.sql`.
-- `supabase/tests/database/tnyx_509_routine_composition.test.sql`.
-- `supabase/tests/database/tnyx_78_user_workout_routines.test.sql` — updated legacy grant expectation to match secure column-scoped INSERT.
-- `supabase/tests/database/tnyx_509_routine_composition_concurrency.sh` — actual simultaneous authenticated saves.
-- `.github/workflows/supabase-db-ci.yml` — both Routine SQL matrices wired into CI.
+### Changed Files — This Documentation Slice Only
 
-### Actual Behavior
-Migration/RPC and SQL regression matrix committed on branch, tested on disposable CI database. Hosted Supabase untouched; no Flutter/UI/runtime capability shipped.
+- `.ai/tasks/issue-509-routine-composition-persistence.md` — deployment evidence, ownership and next gate.
+- `.ai/tasks/README.md` — current task deployment boundary.
+- `docs/data/SUPABASE_SCHEMA.md` — verified 55-migration/19-table inventory, columns, constraints, indexes and RPC access.
+- `docs/data/SUPABASE_STRATEGY.md` — current deployed foundation and client integration boundary.
+- `docs/screens/routine-library.md` — planned UI distinguished from deployed database composition.
 
-### Known Limitations
-No production editor/wiring until later approved W4; live database remains unchanged until separate deployment gate.
+### Actual Behavior and Limits
+
+Production database migration is **APPLIED**, hosted verification **PASS**. No application release, client adapter or visible builder shipped. No executable SQL or migration file changes in this documentation slice. Existing merged source branch retained.
 
 ### Final Status
-`PARTIAL` — active bounded implementation.
+
+`PARTIAL` — database deployment complete; documentation review/merge and broader W1/client acceptance remain separate gates. Keep TNYX-78 In Progress and TNYX-81 blocked.
