@@ -1,6 +1,8 @@
 # Pre-P9 — Routine Composition Canonical Status Reconciliation
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-10-11
+**Archived:** 2026-10-11
 **Primary owner:** Repository documentation governance; `docs/data/` and `docs/screens/` (Workout-owned contract)
 **Affected platforms:** Documentation only; no production behavior change
 
@@ -40,3 +42,7 @@
 **Baseline:** `main@e0a340dd902f0490cc819343858db3dabf7f92b4`
 **Current checkpoint:** Documentation correction branch in progress.
 **Next exact action:** Verify PR diff, required checks and exact-head Codex review; do not merge without owner authorization.
+
+## Archival completion checkpoint — 2026-10-11
+
+Canonical status corrections in `docs/data/SUPABASE_STRATEGY.md` and `docs/screens/routine-library.md` merged via PR #519 (`b9ffec108fc8a48f413a67bc792e900387fd61cb`), verified identical to remote main immediately after squash merge. Exact-head AI-assisted manual COMMENT review found no blocking issue; required attribution PASS with 0 unresolved threads. **Codex returned usage-limit notices, not a clean review.** No local `git diff --check` was executed during the connector workflow. GitHub #509 is Closed while broader TNYX-78 is In Progress. P9 is not started, and GitHub #250's full-catalog contradiction criterion remains unchecked. Earlier branch/review/merge instructions in this preserved handoff are historical only. The prior active references to the #509/#518 handoffs were relocated to the archive in this lifecycle slice.
