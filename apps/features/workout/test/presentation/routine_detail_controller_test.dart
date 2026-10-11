@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -142,6 +144,26 @@ void main() {
     expect(routines.lastProgram, ProgramId(_p1));
   });
 
+  test('disposed controller cannot reveal a late in-flight composition read',
+      () async {
+    final compositions = _Compositions(_snapshot(entries: [
+      _entry(_e1, ExerciseRef.catalog('ex_approved_bench')),
+    ]))..readGate = Completer<void>();
+    final controller = _controller(
+      _Routines([_routine(_r1, _p1)]),
+      compositions,
+    );
+    final load = controller.load();
+    await Future<void>.delayed(Duration.zero);
+    expect(compositions.requested, RoutineId(_r1));
+
+    controller.dispose();
+    compositions.readGate!.complete();
+    await load;
+    expect(controller.state.status, RoutineDetailStatus.loading);
+    expect(controller.state.entries, isEmpty);
+  });
+
   test('archived user Exercise resolves through owner repository', () async {
     final ref = ExerciseRef.userCreated(_custom);
     final users = _Users([
@@ -254,10 +276,12 @@ final class _Compositions implements RoutineCompositionRepository {
   final RoutineCompositionSnapshot? result;
   int failures = 0;
   RoutineId? requested;
+  Completer<void>? readGate;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
     requested = routineId;
+    if (readGate != null) await readGate!.future;
     if (failures > 0) {
       failures--;
       throw StateError('permission');
