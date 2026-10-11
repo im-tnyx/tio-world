@@ -471,20 +471,31 @@ class _LibraryProgramRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: InkWell(
-              key: ValueKey('program-open-${program.id.value}'),
-              onTap: onProgramPressed,
-              child: Text(
-                program.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
-              ),
-            ),
+            child: onProgramPressed == null
+                ? Text(
+                    program.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontWeight: TioFontWeight.w700,
+                      fontSize: TioFontSize.size15,
+                    ),
+                  )
+                : InkWell(
+                    key: ValueKey('program-open-${program.id.value}'),
+                    onTap: onProgramPressed,
+                    child: Text(
+                      program.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size15,
+                      ),
+                    ),
+                  ),
           ),
           IconButton(
             key: ValueKey('program-overflow-${program.id.value}'),
