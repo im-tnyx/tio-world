@@ -1,7 +1,7 @@
 # Supabase-First Platform Strategy
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-01
+Last Verified: 2026-10-11
 Owner: Supabase data ownership + Backend & Platform
 Truth Boundary: Authoritative for current Supabase ownership and future protected-service boundaries; runtime source and verified live schema prove actual implementation.
 
@@ -9,9 +9,10 @@ Truth Boundary: Authoritative for current Supabase ownership and future protecte
 
 **Active current Supabase foundation.**
 - The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
-- On 2026-10-01, all 54 checked-in migrations match the 54 applied live migrations by version + name. The latest applied migration is `20260930180700_add_custom_exercise_definition_fields`; there are no repository-only or live-only migrations at the verified snapshot.
+- On 2026-10-11, all 55 checked-in migrations match the 55 applied live migrations by version + name. The latest applied migration is `20261010061809_create_user_workout_routine_composition`; there are no repository-only or live-only migrations at the verified snapshot.
 - W3D2 is deployed and hosted-verified. `public.user_workout_exercises` has 12 columns, with the approved optional description/type/primary-muscle/secondary-muscles/primary-equipment definition fields. Owner RLS and least-privilege authenticated grants remain in force; authenticated DELETE remains unavailable.
-- The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 17 ordinary live tables, with RLS enabled on all 17 at the verified snapshot. `user_workout_programs`, `user_workout_routines`, and `user_workout_exercises` are live.
+- Routine composition database persistence (#509 / merged #511) is deployed and hosted-verified: two Routine revision/mutation columns, ordered owner-safe `user_workout_routine_exercises` / `user_workout_routine_sets`, and the narrow authenticated atomic save RPC. Child Data API access is owner SELECT only; Routine metadata creation/rename remains compatible. The Flutter composition adapter and visible builder are not implemented by this deployment; W1/TNYX-78 remains In Progress and TNYX-81 remains dependency-blocked.
+- The canonical readable current `public` schema inventory is [`SUPABASE_SCHEMA.md`](SUPABASE_SCHEMA.md): 19 ordinary live tables, with RLS enabled on all 19 at the verified snapshot. `user_workout_programs`, `user_workout_routines`, `user_workout_exercises`, and both Routine composition child tables are live.
 - Flutter startup initializes configured Supabase through `SupabaseRuntimeConfig` and `initializeSupabaseRuntime`; current feature persistence/auth integrations use feature-owned Supabase repositories behind composition/provider boundaries.
 - Future HTTP/backend adapters remain architecture-preserved only where current source still contains them; future `services/api` remains unimplemented until a separately authorized protected-service slice.
 
