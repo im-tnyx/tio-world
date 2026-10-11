@@ -115,16 +115,56 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.lg,
-            vertical: TioSpacing.md,
-          ),
-          children: [_body(state)],
-        ),
+        child: state != null &&
+                state.status == RoutineDetailStatus.ready &&
+                state.entries.isNotEmpty
+            ? _readyList(state)
+            : ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.lg,
+                  vertical: TioSpacing.md,
+                ),
+                children: [_body(state)],
+              ),
       ),
     );
   }
+
+  /// Keep each persisted entry lazy while retaining its stable Exercise/Set
+  /// identities. The count header is the first sliver child, not a wrapper
+  /// Column that eagerly builds the full Routine.
+  Widget _readyList(RoutineDetailState state) => ListView.builder(
+        key: const ValueKey('routine-detail-entries'),
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md,
+        ),
+        itemCount: state.entries.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: TioSpacing.md),
+              child: Text(
+                '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
+                '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
+                key: const ValueKey('routine-detail-counts'),
+                style: TextStyle(
+                  color: context.tioColors.textSecondary,
+                  fontSize: TioFontSize.size14,
+                ),
+              ),
+            );
+          }
+          final entry = state.entries[index - 1];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+            child: TioCard(
+              key: ValueKey('routine-detail-entry-${entry.entry.id}'),
+              child: _RoutineEntryPreview(index: index, item: entry),
+            ),
+          );
+        },
+      );
 
   Widget _body(RoutineDetailState? state) {
     if (state == null) {
@@ -160,37 +200,10 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           ],
         );
       case RoutineDetailStatus.ready:
-        if (state.entries.isEmpty) {
-          return const _RoutineDetailMessage(
-            key: ValueKey('routine-detail-empty'),
-            label: 'No exercises in this Routine yet.',
-          );
-        }
-        return Column(
-          key: const ValueKey('routine-detail-entries'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
-              '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
-              key: const ValueKey('routine-detail-counts'),
-              style: TextStyle(
-                color: context.tioColors.textSecondary,
-                fontSize: TioFontSize.size14,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.md),
-            for (var i = 0; i < state.entries.length; i++) ...[
-              TioCard(
-                key: ValueKey('routine-detail-entry-${state.entries[i].entry.id}'),
-                child: _RoutineEntryPreview(
-                  index: i + 1,
-                  item: state.entries[i],
-                ),
-              ),
-              const SizedBox(height: TioSpacing.sm),
-            ],
-          ],
+        // Populated content is rendered lazily by _readyList.
+        return const _RoutineDetailMessage(
+          key: ValueKey('routine-detail-empty'),
+          label: 'No exercises in this Routine yet.',
         );
     }
   }

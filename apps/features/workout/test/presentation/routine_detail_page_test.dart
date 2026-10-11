@@ -167,6 +167,26 @@ void main() {
     expect(find.text('No sets prescribed'), findsOneWidget);
   });
 
+  testWidgets('long Routine builds only visible cards until scrolling',
+      (tester) async {
+    final entries = [
+      for (var i = 1; i <= 80; i++)
+        RoutineCompositionEntry(
+          id: '30000000-0000-4000-8000-${i.toString().padLeft(12, '0')}',
+          exercise: ExerciseRef.catalog('ex_bench_press'),
+        ),
+    ];
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(_snapshot(entries: entries)),
+    );
+    expect(find.text('80 exercises · 0 sets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-entry-30000000-0000-4000-8000-000000000001')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-entry-30000000-0000-4000-8000-000000000080')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('compact dark screen retains readable detail and back control',
       (tester) async {
     tester.view.physicalSize = const Size(320, 700);
