@@ -1,6 +1,6 @@
 # GitHub #514 — Settings ↔ Progress contract-only public dependency
 
-**Status:** In progress
+**Status:** Blocked
 **Primary owner:** `apps/features/progress` public domain contract + `apps/features/settings` consumer
 **Affected platforms:** Flutter Android and iOS
 
@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT architecture workflow
 **Implementation owner:** ChatGPT (single owner for this slice)
 **Review owner:** Codex on PR
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub `main@dfe9cee7389165f0a485623a1e3e69477eb1dc37` on 2026-10-11
 **Branch:** `tnyx/issue-514-settings-progress-contract`
-**HEAD SHA:** `4b00385f4dc346cb1f70f761f0606f7da23e4f9c` after bounded source, test and canonical ownership edits
+**HEAD SHA:** corrected source head `80f4ab620aaffe4c6be19b1653bd6e2396d2b187`; this blocker/evidence-only task refresh will create a newer docs-only PR head
 **Observed working-tree state:** Connector-only execution; no local checkout/status available.
 **Observed uncommitted/dirty files:** Not observable; GitHub branch was created from exact main.
 **PR / tracker:** Draft PR #515; GitHub #514; parent #260/#357; Linear TNYX-154, TNYX-201; TNYX-155 remains separate.
 **Current implementation state:** Narrow `progress_contracts.dart` created with two pure domain exports; two Settings page imports and two focused tests migrated; import-boundary guard added; canonical ownership decision recorded.
 **Relevant execution surface:** `apps/features/progress/lib`, `apps/features/settings/lib/src/presentation/pages`, focused Settings tests, canonical module ownership document.
-**Validation completed at SHA:** Read-only source/dependency and tracker audit on `main@dfe9cee...`.
-**Validation remaining:** Hosted Flutter/Dart analyze/tests and Codex exact-head review; merge-readiness checks.
-**Current blocker:** None.
+**Validation completed at SHA:** CI #3054 at `e7d6100a73d30d3b7c38dfb87481ddc69d7d2d90` failed one analyzer lint in the new Progress contract barrel. Fixed on `80f4ab620aaffe4c6be19b1653bd6e2396d2b187` and CI #3055 passed Flutter analysis; test phases in progress at last check.
+**Validation remaining:** Final-head hosted CI completion plus independent code review; Codex bot review unavailable due usage limit (not a clean review).
+**Current blocker:** Codex bot returned `You have reached your Codex usage limits for code reviews` on PR #515. No clean Codex review; PR must remain Draft until an approved review gate is available. CI #3055 test phase also pending at last check.
 **Open review finding IDs:** None.
-**Next exact action:** Validate exact Draft PR #515 head with hosted Flutter CI and Codex review; address in-scope findings before Ready.
+**Next exact action:** Check current exact-head CI; complete independent review gate when available, resolve any findings, then reevaluate Ready/merge. Do not merge from this blocked state.
 
 ## 1. Discovery
 
@@ -115,7 +115,8 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 - [x] Update canonical ownership documentation.
 - [x] Audit exact changed-file scope (eight paths only).
 - [x] Open Draft PR #515.
-- [ ] Hosted Flutter CI + Codex exact-head gate.
+- [ ] Hosted Flutter CI exact final-head PASS.
+- [ ] Independent Codex review gate (usage limit currently blocks).
 - [ ] Hosted CI + Codex exact-head gate.
 
 ## 6. Quality Review
@@ -123,13 +124,17 @@ All existing load/error/retry/save/validation and accessibility rendering preser
 ### Validation Run
 
 ```text
-Static GitHub compare at `4b00385f4dc346cb1f70f761f0606f7da23e4f9c`: eight changed paths exactly (task brief, Progress contract barrel, two Settings pages, two Settings focused widget tests, one boundary guard, Module Ownership doc), 8 ahead / 0 behind. `progress.dart` unchanged. No routes, persistence, providers, app code or visible UI changed. Local Flutter commands and `git diff --check` not run; connector-only. Hosted CI pending.
+Static GitHub compare: eight changed paths exactly (task brief, Progress contract barrel, two Settings pages, two Settings focused widget tests, one boundary guard, Module Ownership doc). `progress.dart` unchanged. No routes, persistence, providers, app code or visible UI changed.
+
+Flutter CI #3054 initially failed at `tio_feature_progress` analyzer because a `///` comment at top of new public contract barrel triggered `dangling_library_doc_comments`; fixed to `//` in `80f4ab620a...` without changing exports. Flutter CI #3055 passed analysis and was running tests at last check. Codex returned a usage limit rather than a review. Local Flutter commands and `git diff --check` not run; connector-only.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| `CI-3054-LINT` | Analyzer | Resolved | Dangling doc comment on new Progress public barrel | `e7d6100a73d30d3b7c38dfb87481ddc69d7d2d90` | Changed comment to ordinary `//` in `80f4ab620a...`; CI #3055 analysis passed |
+| `GATE-CODEX-QUOTA` | Review gate | Deferred | Codex review usage limit reached; no code review returned | PR #515 | Requires available independent reviewer, not a clean-review claim |
 
 ## 7. Final Handoff
 
