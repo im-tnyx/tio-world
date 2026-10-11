@@ -161,19 +161,64 @@ void main() {
     ]);
     await _pump(tester, repository: repository);
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
     expect(options, findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+
     await tester.tap(options);
     await tester.pumpAndSettle();
 
+    expect(popup, findsOneWidget);
+    expect(find.descendant(of: popup, matching: find.byType(TioCard)),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
+        findsOneWidget);
     expect(find.text('Edit'), findsOneWidget);
     expect(find.text('Change Picture'), findsNothing);
     expect(find.text('Delete'), findsNothing);
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
-    await tester.tap(find.text('Edit'));
+
+    // Tapping outside the anchored card dismisses it without changing Routine.
+    await tester.tapAt(const Offset(16, 500));
+    await tester.pumpAndSettle();
+    expect(popup, findsNothing);
+    expect(repository.rows.single.name, 'Push');
+
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-edit-$_routineId')));
     await tester.pumpAndSettle();
 
+    expect(popup, findsNothing);
     expect(find.text('Edit Routine'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsOneWidget);
+  });
+
+  testWidgets('Routine popup stays anchored within narrow dark viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    await _pump(
+      tester,
+      repository: repository,
+      mode: TioThemeMode.dark,
+    );
+    final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+
+    final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
+    final anchorRect = tester.getRect(options);
+    final popupRect = tester.getRect(popup);
+    expect(popupRect.right, lessThanOrEqualTo(320));
+    expect(popupRect.left, greaterThanOrEqualTo(0));
+    expect(popupRect.top, greaterThanOrEqualTo(anchorRect.bottom));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('create failure retains name and editor', (tester) async {
