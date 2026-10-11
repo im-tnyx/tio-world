@@ -823,7 +823,7 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 
 Verified `public.save_user_workout_routine_composition(uuid, bigint, uuid, jsonb)` returns bigint. It is owned by postgres, uses SECURITY DEFINER with empty `search_path`, and grants EXECUTE only to postgres/authenticated; anon/PUBLIC have no EXECUTE.
 
-The hosted function body matches the reviewed migration source after line-ending normalization: server-side `auth.uid()` owner verification, Routine row lock, expected revision comparison, mutation-token/payload equality on retry, and atomic child replacement/revision advance. Behavior under writes and concurrency is covered by the existing disposable database CI, not production data mutations. The Flutter composition adapter and visible builder remain pending.
+The hosted function body matches the reviewed migration source after line-ending normalization: server-side `auth.uid()` owner verification, Routine row lock, expected revision comparison, mutation-token/payload equality on retry, and atomic child replacement/revision advance. Behavior under writes and concurrency is covered by the existing disposable database CI, not production data mutations. The Workout-owned Flutter composition adapter is implemented and merged via PR #513 (`dfe9cee7389165f0a485623a1e3e69477eb1dc37`). App provider/controller integration and the visible Routine builder remain pending; the adapter has not been activated as a user-facing editor.
 
 ## Maintenance Rule
 
