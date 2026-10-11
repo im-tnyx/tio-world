@@ -1,6 +1,6 @@
 # GitHub #528 — Routine card opens owner-scoped read-only Routine Detail
 
-**Status:** In progress; validation/review pending  
+**Status:** In progress; implementation on stacked child PR #530, validation/review pending  
 **Primary owner:** `apps/features/workout` (Routine presentation/read controller), `apps/app` only for provider/navigation composition  
 **Affected platforms:** Flutter phone; no watch, Supabase schema or backend changes
 
@@ -13,16 +13,16 @@
 ## Current truthful handoff
 **Implementation owner:** This #528 child-branch GitHub connector session; does not write parent #527.
 **Review owner:** Independent reviewer/Codex/manual, not implementation author sign-off.
-**Implementation ownership state:** Active.
+**Implementation ownership state:** Handoff pending (stacked PR #530, no parent merge or CI approval).
 **Original verified source:** protected main `83e6fb813fc64b13b5bacc9863f67ab9ee9b8cbc`, PR #525 merged. PR #527 OPEN with independent implementation owner: `tnyx/issue-524-routine-popup-card@54758eaca923ed7da7e6544e54592e4a73ad5b56`, Flutter CI/attribution PASS; Codex quota limitation. Docs-only #523 OPEN and unrelated.
 **Child branch:** `tnyx/issue-528-routine-detail-read-only` forked from exact #527 head `54758eaca923ed7da7e6544e54592e4a73ad5b56`. Open **stacked PR base = #527 branch**, NOT main; after parent merges reconcile base. No force-push or history rewrite.
 **Local working tree:** User Windows checkout not accessible; GitHub API compares substitute for local git. No claim of local Flutter tests. No source changes to parent #527 branch.
 **Planning dependencies:** [Linear TNYX-81](https://linear.app/tnyx/issue/TNYX-81) Backlog blocked by TNYX-78/W1 and TNYX-80/W3; TNYX-267 Backlog blocked by TNYX-266/TNYX-81. #528 is scoped carve-out and does not lift these gates.
-**Current implementation state:** Brief and child branch created, source work pending.
+**Current implementation state:** Owner-scoped RoutineDetailController/Page, canonical Exercise resolution, existing app composition provider, Library/Program Detail routing and popup Edit separation implemented on child branch. Regression tests authored for owner association, repeated/archived/missing Exercise refs, error/empty/retry, Program/Library navigation and distinct popup Edit; **not executed locally**.
 **Observed uncommitted files:** Remote branch equals approved parent SHA, no connector-local checkout.
 **Relevant code:** Workout-owned `RoutineCompositionRepository` and `SupabaseRoutineCompositionRepository` have read-only, revision-bracketed, owner-filtered snapshot reads; `RoutineRepository.list(ProgramId)` validates metadata owner association. `ExerciseCatalogRepository.load()` resolves canonical `ex_*`; `UserExerciseRepository.list(includeArchived: true)` resolves user UUID; unresolved refs show explicitly unavailable. Existing `RoutineMetadataCard` in #527 is a Core `TioCard` with anchored Edit-only popup; decouple `onTap` from `onEdit` on child only.
-**Validation:** Not yet run for #528. Before PR merge require focused tests, exact-head Flutter analyze/test, required attribution, review. Parent merge gate independent.
-**Next exact action:** Implement feature read-only controller/page and app/feature navigation with focused tests; open stacked PR, stop before merge.
+**Validation:** No Flutter/Dart executable in connected session; no local tests run. GitHub PR #530 targets `tnyx/issue-524-routine-popup-card`; current repository `flutter-ci.yml` uses `pull_request.branches: [main]`, likewise required attribution workflow. Therefore the stacked PR has **no CI checks**, not a PASS; after PR #527 merges, safely retarget/reconcile #530 to fresh main, then run exact-head checks/review. Codex bot reported code review usage quota on PR #530, not an approval. No direct repository CI policy changes were authorized.
+**Next exact action:** Secure independent review of current source and inspect gaps; wait for separately authorized PR #527 merge/reconciliation. Retarget #530 onto fresh main (if parent commits are contained), run exact-head Flutter/attribution checks, repair scoped findings; STOP before #530 merge unless explicitly approved.
 
 ## Boundary and rejected alternatives
 - Reject clicking a Routine card to open Rename (owner-reported bug), opening a fake empty preview or showing enabled Start Workout before session engine exists.
