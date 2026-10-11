@@ -74,8 +74,27 @@ List<RouteBase> _shellBranchChildRoutes(
         builder: (context, ref, _) {
           final programRepository = ref.watch(programRepositoryProvider);
           final routineRepository = ref.watch(routineRepositoryProvider);
+          final compositions = ref.watch(routineCompositionRepositoryProvider);
+          final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
+          Future<void> openRoutine(Program program, Routine routine) async {
+            if (routineRepository == null || compositions == null ||
+                routine.programId != program.id) return;
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => RoutineDetailPage(
+                  program: program,
+                  routine: routine,
+                  routineRepository: routineRepository,
+                  compositionRepository: compositions,
+                  catalogRepository: catalog,
+                  userExerciseRepository: userExerciseRepository,
+                ),
+              ),
+            );
+          }
+
           return LibraryPage(
             programRepository: programRepository,
             routineRepository: routineRepository,
@@ -87,10 +106,16 @@ List<RouteBase> _shellBranchChildRoutes(
                         builder: (_) => ProgramDetailPage(
                           program: program,
                           routineRepository: routineRepository,
+                          onRoutinePressed: compositions == null
+                              ? null
+                              : (routine) => openRoutine(program, routine),
                         ),
                       ),
                     );
                   },
+            onRoutinePressed: compositions == null || routineRepository == null
+                ? null
+                : openRoutine,
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>
