@@ -14,6 +14,7 @@ Future<void> _pump(
   required RoutineRepository? repository,
   TioThemeMode mode = TioThemeMode.light,
   Program? selectedProgram,
+  Future<void> Function(Routine)? onRoutinePressed,
   double textScale = 1,
 }) async {
   await tester.pumpWidget(
@@ -31,6 +32,7 @@ Future<void> _pump(
         program: selectedProgram ?? _program,
         routineRepository: repository,
         newRoutineUuid: () => _routineId,
+        onRoutinePressed: onRoutinePressed,
       ),
     ),
   );
@@ -131,27 +133,27 @@ void main() {
     expect(find.text('Pull'), findsOneWidget);
   });
 
-  testWidgets('persisted Routine row opens only its real rename editor',
+  testWidgets('Routine card selects its identity, not Rename sheet',
       (tester) async {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
-    await _pump(tester, repository: repository);
+    Routine? selected;
+    await _pump(
+      tester,
+      repository: repository,
+      onRoutinePressed: (routine) async { selected = routine; },
+    );
     await tester.tap(find.byKey(const ValueKey('program-routine-$_routineId')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit Routine'), findsOneWidget);
-    final editable = find.descendant(
-      of: find.byKey(const ValueKey('routine-name-field')),
-      matching: find.byType(EditableText),
-    );
-    await tester.enterText(editable, 'Push A');
-    await tester.tap(find.byKey(const ValueKey('routine-name-submit')));
-    await tester.pumpAndSettle();
-
-    expect(repository.rows.single.name, 'Push A');
-    expect(find.text('Push A'), findsOneWidget);
-    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(selected?.id, RoutineId(_routineId));
+    expect(selected?.programId, _program.id);
+    expect(find.text('Edit Routine'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(repository.rows.single.name, 'Push');
+    expect(find.byKey(const ValueKey('routine-menu-$_routineId')),
+        findsOneWidget);
   });
 
   testWidgets('Routine 3-dot opens only the real Edit metadata action',
