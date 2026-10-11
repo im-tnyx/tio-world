@@ -11,9 +11,11 @@
 **Out:** Workout Start, prescribed duration/cardio/warmup without data, exercise/set editor or picker, inferred imagery, media Storage, delete/archive, Default My Program, new schema/RPC/RLS, release or production writes; broad W1/W3/W4 acceptance.
 
 ## Current truthful handoff
-**Implementation owner:** This #528 child-branch GitHub connector session; does not write parent #527.
-**Review owner:** Independent reviewer/Codex/manual, not implementation author sign-off.
-**Implementation ownership state:** Handoff pending (stacked PR #530, no parent merge or CI approval).
+**Previous Implementation owner:** Previous #528 child-branch GitHub connector session (paused with handoff pending, last source head `7a38daf29148e66320a6ceea241f3bba525cd349`).
+**Receiving Implementation owner:** Current GitHub-connected session, 2026-10-12 (review findings repair inside the existing #528 approved scope only).
+**Review owner:** Prior independent read-only PR review #5484665302; receiving implementation owner is not its own independent reviewer.
+**Implementation ownership state:** Takeover recorded after reconstructing unchanged PR head and three unresolved review threads; no evidence of concurrent branch implementation in current GitHub history. Owner's Windows working tree unavailable, so local `git status`/Flutter execution cannot be claimed. Stop on any conflicting source movement.
+**Open finding continuity:** P1 auth/session identity change while Detail is ready or loading (thread `PRRT_kwDOTOXwB86rQ1y9`, Open); P2 unconditional catalog load on empty/custom-only composition (thread `PRRT_kwDOTOXwB86rQ1zD`, Open); P2 eager rendering of large Exercise/Set composition (thread `PRRT_kwDOTOXwB86rQ1zH`, Open). All findings observed at `7a38daf2`, not resolved. Parent #527 still open; child CI not available until main-target reconciliation.
 **Original verified source:** protected main `83e6fb813fc64b13b5bacc9863f67ab9ee9b8cbc`, PR #525 merged. PR #527 OPEN with independent implementation owner: `tnyx/issue-524-routine-popup-card@54758eaca923ed7da7e6544e54592e4a73ad5b56`, Flutter CI/attribution PASS; Codex quota limitation. Docs-only #523 OPEN and unrelated.
 **Child branch:** `tnyx/issue-528-routine-detail-read-only` forked from exact #527 head `54758eaca923ed7da7e6544e54592e4a73ad5b56`. Open **stacked PR base = #527 branch**, NOT main; after parent merges reconcile base. No force-push or history rewrite.
 **Local working tree:** User Windows checkout not accessible; GitHub API compares substitute for local git. No claim of local Flutter tests. No source changes to parent #527 branch.
