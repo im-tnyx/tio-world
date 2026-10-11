@@ -73,10 +73,23 @@ List<RouteBase> _shellBranchChildRoutes(
       builder: (context, state) => Consumer(
         builder: (context, ref, _) {
           final programRepository = ref.watch(programRepositoryProvider);
+          final routineRepository = ref.watch(routineRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
           return LibraryPage(
             programRepository: programRepository,
+            onProgramPressed: routineRepository == null
+                ? null
+                : (program) {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => ProgramDetailPage(
+                          program: program,
+                          routineRepository: routineRepository,
+                        ),
+                      ),
+                    );
+                  },
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>
