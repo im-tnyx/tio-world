@@ -161,7 +161,12 @@ void main() {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
-    await _pump(tester, repository: repository);
+    Routine? navigated;
+    await _pump(
+      tester,
+      repository: repository,
+      onRoutinePressed: (routine) async { navigated = routine; },
+    );
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
     final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
     expect(options, findsOneWidget);
@@ -193,6 +198,7 @@ void main() {
 
     expect(popup, findsNothing);
     expect(find.text('Edit Routine'), findsOneWidget);
+    expect(navigated, isNull);
     expect(find.byKey(const ValueKey('routine-name-field')), findsOneWidget);
   });
 
