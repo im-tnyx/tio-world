@@ -482,17 +482,23 @@ class _LibraryProgramRow extends StatelessWidget {
                       fontSize: TioFontSize.size15,
                     ),
                   )
-                : InkWell(
-                    key: ValueKey('program-open-${program.id.value}'),
-                    onTap: onProgramPressed,
-                    child: Text(
-                      program.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size15,
+                : ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: TioSize.dp48),
+                    child: InkWell(
+                      key: ValueKey('program-open-${program.id.value}'),
+                      onTap: onProgramPressed,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          program.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size15,
+                          ),
+                        ),
                       ),
                     ),
                   ),
