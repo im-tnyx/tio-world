@@ -54,6 +54,12 @@ GitHub #475 changes how this capability is entered without changing Program owne
 
 The approved Library collection composition remains unchanged. W4A makes only owner-scoped Program Detail and Routine metadata actions real; Program/Routine composition editing still requires later W4 slices.
 
+### Approved Routine Card Visual Target (2026-10-11)
+
+The owner-supplied reference establishes a horizontal, **one-Routine-per-card** presentation for Program Detail and Program-expanded Library: **left thumbnail/image → Routine title → right Play → right Routine 3-dot overflow**. The intended Routine-scoped overflow entries are **Edit**, **Change Picture** and **Delete**. This Routine menu is not the existing *Program*-scoped overflow bottom sheet. The Program Detail app bar still has the **only** Routine-create `+`; do not restore a second body `Routines` heading/create action.
+
+This is **approved target UI**, not evidence that all actions are implemented. In the bounded [#524](https://github.com/im-tnyx/tio-world/issues/524) / [PR #525](https://github.com/im-tnyx/tio-world/pull/525) source, the separate cards use the available governed fallback exercise icon and existing metadata Rename action. Functional Play/Active Workout, user-private Routine picture upload/change and owner-safe confirmed Delete are separately gated by [#526](https://github.com/im-tnyx/tio-world/issues/526). Do not render enabled but inert/misleading controls or introduce Storage/migration/RPC changes from this visual reference alone. Once the relevant capabilities exist, preserve per-Program ownership, 48dp accessible targets, light/dark support and empty/non-executable Routine behavior.
+
 ## Program Detail Metadata And Future Routine Builder
 
 A Routine has stable identity/composition and belongs to exactly one user-owned Program. W4A Program Detail loads only that Program's Routine metadata, with generated editable names before create and existing names editable via Tio editor sheets. A save is owner-checked by existing RLS and FK; uncertain writes are reconciled using the same stable UUID. This does not expose Routine composition editing, picker or Workout Start.
