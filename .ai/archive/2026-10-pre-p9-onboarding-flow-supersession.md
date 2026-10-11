@@ -1,6 +1,8 @@
 # Pre-P9 — Mode-conditional onboarding flow supersession
 
-**Status:** In progress
+**Status:** Validated
+**Completed:** 2026-09-30
+**Archived:** 2026-10-11
 **Primary owner:** repository AI governance
 **Affected platforms:** Documentation / execution orientation only
 
@@ -50,5 +52,21 @@ Verified current truth:
 
 ## Handoff
 
-Current state: patch complete; manual review complete because Codex review quota was unavailable; merge authorization pending.
-Next exact action: re-check the new documentation-only head for drift/check publication and stop before merge unless explicitly authorized.
+Current state: Validated and merged. The supersession decision and historical record are durable in `docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/screens/onboarding.md`, and `.ai/archive/2026-09-mode-conditional-onboarding-flow.md`.
+Next exact action: None for the completed supersession handoff; any further audit or P9 phase needs a separate authorization.
+
+## Final Outcome And Lifecycle Evidence
+
+- PR #490 `docs(ai): supersede historical onboarding flow handoff` closed/merged on **2026-09-30**.
+- Final reviewed PR head: `ff2a55653da0ecfd89e7860fa803bde88006e240`.
+- Exact-head Codex review **was not available**: the bot returned code-review usage-limit notices. Manual patch review reported no material issue; unresolved review threads: **0**. Do not label this a clean Codex review.
+- The reviewed head had **no published combined statuses or pull-request workflow runs**; no CI-pass claim. `git diff --check` was not executed through the GitHub-only connector.
+- Squash merge SHA: `f5e02a22f5ac4d39be2b2c4e4f7c90ded6c47cf6`; immediately after merge, remote `main` was verified identical to that SHA (**0 ahead / 0 behind**).
+- GitHub #250 and Linear TNYX-193 received post-merge evidence comments; Linear TNYX-193 remained **In Progress**.
+- Fresh archive baseline: `main@4921ab4e54c424ea5c7b16c0e2e29fe0c9e382f3` (2026-10-11); source-backed canonical onboarding status still implemented/frozen, and historical onboarding-flow supersession remains preserved.
+- The archived historical task has no current execution authority. TNYX-159 / GitHub #215 and TNYX-202 / GitHub #261 remain separate backlog/planning work. P9 was not started by this lifecycle cleanup.
+- **Verdict: VALIDATED** — supersession outcome verified and durable; this file now records completion history rather than an active/merge-pending task.
+
+## Archive-PR Boundary
+
+This is a documentation-only handoff move plus archive-index edit. The archive PR's own exact-head review/CI evidence is independent of PR #490's evidence and must be checked before any separately authorized merge.
