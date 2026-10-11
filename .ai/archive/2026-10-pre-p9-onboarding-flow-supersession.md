@@ -53,7 +53,7 @@ Verified current truth:
 ## Handoff
 
 Current state: Validated and merged. The supersession decision and historical record are durable in `docs/architecture/ONBOARDING_ARCHITECTURE.md`, `docs/screens/onboarding.md`, and `.ai/archive/2026-09-mode-conditional-onboarding-flow.md`.
-Next exact action: Archive this validated execution handoff; any subsequent active-task audit or P9 phase requires a separate fresh audit and its own authorization.
+Next exact action: None for the completed supersession handoff; any further audit or P9 phase needs a separate authorization.
 
 ## Final Outcome And Lifecycle Evidence
 
