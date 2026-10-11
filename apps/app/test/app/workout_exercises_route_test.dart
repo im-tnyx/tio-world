@@ -247,6 +247,73 @@ void main() {
     expect(find.byType(ProgramDetailPage), findsNothing);
   });
 
+  testWidgets('Program Detail Routine tap opens real composition, not Rename',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(find.text('Start Workout'), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey(
+        'routine-menu-30000000-0000-4000-8000-000000000001')),
+        findsOneWidget);
+  });
+
+  testWidgets('expanded Library Routine tap opens same owner-bound preview',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const parentId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$parentId-$routineId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+  });
+
+  testWidgets('no composition source never opens a fake Routine Detail',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const parentId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    final card = find.byKey(
+        const ValueKey('library-routine-$parentId-$routineId'));
+    expect(card, findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+  });
+
   testWidgets('new Routine created in Program Detail appears under Library Program',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -671,6 +738,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   AppMode mode, {
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
+  bool withRoutineComposition = false,
   bool withUserExerciseRepository = true,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
@@ -708,6 +776,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       ),
       routineRepositoryProvider.overrideWithValue(
         withRoutineRepository ? _RouteRoutines() : null,
+      ),
+      routineCompositionRepositoryProvider.overrideWithValue(
+        withRoutineComposition ? _RouteCompositions() : null,
       ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
@@ -773,6 +844,31 @@ final class _RouteRoutines implements RoutineRepository {
     if (index < 0) throw StateError('Routine missing');
     rows[index] = Routine(id: id, programId: rows[index].programId, name: name);
   }
+}
+
+final class _RouteCompositions implements RoutineCompositionRepository {
+  @override
+  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async =>
+      RoutineCompositionSnapshot(
+        routineId: routineId,
+        revision: 1,
+        entries: [
+          RoutineCompositionEntry(
+            id: '60000000-0000-4000-8000-000000000001',
+            exercise: ExerciseRef.catalog('ex_synthetic_route_curl'),
+            sets: [
+              RoutineCompositionSet(
+                id: '70000000-0000-4000-8000-000000000001',
+                prescription: SetPrescription(reps: 8),
+              ),
+            ],
+          ),
+        ],
+      );
+
+  @override
+  Future<int> save(RoutineCompositionSave command) async =>
+      throw UnimplementedError();
 }
 
 final class _RouteCatalog implements ExerciseCatalogRepository {
