@@ -8,7 +8,6 @@ import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/calendar_preferences.dart';
-import 'package:tio_app/app/composition/workout_providers.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/profile/exercise_media_gender.dart';
