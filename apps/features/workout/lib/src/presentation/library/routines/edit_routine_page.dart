@@ -189,7 +189,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         identical(editor, _editor) &&
         confirmed &&
         editor.state.status == RoutineEditorStatus.saved) {
-      Navigator.of(context).pop<bool>(true);
+      _finishConfirmed();
     }
   }
 
@@ -201,8 +201,18 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     final confirmed = await editor.reconcileUnknown();
     if (mounted && identical(editor, _editor) && confirmed) {
-      Navigator.of(context).pop<bool>(true);
+      _finishConfirmed();
     }
+  }
+
+  // PopScope was blocking exit while the request was in flight. Wait for
+  // the saved-state rebuild before requesting route pop.
+  void _finishConfirmed() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _editor?.state.status == RoutineEditorStatus.saved) {
+        Navigator.of(context).pop<bool>(true);
+      }
+    });
   }
 
   @override
