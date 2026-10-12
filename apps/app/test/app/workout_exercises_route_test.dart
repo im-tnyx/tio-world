@@ -466,6 +466,51 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('same-user new login cycle discards editor while save is pending',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    final compositions = container.read(routineCompositionRepositoryProvider)
+        as _RouteCompositions;
+    compositions.saveGate = Completer<void>();
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '9');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pump();
+    expect(compositions.saveCount, 1);
+    expect(find.byKey(const ValueKey('edit-routine-saving')), findsOneWidget);
+
+    // Same user signs in again before the already-issued write returns.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-saving')), findsNothing);
+
+    compositions.saveGate!.complete();
+    await tester.pumpAndSettle();
+    // An old-cycle response must never navigate or restore a saved draft.
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(compositions.saveCount, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('account switch discards prior owner Routine before next read',
       (tester) async {
     final (container, router) = await _app(
@@ -1145,6 +1190,8 @@ final class _RouteCompositions implements RoutineCompositionRepository {
   int _readCount = 0;
   Completer<void>? nextOwnerReadGate;
   double? testLoadKg;
+  Completer<void>? saveGate;
+  int saveCount = 0;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
@@ -1172,8 +1219,11 @@ final class _RouteCompositions implements RoutineCompositionRepository {
   }
 
   @override
-  Future<int> save(RoutineCompositionSave command) async =>
-      throw UnimplementedError();
+  Future<int> save(RoutineCompositionSave command) async {
+    saveCount++;
+    if (saveGate != null) await saveGate!.future;
+    return command.expectedRevision + 1;
+  }
 }
 
 final class _RouteCatalog implements ExerciseCatalogRepository {
