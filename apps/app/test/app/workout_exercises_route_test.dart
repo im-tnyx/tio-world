@@ -341,6 +341,68 @@ void main() {
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
   });
 
+  testWidgets('account loss closes nested Routine Exercise picker and editor',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$programId-$routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.text('Synthetic Route Custom'), findsNothing);
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('account loss closes open Set sheet and private draft',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$programId-$routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineSetEditorSheet), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('account switch discards prior owner Routine before next read',
       (tester) async {
     final (container, router) = await _app(
