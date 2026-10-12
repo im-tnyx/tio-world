@@ -39,10 +39,9 @@ final class RoutineDetailState {
   RoutineDetailState.ready({
     required this.routine,
     required List<RoutineDetailEntry> entries,
-    required int revision,
+    required this.revision,
   })  : status = RoutineDetailStatus.ready,
-        entries = List.unmodifiable(entries),
-        revision = revision;
+        entries = List.unmodifiable(entries);
 
   final RoutineDetailStatus status;
   final Routine? routine;
