@@ -16,7 +16,8 @@ import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart' hide ProfileGender;
-import 'package:tio_feature_profile/profile.dart' show ProfileGender;
+import 'package:tio_feature_profile/profile.dart'
+    show ProfileActivityLevel, ProfileGender, ProfileSetupData;
 import 'package:tio_feature_settings/settings.dart'
     show CalendarPreferences, CalendarPreferencesRepository;
 import 'package:tio_feature_workout/workout.dart';
@@ -331,6 +332,48 @@ void main() {
     await tester.pumpAndSettle();
     // The simulated new owner has no access to the prior owner's snapshot.
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('account switch does not reuse the previous Profile weight unit',
+      (tester) async {
+    final nextProfile = StreamController<ProfileSetupData?>.broadcast();
+    addTearDown(nextProfile.close);
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      switchedOwnerProfiles: nextProfile.stream,
+    );
+    final compositions =
+        container.read(routineCompositionRepositoryProvider)
+            as _RouteCompositions;
+    compositions.testLoadKg = 8;
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsOneWidget);
+
+    // ProfileDataProvider can retain A's last value while B is reloading.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'));
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · Load unavailable'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+
+    // Only B's completed Profile load can enable B's unit choice.
+    nextProfile.add(_routineUnitProfile(WeightUnit.kg));
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · 8 kg'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
   });
 
   testWidgets('expanded Library Routine tap opens same owner-bound preview',
@@ -790,6 +833,22 @@ void main() {
   });
 }
 
+final _routineTestAuthStateProvider = StateProvider<AuthSessionState>((ref) =>
+    const AuthSessionAuthenticated(
+        AuthSession(userId: 'test-user', loginCycleId: 'test-cycle')));
+
+ProfileSetupData _routineUnitProfile(WeightUnit weightUnit) => ProfileSetupData(
+      name: 'Routine test member',
+      gender: ProfileGender.values.first,
+      goals: const {},
+      dateOfBirth: DateTime(1990, 1, 1),
+      heightCm: 175,
+      currentWeightKg: 70,
+      activityLevel: ProfileActivityLevel.values.first,
+      healthConditions: const {},
+      unitPreferences: UnitPreferences(weightUnit: weightUnit),
+    );
+
 Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
   AppMode mode, {
@@ -797,6 +856,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineRepository = true,
   bool withRoutineComposition = false,
   bool withUserExerciseRepository = true,
+  Stream<ProfileSetupData?>? switchedOwnerProfiles,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
@@ -840,6 +900,18 @@ Future<(ProviderContainer, GoRouter)> _app(
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
       ),
+      if (switchedOwnerProfiles != null) ...[
+        authSessionStateProvider.overrideWith((ref) =>
+            Stream.value(ref.watch(_routineTestAuthStateProvider))),
+        profileDataProvider.overrideWith((ref) {
+          final session = ref.watch(authSessionStateProvider).valueOrNull;
+          if (session is AuthSessionAuthenticated &&
+              session.session.userId == 'test-user') {
+            return Stream.value(_routineUnitProfile(WeightUnit.lb));
+          }
+          return switchedOwnerProfiles;
+        }),
+      ],
     ],
   );
   addTearDown(container.dispose);
@@ -906,6 +978,7 @@ final class _RouteRoutines implements RoutineRepository {
 final class _RouteCompositions implements RoutineCompositionRepository {
   int _readCount = 0;
   Completer<void>? nextOwnerReadGate;
+  double? testLoadKg;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
@@ -924,7 +997,7 @@ final class _RouteCompositions implements RoutineCompositionRepository {
           sets: [
             RoutineCompositionSet(
               id: '70000000-0000-4000-8000-000000000001',
-              prescription: SetPrescription(reps: 8),
+              prescription: SetPrescription(reps: 8, loadKg: testLoadKg),
             ),
           ],
         ),
