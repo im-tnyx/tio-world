@@ -27,6 +27,7 @@ Future<void> _pump(
   required RoutineCompositionRepository? compositions,
   Routine? selected,
   TioThemeMode mode = TioThemeMode.light,
+  WeightUnit? weightUnit = WeightUnit.kg,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -40,6 +41,7 @@ Future<void> _pump(
         routineRepository: routines,
         compositionRepository: compositions,
         catalogRepository: _Catalog(),
+        weightUnit: weightUnit,
       ),
     ),
   );
@@ -72,7 +74,7 @@ void main() {
     expect(find.text('Push Day'), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
     expect(find.text('1. Bench Press'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 0.0 kg · 60 sec rest'),
+    expect(find.text('Set 1 · 8 reps · 0 kg · 60 sec rest'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
         findsOneWidget);
@@ -80,6 +82,51 @@ void main() {
         findsOneWidget);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.text('5 min cardio'), findsNothing);
+  });
+
+  testWidgets('load display follows kg/lb preference and avoids guesses',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription:
+                SetPrescription(reps: 5, loadKg: 12.5, restSeconds: 90),
+          ),
+        ],
+      ),
+    ]);
+    final routines = _Routines([_routine]);
+    final compositions = _Compositions(composition);
+
+    await _pump(tester,
+        routines: routines,
+        compositions: compositions,
+        weightUnit: WeightUnit.kg);
+    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+        findsOneWidget);
+
+    await _pump(tester,
+        routines: routines,
+        compositions: compositions,
+        weightUnit: WeightUnit.lb);
+    expect(find.text('Set 1 · 5 reps · 27.6 lb · 90 sec rest'),
+        findsOneWidget);
+    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+        findsNothing);
+
+    // No fabricated default on a route whose Profile data has not resolved.
+    await _pump(tester,
+        routines: routines,
+        compositions: compositions,
+        weightUnit: null);
+    expect(find.text('Set 1 · 5 reps · Load unavailable · 90 sec rest'),
+        findsOneWidget);
+    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+        findsNothing);
   });
 
   testWidgets('empty persisted Routine shows truthful empty state',
