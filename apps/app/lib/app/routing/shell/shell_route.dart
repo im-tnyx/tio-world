@@ -119,18 +119,107 @@ List<RouteBase> _shellBranchChildRoutes(
                             !profileAsync.hasError
                         ? profileAsync.valueOrNull?.unitPreferences.weightUnit
                         : null;
+                    // A bootstrap user alone is insufficient: Auth must
+                    // resolve to the same current user before exposing an
+                    // owner-scoped Detail repository or an Edit capability.
+                    final verifiedOwner =
+                        ownerId != null && ownerId == authUserId;
+                    final mayEdit = verifiedOwner &&
+                        weightUnit != null &&
+                        routineRepository != null &&
+                        compositions != null &&
+                        userExerciseRepository != null;
                     return RoutineDetailPage(
-                      key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
+                      key: ValueKey(
+                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}',
+                      ),
                       program: program,
                       routine: routine,
                       routineRepository:
-                          ownerId == null ? null : routineRepository,
+                          verifiedOwner ? routineRepository : null,
                       compositionRepository:
-                          ownerId == null ? null : compositions,
+                          verifiedOwner ? compositions : null,
                       catalogRepository: catalog,
                       userExerciseRepository:
-                          ownerId == null ? null : userExerciseRepository,
+                          verifiedOwner ? userExerciseRepository : null,
                       weightUnit: weightUnit,
+                      onEditPressed: !mayEdit
+                          ? null
+                          : (ownedRoutine) async {
+                              if (ownedRoutine.id != routine.id ||
+                                  ownedRoutine.programId != program.id) {
+                                return false;
+                              }
+                              final startingOwner = ownerId;
+                              return Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => Consumer(
+                                    builder: (context, ref, _) {
+                                      // Re-evaluate all account capabilities
+                                      // in the destination itself, not only
+                                      // when the navigation action was tapped.
+                                      final session = ref
+                                          .watch(
+                                            appSessionBootstrapControllerProvider,
+                                          )
+                                          .state;
+                                      final currentOwner =
+                                          session is AppSessionBootstrapReady
+                                              ? session.userId
+                                              : null;
+                                      final authAsync =
+                                          ref.watch(authSessionStateProvider);
+                                      final auth = authAsync.isLoading ||
+                                              authAsync.hasError
+                                          ? null
+                                          : authAsync.valueOrNull;
+                                      final currentAuth =
+                                          auth is AuthSessionAuthenticated
+                                              ? auth.session.userId
+                                              : null;
+                                      final authorized =
+                                          startingOwner != null &&
+                                          currentOwner == startingOwner &&
+                                          currentAuth == startingOwner;
+                                      final profileAsync =
+                                          ref.watch(profileDataProvider);
+                                      final unit = authorized &&
+                                              !profileAsync.isLoading &&
+                                              !profileAsync.hasError
+                                          ? profileAsync
+                                              .valueOrNull
+                                              ?.unitPreferences
+                                              .weightUnit
+                                          : null;
+                                      return EditRoutinePage(
+                                        key: ValueKey(
+                                          'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}',
+                                        ),
+                                        program: program,
+                                        routine: ownedRoutine,
+                                        routineRepository: authorized
+                                            ? ref.watch(routineRepositoryProvider)
+                                            : null,
+                                        compositionRepository: authorized
+                                            ? ref.watch(
+                                                routineCompositionRepositoryProvider,
+                                              )
+                                            : null,
+                                        catalogRepository: ref.watch(
+                                          exerciseCatalogRepositoryProvider,
+                                        ),
+                                        userExerciseRepository: authorized
+                                            ? ref.watch(
+                                                userExerciseRepositoryProvider,
+                                              )
+                                            : null,
+                                        weightUnit: unit,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
                     );
                   },
                 ),
