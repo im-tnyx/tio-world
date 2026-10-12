@@ -6,6 +6,7 @@ import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import 'routine_exercise_picker_page.dart';
@@ -399,7 +400,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
         final entry = state.entries[index - 1];
         Exercise? found;
-        for (final item in _source?.state.items ?? const []) {
+        for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
           if (item.exercise.ref == entry.exercise) {
             found = item.exercise;
             break;
