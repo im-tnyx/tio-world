@@ -298,6 +298,69 @@ void main() {
     expect(find.text('Set 1 · 10 reps · 45 sec rest'), findsOneWidget);
   });
 
+  testWidgets('Detail to real Edit screen saves once and refreshes server truth',
+      (tester) async {
+    final comp = _Compositions(_snapshot());
+    final routines = _Routines([_routine]);
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: RoutineDetailPage(
+          program: _program,
+          routine: _routine,
+          routineRepository: routines,
+          compositionRepository: comp,
+          catalogRepository: _Catalog(),
+          weightUnit: WeightUnit.kg,
+          onEditPressed: (owned) =>
+              navigatorKey.currentState!.push<bool>(
+            MaterialPageRoute(
+              builder: (_) => EditRoutinePage(
+                program: _program,
+                routine: owned,
+                routineRepository: routines,
+                compositionRepository: comp,
+                catalogRepository: _Catalog(),
+                weightUnit: WeightUnit.kg,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-page')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    expect(comp.saveCount, 0);
+    await tester.tap(find.text('Add Set'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '8');
+    await tester.enterText(find.byKey(const ValueKey('routine-set-weight')), '12');
+    await tester.enterText(find.byKey(const ValueKey('routine-set-rest')), '60');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(comp.saveCount, 1);
+    expect(comp.readCount, 3); // initial Detail + Editor + refreshed Detail
+    expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
+    expect(find.text('1 exercise · 1 set'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 12 kg · 60 sec rest'), findsOneWidget);
+  });
+
   testWidgets('read failure and missing repositories never expose Edit',
       (tester) async {
     final comp = _Compositions(_snapshot())..failures = 1;
@@ -430,6 +493,7 @@ final class _Compositions implements RoutineCompositionRepository {
   RoutineCompositionSnapshot? snapshot;
   int readCount = 0;
   int failures = 0;
+  int saveCount = 0;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
@@ -442,8 +506,17 @@ final class _Compositions implements RoutineCompositionRepository {
   }
 
   @override
-  Future<int> save(RoutineCompositionSave command) async =>
-      throw UnimplementedError();
+  Future<int> save(RoutineCompositionSave command) async {
+    saveCount++;
+    final nextRevision = command.expectedRevision + 1;
+    snapshot = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: nextRevision,
+      lastMutationId: command.mutationId,
+      entries: command.entries,
+    );
+    return nextRevision;
+  }
 }
 
 final class _Catalog implements ExerciseCatalogRepository {
