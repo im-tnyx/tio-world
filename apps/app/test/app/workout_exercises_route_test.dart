@@ -403,6 +403,69 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('same-user new login cycle revokes private Exercise picker',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+
+    // No bootstrap transition: same principal, NEW interactive login cycle.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.text('Synthetic Route Custom'), findsNothing);
+    // Current account remains logged in; re-entry gets a fresh controller.
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('same-user new login cycle closes Set modal and private draft',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.byType(RoutineSetEditorSheet), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('account switch discards prior owner Routine before next read',
       (tester) async {
     final (container, router) = await _app(
