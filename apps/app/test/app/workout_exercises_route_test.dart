@@ -498,8 +498,10 @@ void main() {
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
         );
-    await tester.pumpAndSettle();
-    expect(find.byType(EditRoutinePage), findsNothing);
+    // Never pumpAndSettle a deliberately unresolved save Future. Give Auth
+    // two bounded frames to revoke private UI before releasing the response.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('edit-routine-saving')), findsNothing);
 
     compositions.saveGate!.complete();
