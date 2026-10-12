@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -297,6 +299,37 @@ void main() {
     await tester.pump();
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
     await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('account switch discards prior owner Routine before next read',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+
+    final compositions =
+        container.read(routineCompositionRepositoryProvider)
+            as _RouteCompositions;
+    compositions.nextOwnerReadGate = Completer<void>();
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+
+    compositions.nextOwnerReadGate!.complete();
+    await tester.pumpAndSettle();
+    // The simulated new owner has no access to the prior owner's snapshot.
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
   });
 
@@ -871,24 +904,33 @@ final class _RouteRoutines implements RoutineRepository {
 }
 
 final class _RouteCompositions implements RoutineCompositionRepository {
+  int _readCount = 0;
+  Completer<void>? nextOwnerReadGate;
+
   @override
-  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async =>
-      RoutineCompositionSnapshot(
-        routineId: routineId,
-        revision: 1,
-        entries: [
-          RoutineCompositionEntry(
-            id: '60000000-0000-4000-8000-000000000001',
-            exercise: ExerciseRef.catalog('ex_synthetic_route_curl'),
-            sets: [
-              RoutineCompositionSet(
-                id: '70000000-0000-4000-8000-000000000001',
-                prescription: SetPrescription(reps: 8),
-              ),
-            ],
-          ),
-        ],
-      );
+  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
+    _readCount++;
+    if (_readCount > 1 && nextOwnerReadGate != null) {
+      await nextOwnerReadGate!.future;
+      return null;
+    }
+    return RoutineCompositionSnapshot(
+      routineId: routineId,
+      revision: 1,
+      entries: [
+        RoutineCompositionEntry(
+          id: '60000000-0000-4000-8000-000000000001',
+          exercise: ExerciseRef.catalog('ex_synthetic_route_curl'),
+          sets: [
+            RoutineCompositionSet(
+              id: '70000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(reps: 8),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
   @override
   Future<int> save(RoutineCompositionSave command) async =>
