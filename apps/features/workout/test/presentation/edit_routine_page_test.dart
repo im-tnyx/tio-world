@@ -184,6 +184,10 @@ void main() {
     expect(find.byKey(const ValueKey('edit-routine-update')), findsNothing);
     expect(missing.compositions.readCount, 0);
 
+    // Dispose the first Navigator stack before creating a second fixture.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
     final cross = _Fixtures(
       routine: Routine(
         id: RoutineId(_r),
