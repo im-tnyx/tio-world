@@ -28,6 +28,7 @@ Future<void> _pump(
   Routine? selected,
   TioThemeMode mode = TioThemeMode.light,
   WeightUnit? weightUnit = WeightUnit.kg,
+  Future<bool?> Function(Routine)? onEditPressed,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -42,6 +43,7 @@ Future<void> _pump(
         compositionRepository: compositions,
         catalogRepository: _Catalog(),
         weightUnit: weightUnit,
+        onEditPressed: onEditPressed,
       ),
     ),
   );
@@ -217,6 +219,106 @@ void main() {
     expect(find.text('No sets prescribed'), findsOneWidget);
   });
 
+  testWidgets('Edit action is gated by ready owner data and resolved unit',
+      (tester) async {
+    final compositions = _Compositions(_snapshot());
+    var calls = 0;
+    Future<bool?> navigate(Routine owned) async {
+      calls++;
+      expect(owned.id, _routine.id);
+      return false;
+    }
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: navigate,
+      weightUnit: null,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+
+    await _pump(
+      tester,
+      routines: _Routines([]),
+      compositions: compositions,
+      onEditPressed: navigate,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+    expect(calls, 0);
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: navigate,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    // Cancel/Back does not trigger a new composition read.
+    expect(compositions.readCount, 2);
+  });
+
+  testWidgets('confirmed editor return re-reads persisted Routine Detail',
+      (tester) async {
+    final compositions = _Compositions(_snapshot());
+    var callbacks = 0;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: (owned) async {
+        callbacks++;
+        compositions.snapshot = _snapshot(entries: [
+          RoutineCompositionEntry(
+            id: _e1,
+            exercise: ExerciseRef.catalog('ex_bench_press'),
+            sets: [
+              RoutineCompositionSet(
+                id: _s1,
+                prescription: SetPrescription(reps: 10, restSeconds: 45),
+              ),
+            ],
+          ),
+        ]);
+        return true; // Existing revision-guarded Editor confirmed Update.
+      },
+    );
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+    expect(compositions.readCount, 1);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+
+    expect(callbacks, 1);
+    expect(compositions.readCount, 2);
+    expect(find.text('1 exercise · 1 set'), findsOneWidget);
+    expect(find.text('Set 1 · 10 reps · 45 sec rest'), findsOneWidget);
+  });
+
+  testWidgets('read failure and missing repositories never expose Edit',
+      (tester) async {
+    final comp = _Compositions(_snapshot())..failures = 1;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: comp,
+      onEditPressed: (_) async => true,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-failed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+
+    await _pump(
+      tester,
+      routines: null,
+      compositions: comp,
+      onEditPressed: (_) async => true,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+  });
+
   testWidgets('long Routine builds only visible cards until scrolling',
       (tester) async {
     final entries = [
@@ -325,7 +427,7 @@ final class _Routines implements RoutineRepository {
 
 final class _Compositions implements RoutineCompositionRepository {
   _Compositions(this.snapshot);
-  final RoutineCompositionSnapshot? snapshot;
+  RoutineCompositionSnapshot? snapshot;
   int readCount = 0;
   int failures = 0;
 
