@@ -249,7 +249,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           ),
         ),
         body: SafeArea(child: _body()),
-        bottomNavigationBar: status == RoutineEditorStatus.ready
+        bottomNavigationBar: status == RoutineEditorStatus.ready &&
+                widget.weightUnit != null
             ? SafeArea(
                 minimum: const EdgeInsets.all(TioSpacing.lg),
                 child: TioButton.primary(
