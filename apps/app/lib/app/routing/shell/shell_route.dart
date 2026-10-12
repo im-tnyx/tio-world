@@ -202,7 +202,8 @@ List<RouteBase> _shellBranchChildRoutes(
                                             (route) =>
                                                 identical(route, editorRoute),
                                           );
-                                          if (editorRoute.isActive) {
+                                          if (editorRoute != null &&
+                                              editorRoute.isActive) {
                                             navigator.pop<bool>(false);
                                           }
                                         });
