@@ -159,7 +159,9 @@ final class RoutineEditorController extends ChangeNotifier {
     if (!_state.canEdit ||
         from < 0 || to < 0 ||
         from >= _draft.length || to >= _draft.length ||
-        from == to) return false;
+        from == to) {
+      return false;
+    }
     final next = [..._draft];
     next.insert(to, next.removeAt(from));
     _setDraft(next);
@@ -224,7 +226,9 @@ final class RoutineEditorController extends ChangeNotifier {
     final entry = _draft[index];
     if (from < 0 || to < 0 ||
         from >= entry.sets.length || to >= entry.sets.length ||
-        from == to) return false;
+        from == to) {
+      return false;
+    }
     final reordered = [...entry.sets];
     reordered.insert(to, reordered.removeAt(from));
     _replaceEntry(index, RoutineCompositionEntry(
@@ -325,13 +329,17 @@ final class RoutineEditorController extends ChangeNotifier {
     final command = _uncertainCommand;
     if (_disposed ||
         command == null ||
-        _state.status != RoutineEditorStatus.outcomeUnknown) return false;
+        _state.status != RoutineEditorStatus.outcomeUnknown) {
+      return false;
+    }
     final epoch = _epoch;
     try {
       final current = await compositions.read(routine.id);
       if (_disposed ||
           epoch != _epoch ||
-          _state.status != RoutineEditorStatus.outcomeUnknown) return false;
+          _state.status != RoutineEditorStatus.outcomeUnknown) {
+      return false;
+    }
       if (current == null || current.routineId != routine.id) {
         _draft = const [];
         _baseline = const [];
