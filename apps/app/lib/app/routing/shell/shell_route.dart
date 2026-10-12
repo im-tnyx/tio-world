@@ -112,6 +112,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     final authUserId = auth is AuthSessionAuthenticated
                         ? auth.session.userId
                         : null;
+                    // Unlike userId, a sign-in cycle changes when the same
+                    // account authenticates anew. Never carry previous-cycle
+                    // Routine content or edits into the new session.
+                    final authCycleId = auth is AuthSessionAuthenticated
+                        ? auth.session.loginCycleId
+                        : null;
                     final profileAsync = ref.watch(profileDataProvider);
                     final weightUnit = ownerId != null &&
                             authUserId == ownerId &&
@@ -129,7 +135,7 @@ List<RouteBase> _shellBranchChildRoutes(
                         userExerciseRepository != null;
                     return RoutineDetailPage(
                       key: ValueKey(
-                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}',
+                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
                       ),
                       program: program,
                       routine: routine,
@@ -149,6 +155,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                 return false;
                               }
                               final startingOwner = ownerId;
+                              final startingCycleId = authCycleId;
                               var revoked = false;
                               return Navigator.of(context).push<bool>(
                                 MaterialPageRoute(
@@ -176,9 +183,14 @@ List<RouteBase> _shellBranchChildRoutes(
                                           auth is AuthSessionAuthenticated
                                               ? auth.session.userId
                                               : null;
+                                      final currentCycleId =
+                                          auth is AuthSessionAuthenticated
+                                              ? auth.session.loginCycleId
+                                              : null;
                                       final authorized =
                                           currentOwner == startingOwner &&
-                                          currentAuth == startingOwner;
+                                          currentAuth == startingOwner &&
+                                          currentCycleId == startingCycleId;
                                       // The editor may be covered by a
                                       // picker or Set modal on this Navigator.
                                       // A changed Auth/bootstrap owner must
@@ -221,7 +233,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                           : null;
                                       return EditRoutinePage(
                                         key: ValueKey(
-                                          'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}',
+                                          'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}-cycle-${currentCycleId ?? 'none'}',
                                         ),
                                         program: program,
                                         routine: ownedRoutine,
