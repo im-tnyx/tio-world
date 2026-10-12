@@ -12,6 +12,7 @@ const _r = '20000000-0000-4000-8000-000000000001';
 const _entryId = '30000000-0000-4000-8000-000000000001';
 const _setId = '40000000-0000-4000-8000-000000000001';
 const _exerciseRef = 'ex_bench_press';
+const _newCustomRef = '70000000-0000-4000-8000-000000000001';
 
 Program get _program => Program(id: ProgramId(_p), name: 'Strength');
 Routine get _routine =>
@@ -50,13 +51,15 @@ RoutineCompositionSnapshot _snapshot({
 class _Fixtures {
   _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true})
       : compositions = _Compositions(_snapshot()),
-        catalog = _Catalog();
+        catalog = _Catalog(),
+        users = _Users();
 
   final WeightUnit? unit;
   final Routine? routine;
   final bool repositoryAvailable;
   final _Compositions compositions;
   final _Catalog catalog;
+  final _Users users;
   final _Routines routines = _Routines();
   bool? editorResult;
   int nextId = 0;
@@ -86,6 +89,7 @@ class _Fixtures {
                     compositionRepository:
                         repositoryAvailable ? compositions : null,
                     catalogRepository: catalog,
+                    userExerciseRepository: users,
                     weightUnit: unit,
                     newUuid: newId,
                   ),
@@ -122,6 +126,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(f.editorResult, isFalse);
     expect(f.compositions.saveCount, 0);
+  });
+
+  testWidgets('picker returns freshly created Custom even when editor source is stale',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    await f.open(tester);
+    expect(f.users.listCalls, 1);
+
+    // A second device created this exercise after editor _source loaded.
+    // The picker loads a new owner-scoped snapshot that includes it.
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'Fresh Custom Lift',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh Custom Lift'), findsOneWidget);
+    expect(f.users.listCalls, 2);
+    await tester.tap(find.text('Fresh Custom Lift'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey(
+        'edit-routine-entry-90000000-0000-4000-8000-000000000001')),
+        findsOneWidget);
+    expect(find.text('1. Fresh Custom Lift'), findsOneWidget);
+    expect(f.users.listCalls, 3); // Refresh editor source for safe Update.
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(f.compositions.lastSave!.entries.single.exercise,
+        UserCreatedExerciseRef(_newCustomRef));
+    expect(f.editorResult, isTrue);
+    expect(f.users.writeCalls, 0);
   });
 
   testWidgets('editing reps preserves exact canonical kg and Set UUID',
@@ -335,5 +377,54 @@ final class _Compositions implements RoutineCompositionRepository {
       mutation: command.mutationId,
     );
     return command.expectedRevision + 1;
+  }
+}
+
+final class _Users implements UserExerciseRepository {
+  List<Exercise> rows = const [];
+  int listCalls = 0;
+  int writeCalls = 0;
+
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async {
+    listCalls++;
+    return List.unmodifiable(rows.where(
+      (item) => includeArchived || item.status == ExerciseStatus.active,
+    ));
+  }
+
+  @override
+  Future<void> create({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+    CatalogExerciseRef? basedOnCatalogExercise,
+    UserExerciseDefinition? definition,
+  }) async {
+    writeCalls++;
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> updateDefinition({
+    required UserCreatedExerciseRef id,
+    required UserExerciseDefinition definition,
+  }) async {
+    writeCalls++;
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> rename({
+    required UserCreatedExerciseRef id,
+    required String displayName,
+  }) async {
+    writeCalls++;
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> archive(UserCreatedExerciseRef id) async {
+    writeCalls++;
+    throw UnimplementedError();
   }
 }
