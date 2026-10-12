@@ -1,0 +1,169 @@
+import 'package:flutter/material.dart';
+import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
+
+/// Modal input for exactly one existing fixed-repetition prescription.
+/// No Routine mutation happens until the caller accepts its return value.
+class RoutineSetEditorSheet extends StatefulWidget {
+  const RoutineSetEditorSheet({required this.unit, this.initial, super.key});
+
+  final WeightUnit unit;
+  final SetPrescription? initial;
+
+  @override
+  State<RoutineSetEditorSheet> createState() => _RoutineSetEditorSheetState();
+}
+
+class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
+  late final TextEditingController _reps;
+  late final TextEditingController _load;
+  late final TextEditingController _rest;
+  late final String _originalLoad;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _reps = TextEditingController(text: widget.initial?.reps.toString() ?? '');
+    _originalLoad = widget.initial?.loadKg == null
+        ? ''
+        : UnitFormatters.formatWeight(
+            widget.initial!.loadKg!,
+            widget.unit,
+            decimals: 3,
+          ).split(' ').first;
+    _load = TextEditingController(text: _originalLoad);
+    _rest = TextEditingController(
+      text: widget.initial?.restSeconds.toString() ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _reps.dispose();
+    _load.dispose();
+    _rest.dispose();
+    super.dispose();
+  }
+
+  void _inputChanged(String _) {
+    if (_error != null) setState(() => _error = null);
+  }
+
+  void _confirm() {
+    final reps = int.tryParse(_reps.text.trim());
+    final restText = _rest.text.trim();
+    final rest = restText.isEmpty ? null : int.tryParse(restText);
+    final weightText = _load.text.trim();
+    final weight = weightText.isEmpty ? null : double.tryParse(weightText);
+
+    if (reps == null ||
+        reps <= 0 ||
+        reps > 2147483647 ||
+        (restText.isNotEmpty && rest == null) ||
+        (rest != null && (rest < 0 || rest > 2147483647)) ||
+        (weightText.isNotEmpty && weight == null) ||
+        (weight != null && (!weight.isFinite || weight < 0))) {
+      setState(() {
+        _error = 'Reps must be positive. Weight and Rest must be nonnegative.';
+      });
+      return;
+    }
+
+    // A displayed lb value is rounded. Retain original canonical kg bytes
+    // when the user did not change the Weight field.
+    final double? kilograms;
+    if (widget.initial != null && weightText == _originalLoad) {
+      kilograms = widget.initial!.loadKg;
+    } else if (weight == null) {
+      kilograms = null;
+    } else {
+      kilograms = widget.unit == WeightUnit.kg
+          ? weight
+          : UnitConverters.lbToKg(weight);
+    }
+
+    try {
+      final prescription = SetPrescription(
+        reps: reps,
+        loadKg: kilograms,
+        restSeconds: rest,
+      );
+      Navigator.of(context).pop<SetPrescription>(prescription);
+    } on ArgumentError {
+      setState(() => _error = 'Invalid Set values.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TioEditorSheet(
+        title: widget.initial == null ? 'Add Set' : 'Edit Set',
+        supportingText: 'Fixed Reps with optional Weight and Rest.',
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              label: 'Reps',
+              child: TioInput.numericEditor(
+                key: const ValueKey('routine-set-reps'),
+                controller: _reps,
+                hint: 'Reps',
+                keyboardType: TextInputType.number,
+                onChanged: _inputChanged,
+              ),
+            ),
+            const SizedBox(height: TioSpacing.md),
+            Semantics(
+              label: 'Weight',
+              child: TioInput.numericEditor(
+                key: const ValueKey('routine-set-weight'),
+                controller: _load,
+                hint: 'Weight',
+                suffixText: widget.unit == WeightUnit.kg ? 'kg' : 'lb',
+                onChanged: _inputChanged,
+              ),
+            ),
+            const SizedBox(height: TioSpacing.md),
+            Semantics(
+              label: 'Rest seconds',
+              child: TioInput.numericEditor(
+                key: const ValueKey('routine-set-rest'),
+                controller: _rest,
+                hint: 'Rest seconds',
+                keyboardType: TextInputType.number,
+                suffixText: 'sec',
+                onChanged: _inputChanged,
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _error!,
+                  key: const ValueKey('routine-set-validation-error'),
+                  style: TextStyle(color: context.tioColors.danger),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: Row(
+          children: [
+            Expanded(
+              child: TioButton.secondary(
+                label: 'Cancel',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(
+              child: TioButton.primary(
+                key: const ValueKey('routine-set-confirm'),
+                label: 'Save Set',
+                onPressed: _confirm,
+              ),
+            ),
+          ],
+        ),
+      );
