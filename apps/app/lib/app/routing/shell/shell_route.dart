@@ -149,6 +149,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                 return false;
                               }
                               final startingOwner = ownerId;
+                              var revoked = false;
                               return Navigator.of(context).push<bool>(
                                 MaterialPageRoute(
                                   builder: (_) => Consumer(
@@ -178,6 +179,34 @@ List<RouteBase> _shellBranchChildRoutes(
                                       final authorized =
                                           currentOwner == startingOwner &&
                                           currentAuth == startingOwner;
+                                      // The editor may be covered by a
+                                      // picker or Set modal on this Navigator.
+                                      // A changed Auth/bootstrap owner must
+                                      // dismiss those routes too: disposing
+                                      // the underlying keyed editor alone
+                                      // does not clear an overlay's private
+                                      // Custom Exercise/Set draft.
+                                      if (!authorized && !revoked) {
+                                        revoked = true;
+                                        final editorRoute =
+                                            ModalRoute.of(context);
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (!context.mounted ||
+                                              editorRoute?.isActive != true) {
+                                            return;
+                                          }
+                                          final navigator =
+                                              Navigator.of(context);
+                                          navigator.popUntil(
+                                            (route) =>
+                                                identical(route, editorRoute),
+                                          );
+                                          if (editorRoute.isActive) {
+                                            navigator.pop<bool>(false);
+                                          }
+                                        });
+                                      }
                                       final profileAsync =
                                           ref.watch(profileDataProvider);
                                       final unit = authorized &&
