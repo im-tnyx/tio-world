@@ -149,8 +149,16 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         exercise == null) {
       return;
     }
-    final verified = _source?.select(exercise.ref);
-    if (verified?.ref == exercise.ref) editor.addPickedExercise(verified!);
+    // The picker validates selection against its own freshly loaded,
+    // owner-scoped catalog/Custom snapshot before returning this Exercise.
+    // The editor's initial _source snapshot can be older (e.g. another
+    // device created a Custom Exercise while this screen stayed open).
+    // Do not reject a valid picker result against that stale snapshot.
+    if (exercise.status != ExerciseStatus.active) return;
+    editor.addPickedExercise(exercise);
+    // Refresh labels and write-capability from the current source. A failed
+    // reload disables Update until Retry; the draft stays unsaved.
+    _source?.load();
   }
 
   Future<void> _setEditor(
