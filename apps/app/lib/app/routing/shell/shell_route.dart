@@ -126,8 +126,6 @@ List<RouteBase> _shellBranchChildRoutes(
                         ownerId != null && ownerId == authUserId;
                     final mayEdit = verifiedOwner &&
                         weightUnit != null &&
-                        routineRepository != null &&
-                        compositions != null &&
                         userExerciseRepository != null;
                     return RoutineDetailPage(
                       key: ValueKey(
@@ -178,7 +176,6 @@ List<RouteBase> _shellBranchChildRoutes(
                                               ? auth.session.userId
                                               : null;
                                       final authorized =
-                                          startingOwner != null &&
                                           currentOwner == startingOwner &&
                                           currentAuth == startingOwner;
                                       final profileAsync =
