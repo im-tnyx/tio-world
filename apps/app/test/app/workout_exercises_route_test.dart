@@ -505,7 +505,11 @@ void main() {
     expect(find.byKey(const ValueKey('edit-routine-saving')), findsNothing);
 
     compositions.saveGate!.complete();
-    await tester.pumpAndSettle();
+    // Bound completion/route-animation frames too. If a revoked editor does
+    // not exit, assert failure directly rather than hanging in settle.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
     // An old-cycle response must never navigate or restore a saved draft.
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.byType(RoutineDetailPage), findsOneWidget);
