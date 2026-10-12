@@ -1,6 +1,6 @@
 # GitHub #532 — W4B1 Program-owned Routine Editor
 
-**Status:** In progress — Workout editor/controller/picker presentation implemented on Draft PR; production Detail entry not yet enabled; exact-head validation/review pending.
+**Status:** In progress — owner-gated Detail → separate Editor source wired in Draft PR #533; exact-head Flutter/Dart tests, independent review and device validation pending.
 **Primary owner:** Workout feature (`apps/features/workout`), app-shell composition/navigation (`apps/app`).
 **Affected platforms:** Flutter mobile (Android/iOS).
 
@@ -22,12 +22,12 @@
 **Source checkpoint before handoff update:** `7333fcb70291b4903f15f2bec3346347b9243e5d` (Editor fixes; latest Flutter CI #38285385621).
 **Observed working-tree state:** GitHub remote refs verified; user's local Windows working tree and post-#531 sync are **not** accessible or verified. Before local code, check `git status -sb` and `.github/POST_MERGE_SYNC.md`, fast-forward only, preserve uncommitted work.
 **PR / tracker:** GitHub #532; Linear TNYX-81 W4 remains Backlog and blocked by W1/TNYX-78 and W3/TNYX-80 for broader acceptance.
-**Current implementation state:** Workout-owned editor draft controller, canonical Routine-context picker, separate `EditRoutinePage` with fixed-Set modal and focused tests. No production Edit action or app navigation yet.
+**Current implementation state:** Workout-owned editor controller, picker, separate `EditRoutinePage` and fixed Set modal with focused tests; existing read-only Detail exposes owner-gated Edit action and app-shell opens account-keyed Editor, then refreshes Detail only after a confirmed Update. Still Draft/unmerged.
 **Validation completed at SHA:** Controller `871e2e81` Flutter CI #38258240886 PASS; picker/handoff `fa53ac44` Flutter CI #38265292376 PASS. Editor first CI #38285047968 FAIL (one missing brace, one untyped row). Corrected source `7333fcb7` Flutter/Dart Analyze PASS in CI #38285385621; Flutter tests still running at checkpoint and Dart tests pending. This is **not** full exact-head validation.
 **Validation remaining:** New-head Flutter/Dart Analyze+Tests, focused controller/widgets/navigation, trusted attribution, independent review, dark/compact/accessibility and performance tests.
 **Current blocker:** No identified schema change necessary. This connected runtime lacks Flutter/Dart executables; any source change requires exact-head CI or local Flutter validation.
 **Open review finding IDs:** None for new W4B1 code yet.
-**Next exact action:** Finish exact-head editor Flutter/Dart tests and any scoped CI repair, then add gated Detail Edit action, owner-keyed app navigation and confirmed-save Detail refresh. Keep PR Draft until end-to-end validated.
+**Next exact action:** Resolve latest exact-head Flutter/Dart CI and focused failures, verify fresh user/account/auth profile gate and navigation, perform independent review and compact/dark/accessibility/device QA. Keep PR Draft until end-to-end validated.
 
 ## 1. Discovery
 **User outcome:** Saved Routine card opens readonly Detail with Exercises/Sets. Its new `Edit Routine` action opens a *separate*, real persisted editor. Cancel discards; Update saves once with revision lock and refreshes Detail.
@@ -57,7 +57,7 @@
 - [x] Build Workout-owned draft/controller with existing IDs, validation, tests, conflict and uncertain-save semantics.
 - [x] Add bounded canonical Exercise picker (catalog + active user Custom Exercise search), tests for cancel/return/fail-closed.
 - [x] Implement separate Edit screen source with Core UI and real supported Set inputs; Cancel/Update/empty/loading/failure/accessibility. CI/widget tests still validating.
-- [ ] Wire existing read-only Detail Edit action and owner-keyed app routing; refresh only after confirmed save; leave overflow Rename.
+- [x] Wire existing read-only Detail Edit action and owner-keyed app routing; refresh only after confirmed save; leave overflow Rename. CI still pending.
 - [ ] Verify Flutter/Dart Analyze+Tests, 1,007-set performance, owner switch, weight units, dark/compact. Exact-head attribution and independent review before merge.
 - [ ] Reconcile only actually implemented canonical status, archive after validation.
 
@@ -67,10 +67,10 @@
 **Findings:** No known unresolved review threads at picker checkpoint. Independent review still pending.
 
 ## 7. Final Handoff
-**Changed files:** Workout-owned editor controller, picker controller/page, `EditRoutinePage`, `RoutineSetEditorSheet`, focused controller/widget tests, library exports and task handoff; production routing and Detail remain unchanged.
-**Actual behavior:** Production Routine Detail remains read-only, with no Edit button until implementation.
+**Changed files:** Workout-owned editor controller, picker controller/page, `EditRoutinePage`, `RoutineSetEditorSheet`, focused controller/widget tests, `routine_detail_page.dart`, app shell route, library exports, canonical screen docs and task handoff.
+**Actual behavior:** This Draft branch now renders `Edit Routine` in read-only Detail only for a verified owner Routine with active account Profile unit; separate Editor is wired and read-only Detail re-fetches data after confirmed Update. Protected `main` is unchanged until merge.
 **Known limitations:** No device/local Flutter validation; user's post-#531 Windows sync unverified.
-**Final status:** PARTIAL / production Edit entry, navigation/refresh, final exact-head tests and review pending.
+**Final status:** PARTIAL / production Edit entry and navigation implemented in Draft; exact-head Flutter/Dart CI, review and device validation pending.
 
 ## 2026-10-12 W4B1 picker checkpoint
 - Verified on current Draft PR #533: controller source `871e2e81` Flutter CI #38258240886 PASS, with full Flutter/Dart Analyze and Tests jobs. Earlier four curly-brace lint errors were corrected before that run.
@@ -86,3 +86,11 @@
 - Tests authored for empty/add/picker cancel, exact kg on lb edit, invalid fields, missing repository/wrong Program/missing unit, revision conflict, unknown read-only reconciliation and 1,007-set dark-mode lazy rendering.
 - First editor CI #38285047968 failed Flutter Analyze on **two local compile findings** (`dynamic` ExerciseListItem and an omitted class brace). Both fixed with commits `3d7fc8c` and `7333fcb`. On source `7333fcb`, CI #38285385621 Flutter Analyze and Dart Analyze PASS while Flutter Tests remain in progress and Dart Tests pending. Do not mark full validation/Ready/merged until exact-head CI passes and independent review completes.
 - User's Windows working tree/device QA cannot be inspected here. No Supabase schema/RLS/RPC or Watch/AI/connector touched. Next user-reachable step is guarded Detail Edit action + account-keyed app composition and post-save Detail refresh, only after CI fixes; preserve card overflow Rename.
+
+## 2026-10-12 owner-gated Detail → Editor checkpoint
+- Fresh PR #533 audit: protected main `ee5ed4cc`, latest before edits `c9ea0eb7` ahead 18/behind 0, no review threads or PR comments. Broad Linear TNYX-81 stays Backlog, blocked by TNYX-78/80. Scope remains already owner-approved W4B1.
+- Editor CI #38286253839: Flutter/Dart Analyze PASS, Flutter tests reported **413 passed / 2 failed** in new `edit_routine_page_test.dart`. Failures were isolated to fixture route disposal between successive test harnesses and missing Profile unit incorrectly leaving disabled Update button in widget tree. Both fixed in `cde1215a` / `f09b36e2` (not yet exact-head validated).
+- Added Workout-owned `RoutineDetailPage.onEditPressed` callback with explicit ready + resolved weight unit visibility, guarded duplicate opens, and confirmed-return repository `load()`; owner association remains verified before button is exposed. Tests added for hidden Edit on missing/failed/wrong owner/unit, Cancel not reloading, confirmed Update fetching current persisted Exercises/Sets.
+- In `apps/app/lib/app/routing/shell/shell_route.dart`, matching bootstrap/Auth user ID and valid Profile unit gate the Edit action and reads. Destination Consumer reevaluates Auth, bootstrap, Profile and current owner repositories every rebuild; its user/auth-scoped key disposes old private editor/controller drafts on account switch, while stale account providers are passed as null. This is feature/app composition only; no new backend or independent Exercise source.
+- Latest routing CI #38288078715 failed Flutter Analyze on three redundant non-null checks in the nested route's already-promoted control flow. Fixed in `4aba1ff1`; no tests ran in that failed run. Last source commit before docs `4aba1ff1` and Detail widget tests `539eb88d`. Exact-head Flutter CI pending after docs checkpoint.
+- PR remains Draft/unmerged; repository code, CI and connected services are the truth, no local Windows worktree or device validation claimed. Next: inspect exact-head Flutter/Dart Analyze+Tests, bounded fixes, independent review/security QA, then owner approval before any Ready/merge.
