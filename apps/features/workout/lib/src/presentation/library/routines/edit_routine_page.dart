@@ -158,7 +158,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     editor.addPickedExercise(exercise);
     // Refresh labels and write-capability from the current source. A failed
     // reload disables Update until Retry; the draft stays unsaved.
-    _source?.load();
+    await _source?.load();
   }
 
   Future<void> _setEditor(
