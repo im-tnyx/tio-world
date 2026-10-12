@@ -100,12 +100,24 @@ List<RouteBase> _shellBranchChildRoutes(
                     final ownerId = session is AppSessionBootstrapReady
                         ? session.userId
                         : null;
-                    // Display-only units come from the canonical Profile owner.
-                    // Until that preference resolves, do not mislabel kg as lb
-                    // or vice versa. Profile updates rebuild the preview.
-                    final profile = ref.watch(profileDataProvider).valueOrNull;
-                    final weightUnit =
-                        ownerId == null ? null : profile?.unitPreferences.weightUnit;
+                    // Riverpod may retain account A's previous Profile DTO
+                    // while reloading account B. Require both session identity
+                    // and a completed, error-free Profile reload before using
+                    // any account-owned display unit.
+                    final authAsync = ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading || authAsync.hasError
+                        ? null
+                        : authAsync.valueOrNull;
+                    final authUserId = auth is AuthSessionAuthenticated
+                        ? auth.session.userId
+                        : null;
+                    final profileAsync = ref.watch(profileDataProvider);
+                    final weightUnit = ownerId != null &&
+                            authUserId == ownerId &&
+                            !profileAsync.isLoading &&
+                            !profileAsync.hasError
+                        ? profileAsync.valueOrNull?.unitPreferences.weightUnit
+                        : null;
                     return RoutineDetailPage(
                       key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
                       program: program,
