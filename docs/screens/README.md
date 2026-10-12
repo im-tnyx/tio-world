@@ -94,10 +94,10 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Entry | [Login](login.md) | Implemented Phone-first auth entry backed by real Supabase Auth use cases; Email and Google remain supported through the canonical auth composition. |
 | Phone | [Home](home.md) | Routed Home feature placeholder; current `HomePage` intentionally renders an empty surface while Home-owned content remains future work. |
 | Phone | [Workout](workout.md) | Implemented Workout Home date surface with Library entry; Library and Exercises nested routes are shipped while broader Workout capabilities remain later slices. |
-| Phone | [Library](library.md) | Implemented Workout Library root with Programs collection/create/rename and Exercises. W4A Program-name detail navigation is in PR #522 review; Plans and Routine quick-create remain gated. |
+| Phone | [Library](library.md) | Implemented Workout Library root with Programs collection/create/rename, selected Program-name detail navigation (W4A, PR #522 merged), and Exercises. Plans, direct Routine quick-create and composition builder remain gated. |
 | Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
-| Phone | [Program-owned Routines](routine-library.md) | Owner-scoped Routine metadata persistence implemented; W4A Program Detail list/create/rename UI in PR #522 review. Exercise/Set composition builder remains future. |
-| Phone | [Programs](programs.md) | Program collection/create/rename live on Library; selected Program Detail + Routine metadata UI in W4A PR #522 review. Full Program builder and TrainingPlan scheduling/following remain future. |
+| Phone | [Program-owned Routines](routine-library.md) | W4A Program Detail Routine metadata list/create/rename UI merged in PR #522, using owner-scoped persistence. Exercise picker and Exercise/Set composition editor remain unimplemented. |
+| Phone | [Programs](programs.md) | Program collection/create/rename and selected Program Detail + owner-scoped Routine metadata UI shipped (W4A, PR #522). Full Routine/Program builder and TrainingPlan scheduling/following remain future. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine or scheduled PlannedWorkout execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
