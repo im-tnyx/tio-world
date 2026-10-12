@@ -270,6 +270,16 @@ void main() {
     expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(find.text('Start Workout'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-page')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -302,6 +312,33 @@ void main() {
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('Auth/bootstrap mismatch revokes Detail and Edit action',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+
+    // Bootstrapped test-user is stale; Auth has already switched users.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'other-user', loginCycleId: 'other-cycle'),
+        );
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
   });
 
   testWidgets('account switch discards prior owner Routine before next read',
@@ -901,7 +938,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
       ),
-      if (switchedOwnerProfiles != null) ...[
+      // Routine Detail tests need a consistent authenticated/bootstrap pair;
+      // otherwise the production fail-closed owner gate correctly hides data.
+      if (withRoutineComposition || switchedOwnerProfiles != null) ...[
         authSessionStateProvider.overrideWith((ref) =>
             Stream.value(ref.watch(_routineTestAuthStateProvider))),
         profileDataProvider.overrideWith((ref) {
@@ -910,7 +949,8 @@ Future<(ProviderContainer, GoRouter)> _app(
               session.session.userId == 'test-user') {
             return Stream.value(_routineUnitProfile(WeightUnit.lb));
           }
-          return switchedOwnerProfiles;
+          return switchedOwnerProfiles ??
+              Stream<ProfileSetupData?>.value(null);
         }),
       ],
     ],
