@@ -9,13 +9,15 @@ import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/calendar_preferences.dart';
 import 'package:tio_app/app/composition/workout_providers.dart';
+import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/profile/exercise_media_gender.dart';
 import 'package:tio_app/app/router.dart';
 import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
-import 'package:tio_feature_onboarding/onboarding.dart' hide ProfileGender;
+import 'package:tio_feature_onboarding/onboarding.dart'
+    hide ProfileActivityLevel, ProfileGender;
 import 'package:tio_feature_profile/profile.dart'
     show ProfileActivityLevel, ProfileGender, ProfileSetupData;
 import 'package:tio_feature_settings/settings.dart'
