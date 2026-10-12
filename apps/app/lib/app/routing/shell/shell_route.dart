@@ -100,6 +100,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     final ownerId = session is AppSessionBootstrapReady
                         ? session.userId
                         : null;
+                    // Display-only units come from the canonical Profile owner.
+                    // Until that preference resolves, do not mislabel kg as lb
+                    // or vice versa. Profile updates rebuild the preview.
+                    final profile = ref.watch(profileDataProvider).valueOrNull;
+                    final weightUnit =
+                        ownerId == null ? null : profile?.unitPreferences.weightUnit;
                     return RoutineDetailPage(
                       key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
                       program: program,
@@ -111,6 +117,7 @@ List<RouteBase> _shellBranchChildRoutes(
                       catalogRepository: catalog,
                       userExerciseRepository:
                           ownerId == null ? null : userExerciseRepository,
+                      weightUnit: weightUnit,
                     );
                   },
                 ),
