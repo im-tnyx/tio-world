@@ -14,6 +14,7 @@ class ProgramDetailPage extends StatefulWidget {
     required this.routineRepository,
     super.key,
     this.newRoutineUuid,
+    this.onRoutinePressed,
   });
 
   final Program program;
@@ -21,6 +22,7 @@ class ProgramDetailPage extends StatefulWidget {
 
   /// Injected only for deterministic tests; production uses a random UUID v4.
   final String Function()? newRoutineUuid;
+  final Future<void> Function(Routine routine)? onRoutinePressed;
 
   @override
   State<ProgramDetailPage> createState() => _ProgramDetailPageState();
@@ -211,8 +213,13 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                 child: RoutineMetadataCard(
                   routine: routine,
-                  supportingText: 'Rename Routine',
-                  onTap: _canEdit ? () => _openRename(routine) : null,
+                  supportingText: widget.onRoutinePressed == null
+                      ? null
+                      : 'View Routine',
+                  onTap: _canEdit && widget.onRoutinePressed != null
+                      ? () { widget.onRoutinePressed!(routine); }
+                      : null,
+                  onEdit: _canEdit ? () => _openRename(routine) : null,
                 ),
               ),
           ],

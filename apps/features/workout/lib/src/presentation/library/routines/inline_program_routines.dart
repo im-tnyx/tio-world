@@ -13,12 +13,14 @@ class InlineProgramRoutines extends StatefulWidget {
     required this.program,
     required this.repository,
     required this.refreshVersion,
+    this.onRoutinePressed,
     super.key,
   });
 
   final Program program;
   final RoutineRepository? repository;
   final int refreshVersion;
+  final Future<void> Function(Routine routine)? onRoutinePressed;
 
   @override
   State<InlineProgramRoutines> createState() => _InlineProgramRoutinesState();
@@ -128,7 +130,12 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                     'library-routine-${widget.program.id.value}-${routine.id.value}',
                   ),
                   padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-                  child: RoutineMetadataCard(routine: routine),
+                  child: RoutineMetadataCard(
+                    routine: routine,
+                    onTap: widget.onRoutinePressed == null
+                        ? null
+                        : () { widget.onRoutinePressed!(routine); },
+                  ),
                 ),
             ],
           );

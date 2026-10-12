@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../app_mode/app_mode.dart';
 import '../../calendar_preferences.dart';
 import '../../meal_diary_today_glyph.dart';
 import '../../network_providers.dart';
+import '../../session/session.dart';
 
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
@@ -74,8 +77,67 @@ List<RouteBase> _shellBranchChildRoutes(
         builder: (context, ref, _) {
           final programRepository = ref.watch(programRepositoryProvider);
           final routineRepository = ref.watch(routineRepositoryProvider);
+          final compositions = ref.watch(routineCompositionRepositoryProvider);
+          final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
+          Future<void> openRoutine(Program program, Routine routine) async {
+            if (routineRepository == null ||
+                compositions == null ||
+                routine.programId != program.id) {
+              return;
+            }
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => Consumer(
+                  builder: (context, ref, _) {
+                    // The Supabase client instance survives auth transitions.
+                    // Key the preview by the canonical session user so a
+                    // sign-out/account switch disposes its private read state
+                    // immediately, even while catalog resolution is in flight.
+                    final session = ref
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
+                    final ownerId = session is AppSessionBootstrapReady
+                        ? session.userId
+                        : null;
+                    // Riverpod may retain account A's previous Profile DTO
+                    // while reloading account B. Require both session identity
+                    // and a completed, error-free Profile reload before using
+                    // any account-owned display unit.
+                    final authAsync = ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading || authAsync.hasError
+                        ? null
+                        : authAsync.valueOrNull;
+                    final authUserId = auth is AuthSessionAuthenticated
+                        ? auth.session.userId
+                        : null;
+                    final profileAsync = ref.watch(profileDataProvider);
+                    final weightUnit = ownerId != null &&
+                            authUserId == ownerId &&
+                            !profileAsync.isLoading &&
+                            !profileAsync.hasError
+                        ? profileAsync.valueOrNull?.unitPreferences.weightUnit
+                        : null;
+                    return RoutineDetailPage(
+                      key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
+                      program: program,
+                      routine: routine,
+                      routineRepository:
+                          ownerId == null ? null : routineRepository,
+                      compositionRepository:
+                          ownerId == null ? null : compositions,
+                      catalogRepository: catalog,
+                      userExerciseRepository:
+                          ownerId == null ? null : userExerciseRepository,
+                      weightUnit: weightUnit,
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+
           return LibraryPage(
             programRepository: programRepository,
             routineRepository: routineRepository,
@@ -87,10 +149,16 @@ List<RouteBase> _shellBranchChildRoutes(
                         builder: (_) => ProgramDetailPage(
                           program: program,
                           routineRepository: routineRepository,
+                          onRoutinePressed: compositions == null
+                              ? null
+                              : (routine) => openRoutine(program, routine),
                         ),
                       ),
                     );
                   },
+            onRoutinePressed: compositions == null || routineRepository == null
+                ? null
+                : openRoutine,
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>

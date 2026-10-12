@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,15 +8,17 @@ import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/calendar_preferences.dart';
-import 'package:tio_app/app/composition/workout_providers.dart';
+import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/profile/exercise_media_gender.dart';
 import 'package:tio_app/app/router.dart';
 import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
-import 'package:tio_feature_onboarding/onboarding.dart' hide ProfileGender;
-import 'package:tio_feature_profile/profile.dart' show ProfileGender;
+import 'package:tio_feature_onboarding/onboarding.dart'
+    hide ProfileActivityLevel, ProfileGender;
+import 'package:tio_feature_profile/profile.dart'
+    show ProfileActivityLevel, ProfileGender, ProfileSetupData;
 import 'package:tio_feature_settings/settings.dart'
     show CalendarPreferences, CalendarPreferencesRepository;
 import 'package:tio_feature_workout/workout.dart';
@@ -245,6 +249,170 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(LibraryPage), findsOneWidget);
     expect(find.byType(ProgramDetailPage), findsNothing);
+  });
+
+  testWidgets('Program Detail Routine tap opens real composition, not Rename',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(find.text('Start Workout'), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey(
+        'routine-menu-30000000-0000-4000-8000-000000000001')),
+        findsOneWidget);
+  });
+
+  testWidgets('Routine preview clears private content on session loss',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('account switch discards prior owner Routine before next read',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+
+    final compositions =
+        container.read(routineCompositionRepositoryProvider)
+            as _RouteCompositions;
+    compositions.nextOwnerReadGate = Completer<void>();
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+
+    compositions.nextOwnerReadGate!.complete();
+    await tester.pumpAndSettle();
+    // The simulated new owner has no access to the prior owner's snapshot.
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('account switch does not reuse the previous Profile weight unit',
+      (tester) async {
+    final nextProfile = StreamController<ProfileSetupData?>.broadcast();
+    addTearDown(nextProfile.close);
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      switchedOwnerProfiles: nextProfile.stream,
+    );
+    final compositions =
+        container.read(routineCompositionRepositoryProvider)
+            as _RouteCompositions;
+    compositions.testLoadKg = 8;
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsOneWidget);
+
+    // ProfileDataProvider can retain A's last value while B is reloading.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'));
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · Load unavailable'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+
+    // Only B's completed Profile load can enable B's unit choice.
+    nextProfile.add(_routineUnitProfile(WeightUnit.kg));
+    await tester.pumpAndSettle();
+    expect(find.text('Set 1 · 8 reps · 8 kg'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+  });
+
+  testWidgets('expanded Library Routine tap opens same owner-bound preview',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const parentId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$parentId-$routineId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+  });
+
+  testWidgets('no composition source never opens a fake Routine Detail',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const parentId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    final card = find.byKey(
+        const ValueKey('library-routine-$parentId-$routineId'));
+    expect(card, findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
   testWidgets('new Routine created in Program Detail appears under Library Program',
@@ -666,12 +834,30 @@ void main() {
   });
 }
 
+final _routineTestAuthStateProvider = StateProvider<AuthSessionState>((ref) =>
+    const AuthSessionAuthenticated(
+        AuthSession(userId: 'test-user', loginCycleId: 'test-cycle')));
+
+ProfileSetupData _routineUnitProfile(WeightUnit weightUnit) => ProfileSetupData(
+      name: 'Routine test member',
+      gender: ProfileGender.values.first,
+      goals: const {},
+      dateOfBirth: DateTime(1990, 1, 1),
+      heightCm: 175,
+      currentWeightKg: 70,
+      activityLevel: ProfileActivityLevel.values.first,
+      healthConditions: const {},
+      unitPreferences: UnitPreferences(weightUnit: weightUnit),
+    );
+
 Future<(ProviderContainer, GoRouter)> _app(
   WidgetTester tester,
   AppMode mode, {
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
+  bool withRoutineComposition = false,
   bool withUserExerciseRepository = true,
+  Stream<ProfileSetupData?>? switchedOwnerProfiles,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
@@ -709,9 +895,24 @@ Future<(ProviderContainer, GoRouter)> _app(
       routineRepositoryProvider.overrideWithValue(
         withRoutineRepository ? _RouteRoutines() : null,
       ),
+      routineCompositionRepositoryProvider.overrideWithValue(
+        withRoutineComposition ? _RouteCompositions() : null,
+      ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
       ),
+      if (switchedOwnerProfiles != null) ...[
+        authSessionStateProvider.overrideWith((ref) =>
+            Stream.value(ref.watch(_routineTestAuthStateProvider))),
+        profileDataProvider.overrideWith((ref) {
+          final session = ref.watch(authSessionStateProvider).valueOrNull;
+          if (session is AuthSessionAuthenticated &&
+              session.session.userId == 'test-user') {
+            return Stream.value(_routineUnitProfile(WeightUnit.lb));
+          }
+          return switchedOwnerProfiles;
+        }),
+      ],
     ],
   );
   addTearDown(container.dispose);
@@ -773,6 +974,41 @@ final class _RouteRoutines implements RoutineRepository {
     if (index < 0) throw StateError('Routine missing');
     rows[index] = Routine(id: id, programId: rows[index].programId, name: name);
   }
+}
+
+final class _RouteCompositions implements RoutineCompositionRepository {
+  int _readCount = 0;
+  Completer<void>? nextOwnerReadGate;
+  double? testLoadKg;
+
+  @override
+  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
+    _readCount++;
+    if (_readCount > 1 && nextOwnerReadGate != null) {
+      await nextOwnerReadGate!.future;
+      return null;
+    }
+    return RoutineCompositionSnapshot(
+      routineId: routineId,
+      revision: 1,
+      entries: [
+        RoutineCompositionEntry(
+          id: '60000000-0000-4000-8000-000000000001',
+          exercise: ExerciseRef.catalog('ex_synthetic_route_curl'),
+          sets: [
+            RoutineCompositionSet(
+              id: '70000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(reps: 8, loadKg: testLoadKg),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<int> save(RoutineCompositionSave command) async =>
+      throw UnimplementedError();
 }
 
 final class _RouteCatalog implements ExerciseCatalogRepository {
@@ -843,9 +1079,18 @@ class _ReadyAppSessionBootstrapController
           onboardingCompletionRepository: null,
         );
 
-  @override
-  AppSessionBootstrapState get state =>
+  AppSessionBootstrapState _testState =
       const AppSessionBootstrapReady(userId: 'test-user');
+
+  @override
+  AppSessionBootstrapState get state => _testState;
+
+  void transitionTo(String? userId) {
+    _testState = userId == null
+        ? const AppSessionBootstrapUnauthenticated()
+        : AppSessionBootstrapReady(userId: userId);
+    notifyListeners();
+  }
 
   @override
   void start() {}

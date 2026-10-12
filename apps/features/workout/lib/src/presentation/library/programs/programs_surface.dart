@@ -23,12 +23,14 @@ class ProgramsSurface extends StatefulWidget {
   })  : _mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null,
         onProgramPressed = null,
+        onRoutinePressed = null,
         routineRepository = null;
 
   const ProgramsSurface.library({
     required this.repository,
     required this.onManagePressed,
     this.onProgramPressed,
+    this.onRoutinePressed,
     this.routineRepository,
     this.idGenerator,
     super.key,
@@ -39,6 +41,7 @@ class ProgramsSurface extends StatefulWidget {
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
 
   @override
@@ -320,6 +323,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               ? null
               : _openProgram,
           routineRepository: widget.routineRepository,
+          onRoutinePressed: widget.onRoutinePressed,
           routineRefreshVersion: _routineRefreshVersion,
         );
     }
@@ -346,6 +350,7 @@ class _ProgramsList extends StatefulWidget {
     required this.onProgramActions,
     required this.onProgramPressed,
     required this.routineRepository,
+    required this.onRoutinePressed,
     required this.routineRefreshVersion,
   });
 
@@ -353,6 +358,7 @@ class _ProgramsList extends StatefulWidget {
   final bool embedded;
   final Future<void> Function(Program program) onProgramActions;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
   final int routineRefreshVersion;
 
@@ -421,6 +427,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             program: program,
             repository: widget.routineRepository,
             refreshVersion: widget.routineRefreshVersion,
+            onRoutinePressed: widget.onRoutinePressed == null
+                ? null
+                : (routine) => widget.onRoutinePressed!(program, routine),
           ),
         );
       }

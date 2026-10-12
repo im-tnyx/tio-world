@@ -8,6 +8,7 @@ Future<void> _pump(
   WidgetTester tester, {
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
+  Future<void> Function(Program, Routine)? onRoutinePressed,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
@@ -37,6 +38,7 @@ Future<void> _pump(
         programIdGenerator: programIdGenerator,
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
+        onRoutinePressed: onRoutinePressed,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -197,6 +199,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(one, findsOneWidget);
     expect(find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
+  });
+
+  testWidgets('expanded owner Routine invokes Detail navigation without Edit',
+      (tester) async {
+    final repository = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    Program? selectedProgram;
+    Routine? selectedRoutine;
+    await _pump(
+      tester,
+      routineRepository: repository,
+      onRoutinePressed: (program, routine) async {
+        selectedProgram = program;
+        selectedRoutine = routine;
+      },
+    );
+    final card = find.byKey(ValueKey(
+        'library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    expect(card, findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(selectedProgram?.id, _id(1));
+    expect(selectedRoutine?.programId, _id(1));
+    expect(selectedRoutine?.name, 'Push');
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
   testWidgets('Program Detail return refreshes saved Library Routines',

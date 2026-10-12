@@ -42,6 +42,15 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   return SupabaseRoutineRepository.fromClient(client);
 });
 
+/// Read-only Routine composition persistence (W4A owner-bound Detail).
+/// Null means no authenticated durable client, never a fake composition.
+final routineCompositionRepositoryProvider =
+    Provider<RoutineCompositionRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  return SupabaseRoutineCompositionRepository.fromClient(client);
+});
+
 /// User-owned Custom Exercise persistence.
 ///
 /// Null means durable user Exercise persistence is unavailable. There is no
