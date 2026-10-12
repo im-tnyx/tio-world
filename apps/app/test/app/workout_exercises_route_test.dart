@@ -474,6 +474,11 @@ void main() {
     final compositions = container.read(routineCompositionRepositoryProvider)
         as _RouteCompositions;
     compositions.saveGate = Completer<void>();
+    addTearDown(() {
+      if (compositions.saveGate?.isCompleted == false) {
+        compositions.saveGate!.complete();
+      }
+    });
     router.go(_libraryPath);
     await tester.pumpAndSettle();
     const p = '20000000-0000-4000-8000-000000000001';
@@ -502,7 +507,8 @@ void main() {
     // two bounded frames to revoke private UI before releasing the response.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byKey(const ValueKey('edit-routine-saving')), findsNothing);
+    final oldCycleSavingHidden =
+        find.byKey(const ValueKey('edit-routine-saving')).evaluate().isEmpty;
 
     compositions.saveGate!.complete();
     // Bound completion/route-animation frames too. If a revoked editor does
@@ -510,6 +516,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
+    // Assert the pre-response privacy observation only AFTER the deferred
+    // Future is released so failure cannot strand the test runner.
+    expect(oldCycleSavingHidden, isTrue);
     // An old-cycle response must never navigate or restore a saved draft.
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.byType(RoutineDetailPage), findsOneWidget);
