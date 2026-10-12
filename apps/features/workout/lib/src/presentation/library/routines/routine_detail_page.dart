@@ -18,6 +18,7 @@ class RoutineDetailPage extends StatefulWidget {
     required this.compositionRepository,
     required this.catalogRepository,
     this.userExerciseRepository,
+    this.weightUnit = WeightUnit.kg,
     super.key,
   });
 
@@ -27,6 +28,8 @@ class RoutineDetailPage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Null means the authenticated account's display unit has not resolved.
+  final WeightUnit? weightUnit;
 
   @override
   State<RoutineDetailPage> createState() => _RoutineDetailPageState();
@@ -160,7 +163,11 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
             padding: const EdgeInsets.only(bottom: TioSpacing.sm),
             child: TioCard(
               key: ValueKey('routine-detail-entry-${entry.entry.id}'),
-              child: _RoutineEntryPreview(index: index, item: entry),
+              child: _RoutineEntryPreview(
+                index: index,
+                item: entry,
+                weightUnit: widget.weightUnit,
+              ),
             ),
           );
         },
@@ -210,10 +217,15 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
 }
 
 class _RoutineEntryPreview extends StatelessWidget {
-  const _RoutineEntryPreview({required this.index, required this.item});
+  const _RoutineEntryPreview({
+    required this.index,
+    required this.item,
+    required this.weightUnit,
+  });
 
   final int index;
   final RoutineDetailEntry item;
+  final WeightUnit? weightUnit;
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +257,7 @@ class _RoutineEntryPreview extends StatelessWidget {
         const SizedBox(height: TioSpacing.sm),
         for (var i = 0; i < entry.sets.length; i++) ...[
           Text(
-            _setLabel(i + 1, entry.sets[i].prescription),
+            _setLabel(i + 1, entry.sets[i].prescription, weightUnit),
             key: ValueKey('routine-detail-set-${entry.sets[i].id}'),
             style: TextStyle(
               color: colors.textSecondary,
@@ -267,9 +279,17 @@ class _RoutineEntryPreview extends StatelessWidget {
     );
   }
 
-  static String _setLabel(int number, SetPrescription set) {
+  static String _setLabel(
+    int number,
+    SetPrescription set,
+    WeightUnit? weightUnit,
+  ) {
     final parts = <String>['Set $number', '${set.reps} reps'];
-    if (set.loadKg != null) parts.add('${set.loadKg} kg');
+    if (set.loadKg != null) {
+      parts.add(weightUnit == null
+          ? 'Load unavailable'
+          : UnitFormatters.formatWeight(set.loadKg!, weightUnit));
+    }
     if (set.restSeconds != null) parts.add('${set.restSeconds} sec rest');
     return parts.join(' · ');
   }
