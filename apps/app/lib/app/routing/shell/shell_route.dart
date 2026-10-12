@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_workout/workout.dart';
