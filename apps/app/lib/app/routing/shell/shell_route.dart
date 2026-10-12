@@ -202,10 +202,11 @@ List<RouteBase> _shellBranchChildRoutes(
                                             (route) =>
                                                 identical(route, editorRoute),
                                           );
-                                          if (editorRoute != null &&
-                                              editorRoute.isActive) {
-                                            navigator.pop<bool>(false);
-                                          }
+                                          // popUntil stopped at this exact
+                                          // active route, so this final pop
+                                          // releases the editor without
+                                          // leaving an owner-scoped overlay.
+                                          navigator.pop<bool>(false);
                                         });
                                       }
                                       final profileAsync =
