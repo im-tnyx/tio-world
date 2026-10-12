@@ -227,6 +227,27 @@ class _RoutineEntryPreview extends StatelessWidget {
   final RoutineDetailEntry item;
   final WeightUnit? weightUnit;
 
+  // The standard card stays unchanged; only exceptional set counts scroll
+  // inside the existing card rather than expanding it without bound.
+  static const _inlineSetLimit = 40;
+
+  Widget _setRow(BuildContext context, int index) {
+    final sets = item.entry.sets;
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: index + 1 < sets.length ? TioSpacing.xs : TioSpacing.none,
+      ),
+      child: Text(
+        _setLabel(index + 1, sets[index].prescription, weightUnit),
+        key: ValueKey('routine-detail-set-${sets[index].id}'),
+        style: TextStyle(
+          color: context.tioColors.textSecondary,
+          fontSize: TioFontSize.size14,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -255,18 +276,22 @@ class _RoutineEntryPreview extends StatelessWidget {
           ),
         ],
         const SizedBox(height: TioSpacing.sm),
-        for (var i = 0; i < entry.sets.length; i++) ...[
-          Text(
-            _setLabel(i + 1, entry.sets[i].prescription, weightUnit),
-            key: ValueKey('routine-detail-set-${entry.sets[i].id}'),
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: TioFontSize.size14,
+        // Ordinary cards preserve their existing layout. Exceptionally long
+        // prescriptions get a bounded inner viewport so one persisted Exercise
+        // with thousands of Sets never builds all rows in a single frame.
+        if (entry.sets.length > _inlineSetLimit)
+          SizedBox(
+            height: TioSize.dp200,
+            child: ListView.builder(
+              key: ValueKey('routine-detail-set-list-${entry.id}'),
+              primary: false,
+              padding: EdgeInsets.zero,
+              itemCount: entry.sets.length,
+              itemBuilder: (context, index) => _setRow(context, index),
             ),
-          ),
-          if (i + 1 < entry.sets.length)
-            const SizedBox(height: TioSpacing.xs),
-        ],
+          )
+        else
+          for (var i = 0; i < entry.sets.length; i++) _setRow(context, i),
         if (entry.sets.isEmpty)
           Text(
             'No sets prescribed',

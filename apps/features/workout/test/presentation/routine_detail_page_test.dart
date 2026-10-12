@@ -80,6 +80,9 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-set-$_s1')),
         findsOneWidget);
+    // Small Routines must not gain a nested scrolling surface.
+    expect(find.byKey(const ValueKey('routine-detail-set-list-$_e1')),
+        findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.text('5 min cardio'), findsNothing);
   });
@@ -231,6 +234,58 @@ void main() {
     expect(find.text('80 exercises · 0 sets'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-30000000-0000-4000-8000-000000000001')), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-30000000-0000-4000-8000-000000000080')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('one Exercise with 1007 sets builds rows lazily and reaches last',
+      (tester) async {
+    const totalSets = 1007;
+    String setId(int i) =>
+        '40000000-0000-4000-8000-${i.toString().padLeft(12, '0')}';
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          for (var i = 1; i <= totalSets; i++)
+            RoutineCompositionSet(
+              id: setId(i),
+              prescription: SetPrescription(reps: 8),
+            ),
+        ],
+      ),
+    ]);
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+    expect(find.text('1 exercise · 1007 sets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
+        findsOneWidget);
+    final innerList =
+        find.byKey(const ValueKey('routine-detail-set-list-$_e1'));
+    expect(innerList, findsOneWidget);
+    expect(find.byKey(ValueKey('routine-detail-set-${setId(1)}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('routine-detail-set-${setId(totalSets)}')),
+        findsNothing);
+
+    // Scroll the inner lazy list, not the parent Routine/Exercise list.
+    await tester.scrollUntilVisible(
+      find.byKey(ValueKey('routine-detail-set-${setId(totalSets)}')),
+      1800,
+      scrollable: find.descendant(
+        of: innerList,
+        matching: find.byType(Scrollable),
+      ),
+      maxScrolls: 80,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('routine-detail-set-${setId(totalSets)}')),
+        findsOneWidget);
+    expect(find.text('Set 1007 · 8 reps'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
