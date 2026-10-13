@@ -84,9 +84,9 @@ void main() {
     for (final suffix in ['weight', 'reps', 'reps-max']) {
       final input = find.byKey(ValueKey('routine-set-$suffix-$id'));
       expect(input, findsOneWidget);
-      final field = tester.widget<TextFormField>(find.descendant(
+      final field = tester.widget<TextField>(find.descendant(
         of: input,
-        matching: find.byType(TextFormField),
+        matching: find.byType(TextField),
       ));
       expect(tester.widget<TioInput>(input).variant,
           TioInputVariant.boxedNumber);
@@ -145,9 +145,9 @@ void main() {
         findsNothing);
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsNothing);
-    final field = tester.widget<TextFormField>(find.descendant(
+    final field = tester.widget<TextField>(find.descendant(
       of: reps,
-      matching: find.byType(TextFormField),
+      matching: find.byType(TextField),
     ));
     expect(field.decoration!.enabledBorder, isA<OutlineInputBorder>());
     expect(tester.takeException(), isNull);
