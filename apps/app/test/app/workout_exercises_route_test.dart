@@ -490,7 +490,9 @@ void main() {
     // Create a valid dirty draft without a keyboard/sheet overlay: this
     // regression exercises in-flight identity revocation, not Set input.
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-entry-remove-60000000-0000-4000-8000-000000000001')));
+        'edit-routine-entry-options-60000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove Exercise'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('edit-routine-empty')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
