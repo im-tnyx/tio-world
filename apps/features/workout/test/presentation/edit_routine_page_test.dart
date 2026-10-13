@@ -160,10 +160,79 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
     expect(f.compositions.saveCount, 1);
+    expect(f.users.listCalls, 4); // Controller rechecks active owner refs.
     expect(f.compositions.lastSave!.entries.single.exercise,
         UserCreatedExerciseRef(_newCustomRef));
     expect(f.editorResult, isTrue);
     expect(f.users.writeCalls, 0);
+  });
+
+  testWidgets('archived Custom after selection cannot reach composition RPC',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'Remote Archive Candidate',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remote Archive Candidate'));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 0);
+
+    // Another device archives the Exercise after picker selection.
+    f.users.rows = const [];
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('no longer active'), findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    expect(f.editorResult, isNull);
+
+    // The archived entry can still be REMOVED, then Update is permitted.
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-entry-remove-90000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(f.compositions.lastSave!.entries, isEmpty);
+    expect(f.editorResult, isTrue);
+  });
+
+  testWidgets('Custom lookup failure before RPC is retryable, not unknown commit',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'My Custom Lift',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+
+    f.users.listFailure = StateError('offline');
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not verify Custom Exercises'), findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    expect(find.byKey(const ValueKey('edit-routine-unknown')), findsNothing);
+
+    f.users.listFailure = null;
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(f.editorResult, isTrue);
   });
 
   testWidgets('editing reps preserves exact canonical kg and Set UUID',
@@ -384,10 +453,12 @@ final class _Users implements UserExerciseRepository {
   List<Exercise> rows = const [];
   int listCalls = 0;
   int writeCalls = 0;
+  Object? listFailure;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async {
     listCalls++;
+    if (listFailure case final error?) throw error;
     return List.unmodifiable(rows.where(
       (item) => includeArchived || item.status == ExerciseStatus.active,
     ));
