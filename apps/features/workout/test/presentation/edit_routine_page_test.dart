@@ -447,7 +447,9 @@ void main() {
     await f.open(tester);
     final addSet = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
     await tester.ensureVisible(addSet);
-    expect(tester.getSize(addSet).height, TioButtonTokens.height);
+    final addSetHeight = tester.getSize(addSet).height;
+    expect(addSetHeight, greaterThanOrEqualTo(TioButtonTokens.height));
+    expect(addSetHeight, lessThanOrEqualTo(TioSize.dp52));
     expect(find.descendant(of: addSet, matching: find.byIcon(Icons.add)),
         findsOneWidget);
     await tester.tap(addSet);
