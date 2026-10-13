@@ -85,10 +85,10 @@ void main() {
           final after = request.url.queryParameters['id'];
           final last = after == null ? null : after.substring(3);
           final pageSize = int.parse(request.url.queryParameters['limit']!);
-          final page = rows.where((row) {
-            return last == null ||
-                (row['id'] as String).compareTo(last) > 0;
-          }).take(pageSize).toList();
+          final page = rows
+              .where((row) => (row['id'] as String).compareTo(last ?? '') > 0)
+              .take(pageSize)
+              .toList();
           return http.Response(jsonEncode(page), 200,
               headers: {'content-type': 'application/json'});
         }),
