@@ -48,6 +48,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   late TextEditingController _name;
   final Map<String, String> _entryLabels = {};
   final Set<String> _invalidSetIds = {};
+  String? _openSetId;
 
   @override
   void initState() {
@@ -66,6 +67,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _name.dispose();
       _entryLabels.clear();
       _invalidSetIds.clear();
+      _openSetId = null;
       _bind();
     }
   }
@@ -127,6 +129,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   void _removeEntry(RoutineCompositionEntry entry) {
     if (!_enabled) return;
+    if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
     _draft.removeExercise(entry.id);
     _entryLabels.remove(entry.id);
     _invalidSetIds.removeAll(entry.sets.map((set) => set.id));
@@ -134,6 +137,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
     if (!_enabled) return;
+    if (_openSetId == set.id) _openSetId = null;
     _draft.removeSet(entry.id, set.id);
     _invalidSetIds.remove(set.id);
   }
@@ -141,7 +145,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   void _addSet(RoutineCompositionEntry entry) {
     if (!_enabled) return;
     // The reference's Add Set is immediate: no modal or second confirmation.
+    if (_openSetId != null) setState(() => _openSetId = null);
     _draft.addSet(entry.id, SetPrescription(reps: 1));
+  }
+
+  void _setOpen(String id, bool open) {
+    if (!mounted) return;
+    final next = open ? id : (_openSetId == id ? null : _openSetId);
+    if (next != _openSetId) setState(() => _openSetId = next);
   }
 
   Future<void> _save() async {
@@ -318,6 +329,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         index: index,
         unit: widget.weightUnit,
         enabled: _enabled,
+        isOpen: _openSetId == set.id,
+        onOpenChanged: (open) => _setOpen(set.id, open),
         onChanged: (prescription) =>
             _draft.editSet(entry.id, set.id, prescription),
         onValidityChanged: (valid) => _validityChanged(set.id, valid),

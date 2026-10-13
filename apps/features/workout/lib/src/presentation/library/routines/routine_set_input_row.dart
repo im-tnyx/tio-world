@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -19,6 +20,8 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.onChanged,
     required this.onValidityChanged,
     required this.onRemove,
+    required this.isOpen,
+    required this.onOpenChanged,
     super.key,
   });
 
@@ -29,6 +32,9 @@ class RoutineSetInputRow extends StatefulWidget {
   final ValueChanged<SetPrescription> onChanged;
   final ValueChanged<bool> onValidityChanged;
   final VoidCallback onRemove;
+  /// Owned by the page so only one row's Delete action can be revealed.
+  final bool isOpen;
+  final ValueChanged<bool> onOpenChanged;
 
   @override
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
@@ -46,10 +52,16 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   late String _originalWeightText;
   late double? _originalKg;
   bool _valid = true;
+  static const double _revealWidth = TioSize.dp48 + TioSize.dp48;
+  static const double _threshold = _revealWidth / 2;
+  static const double _flickVelocity = 200;
+  double _reveal = 0;
+  bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
+    _reveal = widget.isOpen ? _revealWidth : 0;
     _reps = TextEditingController(
       text: widget.set.prescription.reps.toString(),
     );
@@ -67,6 +79,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   @override
   void didUpdateWidget(covariant RoutineSetInputRow oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isOpen != oldWidget.isOpen || !widget.enabled) {
+      _dragging = false;
+      _reveal = widget.isOpen && widget.enabled ? _revealWidth : 0;
+    }
     if (oldWidget.unit != widget.unit) {
       // A visible unit preference change uses the current canonical kg bytes,
       // rather than interpreting a previously formatted lb string as kg.
@@ -128,9 +144,93 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     super.dispose();
   }
 
+  void _dragUpdate(DragUpdateDetails details) {
+    if (!widget.enabled) return;
+    setState(() {
+      _dragging = true;
+      _reveal = (_reveal - details.delta.dx).clamp(0.0, _revealWidth);
+    });
+  }
+
+  void _dragEnd(DragEndDetails details) {
+    if (!widget.enabled) return;
+    final velocity = details.primaryVelocity ?? 0;
+    final open = velocity < -_flickVelocity
+        ? true
+        : velocity > _flickVelocity
+            ? false
+            : _reveal >= _threshold;
+    setState(() {
+      _dragging = false;
+      _reveal = open ? _revealWidth : 0;
+    });
+    widget.onOpenChanged(open);
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final setNumber = widget.index + 1;
+    final colors = context.tioColors;
+    final foreground = Material(
+      color: colors.background,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: widget.enabled ? _dragUpdate : null,
+        onHorizontalDragEnd: widget.enabled ? _dragEnd : null,
+        child: _fields(context),
+      ),
+    );
+    return Semantics(
+      customSemanticsActions: widget.enabled
+          ? {
+              CustomSemanticsAction(label: 'Delete Set $setNumber'):
+                  widget.onRemove,
+            }
+          : const {},
+      child: ClipRect(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: _revealWidth,
+                  child: ColoredBox(
+                    color: colors.danger,
+                    child: TextButton(
+                      key: ValueKey('routine-set-remove-${widget.set.id}'),
+                      onPressed: widget.enabled && widget.isOpen
+                          ? widget.onRemove
+                          : null,
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: colors.background),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: _reveal),
+              duration: _dragging
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              builder: (_, revealed, child) => Transform.translate(
+                offset: Offset(-revealed, 0),
+                child: child,
+              ),
+              child: foreground,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fields(BuildContext context) {
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
     return Padding(
@@ -185,12 +285,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               ),
             ),
           ),
-          IconButton(
-            key: ValueKey('routine-set-remove-${widget.set.id}'),
-            tooltip: 'Remove Set $setNumber',
-            onPressed: widget.enabled ? widget.onRemove : null,
-            icon: const Icon(Icons.close_rounded),
-          ),
+          const SizedBox(width: TioSize.dp48),
         ],
       ),
     );
