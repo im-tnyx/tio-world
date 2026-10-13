@@ -232,6 +232,36 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Repetition mode belongs to the Routine Exercise. Keep Set identity,
+  /// type, kg and rest stable when switching Fixed ↔ Range.
+  bool changeRepetitionMode(String entryId, {required bool range}) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    if (entry.sets.isEmpty) return false;
+    _replaceEntry(index, RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      sets: [
+        for (final set in entry.sets)
+          RoutineCompositionSet(
+            id: set.id,
+            prescription: SetPrescription(
+              reps: set.prescription.reps,
+              repsMax: range
+                  ? (set.prescription.repsMax ?? set.prescription.reps)
+                  : null,
+              setType: set.prescription.setType,
+              loadKg: set.prescription.loadKg,
+              restSeconds: set.prescription.restSeconds,
+            ),
+          ),
+      ],
+    ));
+    return true;
+  }
+
   bool removeSet(String entryId, String setId) {
     if (!_state.canEdit) return false;
     final index = _draft.indexWhere((e) => e.id == entryId);
