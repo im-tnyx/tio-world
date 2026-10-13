@@ -161,6 +161,93 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (next != _openSetId) setState(() => _openSetId = next);
   }
 
+  Future<void> _selectSetType(
+    RoutineCompositionEntry entry,
+    RoutineCompositionSet set,
+  ) async {
+    if (!_enabled) return;
+    final chosen = await showTioEditorSheet<Object>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Select Set Type',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final type in RoutineSetType.values)
+              ListTile(
+                key: ValueKey('routine-type-option-${type.wireValue}'),
+                leading: Text(switch (type) {
+                  RoutineSetType.normal => '1',
+                  RoutineSetType.warmUp => 'W',
+                  RoutineSetType.failure => 'F',
+                  RoutineSetType.drop => 'D',
+                }),
+                title: Text(switch (type) {
+                  RoutineSetType.normal => 'Normal Set',
+                  RoutineSetType.warmUp => 'Warm Up Set',
+                  RoutineSetType.failure => 'Failure Set',
+                  RoutineSetType.drop => 'Drop Set',
+                }),
+                trailing: type == set.prescription.setType
+                    ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.of(sheetContext).pop<Object>(type),
+              ),
+            ListTile(
+              key: const ValueKey('routine-type-remove-set'),
+              leading: Icon(Icons.close, color: context.tioColors.danger),
+              title: Text('Remove Set',
+                style: TextStyle(color: context.tioColors.danger)),
+              onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || !_enabled || chosen == null) return;
+    if (chosen is RoutineSetType) {
+      _draft.changeSetType(entry.id, set.id, chosen);
+    } else if (chosen == 'remove') {
+      _removeSet(entry, set);
+    }
+  }
+
+  Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
+    if (!_enabled ||
+        entry.sets.any((set) => _invalidSetIds.contains(set.id))) return;
+    final isRange = entry.sets.isNotEmpty &&
+        entry.sets.first.prescription.isRepRange;
+    final chosen = await showTioEditorSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Repetition Options',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('routine-repetition-fixed'),
+              title: const Text('Reps'),
+              trailing: !isRange ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(sheetContext).pop<bool>(false),
+            ),
+            ListTile(
+              key: const ValueKey('routine-repetition-range'),
+              title: const Text('Rep Range'),
+              trailing: isRange ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(sheetContext).pop<bool>(true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || !_enabled || chosen == null) return;
+    final current = _draft.state.entries.where((e) => e.id == entry.id);
+    if (current.length != 1 ||
+        current.single.sets.any((s) => _invalidSetIds.contains(s.id))) return;
+    _draft.changeRepetitionMode(entry.id, range: chosen);
+  }
+
   Future<void> _save() async {
     if (!_draft.state.canSave || !_enabled || _invalidSetIds.isNotEmpty) return;
     final confirmed = await _draft.save();
@@ -333,6 +420,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         key: ValueKey('create-routine-set-${set.id}'),
         set: set,
         index: index,
+        normalNumber: entry.sets
+            .take(index + 1)
+            .where((s) => s.prescription.setType == RoutineSetType.normal)
+            .length,
+        onTypePressed: () => _selectSetType(entry, set),
         unit: widget.weightUnit,
         enabled: _enabled,
         isOpen: _openSetId == set.id,
@@ -403,8 +495,36 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 ),
               ),
               const SizedBox(width: TioSpacing.sm),
-              const Expanded(
-                child: Text('REPS', textAlign: TextAlign.center),
+              Expanded(
+                child: Semantics(
+                  button: true,
+                  label: 'Repetition Options',
+                  child: InkWell(
+                    key: ValueKey('create-routine-repetition-options-${entry.id}'),
+                    onTap: _enabled
+                        ? () => _selectRepetitionMode(entry)
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              entry.sets.isNotEmpty &&
+                                      entry.sets.first.prescription.isRepRange
+                                  ? 'REP RANGE'
+                                  : 'REPS',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: TioSize.dp48),
             ],
