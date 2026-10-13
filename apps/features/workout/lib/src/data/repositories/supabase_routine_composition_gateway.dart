@@ -79,7 +79,7 @@ final class SupabaseRoutineCompositionGateway
     var query = _client
         .from('user_workout_routine_sets')
         .select(
-            'id,user_id,routine_exercise_id,position,reps,load_kg,rest_seconds,'
+            'id,user_id,routine_exercise_id,position,reps,reps_max,set_type,load_kg,rest_seconds,'
             'entry:user_workout_routine_exercises!user_workout_routine_sets_exercise_owner_fkey!inner(id,user_id,routine_id)')
         .eq('user_id', userId)
         .eq('entry.user_id', userId)

@@ -303,12 +303,17 @@ final class SupabaseRoutineCompositionRepository
   static RoutineCompositionSet _set(Map<String, dynamic> row, int position) {
     if (_integer(row['position']) != position ||
         !row.containsKey('load_kg') ||
-        !row.containsKey('rest_seconds')) {
+        !row.containsKey('rest_seconds') ||
+        !row.containsKey('set_type') ||
+        !row.containsKey('reps_max')) {
       throw _malformed;
     }
     final reps = _integer(row['reps']);
     if (reps == 0) throw _malformed;
     final load = row['load_kg'];
+    final max = row['reps_max'];
+    final type = row['set_type'];
+    if (type is! String || (max != null && max is! int)) throw _malformed;
     if (load != null &&
         (load is! num || !load.toDouble().isFinite || load < 0)) {
       throw _malformed;
@@ -317,6 +322,8 @@ final class SupabaseRoutineCompositionRepository
         id: _uuid(row['id']),
         prescription: SetPrescription(
           reps: reps,
+          repsMax: max as int?,
+          setType: RoutineSetType.fromWire(type),
           loadKg: (load as num?)?.toDouble(),
           restSeconds: row['rest_seconds'] == null
               ? null
@@ -355,6 +362,8 @@ final class SupabaseRoutineCompositionRepository
                 {
                   'id': set.id,
                   'reps': set.prescription.reps,
+                  'reps_max': set.prescription.repsMax,
+                  'set_type': set.prescription.setType.wireValue,
                   'load_kg': set.prescription.loadKg,
                   'rest_seconds': set.prescription.restSeconds,
                 }

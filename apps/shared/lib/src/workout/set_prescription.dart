@@ -1,3 +1,22 @@
+/// Set classification for an unperformed Routine template prescription.
+/// Identical values serialize to the approved PostgreSQL CHECK strings.
+enum RoutineSetType {
+  normal('normal'),
+  warmUp('warm_up'),
+  failure('failure'),
+  drop('drop');
+
+  const RoutineSetType(this.wireValue);
+  final String wireValue;
+
+  static RoutineSetType fromWire(String value) {
+    for (final type in values) {
+      if (type.wireValue == value) return type;
+    }
+    throw ArgumentError.value(value, 'setType', 'unknown Routine Set type');
+  }
+}
+
 /// Canonical template values for one prescribed set.
 ///
 /// This is planned/template truth only. Actual performed values belong to a
@@ -5,14 +24,26 @@
 final class SetPrescription {
   SetPrescription({
     required int reps,
+    int? repsMax,
+    RoutineSetType setType = RoutineSetType.normal,
     double? loadKg,
     int? restSeconds,
   })  : reps = _requirePositiveReps(reps),
+        repsMax = _requireValidMaximum(reps, repsMax),
+        setType = setType,
         loadKg = _validateLoadKg(loadKg),
         restSeconds = _validateRestSeconds(restSeconds);
 
-  /// Planned repetition count.
+  /// Exact target in fixed mode; minimum in Rep Range mode.
   final int reps;
+
+  /// Nullable maximum. Present (even equal to [reps]) means Rep Range.
+  final int? repsMax;
+
+  /// Warm Up / Normal / Failure / Drop classification (template only).
+  final RoutineSetType setType;
+
+  bool get isRepRange => repsMax != null;
 
   /// Optional planned external load in canonical kilograms.
   ///
@@ -29,6 +60,15 @@ final class SetPrescription {
       throw ArgumentError.value(value, 'reps', 'must be greater than zero');
     }
     return value;
+  }
+
+  static int? _requireValidMaximum(int minimum, int? maximum) {
+    if (maximum == null) return null;
+    if (maximum < minimum || maximum <= 0 || maximum > 2147483647) {
+      throw ArgumentError.value(maximum, 'repsMax',
+          'must be at least the positive minimum reps and within int32');
+    }
+    return maximum;
   }
 
   static double? _validateLoadKg(double? value) {
@@ -60,9 +100,11 @@ final class SetPrescription {
       identical(this, other) ||
       other is SetPrescription &&
           other.reps == reps &&
+          other.repsMax == repsMax &&
+          other.setType == setType &&
           other.loadKg == loadKg &&
           other.restSeconds == restSeconds;
 
   @override
-  int get hashCode => Object.hash(reps, loadKg, restSeconds);
+  int get hashCode => Object.hash(reps, repsMax, setType, loadKg, restSeconds);
 }
