@@ -68,6 +68,21 @@ void main() {
     expect(c.state.entries.map((e) => e.id), [_entry2, _entry1]);
   });
 
+  test('removing the final Set removes its Exercise and cannot Save',
+      () async {
+    final repo = _Creates();
+    final c = _controller(repo);
+    addTearDown(c.dispose);
+    expect(c.addPickedExercise(_exercise), _entry1);
+    expect(c.state.canSave, isTrue);
+    expect(c.removeSet(_entry1, _set1), isTrue);
+    expect(c.state.entries, isEmpty);
+    expect(c.state.canSave, isFalse);
+    expect(c.removeSet(_entry1, _set1), isFalse);
+    expect(await c.save(), isFalse);
+    expect(repo.calls, 0);
+  });
+
   test('cancel/dispose never calls repository, confirmed Save once', () async {
     final noWrite = _Creates();
     final abandoned = _controller(noWrite);
