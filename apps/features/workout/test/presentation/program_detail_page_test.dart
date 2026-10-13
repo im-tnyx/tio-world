@@ -15,6 +15,7 @@ Future<void> _pump(
   TioThemeMode mode = TioThemeMode.light,
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
+  Future<bool> Function(String suggestedName)? onCreateRoutine,
   double textScale = 1,
 }) async {
   await tester.pumpWidget(
@@ -33,6 +34,7 @@ Future<void> _pump(
         routineRepository: repository,
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
+        onCreateRoutine: onCreateRoutine,
       ),
     ),
   );
@@ -40,6 +42,28 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('atomic Create callback bypasses legacy name-only INSERT',
+      (tester) async {
+    final repository = _MemoryRoutines();
+    String? suggested;
+    await _pump(
+      tester,
+      repository: repository,
+      onCreateRoutine: (name) async {
+        suggested = name;
+        return false;
+      },
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('program-detail-add-routine')),
+    );
+    await tester.pumpAndSettle();
+    expect(suggested, 'Routine 1');
+    expect(repository.created, isEmpty);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+  });
+
   testWidgets('empty Program shows real Routine creation, no builder action',
       (tester) async {
     final repository = _MemoryRoutines();
