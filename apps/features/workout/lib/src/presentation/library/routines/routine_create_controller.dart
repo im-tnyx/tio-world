@@ -325,7 +325,9 @@ final class RoutineCreateController extends ChangeNotifier {
       final found = owned.where((r) => r.id == attempted.routine.id).toList();
       if (found.length != 1 ||
           found.single.programId != program.id ||
-          found.single.name != attempted.routine.name) return false;
+          found.single.name != attempted.routine.name) {
+        return false;
+      }
       final snapshot = await compositions.read(attempted.routine.id);
       if (!_authorized) return false;
       final frozen = RoutineCompositionSave(
@@ -336,7 +338,9 @@ final class RoutineCreateController extends ChangeNotifier {
       );
       if (snapshot == null || snapshot.revision != 1 ||
           snapshot.lastMutationId != attempted.mutationId ||
-          !snapshot.hasSameContent(frozen)) return false;
+          !snapshot.hasSameContent(frozen)) {
+        return false;
+      }
       _status = RoutineCreateStatus.saved;
       _publish();
       return true;
