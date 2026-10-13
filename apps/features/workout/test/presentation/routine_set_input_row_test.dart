@@ -150,6 +150,53 @@ void main() {
     expect(emitted.last.restSeconds, 45);
   });
 
+  testWidgets('Switching typed fixed Reps to range requires explicit Max',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final current = ValueNotifier<SetPrescription>(
+      SetPrescription(reps: 8),
+    );
+    addTearDown(current.dispose);
+    final validity = <bool>[];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+        valueListenable: current,
+        builder: (_, prescription, __) => RoutineSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: prescription),
+          index: 0,
+          normalNumber: 1,
+          onTypePressed: () {},
+          unit: WeightUnit.kg,
+          enabled: true,
+          isOpen: false,
+          onOpenChanged: (_) {},
+          onChanged: (next) => current.value = next,
+          onValidityChanged: validity.add,
+          onRemove: () {},
+        ),
+      )),
+    ));
+
+    // The domain model uses a provisional Max to represent range mode,
+    // but no user has typed that Max in this row.
+    current.value = SetPrescription(reps: 8, repsMax: 8);
+    await tester.pump();
+    await tester.pump();
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$id'));
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
+    expect(validity.last, isFalse);
+
+    await tester.enterText(max, '12');
+    await tester.pump();
+    expect(validity.last, isTrue);
+    expect(current.value.reps, 8);
+    expect(current.value.repsMax, 12);
+  });
+
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);
