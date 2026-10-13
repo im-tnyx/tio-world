@@ -25,6 +25,7 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.isOpen,
     required this.onOpenChanged,
     this.startWithBlankReps = false,
+    this.showPrevious = false,
     super.key,
   });
 
@@ -43,6 +44,9 @@ class RoutineSetInputRow extends StatefulWidget {
   /// New Create draft rows display no user-entered repetition target.
   /// Never use this for a persisted Edit row or a restored valid value.
   final bool startWithBlankReps;
+  /// Previous workout history is a separate PerformedSet boundary.
+  /// Its read-only placeholder is not derived from prescribed targets.
+  final bool showPrevious;
 
   @override
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
@@ -339,6 +343,13 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
             ),
           ),
           const SizedBox(width: TioSpacing.sm),
+          if (widget.showPrevious) ...[
+            const SizedBox(
+              width: TioSize.dp64,
+              child: Text('–', textAlign: TextAlign.center),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+          ],
           Expanded(
             flex: widget.set.prescription.isRepRange ? 2 : 1,
             child: Semantics(
@@ -404,7 +415,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               ],
             ),
           ),
-          if (!widget.set.prescription.isRepRange)
+          if (!widget.showPrevious && !widget.set.prescription.isRepRange)
             const SizedBox(width: TioSize.dp48),
         ],
       ),
