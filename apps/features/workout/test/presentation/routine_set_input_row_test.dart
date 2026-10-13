@@ -42,7 +42,8 @@ void main() {
     expect(values.last.restSeconds, 60);
   });
 
-  testWidgets('Edit range shows distinct outlined Min/Max and Previous at 320dp',
+  testWidgets(
+      'Edit range shows distinct outlined Min/Max and Previous at 320dp',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);
     tester.view.devicePixelRatio = 1;
