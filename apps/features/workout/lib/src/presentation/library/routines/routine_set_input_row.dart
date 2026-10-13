@@ -175,6 +175,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     final foreground = Material(
       color: colors.background,
       child: GestureDetector(
+        key: ValueKey('routine-set-swipe-${widget.set.id}'),
         behavior: HitTestBehavior.opaque,
         onHorizontalDragUpdate: widget.enabled ? _dragUpdate : null,
         onHorizontalDragEnd: widget.enabled ? _dragEnd : null,
