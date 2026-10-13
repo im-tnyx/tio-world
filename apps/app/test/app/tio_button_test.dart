@@ -39,6 +39,68 @@ void main() {
     expect(presses, 3);
   });
 
+  testWidgets('supporting uses governed filled button with neutral roles',
+      (tester) async {
+    var presses = 0;
+    await tester.pumpWidget(
+      _ButtonTestApp(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: TioButton.supporting(
+          label: 'Add Set',
+          leading: const Icon(Icons.add),
+          expand: true,
+          onPressed: () => presses++,
+        ),
+      ),
+    );
+
+    final button = tester.widget<TioButton>(find.byType(TioButton));
+    final filled = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.variant, TioButtonVariant.supporting);
+    expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsNothing);
+    expect(find.byType(TextButton), findsNothing);
+    expect(tester.getSize(find.byType(FilledButton)).height,
+        greaterThanOrEqualTo(TioButtonTokens.height));
+    expect(filled.style!.backgroundColor!.resolve({}),
+        TioColors.light.surface);
+    expect(filled.style!.foregroundColor!.resolve({}),
+        TioColors.light.textPrimary);
+    expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
+        TioColors.light.textMuted);
+    await tester.tap(find.text('Add Set'));
+    expect(presses, 1);
+  });
+
+  testWidgets('supporting disables writes and holds its theme when loading',
+      (tester) async {
+    var presses = 0;
+    Widget supporting({bool loading = false}) => _ButtonTestApp(
+      config: const TioThemeConfig(mode: TioThemeMode.dark),
+      child: TioButton.supporting(
+        label: 'Add Set',
+        onPressed: () => presses++,
+        enabled: false,
+        loading: loading,
+      ),
+    );
+
+    await tester.pumpWidget(supporting());
+    var filled = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(filled.onPressed, isNull);
+    await tester.tap(find.text('Add Set'));
+    expect(presses, 0);
+
+    await tester.pumpWidget(supporting(loading: true));
+    await tester.pump();
+    filled = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(filled.onPressed, isNull);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
+        TioColors.oled.textPrimary);
+    expect(presses, 0);
+  });
+
   testWidgets('disabled button cannot invoke its callback', (tester) async {
     var presses = 0;
 
