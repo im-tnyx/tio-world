@@ -1080,6 +1080,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
   bool withRoutineComposition = false,
+  bool withRoutineCreate = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
 }) async {
@@ -1096,6 +1097,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   final calendarController =
       CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
   await calendarController.load();
+  final routeRoutines = _RouteRoutines();
 
   final container = ProviderContainer(
     overrides: [
@@ -1117,7 +1119,10 @@ Future<(ProviderContainer, GoRouter)> _app(
         withProgramRepository ? _RoutePrograms() : null,
       ),
       routineRepositoryProvider.overrideWithValue(
-        withRoutineRepository ? _RouteRoutines() : null,
+        withRoutineRepository ? routeRoutines : null,
+      ),
+      routineCreateRepositoryProvider.overrideWithValue(
+        withRoutineCreate ? _RouteCreate(routeRoutines) : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
         withRoutineComposition ? _RouteCompositions() : null,
@@ -1200,6 +1205,20 @@ final class _RouteRoutines implements RoutineRepository {
     final index = rows.indexWhere((item) => item.id == id);
     if (index < 0) throw StateError('Routine missing');
     rows[index] = Routine(id: id, programId: rows[index].programId, name: name);
+  }
+}
+
+final class _RouteCreate implements RoutineCreateRepository {
+  _RouteCreate(this._routines);
+
+  final _RouteRoutines _routines;
+
+  @override
+  Future<int> create(RoutineCreateCommand command) async {
+    // Test fixture models an acknowledged atomic Create, not metadata-only
+    // production persistence. The real service boundary remains #536.
+    await _routines.create(command.routine);
+    return 1;
   }
 }
 
