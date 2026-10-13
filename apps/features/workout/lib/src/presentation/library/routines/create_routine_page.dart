@@ -137,6 +137,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
     if (!_enabled) return;
+    if (entry.sets.length == 1) {
+      // Removing the last Set removes this entire unsaved Exercise, instead
+      // of leaving a nameless zero-Set Exercise behind.
+      _removeEntry(entry);
+      return;
+    }
     if (_openSetId == set.id) _openSetId = null;
     _draft.removeSet(entry.id, set.id);
     _invalidSetIds.remove(set.id);

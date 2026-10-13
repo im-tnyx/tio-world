@@ -165,6 +165,9 @@ final class RoutineCreateController extends ChangeNotifier {
     if (index < 0) return false;
     final entry = _entries[index];
     if (!entry.sets.any((s) => s.id == setId)) return false;
+    // Create drafts cannot retain an Exercise after its final Set is removed.
+    // This invariant belongs to the controller, not only to swipe UI.
+    if (entry.sets.length == 1) return removeExercise(entryId);
     _replace(index, RoutineCompositionEntry(
       id: entry.id, exercise: entry.exercise,
       sets: entry.sets.where((s) => s.id != setId).toList(),

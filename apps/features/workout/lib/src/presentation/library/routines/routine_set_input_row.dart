@@ -57,11 +57,24 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   static const double _flickVelocity = 200;
   double _reveal = 0;
   bool _dragging = false;
+  bool _pastRevealThreshold = false;
+
+  // The full gesture is proportional to the actual row width, not the
+  // much shorter width needed to expose the Delete button.
+  double get _fullSwipeThreshold =>
+      (context.size?.width ?? _revealWidth * 4) * 0.65;
+
+  void _delete() {
+    if (!widget.enabled) return;
+    HapticFeedback.mediumImpact();
+    widget.onRemove();
+  }
 
   @override
   void initState() {
     super.initState();
     _reveal = widget.isOpen ? _revealWidth : 0;
+    _pastRevealThreshold = widget.isOpen;
     _reps = TextEditingController(
       text: widget.set.prescription.reps.toString(),
     );
@@ -82,6 +95,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     if (widget.isOpen != oldWidget.isOpen || !widget.enabled) {
       _dragging = false;
       _reveal = widget.isOpen && widget.enabled ? _revealWidth : 0;
+      _pastRevealThreshold = widget.isOpen && widget.enabled;
     }
     if (oldWidget.unit != widget.unit) {
       // A visible unit preference change uses the current canonical kg bytes,
@@ -146,14 +160,29 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
 
   void _dragUpdate(DragUpdateDetails details) {
     if (!widget.enabled) return;
+    final width = context.size?.width ?? _revealWidth * 4;
     setState(() {
       _dragging = true;
-      _reveal = (_reveal - details.delta.dx).clamp(0.0, _revealWidth);
+      // Allow the foreground to follow the finger past the short reveal:
+      // a full-length swipe exposes the destructive background completely.
+      _reveal = (_reveal - details.delta.dx).clamp(0.0, width);
     });
+    final above = _reveal >= _threshold;
+    if (above && !_pastRevealThreshold) {
+      HapticFeedback.selectionClick();
+    }
+    _pastRevealThreshold = above;
   }
 
   void _dragEnd(DragEndDetails details) {
     if (!widget.enabled) return;
+    // A fast short flick only reveals Delete. Auto-delete requires deliberate
+    // DISTANCE at pointer release, even if the flick velocity is very high.
+    if (_reveal >= _fullSwipeThreshold) {
+      _dragging = false;
+      _delete();
+      return;
+    }
     final velocity = details.primaryVelocity ?? 0;
     final open = velocity < -_flickVelocity
         ? true
@@ -163,6 +192,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     setState(() {
       _dragging = false;
       _reveal = open ? _revealWidth : 0;
+      _pastRevealThreshold = open;
     });
     widget.onOpenChanged(open);
   }
@@ -186,7 +216,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       customSemanticsActions: widget.enabled
           ? {
               CustomSemanticsAction(label: 'Delete Set $setNumber'):
-                  widget.onRemove,
+                  _delete,
             }
           : const {},
       child: ClipRect(
@@ -202,7 +232,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                     child: TextButton(
                       key: ValueKey('routine-set-remove-${widget.set.id}'),
                       onPressed: widget.enabled && widget.isOpen
-                          ? widget.onRemove
+                          ? _delete
                           : null,
                       child: Text(
                         'Delete',
