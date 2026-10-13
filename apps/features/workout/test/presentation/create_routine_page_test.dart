@@ -6,7 +6,7 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('picker adds Set 1 and enables a single atomic Save',
+  testWidgets('picker adds empty Reps and Save requires user entry',
       (tester) async {
     final create = _Create();
     var index = 0;
@@ -46,6 +46,13 @@ void main() {
         findsOneWidget);
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
+    final reps = find.byKey(const ValueKey('routine-set-reps-55555555-5555-4555-8555-555555555555'));
+    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
+    expect(tester.widget<TextButton>(
+        find.byKey(const ValueKey('create-routine-save'))).onPressed,
+        isNull);
+    await tester.enterText(reps, '8');
+    await tester.pump();
     expect(tester.widget<TextButton>(
         find.byKey(const ValueKey('create-routine-save'))).onPressed,
         isNotNull);
@@ -53,7 +60,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-save')));
     await tester.pump();
     expect(create.calls, 1);
-    expect(create.command!.entries.single.sets.single.prescription.reps, 1);
+    expect(create.command!.entries.single.sets.single.prescription.reps, 8);
     expect(create.command!.entries.single.sets.single.prescription.loadKg,
         isNull);
   });
@@ -109,8 +116,12 @@ void main() {
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
     expect(create.calls, 0);
+    final firstReps = find.byKey(const ValueKey('routine-set-reps-$set1'));
+    final secondReps = find.byKey(const ValueKey('routine-set-reps-$set2'));
+    expect(tester.widget<TioInput>(firstReps).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(secondReps).controller!.text, isEmpty);
 
-    final reps = find.byKey(const ValueKey('routine-set-reps-$set2'));
+    final reps = secondReps;
     await tester.ensureVisible(reps);
     await tester.enterText(reps, '');
     await tester.pump();
@@ -120,6 +131,12 @@ void main() {
     expect(create.calls, 0);
 
     await tester.enterText(reps, '12');
+    await tester.pump();
+    // Untouched Set 1 still blocks Save even after Set 2 becomes valid.
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save')),
+    ).onPressed, isNull);
+    await tester.enterText(firstReps, '8');
     await tester.pump();
     expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('create-routine-save')),
@@ -135,7 +152,7 @@ void main() {
     final sets = create.command!.entries.single.sets;
     expect(sets, hasLength(2));
     expect(sets.first.id, set1);
-    expect(sets.first.prescription.reps, 1);
+    expect(sets.first.prescription.reps, 8);
     expect(sets.last.id, set2);
     expect(sets.last.prescription.reps, 12);
     expect(sets.last.prescription.loadKg, 25.5);
@@ -174,6 +191,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    // Only the surviving, explicitly-entered Set makes Save available.
+    await tester.enterText(
+      find.byKey(const ValueKey(
+        'routine-set-reps-55555555-5555-4555-8555-555555555555',
+      )),
+      '8',
+    );
+    await tester.pump();
     final addSet = find.byKey(const ValueKey(
       'create-routine-add-set-44444444-4444-4444-8444-444444444444',
     ));
@@ -324,6 +349,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-set-reps-$first')), '8');
+    await tester.pump();
     final addSet = find.byKey(const ValueKey(
       'create-routine-add-set-44444444-4444-4444-8444-444444444444',
     ));
@@ -546,6 +574,8 @@ void main() {
     final weight = find.byKey(const ValueKey('routine-set-weight-$set1'));
     await tester.ensureVisible(weight);
     await tester.enterText(weight, '44');
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-set-reps-$set1')), '8');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('create-routine-save')));
     await tester.pump();
@@ -607,11 +637,19 @@ void main() {
     await tester.pumpAndSettle();
     final max = find.byKey(const ValueKey('routine-set-reps-max-$id'));
     expect(max, findsOneWidget);
+    final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
+    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
     await tester.enterText(max, '');
     await tester.pump();
     expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
     await tester.enterText(max, '12');
+    await tester.pump();
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed,
+      isNull);
+    await tester.enterText(reps, '8');
     await tester.pump();
     expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('create-routine-save'))).onPressed,
@@ -623,7 +661,7 @@ void main() {
     final saved = create.command!.entries.single.sets.single;
     expect(saved.id, id);
     expect(saved.prescription.setType, RoutineSetType.warmUp);
-    expect(saved.prescription.reps, 1);
+    expect(saved.prescription.reps, 8);
     expect(saved.prescription.repsMax, 12);
   });
 
