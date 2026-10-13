@@ -20,6 +20,8 @@ void main() {
         index: 0,
         unit: WeightUnit.lb,
         enabled: true,
+        isOpen: false,
+        onOpenChanged: (_) {},
         onChanged: values.add,
         onValidityChanged: validity.add,
         onRemove: () {},
