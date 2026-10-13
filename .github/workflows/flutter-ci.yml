@@ -63,6 +63,14 @@ jobs:
       - name: Analyze Dart packages
         run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
+      # Synthetic CI-only PR: run exact newly authored input tests with
+      # fail-on-error semantics before the known upstream app suite failure.
+      - name: Strict Workout input-limit widget tests (CI-only)
+        run: |
+          cd apps/features/workout
+          flutter pub get
+          flutter test --no-pub test/presentation/routine_set_input_limits_test.dart
+
       - name: Test Flutter packages
         run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
 
