@@ -102,6 +102,12 @@ void main() {
 
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
       (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     const id = '55555555-5555-4555-8555-555555555555';
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
