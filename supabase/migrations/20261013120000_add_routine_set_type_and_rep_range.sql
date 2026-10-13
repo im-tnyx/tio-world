@@ -138,7 +138,23 @@ begin
       if v_set ? 'reps_max' and
           pg_catalog.jsonb_typeof(v_set -> 'reps_max') <> 'null' then
         if pg_catalog.jsonb_typeof(v_set -> 'reps_max') <> 'number'
-            or (v_set ->> 'reps_max') !~ '^[0-9]+
+            or (v_set ->> 'reps_max') !~ '^[0-9]+$' then
+          raise exception 'invalid_routine_set_reps_max' using errcode = '22023';
+        end if;
+        v_reps_max := (v_set ->> 'reps_max')::integer;
+        if v_reps_max < v_reps then
+          raise exception 'invalid_routine_set_reps_max' using errcode = '22023';
+        end if;
+      end if;
+
+      if v_entry_range is null then
+        v_entry_range := v_reps_max is not null;
+      elsif v_entry_range is distinct from (v_reps_max is not null) then
+        raise exception 'mixed_routine_exercise_repetition_modes'
+          using errcode = '22023';
+      end if;
+
+      v_load := null;
       if v_set ? 'load_kg'
           and pg_catalog.jsonb_typeof(v_set -> 'load_kg') <> 'null' then
         if pg_catalog.jsonb_typeof(v_set -> 'load_kg') <> 'number' then
@@ -308,173 +324,6 @@ begin
         (v_set ->> 'reps')::integer,
         (v_set ->> 'reps_max')::integer,
         coalesce(v_set ->> 'set_type','normal'),
-        (v_set ->> 'load_kg')::double precision,
-        (v_set ->> 'rest_seconds')::integer
-      );
-    end loop;
-  end loop;
-
-  update public.user_workout_routines
-  set composition_revision = v_revision + 1,
-      last_composition_mutation_id = p_client_mutation_id
-  where id = p_routine_id and user_id = v_user_id;
-
-  return v_revision + 1;
-end;
-$$; then
-          raise exception 'invalid_routine_set_reps_max' using errcode = '22023';
-        end if;
-        v_reps_max := (v_set ->> 'reps_max')::integer;
-        if v_reps_max < v_reps then
-          raise exception 'invalid_routine_set_reps_max' using errcode = '22023';
-        end if;
-      end if;
-      if v_entry_range is null then
-        v_entry_range := v_reps_max is not null;
-      elsif v_entry_range is distinct from (v_reps_max is not null) then
-        raise exception 'mixed_routine_exercise_repetition_modes'
-          using errcode = '22023';
-      end if;
-
-      v_load := null;
-      if v_set ? 'load_kg'
-          and pg_catalog.jsonb_typeof(v_set -> 'load_kg') <> 'null' then
-        if pg_catalog.jsonb_typeof(v_set -> 'load_kg') <> 'number' then
-          raise exception 'invalid_routine_set_load' using errcode = '22023';
-        end if;
-        v_load := (v_set ->> 'load_kg')::double precision;
-        if v_load < 0 or v_load >= 'Infinity'::double precision
-            or v_load = 'NaN'::double precision then
-          raise exception 'invalid_routine_set_load' using errcode = '22023';
-        end if;
-      end if;
-
-      v_rest := null;
-      if v_set ? 'rest_seconds'
-          and pg_catalog.jsonb_typeof(v_set -> 'rest_seconds') <> 'null' then
-        if pg_catalog.jsonb_typeof(v_set -> 'rest_seconds') <> 'number'
-            or (v_set ->> 'rest_seconds') !~ '^[0-9]+$' then
-          raise exception 'invalid_routine_set_rest' using errcode = '22023';
-        end if;
-        v_rest := (v_set ->> 'rest_seconds')::integer;
-      end if;
-
-    end loop;
-  end loop;
-
-  -- Detect UUID-equivalent duplicate IDs without quadratic array scans.
-  if exists (
-    select 1 from pg_catalog.jsonb_array_elements(p_exercises) as e(value)
-    group by (e.value ->> 'id')::uuid having count(*) > 1
-  ) then
-    raise exception 'duplicate_routine_exercise_entry' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-    from pg_catalog.jsonb_array_elements(p_exercises) as e(value)
-    cross join lateral pg_catalog.jsonb_array_elements(e.value -> 'sets') as s(value)
-    group by (s.value ->> 'id')::uuid having count(*) > 1
-  ) then
-    raise exception 'duplicate_routine_set' using errcode = '22023';
-  end if;
-
-  -- Build ordered normalized content in single aggregations, not per-item
-  -- jsonb concatenations. Strict validation above makes all casts safe.
-  select coalesce(pg_catalog.jsonb_agg(
-    pg_catalog.jsonb_build_object(
-      'id', (e.value ->> 'id')::uuid::text,
-      'exercise_ref', case
-        when (e.value ->> 'exercise_ref') ~ '^ex_'
-          then e.value ->> 'exercise_ref'
-        else (e.value ->> 'exercise_ref')::uuid::text
-      end,
-      'sets', (
-        select coalesce(pg_catalog.jsonb_agg(
-          pg_catalog.jsonb_build_object(
-            'id', (s.value ->> 'id')::uuid::text,
-            'reps', (s.value ->> 'reps')::integer,
-            'load_kg', (s.value ->> 'load_kg')::double precision,
-            'rest_seconds', (s.value ->> 'rest_seconds')::integer
-          ) order by s.ordinality
-        ), '[]'::jsonb)
-        from pg_catalog.jsonb_array_elements(e.value -> 'sets')
-          with ordinality as s(value, ordinality)
-      )
-    ) order by e.ordinality
-  ), '[]'::jsonb)
-    into v_normalized
-  from pg_catalog.jsonb_array_elements(p_exercises)
-    with ordinality as e(value, ordinality);
-
-  if v_last_mutation = p_client_mutation_id then
-    select coalesce(pg_catalog.jsonb_agg(
-      pg_catalog.jsonb_build_object(
-        'id', exercise.id::text,
-        'exercise_ref', coalesce(
-          exercise.catalog_exercise_id, exercise.user_exercise_id::text
-        ),
-        'sets', (
-          select coalesce(pg_catalog.jsonb_agg(
-            pg_catalog.jsonb_build_object(
-              'id', set_row.id::text,
-              'reps', set_row.reps,
-              'load_kg', set_row.load_kg,
-              'rest_seconds', set_row.rest_seconds
-            ) order by set_row.position
-          ), '[]'::jsonb)
-          from public.user_workout_routine_sets as set_row
-          where set_row.user_id = v_user_id
-            and set_row.routine_exercise_id = exercise.id
-        )
-      ) order by exercise.position
-    ), '[]'::jsonb)
-    into v_persisted
-    from public.user_workout_routine_exercises as exercise
-    where exercise.routine_id = p_routine_id
-      and exercise.user_id = v_user_id;
-
-    if v_persisted = v_normalized then
-      return v_revision;
-    end if;
-    raise exception 'routine_composition_mutation_conflict' using errcode = 'P0001';
-  end if;
-
-  if v_revision <> p_expected_revision then
-    raise exception 'routine_composition_revision_conflict' using errcode = 'P0001';
-  end if;
-
-  -- Full snapshot replacement, including empty draft compositions.
-  -- All child DML rolls back if a later row/owner FK/constraint fails.
-  delete from public.user_workout_routine_exercises
-  where routine_id = p_routine_id and user_id = v_user_id;
-
-  for v_entry, v_entry_ordinal in
-    select e.value, e.ordinality
-    from pg_catalog.jsonb_array_elements(v_normalized)
-      with ordinality as e(value, ordinality)
-  loop
-    v_entry_id := (v_entry ->> 'id')::uuid;
-    v_entry_ref := v_entry ->> 'exercise_ref';
-    insert into public.user_workout_routine_exercises (
-      id, user_id, routine_id, position, catalog_exercise_id, user_exercise_id
-    ) values (
-      v_entry_id, v_user_id, p_routine_id, (v_entry_ordinal - 1)::integer,
-      case when v_entry_ref ~ '^ex_' then v_entry_ref else null end,
-      case when v_entry_ref ~ '^ex_' then null else v_entry_ref::uuid end
-    );
-
-    for v_set, v_set_ordinal in
-      select s.value, s.ordinality
-      from pg_catalog.jsonb_array_elements(v_entry -> 'sets')
-        with ordinality as s(value, ordinality)
-    loop
-      insert into public.user_workout_routine_sets (
-        id, user_id, routine_exercise_id, position, reps, load_kg, rest_seconds
-      ) values (
-        (v_set ->> 'id')::uuid, v_user_id, v_entry_id,
-        (v_set_ordinal - 1)::integer,
-        (v_set ->> 'reps')::integer,
         (v_set ->> 'load_kg')::double precision,
         (v_set ->> 'rest_seconds')::integer
       );
