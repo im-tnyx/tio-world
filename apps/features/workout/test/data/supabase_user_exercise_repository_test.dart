@@ -90,7 +90,8 @@ void main() {
               .take(pageSize)
               .toList();
           return http.Response(jsonEncode(page), 200,
-              headers: {'content-type': 'application/json'});
+              headers: {'content-type': 'application/json'},
+              request: request);
         }),
         authOptions: const AuthClientOptions(autoRefreshToken: false),
       );
