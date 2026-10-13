@@ -438,6 +438,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final colors = context.tioColors;
     final unit = widget.weightUnit;
+    final range = entry.sets.isNotEmpty &&
+        entry.sets.first.prescription.isRepRange;
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
       child: Column(
@@ -489,6 +491,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
               ),
               const SizedBox(width: TioSpacing.sm),
               Expanded(
+                flex: range ? 2 : 1,
                 child: Text(
                   unit == WeightUnit.kg ? 'KG' : 'LB',
                   textAlign: TextAlign.center,
@@ -496,6 +499,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
               ),
               const SizedBox(width: TioSpacing.sm),
               Expanded(
+                flex: range ? 3 : 1,
                 child: Semantics(
                   button: true,
                   label: 'Repetition Options',
@@ -526,7 +530,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                   ),
                 ),
               ),
-              const SizedBox(width: TioSize.dp48),
+              if (!range) const SizedBox(width: TioSize.dp48),
             ],
           ),
           for (var i = 0; i < entry.sets.length; i++)

@@ -326,6 +326,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
+            flex: widget.set.prescription.isRepRange ? 2 : 1,
             child: Semantics(
               label: 'Set $setNumber Weight in ${widget.unit == WeightUnit.kg ? 'kg' : 'lb'}',
               child: TioInput.compactNumber(
@@ -343,6 +344,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
+            flex: widget.set.prescription.isRepRange ? 3 : 1,
             child: Row(
               children: [
                 Expanded(
@@ -388,7 +390,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               ],
             ),
           ),
-          const SizedBox(width: TioSize.dp48),
+          if (!widget.set.prescription.isRepRange)
+            const SizedBox(width: TioSize.dp48),
         ],
       ),
     );
