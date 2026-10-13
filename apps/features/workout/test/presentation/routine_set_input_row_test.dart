@@ -18,6 +18,8 @@ void main() {
         set: RoutineCompositionSet(id: id,
           prescription: SetPrescription(reps: 8, loadKg: 12.54321, restSeconds: 60)),
         index: 0,
+        normalNumber: 1,
+        onTypePressed: () {},
         unit: WeightUnit.lb,
         enabled: true,
         isOpen: false,

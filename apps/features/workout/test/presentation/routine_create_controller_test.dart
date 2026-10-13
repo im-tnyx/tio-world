@@ -68,6 +68,33 @@ void main() {
     expect(c.state.entries.map((e) => e.id), [_entry2, _entry1]);
   });
 
+  test('Set Type and Rep Range preserve UUID/load/rest and mode', () {
+    final c = _controller(_Creates());
+    addTearDown(c.dispose);
+    c.addPickedExercise(_exercise);
+    final before = c.state.entries.single.sets.single;
+    expect(c.changeSetType(_entry1, _set1, RoutineSetType.warmUp), isTrue);
+    expect(c.changeRepetitionMode(_entry1, range: true), isTrue);
+    final warm = c.state.entries.single.sets.single;
+    expect(warm.id, before.id);
+    expect(warm.prescription.setType, RoutineSetType.warmUp);
+    expect(warm.prescription.reps, 1);
+    expect(warm.prescription.repsMax, 1);
+
+    final second = c.addSet(_entry1, SetPrescription(reps: 1));
+    expect(second, _entry2);
+    final added = c.state.entries.single.sets.last;
+    expect(added.prescription.setType, RoutineSetType.normal);
+    expect(added.prescription.repsMax, 1);
+
+    expect(c.changeRepetitionMode(_entry1, range: false), isTrue);
+    expect(c.state.entries.single.sets.every(
+      (s) => s.prescription.repsMax == null), isTrue);
+    expect(c.state.entries.single.sets.first.prescription.setType,
+      RoutineSetType.warmUp);
+    expect(c.state.entries.single.sets.map((s) => s.id), [_set1, _entry2]);
+  });
+
   test('removing the final Set removes its Exercise and cannot Save',
       () async {
     final repo = _Creates();
