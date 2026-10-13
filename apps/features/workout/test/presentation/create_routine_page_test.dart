@@ -185,14 +185,92 @@ void main() {
     await tester.pump();
     final save = find.byKey(const ValueKey('create-routine-save'));
     expect(tester.widget<TextButton>(save).onPressed, isNull);
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$set2'));
     final remove = find.byKey(const ValueKey('routine-set-remove-$set2'));
-    await tester.ensureVisible(remove);
+    expect(tester.widget<TextButton>(remove).onPressed, isNull);
+    await tester.ensureVisible(swipe);
+    await tester.drag(swipe, const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    // Revealing does not delete an invalid draft Set by itself.
+    expect(find.byKey(const ValueKey('create-routine-set-$set2')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(remove).onPressed, isNotNull);
+    expect(create.calls, 0);
     await tester.tap(remove);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('create-routine-set-$set2')),
         findsNothing);
     expect(tester.widget<TextButton>(save).onPressed, isNotNull);
     expect(create.calls, 0);
+  });
+
+  testWidgets('Only one Set reveals Delete; reverse swipe closes without write',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const first = '55555555-5555-4555-8555-555555555555';
+    const second = '66666666-6666-4666-8666-666666666666';
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      first, second,
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => ids[index++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final addSet = find.byKey(const ValueKey(
+      'create-routine-add-set-44444444-4444-4444-8444-444444444444',
+    ));
+    await tester.ensureVisible(addSet);
+    await tester.tap(addSet);
+    await tester.pumpAndSettle();
+
+    final firstSwipe = find.byKey(const ValueKey('routine-set-swipe-$first'));
+    final secondSwipe = find.byKey(const ValueKey('routine-set-swipe-$second'));
+    final firstDelete = find.byKey(const ValueKey('routine-set-remove-$first'));
+    final secondDelete = find.byKey(const ValueKey('routine-set-remove-$second'));
+    expect(tester.widget<TextButton>(firstDelete).onPressed, isNull);
+    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+
+    await tester.ensureVisible(firstSwipe);
+    await tester.drag(firstSwipe, const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextButton>(firstDelete).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+    expect(find.byKey(const ValueKey('create-routine-set-$first')),
+        findsOneWidget);
+
+    await tester.drag(secondSwipe, const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextButton>(firstDelete).onPressed, isNull);
+    expect(tester.widget<TextButton>(secondDelete).onPressed, isNotNull);
+
+    await tester.drag(secondSwipe, const Offset(140, 0));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+    expect(find.byKey(const ValueKey('create-routine-set-$first')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('create-routine-set-$second')),
+        findsOneWidget);
+    expect(create.calls, 0);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
   });
 
   testWidgets('lb inline Weight converts once to canonical kg on Save',
