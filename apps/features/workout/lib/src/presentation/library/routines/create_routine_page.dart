@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -496,6 +497,15 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         onRemove: () => _removeSet(entry, set),
       );
 
+  void _moveExerciseFromSemantics(String entryId, int direction) {
+    if (!_enabled) return;
+    final from = _draft.state.entries.indexWhere((e) => e.id == entryId);
+    if (from < 0) return;
+    if (_draft.moveExercise(from, from + direction)) {
+      unawaited(HapticFeedback.selectionClick());
+    }
+  }
+
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final colors = context.tioColors;
     final unit = widget.weightUnit;
@@ -510,26 +520,41 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           Row(
             children: [
               Expanded(
-                child: ReorderableDelayedDragStartListener(
-                  key: ValueKey('create-routine-drag-${entry.id}'),
-                  index: position,
-                  enabled: _enabled,
-                  child: ColoredBox(
-                    color: TioPalette.transparent,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minHeight: kMinInteractiveDimension,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _entryLabels[entry.id] ?? 'Selected Exercise',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: TioFontSize.size20,
-                            fontWeight: TioFontWeight.w800,
-                            color: colors.textPrimary,
+                child: Semantics(
+                  key: ValueKey('create-routine-reorder-semantics-${entry.id}'),
+                  customSemanticsActions: _enabled
+                      ? {
+                          if (position > 0)
+                            const CustomSemanticsAction(
+                              label: 'Move exercise up',
+                            ): () => _moveExerciseFromSemantics(entry.id, -1),
+                          if (position < _draft.state.entries.length - 1)
+                            const CustomSemanticsAction(
+                              label: 'Move exercise down',
+                            ): () => _moveExerciseFromSemantics(entry.id, 1),
+                        }
+                      : const {},
+                  child: ReorderableDelayedDragStartListener(
+                    key: ValueKey('create-routine-drag-${entry.id}'),
+                    index: position,
+                    enabled: _enabled,
+                    child: ColoredBox(
+                      color: TioPalette.transparent,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: kMinInteractiveDimension,
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _entryLabels[entry.id] ?? 'Selected Exercise',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: TioFontSize.size20,
+                              fontWeight: TioFontWeight.w800,
+                              color: colors.textPrimary,
+                            ),
                           ),
                         ),
                       ),
