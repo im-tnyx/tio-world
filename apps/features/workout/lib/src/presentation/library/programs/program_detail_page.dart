@@ -91,31 +91,12 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
   Future<void> _openCreate() async {
     final controller = _controller;
-    if (!_canEdit || controller == null) return;
     final create = widget.onCreateRoutine;
-    if (create != null) {
-      final created = await create(controller.suggestedName());
-      if (mounted && identical(controller, _controller) && created) {
-        await controller.load();
-      }
-      return;
-    }
-    // Legacy test/embedded callers without the new atomic Create capability.
-    // The production app shell always provides onCreateRoutine when the
-    // durable Routine client exists, and never takes this legacy path.
-    await showTioEditorSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      useSafeArea: true,
-      builder: (_) => _RoutineNameSheet(
-        controller: controller,
-        initialName: controller.suggestedName(),
-      ),
-    );
-    if (!mounted || !identical(controller, _controller)) return;
-    // A dismissed uncertain editor must not donate its pending UUID to the
-    // next Create Routine sheet. Refresh to surface any late durable write.
-    if (controller.abandonCreateAttempt()) {
+    // No protected atomic Create capability means no Create action.
+    // Never expose metadata-only name persistence as a fallback.
+    if (!_canEdit || controller == null || create == null) return;
+    final created = await create(controller.suggestedName());
+    if (mounted && identical(controller, _controller) && created) {
       await controller.load();
     }
   }
@@ -165,7 +146,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             key: const ValueKey('program-detail-add-routine'),
             tooltip: 'Add Routine',
             color: colors.textPrimary,
-            onPressed: _canEdit ? _openCreate : null,
+            onPressed: _canEdit && widget.onCreateRoutine != null
+                ? _openCreate
+                : null,
             icon: const Icon(Icons.add_rounded),
           ),
         ],

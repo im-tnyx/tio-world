@@ -82,51 +82,41 @@ void main() {
     expect(find.text('Start Workout'), findsNothing);
   });
 
-  testWidgets('create sheet has generated name, writes owning Program and closes',
+  testWidgets('atomic Create callback uses suggested name and refreshes Program',
       (tester) async {
     final repository = _MemoryRoutines();
-    await _pump(tester, repository: repository);
-    await tester.tap(
-        find.byKey(const ValueKey('program-detail-add-routine')));
+    String? received;
+    await _pump(
+      tester,
+      repository: repository,
+      onCreateRoutine: (name) async {
+        received = name;
+        repository.rows.add(Routine(
+          id: RoutineId(_routineId),
+          programId: _program.id,
+          name: name,
+        ));
+        return true;
+      },
+    );
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
-    final field = find.byKey(const ValueKey('routine-name-field'));
-    final editable =
-        find.descendant(of: field, matching: find.byType(EditableText));
-    expect(tester.widget<EditableText>(editable).controller.text, 'Routine 1');
-
-    await tester.enterText(editable, 'Upper Body');
-    await tester.tap(find.byKey(const ValueKey('routine-name-submit')));
-    await tester.pumpAndSettle();
-
-    expect(repository.created, hasLength(1));
-    expect(repository.created.single.programId, _program.id);
-    expect(repository.created.single.id, RoutineId(_routineId));
-    expect(repository.created.single.name, 'Upper Body');
-    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
-    expect(find.text('Upper Body'), findsOneWidget);
+    expect(received, 'Routine 1');
+    expect(repository.created, isEmpty);
+    expect(repository.rows.single.programId, _program.id);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
-  testWidgets('create action tracks empty and restored Routine name',
+  testWidgets('no atomic Create capability disables legacy name-only action',
       (tester) async {
     await _pump(tester, repository: _MemoryRoutines());
-    await tester.tap(
+    final button = tester.widget<IconButton>(
       find.byKey(const ValueKey('program-detail-add-routine')),
     );
-    await tester.pumpAndSettle();
-
-    final field = find.descendant(
-      of: find.byKey(const ValueKey('routine-name-field')),
-      matching: find.byType(EditableText),
-    );
-    final button = find.byKey(const ValueKey('routine-name-submit'));
-
-    expect(tester.widget<TioButton>(button).onPressed, isNotNull);
-    await tester.enterText(field, '');
-    await tester.pump();
-    expect(tester.widget<TioButton>(button).onPressed, isNull);
-    await tester.enterText(field, 'Upper');
-    await tester.pump();
-    expect(tester.widget<TioButton>(button).onPressed, isNotNull);
+    expect(button.onPressed, isNull);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
   });
 
   testWidgets('two saved Routines use separate cards and one top-bar add',
@@ -253,24 +243,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('create failure retains name and editor', (tester) async {
-    final repository = _MemoryRoutines()..failCreate = true;
-    await _pump(tester, repository: repository);
-    await tester.tap(
-        find.byKey(const ValueKey('program-detail-add-routine')));
+  testWidgets('failed atomic Create retains empty Program without legacy write',
+      (tester) async {
+    final repository = _MemoryRoutines();
+    await _pump(
+      tester,
+      repository: repository,
+      onCreateRoutine: (name) async => false,
+    );
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
-    final field = find.byKey(const ValueKey('routine-name-field'));
-    final editable =
-        find.descendant(of: field, matching: find.byType(EditableText));
-    await tester.enterText(editable, 'Day One');
-    await tester.tap(find.byKey(const ValueKey('routine-name-submit')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
-    expect(tester.widget<EditableText>(editable).controller.text, 'Day One');
-    expect(find.text('Could not create routine. Please try again.'),
-        findsOneWidget);
+    expect(repository.created, isEmpty);
     expect(repository.rows, isEmpty);
+    expect(find.byKey(const ValueKey('program-routines-empty')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
   });
 
   testWidgets('load error exposes retry without inventing Routine data',
