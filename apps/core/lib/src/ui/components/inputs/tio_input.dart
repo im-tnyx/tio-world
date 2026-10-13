@@ -8,7 +8,7 @@ enum TioInputVariant {
   /// Standard full-width outlined input for forms, auth, and search.
   standard,
 
-  /// Compact, high-visibility number field for workout sets/reps, weights, and timers.
+  /// Borderless centered number field for compact tables and fast entry.
   compactNumber,
 
   /// Compact centered number field with an outlined, rounded surface.
@@ -30,7 +30,7 @@ enum TioInputVariant {
 /// - [TioInputVariant.compactNumber] for borderless fast numeric entry.
 /// - [TioInputVariant.boxedNumber] for outlined, centered numeric table fields.
 ///   Both select existing text on focus.
-/// /// - [TioInputVariant.numericEditor] for dense exact-value editor surfaces.
+/// - [TioInputVariant.numericEditor] for dense exact-value editor surfaces.
 /// - [TioInputVariant.multiline] for longer free-text notes fields.
 class TioInput extends StatefulWidget {
   const TioInput({
