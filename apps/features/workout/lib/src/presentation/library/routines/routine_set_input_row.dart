@@ -399,7 +399,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               child: _boxedNumberField(
                 fieldKey: 'routine-set-weight-${widget.set.id}',
                 controller: _weight,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 action: TextInputAction.next,
                 formatters: [RoutineSetInputLimits.weight],
               ),
@@ -430,7 +431,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                   const SizedBox(width: TioSpacing.xs),
                   Text(
                     '–',
-                    key: ValueKey('routine-set-range-separator-${widget.set.id}'),
+                    key: ValueKey(
+                      'routine-set-range-separator-${widget.set.id}',
+                    ),
                     style: TextStyle(color: colors.textSecondary),
                   ),
                   const SizedBox(width: TioSpacing.xs),
