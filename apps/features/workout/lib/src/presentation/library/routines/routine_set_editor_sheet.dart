@@ -140,9 +140,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                   hint: 'Maximum Reps',
                   keyboardType: TextInputType.number,
                   inputFormatters: [
-                  RoutineSetInputLimits.int32,
-                ],
-                onChanged: _inputChanged,
+                    RoutineSetInputLimits.int32,
+                  ],
+                  onChanged: _inputChanged,
                 ),
               ),
             ],
