@@ -21,6 +21,8 @@ Routine get _routine =>
 RoutineCompositionEntry _entry({
   double? kg = 12.54321,
   int reps = 8,
+  int? repsMax,
+  RoutineSetType setType = RoutineSetType.normal,
   int? rest = 60,
 }) => RoutineCompositionEntry(
       id: _entryId,
@@ -30,6 +32,8 @@ RoutineCompositionEntry _entry({
           id: _setId,
           prescription: SetPrescription(
             reps: reps,
+            repsMax: repsMax,
+            setType: setType,
             loadKg: kg,
             restSeconds: rest,
           ),
@@ -353,6 +357,53 @@ void main() {
     expect(saved.entries.single.sets.single.id, _setId);
     expect(saved.entries.single.sets.single.prescription.reps, 12);
     expect(saved.entries.single.sets.single.prescription.loadKg, 12.54321);
+    expect(f.editorResult, isTrue);
+  });
+
+  testWidgets(
+      'real Edit Set sheet retains Warm Up, Rep Range, UUID and canonical lb values',
+      (tester) async {
+    final f = _Fixtures(unit: WeightUnit.lb);
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(kg: 12.54321, reps: 8, repsMax: 12,
+          setType: RoutineSetType.warmUp, rest: 60),
+    ]);
+    await f.open(tester);
+
+    await tester.tap(find.byKey(const ValueKey('edit-routine-set-edit-$_setId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Set'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
+    expect(find.widgetWithText(TioInput, 'Rep Range'), findsNothing);
+
+    // Attempt an invalid max through the real sheet: no draft or RPC write.
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps-max')), '7');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-validation-error')),
+        findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+
+    // Edit Reps and range max, leave displayed rounded lb and Rest untouched.
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '9');
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps-max')), '13');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Set'), findsNothing);
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!;
+    expect(saved.entries.single.id, _entryId);
+    final row = saved.entries.single.sets.single;
+    expect(row.id, _setId);
+    expect(row.prescription.setType, RoutineSetType.warmUp);
+    expect(row.prescription.reps, 9);
+    expect(row.prescription.repsMax, 13);
+    expect(row.prescription.loadKg, 12.54321);
+    expect(row.prescription.restSeconds, 60);
     expect(f.editorResult, isTrue);
   });
 
