@@ -125,11 +125,39 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
   await tester.ensureVisible(menu);
   await tester.tap(menu);
   await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+      findsOneWidget);
+  expect(find.text('Exercise Options'), findsOneWidget);
+  expect(find.byType(PopupMenuButton<String>), findsNothing);
   await tester.tap(find.text('Remove Exercise'));
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('Exercise options dismiss without removing or saving',
+      (tester) async {
+    final f = _Fixtures();
+    await f.open(tester);
+    final menu = find.byKey(
+      const ValueKey('edit-routine-entry-options-$_entryId'));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsOneWidget);
+    expect(find.text('Exercise Options'), findsOneWidget);
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    await _removeExerciseMenu(tester, _entryId);
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsNothing);
+    expect(f.compositions.saveCount, 0);
+  });
+
   testWidgets('empty Routine offers Add Exercise without a database write',
       (tester) async {
     final f = _Fixtures();

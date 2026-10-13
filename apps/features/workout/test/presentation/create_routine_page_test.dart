@@ -821,6 +821,22 @@ void main() {
     await tester.tap(find.byKey(
       const ValueKey('create-routine-options-$firstEntry')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsOneWidget);
+    expect(find.text('Exercise Options'), findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+    // Outside tap dismisses without affecting the unsaved Routine draft.
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$firstEntry')),
+        findsOneWidget);
+    expect(create.calls, 0);
+
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-options-$firstEntry')));
+    await tester.pumpAndSettle();
     expect(find.text('Remove Exercise'), findsOneWidget);
     await tester.tap(find.text('Remove Exercise'));
     await tester.pumpAndSettle();
