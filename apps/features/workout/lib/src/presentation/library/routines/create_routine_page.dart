@@ -214,7 +214,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
     if (!_enabled ||
-        entry.sets.any((set) => _invalidSetIds.contains(set.id))) return;
+        entry.sets.any((set) => _invalidSetIds.contains(set.id))) {
+      return;
+    }
     final isRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     final chosen = await showTioEditorSheet<bool>(
@@ -244,7 +246,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!mounted || !_enabled || chosen == null) return;
     final current = _draft.state.entries.where((e) => e.id == entry.id);
     if (current.length != 1 ||
-        current.single.sets.any((s) => _invalidSetIds.contains(s.id))) return;
+        current.single.sets.any((s) => _invalidSetIds.contains(s.id))) {
+      return;
+    }
     _draft.changeRepetitionMode(entry.id, range: chosen);
   }
 
