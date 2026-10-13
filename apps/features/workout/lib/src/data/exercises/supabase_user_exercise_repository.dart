@@ -65,7 +65,7 @@ final class SupabaseUserExerciseTableGateway
         query = query.gt('id', afterId);
       }
       final page = List<Map<String, dynamic>>.from(
-        await query.order('id').limit(pageSize),
+        await query.order('id', ascending: true).limit(pageSize),
       );
       if (page.isEmpty) break;
       for (final row in page) {
@@ -80,8 +80,9 @@ final class SupabaseUserExerciseTableGateway
       if (page.length < pageSize) break;
     }
 
-    // Retain the pre-existing chronological Custom Exercise display order
-    // despite using immutable UUID ordering to exhaust every Data API page.
+    // Restore the pre-existing newest-first Custom Exercise display order
+    // (the SDK's old order('created_at') emits created_at.desc) after paging
+    // by immutable UUID so the read is complete beyond the API row cap.
     final createdById = <String, DateTime>{};
     for (final row in collected) {
       final id = row['id'] as String;
@@ -95,7 +96,7 @@ final class SupabaseUserExerciseTableGateway
       final first = a['id'] as String;
       final second = b['id'] as String;
       final byDate = createdById[first]!.compareTo(createdById[second]!);
-      return byDate != 0 ? byDate : first.compareTo(second);
+      return byDate != 0 ? -byDate : first.compareTo(second);
     });
     return collected;
   }

@@ -85,7 +85,13 @@ void main() {
           final after = request.url.queryParameters['id'];
           final last = after?.substring(3);
           final pageSize = int.parse(request.url.queryParameters['limit']!);
-          final page = rows
+          // Emulate PostgREST's requested ordering, rather than always
+          // returning ascending fixture rows and masking cursor errors.
+          final orderedRows =
+              request.url.queryParameters['order']?.startsWith('id.desc') == true
+                  ? rows.reversed
+                  : rows;
+          final page = orderedRows
               .where((row) => (row['id'] as String).compareTo(last ?? '') > 0)
               .take(pageSize)
               .toList();
@@ -102,8 +108,9 @@ void main() {
       );
       final exercises = await repository.list();
       expect(exercises, hasLength(1007));
-      expect(exercises.first.ref, UserCreatedExerciseRef(_pagedExerciseId(1007)));
-      expect(exercises.last.ref, UserCreatedExerciseRef(_pagedExerciseId(1)));
+      // Historical listRows() order('created_at') was newest first.
+      expect(exercises.first.ref, UserCreatedExerciseRef(_pagedExerciseId(1)));
+      expect(exercises.last.ref, UserCreatedExerciseRef(_pagedExerciseId(1007)));
       expect(requests, hasLength(6));
       for (final request in requests) {
         expect(request.method, 'GET');
