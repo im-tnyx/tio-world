@@ -443,6 +443,28 @@ void main() {
     expect(added.id, isNot(_setId));
   });
 
+  testWidgets('320dp dark Edit table retains Previous and range inputs',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(reps: 8, repsMax: 12, setType: RoutineSetType.warmUp),
+    ]);
+    await f.open(tester, mode: TioThemeMode.dark);
+    expect(find.text('PREVIOUS'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-$_setId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-max-$_setId')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(f.compositions.saveCount, 0);
+  });
+
   testWidgets('no repository and cross-Program fail closed', (tester) async {
     final missing = _Fixtures(repositoryAvailable: false);
     await missing.open(tester);
