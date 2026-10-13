@@ -68,6 +68,7 @@ jobs:
         continue-on-error: true
         run: |
           cd apps/features/workout
+          flutter pub get
           flutter test --no-pub
 
       - name: Probe Shared Dart tests (CI-only)

@@ -371,7 +371,7 @@ class _RoutineEntryPreview extends StatelessWidget {
             ),
             const SizedBox(width: TioSpacing.sm),
             Expanded(child: Text(
-              weightUnit == WeightUnit.lb ? 'LB' : 'KG',
+              weightUnit == null ? 'WEIGHT' : weightUnit == WeightUnit.lb ? 'LB' : 'KG',
               textAlign: TextAlign.center,
             )),
             const SizedBox(width: TioSpacing.sm),
