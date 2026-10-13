@@ -131,11 +131,21 @@ final class RoutineCreateController extends ChangeNotifier {
     if (index < 0) return null;
     final id = _newUuid();
     final entry = _entries[index];
+    // Repetition mode is Exercise-wide. New Set remains Normal in that mode.
+    final inRange = entry.sets.isNotEmpty &&
+        entry.sets.first.prescription.isRepRange;
+    final initial = SetPrescription(
+      reps: prescription.reps,
+      repsMax: inRange ? prescription.reps : null,
+      setType: RoutineSetType.normal,
+      loadKg: prescription.loadKg,
+      restSeconds: prescription.restSeconds,
+    );
     _replace(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
       sets: [...entry.sets,
-        RoutineCompositionSet(id: id, prescription: prescription)],
+        RoutineCompositionSet(id: id, prescription: initial)],
     ));
     return id;
   }
@@ -154,6 +164,50 @@ final class RoutineCreateController extends ChangeNotifier {
           set.id == setId
               ? RoutineCompositionSet(id: setId, prescription: prescription)
               : set,
+      ],
+    ));
+    return true;
+  }
+
+  /// Classification belongs to an identified Set; preserves target values.
+  bool changeSetType(String entryId, String setId, RoutineSetType type) {
+    if (!_editable) return false;
+    final e = _entries.where((entry) => entry.id == entryId);
+    if (e.length != 1) return false;
+    final current = e.single.sets.where((set) => set.id == setId);
+    if (current.length != 1) return false;
+    final p = current.single.prescription;
+    if (p.setType == type) return true;
+    return editSet(entryId, setId, SetPrescription(
+      reps: p.reps, repsMax: p.repsMax, setType: type,
+      loadKg: p.loadKg, restSeconds: p.restSeconds,
+    ));
+  }
+
+  /// Exercise-level Reps / Rep Range selector. No second stored mode field.
+  bool changeRepetitionMode(String entryId, {required bool range}) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    if (entry.sets.isEmpty) return false;
+    _replace(index, RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      sets: [
+        for (final s in entry.sets)
+          RoutineCompositionSet(
+            id: s.id,
+            prescription: SetPrescription(
+              reps: s.prescription.reps,
+              repsMax: range
+                  ? (s.prescription.repsMax ?? s.prescription.reps)
+                  : null,
+              setType: s.prescription.setType,
+              loadKg: s.prescription.loadKg,
+              restSeconds: s.prescription.restSeconds,
+            ),
+          ),
       ],
     ));
     return true;
