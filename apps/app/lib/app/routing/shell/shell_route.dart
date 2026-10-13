@@ -214,11 +214,18 @@ List<RouteBase> _shellBranchChildRoutes(
                                             (route) =>
                                                 identical(route, editorRoute),
                                           );
-                                          // popUntil stopped at this exact
-                                          // active route, so this final pop
-                                          // releases the editor without
-                                          // leaving an owner-scoped overlay.
-                                          navigator.pop<bool>(false);
+                                          // A pending RPC deliberately
+                                          // blocks normal back via PopScope.
+                                          // On auth/cycle revocation that
+                                          // protection must NOT keep the old
+                                          // account's editor mounted. Force
+                                          // removal bypasses canPop; the
+                                          // disposed controller ignores any
+                                          // eventual old-cycle save response.
+                                          navigator.removeRoute(
+                                            editorRoute,
+                                            false,
+                                          );
                                         });
                                       }
                                       final profileAsync =
