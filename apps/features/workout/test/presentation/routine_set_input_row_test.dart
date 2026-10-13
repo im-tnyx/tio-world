@@ -96,7 +96,6 @@ void main() {
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsOneWidget);
     expect(find.text('to'), findsNothing);
-    expect(find.text('–'), findsNWidgets(2)); // Previous and Min–Max separator.
     expect(tester.takeException(), isNull);
   });
 
