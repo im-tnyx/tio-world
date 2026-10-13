@@ -46,7 +46,7 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
           'p_client_mutation_id': command.mutationId,
           'p_exercises': payload,
         },
-      ).retry(enabled: false);
+      ).retry(enabled: false).timeout(const Duration(seconds: 15));
       if (_currentUserId()?.trim() != owner) {
         throw const RoutineCompositionSaveOutcomeUnknown(
           reason: RoutineCompositionSaveUncertainty.authChanged,
