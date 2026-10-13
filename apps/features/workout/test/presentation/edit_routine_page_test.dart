@@ -49,7 +49,7 @@ RoutineCompositionSnapshot _snapshot({
     );
 
 class _Fixtures {
-  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true})
+  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite})
       : compositions = _Compositions(_snapshot()),
         catalog = _Catalog(),
         users = _Users();
@@ -57,6 +57,7 @@ class _Fixtures {
   final WeightUnit? unit;
   final Routine? routine;
   final bool repositoryAvailable;
+  final bool Function()? canWrite;
   final _Compositions compositions;
   final _Catalog catalog;
   final _Users users;
@@ -90,6 +91,7 @@ class _Fixtures {
                         repositoryAvailable ? compositions : null,
                     catalogRepository: catalog,
                     userExerciseRepository: users,
+                    canWrite: canWrite,
                     weightUnit: unit,
                     newUuid: newId,
                   ),
@@ -236,6 +238,98 @@ void main() {
     await tester.pumpAndSettle();
     expect(f.compositions.saveCount, 1);
     expect(f.editorResult, isTrue);
+  });
+
+
+  testWidgets('Cancel remains available during an unresolved Custom preflight',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'My Custom Lift',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+
+    f.users.listGate = Completer<void>();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('edit-routine-verifying')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(f.editorResult, isFalse);
+    f.users.listGate!.complete();
+    await tester.pump();
+    expect(f.compositions.saveCount, 0);
+  });
+
+  testWidgets('changed live login capability blocks RPC after Custom preflight',
+      (tester) async {
+    var allowed = true;
+    final f = _Fixtures(canWrite: () => allowed);
+    f.compositions.snapshot = _snapshot(entries: const []);
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'My Custom Lift',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+
+    f.users.listGate = Completer<void>();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('edit-routine-verifying')), findsOneWidget);
+    allowed = false;
+    f.users.listGate!.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(f.editorResult, isFalse);
+  });
+
+  testWidgets('Custom preflight timeout returns to retry without RPC',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'My Custom Lift',
+        status: ExerciseStatus.active,
+      ),
+    ];
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+
+    f.users.listGate = Completer<void>();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('edit-routine-verifying')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 11));
+    await tester.pump();
+    expect(find.textContaining('Could not verify Custom Exercises'), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-update')), findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    f.users.listGate!.complete();
+    await tester.pump();
   });
 
   testWidgets('editing reps preserves exact canonical kg and Set UUID',
@@ -457,10 +551,12 @@ final class _Users implements UserExerciseRepository {
   int listCalls = 0;
   int writeCalls = 0;
   Object? listFailure;
+  Completer<void>? listGate;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async {
     listCalls++;
+    if (listGate != null) await listGate!.future;
     if (listFailure case final error?) throw error;
     return List.unmodifiable(rows.where(
       (item) => includeArchived || item.status == ExerciseStatus.active,
