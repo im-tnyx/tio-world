@@ -50,7 +50,7 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-  (select p.prosecdef and p.proconfig @> array['search_path=']
+  (select p.prosecdef and p.proconfig @> array['search_path=""']
    from pg_proc as p where p.oid =
      'public.create_user_workout_routine_with_composition(uuid,uuid,text,uuid,jsonb)'::regprocedure),
   'create RPC must be SECURITY DEFINER with empty search_path'
