@@ -313,7 +313,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               tween: Tween<double>(begin: 0, end: _reveal),
               duration: _dragging
                   ? Duration.zero
-                  : const Duration(milliseconds: 180),
+                  : const Duration(milliseconds: TioDuration.ms180),
               curve: Curves.easeOutCubic,
               builder: (_, revealed, child) => Transform.translate(
                 offset: Offset(-revealed, 0),
