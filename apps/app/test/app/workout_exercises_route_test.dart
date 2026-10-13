@@ -715,6 +715,49 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
+  testWidgets('Create Exercise Options overlay closes on login-cycle revocation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'program-open-20000000-0000-4000-8000-000000000001',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'routine-exercise-picker-ex_synthetic_route_curl',
+    )));
+    await tester.pumpAndSettle();
+
+    final options = find.byWidgetPredicate((widget) =>
+        widget is IconButton &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('create-routine-options-'));
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.text('Exercise Options'), findsOneWidget);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'new-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.text('Exercise Options'), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+  });
+
   testWidgets('Program Detail fails closed when Routine repository is unavailable',
       (tester) async {
     final (_, router) = await _app(
