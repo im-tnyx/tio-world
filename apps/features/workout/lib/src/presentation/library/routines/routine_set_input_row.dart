@@ -15,6 +15,8 @@ class RoutineSetInputRow extends StatefulWidget {
   const RoutineSetInputRow({
     required this.set,
     required this.index,
+    required this.normalNumber,
+    required this.onTypePressed,
     required this.unit,
     required this.enabled,
     required this.onChanged,
@@ -27,6 +29,8 @@ class RoutineSetInputRow extends StatefulWidget {
 
   final RoutineCompositionSet set;
   final int index;
+  final int normalNumber;
+  final VoidCallback onTypePressed;
   final WeightUnit unit;
   final bool enabled;
   final ValueChanged<SetPrescription> onChanged;
@@ -49,6 +53,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   bool get wantKeepAlive => true;
   late final TextEditingController _weight;
   late final TextEditingController _reps;
+  late final TextEditingController _repsMax;
   late String _originalWeightText;
   late double? _originalKg;
   bool _valid = true;
@@ -78,6 +83,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     _reps = TextEditingController(
       text: widget.set.prescription.reps.toString(),
     );
+    _repsMax = TextEditingController(
+      text: widget.set.prescription.repsMax?.toString() ?? '',
+    );
     _originalKg = widget.set.prescription.loadKg;
     _originalWeightText = _displayWeight(_originalKg);
     _weight = TextEditingController(text: _originalWeightText);
@@ -97,6 +105,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       _reveal = widget.isOpen && widget.enabled ? _revealWidth : 0;
       _pastRevealThreshold = widget.isOpen && widget.enabled;
     }
+    if (oldWidget.set.prescription.isRepRange !=
+        widget.set.prescription.isRepRange) {
+      _repsMax.text = widget.set.prescription.repsMax?.toString() ?? '';
+    }
     if (oldWidget.unit != widget.unit) {
       // A visible unit preference change uses the current canonical kg bytes,
       // rather than interpreting a previously formatted lb string as kg.
@@ -108,11 +120,14 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
 
   void _update() {
     final reps = int.tryParse(_reps.text.trim());
+    final inRange = widget.set.prescription.isRepRange;
+    final max = inRange ? int.tryParse(_repsMax.text.trim()) : null;
     final rawWeight = _weight.text.trim();
     final weight = rawWeight.isEmpty ? null : double.tryParse(rawWeight);
     final valid = reps != null &&
         reps > 0 &&
         reps <= 2147483647 &&
+        (!inRange || (max != null && max >= reps && max <= 2147483647)) &&
         (rawWeight.isEmpty ||
             (weight != null && weight.isFinite && weight >= 0));
     if (_valid != valid) {
@@ -137,6 +152,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     try {
       final next = SetPrescription(
         reps: reps,
+        repsMax: max,
+        setType: widget.set.prescription.setType,
         loadKg: kg,
         restSeconds: widget.set.prescription.restSeconds,
       );
@@ -155,6 +172,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   void dispose() {
     _weight.dispose();
     _reps.dispose();
+    _repsMax.dispose();
     super.dispose();
   }
 
@@ -272,17 +290,38 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: Row(
         children: [
-          Container(
-            width: TioSize.dp44,
-            constraints: const BoxConstraints(minHeight: TioSize.dp44),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colors.surface,
+          Semantics(
+            label: 'Set $setNumber type, tap to select Set Type',
+            button: true,
+            child: InkWell(
+              key: ValueKey('routine-set-type-${widget.set.id}'),
+              onTap: widget.enabled ? widget.onTypePressed : null,
               borderRadius: BorderRadius.circular(TioRadius.md),
-            ),
-            child: Text(
-              '$setNumber',
-              style: Theme.of(context).textTheme.titleMedium,
+              child: Container(
+                width: TioSize.dp44,
+                constraints: const BoxConstraints(minHeight: TioSize.dp44),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(TioRadius.md),
+                ),
+                child: Text(
+                  switch (widget.set.prescription.setType) {
+                    RoutineSetType.normal => '${widget.normalNumber}',
+                    RoutineSetType.warmUp => 'W',
+                    RoutineSetType.failure => 'F',
+                    RoutineSetType.drop => 'D',
+                  },
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: switch (widget.set.prescription.setType) {
+                      RoutineSetType.normal => colors.textPrimary,
+                      RoutineSetType.warmUp => colors.warning,
+                      RoutineSetType.failure => colors.danger,
+                      RoutineSetType.drop => colors.info,
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: TioSpacing.sm),
@@ -304,20 +343,49 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
-            child: Semantics(
-              label: 'Set $setNumber Reps',
-              child: TioInput.compactNumber(
-                key: ValueKey('routine-set-reps-${widget.set.id}'),
-                controller: _reps,
-                enabled: widget.enabled,
-                hint: 'Reps',
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    label: 'Set $setNumber ${widget.set.prescription.isRepRange ? 'minimum Reps' : 'Reps'}',
+                    child: TioInput.compactNumber(
+                      key: ValueKey('routine-set-reps-${widget.set.id}'),
+                      controller: _reps,
+                      enabled: widget.enabled,
+                      hint: '–',
+                      keyboardType: TextInputType.number,
+                      textInputAction: widget.set.prescription.isRepRange
+                          ? TextInputAction.next : TextInputAction.done,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => _update(),
+                    ),
+                  ),
+                ),
+                if (widget.set.prescription.isRepRange) ...[
+                  const SizedBox(width: TioSpacing.xs),
+                  const Text('to'),
+                  const SizedBox(width: TioSpacing.xs),
+                  Expanded(
+                    child: Semantics(
+                      label: 'Set $setNumber maximum Reps',
+                      child: TioInput.compactNumber(
+                        key: ValueKey('routine-set-reps-max-${widget.set.id}'),
+                        controller: _repsMax,
+                        enabled: widget.enabled,
+                        hint: '–',
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (_) => _update(),
+                      ),
+                    ),
+                  ),
                 ],
-                onChanged: (_) => _update(),
-              ),
+              ],
             ),
           ),
           const SizedBox(width: TioSize.dp48),
