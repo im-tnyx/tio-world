@@ -348,13 +348,15 @@ void main() {
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
     expect(comp.saveCount, 0);
-    await tester.tap(find.text('Add Set'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '8');
-    await tester.enterText(find.byKey(const ValueKey('routine-set-weight')), '12');
-    await tester.enterText(find.byKey(const ValueKey('routine-set-rest')), '60');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
+    // Picker immediately creates Set 1; its target starts blank.
+    final row = tester.widget<RoutineSetInputRow>(
+      find.byType(RoutineSetInputRow));
+    final reps = find.byKey(ValueKey('routine-set-reps-${row.set.id}'));
+    final weight = find.byKey(ValueKey('routine-set-weight-${row.set.id}'));
+    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
+    await tester.enterText(reps, '8');
+    await tester.enterText(weight, '12');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
 
