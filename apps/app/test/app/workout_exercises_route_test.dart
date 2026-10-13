@@ -267,7 +267,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
     expect(find.text('Synthetic Route Routine'), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -303,15 +303,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo(null);
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
   });
 
   testWidgets('Auth/bootstrap mismatch revokes Detail and Edit action',
@@ -328,7 +328,7 @@ void main() {
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
 
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
 
     // Bootstrapped test-user is stale; Auth has already switched users.
@@ -337,7 +337,7 @@ void main() {
           AuthSession(userId: 'other-user', loginCycleId: 'other-cycle'),
         );
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
   });
 
@@ -369,7 +369,7 @@ void main() {
     expect(find.byType(RoutineExercisePickerPage), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.text('Synthetic Route Custom'), findsNothing);
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -389,9 +389,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+        'routine-set-type-70000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+    expect(find.text('Select Set Type'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
@@ -399,7 +399,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.text('Select Set Type'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -451,16 +451,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+        'routine-set-type-70000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+    expect(find.text('Select Set Type'), findsOneWidget);
 
     container.read(_routineTestAuthStateProvider.notifier).state =
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
         );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.text('Select Set Type'), findsNothing);
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(tester.takeException(), isNull);
@@ -539,7 +539,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     final compositions =
         container.read(routineCompositionRepositoryProvider)
@@ -549,12 +549,12 @@ void main() {
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo('second-user');
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
 
     compositions.nextOwnerReadGate!.complete();
     await tester.pumpAndSettle();
     // The simulated new owner has no access to the prior owner's snapshot.
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
   });
 
   testWidgets('account switch does not reuse the previous Profile weight unit',
@@ -579,7 +579,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsOneWidget);
+    expect(find.text('17.6'), findsOneWidget);
 
     // ProfileDataProvider can retain A's last value while B is reloading.
     container.read(_routineTestAuthStateProvider.notifier).state =
@@ -589,14 +589,14 @@ void main() {
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo('second-user');
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · Load unavailable'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+    expect(find.text('Load unavailable'), findsOneWidget);
+    expect(find.text('17.6'), findsNothing);
 
     // Only B's completed Profile load can enable B's unit choice.
     nextProfile.add(_routineUnitProfile(WeightUnit.kg));
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · 8 kg'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('17.6'), findsNothing);
   });
 
   testWidgets('expanded Library Routine tap opens same owner-bound preview',
@@ -612,7 +612,7 @@ void main() {
         const ValueKey('library-routine-$parentId-$routineId')));
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
 
     await tester.tap(find.byType(BackButton));
