@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [Routine Detail / Edit reference Set tables](routine-detail-edit-reference-set-tables.md) | In progress — approved read-only Detail table + Edit inline grid child of Draft #544 | Workout feature | Align SET/KG/REPS and Edit PREVIOUS/inline fields without fabricated history |
+
 | [Create Routine header drag/menu + blank Reps](create-routine-exercise-controls-blank-reps.md) | In progress — owner-approved Create-only UI refinements, child of Draft #541 | Workout Create UI | Long-press Exercise reorder, overflow removal, initial blank Reps + Save gating |
 
 | [#538/#539 — Flutter Routine Set metadata UI](issues-538-539-routine-set-client.md) | In progress — approved client model/read/write + type/range selectors, stacked on Draft #537; DB Draft #540 not deployed | Shared + Workout feature | Set type/Rep Range canonical model, sheet, read/write, tests |
