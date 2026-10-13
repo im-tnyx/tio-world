@@ -1,6 +1,6 @@
 # Routine Set typing limits
 
-**Status:** In progress, owner-approved in the 2026-10-13 conversation ("text field par max type limit hona chahiye"; "go next").
+**Status:** Focused synthetic CI validated; Draft and full-stack blocked, owner-approved in the 2026-10-13 conversation ("text field par max type limit hona chahiye"; "go next").
 **Planning owner:** Linear TNYX-81 W4 umbrella; no new standalone Linear issue authorized.
 **Implementation owner:** This connected GitHub session, exclusively `tnyx/routine-set-input-typing-limits`, child of Draft #546.
 **Review owner:** Independent Codex on the child Draft PR.
@@ -22,4 +22,12 @@
 - **Gates:** CI evidence for exact child source, independent review, known ancestor #546 P1/P2 and #544 long-press/Create tests, #537 old route tests, physical device 320dp keyboard checks. Do not merge/deploy; no Supabase mutation.
 
 ## Handoff
-Implementation and validation not yet complete.
+## CI and review checkpoint, 2026-10-13
+- [Draft PR #549](https://github.com/im-tnyx/tio-world/pull/549) latest source/code HEAD `580562edd6928792c57ebb5e1c945c0bfd6c7471` (second source commit removes a redundant test import; feature code from `fe7c192`).
+- [Synthetic CI-only Draft #550](https://github.com/im-tnyx/tio-world/pull/550) at `0cfb548bd193edcff6d3459e7ae0f5e0ac0d6984`, with scratch-only ancestor #537 lint fixes and strict Workout formatter test step. The **four in-scope feature + test files have identical Git blob SHAs** between actual #549 branch and this synthetic source.
+- [Flutter CI #38415975476](https://github.com/im-tnyx/tio-world/actions/runs/38415975476) observed **Flutter Analyze SUCCESS, Dart Analyze SUCCESS, strict new Workout input limits widget suite SUCCESS**, including all 3 named tests: int32 Reps/Rest, KG/LB decimal precision and blank Reps widget validity. Full Flutter workspace suite **FAILURE** at inherited parent #537 `apps/app/test/app/workout_exercises_route_test.dart` stale metadata Create dialog lookup (`Bad state: No element`); Dart workspace tests SKIPPED.
+- Commit attribution guard on latest synthetic SHA reported `rc=2` **technical stale-ref mismatch**: fetched previous PR #550 head `bf205f29` while event expected updated head `0cfb548b`. Not a prohibited attribution finding. GHAS additional non-green check separate; do not imply full green. Original stacked PR #549 itself still has no automatic exact-head Flutter CI.
+- Independent Codex review requested; bot returned **usage limit exhausted** rather than a code review. No claim of independent approval. Parent #546 P1 stale Set sheet-to-inline-controller overwrite risk and P2 revoked-auth Create options modal remain unresolved; parent #544/#537 also blocked. No production DB migrations, merges or physical device QA.
+- Next: close temporary #550 unmerged, reconcile parent blockers/ownership, gain fresh independent review when available, run exact-head full CI and compact keyboard/input acceptance on phone before Ready.
+
+**Handoff:** Owner source changes complete for bounded typing-limit behavior; focused CI evidence recorded. Draft/release gate still blocked by parent checks, Codex capacity and device QA.
