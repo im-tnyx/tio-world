@@ -302,6 +302,46 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     );
   }
 
+  /// Bounded, centered Set-cell presentation. Reuses the Core outlined
+  /// TioInput instead of changing compactNumber for unrelated screens.
+  Widget _boxedNumberField({
+    required String fieldKey,
+    required TextEditingController controller,
+    required TextInputType keyboardType,
+    required TextInputAction action,
+    required List<TextInputFormatter> formatters,
+  }) {
+    final colors = context.tioColors;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: TioSize.dp48),
+      child: TioInput(
+        key: ValueKey(fieldKey),
+        controller: controller,
+        onChanged: (_) => _update(),
+        enabled: widget.enabled,
+        hint: '–',
+        keyboardType: keyboardType,
+        textInputAction: action,
+        inputFormatters: formatters,
+        textAlign: TextAlign.center,
+        textStyle: TextStyle(
+          color: widget.enabled ? colors.textPrimary : colors.textMuted,
+          fontSize: TioInputTokens.compactTextFontSize,
+          fontWeight: TioFontWeight.w700,
+        ),
+        hintStyle: TextStyle(
+          color: colors.textMuted,
+          fontSize: TioInputTokens.compactHintFontSize,
+          fontWeight: TioFontWeight.w600,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.xs,
+          vertical: TioSpacing.sm,
+        ),
+      ),
+    );
+  }
+
   Widget _fields(BuildContext context) {
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
@@ -355,16 +395,12 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
             flex: widget.set.prescription.isRepRange ? 2 : 1,
             child: Semantics(
               label: 'Set $setNumber Weight in ${widget.unit == WeightUnit.kg ? 'kg' : 'lb'}',
-              child: TioInput.compactNumber(
-                key: ValueKey('routine-set-weight-${widget.set.id}'),
+              child: _boxedNumberField(
+                fieldKey: 'routine-set-weight-${widget.set.id}',
                 controller: _weight,
-                enabled: widget.enabled,
-                hint: '–',
-                textInputAction: TextInputAction.next,
-                inputFormatters: [
-                  RoutineSetInputLimits.weight,
-                ],
-                onChanged: (_) => _update(),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                action: TextInputAction.next,
+                formatters: [RoutineSetInputLimits.weight],
               ),
             ),
           ),
@@ -376,41 +412,39 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 Expanded(
                   child: Semantics(
                     label: 'Set $setNumber ${widget.set.prescription.isRepRange ? 'minimum Reps' : 'Reps'}',
-                    child: TioInput.compactNumber(
-                      key: ValueKey('routine-set-reps-${widget.set.id}'),
+                    child: _boxedNumberField(
+                      fieldKey: 'routine-set-reps-${widget.set.id}',
                       controller: _reps,
-                      enabled: widget.enabled,
-                      hint: '–',
                       keyboardType: TextInputType.number,
-                      textInputAction: widget.set.prescription.isRepRange
+                      action: widget.set.prescription.isRepRange
                           ? TextInputAction.next : TextInputAction.done,
-                      inputFormatters: [
+                      formatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         RoutineSetInputLimits.int32,
                       ],
-                      onChanged: (_) => _update(),
                     ),
                   ),
                 ),
                 if (widget.set.prescription.isRepRange) ...[
                   const SizedBox(width: TioSpacing.xs),
-                  const Text('to'),
+                  Text(
+                    '–',
+                    key: ValueKey('routine-set-range-separator-${widget.set.id}'),
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
                   const SizedBox(width: TioSpacing.xs),
                   Expanded(
                     child: Semantics(
                       label: 'Set $setNumber maximum Reps',
-                      child: TioInput.compactNumber(
-                        key: ValueKey('routine-set-reps-max-${widget.set.id}'),
+                      child: _boxedNumberField(
+                        fieldKey: 'routine-set-reps-max-${widget.set.id}',
                         controller: _repsMax,
-                        enabled: widget.enabled,
-                        hint: '–',
                         keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        inputFormatters: [
+                        action: TextInputAction.done,
+                        formatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           RoutineSetInputLimits.int32,
                         ],
-                        onChanged: (_) => _update(),
                       ),
                     ),
                   ),
