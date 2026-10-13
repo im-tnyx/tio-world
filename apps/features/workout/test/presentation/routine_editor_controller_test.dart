@@ -171,6 +171,30 @@ void main() {
     expect(comp.readCount, 2);
   });
 
+  test('Custom draft cannot save without current-owner repository capability',
+      () async {
+    final custom = RoutineCompositionEntry(
+      id: _e,
+      exercise: UserCreatedExerciseRef(
+          '70000000-0000-4000-8000-000000000001'),
+      sets: [
+        RoutineCompositionSet(
+          id: _s,
+          prescription: SetPrescription(reps: 8),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [custom]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 10)), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('cannot be verified'));
+    expect(comp.saveCount, 0);
+  });
+
   test('old pending save cannot submit twice even with repeated Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     comp.saveGate = Completer<void>();
