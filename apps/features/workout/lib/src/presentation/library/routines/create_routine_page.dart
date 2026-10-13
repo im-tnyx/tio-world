@@ -9,7 +9,7 @@ import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
 import 'routine_exercise_picker_page.dart';
-import 'routine_set_editor_sheet.dart';
+import 'routine_set_input_row.dart';
 
 /// Full-screen, Program-owned Create draft. Nothing persists until Save
 /// calls an atomic Create repository. This is NOT the existing-Routine editor.
@@ -47,6 +47,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   late RoutineCreateController _draft;
   late TextEditingController _name;
   final Map<String, String> _entryLabels = {};
+  final Set<String> _invalidSetIds = {};
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _draft.dispose();
       _name.dispose();
       _entryLabels.clear();
+      _invalidSetIds.clear();
       _bind();
     }
   }
@@ -112,27 +114,38 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (id != null) _entryLabels[id] = exercise.displayName;
   }
 
-  Future<void> _editSet(RoutineCompositionEntry entry,
-      [RoutineCompositionSet? existing]) async {
+  void _validityChanged(String setId, bool valid) {
+    if (!mounted) return;
+    setState(() {
+      if (valid) {
+        _invalidSetIds.remove(setId);
+      } else {
+        _invalidSetIds.add(setId);
+      }
+    });
+  }
+
+  void _removeEntry(RoutineCompositionEntry entry) {
     if (!_enabled) return;
-    final result = await showTioEditorSheet<SetPrescription>(
-      context: context,
-      useSafeArea: true,
-      builder: (_) => RoutineSetEditorSheet(
-        unit: widget.weightUnit,
-        initial: existing?.prescription,
-      ),
-    );
-    if (!mounted || !_enabled || result == null) return;
-    if (existing == null) {
-      _draft.addSet(entry.id, result);
-    } else {
-      _draft.editSet(entry.id, existing.id, result);
-    }
+    _draft.removeExercise(entry.id);
+    _entryLabels.remove(entry.id);
+    _invalidSetIds.removeAll(entry.sets.map((set) => set.id));
+  }
+
+  void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
+    if (!_enabled) return;
+    _draft.removeSet(entry.id, set.id);
+    _invalidSetIds.remove(set.id);
+  }
+
+  void _addSet(RoutineCompositionEntry entry) {
+    if (!_enabled) return;
+    // The reference's Add Set is immediate: no modal or second confirmation.
+    _draft.addSet(entry.id, SetPrescription(reps: 1));
   }
 
   Future<void> _save() async {
-    if (!_draft.state.canSave || !_enabled) return;
+    if (!_draft.state.canSave || !_enabled || _invalidSetIds.isNotEmpty) return;
     final confirmed = await _draft.save();
     if (confirmed && mounted) _closeConfirmed();
   }
@@ -160,7 +173,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final colors = context.tioColors;
     final status = _draft.state.status;
     final locked = status == RoutineCreateStatus.saving;
-    final canSave = _enabled && _draft.state.canSave;
+    final canSave = _enabled && _draft.state.canSave && _invalidSetIds.isEmpty;
     return PopScope(
       canPop: !locked,
       child: Scaffold(
@@ -319,12 +332,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
               IconButton(
                 key: ValueKey('create-routine-remove-${entry.id}'),
                 tooltip: 'Remove Exercise',
-                onPressed: _enabled
-                    ? () {
-                        _draft.removeExercise(entry.id);
-                        _entryLabels.remove(entry.id);
-                      }
-                    : null,
+                onPressed: _enabled ? () => _removeEntry(entry) : null,
                 icon: const Icon(Icons.close_rounded),
               ),
               IconButton(
@@ -352,39 +360,23 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             ],
           ),
           for (var i = 0; i < entry.sets.length; i++)
-            Row(
+            RoutineSetInputRow(
               key: ValueKey('create-routine-set-${entry.sets[i].id}'),
-              children: [
-                Expanded(child: Text('${i + 1}')),
-                Expanded(
-                  child: Text(entry.sets[i].prescription.loadKg == null
-                      ? '–'
-                      : UnitFormatters.formatWeight(
-                          entry.sets[i].prescription.loadKg!, unit)),
-                ),
-                Expanded(child: Text('${entry.sets[i].prescription.reps}')),
-                IconButton(
-                  key: ValueKey('create-routine-edit-set-${entry.sets[i].id}'),
-                  tooltip: 'Edit Set ${i + 1}',
-                  onPressed: _enabled
-                      ? () => _editSet(entry, entry.sets[i])
-                      : null,
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Remove Set ${i + 1}',
-                  onPressed: _enabled
-                      ? () => _draft.removeSet(entry.id, entry.sets[i].id)
-                      : null,
-                  icon: const Icon(Icons.remove_circle_outline_rounded),
-                ),
-              ],
+              set: entry.sets[i],
+              index: i,
+              unit: unit,
+              enabled: _enabled,
+              onChanged: (prescription) =>
+                  _draft.editSet(entry.id, entry.sets[i].id, prescription),
+              onValidityChanged: (valid) =>
+                  _validityChanged(entry.sets[i].id, valid),
+              onRemove: () => _removeSet(entry, entry.sets[i]),
             ),
           TioButton.secondary(
             key: ValueKey('create-routine-add-set-${entry.id}'),
             label: 'Add Set',
             expand: true,
-            onPressed: _enabled ? () => _editSet(entry) : null,
+            onPressed: _enabled ? () => _addSet(entry) : null,
           ),
         ],
       ),
