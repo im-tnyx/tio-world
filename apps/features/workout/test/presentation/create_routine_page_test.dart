@@ -750,6 +750,87 @@ void main() {
     expect(create.calls, 0);
   });
 
+  testWidgets('Exercise title long press reorders; menu replaces X and arrows',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const firstEntry = '44444444-4444-4444-8444-444444444444';
+    const secondEntry = '77777777-7777-4777-8777-777777777777';
+    const firstSet = '55555555-5555-4555-8555-555555555555';
+    const secondSet = '88888888-8888-4888-8888-888888888888';
+    final uuids = [firstEntry, firstSet, secondEntry, secondSet,
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => uuids[index++],
+      ),
+    ));
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.byKey(
+        const ValueKey('create-routine-add-exercise')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bench Press').last);
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(SliverReorderableList), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_upward_rounded), findsNothing);
+    expect(find.byIcon(Icons.arrow_downward_rounded), findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-remove-$firstEntry')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-options-$firstEntry')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+
+    final first = find.byKey(const ValueKey('create-routine-entry-$firstEntry'));
+    final second = find.byKey(const ValueKey('create-routine-entry-$secondEntry'));
+    final drag = find.byKey(const ValueKey('create-routine-drag-$firstEntry'));
+    await tester.ensureVisible(drag);
+    final gesture = await tester.startGesture(tester.getCenter(drag));
+    await tester.pump(const Duration(milliseconds: 700));
+    await gesture.moveBy(const Offset(0, 350));
+    await tester.pump(const Duration(milliseconds: 250));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(first).dy,
+        greaterThan(tester.getTopLeft(second).dy));
+    expect(find.byKey(const ValueKey('routine-set-reps-$firstSet')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-$secondSet')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+    expect(create.calls, 0);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('create-routine-options-$firstEntry')));
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-options-$firstEntry')));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove Exercise'), findsOneWidget);
+    await tester.tap(find.text('Remove Exercise'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-$firstEntry')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$secondEntry')),
+        findsOneWidget);
+    expect(create.calls, 0);
+  });
+
   testWidgets('Create reference empty state has disabled Save and Add exercise',
       (tester) async {
     final create = _Create();
