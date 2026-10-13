@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [#538/#539 — Routine Set type + Rep Range DB](issues-538-539-routine-set-metadata-db.md) | In progress — two additive approved columns, separate DB-only source/test PR; no production deploy | Supabase migration/RPC | Enriched Set payload compatibility, legacy overwrite prevention, SQL matrix |
+
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
