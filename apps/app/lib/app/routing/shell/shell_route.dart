@@ -324,7 +324,6 @@ List<RouteBase> _shellBranchChildRoutes(
                           onCreateRoutine: (suggestedName) async {
                                   if (createRepository == null ||
                                       compositions == null ||
-                                      routineRepository == null ||
                                       userExerciseRepository == null) {
                                     return false;
                                   }

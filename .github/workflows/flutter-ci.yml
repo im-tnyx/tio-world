@@ -63,6 +63,19 @@ jobs:
       - name: Analyze Dart packages
         run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
+      # CI-only PR #547 probes: full suite still fails on ancestor route test.
+      - name: Probe Workout tests (CI-only)
+        continue-on-error: true
+        run: |
+          cd apps/features/workout
+          flutter test --no-pub
+
+      - name: Probe Shared Dart tests (CI-only)
+        continue-on-error: true
+        run: |
+          cd apps/shared
+          dart test
+
       - name: Test Flutter packages
         run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
 
