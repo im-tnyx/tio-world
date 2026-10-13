@@ -3,6 +3,41 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('SetPrescription', () {
+    test('setType wire mapping and default Normal remain stable', () {
+      expect(SetPrescription(reps: 1).setType, RoutineSetType.normal);
+      expect(SetPrescription(reps: 1).repsMax, isNull);
+      for (final type in RoutineSetType.values) {
+        expect(RoutineSetType.fromWire(type.wireValue), type);
+      }
+      expect(() => RoutineSetType.fromWire('unknown'), throwsArgumentError);
+    });
+
+    test('Rep Range validates minimum and maximum without changing type', () {
+      final base = SetPrescription(
+        reps: 8,
+        repsMax: 12,
+        setType: RoutineSetType.warmUp,
+        loadKg: 20.5,
+        restSeconds: 30,
+      );
+      expect(base.isRepRange, isTrue);
+      expect(base.reps, 8);
+      expect(base.repsMax, 12);
+      expect(base.setType, RoutineSetType.warmUp);
+      expect(SetPrescription(reps: 8, repsMax: 8).isRepRange, isTrue);
+      for (final max in [0, 7, 2147483648]) {
+        expect(() => SetPrescription(reps: 8, repsMax: max),
+            throwsArgumentError);
+      }
+      expect(base, SetPrescription(
+        reps: 8, repsMax: 12, setType: RoutineSetType.warmUp,
+        loadKg: 20.5, restSeconds: 30,
+      ));
+      expect(base, isNot(SetPrescription(reps: 8)));
+      expect(base, isNot(SetPrescription(reps: 8, repsMax: 12)));
+    });
+
+
     test('stores reps with optional canonical load and rest', () {
       final prescription = SetPrescription(
         reps: 8,

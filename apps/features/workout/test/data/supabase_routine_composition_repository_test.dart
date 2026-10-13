@@ -34,6 +34,8 @@ Map<String, dynamic> _set(int id, int entry, int position) => {
       'routine_exercise_id': _id(entry),
       'position': position,
       'reps': 8,
+      'reps_max': null,
+      'set_type': 'normal',
       'load_kg': null,
       'rest_seconds': null,
       'entry': {
@@ -184,6 +186,12 @@ void main() {
   }
   final invalidSets = <String, void Function(Map<String, dynamic>)>{
     'missing nullable key': (row) => row.remove('load_kg'),
+    'missing type': (row) => row.remove('set_type'),
+    'missing range key': (row) => row.remove('reps_max'),
+    'unknown type': (row) => row['set_type'] = 'random',
+    'wrong type kind': (row) => row['set_type'] = 12,
+    'range max below minimum': (row) => row['reps_max'] = 7,
+    'range max not integer': (row) => row['reps_max'] = 12.5,
     'orphan': (row) => row['routine_exercise_id'] = _id(99),
     'bad join': (row) => row['entry'] = null,
     'wrong joined Routine': (row) =>
@@ -210,6 +218,31 @@ void main() {
           throwsA(_failure(RoutineCompositionFailureKind.malformedData)));
     });
   }
+
+  test('rich Set type and Rep Range read/write preserve stable UUIDs',
+      () async {
+    final row = _set(10, 1, 0)
+      ..['set_type'] = 'drop'
+      ..['reps'] = 8
+      ..['reps_max'] = 12;
+    final gw = _Gateway()..entries = [_entry(1, 0)]..sets = [row];
+    final snapshot = (await gw.repository.read(_routine))!;
+    final set = snapshot.entries.single.sets.single;
+    expect(set.id, _id(10));
+    expect(set.prescription.setType, RoutineSetType.drop);
+    expect(set.prescription.reps, 8);
+    expect(set.prescription.repsMax, 12);
+    final command = RoutineCompositionSave(
+      routineId: _routine, expectedRevision: snapshot.revision,
+      mutationId: _mutation, entries: snapshot.entries,
+    );
+    expect(await gw.repository.save(command), 1);
+    final payload = (gw.saved!['exercises'] as List).single;
+    final serialized = (payload['sets'] as List).single;
+    expect(serialized['set_type'], 'drop');
+    expect(serialized['reps_max'], 12);
+    expect(serialized['id'], _id(10));
+  });
 
   test(
       'duplicate positions, nonadvancing cursor and duplicate global set IDs fail',
@@ -299,7 +332,8 @@ void main() {
           'id': _id(1),
           'exercise_ref': 'ex_squat',
           'sets': [
-            {'id': _id(10), 'reps': 8, 'load_kg': null, 'rest_seconds': null}
+            {'id': _id(10), 'reps': 8, 'reps_max': null,
+             'set_type': 'normal', 'load_kg': null, 'rest_seconds': null}
           ]
         }
       ],

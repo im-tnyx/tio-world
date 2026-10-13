@@ -118,7 +118,8 @@ void main() {
           'id': _id(2),
           'exercise_ref': _owner,
           'sets': [
-            {'id': _id(9), 'reps': 5, 'load_kg': 0.0, 'rest_seconds': 0}
+            {'id': _id(9), 'reps': 5, 'reps_max': null,
+             'set_type': 'normal', 'load_kg': 0.0, 'rest_seconds': 0}
           ]
         }
       ],
@@ -147,6 +148,8 @@ void main() {
           'routine_exercise_id': _id(1),
           'position': 11 - i,
           'reps': 5,
+          'reps_max': null,
+          'set_type': 'normal',
           'load_kg': null,
           'rest_seconds': null,
           'entry': {'id': _id(1), 'user_id': _owner, 'routine_id': _routine},
