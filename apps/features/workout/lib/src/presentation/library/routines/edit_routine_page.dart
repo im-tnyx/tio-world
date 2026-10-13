@@ -23,6 +23,7 @@ class EditRoutinePage extends StatefulWidget {
     required this.catalogRepository,
     required this.weightUnit,
     this.userExerciseRepository,
+    this.canWrite,
     this.newUuid,
     super.key,
   });
@@ -33,6 +34,8 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Live opening-session capability, not a cached authorization snapshot.
+  final bool Function()? canWrite;
   final WeightUnit? weightUnit;
 
   /// Test seam only; production uses UUID v4.
@@ -90,6 +93,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       routines: routines,
       compositions: compositions,
       userExercises: widget.userExerciseRepository,
+      canWrite: widget.canWrite,
       newUuid: widget.newUuid,
     )..addListener(_changed);
     final source = RoutineExercisePickerController(
@@ -284,15 +288,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     switch (state.status) {
       case RoutineEditorStatus.loading:
+      case RoutineEditorStatus.verifying:
       case RoutineEditorStatus.saving:
         return Center(
-          key: ValueKey(state.status == RoutineEditorStatus.loading
-              ? 'edit-routine-loading'
-              : 'edit-routine-saving'),
+          key: ValueKey(switch (state.status) {
+            RoutineEditorStatus.loading => 'edit-routine-loading',
+            RoutineEditorStatus.verifying => 'edit-routine-verifying',
+            _ => 'edit-routine-saving',
+          }),
           child: CircularProgressIndicator(
-            semanticsLabel: state.status == RoutineEditorStatus.loading
-                ? 'Loading Routine'
-                : 'Updating Routine',
+            semanticsLabel: switch (state.status) {
+              RoutineEditorStatus.loading => 'Loading Routine',
+              RoutineEditorStatus.verifying => 'Verifying Custom Exercises',
+              _ => 'Updating Routine',
+            },
           ),
         );
       case RoutineEditorStatus.notFound:
