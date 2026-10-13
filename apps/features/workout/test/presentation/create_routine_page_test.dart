@@ -805,6 +805,22 @@ void main() {
 
     final first = find.byKey(const ValueKey('create-routine-entry-$firstEntry'));
     final second = find.byKey(const ValueKey('create-routine-entry-$secondEntry'));
+    final firstSemantics = find.byKey(
+      const ValueKey('create-routine-reorder-semantics-$firstEntry'));
+    final secondSemantics = find.byKey(
+      const ValueKey('create-routine-reorder-semantics-$secondEntry'));
+    final firstActions = tester.widget<Semantics>(firstSemantics)
+        .properties.customSemanticsActions!;
+    final secondActions = tester.widget<Semantics>(secondSemantics)
+        .properties.customSemanticsActions!;
+    expect(firstActions.keys.map((action) => action.label),
+        contains('Move exercise down'));
+    expect(firstActions.keys.map((action) => action.label),
+        isNot(contains('Move exercise up')));
+    expect(secondActions.keys.map((action) => action.label),
+        contains('Move exercise up'));
+    expect(secondActions.keys.map((action) => action.label),
+        isNot(contains('Move exercise down')));
     final drag = find.byKey(const ValueKey('create-routine-drag-$firstEntry'));
     await tester.ensureVisible(drag);
     final gesture = await tester.startGesture(tester.getCenter(drag));
@@ -815,6 +831,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(first).dy,
         greaterThan(tester.getTopLeft(second).dy));
+
+    // Screen-reader / keyboard action reorders without a pointer drag.
+    final moveDown = tester.widget<Semantics>(secondSemantics)
+        .properties.customSemanticsActions!.entries
+        .singleWhere((entry) => entry.key.label == 'Move exercise down')
+        .value;
+    moveDown();
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(first).dy,
+        lessThan(tester.getTopLeft(second).dy));
     expect(find.byKey(const ValueKey('routine-set-reps-$firstSet')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-set-reps-$secondSet')),
