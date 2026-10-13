@@ -318,11 +318,16 @@ List<RouteBase> _shellBranchChildRoutes(
                           onRoutinePressed: compositions == null
                               ? null
                               : (routine) => openRoutine(program, routine),
-                          onCreateRoutine: createRepository == null ||
-                                  compositions == null ||
-                                  userExerciseRepository == null
-                              ? null
-                              : (suggestedName) async {
+                          // Always supply the Create action to keep
+                          // the legacy metadata-only sheet unreachable in
+                          // production, including if RPC dependencies fail.
+                          onCreateRoutine: (suggestedName) async {
+                                  if (createRepository == null ||
+                                      compositions == null ||
+                                      routineRepository == null ||
+                                      userExerciseRepository == null) {
+                                    return false;
+                                  }
                                   final boot = ref
                                       .read(appSessionBootstrapControllerProvider)
                                       .state;
