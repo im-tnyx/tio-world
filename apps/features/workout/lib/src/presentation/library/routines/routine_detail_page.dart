@@ -191,27 +191,40 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           if (index == 0) {
             return Padding(
               padding: const EdgeInsets.only(bottom: TioSpacing.md),
-              child: Text(
-                '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
-                '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
-                key: const ValueKey('routine-detail-counts'),
-                style: TextStyle(
-                  color: context.tioColors.textSecondary,
-                  fontSize: TioFontSize.size14,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Exercises',
+                    key: const ValueKey('routine-detail-exercises-header'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: context.tioColors.textSecondary,
+                    ),
+                  ),
+                  Semantics(
+                    label: '${state.exerciseCount} exercises, ${state.setCount} sets',
+                    child: Text(
+                      '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
+                      '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
+                      key: const ValueKey('routine-detail-counts'),
+                      style: TextStyle(
+                        color: context.tioColors.textSecondary,
+                        fontSize: TioFontSize.size12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }
           final entry = state.entries[index - 1];
           return Padding(
-            padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-            child: TioCard(
-              key: ValueKey('routine-detail-entry-${entry.entry.id}'),
-              child: _RoutineEntryPreview(
-                index: index,
-                item: entry,
-                weightUnit: widget.weightUnit,
-              ),
+            key: ValueKey('routine-detail-entry-${entry.entry.id}'),
+            padding: const EdgeInsets.only(bottom: TioSpacing.xl),
+            child: _RoutineEntryPreview(
+              index: index,
+              item: entry,
+              weightUnit: widget.weightUnit,
             ),
           );
         },
@@ -271,22 +284,52 @@ class _RoutineEntryPreview extends StatelessWidget {
   final RoutineDetailEntry item;
   final WeightUnit? weightUnit;
 
-  // The standard card stays unchanged; only exceptional set counts scroll
-  // inside the existing card rather than expanding it without bound.
+  // Bound exceptionally long persisted Routines rather than constructing
+  // thousands of rows in a single frame.
   static const _inlineSetLimit = 40;
+
+  static String _typeLabel(SetPrescription p, int normalNumber) =>
+      switch (p.setType) {
+        RoutineSetType.normal => '$normalNumber',
+        RoutineSetType.warmUp => 'W',
+        RoutineSetType.failure => 'F',
+        RoutineSetType.drop => 'D',
+      };
+
+  Widget _cell(String value, {Color? color, TextAlign align = TextAlign.center}) =>
+      Text(value, textAlign: align,
+        style: TextStyle(color: color, fontSize: TioFontSize.size14));
 
   Widget _setRow(BuildContext context, int index) {
     final sets = item.entry.sets;
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: index + 1 < sets.length ? TioSpacing.xs : TioSpacing.none,
-      ),
-      child: Text(
-        _setLabel(index + 1, sets[index].prescription, weightUnit),
-        key: ValueKey('routine-detail-set-${sets[index].id}'),
-        style: TextStyle(
-          color: context.tioColors.textSecondary,
-          fontSize: TioFontSize.size14,
+    final p = sets[index].prescription;
+    final normalNumber = sets.take(index + 1)
+        .where((s) => s.prescription.setType == RoutineSetType.normal)
+        .length;
+    final weight = p.loadKg == null
+        ? '–'
+        : weightUnit == null
+            ? 'Load unavailable'
+            : UnitFormatters.formatWeight(p.loadKg!, weightUnit!).split(' ').first;
+    final reps = p.repsMax == null ? '${p.reps}' : '${p.reps}–${p.repsMax}';
+    final color = context.tioColors.textPrimary;
+    return Semantics(
+      label: 'Set ${index + 1}, ${p.setType.name}, weight $weight, reps $reps'
+          '${p.restSeconds == null ? '' : ', rest ${p.restSeconds} seconds'}',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+        child: Row(
+          key: ValueKey('routine-detail-set-${sets[index].id}'),
+          children: [
+            SizedBox(
+              width: TioSize.dp44,
+              child: _cell(_typeLabel(p, normalNumber), color: color),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(child: _cell(weight, color: context.tioColors.textSecondary)),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(child: _cell(reps, color: color)),
+          ],
         ),
       ),
     );
@@ -297,16 +340,16 @@ class _RoutineEntryPreview extends StatelessWidget {
     final colors = context.tioColors;
     final entry = item.entry;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '$index. ${item.exercise?.displayName ?? 'Exercise unavailable'}',
+          item.exercise?.displayName ?? 'Exercise unavailable',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: colors.textPrimary,
             fontWeight: TioFontWeight.w700,
-            fontSize: TioFontSize.size15,
+            fontSize: TioFontSize.size20,
           ),
         ),
         if (item.exercise == null) ...[
@@ -319,10 +362,23 @@ class _RoutineEntryPreview extends StatelessWidget {
             ),
           ),
         ],
+        const SizedBox(height: TioSpacing.md),
+        Row(
+          children: [
+            const SizedBox(
+              width: TioSize.dp44,
+              child: Text('SET', textAlign: TextAlign.center),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(child: Text(
+              weightUnit == WeightUnit.lb ? 'LB' : 'KG',
+              textAlign: TextAlign.center,
+            )),
+            const SizedBox(width: TioSpacing.sm),
+            const Expanded(child: Text('REPS', textAlign: TextAlign.center)),
+          ],
+        ),
         const SizedBox(height: TioSpacing.sm),
-        // Ordinary cards preserve their existing layout. Exceptionally long
-        // prescriptions get a bounded inner viewport so one persisted Exercise
-        // with thousands of Sets never builds all rows in a single frame.
         if (entry.sets.length > _inlineSetLimit)
           SizedBox(
             height: TioSize.dp200,
@@ -337,30 +393,10 @@ class _RoutineEntryPreview extends StatelessWidget {
         else
           for (var i = 0; i < entry.sets.length; i++) _setRow(context, i),
         if (entry.sets.isEmpty)
-          Text(
-            'No sets prescribed',
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: TioFontSize.size14,
-            ),
-          ),
+          Text('No sets prescribed',
+              style: TextStyle(color: colors.textSecondary)),
       ],
     );
-  }
-
-  static String _setLabel(
-    int number,
-    SetPrescription set,
-    WeightUnit? weightUnit,
-  ) {
-    final parts = <String>['Set $number', '${set.reps} reps'];
-    if (set.loadKg != null) {
-      parts.add(weightUnit == null
-          ? 'Load unavailable'
-          : UnitFormatters.formatWeight(set.loadKg!, weightUnit));
-    }
-    if (set.restSeconds != null) parts.add('${set.restSeconds} sec rest');
-    return parts.join(' · ');
   }
 }
 
