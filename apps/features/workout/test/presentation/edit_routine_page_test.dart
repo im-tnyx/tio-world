@@ -447,6 +447,8 @@ void main() {
     await f.open(tester);
     final addSet = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
     await tester.ensureVisible(addSet);
+    expect(tester.widget<TioButton>(addSet).variant,
+        TioButtonVariant.supporting);
     final addSetHeight = tester.getSize(addSet).height;
     expect(addSetHeight, greaterThanOrEqualTo(TioButtonTokens.height));
     expect(addSetHeight, lessThanOrEqualTo(TioSize.dp52));
