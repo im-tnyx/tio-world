@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -46,6 +47,7 @@ final class RoutineEditorController extends ChangeNotifier {
     required this.routine,
     required this.routines,
     required this.compositions,
+    this.userExercises,
     String Function()? newUuid,
   }) : _newUuid = newUuid ?? _uuidV4;
 
@@ -53,6 +55,7 @@ final class RoutineEditorController extends ChangeNotifier {
   final Routine routine;
   final RoutineRepository routines;
   final RoutineCompositionRepository compositions;
+  final UserExerciseRepository? userExercises;
   final String Function() _newUuid;
 
   static String _uuidV4() => const Uuid().v4();
@@ -250,6 +253,50 @@ final class RoutineEditorController extends ChangeNotifier {
         revision: _revision,
       ));
       return true;
+    }
+    // Revalidate all Custom refs from the active owner source immediately
+    // before RPC. Picker/editor snapshots can become stale after archive on
+    // another device; an unavailable/invalid read is NOT an unknown RPC write.
+    final customRefs = _draft
+        .map((entry) => entry.exercise)
+        .whereType<UserCreatedExerciseRef>()
+        .toSet();
+    if (customRefs.isNotEmpty) {
+      _publish(RoutineEditorState(
+        status: RoutineEditorStatus.saving,
+        entries: _draft,
+        revision: _revision,
+        dirty: true,
+      ));
+      final repository = userExercises;
+      if (repository == null) {
+        _publish(_ready(message: 'Custom Exercises cannot be verified. Try again.'));
+        return false;
+      }
+      List<Exercise> current;
+      try {
+        current = await repository.list();
+      } catch (_) {
+        if (_disposed) return false;
+        _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+        return false;
+      }
+      if (_disposed) return false;
+      final activeRefs = <UserCreatedExerciseRef>{};
+      for (final exercise in current) {
+        if (exercise.ref is! UserCreatedExerciseRef ||
+            exercise.status != ExerciseStatus.active ||
+            !activeRefs.add(exercise.ref as UserCreatedExerciseRef)) {
+          _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+          return false;
+        }
+      }
+      if (!activeRefs.containsAll(customRefs)) {
+        _publish(_ready(
+          message: 'A Custom Exercise is no longer active. Remove it before Update.',
+        ));
+        return false;
+      }
     }
     final command = RoutineCompositionSave(
       routineId: routine.id,
