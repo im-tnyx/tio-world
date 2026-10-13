@@ -18,7 +18,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -80,7 +80,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -177,7 +177,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.light),
+        config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -249,7 +249,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -337,7 +337,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -410,7 +410,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -464,7 +464,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -506,7 +506,7 @@ void main() {
     const setId = '55555555-5555-4555-8555-555555555555';
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -558,7 +558,7 @@ void main() {
     ];
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
@@ -944,7 +944,7 @@ void main() {
     final create = _Create();
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: CreateRoutinePage(
