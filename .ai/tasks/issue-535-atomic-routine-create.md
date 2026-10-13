@@ -1,6 +1,6 @@
 # GitHub #535 — Atomic Routine Create foundation
 
-**Status:** Database-first source CI validated at `bfb7daa0`; Codex P2-01/P2-02 corrected and their threads resolved with evidence; fresh independent latest-head review pending. Draft PR #536 unmerged; no user-visible change or hosted deployment.
+**Status:** Database-first source CI validated at `2fed5022`; three sequential Codex P2 findings (ASCII whitespace, account deletion lock order, Unicode whitespace) corrected and threads resolved with evidence; fresh independent latest-head review pending. Draft PR #536 unmerged; no user-visible change or hosted deployment.
 **Primary owner:** Supabase Workout data contract; later Flutter Workout/app integration after PR #533.
 **Affected platforms:** Supabase Postgres/RLS, later Flutter mobile.
 
@@ -27,7 +27,7 @@
 **Validation completed at SHA:** `cb1679c2e0488e23a31bcc1d7f7b8e0f44709bfa`: [Supabase Database CI #38359620572](https://github.com/im-tnyx/tio-world/actions/runs/38359620572) SUCCESS (full migration replay, existing SQL/race tests, #535 SQL test, #535 two-session same-ID and archive-order races, no new lint error). Commit attribution guard and runner SUCCESS on same SHA. Initial #535 SQL test CI failed from an overly literal catalog search_path assertion; repaired test-only to Postgres stored `search_path=""` verified against deployed canonical function; no RPC semantic change.
 **Validation remaining:** Fresh latest-HEAD Codex/security re-review, then Flutter Create integration and device QA in a separate owned slice after #533 dependency clears. A new docs-only handoff HEAD must be independently checked; old source CI is not automatically carried forward.
 **Current blocker:** PR #533's canonical Exercise picker/editor remains Draft and exclusive. Its latest Codex re-review has 3 unresolved P2 (login-cycle pre-RPC recheck, indefinite preflight Cancel/Back lock, truncated Custom owner listing). #535 Flutter Create integration must not clone picker/edit while these remain unresolved.
-**Open review finding IDs:** #536 Codex P2-01 (whitespace-only name) and P2-02 (Create-vs-account-delete lock inversion) are resolved in code, covered by exact-source SQL tests and replied/resolved review threads. Fresh independent re-review pending. #534 separate server-side archive-vs-save hardening for existing **edit** RPC remains open.
+**Open review finding IDs:** #536 P2-01 (ASCII whitespace), P2-02 (Create-vs-account-delete lock inversion), P2-03 (non-POSIX Unicode whitespace) fixed, tested, replied and resolved. Independent re-review must still be verified at latest HEAD. #534 separate server-side archive-vs-save hardening for existing **edit** RPC remains open.
 **Next exact action:** Request independent fresh #536 DB/security re-review after this handoff update; no merge/hosted deployment. #533 separately owns the unmerged editor and has 3 unresolved P2; never widen this branch into its source. Only after that dependency is reviewed and approved/merged may a separate feature-owned Flutter Create integration start.
 
 ## Discovery / Runtime Evidence
@@ -68,3 +68,11 @@
 - [P2-01 evidence reply](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255770818) and [P2-02 evidence reply](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255771665) both posted; corresponding review threads resolved=true. Await a **fresh independent latest-head Codex review**, distinct from author disposition.
 - Source SHA above predates this documentation-only checkpoint. A new exact HEAD requires its own CI attribution/DB rerun verification before gate completion.
 - #535 is **PARTIAL** until Flutter Create screen Save disabled at zero Exercises, proper capability/session gates, client integration and device QA. Existing metadata-only clients can still persist an empty Routine. Draft PR #533 remains open with 3 separately unresolved P2; no merge/deploy authorized.
+
+## 2026-10-13 Unicode whitespace P2 follow-up
+
+- Second independent Codex review on `1cc88175` discovered new [P2-03](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255823644): PostgreSQL POSIX `[[:space:]]` did not reject Dart-trimmed Unicode whitespace such as NBSP, FIGURE SPACE and NARROW NBSP. This is a genuine review finding, distinct from already-resolved P2-01.
+- Scoped migration fix `11cf597f` uses an explicit Unicode White_Space + U+FEFF set in `pg_catalog.btrim`; focused test commit `2fed5022` adds U+00A0, U+2007, U+202F, U+FEFF and mixed-space cases without modifying the existing production table constraint or Edit RPC.
+- **Exact DB source HEAD `2fed50229e970f721e62bfc5904de64422e801d9`:** [Supabase Database CI #38362762915](https://github.com/im-tnyx/tio-world/actions/runs/38362762915) **SUCCESS**, including all 5 Unicode whitespace assertions, prior ASCII whitespace case, 5 two-session races, full migrations and DB lint; both attribution checks SUCCESS. P2-03 [evidence reply](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255878612) posted, thread resolved=true.
+- This documentation-only checkpoint will create a different HEAD; do not use source SHA's CI as a claim of checks passing that later HEAD without verifying an exact-head CI rerun. Request a fresh independent Codex review after finalizing checkpoint; all author-resolved threads alone do not represent independent APPROVED.
+- #535 remains **PARTIAL** until existing-Routine editor dependency #533 reviews are settled and the Flutter Create screen disables Save at zero Exercises; hosted Supabase migration was not applied, and old metadata-only client create privilege remains.
