@@ -16,7 +16,6 @@ import 'routine_exercise_picker_controller.dart';
 import 'routine_exercise_picker_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
-import 'routine_add_set_button.dart';
 import 'routine_set_input_row.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
@@ -812,8 +811,11 @@ class _EntryTable extends StatelessWidget {
         else
           for (var i = 0; i < entry.sets.length; i++) _row(entry.sets[i], i),
         const SizedBox(height: TioSpacing.xs),
-        RoutineAddSetButton(
+        TioButton.supporting(
           key: ValueKey('edit-routine-add-set-${entry.id}'),
+          label: 'Add Set',
+          leading: const Icon(Icons.add),
+          expand: true,
           onPressed: enabled ? addSet : null,
         ),
       ],
