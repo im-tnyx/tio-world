@@ -627,6 +627,51 @@ void main() {
     expect(saved.prescription.repsMax, 12);
   });
 
+  testWidgets('compact Rep Range does not overflow at 320dp', (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    var nextId = 0;
+    const setId = '55555555-5555-4555-8555-555555555555';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: _Create(),
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => [
+          '44444444-4444-4444-8444-444444444444', setId,
+        ][nextId++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final header = find.byKey(const ValueKey(
+      'create-routine-repetition-options-44444444-4444-4444-8444-444444444444',
+    ));
+    await tester.ensureVisible(header);
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-repetition-range')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps-max-$setId')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Set Type Remove Set uses last-Set-removes-Exercise contract',
       (tester) async {
     final create = _Create();
