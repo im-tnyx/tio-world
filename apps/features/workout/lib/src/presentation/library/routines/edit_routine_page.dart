@@ -89,6 +89,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       routine: widget.routine,
       routines: routines,
       compositions: compositions,
+      userExercises: widget.userExerciseRepository,
       newUuid: widget.newUuid,
     )..addListener(_changed);
     final source = RoutineExercisePickerController(
