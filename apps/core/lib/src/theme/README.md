@@ -407,13 +407,16 @@ core reusable dialogs/pickers/sheets
 ```text
 primary       the main affirmative action
 secondary     the outlined non-destructive action, including Cancel
+supporting    the neutral filled non-primary action
 ghost         the low-emphasis text action
 destructive   removes or permanently changes something
 ```
 
-`primary` and `destructive` render through `FilledButton`; `secondary` through `OutlinedButton`; `ghost` through `TextButton`.
+`primary`, `supporting` and `destructive` render through `FilledButton`; `secondary` through `OutlinedButton`; `ghost` through `TextButton`.
 
 Feature and sheet code selects an intent. It does not rebuild button chrome locally, and there is no per-surface or per-feature button class.
+
+`TioButton.supporting` is the reusable neutral **filled** action below the primary action in the visual hierarchy. It uses `colors.surface` behind `colors.textPrimary`, without an accent outline. Core's existing `FilledButton` and `TioButtonTokens` retain ownership of its 46dp minimum height, pill radius, padding, icon/label gap, focus and accessibility states. Disabled content uses `colors.textMuted`, loading retains neutral indicator/label colors, and its pressed/focused/hovered wash uses the governed button opacities. Features supply labels, icons and enabled actions only. This is not an Add Set-specific component or token, and existing primary/secondary/ghost/destructive appearances are unchanged.
 
 `TioButton.destructive` is a **translucent danger-filled** action. It renders on the same filled chassis as `primary`, so `TioButtonTokens` still owns its minimum height, pill radius, horizontal padding, content gap, label typography and tap-target behaviour; only the colour roles differ:
 
@@ -487,7 +490,9 @@ No matching prefix parameter is exposed. No editable-field consumer needs one, a
 
 Every one is optional and omitting it preserves current behaviour, so the default `TioInput` appearance is unchanged.
 
-`TioInput.numericEditor` is the governed dense exact-value editor variant. It remains left-aligned, uses a decimal keyboard and Done action by default, does not select all on focus, and retains the dense `InputDecoration` defaults used by exact-value editors while the active theme supplies fill, border, radius, and padding. It owns only the reusable `18px` bold value, `18px` regular hint, and `15px` secondary suffix hierarchy. Features still own formatter rules, validation, unit content, controller state, and submit behavior. This is separate from the centered, underline-oriented `compactNumber` table-input contract; neither variant changes the generic standard input's `14dp`/`52dp` contract.
+`TioInput.boxedNumber` is the generic outlined numeric-table variant of `TioInput` (used by Workout Routine Create/Edit). Like the pre-existing borderless `compactNumber`, it is centered, selects the existing value on focus, uses the compact `16px` bold number and `15px` muted hint hierarchy, and uses compact governed padding. Unlike `compactNumber`, it uses Core's standard 14dp rounded `OutlineInputBorder` and themed surface fill, including the focus border. The normal standard form input and the former underline-only compact field are not globally restyled. Core does **not** interpret reps, range, weights, validation, units, formatter limits or persistence: each feature owns those inputs and semantics. No new numeric input component or feature token bag exists.
+
+`TioInput.numericEditor` is the governed dense exact-value editor variant. It remains left-aligned, uses a decimal keyboard and Done action by default, does not select all on focus, and retains the dense `InputDecoration` defaults used by exact-value editors while the active theme supplies fill, border, radius, and padding. It owns only the reusable `18px` bold value, `18px` regular hint, and `15px` secondary suffix hierarchy. Features still own formatter rules, validation, unit content, controller state, and submit behavior. This is separate from the centered numeric table-input variants `compactNumber` (borderless with a focus underline) and `boxedNumber` (outlined); none changes the generic standard input's `14dp`/`52dp` contract.
 
 `TioInput.multiline` is the governed notes-field variant for longer free-text entries (health notes, event details, and similar). It uses the evidenced `16dp` rounded-surface radius and a fixed-alpha unfocused border that does not branch on theme brightness — a separate current contract from the generic `14dp` standard field, not a unification of the two. `maxLines`/`minLines` are required, since every current consumer needs its own value; `textCapitalization` defaults to `TextCapitalization.sentences`, matching every current consumer, and stays overridable. Default content padding equals `EdgeInsets.all(TioSpacing.lg)`, matching most current consumers without an override; callers that need a different shape still use the existing `contentPadding` override.
 
