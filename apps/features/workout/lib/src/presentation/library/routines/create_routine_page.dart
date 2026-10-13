@@ -13,6 +13,7 @@ import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
 import 'routine_exercise_picker_page.dart';
 import 'routine_exercise_options_sheet.dart';
+import 'routine_add_set_button.dart';
 import 'routine_set_input_row.dart';
 
 /// Full-screen, Program-owned Create draft. Nothing persists until Save
@@ -598,10 +599,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           ),
           for (var i = 0; i < entry.sets.length; i++)
             _setRow(entry, entry.sets[i], i),
-          TioButton.secondary(
+          RoutineAddSetButton(
             key: ValueKey('create-routine-add-set-${entry.id}'),
-            label: 'Add Set',
-            expand: true,
             onPressed: _enabled ? () => _addSet(entry) : null,
           ),
         ],
