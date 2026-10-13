@@ -83,7 +83,7 @@ void main() {
         httpClient: MockClient((request) async {
           requests.add(request);
           final after = request.url.queryParameters['id'];
-          final last = after == null ? null : after.substring(3);
+          final last = after?.substring(3);
           final pageSize = int.parse(request.url.queryParameters['limit']!);
           final page = rows
               .where((row) => (row['id'] as String).compareTo(last ?? '') > 0)
