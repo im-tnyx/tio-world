@@ -31,7 +31,7 @@ begin
 
   if p_routine_id is null or p_program_id is null
       or p_client_mutation_id is null
-      or p_name is null or pg_catalog.btrim(p_name) = ''
+      or p_name is null or p_name !~ '[^[:space:]]'
       or p_exercises is null
       or pg_catalog.jsonb_typeof(p_exercises) <> 'array' then
     raise exception 'invalid_routine_create_request' using errcode = '22023';
@@ -44,6 +44,18 @@ begin
   if pg_catalog.octet_length(p_exercises::text) > 262144 then
     raise exception 'routine_composition_payload_too_large'
       using errcode = '22023';
+  end if;
+
+  -- Match the parent-to-child account deletion cascade lock order.
+  -- Holding a user key-share lock before the Program lock also prevents
+  -- the Routine FK check from deadlocking with delete_user_account().
+  perform 1
+  from public.users as account
+  where account.id = v_user_id
+  for key share;
+
+  if not found then
+    raise exception 'routine_create_account_not_found' using errcode = 'P0002';
   end if;
 
   -- Fail closed before inserting or exposing whether another owner's UUID
