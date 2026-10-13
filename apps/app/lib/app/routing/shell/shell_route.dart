@@ -390,11 +390,19 @@ List<RouteBase> _shellBranchChildRoutes(
                                                 !privateRoute.isActive) {
                                               return;
                                             }
-                                            // Remove private draft and any
-                                            // nested picker/Set overlays, even
-                                            // during a PopScope-blocked save.
-                                            Navigator.of(context)
-                                                .removeRoute(privateRoute);
+                                            // A picker or Exercise Options
+                                            // modal is a separate Navigator
+                                            // route above the Create draft.
+                                            // Dismiss every private overlay
+                                            // before removing the revoked
+                                            // session's underlying route.
+                                            final navigator = Navigator.of(context);
+                                            navigator.popUntil((route) =>
+                                                identical(route, privateRoute));
+                                            // RemoveRoute bypasses a pending
+                                            // save's PopScope; revoked content
+                                            // must not survive the login cycle.
+                                            navigator.removeRoute(privateRoute);
                                           });
                                         }
                                         final profile =
