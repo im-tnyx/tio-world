@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -48,6 +51,9 @@ class EditRoutinePage extends StatefulWidget {
 class _EditRoutinePageState extends State<EditRoutinePage> {
   RoutineEditorController? _editor;
   RoutineExercisePickerController? _source;
+  final Set<String> _invalidSetIds = {};
+  final Set<String> _blankSetIds = {};
+  String? _openSetId;
 
   @override
   void initState() {
@@ -71,6 +77,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _bind() {
+    _invalidSetIds.clear();
+    _blankSetIds.clear();
+    _openSetId = null;
     _editor
       ?..removeListener(_changed)
       ..dispose();
@@ -160,7 +169,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     // device created a Custom Exercise while this screen stayed open).
     // Do not reject a valid picker result against that stale snapshot.
     if (exercise.status != ExerciseStatus.active) return;
-    editor.addPickedExercise(exercise);
+    final entryId = editor.addPickedExercise(exercise);
+    if (entryId != null) {
+      final setId = editor.addSet(entryId, SetPrescription(reps: 1));
+      if (setId != null) {
+        _blankSetIds.add(setId);
+        _invalidSetIds.add(setId);
+      }
+    }
     // Refresh labels and write-capability from the current source. A failed
     // reload disables Update until Retry; the draft stays unsaved.
     await _source?.load();
@@ -195,9 +211,137 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
   }
 
+  void _validityChanged(String id, bool valid) {
+    if (!mounted) return;
+    setState(() {
+      if (valid) {
+        _blankSetIds.remove(id);
+        _invalidSetIds.remove(id);
+      } else {
+        _invalidSetIds.add(id);
+      }
+    });
+  }
+
+  void _removeEntry(RoutineCompositionEntry entry) {
+    if (!_canEdit) return;
+    _editor?.removeExercise(entry.id);
+    final ids = entry.sets.map((set) => set.id);
+    _invalidSetIds.removeAll(ids);
+    _blankSetIds.removeAll(ids);
+    if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
+  }
+
+  void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
+    if (!_canEdit) return;
+    if (entry.sets.length == 1) {
+      _removeEntry(entry);
+      return;
+    }
+    _editor?.removeSet(entry.id, set.id);
+    _invalidSetIds.remove(set.id);
+    _blankSetIds.remove(set.id);
+    if (_openSetId == set.id) _openSetId = null;
+  }
+
+  void _addSetInline(RoutineCompositionEntry entry) {
+    if (!_canEdit) return;
+    if (_openSetId != null) setState(() => _openSetId = null);
+    final id = _editor?.addSet(entry.id, SetPrescription(reps: 1));
+    if (id != null) {
+      _blankSetIds.add(id);
+      _invalidSetIds.add(id);
+    }
+  }
+
+  void _setOpen(String id, bool open) {
+    if (!mounted) return;
+    final next = open ? id : (_openSetId == id ? null : _openSetId);
+    if (next != _openSetId) setState(() => _openSetId = next);
+  }
+
+  Future<void> _selectSetType(
+    RoutineCompositionEntry entry, RoutineCompositionSet set,
+  ) async {
+    if (!_canEdit) return;
+    final type = await showTioEditorSheet<Object>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Select Set Type',
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final kind in RoutineSetType.values)
+            ListTile(
+              key: ValueKey('edit-routine-type-${kind.wireValue}'),
+              title: Text(switch (kind) {
+                RoutineSetType.normal => 'Normal Set',
+                RoutineSetType.warmUp => 'Warm Up Set',
+                RoutineSetType.failure => 'Failure Set',
+                RoutineSetType.drop => 'Drop Set',
+              }),
+              trailing: kind == set.prescription.setType
+                  ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
+            ),
+          ListTile(
+            key: const ValueKey('edit-routine-type-remove'),
+            title: const Text('Remove Set'),
+            onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted || !_canEdit || type == null) return;
+    if (type == 'remove') {
+      _removeSet(entry, set);
+    } else if (type is RoutineSetType) {
+      final current = set.prescription;
+      _editor?.editSet(entry.id, set.id, SetPrescription(
+        reps: current.reps, repsMax: current.repsMax,
+        setType: type, loadKg: current.loadKg,
+        restSeconds: current.restSeconds,
+      ));
+    }
+  }
+
+  Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
+    if (!_canEdit || entry.sets.isEmpty) return;
+    final range = entry.sets.first.prescription.isRepRange;
+    final selection = await showTioEditorSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Repetition Options',
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            key: const ValueKey('edit-routine-reps-fixed'),
+            title: const Text('Reps'),
+            trailing: !range ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(sheetContext).pop<bool>(false),
+          ),
+          ListTile(
+            key: const ValueKey('edit-routine-reps-range'),
+            title: const Text('Rep Range'),
+            trailing: range ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(sheetContext).pop<bool>(true),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted || !_canEdit || selection == null) return;
+    _editor?.changeRepetitionMode(entry.id, range: selection);
+  }
+
+  void _reload() {
+    _invalidSetIds.clear();
+    _blankSetIds.clear();
+    _openSetId = null;
+    _editor?.load();
+  }
+
   Future<void> _save() async {
     final editor = _editor;
-    if (!_canEdit || editor == null) return;
+    if (!_canEdit || editor == null || _invalidSetIds.isNotEmpty) return;
     final confirmed = await editor.update();
     if (mounted &&
         identical(editor, _editor) &&
@@ -270,7 +414,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   key: const ValueKey('edit-routine-update'),
                   label: 'Update',
                   expand: true,
-                  onPressed: _canEdit ? _save : null,
+                  onPressed: _canEdit && _invalidSetIds.isEmpty ? _save : null,
                 ),
               )
             : null,
@@ -315,7 +459,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           message: state.message ?? 'Could not load Routine.',
           action: TioButton.secondary(
             label: 'Try again',
-            onPressed: _editor?.load,
+            onPressed: _reload,
           ),
         );
       case RoutineEditorStatus.revisionConflict:
@@ -325,7 +469,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           action: TioButton.secondary(
             key: const ValueKey('edit-routine-reload'),
             label: 'Reload and discard changes',
-            onPressed: _editor?.load,
+            onPressed: _reload,
           ),
         );
       case RoutineEditorStatus.outcomeUnknown:
