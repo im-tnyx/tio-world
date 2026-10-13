@@ -12,6 +12,7 @@ import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
 import 'routine_exercise_picker_page.dart';
+import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 
 /// Full-screen, Program-owned Create draft. Nothing persists until Save
@@ -140,6 +141,17 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         _invalidSetIds.add(setId);
       }
     });
+  }
+
+  Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
+    if (!_enabled) return;
+    final openingDraft = _draft;
+    final remove = await showRoutineExerciseOptionsSheet(context);
+    if (!mounted || !identical(openingDraft, _draft) || !_enabled || !remove) {
+      return;
+    }
+    if (!_draft.state.entries.any((current) => current.id == entry.id)) return;
+    _removeEntry(entry);
   }
 
   void _removeEntry(RoutineCompositionEntry entry) {
@@ -525,20 +537,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                   ),
                 ),
               ),
-              PopupMenuButton<String>(
+              IconButton(
                 key: ValueKey('create-routine-options-${entry.id}'),
-                enabled: _enabled,
                 tooltip: 'Exercise options',
+                onPressed: _enabled ? () => _showExerciseOptions(entry) : null,
                 icon: const Icon(Icons.more_vert_rounded),
-                onSelected: (action) {
-                  if (action == 'remove' && _enabled) _removeEntry(entry);
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem<String>(
-                    value: 'remove',
-                    child: Text('Remove Exercise'),
-                  ),
-                ],
               ),
             ],
           ),

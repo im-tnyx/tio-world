@@ -64,6 +64,14 @@ jobs:
         run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
       # CI-only PR #547 probes: full suite still fails on ancestor route test.
+      - name: Probe Exercise options bottom sheets (CI-only)
+        continue-on-error: true
+        run: |
+          cd apps/features/workout
+          flutter pub get
+          flutter test --no-pub test/presentation/create_routine_page_test.dart --plain-name "Exercise overflow opens bottom sheet; dismissal does not remove"
+          flutter test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "Exercise options dismiss without removing or saving"
+
       - name: Probe Workout tests (CI-only)
         continue-on-error: true
         run: |

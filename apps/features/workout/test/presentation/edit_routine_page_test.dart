@@ -125,11 +125,39 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
   await tester.ensureVisible(menu);
   await tester.tap(menu);
   await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+      findsOneWidget);
+  expect(find.text('Exercise Options'), findsOneWidget);
+  expect(find.byType(PopupMenuButton<String>), findsNothing);
   await tester.tap(find.text('Remove Exercise'));
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('Exercise options dismiss without removing or saving',
+      (tester) async {
+    final f = _Fixtures();
+    await f.open(tester);
+    final menu = find.byKey(
+      const ValueKey('edit-routine-entry-options-$_entryId'));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsOneWidget);
+    expect(find.text('Exercise Options'), findsOneWidget);
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    await _removeExerciseMenu(tester, _entryId);
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsNothing);
+    expect(f.compositions.saveCount, 0);
+  });
+
   testWidgets('empty Routine offers Add Exercise without a database write',
       (tester) async {
     final f = _Fixtures();
@@ -441,6 +469,28 @@ void main() {
     expect(added.prescription.restSeconds, isNull);
     expect(added.prescription.loadKg, 22.5);
     expect(added.id, isNot(_setId));
+  });
+
+  testWidgets('320dp dark Edit table retains Previous and range inputs',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(reps: 8, repsMax: 12, setType: RoutineSetType.warmUp),
+    ]);
+    await f.open(tester, mode: TioThemeMode.dark);
+    expect(find.text('PREVIOUS'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-$_setId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-max-$_setId')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(f.compositions.saveCount, 0);
   });
 
   testWidgets('no repository and cross-Program fail closed', (tester) async {
