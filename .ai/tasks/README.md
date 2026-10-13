@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [GitHub #535 — Create Routine UI + default Set 1](issue-535-create-routine-ui.md) | In progress — approved, stacked on Draft #533; depends on Draft #536 atomic Create RPC, not deployed; no device QA | Workout feature + app composition | Reference-inspired full Create UI; auto Set 1; Save requires an Exercise |
+
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [GitHub #532 — W4B1 Routine Editor](issue-532-w4b1-routine-editor.md) | In progress — source CI #38373650044 green, all 6 Codex P2 threads author-resolved; exact-head independent review blocked by Codex usage limit, physical QA pending, #534 server race separate; Draft/unmerged | Workout feature + app composition | Two-screen Detail → Editor; fixed-reps/weight/rest, no schema |
