@@ -6,7 +6,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
-| [GitHub #532 — W4B1 Routine Editor](issue-532-w4b1-routine-editor.md) | In progress — two Codex P2 resolved; third archived-Custom P2 client fix pending CI, server race tracked #534; Draft/unmerged | Workout feature + app composition | Two-screen Detail → Editor; fixed-reps/weight/rest, no schema |
+| [GitHub #532 — W4B1 Routine Editor](issue-532-w4b1-routine-editor.md) | In progress — source CI #38373650044 green, all 6 Codex P2 threads author-resolved; exact-head independent review blocked by Codex usage limit, physical QA pending, #534 server race separate; Draft/unmerged | Workout feature + app composition | Two-screen Detail → Editor; fixed-reps/weight/rest, no schema |
 
 | [Splash — TIO wordmark](splash-tio-wordmark.md) | Validated | `apps/features/splash` | Any further splash screen visual change; validated by Flutter CI #33265051617 |
 | [Design-system token consolidation](design-system-token-consolidation.md) | Validated | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
