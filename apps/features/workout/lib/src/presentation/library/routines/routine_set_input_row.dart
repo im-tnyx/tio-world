@@ -65,6 +65,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   late final TextEditingController _repsMax;
   late String _originalWeightText;
   late double? _originalKg;
+  // Distinguish parent echoes of this row's own edits from external changes
+  // (notably the advanced Set sheet) so typing drafts/caret are not reset.
+  SetPrescription? _lastInlineEdit;
   bool _valid = true;
   static const double _revealWidth = TioSize.dp48 + TioSize.dp48;
   static const double _threshold = _revealWidth / 2;
@@ -119,21 +122,40 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       _reveal = widget.isOpen && widget.enabled ? _revealWidth : 0;
       _pastRevealThreshold = widget.isOpen && widget.enabled;
     }
-    if (oldWidget.set.prescription.isRepRange !=
-        widget.set.prescription.isRepRange) {
-      _repsMax.text = widget.startWithBlankReps
-          ? ''
-          : widget.set.prescription.repsMax?.toString() ?? '';
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _update();
-      });
+    final before = oldWidget.set.prescription;
+    final after = widget.set.prescription;
+    final changedExternally = before != after && after != _lastInlineEdit;
+    final modeChanged = before.isRepRange != after.isRepRange;
+    final unitChanged = oldWidget.unit != widget.unit;
+
+    // An inline text edit is echoed through the parent controller as a new
+    // SetPrescription. Never normalize that same text back into the controller:
+    // "08", partial kg/lb decimals, selection and invalid drafts must survive.
+    // The advanced Set sheet is a DIFFERENT source and must refresh the edited
+    // fields; otherwise a later inline change silently overwrites its values.
+    if (changedExternally && before.reps != after.reps) {
+      _reps.text = after.reps.toString();
     }
-    if (oldWidget.unit != widget.unit) {
-      // A visible unit preference change uses the current canonical kg bytes,
-      // rather than interpreting a previously formatted lb string as kg.
-      _originalKg = widget.set.prescription.loadKg;
+    if (modeChanged && after.isRepRange) {
+      // Fixed -> Range uses a canonical provisional Max in the domain model.
+      // It is not user-entered: keep its field blank and block Save until the
+      // user explicitly supplies a valid maximum.
+      _repsMax.text = '';
+    } else if (modeChanged ||
+        (changedExternally && before.repsMax != after.repsMax)) {
+      _repsMax.text = after.repsMax?.toString() ?? '';
+    }
+    if (unitChanged || (changedExternally && before.loadKg != after.loadKg)) {
+      // Rebase untouched rounded lb text on exact canonical kg, including
+      // when the advanced Set sheet supplied a new weight in this same unit.
+      _originalKg = after.loadKg;
       _originalWeightText = _displayWeight(_originalKg);
       _weight.text = _originalWeightText;
+    }
+    if (modeChanged || changedExternally) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.set.prescription == after) _update();
+      });
     }
   }
 
@@ -176,7 +198,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
         loadKg: kg,
         restSeconds: widget.set.prescription.restSeconds,
       );
-      if (next != widget.set.prescription) widget.onChanged(next);
+      if (next != widget.set.prescription) {
+        _lastInlineEdit = next;
+        widget.onChanged(next);
+      }
     } on ArgumentError {
       // Defensive parity with the canonical Set constructor. A rejected
       // draft must not leave Save enabled with stale persisted values.
