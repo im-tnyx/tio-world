@@ -199,8 +199,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
-    expect(f.compositions.saveCount, 1);
-    expect(f.compositions.lastSave!.entries, isEmpty);
+    // The only draft change was adding the Custom Exercise; removing it
+    // restores the original empty composition. A confirmed no-op Update
+    // returns to Detail without manufacturing a revision or RPC write.
+    expect(f.compositions.saveCount, 0);
+    expect(f.compositions.lastSave, isNull);
     expect(f.editorResult, isTrue);
   });
 
