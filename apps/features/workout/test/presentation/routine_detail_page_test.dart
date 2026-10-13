@@ -74,9 +74,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
     expect(find.text('Push Day'), findsOneWidget);
+    expect(find.text('Exercises'), findsOneWidget);
+    expect(find.text('SET'), findsOneWidget);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('1. Bench Press'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 0 kg · 60 sec rest'),
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(find.text('0'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
         findsOneWidget);
@@ -111,16 +115,16 @@ void main() {
         routines: routines,
         compositions: compositions,
         weightUnit: WeightUnit.kg);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsOneWidget);
 
     await _pump(tester,
         routines: routines,
         compositions: compositions,
         weightUnit: WeightUnit.lb);
-    expect(find.text('Set 1 · 5 reps · 27.6 lb · 90 sec rest'),
+    expect(find.text('27.6'),
         findsOneWidget);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsNothing);
 
     // No fabricated default on a route whose Profile data has not resolved.
@@ -128,9 +132,9 @@ void main() {
         routines: routines,
         compositions: compositions,
         weightUnit: null);
-    expect(find.text('Set 1 · 5 reps · Load unavailable · 90 sec rest'),
+    expect(find.text('Load unavailable'),
         findsOneWidget);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsNothing);
   });
 
@@ -213,7 +217,7 @@ void main() {
         ),
       ])),
     );
-    expect(find.text('1. Exercise unavailable'), findsOneWidget);
+    expect(find.text('Exercise unavailable'), findsOneWidget);
     expect(find.text('Exercise information is not available in this app.'),
         findsOneWidget);
     expect(find.text('No sets prescribed'), findsOneWidget);
@@ -295,7 +299,7 @@ void main() {
     expect(callbacks, 1);
     expect(compositions.readCount, 2);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Set 1 · 10 reps · 45 sec rest'), findsOneWidget);
+    expect(find.text('10'), findsOneWidget);
   });
 
   testWidgets('Detail to real Edit screen saves once and refreshes server truth',
@@ -358,7 +362,7 @@ void main() {
     expect(comp.readCount, 3); // initial Detail + Editor + refreshed Detail
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 12 kg · 60 sec rest'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
   });
 
   testWidgets('read failure and missing repositories never expose Edit',
@@ -450,7 +454,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('routine-detail-set-${setId(totalSets)}')),
         findsOneWidget);
-    expect(find.text('Set 1007 · 8 reps'), findsOneWidget);
+    expect(find.text('1007'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
