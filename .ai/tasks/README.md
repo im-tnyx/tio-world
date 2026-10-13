@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [#538/#539 — Flutter Routine Set metadata UI](issues-538-539-routine-set-client.md) | In progress — approved client model/read/write + type/range selectors, stacked on Draft #537; DB Draft #540 not deployed | Shared + Workout feature | Set type/Rep Range canonical model, sheet, read/write, tests |
+
 | [GitHub #535 — Create Routine UI + default Set 1](issue-535-create-routine-ui.md) | In progress — approved, stacked on Draft #533; depends on Draft #536 atomic Create RPC, not deployed; no device QA | Workout feature + app composition | Reference-inspired full Create UI; auto Set 1; Save requires an Exercise |
 
 | Task | Status | Primary owner | Read before |

@@ -1,0 +1,17 @@
+# #538/#539 — Flutter Routine Set metadata and selector follow-up
+
+**Status:** Owner-approved implementation, child of Draft PR #537; **no source tests/phone QA verified yet**.
+**Implementation owner:** This connected GitHub session on `tnyx/issues-538-539-routine-set-client`. Distinct from DB review owner on Draft [PR #540](https://github.com/im-tnyx/tio-world/pull/540), parent #537 Create and ancestor #533 Edit.
+**Owner approval:** User explicitly approved `set_type` + `reps_max` and related Create/Edit persistence with **Go** on 2026-10-13 after screenshots for Set Type and Repetition Options. Production DB deploy, PR merges and release NOT authorized.
+**Parent:** `tnyx/issue-535-create-routine-ui@e26b5f7b7083f190199223f5b9f9b97f75cd4bfa` Draft #537, containing Add Set inline, half/full swipe Delete + haptics, last Set removes Exercise. Parent #533 W4B1 Edit remains Draft.
+**DB dependency:** Draft PR #540 source SHA `b7f33218` passed Supabase Database CI #38386554297, including new type/range/mutation/legacy SQL matrix, concurrency and lint. DB not deployed. Draft PR #536 atomic Create RPC unmerged.
+
+## Exact bounded client scope
+- Extend **canonical** `apps/shared` `SetPrescription` with `RoutineSetType` enum (normal/warmUp/failure/drop, default Normal) and nullable validated `repsMax` (>=positive min `reps`), equality/hash updated. No duplicate model for Create vs Edit.
+- Existing Workout data adapter owner-safe Set read includes both columns, validates/decodes strict new type and range. Edit and Create payload serializer includes `set_type` and `reps_max` even if normal/null; preserves mutation IDs and current Set UUIDs. New client requires #540 deployed before persistence.
+- Create page Set badge taps a reusable Tio sheet "Select Set Type" to change just its Set's type, or Remove Set; Add Set remains immediate Normal. Reps header opens "Repetition Options" per Exercise. Fixed → range initializes each Set to current Reps–same Reps; range → fixed keeps Min and clears Max. No second persisted Exercise-mode column. Min/Max inline numeric fields use TioInput.compactNumber; blank/invalid fields block Save. Normal Set numbering respects normal-only sequence among Warm Up/Failure/Drop. Keep weight/rest and swipe gestures/IDs unchanged.
+- Existing Edit page must never silently strip type/max: read and save the same rich Set values; if old fixed-only Set editor changes a rich Set, avoid corrupting type/range. Do not redesign unrelated Edit Routine flows.
+- No new database column/SQL in this client branch, no UI notes, Workout performance logging, AI, wear, widgets, services/API, new Core design tokens. Reuse core sheet/input components. 
+- Tests expected: canonical validation/default/equality, Supabase SDK read/write metadata and malformed rejection, Create controller Set type/mode transforms, Create Set badge/RepRange sheets/normal numbering/invalid Save, legacy Edit preservation, light/dark/320dp/textScale and swipe regression.
+- **Validation:** No local Flutter/Dart available; child PR targets Draft #537 not main, and Flutter CI currently targets main PR. Do not claim tests PASS without run. Independent review and physical-device QA required. No deployment/merge.
+- **Ownership and safety:** task is only this child branch; do not push into Draft #533, #536 or #537 heads. Production live schema still fixed-Reps only. Manual rollout must sequence protected database migration with client release.
