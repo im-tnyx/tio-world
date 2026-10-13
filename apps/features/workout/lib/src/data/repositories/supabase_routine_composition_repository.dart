@@ -118,7 +118,7 @@ final class SupabaseRoutineCompositionRepository
             routineId: command.routineId.value,
             expectedRevision: command.expectedRevision,
             mutationId: command.mutationId,
-            exercises: _payload(command),
+            exercises: payload(command),
           )
           .timeout(_requestTimeout);
     } on PostgrestException catch (error) {
@@ -344,7 +344,7 @@ final class SupabaseRoutineCompositionRepository
     return value.toLowerCase();
   }
 
-  static List<Map<String, dynamic>> _payload(RoutineCompositionSave command) =>
+  static List<Map<String, dynamic>> payload(RoutineCompositionSave command) =>
       [
         for (final entry in command.entries)
           {

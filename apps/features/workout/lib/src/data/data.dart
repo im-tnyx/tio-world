@@ -7,3 +7,4 @@ export 'repositories/supabase_workout_targets_repository.dart';
 export 'repositories/supabase_routine_repository.dart';
 export 'repositories/supabase_routine_composition_gateway.dart';
 export 'repositories/supabase_routine_composition_repository.dart';
+export 'repositories/supabase_routine_create_repository.dart';
