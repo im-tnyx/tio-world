@@ -313,7 +313,14 @@ final class SupabaseRoutineCompositionRepository
     final load = row['load_kg'];
     final max = row['reps_max'];
     final type = row['set_type'];
-    if (type is! String || (max != null && max is! int)) throw _malformed;
+    // Treat invalid hosted rows as a stable malformed-data failure, not an
+    // uncaught ArgumentError from the canonical value object's constructor.
+    if (type is! String ||
+        !RoutineSetType.values.any((value) => value.wireValue == type) ||
+        (max != null &&
+            (max is! int || max < reps || max > 2147483647))) {
+      throw _malformed;
+    }
     if (load != null &&
         (load is! num || !load.toDouble().isFinite || load < 0)) {
       throw _malformed;
