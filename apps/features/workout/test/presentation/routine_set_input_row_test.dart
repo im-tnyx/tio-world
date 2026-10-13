@@ -88,6 +88,8 @@ void main() {
         of: input,
         matching: find.byType(TextFormField),
       ));
+      expect(tester.widget<TioInput>(input).variant,
+          TioInputVariant.boxedNumber);
       expect(field.decoration!.enabledBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.focusedBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.hintText, '–');
@@ -138,6 +140,7 @@ void main() {
     final cell = tester.widget<TioInput>(reps);
     expect(cell.controller!.text, isEmpty);
     expect(cell.textAlign, TextAlign.center);
+    expect(cell.variant, TioInputVariant.boxedNumber);
     expect(find.byKey(const ValueKey('routine-set-reps-max-$id')),
         findsNothing);
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
