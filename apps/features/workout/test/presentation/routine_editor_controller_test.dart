@@ -123,6 +123,41 @@ void main() {
     expect(comp.saveCount, 1);
   });
 
+  test('existing Edit preserves rich type/range and new Set adopts mode',
+      () async {
+    final enriched = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.catalog(_ref),
+      sets: [
+        RoutineCompositionSet(
+          id: _s,
+          prescription: SetPrescription(
+            reps: 8, repsMax: 12, setType: RoutineSetType.warmUp,
+            loadKg: 12.5, restSeconds: 30,
+          ),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [enriched]));
+    final ctrl = _make(_Routines([_routine()]), comp,
+        ids: [_newS, _m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.addSet(_e, SetPrescription(reps: 5)), _newS);
+    expect(ctrl.state.entries.single.sets[1].prescription.repsMax, 5);
+    expect(ctrl.state.entries.single.sets[1].prescription.setType,
+        RoutineSetType.normal);
+    expect(ctrl.editSet(_e, _s, SetPrescription(
+      reps: 9, repsMax: 13, setType: RoutineSetType.warmUp,
+      loadKg: 12.5, restSeconds: 30,
+    )), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.lastSave!.entries.single.sets.first.prescription.setType,
+        RoutineSetType.warmUp);
+    expect(comp.lastSave!.entries.single.sets.first.prescription.repsMax, 13);
+    expect(comp.lastSave!.entries.single.sets.last.prescription.repsMax, 5);
+  });
+
   test('add/remove/reorder sets and cancel never write before Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     final ctrl = _make(_Routines([_routine()]), comp, ids: [_newS]);
