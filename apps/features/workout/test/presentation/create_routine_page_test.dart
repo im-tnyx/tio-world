@@ -847,6 +847,65 @@ void main() {
     expect(create.calls, 0);
   });
 
+  testWidgets('Exercise overflow opens bottom sheet; dismissal does not remove',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const entryId = '44444444-4444-4444-8444-444444444444';
+    const setId = '55555555-5555-4555-8555-555555555555';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => [entryId, setId][index++],
+      ),
+    ));
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final menu = find.byKey(const ValueKey('create-routine-options-$entryId'));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-options-sheet')),
+        findsOneWidget);
+    expect(find.text('Exercise Options'), findsOneWidget);
+    expect(find.byType(PopupMenuButton<String>), findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$entryId')),
+        findsOneWidget);
+    expect(create.calls, 0);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-options-sheet')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$entryId')),
+        findsOneWidget);
+    expect(create.calls, 0);
+
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('routine-exercise-option-remove')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-$entryId')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-empty')),
+        findsOneWidget);
+    expect(create.calls, 0);
+  });
+
   testWidgets('Create reference empty state has disabled Save and Add exercise',
       (tester) async {
     final create = _Create();

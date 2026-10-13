@@ -20,6 +20,7 @@ class RoutineExerciseOptionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TioEditorSheet(
+        key: const ValueKey('routine-exercise-options-sheet'),
         title: 'Exercise Options',
         content: ListTile(
           key: const ValueKey('routine-exercise-option-remove'),
