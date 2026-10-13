@@ -106,6 +106,9 @@ void main() {
       const ValueKey('create-routine-add-set-44444444-4444-4444-8444-444444444444'),
     );
     await tester.ensureVisible(addSet);
+    expect(tester.getSize(addSet).height, TioButtonTokens.height);
+    expect(find.descendant(of: addSet, matching: find.byIcon(Icons.add)),
+        findsOneWidget);
     await tester.tap(addSet);
     await tester.pumpAndSettle();
 
