@@ -106,6 +106,8 @@ void main() {
       const ValueKey('create-routine-add-set-44444444-4444-4444-8444-444444444444'),
     );
     await tester.ensureVisible(addSet);
+    expect(tester.widget<TioButton>(addSet).variant,
+        TioButtonVariant.supporting);
     final addSetHeight = tester.getSize(addSet).height;
     expect(addSetHeight, greaterThanOrEqualTo(TioButtonTokens.height));
     expect(addSetHeight, lessThanOrEqualTo(TioSize.dp52));
