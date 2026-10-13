@@ -372,9 +372,22 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           const SizedBox(height: TioSpacing.md),
           Row(
             children: [
-              const Expanded(child: Text('SET')),
-              Expanded(child: Text(unit == WeightUnit.kg ? 'KG' : 'LB')),
-              const Expanded(child: Text('REPS')),
+              const SizedBox(
+                width: TioSize.dp44,
+                child: Text('SET', textAlign: TextAlign.center),
+              ),
+              const SizedBox(width: TioSpacing.sm),
+              Expanded(
+                child: Text(
+                  unit == WeightUnit.kg ? 'KG' : 'LB',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: TioSpacing.sm),
+              const Expanded(
+                child: Text('REPS', textAlign: TextAlign.center),
+              ),
+              const SizedBox(width: TioSize.dp48),
             ],
           ),
           for (var i = 0; i < entry.sets.length; i++)
