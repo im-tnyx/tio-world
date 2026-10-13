@@ -554,6 +554,119 @@ void main() {
         closeTo(UnitConverters.lbToKg(44), 0.000001));
   });
 
+  testWidgets('Set badge sheet selects Warm Up and Reps header selects Range',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const id = '55555555-5555-4555-8555-555555555555';
+    final uuids = [
+      '44444444-4444-4444-8444-444444444444',
+      id,
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => uuids[index++],
+      ),
+    ));
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+
+    final type = find.byKey(const ValueKey('routine-set-type-$id'));
+    await tester.tap(type);
+    await tester.pumpAndSettle();
+    expect(find.text('Select Set Type'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-type-option-warm_up')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(
+      of: type, matching: find.text('W')), findsOneWidget);
+
+    final header = find.byKey(const ValueKey(
+      'create-routine-repetition-options-44444444-4444-4444-8444-444444444444',
+    ));
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+    expect(find.text('Repetition Options'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-repetition-range')));
+    await tester.pumpAndSettle();
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$id'));
+    expect(max, findsOneWidget);
+    await tester.enterText(max, '');
+    await tester.pump();
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+    await tester.enterText(max, '12');
+    await tester.pump();
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed,
+      isNotNull);
+    expect(create.calls, 0);
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump();
+    expect(create.calls, 1);
+    final saved = create.command!.entries.single.sets.single;
+    expect(saved.id, id);
+    expect(saved.prescription.setType, RoutineSetType.warmUp);
+    expect(saved.prescription.reps, 1);
+    expect(saved.prescription.repsMax, 12);
+  });
+
+  testWidgets('Set Type Remove Set uses last-Set-removes-Exercise contract',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const id = '55555555-5555-4555-8555-555555555555';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => [
+          '44444444-4444-4444-8444-444444444444', id,
+        ][index++],
+      ),
+    ));
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-type-remove-set')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-empty')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+    expect(create.calls, 0);
+  });
+
   testWidgets('Create reference empty state has disabled Save and Add exercise',
       (tester) async {
     final create = _Create();
