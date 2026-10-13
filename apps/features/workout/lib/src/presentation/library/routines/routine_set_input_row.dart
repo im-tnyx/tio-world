@@ -34,7 +34,13 @@ class RoutineSetInputRow extends StatefulWidget {
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
 }
 
-class _RoutineSetInputRowState extends State<RoutineSetInputRow> {
+class _RoutineSetInputRowState extends State<RoutineSetInputRow>
+    with AutomaticKeepAliveClientMixin<RoutineSetInputRow> {
+  // Keep uncommitted invalid input visible while scrolling. Otherwise a
+  // recycled numeric TextField could reappear with the last valid persisted
+  // value while the owning page still correctly blocks Save.
+  @override
+  bool get wantKeepAlive => true;
   late final TextEditingController _weight;
   late final TextEditingController _reps;
   late String _originalWeightText;
@@ -124,6 +130,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
     return Padding(
