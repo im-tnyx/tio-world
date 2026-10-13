@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'routine_set_input_limits.dart';
+
 /// Modal input for exactly one existing fixed-repetition prescription.
 /// No Routine mutation happens until the caller accepts its return value.
 class RoutineSetEditorSheet extends StatefulWidget {
@@ -122,6 +124,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 controller: _reps,
                 hint: 'Reps',
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  RoutineSetInputLimits.int32,
+                ],
                 onChanged: _inputChanged,
               ),
             ),
@@ -134,7 +139,10 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                   controller: _repsMax,
                   hint: 'Maximum Reps',
                   keyboardType: TextInputType.number,
-                  onChanged: _inputChanged,
+                  inputFormatters: [
+                  RoutineSetInputLimits.int32,
+                ],
+                onChanged: _inputChanged,
                 ),
               ),
             ],
@@ -146,6 +154,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 controller: _load,
                 hint: 'Weight',
                 suffixText: widget.unit == WeightUnit.kg ? 'kg' : 'lb',
+                inputFormatters: [
+                  RoutineSetInputLimits.weight,
+                ],
                 onChanged: _inputChanged,
               ),
             ),
@@ -158,6 +169,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 hint: 'Rest seconds',
                 keyboardType: TextInputType.number,
                 suffixText: 'sec',
+                inputFormatters: [
+                  RoutineSetInputLimits.int32,
+                ],
                 onChanged: _inputChanged,
               ),
             ),

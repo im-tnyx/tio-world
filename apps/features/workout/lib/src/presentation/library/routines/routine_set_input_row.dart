@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_composition_repository.dart';
+import 'routine_set_input_limits.dart';
 
 /// Compact inline prescription editor for one identified Routine Set.
 ///
@@ -361,7 +362,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 hint: '–',
                 textInputAction: TextInputAction.next,
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  RoutineSetInputLimits.weight,
                 ],
                 onChanged: (_) => _update(),
               ),
@@ -385,6 +386,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                           ? TextInputAction.next : TextInputAction.done,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
+                        RoutineSetInputLimits.int32,
                       ],
                       onChanged: (_) => _update(),
                     ),
@@ -406,6 +408,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                         textInputAction: TextInputAction.done,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
+                        RoutineSetInputLimits.int32,
                         ],
                         onChanged: (_) => _update(),
                       ),
