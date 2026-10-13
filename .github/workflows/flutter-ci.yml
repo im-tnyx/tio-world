@@ -57,6 +57,28 @@ jobs:
       - name: Bootstrap workspace
         run: melos bootstrap
 
+      # CI-only #551 Core-variant probe. Deliberately fails on a test error.
+      # This main-targeted scratch PR is never a merge source or CI green
+      # attribution for the original stacked Draft PR #551.
+      - name: Strict Core TioInput/TioButton variant widget tests (CI-only)
+        run: |
+          cd apps/core
+          flutter pub get
+          flutter test --no-pub test/ui/components/tio_input_test.dart
+          cd ../app
+          flutter pub get
+          flutter test --no-pub test/app/tio_button_test.dart
+
+      - name: Strict Workout Set row and Create/Edit widget tests (CI-only)
+        run: |
+          cd apps/features/workout
+          flutter pub get
+          flutter test --no-pub test/presentation/routine_set_input_row_test.dart
+          flutter test --no-pub test/presentation/create_routine_page_test.dart --plain-name "Add Set appends inline row immediately; invalid Reps block Save"
+          flutter test --no-pub test/presentation/create_routine_page_test.dart --plain-name "compact Rep Range does not overflow at 320dp"
+          flutter test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "inline Add set blank blocks Update until entered"
+          flutter test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "320dp dark Edit table retains Previous and range inputs"
+
       - name: Analyze Flutter packages
         run: melos exec -c 1 --flutter --fail-fast -- "flutter analyze --no-pub"
 
