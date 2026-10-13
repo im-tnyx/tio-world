@@ -223,12 +223,14 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
         child: Stack(
           children: [
             Positioned.fill(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: _revealWidth,
-                  child: ColoredBox(
-                    color: colors.danger,
+              // As the finger travels beyond the short action reveal,
+              // the full exposed area stays visibly destructive.
+              child: ColoredBox(
+                color: colors.danger,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: _revealWidth,
                     child: TextButton(
                       key: ValueKey('routine-set-remove-${widget.set.id}'),
                       onPressed: widget.enabled && widget.isOpen
@@ -236,7 +238,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                           : null,
                       child: Text(
                         'Delete',
-                        style: TextStyle(color: colors.background),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onError,
+                        ),
                       ),
                     ),
                   ),
