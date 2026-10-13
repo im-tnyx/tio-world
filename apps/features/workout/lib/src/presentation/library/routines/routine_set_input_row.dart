@@ -67,7 +67,6 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow> {
       _originalKg = widget.set.prescription.loadKg;
       _originalWeightText = _displayWeight(_originalKg);
       _weight.text = _originalWeightText;
-      _update();
     }
   }
 

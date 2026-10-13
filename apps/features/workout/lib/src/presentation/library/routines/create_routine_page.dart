@@ -306,6 +306,24 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         ),
       );
 
+
+  Widget _setRow(
+    RoutineCompositionEntry entry,
+    RoutineCompositionSet set,
+    int index,
+  ) =>
+      RoutineSetInputRow(
+        key: ValueKey('create-routine-set-${set.id}'),
+        set: set,
+        index: index,
+        unit: widget.weightUnit,
+        enabled: _enabled,
+        onChanged: (prescription) =>
+            _draft.editSet(entry.id, set.id, prescription),
+        onValidityChanged: (valid) => _validityChanged(set.id, valid),
+        onRemove: () => _removeSet(entry, set),
+      );
+
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final colors = context.tioColors;
     final unit = widget.weightUnit;
@@ -360,18 +378,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             ],
           ),
           for (var i = 0; i < entry.sets.length; i++)
-            RoutineSetInputRow(
-              key: ValueKey('create-routine-set-${entry.sets[i].id}'),
-              set: entry.sets[i],
-              index: i,
-              unit: unit,
-              enabled: _enabled,
-              onChanged: (prescription) =>
-                  _draft.editSet(entry.id, entry.sets[i].id, prescription),
-              onValidityChanged: (valid) =>
-                  _validityChanged(entry.sets[i].id, valid),
-              onRemove: () => _removeSet(entry, entry.sets[i]),
-            ),
+            _setRow(entry, entry.sets[i], i),
           TioButton.secondary(
             key: ValueKey('create-routine-add-set-${entry.id}'),
             label: 'Add Set',
