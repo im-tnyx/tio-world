@@ -57,6 +57,18 @@ jobs:
       - name: Bootstrap workspace
         run: melos bootstrap
 
+      # CI-only PR for #551. This independent strict probe does not alter
+      # the feature branch or suppress the unchanged workspace test suite.
+      - name: Strict boxed Routine Set widget tests (CI-only, no continue-on-error)
+        run: |
+          cd apps/features/workout
+          flutter pub get
+          flutter test --no-pub test/presentation/routine_set_input_row_test.dart
+          flutter test --no-pub test/presentation/create_routine_page_test.dart --plain-name "Add Set appends inline row immediately; invalid Reps block Save"
+          flutter test --no-pub test/presentation/create_routine_page_test.dart --plain-name "compact Rep Range does not overflow at 320dp"
+          flutter test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "inline Add set blank blocks Update until entered"
+          flutter test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "320dp dark Edit table retains Previous and range inputs"
+
       - name: Analyze Flutter packages
         run: melos exec -c 1 --flutter --fail-fast -- "flutter analyze --no-pub"
 
