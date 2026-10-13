@@ -24,6 +24,7 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.onRemove,
     required this.isOpen,
     required this.onOpenChanged,
+    this.startWithBlankReps = false,
     super.key,
   });
 
@@ -39,6 +40,9 @@ class RoutineSetInputRow extends StatefulWidget {
   /// Owned by the page so only one row's Delete action can be revealed.
   final bool isOpen;
   final ValueChanged<bool> onOpenChanged;
+  /// New Create draft rows display no user-entered repetition target.
+  /// Never use this for a persisted Edit row or a restored valid value.
+  final bool startWithBlankReps;
 
   @override
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
@@ -80,11 +84,16 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     super.initState();
     _reveal = widget.isOpen ? _revealWidth : 0;
     _pastRevealThreshold = widget.isOpen;
+    _valid = !widget.startWithBlankReps;
     _reps = TextEditingController(
-      text: widget.set.prescription.reps.toString(),
+      text: widget.startWithBlankReps
+          ? ''
+          : widget.set.prescription.reps.toString(),
     );
     _repsMax = TextEditingController(
-      text: widget.set.prescription.repsMax?.toString() ?? '',
+      text: widget.startWithBlankReps
+          ? ''
+          : widget.set.prescription.repsMax?.toString() ?? '',
     );
     _originalKg = widget.set.prescription.loadKg;
     _originalWeightText = _displayWeight(_originalKg);
@@ -107,7 +116,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     }
     if (oldWidget.set.prescription.isRepRange !=
         widget.set.prescription.isRepRange) {
-      _repsMax.text = widget.set.prescription.repsMax?.toString() ?? '';
+      _repsMax.text = widget.startWithBlankReps
+          ? ''
+          : widget.set.prescription.repsMax?.toString() ?? '';
     }
     if (oldWidget.unit != widget.unit) {
       // A visible unit preference change uses the current canonical kg bytes,
