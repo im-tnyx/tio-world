@@ -445,7 +445,12 @@ void main() {
       (tester) async {
     final f = _Fixtures();
     await f.open(tester);
-    await tester.tap(find.byKey(const ValueKey('edit-routine-add-set-$_entryId')));
+    final addSet = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
+    await tester.ensureVisible(addSet);
+    expect(tester.getSize(addSet).height, TioButtonTokens.height);
+    expect(find.descendant(of: addSet, matching: find.byIcon(Icons.add)),
+        findsOneWidget);
+    await tester.tap(addSet);
     await tester.pumpAndSettle();
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     const newSet = '90000000-0000-4000-8000-000000000001';
