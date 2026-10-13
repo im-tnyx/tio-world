@@ -464,6 +464,52 @@ void main() {
     expect(create.calls, 0);
   });
 
+  testWidgets('half swipe Delete on final Set also removes Exercise',
+      (tester) async {
+    final create = _Create();
+    var index = 0;
+    const setId = '55555555-5555-4555-8555-555555555555';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => [
+          '44444444-4444-4444-8444-444444444444', setId,
+        ][index++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$setId'));
+    final delete = find.byKey(const ValueKey('routine-set-remove-$setId'));
+    await tester.ensureVisible(swipe);
+    await tester.drag(swipe, const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-44444444-4444-4444-8444-444444444444')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(delete).onPressed, isNotNull);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-44444444-4444-4444-8444-444444444444')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-empty')), findsOneWidget);
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+    expect(create.calls, 0);
+  });
+
   testWidgets('lb inline Weight converts once to canonical kg on Save',
       (tester) async {
     final create = _Create();
