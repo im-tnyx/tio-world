@@ -92,6 +92,19 @@ select pg_temp.assert_raises($sql$
   )
 $sql$, '22023', 'blank Routine name must be rejected');
 
+-- PostgreSQL btrim(text) alone does not strip tabs or newlines.
+-- The server must reject all Unicode/POSIX whitespace-only names even when
+-- the existing metadata table's basic nonblank constraint would allow them.
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    E'\t\n \r','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'tabs, newlines and CR-only name must be rejected');
+
 select pg_temp.assert_raises($sql$
   select public.create_user_workout_routine_with_composition(
     'a5350000-0000-4000-8000-000000000021',
