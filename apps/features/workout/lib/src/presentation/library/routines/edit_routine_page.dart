@@ -13,6 +13,7 @@ import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import 'routine_exercise_picker_page.dart';
+import 'routine_set_editor_sheet.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
 /// Returns true only after a confirmed save or read-verified mutation.
@@ -181,6 +182,35 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     await _source?.load();
   }
 
+  Future<void> _setEditor(
+    RoutineCompositionEntry entry, {
+    RoutineCompositionSet? existing,
+  }) async {
+    final editor = _editor;
+    final unit = widget.weightUnit;
+    if (!_canEdit || editor == null || unit == null) return;
+    final result = await showTioEditorSheet<SetPrescription>(
+      context: context,
+      useSafeArea: true,
+      builder: (_) => RoutineSetEditorSheet(
+        unit: unit,
+        initial: existing?.prescription,
+      ),
+    );
+    if (!mounted ||
+        !identical(editor, _editor) ||
+        !_canEdit ||
+        unit != widget.weightUnit ||
+        result == null) {
+      return;
+    }
+    if (existing == null) {
+      editor.addSet(entry.id, result);
+    } else {
+      editor.editSet(entry.id, existing.id, result);
+    }
+  }
+
   void _validityChanged(String id, bool valid) {
     if (!mounted) return;
     setState(() {
@@ -253,6 +283,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   ? const Icon(Icons.check) : null,
               onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
             ),
+          // Existing Edit functionality still needs a path to Rest and
+          // other advanced prescription attributes. Numeric Reps/Weight
+          // remain inline; this secondary action preserves Rest editing.
+          ListTile(
+            key: const ValueKey('edit-routine-set-details'),
+            title: const Text('Rest & set details'),
+            onTap: () => Navigator.of(sheetContext).pop<Object>('details'),
+          ),
           ListTile(
             key: const ValueKey('edit-routine-type-remove'),
             title: const Text('Remove Set'),
@@ -264,6 +302,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (!mounted || !_canEdit || type == null) return;
     if (type == 'remove') {
       _removeSet(entry, set);
+    } else if (type == 'details') {
+      await _setEditor(entry, existing: set);
     } else if (type is RoutineSetType) {
       final current = set.prescription;
       _editor?.editSet(entry.id, set.id, SetPrescription(
@@ -692,9 +732,13 @@ class _EntryTable extends StatelessWidget {
           const SizedBox(width: TioSize.dp44,
               child: Text('SET', textAlign: TextAlign.center)),
           const SizedBox(width: TioSpacing.sm),
-          const SizedBox(width: TioSize.dp64,
-              child: Text('PREVIOUS', textAlign: TextAlign.center,
-                maxLines: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(
+            width: TioSize.dp64,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('PREVIOUS'),
+            ),
+          ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
             flex: range ? 2 : 1,
