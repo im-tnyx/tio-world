@@ -102,6 +102,54 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('External Set edit refreshes inline values without overwriting weight',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final current = ValueNotifier<SetPrescription>(
+      SetPrescription(reps: 8, loadKg: 12.5, restSeconds: 60),
+    );
+    addTearDown(current.dispose);
+    final emitted = <SetPrescription>[];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+        valueListenable: current,
+        builder: (_, prescription, __) => RoutineSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: prescription),
+          index: 0,
+          normalNumber: 1,
+          onTypePressed: () {},
+          unit: WeightUnit.kg,
+          enabled: true,
+          isOpen: false,
+          onOpenChanged: (_) {},
+          onChanged: (next) {
+            emitted.add(next);
+            current.value = next;
+          },
+          onValidityChanged: (_) {},
+          onRemove: () {},
+        ),
+      )),
+    ));
+    current.value = SetPrescription(reps: 14, loadKg: 32.75, restSeconds: 45);
+    await tester.pump();
+    await tester.pump();
+    final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
+    final weight = find.byKey(const ValueKey('routine-set-weight-$id'));
+    expect(tester.widget<TioInput>(reps).controller!.text, '14');
+    expect(tester.widget<TioInput>(weight).controller!.text, '32.75');
+    expect(emitted, isEmpty);
+    await tester.enterText(reps, '15');
+    await tester.pump();
+    expect(emitted.last.reps, 15);
+    expect(emitted.last.loadKg, 32.75);
+    expect(emitted.last.restSeconds, 45);
+  });
+
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);
