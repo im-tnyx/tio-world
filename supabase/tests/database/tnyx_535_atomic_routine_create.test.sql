@@ -105,6 +105,58 @@ select pg_temp.assert_raises($sql$
   )
 $sql$, '22023', 'tabs, newlines and CR-only name must be rejected');
 
+-- Dart String.trim also removes Unicode White_Space that POSIX [:space:]
+-- on a C.UTF-8 Postgres locale does NOT classify as blank.
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    U&'\00A0','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'NBSP-only name must be rejected');
+
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    U&'\2007','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'figure-space-only name must be rejected');
+
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    U&'\202F','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'narrow-NBSP-only name must be rejected');
+
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    U&'\FEFF','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'BOM-only name must be rejected');
+
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000021',
+    'a5350000-0000-4000-8000-000000000011',
+    U&'\00A0\202F\0009\2007','a5350000-0000-4000-8000-000000000091',
+    '[{"id":"a5350000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'mixed Unicode whitespace-only name must be rejected');
+
 select pg_temp.assert_raises($sql$
   select public.create_user_workout_routine_with_composition(
     'a5350000-0000-4000-8000-000000000021',
