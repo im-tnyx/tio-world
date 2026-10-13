@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [Routine Set typing limits](routine-set-typing-limits.md) | In progress — new child of Draft #546; workout Reps/Range/Weight/Rest input formatters | Workout feature presentation | Restrict excessive typing without schema or visual geometry changes |
+
 | [Routine Detail / Edit reference Set tables](routine-detail-edit-reference-set-tables.md) | In progress — approved read-only Detail table + Edit inline grid child of Draft #544 | Workout feature | Align SET/KG/REPS and Edit PREVIOUS/inline fields without fabricated history |
 
 | [Create Routine header drag/menu + blank Reps](create-routine-exercise-controls-blank-reps.md) | In progress — owner-approved Create-only UI refinements, child of Draft #541 | Workout Create UI | Long-press Exercise reorder, overflow removal, initial blank Reps + Save gating |
