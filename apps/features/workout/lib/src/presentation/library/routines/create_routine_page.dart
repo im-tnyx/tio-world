@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -48,6 +51,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   late TextEditingController _name;
   final Map<String, String> _entryLabels = {};
   final Set<String> _invalidSetIds = {};
+  // Newly created Sets have no entered target. The canonical model requires
+  // positive Reps, so its internal minimum is not interpreted as user input.
+  final Set<String> _untouchedRepSetIds = {};
   String? _openSetId;
 
   @override
@@ -67,6 +73,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _name.dispose();
       _entryLabels.clear();
       _invalidSetIds.clear();
+      _untouchedRepSetIds.clear();
       _openSetId = null;
       _bind();
     }
@@ -113,13 +120,21 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     );
     if (!mounted || !_enabled || exercise == null) return;
     final id = _draft.addPickedExercise(exercise);
-    if (id != null) _entryLabels[id] = exercise.displayName;
+    if (id != null) {
+      _entryLabels[id] = exercise.displayName;
+      final entry = _draft.state.entries.last;
+      for (final set in entry.sets) {
+        _invalidSetIds.add(set.id);
+        _untouchedRepSetIds.add(set.id);
+      }
+    }
   }
 
   void _validityChanged(String setId, bool valid) {
     if (!mounted) return;
     setState(() {
       if (valid) {
+        _untouchedRepSetIds.remove(setId);
         _invalidSetIds.remove(setId);
       } else {
         _invalidSetIds.add(setId);
@@ -132,7 +147,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
     _draft.removeExercise(entry.id);
     _entryLabels.remove(entry.id);
-    _invalidSetIds.removeAll(entry.sets.map((set) => set.id));
+    final ids = entry.sets.map((set) => set.id);
+    _invalidSetIds.removeAll(ids);
+    _untouchedRepSetIds.removeAll(ids);
   }
 
   void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
@@ -146,13 +163,18 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (_openSetId == set.id) _openSetId = null;
     _draft.removeSet(entry.id, set.id);
     _invalidSetIds.remove(set.id);
+    _untouchedRepSetIds.remove(set.id);
   }
 
   void _addSet(RoutineCompositionEntry entry) {
     if (!_enabled) return;
     // The reference's Add Set is immediate: no modal or second confirmation.
     if (_openSetId != null) setState(() => _openSetId = null);
-    _draft.addSet(entry.id, SetPrescription(reps: 1));
+    final setId = _draft.addSet(entry.id, SetPrescription(reps: 1));
+    if (setId != null) {
+      _invalidSetIds.add(setId);
+      _untouchedRepSetIds.add(setId);
+    }
   }
 
   void _setOpen(String id, bool open) {
@@ -326,14 +348,16 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           ),
         ),
         body: SafeArea(
-          child: ListView(
+          child: CustomScrollView(
             key: const ValueKey('create-routine-scroll'),
-            padding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.lg,
-              vertical: TioSpacing.xl,
-            ),
-            children: [
-              TioInput(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  TioSpacing.lg, TioSpacing.xl,
+                  TioSpacing.lg, TioSpacing.none,
+                ),
+                sliver: SliverList.list(children: [
+                  TioInput(
                 key: const ValueKey('create-routine-name'),
                 controller: _name,
                 enabled: _enabled,
@@ -342,9 +366,31 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 onChanged: _draft.rename,
               ),
               const SizedBox(height: TioSpacing.xl),
-              if (_draft.state.entries.isEmpty) _empty(context),
-              for (var i = 0; i < _draft.state.entries.length; i++)
-                _exerciseCard(_draft.state.entries[i], i),
+                  if (_draft.state.entries.isEmpty) _empty(context),
+                ]),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                sliver: SliverReorderableList(
+                  key: const ValueKey('create-routine-exercise-reorder-list'),
+                  itemCount: _draft.state.entries.length,
+                  onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
+                  onReorderEnd: (_) => unawaited(HapticFeedback.selectionClick()),
+                  // SliverReorderableList supplies the already adjusted
+                  // final destination index; controller persists identity.
+                  onReorderItem: (from, to) {
+                    if (_enabled) _draft.moveExercise(from, to);
+                  },
+                  itemBuilder: (context, position) =>
+                      _exerciseCard(_draft.state.entries[position], position),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  TioSpacing.lg, TioSpacing.none,
+                  TioSpacing.lg, TioSpacing.xl,
+                ),
+                sliver: SliverList.list(children: [
               if (status == RoutineCreateStatus.verifying ||
                   status == RoutineCreateStatus.saving)
                 Padding(
@@ -389,6 +435,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                   onPressed: _enabled ? _pick : null,
                 ),
               ],
+                ]),
+              ),
             ],
           ),
         ),
@@ -431,6 +479,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         onTypePressed: () => _selectSetType(entry, set),
         unit: widget.weightUnit,
         enabled: _enabled,
+        startWithBlankReps: _untouchedRepSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
         onChanged: (prescription) =>
@@ -445,44 +494,55 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final range = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     return Padding(
+      key: ValueKey('create-routine-entry-${entry.id}'),
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
       child: Column(
-        key: ValueKey('create-routine-entry-${entry.id}'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Expanded(
-                child: Text(
-                  _entryLabels[entry.id] ?? 'Selected Exercise',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: TioFontSize.size20,
-                    fontWeight: TioFontWeight.w800,
-                    color: colors.textPrimary,
+                child: ReorderableDelayedDragStartListener(
+                  key: ValueKey('create-routine-drag-${entry.id}'),
+                  index: position,
+                  enabled: _enabled,
+                  child: ColoredBox(
+                    color: TioPalette.transparent,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: kMinInteractiveDimension,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _entryLabels[entry.id] ?? 'Selected Exercise',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: TioFontSize.size20,
+                            fontWeight: TioFontWeight.w800,
+                            color: colors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                key: ValueKey('create-routine-remove-${entry.id}'),
-                tooltip: 'Remove Exercise',
-                onPressed: _enabled ? () => _removeEntry(entry) : null,
-                icon: const Icon(Icons.close_rounded),
-              ),
-              IconButton(
-                tooltip: 'Move Exercise up',
-                onPressed: _enabled && position > 0
-                    ? () => _draft.moveExercise(position, position - 1)
-                    : null,
-                icon: const Icon(Icons.arrow_upward_rounded),
-              ),
-              IconButton(
-                tooltip: 'Move Exercise down',
-                onPressed: _enabled && position < _draft.state.entries.length - 1
-                    ? () => _draft.moveExercise(position, position + 1)
-                    : null,
-                icon: const Icon(Icons.arrow_downward_rounded),
+              PopupMenuButton<String>(
+                key: ValueKey('create-routine-options-${entry.id}'),
+                enabled: _enabled,
+                tooltip: 'Exercise options',
+                icon: const Icon(Icons.more_vert_rounded),
+                onSelected: (action) {
+                  if (action == 'remove' && _enabled) _removeEntry(entry);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem<String>(
+                    value: 'remove',
+                    child: Text('Remove Exercise'),
+                  ),
+                ],
               ),
             ],
           ),
