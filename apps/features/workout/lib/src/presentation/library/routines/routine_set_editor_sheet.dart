@@ -16,6 +16,7 @@ class RoutineSetEditorSheet extends StatefulWidget {
 
 class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   late final TextEditingController _reps;
+  late final TextEditingController _repsMax;
   late final TextEditingController _load;
   late final TextEditingController _rest;
   late final String _originalLoad;
@@ -25,6 +26,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   void initState() {
     super.initState();
     _reps = TextEditingController(text: widget.initial?.reps.toString() ?? '');
+    _repsMax = TextEditingController(
+      text: widget.initial?.repsMax?.toString() ?? '',
+    );
     _originalLoad = widget.initial?.loadKg == null
         ? ''
         : UnitFormatters.formatWeight(
@@ -41,6 +45,7 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   @override
   void dispose() {
     _reps.dispose();
+    _repsMax.dispose();
     _load.dispose();
     _rest.dispose();
     super.dispose();
@@ -52,6 +57,8 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
 
   void _confirm() {
     final reps = int.tryParse(_reps.text.trim());
+    final isRange = widget.initial?.isRepRange ?? false;
+    final repsMax = isRange ? int.tryParse(_repsMax.text.trim()) : null;
     final restText = _rest.text.trim();
     final rest = restText.isEmpty ? null : int.tryParse(restText);
     final weightText = _load.text.trim();
@@ -60,6 +67,8 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
     if (reps == null ||
         reps <= 0 ||
         reps > 2147483647 ||
+        (isRange && (repsMax == null ||
+            repsMax < reps || repsMax > 2147483647)) ||
         (restText.isNotEmpty && rest == null) ||
         (rest != null && (rest < 0 || rest > 2147483647)) ||
         (weightText.isNotEmpty && weight == null) ||
@@ -86,6 +95,8 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
     try {
       final prescription = SetPrescription(
         reps: reps,
+        repsMax: repsMax,
+        setType: widget.initial?.setType ?? RoutineSetType.normal,
         loadKg: kilograms,
         restSeconds: rest,
       );
@@ -98,7 +109,9 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   @override
   Widget build(BuildContext context) => TioEditorSheet(
         title: widget.initial == null ? 'Add Set' : 'Edit Set',
-        supportingText: 'Fixed Reps with optional Weight and Rest.',
+        supportingText: widget.initial?.isRepRange ?? false
+            ? 'Rep Range with optional Weight and Rest.'
+            : 'Fixed Reps with optional Weight and Rest.',
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -112,6 +125,19 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 onChanged: _inputChanged,
               ),
             ),
+            if (widget.initial?.isRepRange ?? false) ...[
+              const SizedBox(height: TioSpacing.md),
+              Semantics(
+                label: 'Maximum Reps',
+                child: TioInput.numericEditor(
+                  key: const ValueKey('routine-set-reps-max'),
+                  controller: _repsMax,
+                  hint: 'Maximum Reps',
+                  keyboardType: TextInputType.number,
+                  onChanged: _inputChanged,
+                ),
+              ),
+            ],
             const SizedBox(height: TioSpacing.md),
             Semantics(
               label: 'Weight',

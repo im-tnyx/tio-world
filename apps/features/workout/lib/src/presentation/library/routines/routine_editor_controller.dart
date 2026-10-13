@@ -190,12 +190,23 @@ final class RoutineEditorController extends ChangeNotifier {
     if (index < 0) return null;
     final id = _newUuid();
     final current = _draft[index];
+    final range = current.sets.isNotEmpty &&
+        current.sets.first.prescription.isRepRange;
+    // Existing-Routine Edit must not introduce a fixed Set into an Exercise
+    // containing ranged Sets, which the canonical RPC correctly rejects.
+    final initial = SetPrescription(
+      reps: prescription.reps,
+      repsMax: range ? prescription.reps : null,
+      setType: RoutineSetType.normal,
+      loadKg: prescription.loadKg,
+      restSeconds: prescription.restSeconds,
+    );
     _replaceEntry(index, RoutineCompositionEntry(
       id: current.id,
       exercise: current.exercise,
       sets: [
         ...current.sets,
-        RoutineCompositionSet(id: id, prescription: prescription),
+        RoutineCompositionSet(id: id, prescription: initial),
       ],
     ));
     return id;

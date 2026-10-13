@@ -61,6 +61,8 @@ void main() {
             {
               'id': request.entries.single.sets.single.id,
               'reps': 1,
+              'reps_max': null,
+              'set_type': 'normal',
               'load_kg': null,
               'rest_seconds': null,
             }
