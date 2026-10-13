@@ -14,6 +14,7 @@ import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import 'routine_exercise_picker_page.dart';
+import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
 import 'routine_set_input_row.dart';
 
@@ -223,6 +224,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         _invalidSetIds.add(id);
       }
     });
+  }
+
+  Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
+    if (!_canEdit) return;
+    final openingEditor = _editor;
+    final remove = await showRoutineExerciseOptionsSheet(context);
+    if (!mounted || !identical(openingEditor, _editor) || !_canEdit || !remove) {
+      return;
+    }
+    if (openingEditor == null ||
+        !openingEditor.state.entries.any((current) => current.id == entry.id)) {
+      return;
+    }
+    _removeEntry(entry);
   }
 
   void _removeEntry(RoutineCompositionEntry entry) {
@@ -604,7 +619,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   onSetChanged: (set, prescription) =>
                       _editor?.editSet(entry.id, set.id, prescription),
                   removeSet: (set) => _removeSet(entry, set),
-                  remove: () => _removeEntry(entry),
+                  showOptions: () => _showExerciseOptions(entry),
                   addSet: () => _addSetInline(entry),
                 ),
               );
@@ -649,7 +664,7 @@ class _EntryTable extends StatelessWidget {
     required this.onRepetitionMode,
     required this.onSetChanged,
     required this.removeSet,
-    required this.remove,
+    required this.showOptions,
     required this.addSet,
   });
 
@@ -670,7 +685,7 @@ class _EntryTable extends StatelessWidget {
   final VoidCallback onRepetitionMode;
   final void Function(RoutineCompositionSet, SetPrescription) onSetChanged;
   final ValueChanged<RoutineCompositionSet> removeSet;
-  final VoidCallback remove;
+  final VoidCallback showOptions;
   final VoidCallback addSet;
 
   Widget _row(RoutineCompositionSet set, int index) => RoutineSetInputRow(
@@ -733,20 +748,11 @@ class _EntryTable extends StatelessWidget {
               ),
             ),
           ),
-          PopupMenuButton<String>(
+          IconButton(
             key: ValueKey('edit-routine-entry-options-${entry.id}'),
             tooltip: 'Exercise options',
-            enabled: enabled,
+            onPressed: enabled ? showOptions : null,
             icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (action) {
-              if (action == 'remove' && enabled) remove();
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem<String>(
-                value: 'remove',
-                child: Text('Remove Exercise'),
-              ),
-            ],
           ),
         ]),
         const SizedBox(height: TioSpacing.md),
