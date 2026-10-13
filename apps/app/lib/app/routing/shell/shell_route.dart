@@ -205,7 +205,8 @@ List<RouteBase> _shellBranchChildRoutes(
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {
                                           if (!context.mounted ||
-                                              editorRoute?.isActive != true) {
+                                              editorRoute == null ||
+                                              !editorRoute.isActive) {
                                             return;
                                           }
                                           final navigator =
@@ -222,10 +223,9 @@ List<RouteBase> _shellBranchChildRoutes(
                                           // removal bypasses canPop; the
                                           // disposed controller ignores any
                                           // eventual old-cycle save response.
-                                          navigator.removeRoute(
-                                            editorRoute,
-                                            false,
-                                          );
+                                          // Revoked navigation resolves
+                                          // with null (never a save success).
+                                          navigator.removeRoute(editorRoute);
                                         });
                                       }
                                       final profileAsync =
