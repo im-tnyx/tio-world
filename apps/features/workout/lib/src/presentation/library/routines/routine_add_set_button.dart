@@ -12,13 +12,26 @@ class RoutineAddSetButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: TioButtonTokens.height),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: context.tioColors.surface,
-            borderRadius: BorderRadius.circular(TioRadius.full),
-          ),
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    // Keep Core's sizing, focus shape and states. Only this Workout action's
+    // neutral text/icon color differs from the usual accent ghost button.
+    final themedStyle = Theme.of(context).textButtonTheme.style?.copyWith(
+      foregroundColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.disabled)
+            ? colors.textMuted
+            : colors.textPrimary,
+      ),
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: TioButtonTokens.height),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(TioRadius.full),
+        ),
+        child: TextButtonTheme(
+          data: TextButtonThemeData(style: themedStyle),
           child: TioButton.ghost(
             label: 'Add Set',
             leading: const Icon(Icons.add, size: TioSize.dp20),
@@ -26,5 +39,7 @@ class RoutineAddSetButton extends StatelessWidget {
             onPressed: onPressed,
           ),
         ),
-      );
+      ),
+    );
+  }
 }
