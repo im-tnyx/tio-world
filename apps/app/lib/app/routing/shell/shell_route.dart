@@ -261,6 +261,35 @@ List<RouteBase> _shellBranchChildRoutes(
                                               )
                                             : null,
                                         weightUnit: unit,
+                                        // Recheck the live opening login cycle
+                                        // synchronously immediately before an
+                                        // RPC, not only after the route rebuilds.
+                                        canWrite: () {
+                                          try {
+                                            final liveBoot = ref
+                                                .read(
+                                                  appSessionBootstrapControllerProvider,
+                                                )
+                                                .state;
+                                            final liveAuthAsync =
+                                                ref.read(authSessionStateProvider);
+                                            final liveAuth = liveAuthAsync.isLoading ||
+                                                    liveAuthAsync.hasError
+                                                ? null
+                                                : liveAuthAsync.valueOrNull;
+                                            return liveBoot is AppSessionBootstrapReady &&
+                                                liveBoot.userId == startingOwner &&
+                                                liveAuth is AuthSessionAuthenticated &&
+                                                liveAuth.session.userId ==
+                                                    startingOwner &&
+                                                liveAuth.session.loginCycleId ==
+                                                    startingCycleId;
+                                          } catch (_) {
+                                            // A disposed Consumer cannot retain
+                                            // a capability for the old session.
+                                            return false;
+                                          }
+                                        },
                                       );
                                     },
                                   ),
