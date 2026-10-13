@@ -11,6 +11,7 @@ enum RoutineEditorStatus {
   ready,
   notFound,
   loadFailed,
+  verifying,
   saving,
   saved,
   revisionConflict,
@@ -48,6 +49,7 @@ final class RoutineEditorController extends ChangeNotifier {
     required this.routines,
     required this.compositions,
     this.userExercises,
+    this.canWrite,
     String Function()? newUuid,
   }) : _newUuid = newUuid ?? _uuidV4;
 
@@ -56,7 +58,18 @@ final class RoutineEditorController extends ChangeNotifier {
   final RoutineRepository routines;
   final RoutineCompositionRepository compositions;
   final UserExerciseRepository? userExercises;
+  /// Live opening-session gate. Rechecked after async preflight and before RPC.
+  final bool Function()? canWrite;
   final String Function() _newUuid;
+
+  bool get _authorized {
+    if (_disposed) return false;
+    try {
+      return canWrite?.call() ?? true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static String _uuidV4() => const Uuid().v4();
 
@@ -245,7 +258,7 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Return true only if no write was needed or the RPC confirmed it.
   /// Do not re-send an unknown mutation with a freshly generated token.
   Future<bool> update() async {
-    if (!_state.canEdit || _disposed) return false;
+    if (!_state.canEdit || !_authorized) return false;
     if (!_state.dirty) {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
@@ -263,7 +276,7 @@ final class RoutineEditorController extends ChangeNotifier {
         .toSet();
     if (customRefs.isNotEmpty) {
       _publish(RoutineEditorState(
-        status: RoutineEditorStatus.saving,
+        status: RoutineEditorStatus.verifying,
         entries: _draft,
         revision: _revision,
         dirty: true,
@@ -275,13 +288,15 @@ final class RoutineEditorController extends ChangeNotifier {
       }
       List<Exercise> current;
       try {
-        current = await repository.list();
+        // This is a read-only preflight: never hold Cancel/Back hostage
+        // while a network read is slow. A late timed-out read is ignored.
+        current = await repository.list().timeout(const Duration(seconds: 10));
       } catch (_) {
         if (_disposed) return false;
         _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
         return false;
       }
-      if (_disposed) return false;
+      if (!_authorized) return false;
       final activeRefs = <UserCreatedExerciseRef>{};
       for (final exercise in current) {
         if (exercise.ref is! UserCreatedExerciseRef ||
@@ -298,6 +313,9 @@ final class RoutineEditorController extends ChangeNotifier {
         return false;
       }
     }
+    // Auth may change while Custom source preflight awaits. Route removal
+    // runs on a Flutter frame, so disposal alone is not a write capability.
+    if (!_authorized) return false;
     final command = RoutineCompositionSave(
       routineId: routine.id,
       expectedRevision: _revision,
