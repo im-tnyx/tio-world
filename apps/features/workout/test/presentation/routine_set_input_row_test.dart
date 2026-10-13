@@ -11,7 +11,7 @@ void main() {
     const id = '55555555-5555-4555-8555-555555555555';
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(
-        config: TioThemeConfig(mode: TioThemeMode.dark),
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
       home: Scaffold(body: RoutineSetInputRow(
