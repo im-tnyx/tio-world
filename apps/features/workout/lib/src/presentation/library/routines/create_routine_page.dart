@@ -235,10 +235,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   }
 
   Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
-    if (!_enabled ||
-        entry.sets.any((set) => _invalidSetIds.contains(set.id))) {
-      return;
-    }
+    // Allow choosing the mode before entering any target Reps. Draft Save
+    // remains guarded by _invalidSetIds until those fields are valid.
+    if (!_enabled) return;
     final isRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     final chosen = await showTioEditorSheet<bool>(
@@ -267,10 +266,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     );
     if (!mounted || !_enabled || chosen == null) return;
     final current = _draft.state.entries.where((e) => e.id == entry.id);
-    if (current.length != 1 ||
-        current.single.sets.any((s) => _invalidSetIds.contains(s.id))) {
-      return;
-    }
+    if (current.length != 1) return;
     _draft.changeRepetitionMode(entry.id, range: chosen);
   }
 
@@ -358,14 +354,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 ),
                 sliver: SliverList.list(children: [
                   TioInput(
-                key: const ValueKey('create-routine-name'),
-                controller: _name,
-                enabled: _enabled,
-                hint: 'Routine name',
-                textCapitalization: TextCapitalization.words,
-                onChanged: _draft.rename,
-              ),
-              const SizedBox(height: TioSpacing.xl),
+                    key: const ValueKey('create-routine-name'),
+                    controller: _name,
+                    enabled: _enabled,
+                    hint: 'Routine name',
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: _draft.rename,
+                  ),
+                  const SizedBox(height: TioSpacing.xl),
                   if (_draft.state.entries.isEmpty) _empty(context),
                 ]),
               ),

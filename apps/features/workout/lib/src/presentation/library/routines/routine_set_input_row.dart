@@ -119,6 +119,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       _repsMax.text = widget.startWithBlankReps
           ? ''
           : widget.set.prescription.repsMax?.toString() ?? '';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _update();
+      });
     }
     if (oldWidget.unit != widget.unit) {
       // A visible unit preference change uses the current canonical kg bytes,
