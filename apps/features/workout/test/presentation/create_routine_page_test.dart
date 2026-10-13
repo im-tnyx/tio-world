@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -271,6 +272,196 @@ void main() {
         findsOneWidget);
     expect(create.calls, 0);
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+  });
+
+  testWidgets('full swipe deletes selected Set without a Delete tap and haptics',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final haptics = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add(call.arguments as String? ?? '');
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    final create = _Create();
+    var index = 0;
+    const first = '55555555-5555-4555-8555-555555555555';
+    const second = '66666666-6666-4666-8666-666666666666';
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      first, second,
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => ids[index++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final addSet = find.byKey(const ValueKey(
+      'create-routine-add-set-44444444-4444-4444-8444-444444444444',
+    ));
+    await tester.ensureVisible(addSet);
+    await tester.tap(addSet);
+    await tester.pumpAndSettle();
+
+    final secondSwipe = find.byKey(const ValueKey('routine-set-swipe-$second'));
+    await tester.ensureVisible(secondSwipe);
+    await tester.drag(secondSwipe, const Offset(-320, 0));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-set-$second')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-set-$first')),
+        findsOneWidget);
+    expect(haptics, contains('HapticFeedbackType.mediumImpact'));
+    expect(create.calls, 0);
+    expect(tester.widget<TextButton>(
+        find.byKey(const ValueKey('create-routine-save'))).onPressed,
+        isNotNull);
+  });
+
+  testWidgets('reversing a full-length drag before release never deletes Set',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final haptics = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          haptics.add(call.arguments as String? ?? '');
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    final create = _Create();
+    var index = 0;
+    const first = '55555555-5555-4555-8555-555555555555';
+    final ids = [
+      '44444444-4444-4444-8444-444444444444', first,
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => ids[index++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$first'));
+    await tester.ensureVisible(swipe);
+    final gesture = await tester.startGesture(tester.getCenter(swipe));
+    await gesture.moveBy(const Offset(-320, 0));
+    await tester.pump();
+    await gesture.moveBy(const Offset(300, 0));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-set-$first')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('create-routine-entry-44444444-4444-4444-8444-444444444444')),
+        findsOneWidget);
+    expect(haptics, isNot(contains('HapticFeedbackType.mediumImpact')));
+    expect(create.calls, 0);
+  });
+
+  testWidgets('full swipe last Set removes Exercise and disables Create Save',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final create = _Create();
+    var index = 0;
+    const onlySet = '55555555-5555-4555-8555-555555555555';
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      onlySet,
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () => ids[index++],
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$onlySet'));
+    await tester.ensureVisible(swipe);
+    await tester.drag(swipe, const Offset(-320, 0));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-set-$onlySet')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-44444444-4444-4444-8444-444444444444')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-empty')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(
+        find.byKey(const ValueKey('create-routine-save'))).onPressed,
+        isNull);
+    expect(create.calls, 0);
   });
 
   testWidgets('lb inline Weight converts once to canonical kg on Save',
