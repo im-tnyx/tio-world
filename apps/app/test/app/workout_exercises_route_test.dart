@@ -639,39 +639,80 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
-  testWidgets('new Routine created in Program Detail appears under Library Program',
+  testWidgets('atomic Create Routine appears under owning Library Program',
       (tester) async {
-    final (_, router) = await _app(tester, AppMode.hybrid);
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
 
     const programId = '20000000-0000-4000-8000-000000000001';
-    const existingRoutineId = '30000000-0000-4000-8000-000000000001';
-    expect(
-      find.byKey(const ValueKey('library-routine-$programId-$existingRoutineId')),
-      findsOneWidget,
-    );
-
     await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
-    final nameField = find.descendant(
-      of: find.byKey(const ValueKey('routine-name-field')),
-      matching: find.byType(EditableText),
+
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('create-routine-name')),
+      'Added From Detail',
     );
-    await tester.enterText(nameField, 'Added From Detail');
-    await tester.tap(find.byKey(const ValueKey('routine-name-submit')));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'routine-exercise-picker-ex_synthetic_route_curl',
+    )));
     await tester.pumpAndSettle();
 
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    expect(reps, findsOneWidget);
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
     expect(find.text('Added From Detail'), findsOneWidget);
+
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-
     expect(find.byType(LibraryPage), findsOneWidget);
-    final programRoutines = find.byKey(const ValueKey('library-routines-$programId'));
-    expect(find.descendant(of: programRoutines,
-        matching: find.text('Added From Detail')), findsOneWidget);
+    final programRoutines = find.byKey(
+      const ValueKey('library-routines-$programId'),
+    );
+    expect(
+      find.descendant(
+        of: programRoutines,
+        matching: find.text('Added From Detail'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('missing atomic Create repository never opens legacy name sheet',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'program-open-20000000-0000-4000-8000-000000000001',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
   testWidgets('Program Detail fails closed when Routine repository is unavailable',
