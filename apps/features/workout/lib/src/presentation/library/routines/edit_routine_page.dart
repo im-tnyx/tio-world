@@ -14,6 +14,7 @@ import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import 'routine_exercise_picker_page.dart';
 import 'routine_set_editor_sheet.dart';
+import 'routine_set_input_row.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
 /// Returns true only after a confirmed save or read-verified mutation.
