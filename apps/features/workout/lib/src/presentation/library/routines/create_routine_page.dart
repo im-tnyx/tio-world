@@ -170,26 +170,39 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           backgroundColor: colors.background,
           elevation: TioElevation.none,
           scrolledUnderElevation: TioElevation.none,
-          leading: TextButton(
-            key: const ValueKey('create-routine-cancel'),
-            onPressed: locked ? null : () => Navigator.of(context).pop<bool>(false),
-            child: const Text('Cancel'),
+          automaticallyImplyLeading: false,
+          // The reference uses two visible text actions, not an icon-only
+          // back button. Keep them inside the governed top bar so Cancel
+          // cannot be clipped to Material's narrow leading-icon slot.
+          title: Row(
+            children: [
+              TextButton(
+                key: const ValueKey('create-routine-cancel'),
+                onPressed: locked
+                    ? null
+                    : () => Navigator.of(context).pop<bool>(false),
+                child: const Text('Cancel'),
+              ),
+              Expanded(
+                child: Text(
+                  'Create Routine',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: TioFontSize.size20,
+                    fontWeight: TioFontWeight.w800,
+                  ),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('create-routine-save'),
+                onPressed: canSave ? _save : null,
+                child: const Text('Save'),
+              ),
+            ],
           ),
-          title: Text(
-            'Create Routine',
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: TioFontSize.size20,
-              fontWeight: TioFontWeight.w800,
-            ),
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('create-routine-save'),
-              onPressed: canSave ? _save : null,
-              child: const Text('Save'),
-            ),
-          ],
         ),
         body: SafeArea(
           child: ListView(
