@@ -54,10 +54,10 @@ wait_for_lock() {
   for _ in $(seq 1 100); do
     local waiting
     waiting="$(psql "$database_url" --tuples-only --no-align \
-      --set=ON_ERROR_STOP=1 --set=pattern="%$pattern%" \
+      --set=ON_ERROR_STOP=1 \
       --command="select exists (
         select 1 from pg_stat_activity where state='active'
-        and wait_event_type='Lock' and query ilike :'pattern'
+        and wait_event_type='Lock' and query ilike '%$pattern%'
       )" | tr -d '[:space:]')"
     if [[ "$waiting" == t ]]; then return 0; fi
     if ! kill -0 "$pid" 2>/dev/null; then
