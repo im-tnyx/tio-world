@@ -1,6 +1,6 @@
 # GitHub #535 — Atomic Routine Create foundation
 
-**Status:** In progress — bounded database-first draft; no user-visible change or hosted deployment.
+**Status:** Database-first source CI validated at `cb1679c2`; Draft PR #536 unmerged, independent review pending; no user-visible change or hosted deployment.
 **Primary owner:** Supabase Workout data contract; later Flutter Workout/app integration after PR #533.
 **Affected platforms:** Supabase Postgres/RLS, later Flutter mobile.
 
@@ -24,11 +24,11 @@
 **PR / tracker:** GitHub #535, #533 prerequisite, #534 archived-Custom save race; Linear TNYX-81 Backlog blocked by TNYX-78/TNYX-80.
 **Current implementation state:** Database contract audit confirmed existing metadata create and separate save RPC permit empty Routine. New atomic RPC + SQL tests are the first disjoint slice.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/supabase-db-ci.yml`.
-**Validation completed at SHA:** None yet for #535. Existing PR #533 source CI at its distinct head is not #535 validation.
-**Validation remaining:** Exact-head disposable Supabase DB CI including new SQL regression and concurrency tests; security-advisor review, manual code/security review. Flutter integration/device QA afterward.
-**Current blocker:** PR #533's canonical Exercise picker/editor is unmerged and owned by another implementation slice. Never clone or edit its source concurrently.
+**Validation completed at SHA:** `cb1679c2e0488e23a31bcc1d7f7b8e0f44709bfa`: [Supabase Database CI #38359620572](https://github.com/im-tnyx/tio-world/actions/runs/38359620572) SUCCESS (full migration replay, existing SQL/race tests, #535 SQL test, #535 two-session same-ID and archive-order races, no new lint error). Commit attribution guard and runner SUCCESS on same SHA. Initial #535 SQL test CI failed from an overly literal catalog search_path assertion; repaired test-only to Postgres stored `search_path=""` verified against deployed canonical function; no RPC semantic change.
+**Validation remaining:** Independent latest-HEAD Codex/security review, then Flutter Create integration and device QA in a separate owned slice after #533 dependency clears. Draft docs-only HEAD after this checkpoint is not claimed to be the SQL-tested SHA.
+**Current blocker:** PR #533's canonical Exercise picker/editor remains Draft and exclusive. Its latest Codex re-review has 3 unresolved P2 (login-cycle pre-RPC recheck, indefinite preflight Cancel/Back lock, truncated Custom owner listing). #535 Flutter Create integration must not clone picker/edit while these remain unresolved.
 **Open review finding IDs:** #534 server-side archive-vs-save hardening for existing **edit** RPC remains open.
-**Next exact action:** Review/implement transactional create function and tests, run exact-head CI, then request independent review. Do not deploy or merge without explicit owner gate.
+**Next exact action:** Request independent #536 DB/security review at latest HEAD, disposition findings without merging. Once #533 is separately reviewed and owner-approved/merged, start feature-owned Create integration on fresh main with explicit single-owner transfer; no hosted deployment or merge without owner gate.
 
 ## Discovery / Runtime Evidence
 - `ProgramDetailPage._RoutineNameSheet` enables Create for nonblank name only; `ProgramRoutinesController.create(name)` calls `RoutineRepository.create` with no entries. `program_detail_page_test.dart` preserves that older metadata-only behavior until full integration.
@@ -49,3 +49,11 @@
 - Supabase Security Advisor has existing `authenticated_security_definer_function_executable` notices. New narrow API must justify least-privilege invocation and no general role execution; record risk but don't silence advisory.
 - No production Supabase change, no branch merge, no release until explicit owner action.
 - Final status: PARTIAL until complete Flutter Create flow with Save disabled for zero entries and atomic persisted success.
+
+## 2026-10-13 database-source validation milestone
+
+- Draft [PR #536](https://github.com/im-tnyx/tio-world/pull/536): exact database source SHA `cb1679c2`. Migration, SQL regression matrix, 3 two-session lock scenarios and CI added. Remote `main@ee5ed4cc` remained unchanged.
+- GitHub [Supabase Database CI #38359620572](https://github.com/im-tnyx/tio-world/actions/runs/38359620572): **SUCCESS**. Exact SHA attribution check and runner: **SUCCESS**. The earlier test run failed on test-only `pg_proc.proconfig` formatting, not on migration replay, and the following exact-source run passed the full matrix.
+- Supabase hosted schema was **not modified**. Existing metadata-only direct client INSERT remains available until a safe client rollout, so no general product-level guarantee that empty Routines cannot be created yet.
+- New Codex #533 re-review has three unresolved P2 threads; do not consume its editor source as settled or fork a second picker. #534 edit-save Custom archive race remains open and is not a claim about #536.
+- Flutter Create screen, Save disabled state, and device QA are not implemented in this DB-first PR. These acceptance items remain mandatory before closing #535.
