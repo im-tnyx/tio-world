@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -590,6 +591,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   index: index,
                   unit: widget.weightUnit!,
                   enabled: _canEdit,
+                  canMoveUp: index > 0,
+                  canMoveDown: index < state.entries.length - 1,
+                  moveUp: () => _editor?.moveExercise(index, index - 1),
+                  moveDown: () => _editor?.moveExercise(index, index + 1),
                   openSetId: _openSetId,
                   blankSetIds: _blankSetIds,
                   onSetOpen: _setOpen,
@@ -632,6 +637,10 @@ class _EntryTable extends StatelessWidget {
     required this.index,
     required this.unit,
     required this.enabled,
+    required this.canMoveUp,
+    required this.canMoveDown,
+    required this.moveUp,
+    required this.moveDown,
     required this.openSetId,
     required this.blankSetIds,
     required this.onSetOpen,
@@ -649,6 +658,10 @@ class _EntryTable extends StatelessWidget {
   final int index;
   final WeightUnit unit;
   final bool enabled;
+  final bool canMoveUp;
+  final bool canMoveDown;
+  final VoidCallback moveUp;
+  final VoidCallback moveDown;
   final String? openSetId;
   final Set<String> blankSetIds;
   final void Function(String, bool) onSetOpen;
@@ -689,7 +702,14 @@ class _EntryTable extends StatelessWidget {
       children: [
         Row(children: [
           Expanded(
-            child: ReorderableDelayedDragStartListener(
+            child: Semantics(
+              customSemanticsActions: enabled ? {
+                if (canMoveUp)
+                  const CustomSemanticsAction(label: 'Move exercise up'): moveUp,
+                if (canMoveDown)
+                  const CustomSemanticsAction(label: 'Move exercise down'): moveDown,
+              } : const {},
+              child: ReorderableDelayedDragStartListener(
               key: ValueKey('edit-routine-drag-${entry.id}'),
               index: index,
               enabled: enabled,
@@ -709,6 +729,7 @@ class _EntryTable extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
               ),
             ),
           ),
