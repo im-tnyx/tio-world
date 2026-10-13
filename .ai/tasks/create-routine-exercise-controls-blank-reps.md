@@ -1,6 +1,6 @@
 # Create Routine Exercise controls + blank initial Reps
 
-**Status:** In progress; owner-approved UI refinements in this conversation.
+**Status:** Implementation and focused tests verified on synthetic CI source; [Draft PR #544](https://github.com/im-tnyx/tio-world/pull/544), independent Codex review pending; **no merge/deployment/device QA**.
 **Implementation owner:** This connected GitHub session, exclusively on `tnyx/create-routine-long-press-blank-reps`; #537 and #541 parent owners' branches untouched.
 **Scope:** Workout Create Routine page only, stacked child of Draft #541 (parent of #541 is Draft #537). Existing Edit Routine page outside this UI slice.
 
@@ -18,10 +18,18 @@
 - No physical device, Flutter SDK or local source worktree available via this connected session; remote source/CI tests must be explicitly verified.
 
 ## Gates
-- [ ] Implement bounded Create-only interaction and initial blank field (no persistence of untouched canonical placeholder).
-- [ ] Unit/widget tests: Add Exercise blank Reps and Save disabled, Add Set blank & Save blocked until both entered, range mode remains blank for unentered Set, invalid deletion restores guard, long-press reorder with two Exercise IDs, 3-dot removal, menu disabled while locked, unchanged Set Type/swipe.
-- [ ] Exact-head Flutter Analyze+Workout tests via main-targeted validation if needed; do not claim pass from authored tests.
-- [ ] Independent review and follow-up from Codex.
+- [x] Implement bounded Create-only interaction and initial blank field with pending Set UUID Save gate; source commit `6f10e866`.
+- [x] Focused widget regressions authored and **executed on synthetic CI-only branch** for blank initial/added Reps, Rep Range Min/Max, invalid delete, long-press reorder with two Exercise IDs, 3-dot Remove, unchanged Set Type/swipe. Locked-state menu requires physical QA; not separately proven.
+- [x] [Synthetic CI-only PR #545](https://github.com/im-tnyx/tio-world/pull/545) source `55d53ad` ran [Flutter CI #38400987188](https://github.com/im-tnyx/tio-world/actions/runs/38400987188): Flutter Analyze SUCCESS; Dart Analyze SUCCESS; Workout Flutter tests SUCCESS; Shared Dart tests SUCCESS. Synthetic branch includes scratch-only ancestor #537 lint fixes; this is **not original #544 exact-head PASS**. Full Flutter suite FAILED in unchanged #537 app route test at `workout_exercises_route_test.dart:661` (`Bad state: No element` on legacy `routine-name-field`). Workspace Dart tests skipped.
+- [ ] [Codex independent review requested](https://github.com/im-tnyx/tio-world/pull/544#issuecomment-6146083732) for exact #544 source; bot review Running at last check. Resolve all confirmed findings first.
 - [ ] Parent stack reconciling #537 route test and lint; no merge, Supabase migration, deployment or device acceptance until separate owner gates.
 
 **Current implementation boundary:** one new Draft child PR only. Existing Edit UI controls preserved pending separate request. Reps persisted model and Supabase untouched.
+
+## 2026-10-13 validated source handoff
+- Owner request implemented in new *child* PR [#544](https://github.com/im-tnyx/tio-world/pull/544), base Draft #541, 6 commits ahead/0 behind; no parent source branch changes. Source SHA `6f10e86687d79c67a17b17c941a43ee0a6663da8`.
+- `CreateRoutinePage`: Flutter `SliverReorderableList` + `ReorderableDelayedDragStartListener` wraps Exercise **title/header only**; popup `more_vert_rounded` offers existing Remove Exercise in place of X and Up/Down buttons; existing domain controller reorders immutable, identity-keyed entries. Reorder haptics. Set type/swipe/Rep Range interactions unaffected.
+- Newly picked/additional Sets use temporary positive internal canonical `reps=1` because `SetPrescription` forbids missing reps, but *user-visible Reps is blank*. `_untouchedRepSetIds` IDs are added to `_invalidSetIds`; Save remains disabled until user explicitly enters valid fixed Reps or valid range Min+Max. Row `startWithBlankReps` only affects Create new draft rows, not persisted Edit. Removing Set/Exercise clears guards. Repetition mode can be selected before Reps without auto-populating blank Min/Max.
+- Real GitHub Actions CI-only run [#38400987188](https://github.com/im-tnyx/tio-world/actions/runs/38400987188) **succeeded** in Flutter Analyze, Dart Analyze, targeted Workout Flutter tests and Shared Dart tests on synthetic source `55d53ad`, which adds scratch-only #537 null comparison removal, old test fixture const adjustments, and focused CI probes. Full workspace Flutter suite still fails **only observed known ancestor #537 stale route test** `apps/app/test/app/workout_exercises_route_test.dart:661`, Dart workspace tests skipped. **NO exact original PR #544 head CI PASS claim.**
+- Security/deployment: no DB/SQL changes or production edits. Draft #533/#537/#541/#544 and DB Draft #536/#540 unmerged; physical device/large text/accessibility test not run; #537 parent fixes and stack reconciliation required for eventual exact-head full CI.
+- **Next:** Codex review result, resolve supported findings, ensure CI-only PR #545 is closed unmerged after evidence, review stack ownership, refresh Linear W4 parent comment, do not merge or deploy without explicit authorization.
