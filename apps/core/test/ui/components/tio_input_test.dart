@@ -89,6 +89,68 @@ void main() {
       expect(editableText.controller.selection.extentOffset, 2);
     });
 
+    testWidgets('boxedNumber reuses outlined Core input with compact defaults',
+        (tester) async {
+      var changed = '';
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.boxedNumber(
+            value: '12',
+            hint: '–',
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (value) => changed = value,
+          ),
+        ),
+      );
+
+      final component = tester.widget<TioInput>(find.byType(TioInput));
+      final field = tester.widget<TextField>(find.byType(TextField));
+      final decoration = field.decoration!;
+      expect(component.variant, TioInputVariant.boxedNumber);
+      expect(field.textAlign, TextAlign.center);
+      expect(field.textAlignVertical, TextAlignVertical.center);
+      expect(field.keyboardType,
+          const TextInputType.numberWithOptions(decimal: true));
+      expect(field.style!.fontSize, TioInputTokens.compactTextFontSize);
+      expect(field.style!.fontWeight, TioFontWeight.w700);
+      expect(decoration.enabledBorder, isA<OutlineInputBorder>());
+      expect(decoration.focusedBorder, isA<OutlineInputBorder>());
+      expect(
+        (decoration.enabledBorder! as OutlineInputBorder).borderRadius,
+        BorderRadius.circular(TioInputTokens.radius),
+      );
+      expect(decoration.hintText, '–');
+      expect(decoration.hintStyle!.fontSize,
+          TioInputTokens.compactHintFontSize);
+      expect(decoration.counterText, '');
+      expect(decoration.contentPadding,
+          const EdgeInsets.symmetric(
+            horizontal: TioInputTokens.compactContentHorizontalPadding,
+            vertical: TioInputTokens.compactContentVerticalPadding,
+          ));
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+      final editableText =
+          tester.widget<EditableText>(find.byType(EditableText));
+      expect(editableText.controller.selection.baseOffset, 0);
+      expect(editableText.controller.selection.extentOffset, 2);
+
+      await tester.enterText(find.byType(TextFormField), '2a5');
+      expect(changed, '25');
+    });
+
+    testWidgets('existing compactNumber remains borderless, not boxed',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(TioInput.compactNumber(value: '12', onChanged: (_) {})),
+      );
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(decoration.enabledBorder, InputBorder.none);
+      expect(decoration.focusedBorder, isA<UnderlineInputBorder>());
+    });
+
     testWidgets(
         'numericEditor preserves dense exact-entry presentation and behavior',
         (tester) async {
