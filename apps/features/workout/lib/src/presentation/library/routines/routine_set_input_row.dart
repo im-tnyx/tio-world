@@ -324,6 +324,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
         textInputAction: action,
         inputFormatters: formatters,
         textAlign: TextAlign.center,
+        selectAllOnFocus: true,
         textStyle: TextStyle(
           color: widget.enabled ? colors.textPrimary : colors.textMuted,
           fontSize: TioInputTokens.compactTextFontSize,
