@@ -61,3 +61,11 @@ final userExerciseRepositoryProvider =
   if (supabaseClient == null) return null;
   return SupabaseUserExerciseRepository(client: supabaseClient);
 });
+
+/// Atomic nonempty Routine creation (#535/#536). A null production client is
+/// NOT permission to fall back to the legacy metadata-only CREATE route.
+final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  return SupabaseRoutineCreateRepository(client: client);
+});

@@ -78,6 +78,7 @@ List<RouteBase> _shellBranchChildRoutes(
           final programRepository = ref.watch(programRepositoryProvider);
           final routineRepository = ref.watch(routineRepositoryProvider);
           final compositions = ref.watch(routineCompositionRepositoryProvider);
+          final createRepository = ref.watch(routineCreateRepositoryProvider);
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
@@ -317,6 +318,137 @@ List<RouteBase> _shellBranchChildRoutes(
                           onRoutinePressed: compositions == null
                               ? null
                               : (routine) => openRoutine(program, routine),
+                          onCreateRoutine: createRepository == null ||
+                                  compositions == null ||
+                                  userExerciseRepository == null
+                              ? null
+                              : (suggestedName) async {
+                                  final boot = ref
+                                      .read(appSessionBootstrapControllerProvider)
+                                      .state;
+                                  final initialOwner = boot is AppSessionBootstrapReady
+                                      ? boot.userId
+                                      : null;
+                                  final authValue = ref.read(authSessionStateProvider);
+                                  final initialAuth = authValue.isLoading ||
+                                          authValue.hasError
+                                      ? null
+                                      : authValue.valueOrNull;
+                                  final initialAuthOwner =
+                                      initialAuth is AuthSessionAuthenticated
+                                          ? initialAuth.session.userId
+                                          : null;
+                                  final initialCycle =
+                                      initialAuth is AuthSessionAuthenticated
+                                          ? initialAuth.session.loginCycleId
+                                          : null;
+                                  if (initialOwner == null ||
+                                      initialOwner != initialAuthOwner) {
+                                    return false;
+                                  }
+                                  var revoked = false;
+                                  final confirmed = await Navigator.of(context)
+                                      .push<bool>(MaterialPageRoute(
+                                    builder: (_) => Consumer(
+                                      builder: (context, ref, _) {
+                                        final boot = ref
+                                            .watch(appSessionBootstrapControllerProvider)
+                                            .state;
+                                        final owner = boot is AppSessionBootstrapReady
+                                            ? boot.userId
+                                            : null;
+                                        final authAsync =
+                                            ref.watch(authSessionStateProvider);
+                                        final auth = authAsync.isLoading ||
+                                                authAsync.hasError
+                                            ? null
+                                            : authAsync.valueOrNull;
+                                        final authOwner =
+                                            auth is AuthSessionAuthenticated
+                                                ? auth.session.userId
+                                                : null;
+                                        final cycle =
+                                            auth is AuthSessionAuthenticated
+                                                ? auth.session.loginCycleId
+                                                : null;
+                                        final authorized =
+                                            owner == initialOwner &&
+                                            authOwner == initialOwner &&
+                                            cycle == initialCycle;
+                                        if (!authorized && !revoked) {
+                                          revoked = true;
+                                          final privateRoute =
+                                              ModalRoute.of(context);
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            if (!context.mounted ||
+                                                privateRoute == null ||
+                                                !privateRoute.isActive) {
+                                              return;
+                                            }
+                                            // Remove private draft and any
+                                            // nested picker/Set overlays, even
+                                            // during a PopScope-blocked save.
+                                            Navigator.of(context)
+                                                .removeRoute(privateRoute);
+                                          });
+                                        }
+                                        final profile =
+                                            ref.watch(profileDataProvider);
+                                        final unit = authorized &&
+                                                !profile.isLoading &&
+                                                !profile.hasError
+                                            ? profile.valueOrNull
+                                                ?.unitPreferences.weightUnit
+                                            : null;
+                                        if (!authorized || unit == null) {
+                                          return const Scaffold(
+                                            body: Center(
+                                              child: Text(
+                                                'Create Routine is unavailable.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        return CreateRoutinePage(
+                                          key: ValueKey(
+                                            'create-routine-owner-$owner-cycle-$cycle',
+                                          ),
+                                          program: program,
+                                          initialName: suggestedName,
+                                          createRepository: createRepository,
+                                          catalogRepository: catalog,
+                                          userExerciseRepository:
+                                              userExerciseRepository,
+                                          routineRepository: routineRepository,
+                                          compositionRepository: compositions,
+                                          weightUnit: unit,
+                                          canWrite: () {
+                                            try {
+                                              final current = ref
+                                                  .read(appSessionBootstrapControllerProvider)
+                                                  .state;
+                                              final a = ref
+                                                  .read(authSessionStateProvider);
+                                              final auth = a.isLoading || a.hasError
+                                                  ? null
+                                                  : a.valueOrNull;
+                                              return current is AppSessionBootstrapReady &&
+                                                  current.userId == initialOwner &&
+                                                  auth is AuthSessionAuthenticated &&
+                                                  auth.session.userId == initialOwner &&
+                                                  auth.session.loginCycleId ==
+                                                      initialCycle;
+                                            } catch (_) {
+                                              return false;
+                                            }
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ));
+                                  return confirmed == true;
+                                },
                         ),
                       ),
                     );

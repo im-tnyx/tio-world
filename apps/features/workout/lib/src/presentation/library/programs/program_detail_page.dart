@@ -15,6 +15,7 @@ class ProgramDetailPage extends StatefulWidget {
     super.key,
     this.newRoutineUuid,
     this.onRoutinePressed,
+    this.onCreateRoutine,
   });
 
   final Program program;
@@ -23,6 +24,10 @@ class ProgramDetailPage extends StatefulWidget {
   /// Injected only for deterministic tests; production uses a random UUID v4.
   final String Function()? newRoutineUuid;
   final Future<void> Function(Routine routine)? onRoutinePressed;
+
+  /// Atomic Create draft action supplied by the authenticated app shell.
+  /// Production must never fall back to metadata-only creation.
+  final Future<bool> Function(String suggestedName)? onCreateRoutine;
 
   @override
   State<ProgramDetailPage> createState() => _ProgramDetailPageState();
@@ -87,6 +92,17 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   Future<void> _openCreate() async {
     final controller = _controller;
     if (!_canEdit || controller == null) return;
+    final create = widget.onCreateRoutine;
+    if (create != null) {
+      final created = await create(controller.suggestedName());
+      if (mounted && identical(controller, _controller) && created) {
+        await controller.load();
+      }
+      return;
+    }
+    // Legacy test/embedded callers without the new atomic Create capability.
+    // The production app shell always provides onCreateRoutine when the
+    // durable Routine client exists, and never takes this legacy path.
     await showTioEditorSheet<void>(
       context: context,
       useRootNavigator: true,
