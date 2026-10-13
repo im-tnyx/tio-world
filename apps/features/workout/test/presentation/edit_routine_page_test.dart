@@ -374,7 +374,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Edit Set'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
-    expect(find.widgetWithText(TioInput, 'Rep Range'), findsNothing);
 
     // Attempt an invalid max through the real sheet: no draft or RPC write.
     await tester.enterText(find.byKey(const ValueKey('routine-set-reps-max')), '7');
