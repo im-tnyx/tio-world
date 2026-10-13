@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [Routine Set boxed Create/Edit fields + compact Add Set](routine-set-boxed-inputs-compact-add-set.md) | In progress — owner-approved visual child of Draft #549; outlined numeric cells and governed compact Add Set | Workout presentation | Validate at exact head; inherited parent review/CI blockers remain |
+
 | [Routine Set typing limits](routine-set-typing-limits.md) | In progress — new child of Draft #546; workout Reps/Range/Weight/Rest input formatters | Workout feature presentation | Restrict excessive typing without schema or visual geometry changes |
 
 | [Routine Detail / Edit reference Set tables](routine-detail-edit-reference-set-tables.md) | In progress — approved read-only Detail table + Edit inline grid child of Draft #544 | Workout feature | Align SET/KG/REPS and Edit PREVIOUS/inline fields without fabricated history |
