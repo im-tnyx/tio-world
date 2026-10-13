@@ -4,7 +4,8 @@ import 'package:tio_core/core.dart';
 /// Neutral full-width Set action shared by Routine Create and Edit.
 ///
 /// The governed Core button still owns semantics, focus, states and its
-/// accessible 46dp minimum target (it can grow for large text). Only the approved neutral surface is composed here.
+/// accessible 46dp minimum target (it can grow for large text).
+/// Only the approved neutral surface is composed here.
 class RoutineAddSetButton extends StatelessWidget {
   const RoutineAddSetButton({required this.onPressed, super.key});
 
