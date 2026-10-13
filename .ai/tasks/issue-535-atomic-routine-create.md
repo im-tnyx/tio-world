@@ -1,6 +1,6 @@
 # GitHub #535 — Atomic Routine Create foundation
 
-**Status:** Database-first source CI validated at `cb1679c2`; Draft PR #536 unmerged, independent review pending; no user-visible change or hosted deployment.
+**Status:** Database-first source CI validated at `bfb7daa0`; Codex P2-01/P2-02 corrected and their threads resolved with evidence; fresh independent latest-head review pending. Draft PR #536 unmerged; no user-visible change or hosted deployment.
 **Primary owner:** Supabase Workout data contract; later Flutter Workout/app integration after PR #533.
 **Affected platforms:** Supabase Postgres/RLS, later Flutter mobile.
 
@@ -25,10 +25,10 @@
 **Current implementation state:** Database contract audit confirmed existing metadata create and separate save RPC permit empty Routine. New atomic RPC + SQL tests are the first disjoint slice.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/supabase-db-ci.yml`.
 **Validation completed at SHA:** `cb1679c2e0488e23a31bcc1d7f7b8e0f44709bfa`: [Supabase Database CI #38359620572](https://github.com/im-tnyx/tio-world/actions/runs/38359620572) SUCCESS (full migration replay, existing SQL/race tests, #535 SQL test, #535 two-session same-ID and archive-order races, no new lint error). Commit attribution guard and runner SUCCESS on same SHA. Initial #535 SQL test CI failed from an overly literal catalog search_path assertion; repaired test-only to Postgres stored `search_path=""` verified against deployed canonical function; no RPC semantic change.
-**Validation remaining:** Independent latest-HEAD Codex/security review, then Flutter Create integration and device QA in a separate owned slice after #533 dependency clears. Draft docs-only HEAD after this checkpoint is not claimed to be the SQL-tested SHA.
+**Validation remaining:** Fresh latest-HEAD Codex/security re-review, then Flutter Create integration and device QA in a separate owned slice after #533 dependency clears. A new docs-only handoff HEAD must be independently checked; old source CI is not automatically carried forward.
 **Current blocker:** PR #533's canonical Exercise picker/editor remains Draft and exclusive. Its latest Codex re-review has 3 unresolved P2 (login-cycle pre-RPC recheck, indefinite preflight Cancel/Back lock, truncated Custom owner listing). #535 Flutter Create integration must not clone picker/edit while these remain unresolved.
-**Open review finding IDs:** #534 server-side archive-vs-save hardening for existing **edit** RPC remains open.
-**Next exact action:** Request independent #536 DB/security review at latest HEAD, disposition findings without merging. Once #533 is separately reviewed and owner-approved/merged, start feature-owned Create integration on fresh main with explicit single-owner transfer; no hosted deployment or merge without owner gate.
+**Open review finding IDs:** #536 Codex P2-01 (whitespace-only name) and P2-02 (Create-vs-account-delete lock inversion) are resolved in code, covered by exact-source SQL tests and replied/resolved review threads. Fresh independent re-review pending. #534 separate server-side archive-vs-save hardening for existing **edit** RPC remains open.
+**Next exact action:** Request independent fresh #536 DB/security re-review after this handoff update; no merge/hosted deployment. #533 separately owns the unmerged editor and has 3 unresolved P2; never widen this branch into its source. Only after that dependency is reviewed and approved/merged may a separate feature-owned Flutter Create integration start.
 
 ## Discovery / Runtime Evidence
 - `ProgramDetailPage._RoutineNameSheet` enables Create for nonblank name only; `ProgramRoutinesController.create(name)` calls `RoutineRepository.create` with no entries. `program_detail_page_test.dart` preserves that older metadata-only behavior until full integration.
@@ -57,3 +57,14 @@
 - Supabase hosted schema was **not modified**. Existing metadata-only direct client INSERT remains available until a safe client rollout, so no general product-level guarantee that empty Routines cannot be created yet.
 - New Codex #533 re-review has three unresolved P2 threads; do not consume its editor source as settled or fork a second picker. #534 edit-save Custom archive race remains open and is not a claim about #536.
 - Flutter Create screen, Save disabled state, and device QA are not implemented in this DB-first PR. These acceptance items remain mandatory before closing #535.
+
+## 2026-10-13 Codex P2 remediation, database-only follow-up
+
+- Independent Codex review on Draft PR #536 head `08f26ce` returned **2 concrete P2 findings**, not an independent APPROVED status:
+  - [P2-01](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255697418): `btrim` does not reject tabs/newline-only names. Existing `p_name` validation now requires at least one non-POSIX-whitespace character; SQL matrix asserts E'\\t\\n \\r' fails.
+  - [P2-02](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255697426): Program lock followed by owner FK lock can invert `delete_user_account()` cascade lock order. RPC now locks owner `public.users` key-share **before** Program key-share, with two disposable real-session account-delete-vs-create orders to prove serialization, failed creation no orphan, and successful delete cascade after prior committed create.
+- Implementation commits on isolated #536 branch: `87e9d5f` (RPC), `bc0d27f` (whitespace regression), `bfb7daa` (account deletion concurrency cases). No Flutter, app, existing PR #533, table/column shape, or hosted changes.
+- **Validated source HEAD `bfb7daa0fa51e87c649828f400703e8514aa4c1b`:** [Supabase DB CI #38361338486](https://github.com/im-tnyx/tio-world/actions/runs/38361338486) **SUCCESS**: migrations replay, #535 SQL matrix, original same-UUID/Custom archive races and both account-delete races, regression matrix and lint. Both source-HEAD attribution checks **SUCCESS**. SQL test and locking fixes demonstrably ran in CI.
+- [P2-01 evidence reply](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255770818) and [P2-02 evidence reply](https://github.com/im-tnyx/tio-world/pull/536#discussion_r4255771665) both posted; corresponding review threads resolved=true. Await a **fresh independent latest-head Codex review**, distinct from author disposition.
+- Source SHA above predates this documentation-only checkpoint. A new exact HEAD requires its own CI attribution/DB rerun verification before gate completion.
+- #535 is **PARTIAL** until Flutter Create screen Save disabled at zero Exercises, proper capability/session gates, client integration and device QA. Existing metadata-only clients can still persist an empty Routine. Draft PR #533 remains open with 3 separately unresolved P2; no merge/deploy authorized.
