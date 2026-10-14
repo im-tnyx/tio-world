@@ -409,7 +409,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                           ? TextInputAction.next : TextInputAction.done,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
-                        RoutineSetInputLimits.int32,
+                        RoutineSetInputLimits.reps,
                       ],
                       onChanged: (_) => _update(),
                     ),
@@ -437,7 +437,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                         textInputAction: TextInputAction.done,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
-                          RoutineSetInputLimits.int32,
+                          RoutineSetInputLimits.reps,
                         ],
                         onChanged: (_) => _update(),
                       ),
