@@ -28,7 +28,8 @@ class ExercisesPage extends ConsumerStatefulWidget {
     this.userExerciseRepository,
     this.catalogRepository,
     this.onExerciseSelected,
-  });
+    this.onExercisesAdded,
+  }) : assert(onExerciseSelected == null || onExercisesAdded == null);
 
   /// Opens with the top-bar search field active and focused.
   final bool startSearching;
@@ -48,6 +49,9 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// and Custom Exercise editing remain unchanged without this callback.
   final ValueChanged<Exercise>? onExerciseSelected;
 
+  /// Explicit Routine Add-only batch. Ordinary browse and Replace are intact.
+  final ValueChanged<List<Exercise>>? onExercisesAdded;
+
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
   static const noMatchMessage = 'No exercises match your search or filters.';
@@ -64,6 +68,8 @@ class ExercisesPage extends ConsumerStatefulWidget {
 class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   CustomExercisesController? _customController;
   ExercisesController? _selectionCatalogController;
+  // Ordered by first selection; canonical refs dedupe a single picker batch.
+  final Map<ExerciseRef, Exercise> _pending = {};
 
   @override
   void initState() {
@@ -75,6 +81,11 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   @override
   void didUpdateWidget(covariant ExercisesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.catalogRepository, widget.catalogRepository) ||
+        !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        (oldWidget.onExercisesAdded == null) != (widget.onExercisesAdded == null)) {
+      _pending.clear();
+    }
     if (!identical(
       oldWidget.userExerciseRepository,
       widget.userExerciseRepository,
@@ -132,6 +143,44 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
       return;
     }
     widget.onExerciseSelected?.call(exercise);
+  }
+
+  bool _canPick(Exercise exercise) {
+    if (exercise.status != ExerciseStatus.active ||
+        _selectionCatalogController?.state.status != ExercisesStatus.ready) {
+      return false;
+    }
+    final customState = _customController?.state;
+    if (widget.userExerciseRepository != null &&
+        customState?.status != CustomExercisesStatus.ready) {
+      return false;
+    }
+    if (exercise.ref is UserCreatedExerciseRef) {
+      return customState?.exercises.any((current) =>
+              current.ref == exercise.ref &&
+              current.status == ExerciseStatus.active) ??
+          false;
+    }
+    return true;
+  }
+
+  void _toggle(Exercise exercise) {
+    if (!_canPick(exercise)) return;
+    setState(() {
+      if (_pending.containsKey(exercise.ref)) {
+        _pending.remove(exercise.ref);
+      } else {
+        _pending[exercise.ref] = exercise;
+      }
+    });
+  }
+
+  void _confirmBatch() {
+    if (widget.onExercisesAdded == null || _pending.isEmpty ||
+        !_pending.values.every(_canPick)) {
+      return;
+    }
+    widget.onExercisesAdded!(List<Exercise>.unmodifiable(_pending.values));
   }
 
   @override
@@ -198,7 +247,13 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
-    final isSelecting = widget.onExerciseSelected != null;
+    final isSelecting = widget.onExerciseSelected != null ||
+        widget.onExercisesAdded != null;
+    final batchReady = widget.onExercisesAdded != null &&
+        _pending.isNotEmpty &&
+        catalogState.status == ExercisesStatus.ready &&
+        (widget.userExerciseRepository == null ||
+            customState?.status == CustomExercisesStatus.ready);
 
     return Scaffold(
       key: const ValueKey('exercises-page'),
@@ -282,6 +337,23 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
           customItems: customItems,
         ),
       ),
+      // No reserved/disabled footer until the first confirmed selection.
+      bottomNavigationBar: batchReady
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(TioSpacing.lg),
+                child: TioButton.primary(
+                  key: const ValueKey('exercises-add-selected'),
+                  label: _pending.length == 1
+                      ? 'Add 1 exercise'
+                      : 'Add ${_pending.length} exercises',
+                  expand: true,
+                  onPressed: _confirmBatch,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -316,7 +388,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     // A selector must not offer only catalog (or only Custom) choices if
     // either requested source has not resolved. Unlike casual browsing,
     // it returns one verified, active Exercise to an owner-scoped draft.
-    if (widget.onExerciseSelected != null) {
+    if (widget.onExerciseSelected != null ||
+        widget.onExercisesAdded != null) {
       if (catalogState.status != ExercisesStatus.ready) {
         return catalogState.status == ExercisesStatus.loading
             ? const Center(
@@ -403,12 +476,18 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         return _ExerciseList(
           customItems: const [],
           catalogItems: const [],
-          onCustomTap: widget.onExerciseSelected == null
-              ? _openCustomEditor
-              : _select,
-          onCatalogTap: widget.onExerciseSelected == null
-              ? null
-              : _select,
+          onCustomTap: widget.onExercisesAdded != null
+              ? _toggle
+              : widget.onExerciseSelected == null
+                  ? _openCustomEditor
+                  : _select,
+          onCatalogTap: widget.onExercisesAdded != null
+              ? _toggle
+              : widget.onExerciseSelected == null
+                  ? null
+                  : _select,
+          multiSelecting: widget.onExercisesAdded != null,
+          selectedRefs: _pending.keys.toSet(),
           customFailure: customFailureMessage,
           onRetryCustom: _customController?.retryLoad,
           catalogMessage: catalogFailureMessage,
@@ -448,12 +527,18 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     return _ExerciseList(
       customItems: customItems,
       catalogItems: catalogItems,
-      onCustomTap: widget.onExerciseSelected == null
-          ? _openCustomEditor
-          : _select,
-      onCatalogTap: widget.onExerciseSelected == null
-          ? null
-          : _select,
+      onCustomTap: widget.onExercisesAdded != null
+          ? _toggle
+          : widget.onExerciseSelected == null
+              ? _openCustomEditor
+              : _select,
+      onCatalogTap: widget.onExercisesAdded != null
+          ? _toggle
+          : widget.onExerciseSelected == null
+              ? null
+              : _select,
+      multiSelecting: widget.onExercisesAdded != null,
+      selectedRefs: _pending.keys.toSet(),
       customFailure: customFailureMessage,
       onRetryCustom: _customController?.retryLoad,
       catalogMessage: catalogFailureMessage,
@@ -513,6 +598,8 @@ class _ExerciseList extends StatelessWidget {
     required this.customItems,
     required this.catalogItems,
     required this.onCustomTap,
+    required this.multiSelecting,
+    required this.selectedRefs,
     this.onCatalogTap,
     this.customFailure,
     this.onRetryCustom,
@@ -522,6 +609,8 @@ class _ExerciseList extends StatelessWidget {
   final List<ExerciseListItem> customItems;
   final List<ExerciseListItem> catalogItems;
   final ValueChanged<Exercise> onCustomTap;
+  final bool multiSelecting;
+  final Set<ExerciseRef> selectedRefs;
   final ValueChanged<Exercise>? onCatalogTap;
   final String? customFailure;
   final VoidCallback? onRetryCustom;
@@ -557,6 +646,8 @@ class _ExerciseList extends StatelessWidget {
               'exercise-row-${customItems[i].exercise.ref.value}',
             ),
             item: customItems[i],
+            selectionMode: multiSelecting,
+            isSelected: selectedRefs.contains(customItems[i].exercise.ref),
             onTap: () => onCustomTap(customItems[i].exercise),
           ),
           if (i != customItems.length - 1) divider(),
@@ -573,6 +664,8 @@ class _ExerciseList extends StatelessWidget {
               'exercise-row-${catalogItems[i].exercise.ref.value}',
             ),
             item: catalogItems[i],
+            selectionMode: multiSelecting,
+            isSelected: selectedRefs.contains(catalogItems[i].exercise.ref),
             onTap: onCatalogTap == null
                 ? null
                 : () => onCatalogTap!(catalogItems[i].exercise),

@@ -128,23 +128,41 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Future<void> _pick({RoutineCompositionEntry? replacing}) async {
     if (!_enabled) return;
     final openingDraft = _draft;
-    final exercise = await Navigator.of(context).push<Exercise>(
-      MaterialPageRoute(
-        builder: (routeContext) => ProviderScope(
-          child: ExercisesPage(
-            catalogRepository: widget.catalogRepository,
-            userExerciseRepository: widget.userExerciseRepository,
-            onExerciseSelected: (selected) =>
-                Navigator.of(routeContext).pop<Exercise>(selected),
+    final List<Exercise>? chosen;
+    if (replacing != null) {
+      final single = await Navigator.of(context).push<Exercise>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExerciseSelected: (selected) =>
+                  Navigator.of(routeContext).pop<Exercise>(selected),
+            ),
           ),
         ),
-      ),
-    );
+      );
+      chosen = single == null ? null : [single];
+    } else {
+      chosen = await Navigator.of(context).push<List<Exercise>>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExercisesAdded: (selected) =>
+                  Navigator.of(routeContext).pop<List<Exercise>>(selected),
+            ),
+          ),
+        ),
+      );
+    }
     if (!mounted || !_enabled || !identical(openingDraft, _draft) ||
-        exercise == null) {
+        chosen == null || chosen.isEmpty) {
       return;
     }
     if (replacing != null) {
+      final exercise = chosen.single;
       final oldEntries = _draft.state.entries
           .where((current) => current.id == replacing.id);
       if (oldEntries.length != 1) return;
@@ -162,13 +180,15 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _untouchedRepSetIds.add(fresh.sets.single.id);
       return;
     }
-    final id = _draft.addPickedExercise(exercise);
-    if (id != null) {
-      _entryExercises[id] = exercise;
-      final entry = _draft.state.entries.last;
-      for (final set in entry.sets) {
-        // A new identified Set has intentionally blank optional targets.
-        _untouchedRepSetIds.add(set.id);
+    for (final exercise in chosen) {
+      if (!_enabled || exercise.status != ExerciseStatus.active) break;
+      final id = _draft.addPickedExercise(exercise);
+      if (id != null) {
+        _entryExercises[id] = exercise;
+        final entry = _draft.state.entries.last;
+        for (final set in entry.sets) {
+          _untouchedRepSetIds.add(set.id);
+        }
       }
     }
   }

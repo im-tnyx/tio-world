@@ -13,10 +13,14 @@ class ExerciseListRow extends StatelessWidget {
     required this.item,
     super.key,
     this.onTap,
+    this.selectionMode = false,
+    this.isSelected = false,
   });
 
   final ExerciseListItem item;
   final VoidCallback? onTap;
+  final bool selectionMode;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +34,27 @@ class ExerciseListRow extends StatelessWidget {
       child: Row(
         children: [
           if (thumbnailUrl != null)
-            ExerciseThumbnail(
-              key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
-              url: thumbnailUrl,
-            ),
+            selectionMode && isSelected
+                ? Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ExerciseThumbnail(
+                        key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
+                        url: thumbnailUrl,
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: TioSpacing.md,
+                        child: _SelectedExerciseBadge(
+                          key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
+                        ),
+                      ),
+                    ],
+                  )
+                : ExerciseThumbnail(
+                    key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
+                    url: thumbnailUrl,
+                  ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +99,12 @@ class ExerciseListRow extends StatelessWidget {
               ],
             ),
           ),
-          if (onTap != null) ...[
+          if (selectionMode && isSelected && thumbnailUrl == null) ...[
+            const SizedBox(width: TioSpacing.sm),
+            _SelectedExerciseBadge(
+              key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
+            ),
+          ] else if (onTap != null && !selectionMode) ...[
             const SizedBox(width: TioSpacing.sm),
             Icon(
               Icons.chevron_right_rounded,
@@ -96,9 +122,12 @@ class ExerciseListRow extends StatelessWidget {
 
     return Semantics(
       button: true,
+      selected: selectionMode ? isSelected : null,
       onTap: onTap,
       child: Material(
-        color: TioPalette.transparent,
+        color: selectionMode && isSelected
+            ? colors.surfaceVariant.withAlpha(TioAlpha.alpha20)
+            : TioPalette.transparent,
         child: InkWell(
           onTap: onTap,
           child: MergeSemantics(child: body),
@@ -106,6 +135,30 @@ class ExerciseListRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Decorative marker; row Semantics carries the selectable state.
+class _SelectedExerciseBadge extends StatelessWidget {
+  const _SelectedExerciseBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.tioColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: const SizedBox(
+            width: TioSize.dp24,
+            height: TioSize.dp24,
+            child: Icon(
+              Icons.check_rounded,
+              color: TioPalette.white,
+              size: TioSize.dp16,
+            ),
+          ),
+        ),
+      );
 }
 
 class _CustomBadge extends StatelessWidget {

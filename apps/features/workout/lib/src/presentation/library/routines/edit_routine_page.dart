@@ -156,28 +156,45 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final editor = _editor;
     if (!_canEdit || editor == null) return;
     final unit = widget.weightUnit;
-    final exercise = await Navigator.of(context).push<Exercise>(
-      MaterialPageRoute(
-        builder: (routeContext) => ProviderScope(
-          child: ExercisesPage(
-            catalogRepository: widget.catalogRepository,
-            userExerciseRepository: widget.userExerciseRepository,
-            onExerciseSelected: (selected) =>
-                Navigator.of(routeContext).pop<Exercise>(selected),
+    final List<Exercise>? chosen;
+    if (replacing != null) {
+      final single = await Navigator.of(context).push<Exercise>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExerciseSelected: (selected) =>
+                  Navigator.of(routeContext).pop<Exercise>(selected),
+            ),
           ),
         ),
-      ),
-    );
+      );
+      chosen = single == null ? null : [single];
+    } else {
+      chosen = await Navigator.of(context).push<List<Exercise>>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExercisesAdded: (selected) =>
+                  Navigator.of(routeContext).pop<List<Exercise>>(selected),
+            ),
+          ),
+        ),
+      );
+    }
     if (!mounted ||
         !identical(editor, _editor) ||
         !_canEdit ||
         unit != widget.weightUnit ||
-        exercise == null) {
+        chosen == null || chosen.isEmpty) {
       return;
     }
-    // The picker freshly verifies owner-scoped Custom and catalog selection.
-    if (exercise.status != ExerciseStatus.active) return;
     if (replacing != null) {
+      final exercise = chosen.single;
+      if (exercise.status != ExerciseStatus.active) return;
       final oldEntries = editor.state.entries
           .where((entry) => entry.id == replacing.id);
       if (oldEntries.length != 1) return;
@@ -193,10 +210,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         _blankSetIds.add(fresh.sets.single.id);
       }
     } else {
-      final entryId = editor.addPickedExercise(exercise);
-      if (entryId != null) {
-        final setId = editor.addSet(entryId, SetPrescription());
-        if (setId != null) _blankSetIds.add(setId);
+      for (final exercise in chosen) {
+        if (!_canEdit || exercise.status != ExerciseStatus.active) break;
+        final entryId = editor.addPickedExercise(exercise);
+        if (entryId != null) {
+          final setId = editor.addSet(entryId, SetPrescription());
+          if (setId != null) _blankSetIds.add(setId);
+        }
       }
     }
     // Refresh labels and write-capability from the current owner source.
