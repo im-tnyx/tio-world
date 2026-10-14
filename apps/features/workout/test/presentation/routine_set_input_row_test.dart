@@ -123,29 +123,25 @@ void main() {
           child: child ?? const SizedBox.shrink(),
         ),
         home: Scaffold(
-          // Match the page's column layout: a bare Sliver-row widget as the
-          // Scaffold body receives its full viewport height (712dp), which
-          // is not the real Create/Edit row's shrink-wrapped constraint.
-          body: Column(
-            children: [
-              RoutineSetInputRow(
-                set: RoutineCompositionSet(
-                  id: id,
-                  prescription: SetPrescription(reps: 8),
-                ),
-                index: 0,
-                normalNumber: 1,
-                onTypePressed: () => selections++,
-                unit: WeightUnit.kg,
-                enabled: true,
-                showPrevious: true,
-                isOpen: false,
-                onOpenChanged: (_) {},
-                onChanged: (_) {},
-                onValidityChanged: (_) {},
-                onRemove: () {},
-              ),
-            ],
+          // Deliberately supply a tall bounded viewport: the filled/unboxed
+          // SET surface must shrink-wrap to 44dp rather than fill 712dp.
+          // Real Create/Edit page compositions are checked separately.
+          body: RoutineSetInputRow(
+            set: RoutineCompositionSet(
+              id: id,
+              prescription: SetPrescription(reps: 8),
+            ),
+            index: 0,
+            normalNumber: 1,
+            onTypePressed: () => selections++,
+            unit: WeightUnit.kg,
+            enabled: true,
+            showPrevious: true,
+            isOpen: false,
+            onOpenChanged: (_) {},
+            onChanged: (_) {},
+            onValidityChanged: (_) {},
+            onRemove: () {},
           ),
         ),
       ));
