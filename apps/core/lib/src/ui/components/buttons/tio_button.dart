@@ -204,12 +204,12 @@ ButtonStyle _supportingStyle(TioColors colors, {required bool loading}) {
       !loading && states.contains(WidgetState.disabled);
 
   return ButtonStyle(
-    // This supporting action sits directly beneath the 44dp Set-number and
+    // This supporting action sits directly beneath the 42dp Set-number and
     // boxed-number cells. Keep the same compact *visual* minimum without
     // changing the global 46dp FilledButton contract or Material tap target.
     // Min (not fixed) height still accommodates accessibility text scaling.
     minimumSize: const WidgetStatePropertyAll(
-      Size(TioButtonTokens.minimumWidth, TioSize.dp44),
+      Size(TioButtonTokens.minimumWidth, TioSize.dp42),
     ),
     backgroundColor: WidgetStateProperty.resolveWith(
       (states) => genuinelyDisabled(states)
