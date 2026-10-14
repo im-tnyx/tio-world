@@ -681,8 +681,16 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   onValidityChanged: _validityChanged,
                   onSetType: (set) => _selectSetType(entry, set),
                   onRepetitionMode: () => _selectRepetitionMode(entry),
-                  onSetChanged: (set, prescription) =>
-                      _editor?.editSet(entry.id, set.id, prescription),
+                  onSetChanged: (set, prescription) {
+                    // Cleared Min/Max cannot encode durable range mode under
+                    // the approved nullable schema. Preserve the user's
+                    // transient selection until they explicitly choose Reps.
+                    if (set.prescription.isRepRange &&
+                        !prescription.isRepRange) {
+                      _draftRangeEntryIds.add(entry.id);
+                    }
+                    _editor?.editSet(entry.id, set.id, prescription);
+                  },
                   removeSet: (set) => _removeSet(entry, set),
                   showOptions: () => _showExerciseOptions(entry),
                   addSet: () => _addSetInline(entry),
