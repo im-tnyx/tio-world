@@ -363,27 +363,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     }
     _unknownExitPromptOpen = true;
     try {
-      final leave = await showDialog<bool>(
+      final leave = await showTioConfirmationBottomSheet(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Routine save not confirmed'),
-          content: const Text(
-            'This Routine may already have been saved. Check your Program '
-            'before creating another Routine.',
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('create-routine-stay-unconfirmed'),
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Keep verifying'),
-            ),
-            TextButton(
-              key: const ValueKey('create-routine-exit-unconfirmed'),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Exit and check Program'),
-            ),
-          ],
-        ),
+        cardKey: const ValueKey('create-routine-unknown-confirmation'),
+        title: 'Routine save not confirmed',
+        message: 'This Routine may already have been saved. Check your '
+            'Program before creating another Routine.',
+        cancelLabel: 'Keep verifying',
+        confirmLabel: 'Exit to Program',
       );
       if (!mounted || leave != true ||
           _draft.state.status != RoutineCreateStatus.outcomeUnknown ||
