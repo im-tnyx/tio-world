@@ -14,6 +14,7 @@ final class ExerciseCatalogRowDto {
     required this.rowIndex,
     required this.id,
     required this.title,
+    required this.exerciseType,
     required this.muscleGroup,
     required this.primaryMuscles,
     required this.secondaryMuscles,
@@ -27,6 +28,8 @@ final class ExerciseCatalogRowDto {
   final int rowIndex;
   final String id;
   final String title;
+  /// Optional canonical measurement profile; older bundled rows omit it.
+  final ExerciseType? exerciseType;
   final String muscleGroup;
   final List<String> primaryMuscles;
   final List<String> secondaryMuscles;
@@ -103,6 +106,22 @@ final class ExerciseCatalogRowDto {
         : field<String>(equipment, 'primary', 'equipment.primary');
     final category = field<String>(row, 'category', 'category');
     final levels = stringList('levels');
+    // Only the canonical ExerciseType token may opt a bundled Exercise into
+    // an alternate measurement profile. Cardio category/equipment alone is
+    // not a safe substitute (duration and distance profiles differ).
+    ExerciseType? exerciseType;
+    final rawType = row['exerciseType'];
+    if (rawType != null) {
+      if (rawType is! String) {
+        problem('exerciseType', 'must be a known Exercise Type string');
+      } else {
+        try {
+          exerciseType = ExerciseType.fromStorageValue(rawType);
+        } on FormatException {
+          problem('exerciseType', 'must be a known Exercise Type');
+        }
+      }
+    }
     final isArchived = field<bool>(row, 'isArchived', 'isArchived');
     final isCustom = field<bool>(row, 'isCustom', 'isCustom');
     if (isCustom == true) {
@@ -117,6 +136,7 @@ final class ExerciseCatalogRowDto {
       rowIndex: rowIndex,
       id: id!,
       title: title!,
+      exerciseType: exerciseType,
       muscleGroup: muscleGroup!,
       primaryMuscles: primaryMuscles!,
       secondaryMuscles: secondaryMuscles!,
@@ -159,6 +179,7 @@ final class ExerciseCatalogRowDto {
       return Exercise(
         ref: ref,
         displayName: title,
+        exerciseType: exerciseType,
         muscleGroup: muscleGroup,
         primaryMuscles: primaryMuscles,
         secondaryMuscles: secondaryMuscles,
