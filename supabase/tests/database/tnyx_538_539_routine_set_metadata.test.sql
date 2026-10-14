@@ -198,7 +198,8 @@ select pg_temp.assert_true(
    '[{"id":"a5380000-0000-4000-8000-000000000041",
      "exercise_ref":"ex_bench_press","sets":[
       {"id":"a5380000-0000-4000-8000-000000000051",
-       "reps":8,"reps_max":null,"set_type":"normal","load_kg":20,"rest_seconds":30}
+       "reps":8,"reps_max":null,"set_type":"normal","load_kg":20,
+       "distance_meters":null,"duration_seconds":null,"rest_seconds":30}
      ]}]'::jsonb
   ) = 3, 'new client can explicitly choose fixed Normal and delete other Sets'
 );
@@ -210,6 +211,111 @@ select pg_temp.assert_true(
    where user_id='a5380000-0000-4000-8000-000000000001'),
   'new mode persisted, obsolete Sets removed atomically'
 );
+
+-- Three approved Routine template profiles, all without fabricated reps.
+-- Stable IDs and exact canonical units survive Create/Save and retry.
+create function pg_temp.metric_routine_snapshot()
+returns jsonb language sql immutable as $sql$
+  select '[{"id":"a5380000-0000-4000-8000-000000000041",
+    "exercise_ref":"ex_bench_press","sets":[
+    {"id":"a5380000-0000-4000-8000-000000000051",
+     "reps":null,"reps_max":null,"set_type":"normal",
+     "load_kg":null,"distance_meters":null,
+     "duration_seconds":null,"rest_seconds":null}]},
+    {"id":"a5380000-0000-4000-8000-000000000042",
+     "exercise_ref":"ex_walking_on_treadmill","sets":[
+    {"id":"a5380000-0000-4000-8000-000000000052",
+     "reps":null,"reps_max":null,"set_type":"normal",
+     "load_kg":null,"distance_meters":2500.5,
+     "duration_seconds":905,"rest_seconds":60}]},
+    {"id":"a5380000-0000-4000-8000-000000000043",
+     "exercise_ref":"ex_front_plank","sets":[
+    {"id":"a5380000-0000-4000-8000-000000000053",
+     "reps":null,"reps_max":null,"set_type":"normal",
+     "load_kg":null,"distance_meters":null,
+     "duration_seconds":65,"rest_seconds":null}]}]'::jsonb
+$sql$;
+
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',3,
+    'a5380000-0000-4000-8000-000000000097',
+    pg_temp.metric_routine_snapshot()
+  ) = 4, 'optional Reps + distance/duration Sets persist'
+);
+select pg_temp.assert_true(
+  (select count(*) = 3 from public.user_workout_routine_sets
+   where user_id='a5380000-0000-4000-8000-000000000001')
+  and (select reps is null and load_kg is null and distance_meters is null
+         and duration_seconds is null
+       from public.user_workout_routine_sets
+       where id='a5380000-0000-4000-8000-000000000051')
+  and (select reps is null and distance_meters=2500.5
+         and duration_seconds=905 and rest_seconds=60
+       from public.user_workout_routine_sets
+       where id='a5380000-0000-4000-8000-000000000052')
+  and (select reps is null and distance_meters is null and duration_seconds=65
+       from public.user_workout_routine_sets
+       where id='a5380000-0000-4000-8000-000000000053'),
+  'no target value invented; meters/seconds round trip exactly'
+);
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',3,
+    'a5380000-0000-4000-8000-000000000097',
+    pg_temp.metric_routine_snapshot()
+  ) = 4, 'exact rich nullable same-token replay remains idempotent'
+);
+
+-- A prior Reps-only/full snapshot cannot wipe richer target values.
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',4,
+    'a5380000-0000-4000-8000-000000000098',
+    '[{"id":"a5380000-0000-4000-8000-000000000042",
+      "exercise_ref":"ex_walking_on_treadmill","sets":[
+       {"id":"a5380000-0000-4000-8000-000000000052",
+        "reps":12,"reps_max":null,"set_type":"normal","load_kg":null}
+    ]}]'::jsonb
+  )
+$sql$, 'P0001', 'legacy Reps-only client cannot erase new Set targets');
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',4,
+    'a5380000-0000-4000-8000-000000000098','[]'::jsonb
+  )
+$sql$, 'P0001', 'legacy clear cannot erase nullable and metric Set rows');
+
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',4,
+    'a5380000-0000-4000-8000-000000000098',
+    '[{"id":"a5380000-0000-4000-8000-000000000041",
+      "exercise_ref":"ex_front_plank","sets":[
+       {"id":"a5380000-0000-4000-8000-000000000051",
+        "reps":null,"reps_max":null,"distance_meters":-0.5}]}]'::jsonb
+  )
+$sql$, '22023', 'negative distance rejected');
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',4,
+    'a5380000-0000-4000-8000-000000000098',
+    '[{"id":"a5380000-0000-4000-8000-000000000041",
+      "exercise_ref":"ex_front_plank","sets":[
+       {"id":"a5380000-0000-4000-8000-000000000051",
+        "reps":null,"reps_max":null,"duration_seconds":3.5}]}]'::jsonb
+  )
+$sql$, '22023', 'fractional duration rejected');
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5380000-0000-4000-8000-000000000021',4,
+    'a5380000-0000-4000-8000-000000000098',
+    '[{"id":"a5380000-0000-4000-8000-000000000041",
+      "exercise_ref":"ex_bench_press","sets":[
+       {"id":"a5380000-0000-4000-8000-000000000051",
+        "reps":null,"reps_max":12}]}]'::jsonb
+  )
+$sql$, '22023', 'Rep Range Max requires positive Min');
 
 -- Account isolation still enforced on the RPC and Data API.
 select set_config('request.jwt.claim.sub','a5380000-0000-4000-8000-000000000002',true);
