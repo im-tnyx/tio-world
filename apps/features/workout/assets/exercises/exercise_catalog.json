@@ -1859,6 +1859,7 @@
     {
       "id": "ex_walking_on_treadmill",
       "title": "Walking on Treadmill",
+      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "quadriceps",
