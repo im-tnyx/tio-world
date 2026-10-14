@@ -1,9 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 const _ownerUserId = '11111111-1111-4111-8111-111111111111';
+
+String _pagedExerciseId(int index) =>
+    '${index.toRadixString(16).padLeft(8, '0')}-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 void main() {
   final exerciseId =
@@ -48,6 +55,74 @@ void main() {
       expect(gateway.renameCalls, isEmpty);
       expect(gateway.archiveCalls, isEmpty);
       expect(gateway.definitionCalls, isEmpty);
+    });
+
+
+    test('real SDK drains 1,007 owner rows beyond the 1,000-row API cap',
+        () async {
+      final rows = [
+        for (var i = 1; i <= 1007; i++)
+          {
+            'id': _pagedExerciseId(i),
+            'created_at': DateTime.utc(2026, 10, 13)
+                .subtract(Duration(seconds: i))
+                .toIso8601String(),
+            'display_name': 'Custom Lift $i',
+            'status': 'active',
+            'description': null,
+            'exercise_type': null,
+            'primary_muscle': null,
+            'secondary_muscles': <String>[],
+            'primary_equipment': null,
+          },
+      ];
+      final requests = <http.Request>[];
+      final client = SupabaseClient(
+        'https://example.test',
+        'synthetic-publishable-key',
+        httpClient: MockClient((request) async {
+          requests.add(request);
+          final after = request.url.queryParameters['id'];
+          final last = after?.substring(3);
+          final pageSize = int.parse(request.url.queryParameters['limit']!);
+          // Emulate PostgREST's requested ordering, rather than always
+          // returning ascending fixture rows and masking cursor errors.
+          final orderedRows =
+              request.url.queryParameters['order']?.startsWith('id.desc') == true
+                  ? rows.reversed
+                  : rows;
+          final page = orderedRows
+              .where((row) => (row['id'] as String).compareTo(last ?? '') > 0)
+              .take(pageSize)
+              .toList();
+          return http.Response(jsonEncode(page), 200,
+              headers: {'content-type': 'application/json'},
+              request: request);
+        }),
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      addTearDown(client.dispose);
+      final repository = SupabaseUserExerciseRepository(
+        client: client,
+        currentUserId: () => _ownerUserId,
+      );
+      final exercises = await repository.list();
+      expect(exercises, hasLength(1007));
+      // Historical listRows() order('created_at') was newest first.
+      expect(exercises.first.ref, UserCreatedExerciseRef(_pagedExerciseId(1)));
+      expect(exercises.last.ref, UserCreatedExerciseRef(_pagedExerciseId(1007)));
+      expect(requests, hasLength(6));
+      for (final request in requests) {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/rest/v1/user_workout_exercises');
+        expect(request.url.queryParameters['user_id'], 'eq.$_ownerUserId');
+        expect(request.url.queryParameters['status'], 'eq.active');
+        expect(request.url.queryParameters['order'], 'id.asc.nullslast');
+        expect(request.url.queryParameters['limit'], '200');
+        expect(request.url.queryParameters['select'], contains('created_at'));
+      }
+      expect(requests.last.url.queryParameters['id'],
+          'gt.${_pagedExerciseId(1000)}');
     });
 
     test('list maps active and archived rows to canonical Exercises', () async {

@@ -112,6 +112,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     final authUserId = auth is AuthSessionAuthenticated
                         ? auth.session.userId
                         : null;
+                    // Unlike userId, a sign-in cycle changes when the same
+                    // account authenticates anew. Never carry previous-cycle
+                    // Routine content or edits into the new session.
+                    final authCycleId = auth is AuthSessionAuthenticated
+                        ? auth.session.loginCycleId
+                        : null;
                     final profileAsync = ref.watch(profileDataProvider);
                     final weightUnit = ownerId != null &&
                             authUserId == ownerId &&
@@ -119,18 +125,177 @@ List<RouteBase> _shellBranchChildRoutes(
                             !profileAsync.hasError
                         ? profileAsync.valueOrNull?.unitPreferences.weightUnit
                         : null;
+                    // A bootstrap user alone is insufficient: Auth must
+                    // resolve to the same current user before exposing an
+                    // owner-scoped Detail repository or an Edit capability.
+                    final verifiedOwner =
+                        ownerId != null && ownerId == authUserId;
+                    final mayEdit = verifiedOwner &&
+                        weightUnit != null &&
+                        userExerciseRepository != null;
                     return RoutineDetailPage(
-                      key: ValueKey('routine-detail-owner-${ownerId ?? 'none'}'),
+                      key: ValueKey(
+                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
+                      ),
                       program: program,
                       routine: routine,
                       routineRepository:
-                          ownerId == null ? null : routineRepository,
+                          verifiedOwner ? routineRepository : null,
                       compositionRepository:
-                          ownerId == null ? null : compositions,
+                          verifiedOwner ? compositions : null,
                       catalogRepository: catalog,
                       userExerciseRepository:
-                          ownerId == null ? null : userExerciseRepository,
+                          verifiedOwner ? userExerciseRepository : null,
                       weightUnit: weightUnit,
+                      onEditPressed: !mayEdit
+                          ? null
+                          : (ownedRoutine) async {
+                              if (ownedRoutine.id != routine.id ||
+                                  ownedRoutine.programId != program.id) {
+                                return false;
+                              }
+                              final startingOwner = ownerId;
+                              final startingCycleId = authCycleId;
+                              var revoked = false;
+                              return Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => Consumer(
+                                    builder: (context, ref, _) {
+                                      // Re-evaluate all account capabilities
+                                      // in the destination itself, not only
+                                      // when the navigation action was tapped.
+                                      final session = ref
+                                          .watch(
+                                            appSessionBootstrapControllerProvider,
+                                          )
+                                          .state;
+                                      final currentOwner =
+                                          session is AppSessionBootstrapReady
+                                              ? session.userId
+                                              : null;
+                                      final authAsync =
+                                          ref.watch(authSessionStateProvider);
+                                      final auth = authAsync.isLoading ||
+                                              authAsync.hasError
+                                          ? null
+                                          : authAsync.valueOrNull;
+                                      final currentAuth =
+                                          auth is AuthSessionAuthenticated
+                                              ? auth.session.userId
+                                              : null;
+                                      final currentCycleId =
+                                          auth is AuthSessionAuthenticated
+                                              ? auth.session.loginCycleId
+                                              : null;
+                                      final authorized =
+                                          currentOwner == startingOwner &&
+                                          currentAuth == startingOwner &&
+                                          currentCycleId == startingCycleId;
+                                      // The editor may be covered by a
+                                      // picker or Set modal on this Navigator.
+                                      // A changed Auth/bootstrap owner must
+                                      // dismiss those routes too: disposing
+                                      // the underlying keyed editor alone
+                                      // does not clear an overlay's private
+                                      // Custom Exercise/Set draft.
+                                      if (!authorized && !revoked) {
+                                        revoked = true;
+                                        final editorRoute =
+                                            ModalRoute.of(context);
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (!context.mounted ||
+                                              editorRoute == null ||
+                                              !editorRoute.isActive) {
+                                            return;
+                                          }
+                                          final navigator =
+                                              Navigator.of(context);
+                                          navigator.popUntil(
+                                            (route) =>
+                                                identical(route, editorRoute),
+                                          );
+                                          // A pending RPC deliberately
+                                          // blocks normal back via PopScope.
+                                          // On auth/cycle revocation that
+                                          // protection must NOT keep the old
+                                          // account's editor mounted. Force
+                                          // removal bypasses canPop; the
+                                          // disposed controller ignores any
+                                          // eventual old-cycle save response.
+                                          // Revoked navigation resolves
+                                          // with null (never a save success).
+                                          navigator.removeRoute(editorRoute);
+                                        });
+                                      }
+                                      final profileAsync =
+                                          ref.watch(profileDataProvider);
+                                      final unit = authorized &&
+                                              !profileAsync.isLoading &&
+                                              !profileAsync.hasError
+                                          ? profileAsync
+                                              .valueOrNull
+                                              ?.unitPreferences
+                                              .weightUnit
+                                          : null;
+                                      return EditRoutinePage(
+                                        key: ValueKey(
+                                          'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}-cycle-${currentCycleId ?? 'none'}',
+                                        ),
+                                        program: program,
+                                        routine: ownedRoutine,
+                                        routineRepository: authorized
+                                            ? ref.watch(routineRepositoryProvider)
+                                            : null,
+                                        compositionRepository: authorized
+                                            ? ref.watch(
+                                                routineCompositionRepositoryProvider,
+                                              )
+                                            : null,
+                                        catalogRepository: ref.watch(
+                                          exerciseCatalogRepositoryProvider,
+                                        ),
+                                        userExerciseRepository: authorized
+                                            ? ref.watch(
+                                                userExerciseRepositoryProvider,
+                                              )
+                                            : null,
+                                        weightUnit: unit,
+                                        // Recheck the live opening login cycle
+                                        // synchronously immediately before an
+                                        // RPC, not only after the route rebuilds.
+                                        canWrite: () {
+                                          try {
+                                            final liveBoot = ref
+                                                .read(
+                                                  appSessionBootstrapControllerProvider,
+                                                )
+                                                .state;
+                                            final liveAuthAsync =
+                                                ref.read(authSessionStateProvider);
+                                            final liveAuth = liveAuthAsync.isLoading ||
+                                                    liveAuthAsync.hasError
+                                                ? null
+                                                : liveAuthAsync.valueOrNull;
+                                            return liveBoot is AppSessionBootstrapReady &&
+                                                liveBoot.userId == startingOwner &&
+                                                liveAuth is AuthSessionAuthenticated &&
+                                                liveAuth.session.userId ==
+                                                    startingOwner &&
+                                                liveAuth.session.loginCycleId ==
+                                                    startingCycleId;
+                                          } catch (_) {
+                                            // A disposed Consumer cannot retain
+                                            // a capability for the old session.
+                                            return false;
+                                          }
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
                     );
                   },
                 ),
