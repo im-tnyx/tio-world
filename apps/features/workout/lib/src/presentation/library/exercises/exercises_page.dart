@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
@@ -305,7 +307,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         if (!validOwnerCollection) {
           return _Failure(
             message: 'Could not load exercises.',
-            onRetry: _customController?.retryLoad,
+            onRetry: () => unawaited(_customController!.retryLoad()),
           );
         }
       }
@@ -315,7 +317,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
           return _Failure(
             message: customState?.loadError ??
                 'Could not load custom exercises. Please try again.',
-            onRetry: _customController?.retryLoad,
+            onRetry: () => unawaited(_customController!.retryLoad()),
           );
         }
         return const Center(
