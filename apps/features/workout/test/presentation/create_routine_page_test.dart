@@ -60,6 +60,55 @@ void main() {
         isNull);
   });
 
+  testWidgets('Run on Treadmill uses full-width KM/TIME instead of KG/REPS',
+      (tester) async {
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+    ].iterator;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: _Create(),
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () {
+          if (!ids.moveNext()) throw StateError('Unexpected UUID');
+          return ids.current;
+        },
+      ),
+    ));
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    expect(find.text('KM'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('KG'), findsNothing);
+    expect(find.text('REPS'), findsNothing);
+    const id = '55555555-5555-4555-8555-555555555555';
+    final km = find.byKey(const ValueKey('routine-set-distance-$id'));
+    final time = find.byKey(const ValueKey('routine-set-duration-$id'));
+    expect(km, findsOneWidget);
+    expect(time, findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-weight-$id')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-set-reps-$id')), findsNothing);
+    final addSet = find.byKey(const ValueKey(
+      'create-routine-add-set-44444444-4444-4444-8444-444444444444'));
+    expect(tester.getTopRight(time).dx,
+        closeTo(tester.getTopRight(addSet).dx, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
     testWidgets('Create Set/boxed number/Add Set rendered surfaces equal 44dp '
         'at 320dp in ${mode.name}', (tester) async {
@@ -1146,6 +1195,12 @@ class _Catalog implements ExerciseCatalogRepository {
           ref: ExerciseRef.catalog('ex_bench_press'),
           displayName: 'Bench Press',
           status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+          displayName: 'Run on Treadmill',
+          status: ExerciseStatus.active,
+          exerciseType: ExerciseType.distanceDuration,
         ),
       ]);
 }
