@@ -5,6 +5,68 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
+  for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
+    testWidgets('Set 1 and 2 have visible filled rounded boxes in '
+        '${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      const ids = [
+        '55555555-5555-4555-8555-555555555555',
+        '66666666-6666-4666-8666-666666666666',
+      ];
+      final palette =
+          mode == TioThemeMode.dark ? TioColors.oled : TioColors.light;
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Column(children: [
+            for (var index = 0; index < ids.length; index++)
+              RoutineSetInputRow(
+                set: RoutineCompositionSet(
+                  id: ids[index],
+                  prescription: SetPrescription(reps: 8),
+                ),
+                index: index,
+                normalNumber: index + 1,
+                onTypePressed: () {},
+                unit: WeightUnit.kg,
+                enabled: true,
+                isOpen: false,
+                onOpenChanged: (_) {},
+                onChanged: (_) {},
+                onValidityChanged: (_) {},
+                onRemove: () {},
+              ),
+          ]),
+        ),
+      ));
+      for (var index = 0; index < ids.length; index++) {
+        final box = find.byKey(ValueKey('routine-set-type-box-${ids[index]}'));
+        expect(box, findsOneWidget);
+        final decoration = tester.widget<Container>(box).decoration!
+            as BoxDecoration;
+        expect(decoration.color, palette.surfaceVariant);
+        expect(decoration.color, isNot(palette.background));
+        expect(decoration.borderRadius,
+            BorderRadius.circular(TioRadius.md));
+        expect(tester.getSize(box).width, TioSize.dp44);
+        expect(tester.getSize(box).height,
+            greaterThanOrEqualTo(TioSize.dp44));
+        expect(find.text('${index + 1}'), findsOneWidget);
+        expect(find.byKey(ValueKey('routine-set-type-${ids[index]}')),
+            findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('inline row preserves kg when lb display is unchanged', (tester) async {
     final values = <SetPrescription>[];
     final validity = <bool>[];
