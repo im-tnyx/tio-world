@@ -534,7 +534,7 @@ void main() {
     expect(f.editorResult, isTrue);
   });
 
-  testWidgets('inline Add set blank blocks Update until entered',
+  testWidgets('inline Add Set blank permits Update; invalid typed Reps block',
       (tester) async {
     final f = _Fixtures();
     await f.open(tester);
@@ -554,7 +554,7 @@ void main() {
     final reps = find.byKey(const ValueKey('routine-set-reps-$newSet'));
     expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
     final update = find.byKey(const ValueKey('edit-routine-update'));
-    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
     await tester.enterText(reps, '0');
     await tester.pump();
     expect(tester.widget<TioButton>(update).onPressed, isNull);
