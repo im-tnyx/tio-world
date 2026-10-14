@@ -649,8 +649,10 @@ void main() {
     expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
     await tester.enterText(max, '');
     await tester.pump();
+    // An entirely blank template remains saveable; Range selection is
+    // transient until both Min/Max are explicitly supplied.
     expect(tester.widget<TextButton>(
-      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNotNull);
     await tester.enterText(max, '12');
     await tester.pump();
     expect(tester.widget<TextButton>(
