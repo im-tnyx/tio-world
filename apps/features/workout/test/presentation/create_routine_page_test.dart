@@ -111,8 +111,15 @@ void main() {
         const ValueKey('routine-set-type-box-$setId'))).height, expected);
       expect(tester.getSize(find.byKey(
         const ValueKey('routine-set-weight-$setId'))).height, expected);
-      expect(tester.getSize(find.byKey(
-        const ValueKey('routine-set-reps-$setId'))).height, expected);
+      final reps = find.byKey(const ValueKey('routine-set-reps-$setId'));
+      expect(tester.getSize(reps).height, expected);
+      // In the approved reference, KG/REPS occupies the same full-width
+      // right edge as Add Set, with no invisible 48dp trailing gutter.
+      final swipe = find.byKey(const ValueKey('routine-set-swipe-$setId'));
+      expect(tester.getTopRight(reps).dx,
+          closeTo(tester.getTopRight(swipe).dx, 0.01));
+      expect(tester.getTopRight(reps).dx,
+          closeTo(tester.getTopRight(surface).dx, 0.01));
       // The Material hit target may be taller, without changing visual size.
       expect(tester.getSize(add).height, greaterThanOrEqualTo(expected));
       expect(tester.takeException(), isNull);
