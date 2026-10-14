@@ -1,5 +1,5 @@
--- Existing #538/#539 Set Type/Rep Range extended with owner-approved
--- nullable template targets. NOT deployed.
+-- Existing #538/#539 Set Type/Rep Range extended by owner-approved
+-- nullable template targets. This migration is NOT deployed.
 alter table public.user_workout_routine_sets
   alter column reps drop not null,
   add column set_type text not null default 'normal',
@@ -18,7 +18,7 @@ alter table public.user_workout_routine_sets
             distance_meters <> 'NaN'::double precision)),
   add constraint user_workout_routine_sets_duration_nonnegative
     check (duration_seconds is null or duration_seconds >= 0);
--- Existing positive Reps CHECK safely permits NULL; no fake defaults.
+-- Existing reps > 0 CHECK allows NULL; no invented numeric default.
 
 -- Preserve security-definer signature, owner locks, mutation revisions/grants.
 create or replace function public.save_user_workout_routine_composition(
@@ -205,184 +205,7 @@ begin
       if v_set ? 'duration_seconds' and
           pg_catalog.jsonb_typeof(v_set -> 'duration_seconds') <> 'null' then
         if pg_catalog.jsonb_typeof(v_set -> 'duration_seconds') <> 'number'
-            or (v_set ->> 'duration_seconds') !~ '^[0-9]+
-          and pg_catalog.jsonb_typeof(v_set -> 'rest_seconds') <> 'null' then
-        if pg_catalog.jsonb_typeof(v_set -> 'rest_seconds') <> 'number'
-            or (v_set ->> 'rest_seconds') !~ '^[0-9]+$' then
-          raise exception 'invalid_routine_set_rest' using errcode = '22023';
-        end if;
-        v_rest := (v_set ->> 'rest_seconds')::integer;
-      end if;
-
-    end loop;
-  end loop;
-
-  -- Detect UUID-equivalent duplicate IDs without quadratic array scans.
-  if exists (
-    select 1 from pg_catalog.jsonb_array_elements(p_exercises) as e(value)
-    group by (e.value ->> 'id')::uuid having count(*) > 1
-  ) then
-    raise exception 'duplicate_routine_exercise_entry' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-    from pg_catalog.jsonb_array_elements(p_exercises) as e(value)
-    cross join lateral pg_catalog.jsonb_array_elements(e.value -> 'sets') as s(value)
-    group by (s.value ->> 'id')::uuid having count(*) > 1
-  ) then
-    raise exception 'duplicate_routine_set' using errcode = '22023';
-  end if;
-
-  -- Build ordered normalized content in single aggregations, not per-item
-  -- jsonb concatenations. Strict validation above makes all casts safe.
-  select coalesce(pg_catalog.jsonb_agg(
-    pg_catalog.jsonb_build_object(
-      'id', (e.value ->> 'id')::uuid::text,
-      'exercise_ref', case
-        when (e.value ->> 'exercise_ref') ~ '^ex_'
-          then e.value ->> 'exercise_ref'
-        else (e.value ->> 'exercise_ref')::uuid::text
-      end,
-      'sets', (
-        select coalesce(pg_catalog.jsonb_agg(
-          pg_catalog.jsonb_build_object(
-            'id', (s.value ->> 'id')::uuid::text,
-            'reps', (s.value ->> 'reps')::integer,
-            'set_type', coalesce(s.value ->> 'set_type','normal'),
-            'reps_max', (s.value ->> 'reps_max')::integer,
-            'load_kg', (s.value ->> 'load_kg')::double precision,
-            'rest_seconds', (s.value ->> 'rest_seconds')::integer
-          ) order by s.ordinality
-        ), '[]'::jsonb)
-        from pg_catalog.jsonb_array_elements(e.value -> 'sets')
-          with ordinality as s(value, ordinality)
-      )
-    ) order by e.ordinality
-  ), '[]'::jsonb)
-    into v_normalized
-  from pg_catalog.jsonb_array_elements(p_exercises)
-    with ordinality as e(value, ordinality);
-
-  if v_last_mutation = p_client_mutation_id then
-    select coalesce(pg_catalog.jsonb_agg(
-      pg_catalog.jsonb_build_object(
-        'id', exercise.id::text,
-        'exercise_ref', coalesce(
-          exercise.catalog_exercise_id, exercise.user_exercise_id::text
-        ),
-        'sets', (
-          select coalesce(pg_catalog.jsonb_agg(
-            pg_catalog.jsonb_build_object(
-              'id', set_row.id::text,
-              'reps', set_row.reps,
-              'set_type', set_row.set_type,
-              'reps_max', set_row.reps_max,
-              'load_kg', set_row.load_kg,
-              'rest_seconds', set_row.rest_seconds
-            ) order by set_row.position
-          ), '[]'::jsonb)
-          from public.user_workout_routine_sets as set_row
-          where set_row.user_id = v_user_id
-            and set_row.routine_exercise_id = exercise.id
-        )
-      ) order by exercise.position
-    ), '[]'::jsonb)
-    into v_persisted
-    from public.user_workout_routine_exercises as exercise
-    where exercise.routine_id = p_routine_id
-      and exercise.user_id = v_user_id;
-
-    if v_persisted = v_normalized then
-      return v_revision;
-    end if;
-    raise exception 'routine_composition_mutation_conflict' using errcode = 'P0001';
-  end if;
-
-  -- Legacy whole-snapshot clients cannot drop rich metadata.
-  -- A fully empty replacement of a rich Routine is also fail-closed.
-  if exists (
-    select 1 from public.user_workout_routine_sets old_set
-    join public.user_workout_routine_exercises old_entry
-      on old_entry.id = old_set.routine_exercise_id
-      and old_entry.user_id = old_set.user_id
-    where old_entry.routine_id = p_routine_id
-      and old_entry.user_id = v_user_id
-      and (old_set.set_type <> 'normal' or old_set.reps_max is not null)
-  ) and (
-    not exists (
-      select 1 from pg_catalog.jsonb_array_elements(p_exercises) e(value)
-      cross join lateral pg_catalog.jsonb_array_elements(e.value -> 'sets') s(value)
-    )
-    or exists (
-      select 1 from pg_catalog.jsonb_array_elements(p_exercises) e(value)
-      cross join lateral pg_catalog.jsonb_array_elements(e.value -> 'sets') s(value)
-      where not (s.value ? 'set_type' and s.value ? 'reps_max')
-    )
-  ) then
-    raise exception 'routine_composition_legacy_rich_set_overwrite'
-      using errcode = 'P0001';
-  end if;
-
-  if v_revision <> p_expected_revision then
-    raise exception 'routine_composition_revision_conflict' using errcode = 'P0001';
-  end if;
-
-  -- Full snapshot replacement, including empty draft compositions.
-  -- All child DML rolls back if a later row/owner FK/constraint fails.
-  delete from public.user_workout_routine_exercises
-  where routine_id = p_routine_id and user_id = v_user_id;
-
-  for v_entry, v_entry_ordinal in
-    select e.value, e.ordinality
-    from pg_catalog.jsonb_array_elements(v_normalized)
-      with ordinality as e(value, ordinality)
-  loop
-    v_entry_id := (v_entry ->> 'id')::uuid;
-    v_entry_ref := v_entry ->> 'exercise_ref';
-    insert into public.user_workout_routine_exercises (
-      id, user_id, routine_id, position, catalog_exercise_id, user_exercise_id
-    ) values (
-      v_entry_id, v_user_id, p_routine_id, (v_entry_ordinal - 1)::integer,
-      case when v_entry_ref ~ '^ex_' then v_entry_ref else null end,
-      case when v_entry_ref ~ '^ex_' then null else v_entry_ref::uuid end
-    );
-
-    for v_set, v_set_ordinal in
-      select s.value, s.ordinality
-      from pg_catalog.jsonb_array_elements(v_entry -> 'sets')
-        with ordinality as s(value, ordinality)
-    loop
-      insert into public.user_workout_routine_sets (
-        id, user_id, routine_exercise_id, position, reps, reps_max, set_type, load_kg, rest_seconds
-      ) values (
-        (v_set ->> 'id')::uuid, v_user_id, v_entry_id,
-        (v_set_ordinal - 1)::integer,
-        (v_set ->> 'reps')::integer,
-        (v_set ->> 'reps_max')::integer,
-        coalesce(v_set ->> 'set_type','normal'),
-        (v_set ->> 'load_kg')::double precision,
-        (v_set ->> 'rest_seconds')::integer
-      );
-    end loop;
-  end loop;
-
-  update public.user_workout_routines
-  set composition_revision = v_revision + 1,
-      last_composition_mutation_id = p_client_mutation_id
-  where id = p_routine_id and user_id = v_user_id;
-
-  return v_revision + 1;
-end;
-$$;
-
-revoke all on function public.save_user_workout_routine_composition(
-  uuid, bigint, uuid, jsonb
-) from public, anon, authenticated, service_role;
-grant execute on function public.save_user_workout_routine_composition(
-  uuid, bigint, uuid, jsonb
-) to authenticated;
- then
+            or (v_set ->> 'duration_seconds') !~ '^[0-9]+$' then
           raise exception 'invalid_routine_set_duration' using errcode = '22023';
         end if;
         v_duration := (v_set ->> 'duration_seconds')::integer;
@@ -436,6 +259,8 @@ grant execute on function public.save_user_workout_routine_composition(
             'set_type', coalesce(s.value ->> 'set_type','normal'),
             'reps_max', (s.value ->> 'reps_max')::integer,
             'load_kg', (s.value ->> 'load_kg')::double precision,
+            'distance_meters', (s.value ->> 'distance_meters')::double precision,
+            'duration_seconds', (s.value ->> 'duration_seconds')::integer,
             'rest_seconds', (s.value ->> 'rest_seconds')::integer
           ) order by s.ordinality
         ), '[]'::jsonb)
@@ -463,6 +288,8 @@ grant execute on function public.save_user_workout_routine_composition(
               'set_type', set_row.set_type,
               'reps_max', set_row.reps_max,
               'load_kg', set_row.load_kg,
+              'distance_meters', set_row.distance_meters,
+              'duration_seconds', set_row.duration_seconds,
               'rest_seconds', set_row.rest_seconds
             ) order by set_row.position
           ), '[]'::jsonb)
@@ -483,8 +310,9 @@ grant execute on function public.save_user_workout_routine_composition(
     raise exception 'routine_composition_mutation_conflict' using errcode = 'P0001';
   end if;
 
-  -- Legacy whole-snapshot clients cannot drop rich metadata.
-  -- A fully empty replacement of a rich Routine is also fail-closed.
+  -- Legacy full-snapshot clients must not erase rich Set type/range,
+  -- targetless Reps or distance/duration values. Even an empty replacement
+  -- of a rich Routine is fail-closed.
   if exists (
     select 1 from public.user_workout_routine_sets old_set
     join public.user_workout_routine_exercises old_entry
@@ -492,7 +320,11 @@ grant execute on function public.save_user_workout_routine_composition(
       and old_entry.user_id = old_set.user_id
     where old_entry.routine_id = p_routine_id
       and old_entry.user_id = v_user_id
-      and (old_set.set_type <> 'normal' or old_set.reps_max is not null)
+      and (old_set.set_type <> 'normal'
+        or old_set.reps_max is not null
+        or old_set.reps is null
+        or old_set.distance_meters is not null
+        or old_set.duration_seconds is not null)
   ) and (
     not exists (
       select 1 from pg_catalog.jsonb_array_elements(p_exercises) e(value)
@@ -501,7 +333,9 @@ grant execute on function public.save_user_workout_routine_composition(
     or exists (
       select 1 from pg_catalog.jsonb_array_elements(p_exercises) e(value)
       cross join lateral pg_catalog.jsonb_array_elements(e.value -> 'sets') s(value)
-      where not (s.value ? 'set_type' and s.value ? 'reps_max')
+      where not (s.value ? 'set_type' and s.value ? 'reps_max'
+                 and s.value ? 'distance_meters'
+                 and s.value ? 'duration_seconds')
     )
   ) then
     raise exception 'routine_composition_legacy_rich_set_overwrite'
@@ -538,7 +372,8 @@ grant execute on function public.save_user_workout_routine_composition(
         with ordinality as s(value, ordinality)
     loop
       insert into public.user_workout_routine_sets (
-        id, user_id, routine_exercise_id, position, reps, reps_max, set_type, load_kg, rest_seconds
+        id, user_id, routine_exercise_id, position, reps, reps_max,
+        set_type, load_kg, distance_meters, duration_seconds, rest_seconds
       ) values (
         (v_set ->> 'id')::uuid, v_user_id, v_entry_id,
         (v_set_ordinal - 1)::integer,
@@ -546,6 +381,8 @@ grant execute on function public.save_user_workout_routine_composition(
         (v_set ->> 'reps_max')::integer,
         coalesce(v_set ->> 'set_type','normal'),
         (v_set ->> 'load_kg')::double precision,
+        (v_set ->> 'distance_meters')::double precision,
+        (v_set ->> 'duration_seconds')::integer,
         (v_set ->> 'rest_seconds')::integer
       );
     end loop;
