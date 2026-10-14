@@ -11,7 +11,9 @@ import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_state.dart';
+import '../exercises/widgets/exercise_list_row.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import '../exercises/exercises_page.dart';
@@ -31,6 +33,7 @@ class EditRoutinePage extends StatefulWidget {
     required this.catalogRepository,
     required this.weightUnit,
     this.userExerciseRepository,
+    this.viewerMediaGender,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -42,6 +45,8 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Profile-resolved by the app; null uses catalog's default media gender.
+  final ExerciseMediaGender? viewerMediaGender;
   /// Live opening-session capability, not a cached authorization snapshot.
   final bool Function()? canWrite;
   final WeightUnit? weightUnit;
@@ -621,6 +626,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                 child: _EntryTable(
                   entry: entry,
                   title: found?.displayName ?? 'Exercise unavailable',
+                  thumbnailUrl: found == null
+                      ? null
+                      : ExercisesController.thumbnailUrlFor(
+                          found,
+                          gender: widget.viewerMediaGender,
+                        ),
                   index: index,
                   unit: widget.weightUnit!,
                   enabled: _canEdit,
@@ -667,6 +678,7 @@ class _EntryTable extends StatelessWidget {
   const _EntryTable({
     required this.entry,
     required this.title,
+    required this.thumbnailUrl,
     required this.index,
     required this.unit,
     required this.enabled,
@@ -688,6 +700,7 @@ class _EntryTable extends StatelessWidget {
 
   final RoutineCompositionEntry entry;
   final String title;
+  final Uri? thumbnailUrl;
   final int index;
   final WeightUnit unit;
   final bool enabled;
@@ -734,6 +747,8 @@ class _EntryTable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(children: [
+          if (thumbnailUrl != null)
+            ExerciseThumbnail(url: thumbnailUrl!),
           Expanded(
             child: Semantics(
               key: ValueKey('edit-routine-reorder-semantics-${entry.id}'),
