@@ -227,7 +227,7 @@ void main() {
       }
     });
 
-    test('Walking on Treadmill uses canonical distance/duration profile',
+    test('Treadmill and Front Plank opt into explicit measurement profiles',
         () async {
       final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
       final treadmill = catalog.byRef(
@@ -236,6 +236,15 @@ void main() {
       expect(treadmill, isNotNull);
       expect(treadmill!.category, 'cardio');
       expect(treadmill.exerciseType, ExerciseType.distanceDuration);
+      final plank = catalog.byRef(ExerciseRef.catalog('ex_front_plank'));
+      expect(plank, isNotNull);
+      expect(plank!.exerciseType, ExerciseType.duration);
+      // A body's category or equipment cannot be used to infer which
+      // Routine measurement columns apply to an unrelated Exercise.
+      for (final exercise in catalog.all.where((entry) =>
+          entry.ref != treadmill.ref && entry.ref != plank.ref)) {
+        expect(exercise.exerciseType, isNull, reason: exercise.ref.value);
+      }
     });
 
     test('maps curated media with an image for every viewer', () async {
