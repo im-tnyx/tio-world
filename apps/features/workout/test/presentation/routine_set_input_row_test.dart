@@ -289,6 +289,62 @@ void main() {
     expect(emitted.last.restSeconds, 45);
   });
 
+  testWidgets('inline echo marker is consumed before later sheet round-trip',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final current = ValueNotifier<SetPrescription>(
+      SetPrescription(reps: 8, loadKg: 10, restSeconds: 45),
+    );
+    addTearDown(current.dispose);
+    final emitted = <SetPrescription>[];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+        valueListenable: current,
+        builder: (_, prescription, __) => RoutineSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: prescription),
+          index: 0,
+          normalNumber: 1,
+          onTypePressed: () {},
+          unit: WeightUnit.kg,
+          enabled: true,
+          isOpen: false,
+          onOpenChanged: (_) {},
+          onChanged: (value) {
+            emitted.add(value);
+            current.value = value;
+          },
+          onValidityChanged: (_) {},
+          onRemove: () {},
+        ),
+      )),
+    ));
+    final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
+    final weight = find.byKey(const ValueKey('routine-set-weight-$id'));
+
+    // The immediate parent rebuild is the one and only local echo.
+    await tester.enterText(weight, '20');
+    await tester.pump();
+    expect(current.value.loadKg, 20);
+    // Two later external advanced-sheet values, the second equals an
+    // earlier inline edit but is NOT a stale echo.
+    current.value = SetPrescription(reps: 8, loadKg: 30, restSeconds: 45);
+    await tester.pump();
+    expect(tester.widget<TioInput>(weight).controller!.text, '30');
+    current.value = SetPrescription(reps: 8, loadKg: 20, restSeconds: 45);
+    await tester.pump();
+    expect(tester.widget<TioInput>(weight).controller!.text, '20');
+    await tester.enterText(reps, '9');
+    await tester.pump();
+    expect(emitted.last.reps, 9);
+    expect(emitted.last.loadKg, 20);
+    expect(emitted.last.restSeconds, 45);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Switching typed fixed Reps to range requires explicit Max',
       (tester) async {
     const id = '55555555-5555-4555-8555-555555555555';
