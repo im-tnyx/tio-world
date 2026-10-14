@@ -3111,6 +3111,7 @@
     {
       "id": "ex_front_plank",
       "title": "Front Plank",
+      "exerciseType": "duration",
       "muscleGroup": "waist",
       "primaryMuscles": [
         "rectus_abdominis"
