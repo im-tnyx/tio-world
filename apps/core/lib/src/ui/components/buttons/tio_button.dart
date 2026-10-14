@@ -197,7 +197,8 @@ class TioButton extends StatelessWidget {
 /// Neutral filled appearance for a supporting, non-primary action.
 ///
 /// This is a Core semantic variant, not a Workout-specific button surface.
-/// FilledButtonTheme owns minimum size, radius, padding and typography.
+/// The governed surfaceVariant keeps the filled action visible against an
+/// OLED black background; FilledButtonTheme retains its geometry and states.
 ButtonStyle _supportingStyle(TioColors colors, {required bool loading}) {
   bool genuinelyDisabled(Set<WidgetState> states) =>
       !loading && states.contains(WidgetState.disabled);
@@ -205,10 +206,10 @@ ButtonStyle _supportingStyle(TioColors colors, {required bool loading}) {
   return ButtonStyle(
     backgroundColor: WidgetStateProperty.resolveWith(
       (states) => genuinelyDisabled(states)
-          ? colors.surface.withValues(
+          ? colors.surfaceVariant.withValues(
               alpha: TioButtonTokens.disabledContainerOpacity,
             )
-          : colors.surface,
+          : colors.surfaceVariant,
     ),
     foregroundColor: WidgetStateProperty.resolveWith(
       (states) => genuinelyDisabled(states)
