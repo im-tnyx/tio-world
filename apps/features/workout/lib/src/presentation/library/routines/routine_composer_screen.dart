@@ -7,6 +7,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/repositories/routine_composition_repository.dart';
 import '../exercises/widgets/exercise_list_row.dart';
 
 /// One rendered Routine composition screen for Create and Edit.

@@ -193,3 +193,16 @@ Validation: source and focused page assertions written; remote staging is
 not Flutter execution. Exact-head Flutter Analyze/full tests, independent
 review, accessibility/320dp light/OLED visual comparison and old-client DB
 rollout checks are pending. Do not claim merge-ready or deployed.
+
+## Exact-head analyzer correction after main reconciliation (2026-10-14)
+
+Merge reconciliation commit `c8a2c971` now contains merged #533 and #536
+in the Git ancestry without history rewriting. Exact-head Flutter CI
+#38579061711 actually ran and **FAILED** in Workout analyzer before tests:
+the newly shared composer lacked the Workout feature-owned
+`RoutineCompositionEntry`/`RoutineCompositionSet` import; the Exercise
+options sheet was missing a closing brace; and six explicit flow guards
+triggered mandatory `curly_braces_in_flow_control_structures` lint. Fix
+only these precise source errors. **CI failure is not a pass**; rerun
+exact-head Flutter analyze and full tests before a review/merge decision.
+Database PR #540 owns SQL/schema compatibility and its independent CI.

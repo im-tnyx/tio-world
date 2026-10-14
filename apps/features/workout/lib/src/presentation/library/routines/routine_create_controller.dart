@@ -112,7 +112,9 @@ final class RoutineCreateController extends ChangeNotifier {
   /// Fresh entry/Set UUIDs prevent cross-exercise prescription attribution.
   String? replacePickedExercise(String entryId, Exercise exercise) {
     if (!_editable || !_authorized ||
-        exercise.status != ExerciseStatus.active) return null;
+        exercise.status != ExerciseStatus.active) {
+      return null;
+    }
     final index = _entries.indexWhere((entry) => entry.id == entryId);
     if (index < 0 || _entries[index].exercise == exercise.ref) return null;
     final newId = _newUuid();

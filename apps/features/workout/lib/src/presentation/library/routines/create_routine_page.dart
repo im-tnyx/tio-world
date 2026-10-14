@@ -141,7 +141,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       ),
     );
     if (!mounted || !_enabled || !identical(openingDraft, _draft) ||
-        exercise == null) return;
+        exercise == null) {
+      return;
+    }
     if (replacing != null) {
       final oldEntries = _draft.state.entries
           .where((current) => current.id == replacing.id);
@@ -188,7 +190,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final openingDraft = _draft;
     final action = await showRoutineExerciseOptionsSheet(context);
     if (!mounted || !identical(openingDraft, _draft) ||
-        !_enabled || action == null) return;
+        !_enabled || action == null) {
+      return;
+    }
     if (!_draft.state.entries.any((current) => current.id == entry.id)) return;
     if (action == RoutineExerciseOption.replace) {
       await _pick(replacing: entry);

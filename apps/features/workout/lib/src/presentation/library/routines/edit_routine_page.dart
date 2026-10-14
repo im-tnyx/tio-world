@@ -171,7 +171,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         !identical(editor, _editor) ||
         !_canEdit ||
         unit != widget.weightUnit ||
-        exercise == null) return;
+        exercise == null) {
+      return;
+    }
     // The picker freshly verifies owner-scoped Custom and catalog selection.
     if (exercise.status != ExerciseStatus.active) return;
     if (replacing != null) {
@@ -255,7 +257,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final openingEditor = _editor;
     final action = await showRoutineExerciseOptionsSheet(context);
     if (!mounted || !identical(openingEditor, _editor) ||
-        !_canEdit || action == null) return;
+        !_canEdit || action == null) {
+      return;
+    }
     if (openingEditor == null ||
         !openingEditor.state.entries.any((current) => current.id == entry.id)) {
       return;

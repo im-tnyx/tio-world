@@ -170,7 +170,9 @@ final class RoutineEditorController extends ChangeNotifier {
   /// targets; old persisted IDs are retired only by explicit Update.
   String? replacePickedExercise(String entryId, Exercise exercise) {
     if (!_state.canEdit || !_authorized ||
-        exercise.status != ExerciseStatus.active) return null;
+        exercise.status != ExerciseStatus.active) {
+      return null;
+    }
     final index = _draft.indexWhere((entry) => entry.id == entryId);
     if (index < 0 || _draft[index].exercise == exercise.ref) return null;
     final newId = _newUuid();
