@@ -147,6 +147,9 @@ List<RouteBase> _shellBranchChildRoutes(
                       catalogRepository: catalog,
                       userExerciseRepository:
                           verifiedOwner ? userExerciseRepository : null,
+                      viewerMediaGender: verifiedOwner && weightUnit != null
+                          ? ref.watch(exerciseViewerMediaGenderProvider)
+                          : null,
                       weightUnit: weightUnit,
                       onEditPressed: !mayEdit
                           ? null
@@ -260,6 +263,9 @@ List<RouteBase> _shellBranchChildRoutes(
                                             ? ref.watch(
                                                 userExerciseRepositoryProvider,
                                               )
+                                            : null,
+                                        viewerMediaGender: authorized && unit != null
+                                            ? ref.watch(exerciseViewerMediaGenderProvider)
                                             : null,
                                         weightUnit: unit,
                                         // Recheck the live opening login cycle
@@ -434,6 +440,9 @@ List<RouteBase> _shellBranchChildRoutes(
                                               userExerciseRepository,
                                           routineRepository: routineRepository,
                                           compositionRepository: compositions,
+                                          viewerMediaGender: authorized
+                                              ? ref.watch(exerciseViewerMediaGenderProvider)
+                                              : null,
                                           weightUnit: unit,
                                           canWrite: () {
                                             try {
