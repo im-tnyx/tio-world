@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
@@ -12,7 +13,8 @@ import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
-import 'routine_exercise_picker_page.dart';
+import '../exercises/exercises_page.dart';
+import '../exercises/exercises_providers.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 
@@ -114,9 +116,17 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!_enabled) return;
     final exercise = await Navigator.of(context).push<Exercise>(
       MaterialPageRoute(
-        builder: (_) => RoutineExercisePickerPage(
-          catalogRepository: widget.catalogRepository,
-          userExerciseRepository: widget.userExerciseRepository,
+        builder: (routeContext) => ProviderScope(
+          overrides: [
+            exerciseCatalogRepositoryProvider.overrideWithValue(
+              widget.catalogRepository,
+            ),
+          ],
+          child: ExercisesPage(
+            userExerciseRepository: widget.userExerciseRepository,
+            onExerciseSelected: (selected) =>
+                Navigator.of(routeContext).pop<Exercise>(selected),
+          ),
         ),
       ),
     );
