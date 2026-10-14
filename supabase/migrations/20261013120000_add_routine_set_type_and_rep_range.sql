@@ -403,3 +403,14 @@ revoke all on function public.save_user_workout_routine_composition(
 grant execute on function public.save_user_workout_routine_composition(
   uuid, bigint, uuid, jsonb
 ) to authenticated;
+
+-- Owner-approved cardinality: a Routine Exercise may contain at most 8 Sets.
+-- Set positions are zero-based in BOTH atomic Create and snapshot Save RPCs.
+-- The pre-existing UNIQUE (routine_exercise_id,user_id,position) and
+-- nonnegative position CHECK together with this upper bound guarantee <=8.
+-- NOT VALID avoids scanning or deleting previously saved >8-Set Exercises.
+-- It still enforces the limit for every new/updated row and privileged writer.
+-- Historic >8 Sets remain readable; reducing them to 8 or fewer permits Save.
+alter table public.user_workout_routine_sets
+  add constraint user_workout_routine_sets_max_eight_position
+  check (position < 8) not valid;

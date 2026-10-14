@@ -142,4 +142,104 @@ select pg_temp.assert_true(
   'rejected Create must not leave orphan Routine metadata'
 );
 
+
+-- The limit must be enforced in PostgreSQL, not only by Flutter button state.
+-- NOT VALID preserves historical over-limit rows until the user edits them.
+select pg_temp.assert_true(
+  exists(
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.user_workout_routine_sets'::regclass
+      and conname = 'user_workout_routine_sets_max_eight_position'
+      and convalidated = false
+  ),
+  '8-Set per Exercise DB guard installed without historical rewrite'
+);
+
+-- Existing owner can save exactly eight Sets in a single Exercise.
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5400000-0000-4000-8000-000000000021', 1,
+    'a5400000-0000-4000-8000-000000000093',
+    pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'id', 'a5400000-0000-4000-8000-000000000041',
+      'exercise_ref', 'ex_bench_press',
+      'sets', (
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object(
+            'id', 'a5400000-0000-4000-8000-' ||
+                  pg_catalog.lpad(i::text, 12, '0'),
+            'reps', 8
+          ) order by i
+        ) from pg_catalog.generate_series(1,8) as i
+      )
+    ))
+  ) = 2,
+  'eight Sets are valid in Save'
+);
+select pg_temp.assert_true(
+  (select count(*) = 8 from public.user_workout_routine_sets
+   where user_id = 'a5400000-0000-4000-8000-000000000001'),
+  'eight Set rows persist'
+);
+
+-- A ninth Set is rejected even if an outdated client bypasses Add Set UI.
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5400000-0000-4000-8000-000000000021', 2,
+    'a5400000-0000-4000-8000-000000000094',
+    pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'id', 'a5400000-0000-4000-8000-000000000041',
+      'exercise_ref', 'ex_bench_press',
+      'sets', (
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object(
+            'id', 'a5400000-0000-4000-8000-' ||
+                  pg_catalog.lpad(i::text, 12, '0'),
+            'reps', 8
+          ) order by i
+        ) from pg_catalog.generate_series(1,9) as i
+      )
+    ))
+  )
+$sql$, '23514', 'Save must reject ninth Set under CHECK constraint');
+
+select pg_temp.assert_true(
+  (select composition_revision = 2
+   from public.user_workout_routines
+   where id = 'a5400000-0000-4000-8000-000000000021')
+  and (select count(*) = 8 from public.user_workout_routine_sets
+       where user_id = 'a5400000-0000-4000-8000-000000000001'),
+  'rejected ninth Set leaves existing Save atomic and unchanged'
+);
+
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5400000-0000-4000-8000-000000000023',
+    'a5400000-0000-4000-8000-000000000011',
+    'Too many Sets',
+    'a5400000-0000-4000-8000-000000000095',
+    pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+      'id', 'a5400000-0000-4000-8000-000000000046',
+      'exercise_ref', 'ex_bench_press',
+      'sets', (
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object(
+            'id', 'a5400000-0000-4000-8000-' ||
+                  pg_catalog.lpad((i+100)::text, 12, '0'),
+            'reps', 8
+          ) order by i
+        ) from pg_catalog.generate_series(1,9) as i
+      )
+    ))
+  )
+$sql$, '23514', 'Atomic Create rejects ninth Set');
+
+select pg_temp.assert_true(
+  not exists(
+    select 1 from public.user_workout_routines
+    where id = 'a5400000-0000-4000-8000-000000000023'
+  ),
+  'rejected over-limit Create leaves no partial Routine'
+);
+
 rollback;
