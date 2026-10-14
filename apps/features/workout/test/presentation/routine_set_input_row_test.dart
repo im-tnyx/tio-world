@@ -94,11 +94,12 @@ void main() {
     final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
     await tester.enterText(reps, '');
     await tester.pump();
-    expect(validity.last, isFalse);
-    expect(values, isEmpty);
+    // Empty targets are a valid nullable Routine prescription.
+    expect(validity, isEmpty);
+    expect(values.single.reps, isNull);
     await tester.enterText(reps, '10');
     await tester.pump();
-    expect(validity.last, isTrue);
+    expect(validity, isEmpty);
     expect(values.last.reps, 10);
     expect(values.last.loadKg, 12.54321);
     expect(values.last.restSeconds, 60);
