@@ -113,7 +113,7 @@ void main() {
   });
 
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
-    testWidgets('Create Set/boxed number/Add Set rendered surfaces equal 40dp '
+    testWidgets('Create Set/boxed number/Add Set rendered surfaces equal 38dp '
         'at 320dp in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -157,7 +157,7 @@ void main() {
       final filled = find.descendant(of: add, matching: find.byType(FilledButton));
       final surface = find.descendant(
         of: filled, matching: find.byType(Material)).first;
-      const expected = TioSize.dp40;
+      const expected = TioSize.dp38;
       expect(tester.getSize(surface).height, expected);
       expect(tester.getSize(find.byKey(
         const ValueKey('routine-set-type-box-$setId'))).height, expected);

@@ -124,7 +124,7 @@ void main() {
           TioInputTokens.compactHintFontSize);
       expect(decoration.counterText, '');
       expect(decoration.isDense, isTrue);
-      expect(decoration.constraints?.minHeight, TioSize.dp40);
+      expect(decoration.constraints?.minHeight, TioSize.dp38);
       expect(decoration.contentPadding,
           const EdgeInsets.symmetric(
             horizontal: TioInputTokens.compactContentHorizontalPadding,
@@ -186,7 +186,7 @@ void main() {
     });
 
     testWidgets(
-        'boxedNumber paints a 40dp outline in a taller parent and grows '
+        'boxedNumber paints a 38dp outline in a taller parent and grows '
         'for accessible text', (tester) async {
       Widget boxed({double scale = 1}) => buildTioThemedTestApp(
         MediaQuery(
@@ -208,15 +208,15 @@ void main() {
       final outline = find.byType(InputDecorator);
       expect(outline, findsOneWidget);
       expect(tester.getSize(outline).width, 180);
-      expect(tester.getSize(outline).height, TioSize.dp40,
+      expect(tester.getSize(outline).height, TioSize.dp38,
           reason: 'The painted outline must not shrink below SET height '
               'or stretch to the parent 160dp height');
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(boxed(scale: 2.5));
       await tester.pumpAndSettle();
-      expect(tester.getSize(outline).height, greaterThan(TioSize.dp40),
-          reason: 'Accessibility text must grow, never clip to fixed 40dp');
+      expect(tester.getSize(outline).height, greaterThan(TioSize.dp38),
+          reason: 'Accessibility text must grow, never clip to fixed 38dp');
       expect(tester.takeException(), isNull);
     });
 

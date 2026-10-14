@@ -517,7 +517,7 @@ class _TioInputState extends State<TioInput> {
               // retain their existing theme-driven geometry and padding.
               isDense: isBoxedNumber,
               constraints: isBoxedNumber
-                  ? const BoxConstraints(minHeight: TioSize.dp40)
+                  ? const BoxConstraints(minHeight: TioSize.dp38)
                   : null,
               labelText: isCompactNumeric ? null : widget.label,
               hintText: widget.hint,
@@ -560,7 +560,7 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding ??
                   (isCompactNumeric
                       ? EdgeInsets.symmetric(
-                          // Keep the numeric inset substantial; the 40dp
+                          // Keep the numeric inset substantial; the 38dp
                           // minimum determines the default painted height.
                           vertical: isBoxedNumber
                               ? TioSpacing.sm
@@ -577,12 +577,12 @@ class _TioInputState extends State<TioInput> {
     );
     if (!isBoxedNumber) return field;
     // The outlined numeric cell owns its minimum visible size and shrinks to
-    // its contents when a parent provides more vertical space. Default 40dp
+    // its contents when a parent provides more vertical space. Default 38dp
     // remains a minimum; accessibility text may naturally grow taller.
     return Align(
       heightFactor: 1,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: TioSize.dp40),
+        constraints: const BoxConstraints(minHeight: TioSize.dp38),
         child: field,
       ),
     );

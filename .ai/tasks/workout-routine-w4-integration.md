@@ -318,3 +318,20 @@ Dedicated Core outside-touch/sibling-input tests and shared composer
 Create/Edit keyboard-metrics tests added. No geometry, 40dp, eight-Set
 policy, model, persistence, migration or new PR change. Physical Android
 system Back/keyboard hide and iOS keyboard dismissal QA still required.
+
+## Owner-approved 38dp Set/Input/Add Set adjustment (2026-10-14; validation pending)
+
+The owner explicitly reduced the previously accepted compact 40dp Routine
+Set badge, boxed numeric input and neutral Add Set visual minimum to
+**38dp**, preserving the single shared Create/Edit screen. Existing
+`TioSize.dp38` supplies the governed primitive. The SET header and
+badge widths are 38dp; Create filled and Edit unboxed SET number, all
+KG/LB/REPS/Range/KM/TIME numeric fields, and Add Set painted minimum
+heights become 38dp together. Accessibility text may still grow;
+Material button touch-target policy and Core primary/secondary/destructive
+46dp minimums are unchanged. Preserve typed Set targets, dismissal
+behavior, swipe/delete interaction, 8-Set cap, and existing validation.
+Core, 320dp Create/Edit light/OLED and row geometry tests now assert
+38dp. No token, database migration, new PR or unrelated UI redesign.
+Exact-head CI and physical compact/light/OLED/large-text QA remain
+required before merge.

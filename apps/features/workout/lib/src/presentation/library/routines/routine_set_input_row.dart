@@ -511,7 +511,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               onTap: widget.enabled ? widget.onTypePressed : null,
               borderRadius: BorderRadius.circular(TioRadius.md),
               // Constrain painted SET surface to its content, not the
-              // viewport's loose max-height. The 40dp minimum remains and
+              // viewport's loose max-height. The 38dp minimum remains and
               // larger accessibility text can still grow this control.
               child: Align(
                 heightFactor: 1,
@@ -519,13 +519,13 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                   constrainedAxis: Axis.horizontal,
                   child: Container(
                     key: ValueKey('routine-set-type-box-${widget.set.id}'),
-                    width: TioSize.dp40,
-                    constraints: const BoxConstraints(minHeight: TioSize.dp40),
+                    width: TioSize.dp38,
+                    constraints: const BoxConstraints(minHeight: TioSize.dp38),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       // Create uses the neutral filled Set badge. The approved
                       // Edit/PREVIOUS reference instead shows an unboxed blue
-                      // number; preserve the same 40dp visual footprint.
+                      // number; preserve the same 38dp visual footprint.
                       color: widget.showPrevious ? null : colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(TioRadius.md),
                     ),

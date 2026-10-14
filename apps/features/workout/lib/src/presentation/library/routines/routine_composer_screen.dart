@@ -325,7 +325,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
           Row(
             children: [
               const SizedBox(
-                width: TioSize.dp40,
+                width: TioSize.dp38,
                 child: Text('SET', textAlign: TextAlign.center),
               ),
               const SizedBox(width: TioSpacing.sm),

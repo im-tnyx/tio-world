@@ -67,7 +67,7 @@ void main() {
         matching: find.byType(Material),
       );
       expect(filledSurface, findsWidgets);
-      expect(tester.getSize(filledSurface.first).height, TioSize.dp40);
+      expect(tester.getSize(filledSurface.first).height, TioSize.dp38);
       for (var index = 0; index < ids.length; index++) {
         final box = find.byKey(ValueKey('routine-set-type-box-${ids[index]}'));
         expect(box, findsOneWidget);
@@ -77,7 +77,7 @@ void main() {
         expect(decoration.color, isNot(palette.background));
         expect(decoration.borderRadius,
             BorderRadius.circular(TioRadius.md));
-        expect(tester.getSize(box).width, TioSize.dp40);
+        expect(tester.getSize(box).width, TioSize.dp38);
         final setHeight = tester.getSize(box).height;
         final weight = find.byKey(
           ValueKey('routine-set-weight-${ids[index]}'),
@@ -85,7 +85,7 @@ void main() {
         final reps = find.byKey(
           ValueKey('routine-set-reps-${ids[index]}'),
         );
-        expect(setHeight, TioSize.dp40);
+        expect(setHeight, TioSize.dp38);
         expect(tester.getSize(weight).height, setHeight);
         expect(tester.getSize(reps).height, setHeight);
         // The screenshot concern is the *painted outline*, not just the
@@ -112,7 +112,7 @@ void main() {
     });
 
     testWidgets('Edit PREVIOUS Set number is blue and unboxed without '
-        'shrinking its 40dp tap target in ${mode.name}', (tester) async {
+        'shrinking its 38dp tap target in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
@@ -130,7 +130,7 @@ void main() {
         ),
         home: Scaffold(
           // Deliberately supply a tall bounded viewport: the filled/unboxed
-          // SET surface must shrink-wrap to 40dp rather than fill 712dp.
+          // SET surface must shrink-wrap to 38dp rather than fill 712dp.
           // Real Create/Edit page compositions are checked separately.
           body: RoutineSetInputRow(
             set: RoutineCompositionSet(
@@ -156,20 +156,20 @@ void main() {
           tester.widget<Container>(setBox).decoration! as BoxDecoration;
       expect(decoration.color, isNull,
           reason: 'Edit SET is unboxed, unlike the Create filled badge');
-      expect(tester.getSize(setBox).height, TioSize.dp40);
-      expect(tester.getSize(setBox).width, TioSize.dp40);
+      expect(tester.getSize(setBox).height, TioSize.dp38);
+      expect(tester.getSize(setBox).width, TioSize.dp38);
       final number = find.descendant(of: setBox, matching: find.text('1'));
       expect(number, findsOneWidget);
       expect(tester.widget<Text>(number).style!.color, palette.primary);
       final weight = find.byKey(const ValueKey('routine-set-weight-$id'));
       final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
       for (final input in [weight, reps]) {
-        expect(tester.getSize(input).height, TioSize.dp40);
+        expect(tester.getSize(input).height, TioSize.dp38);
         final outline = find.descendant(
           of: input, matching: find.byType(InputDecorator),
         );
         expect(outline, findsOneWidget);
-        expect(tester.getSize(outline).height, TioSize.dp40);
+        expect(tester.getSize(outline).height, TioSize.dp38);
         // Prove the painted field and SET control are aligned on both edges.
         expect(tester.getTopLeft(outline).dy,
             closeTo(tester.getTopLeft(setBox).dy, 0.01));
@@ -319,12 +319,12 @@ void main() {
       expect(field.decoration!.focusedBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.hintText, '–');
       expect(field.textAlign, TextAlign.center);
-      expect(tester.getSize(input).height, TioSize.dp40);
+      expect(tester.getSize(input).height, TioSize.dp38);
       final outline = find.descendant(
         of: input, matching: find.byType(InputDecorator),
       );
       expect(outline, findsOneWidget);
-      expect(tester.getSize(outline).height, TioSize.dp40);
+      expect(tester.getSize(outline).height, TioSize.dp38);
     }
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsOneWidget);
@@ -531,7 +531,7 @@ void main() {
         of: input, matching: find.byType(InputDecorator),
       );
       expect(outline, findsOneWidget);
-      expect(tester.getSize(outline).height, TioSize.dp40);
+      expect(tester.getSize(outline).height, TioSize.dp38);
     }
     await tester.enterText(km, '2.5');
     await tester.pump();
@@ -593,7 +593,7 @@ void main() {
       of: time, matching: find.byType(InputDecorator),
     );
     expect(timeOutline, findsOneWidget);
-    expect(tester.getSize(timeOutline).height, TioSize.dp40);
+    expect(tester.getSize(timeOutline).height, TioSize.dp38);
     await tester.enterText(time, '1:30');
     await tester.pump();
     expect(current.value.durationSeconds, 90);

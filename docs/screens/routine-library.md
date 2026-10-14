@@ -107,7 +107,7 @@ Owner explicitly rejected separately maintained Create and Edit screen UI.
 The existing Draft #551 uses a **single `RoutineComposerScreen`,
 `RoutineComposerContent` and `RoutineComposerExerciseCard`** for both
 routes, including the title bar, ordered Exercises, column headings, Set rows,
-the 40dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
+the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
 composition is configured in Create mode (`Create Routine`, empty draft,
 atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine, read-only
 PREVIOUS column and revision-guarded Update). Existing Create/Edit route
@@ -125,5 +125,5 @@ focused boxed Set numeric field removes its focus outline; switching
 from KG to REPS still focuses the selected field. Hiding the on-screen
 keyboard explicitly dismisses focus on a visible-to-hidden IME event
 rather than leaving a numeric field permanently selected. Typed values
-are retained. This does not change the 40dp layout, visual styling,
+are retained. This does not change the 38dp layout, visual styling,
 nullable Set targets, or generic TioInput forms.

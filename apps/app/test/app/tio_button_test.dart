@@ -60,11 +60,11 @@ void main() {
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNothing);
     expect(find.byType(TextButton), findsNothing);
-    // Only the reusable supporting role is 40dp in the Set editor;
+    // Only the reusable supporting role is 38dp in the Set editor;
     // primary/secondary keep the governed global 46dp theme.
-    expect(filled.style!.minimumSize!.resolve({})!.height, TioSize.dp40);
+    expect(filled.style!.minimumSize!.resolve({})!.height, TioSize.dp38);
     expect(tester.getSize(find.byType(FilledButton)).height,
-        greaterThanOrEqualTo(TioSize.dp40));
+        greaterThanOrEqualTo(TioSize.dp38));
     expect(filled.style!.backgroundColor!.resolve({}),
         TioColors.light.surfaceVariant);
     expect(filled.style!.foregroundColor!.resolve({}),
@@ -97,9 +97,9 @@ void main() {
       expect(filled.style!.foregroundColor!.resolve({}),
           palette.textPrimary);
       expect(filled.style!.minimumSize!.resolve({})!.height,
-          TioSize.dp40);
+          TioSize.dp38);
       expect(tester.getSize(find.byType(FilledButton)).height,
-          greaterThanOrEqualTo(TioSize.dp40));
+          greaterThanOrEqualTo(TioSize.dp38));
       expect(find.byIcon(Icons.add), findsOneWidget);
     });
   }
@@ -121,7 +121,7 @@ void main() {
     var filled = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(filled.onPressed, isNull);
     expect(filled.style!.minimumSize!.resolve({WidgetState.disabled})!.height,
-        TioSize.dp40);
+        TioSize.dp38);
     expect(filled.style!.backgroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.surfaceVariant.withValues(
           alpha: TioButtonTokens.disabledContainerOpacity,
@@ -134,7 +134,7 @@ void main() {
     filled = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(filled.onPressed, isNull);
     expect(filled.style!.minimumSize!.resolve({WidgetState.disabled})!.height,
-        TioSize.dp40);
+        TioSize.dp38);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.textPrimary);
@@ -143,7 +143,7 @@ void main() {
     expect(presses, 0);
   });
 
-  testWidgets('supporting visual surface is 40dp without shrinking '
+  testWidgets('supporting visual surface is 38dp without shrinking '
       'the primary action', (tester) async {
     await tester.pumpWidget(_ButtonTestApp(
       child: Column(
@@ -157,7 +157,7 @@ void main() {
       find.byType(FilledButton),
     ).toList();
     expect(buttons, hasLength(2));
-    expect(buttons[0].style!.minimumSize!.resolve({})!.height, TioSize.dp40);
+    expect(buttons[0].style!.minimumSize!.resolve({})!.height, TioSize.dp38);
     expect(buttons[1].style?.minimumSize, isNull);
     final theme = Theme.of(tester.element(find.byType(FilledButton).last));
     expect(theme.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
