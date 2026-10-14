@@ -170,6 +170,47 @@ void main() {
     expect(user.writeCalls, 0);
   });
 
+  testWidgets('Add Exercise title and catalog row select canonical Exercise',
+      (tester) async {
+    Exercise? selected;
+    final user = _User(() async => []);
+    await _pumpLauncher(
+      tester,
+      catalog: _catalog(),
+      user: user,
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Add Exercise'), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercise-create')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(selected?.ref, _catalogExercise().ref);
+    expect(user.writeCalls, 0);
+  });
+
+  testWidgets('Custom read failure hides all selectable Exercise rows',
+      (tester) async {
+    Exercise? selected;
+    final user = _User(() async => throw StateError('unavailable'));
+    await _pumpLauncher(
+      tester,
+      catalog: _catalog(),
+      user: user,
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Bench Press'), findsNothing);
+    expect(find.byKey(const ValueKey('exercises-list')), findsNothing);
+    expect(find.textContaining('Could not load custom exercises'),
+        findsOneWidget);
+    expect(selected, isNull);
+  });
+
   testWidgets('Back cancels selection, no database write', (tester) async {
     Exercise? selected;
     var returned = false;
