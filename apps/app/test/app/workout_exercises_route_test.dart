@@ -696,6 +696,52 @@ void main() {
     );
   });
 
+  testWidgets('stale Program Detail cannot Create on a new login cycle',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+
+    // Same owner signed in again. A still-mounted Program Detail must not
+    // inherit permission to create for a different login-cycle capability.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+
+    // Even if B's bootstrap and Auth identities agree with one another,
+    // the old Program Detail from A must never open a Create route for B.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'),
+        );
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    // Do not use the old Program's source to create under the new identity.
+    if (find.byKey(const ValueKey('program-detail-add-routine')).evaluate()
+        .isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(CreateRoutinePage), findsNothing);
+  });
+
   testWidgets('missing atomic Create repository never opens legacy name sheet',
       (tester) async {
     final (_, router) = await _app(
