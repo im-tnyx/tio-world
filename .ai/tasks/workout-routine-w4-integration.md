@@ -420,3 +420,21 @@ post-reveal actionable/delete/no-write assertions. No new PR,
 migration, layout redesign or change to Set fields/persistence.
 Required fresh exact-head full CI, independent review and installed
 device/keyboard/screenshot QA before merge.
+
+## Owner follow-up: Delete visually too tall (2026-10-14; CI pending)
+
+Owner reported Delete still looked taller than the 38dp numeric field.
+The preceding feature implementation specified only
+`TextButton.styleFrom(minimumSize: Size(0,38))`, which does not guarantee
+38dp *painted* height under all inherited Material button constraints.
+Apply an explicit 38dp visual `fixedSize` at normal text scale, with
+`MaterialTapTargetSize.padded`; allow large accessibility font scaling
+to fall back to natural min-height growth. Keep the 8dp revealed
+field/Delete gap, white label, swipe-progressive width, 14dp radius,
+Set UUID/actions and haptics. Add style/painted Material size assertions.
+Separately, exact-head Flutter CI #38611299945 found a Core visual
+ownership guard failure from the previous `Colors.white` constants
+(349 Core tests passed, 1 failed). Replace those three direct framework
+colors with exported Core `TioPalette.white`; do not change visible
+RGB. Latest-head full Flutter CI and real-device screenshot/touch QA
+are required before declaring PASS or merging.

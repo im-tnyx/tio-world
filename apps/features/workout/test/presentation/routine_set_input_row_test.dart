@@ -227,6 +227,11 @@ void main() {
       expect(tester.widget<Text>(whiteLabel).style!.color, Colors.white);
       expect(action.style!.minimumSize!.resolve({}),
           const Size(0, TioSize.dp38));
+      expect(action.style!.fixedSize!.resolve({})!.height,
+          TioSize.dp38,
+          reason: 'Painted Delete surface must be 38dp, not only minimum');
+      expect(action.style!.tapTargetSize, MaterialTapTargetSize.padded,
+          reason: 'Keep standard Material tap-target policy');
       final shape = action.style!.shape!.resolve({});
       expect(shape, isA<RoundedRectangleBorder>());
       expect((shape! as RoundedRectangleBorder).borderRadius,

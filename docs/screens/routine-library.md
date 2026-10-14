@@ -179,3 +179,15 @@ temporarily disabled drag state). Its 14dp corner radius and
 **38dp painted minimum height** align vertically with KG/REPS fields.
 Short swipe/tap, full-swipe deletion and the two haptic stages are
 unchanged. Real device screenshot/touch verification is still pending.
+
+## Delete painted-height correction (Draft #551; device QA pending)
+
+The Delete action must appear **exactly 38dp tall at normal text scale**,
+not merely request a 38dp *minimum*. Enforce the 38dp painted Material
+button height explicitly while keeping Material's padded tap-target
+policy; large accessibility text is permitted to grow rather than clip.
+Its top/bottom align with boxed REPS/KG inputs; the 8dp horizontal gap,
+14dp corner radius, swipe-progressive width and settled 88dp capsule
+remain. Use the theme's owned `TioPalette.white` token for the visible
+Delete label (including during disabled drag); never introduce raw
+framework colors into production UI.

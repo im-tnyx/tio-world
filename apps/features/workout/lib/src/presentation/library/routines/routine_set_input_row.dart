@@ -494,11 +494,21 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                               style: TextButton.styleFrom(
                                 backgroundColor: colors.danger,
                                 disabledBackgroundColor: colors.danger,
-                                // Text stays white while the action is
-                                // disabled during dragging and when opened.
-                                foregroundColor: Colors.white,
-                                disabledForegroundColor: Colors.white,
+                                // Palette-owned white label in both the
+                                // dragging/disabled and revealed states.
+                                foregroundColor: TioPalette.white,
+                                disabledForegroundColor: TioPalette.white,
                                 minimumSize: const Size(0, TioSize.dp38),
+                                // Enforce 38dp on the PAINTED Material surface,
+                                // not just its minimum. Preserve padded touch
+                                // handling; allow large accessibility text to
+                                // grow beyond the normal visual contract.
+                                fixedSize: MediaQuery.textScalerOf(context)
+                                            .scale(TioSize.dp16) <=
+                                        TioSize.dp24
+                                    ? const Size.fromHeight(TioSize.dp38)
+                                    : null,
+                                tapTargetSize: MaterialTapTargetSize.padded,
                                 padding: EdgeInsets.zero,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
@@ -512,7 +522,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                               child: actionWidth >= _threshold
                                   ? const Text(
                                       'Delete',
-                                      style: TextStyle(color: Colors.white),
+                                      style: TextStyle(
+                                        color: TioPalette.white,
+                                      ),
                                     )
                                   : const SizedBox.shrink(),
                             ),
