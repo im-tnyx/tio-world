@@ -61,6 +61,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   RoutineEditorController? _editor;
   RoutineExercisePickerController? _source;
   final Set<String> _invalidSetIds = {};
+  final Set<String> _draftRangeEntryIds = {};
   final Set<String> _blankSetIds = {};
   String? _openSetId;
 
@@ -86,6 +87,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _bind() {
+    _draftRangeEntryIds.clear();
     _invalidSetIds.clear();
     _blankSetIds.clear();
     _openSetId = null;
@@ -260,6 +262,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   void _removeEntry(RoutineCompositionEntry entry) {
     if (!_canEdit) return;
     _editor?.removeExercise(entry.id);
+    _draftRangeEntryIds.remove(entry.id);
     final ids = entry.sets.map((set) => set.id);
     _invalidSetIds.removeAll(ids);
     _blankSetIds.removeAll(ids);
@@ -351,7 +354,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
     if (!_canEdit || entry.sets.isEmpty) return;
-    final range = entry.sets.first.prescription.isRepRange;
+    final range = _draftRangeEntryIds.contains(entry.id) ||
+        entry.sets.first.prescription.isRepRange;
     final selection = await showTioEditorSheet<bool>(
       context: context,
       useSafeArea: true,
@@ -374,19 +378,37 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       ),
     );
     if (!mounted || !_canEdit || selection == null) return;
-    _editor?.changeRepetitionMode(entry.id, range: selection);
+    if (selection) {
+      setState(() => _draftRangeEntryIds.add(entry.id));
+    } else {
+      setState(() => _draftRangeEntryIds.remove(entry.id));
+      _editor?.changeRepetitionMode(entry.id, range: false);
+    }
   }
 
   void _reload() {
+    _draftRangeEntryIds.clear();
     _invalidSetIds.clear();
     _blankSetIds.clear();
     _openSetId = null;
     _editor?.load();
   }
 
+  bool get _rangeCanSave {
+    final editor = _editor;
+    if (editor == null) return false;
+    for (final entry in editor.state.entries) {
+      if (!_draftRangeEntryIds.contains(entry.id)) continue;
+      if (entry.sets.any((s) => s.prescription.isRepRange) &&
+          entry.sets.any((s) => !s.prescription.isRepRange)) return false;
+    }
+    return true;
+  }
+
   Future<void> _save() async {
     final editor = _editor;
-    if (!_canEdit || editor == null || _invalidSetIds.isNotEmpty) return;
+    if (!_canEdit || editor == null ||
+        _invalidSetIds.isNotEmpty || !_rangeCanSave) return;
     final confirmed = await editor.update();
     if (mounted &&
         identical(editor, _editor) &&
@@ -459,7 +481,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   key: const ValueKey('edit-routine-update'),
                   label: 'Update',
                   expand: true,
-                  onPressed: _canEdit && _invalidSetIds.isEmpty ? _save : null,
+                  onPressed: _canEdit && _invalidSetIds.isEmpty &&
+                      _rangeCanSave ? _save : null,
                 ),
               )
             : null,
@@ -636,6 +659,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                           gender: widget.viewerMediaGender,
                         ),
                   exerciseType: found?.exerciseType,
+                  showRangeDraft: _draftRangeEntryIds.contains(entry.id),
                   index: index,
                   unit: widget.weightUnit!,
                   enabled: _canEdit,
@@ -684,6 +708,7 @@ class _EntryTable extends StatelessWidget {
     required this.title,
     required this.thumbnailUrl,
     required this.exerciseType,
+    required this.showRangeDraft,
     required this.index,
     required this.unit,
     required this.enabled,
@@ -707,6 +732,7 @@ class _EntryTable extends StatelessWidget {
   final String title;
   final Uri? thumbnailUrl;
   final ExerciseType? exerciseType;
+  final bool showRangeDraft;
   final int index;
   final WeightUnit unit;
   final bool enabled;
@@ -735,6 +761,7 @@ class _EntryTable extends StatelessWidget {
         unit: unit,
         enabled: enabled,
         exerciseType: exerciseType,
+        showRangeDraft: showRangeDraft,
         showPrevious: true,
         startWithBlankReps: blankSetIds.contains(set.id),
         isOpen: openSetId == set.id,
@@ -748,8 +775,8 @@ class _EntryTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final range = entry.sets.isNotEmpty &&
-        entry.sets.first.prescription.isRepRange;
+    final range = showRangeDraft || (entry.sets.isNotEmpty &&
+        entry.sets.first.prescription.isRepRange);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
