@@ -3,6 +3,8 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
+import '../exercises/exercises_controller.dart';
+import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
@@ -18,6 +20,7 @@ class RoutineDetailPage extends StatefulWidget {
     required this.compositionRepository,
     required this.catalogRepository,
     this.userExerciseRepository,
+    this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
     super.key,
@@ -29,6 +32,8 @@ class RoutineDetailPage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Media profile is resolved by the app; null follows the catalog fallback.
+  final ExerciseMediaGender? viewerMediaGender;
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
 
@@ -225,6 +230,7 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
               index: index,
               item: entry,
               weightUnit: widget.weightUnit,
+              viewerMediaGender: widget.viewerMediaGender,
             ),
           );
         },
@@ -278,11 +284,13 @@ class _RoutineEntryPreview extends StatelessWidget {
     required this.index,
     required this.item,
     required this.weightUnit,
+    required this.viewerMediaGender,
   });
 
   final int index;
   final RoutineDetailEntry item;
   final WeightUnit? weightUnit;
+  final ExerciseMediaGender? viewerMediaGender;
 
   // Bound exceptionally long persisted Routines rather than constructing
   // thousands of rows in a single frame.
@@ -339,18 +347,33 @@ class _RoutineEntryPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final entry = item.entry;
+    final source = item.exercise;
+    final thumbnail = source == null
+        ? null
+        : ExercisesController.thumbnailUrlFor(
+            source,
+            gender: viewerMediaGender,
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          item.exercise?.displayName ?? 'Exercise unavailable',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: TioFontWeight.w700,
-            fontSize: TioFontSize.size20,
-          ),
+        Row(
+          children: [
+            if (thumbnail != null)
+              ExerciseThumbnail(url: thumbnail),
+            Expanded(
+              child: Text(
+                item.exercise?.displayName ?? 'Exercise unavailable',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size20,
+                ),
+              ),
+            ),
+          ],
         ),
         if (item.exercise == null) ...[
           const SizedBox(height: TioSpacing.xs),
