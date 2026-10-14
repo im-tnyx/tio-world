@@ -6,7 +6,7 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('picker adds empty Reps and Save requires user entry',
+  testWidgets('picker creates an identified Set; blank targets may Save',
       (tester) async {
     final create = _Create();
     var index = 0;
@@ -50,22 +50,17 @@ void main() {
     expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
     expect(tester.widget<TextButton>(
         find.byKey(const ValueKey('create-routine-save'))).onPressed,
-        isNull);
-    await tester.enterText(reps, '8');
-    await tester.pump();
-    expect(tester.widget<TextButton>(
-        find.byKey(const ValueKey('create-routine-save'))).onPressed,
         isNotNull);
     expect(create.calls, 0);
     await tester.tap(find.byKey(const ValueKey('create-routine-save')));
     await tester.pump();
     expect(create.calls, 1);
-    expect(create.command!.entries.single.sets.single.prescription.reps, 8);
+    expect(create.command!.entries.single.sets.single.prescription.reps, isNull);
     expect(create.command!.entries.single.sets.single.prescription.loadKg,
         isNull);
   });
 
-  testWidgets('Add Set appends inline row immediately; invalid Reps block Save',
+  testWidgets('Add Set appends blank valid row; invalid typed Reps block Save',
       (tester) async {
     final create = _Create();
     var index = 0;
@@ -134,15 +129,20 @@ void main() {
     await tester.pump();
     expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('create-routine-save')),
+    ).onPressed, isNotNull);
+    await tester.enterText(reps, '0');
+    await tester.pump();
+    expect(tester.widget<TextButton>(
+      find.byKey(const ValueKey('create-routine-save')),
     ).onPressed, isNull);
     expect(create.calls, 0);
 
     await tester.enterText(reps, '12');
     await tester.pump();
-    // Untouched Set 1 still blocks Save even after Set 2 becomes valid.
+    // Untouched Set 1 is a legitimate blank template target.
     expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('create-routine-save')),
-    ).onPressed, isNull);
+    ).onPressed, isNotNull);
     await tester.enterText(firstReps, '8');
     await tester.pump();
     expect(tester.widget<TextButton>(
