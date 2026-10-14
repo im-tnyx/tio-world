@@ -61,6 +61,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   // Durable composition stores ExerciseRef, never duplicated image data.
   final Map<String, Exercise> _entryExercises = {};
   final Set<String> _invalidSetIds = {};
+  // UI-only mode while nullable Reps/Max do not yet encode a saved range.
+  final Set<String> _draftRangeEntryIds = {};
   // Newly created Sets have no entered target. The canonical model requires
   // positive Reps, so its internal minimum is not interpreted as user input.
   final Set<String> _untouchedRepSetIds = {};
@@ -83,6 +85,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _name.dispose();
       _entryExercises.clear();
       _invalidSetIds.clear();
+      _draftRangeEntryIds.clear();
       _untouchedRepSetIds.clear();
       _openSetId = null;
       _bind();
@@ -173,6 +176,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
     _draft.removeExercise(entry.id);
     _entryExercises.remove(entry.id);
+    _draftRangeEntryIds.remove(entry.id);
     final ids = entry.sets.map((set) => set.id);
     _invalidSetIds.removeAll(ids);
     _untouchedRepSetIds.removeAll(ids);
@@ -263,8 +267,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     // Allow choosing the mode before entering any target Reps. Draft Save
     // remains guarded by _invalidSetIds until those fields are valid.
     if (!_enabled) return;
-    final isRange = entry.sets.isNotEmpty &&
-        entry.sets.first.prescription.isRepRange;
+    final isRange = _draftRangeEntryIds.contains(entry.id) ||
+        (entry.sets.isNotEmpty &&
+         entry.sets.first.prescription.isRepRange);
     final chosen = await showTioEditorSheet<bool>(
       context: context,
       useSafeArea: true,
@@ -292,11 +297,29 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!mounted || !_enabled || chosen == null) return;
     final current = _draft.state.entries.where((e) => e.id == entry.id);
     if (current.length != 1) return;
-    _draft.changeRepetitionMode(entry.id, range: chosen);
+    // A nullable Set cannot encode a range choice until both bounds are
+    // supplied. Keep this selection in UI state, never insert dummy 1 rep.
+    if (chosen) {
+      setState(() => _draftRangeEntryIds.add(entry.id));
+    } else {
+      setState(() => _draftRangeEntryIds.remove(entry.id));
+      _draft.changeRepetitionMode(entry.id, range: false);
+    }
+  }
+
+  bool get _rangeCanSave {
+    for (final entry in _draft.state.entries) {
+      if (!_draftRangeEntryIds.contains(entry.id)) continue;
+      final hasFilledRange = entry.sets.any((s) => s.prescription.isRepRange);
+      if (hasFilledRange &&
+          entry.sets.any((s) => !s.prescription.isRepRange)) return false;
+    }
+    return true;
   }
 
   Future<void> _save() async {
-    if (!_draft.state.canSave || !_enabled || _invalidSetIds.isNotEmpty) return;
+    if (!_draft.state.canSave || !_enabled ||
+        _invalidSetIds.isNotEmpty || !_rangeCanSave) return;
     final confirmed = await _draft.save();
     if (confirmed && mounted) _closeConfirmed();
   }
@@ -324,7 +347,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final colors = context.tioColors;
     final status = _draft.state.status;
     final locked = status == RoutineCreateStatus.saving;
-    final canSave = _enabled && _draft.state.canSave && _invalidSetIds.isEmpty;
+    final canSave = _enabled && _draft.state.canSave &&
+        _invalidSetIds.isEmpty && _rangeCanSave;
     return PopScope(
       canPop: !locked,
       child: Scaffold(
@@ -509,6 +533,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         unit: widget.weightUnit,
         enabled: _enabled,
         exerciseType: _entryExercises[entry.id]?.exerciseType,
+        showRangeDraft: _draftRangeEntryIds.contains(entry.id),
         startWithBlankReps: _untouchedRepSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
@@ -539,8 +564,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             selected,
             gender: widget.viewerMediaGender,
           );
-    final range = entry.sets.isNotEmpty &&
-        entry.sets.first.prescription.isRepRange;
+    final range = _draftRangeEntryIds.contains(entry.id) ||
+        (entry.sets.isNotEmpty &&
+         entry.sets.first.prescription.isRepRange);
     return Padding(
       key: ValueKey('create-routine-entry-${entry.id}'),
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
