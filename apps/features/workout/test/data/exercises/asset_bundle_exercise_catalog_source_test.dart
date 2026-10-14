@@ -227,6 +227,17 @@ void main() {
       }
     });
 
+    test('Walking on Treadmill uses canonical distance/duration profile',
+        () async {
+      final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
+      final treadmill = catalog.byRef(
+        ExerciseRef.catalog('ex_walking_on_treadmill'),
+      );
+      expect(treadmill, isNotNull);
+      expect(treadmill!.category, 'cardio');
+      expect(treadmill.exerciseType, ExerciseType.distanceDuration);
+    });
+
     test('maps curated media with an image for every viewer', () async {
       final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
 
@@ -276,8 +287,18 @@ void main() {
       const optionalMediaKeys = {'videoFallbackGender'};
       const variantKeys = {'imageUrl', 'thumbnailUrl', 'videoUrl'};
       for (final row in exercises.cast<Map<String, dynamic>>()) {
-        expect(row.keys, unorderedEquals(allowedRowKeys),
-            reason: '${row['id']}');
+        expect(
+          row.keys.toSet().difference({'exerciseType'}),
+          unorderedEquals(allowedRowKeys),
+          reason: '${row['id']}',
+        );
+        if (row.containsKey('exerciseType')) {
+          expect(
+            ExerciseType.fromStorageValue(row['exerciseType'] as String),
+            isA<ExerciseType>(),
+            reason: '${row['id']}.exerciseType',
+          );
+        }
         expect(
           (row['equipment'] as Map<String, dynamic>).keys,
           unorderedEquals(['primary']),
