@@ -729,7 +729,6 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                     ),
                   ),
                 ),
-                if (!range) const SizedBox(width: TioSize.dp48),
               ],
             ],
           ),
