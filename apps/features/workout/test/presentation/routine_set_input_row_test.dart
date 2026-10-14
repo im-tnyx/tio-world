@@ -180,9 +180,32 @@ void main() {
       ));
       final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
       final delete = find.byKey(const ValueKey('routine-set-remove-$id'));
-      expect(tester.widget<TextButton>(delete).onPressed, isNull);
-      await tester.drag(swipe, const Offset(-140, 0));
+      // At rest no hidden oversized red shape may be painted.
+      expect(delete, findsNothing);
+      final gesture = await tester.startGesture(tester.getCenter(swipe));
+      await gesture.moveBy(const Offset(-55, 0));
+      await tester.pump();
+      expect(delete, findsOneWidget);
+      final shortWidth = tester.getSize(delete).width;
+      expect(shortWidth, closeTo(55, 1));
+      // The complete rounded capsule is exposed, not cropped by the
+      // displaced Set foreground.
+      expect(tester.getTopLeft(delete).dx,
+          closeTo(tester.getTopRight(swipe).dx, 1));
+
+      await gesture.moveBy(const Offset(-70, 0));
+      await tester.pump();
+      final wideWidth = tester.getSize(delete).width;
+      expect(wideWidth, closeTo(125, 1));
+      expect(wideWidth, greaterThan(shortWidth));
+      expect(tester.getTopLeft(delete).dx,
+          closeTo(tester.getTopRight(swipe).dx, 1));
+      expect(deletes, 0,
+          reason: 'Drag movement alone must not delete the Set');
+      await gesture.up();
       await tester.pumpAndSettle();
+      // A partial swipe snaps to the normal 96dp exposed width.
+      expect(tester.getSize(delete).width, TioSize.dp48 + TioSize.dp48);
       expect(open, isTrue);
       expect(deletes, 0);
       expect(feedback, contains('HapticFeedbackType.selectionClick'));
@@ -191,7 +214,7 @@ void main() {
       expect(action.onPressed, isNotNull);
       expect(action.style!.backgroundColor!.resolve({}), colors.danger);
       expect(action.style!.minimumSize!.resolve({}),
-          const Size(TioSize.dp48 + TioSize.dp48, TioSize.dp38));
+          const Size(0, TioSize.dp38));
       final shape = action.style!.shape!.resolve({});
       expect(shape, isA<RoundedRectangleBorder>());
       expect((shape! as RoundedRectangleBorder).borderRadius,

@@ -153,3 +153,15 @@ does not remove. Deletion is still an in-memory Routine draft action
 until Create Save/Edit Update; deleting the last Set obeys the existing
 Exercise removal policy. Actual touch and OLED/light appearance still
 need device QA.
+
+## Dynamic swipe reveal shape (Draft #551; screenshot QA pending)
+
+The red Delete action starts hidden. While dragging a Set left, its
+rounded shape grows **horizontally** with the exposed row area, staying
+fully visible and precisely attached to the moving field edge; it does
+not crop one rounded corner or become a full-height red strip. Its
+normal painted minimum height remains **38dp**, with the existing 14dp
+rounded corners. On partial release it settles to the usual 96dp
+Delete width; deliberate full swipe still removes the Set, with
+selection and deletion haptic feedback intact. Physical-device
+validation remains pending.

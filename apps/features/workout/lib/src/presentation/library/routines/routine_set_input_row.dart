@@ -392,8 +392,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     final width = context.size?.width ?? _revealWidth * 4;
     setState(() {
       _dragging = true;
-      // Allow the foreground to follow the finger past the short reveal:
-      // a full-length swipe exposes the destructive background completely.
+      // Follow the finger up to the full row width. The Delete capsule
+      // grows within the actual revealed region rather than being cropped.
       _reveal = (_reveal - details.delta.dx).clamp(0.0, width);
     });
     final above = _reveal >= _threshold;
@@ -456,54 +456,66 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
             }
           : const {},
       child: ClipRect(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              // Keep the reveal background transparent. A full red row
-              // overpaints the Set table when a long swipe moves its
-              // foreground away and makes Delete look like a giant strip.
-              // Only the right-hand compact action is destructive-colored.
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: _revealWidth,
-                    child: TextButton(
-                      key: ValueKey('routine-set-remove-${widget.set.id}'),
-                      style: TextButton.styleFrom(
-                        backgroundColor: colors.danger,
-                        foregroundColor: Theme.of(context).colorScheme.onError,
-                        minimumSize: const Size(_revealWidth, TioSize.dp38),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            TioInputTokens.radius,
-                          ),
-                        ),
-                      ),
-                      onPressed: widget.enabled && widget.isOpen
-                          ? _delete
-                          : null,
-                      child: const Text('Delete'),
+        // Drive both the outgoing fields and expanding Delete surface with
+        // the SAME animation value. A fixed-width button is clipped by the
+        // still-moving foreground during a partial swipe, which hides its
+        // rounded left corner. Instead its entire width is the exposed area.
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: _reveal),
+          duration: _dragging
+              ? Duration.zero
+              : const Duration(milliseconds: TioDuration.ms180),
+          curve: Curves.easeOutCubic,
+          child: foreground,
+          builder: (context, revealed, child) => Stack(
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      // During drag the red capsule grows exactly with the
+                      // uncovered row. No fixed hidden pill or clipped end.
+                      width: revealed,
+                      child: revealed <= 0
+                          ? const SizedBox.shrink()
+                          : TextButton(
+                              key: ValueKey(
+                                'routine-set-remove-${widget.set.id}',
+                              ),
+                              style: TextButton.styleFrom(
+                                backgroundColor: colors.danger,
+                                disabledBackgroundColor: colors.danger,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onError,
+                                disabledForegroundColor:
+                                    Theme.of(context).colorScheme.onError,
+                                minimumSize: const Size(0, TioSize.dp38),
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    TioInputTokens.radius,
+                                  ),
+                                ),
+                              ),
+                              onPressed: widget.enabled && widget.isOpen
+                                  ? _delete
+                                  : null,
+                              child: revealed >= _threshold
+                                  ? const Text('Delete')
+                                  : const SizedBox.shrink(),
+                            ),
                     ),
                   ),
                 ),
               ),
-            ),
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0, end: _reveal),
-              duration: _dragging
-                  ? Duration.zero
-                  : const Duration(milliseconds: TioDuration.ms180),
-              curve: Curves.easeOutCubic,
-              builder: (_, revealed, child) => Transform.translate(
+              Transform.translate(
                 offset: Offset(-revealed, 0),
                 child: child,
               ),
-              child: foreground,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

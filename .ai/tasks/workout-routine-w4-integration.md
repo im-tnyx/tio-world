@@ -373,3 +373,25 @@ Delete/full-swipe deletion. Add 320dp light/OLED reveal/shape and tap
 haptic regressions alongside existing full-swipe and no-accidental-delete
 tests. No new Core component/token, DB/schema, feature surface or PR.
 Exact-head Flutter CI and real device screenshots/tactile QA pending.
+
+## Owner correction: Delete capsule expands with swipe, fixed 38dp height (2026-10-14)
+
+The earlier compact fixed-96dp Delete button was **not** the owner's
+intended swipe interaction. The owner's screenshot shows a clipped or
+disconnected rounded action during the drag. Approved behavior: the red
+Delete capsule grows in **width** in lock-step with the distance the
+foreground Set row moves to the left, with both rounded ends fully visible
+and painted minimum height **38dp** throughout (growing vertically only
+for accessibility content). The previous 96dp is solely the settled
+partial-swipe reveal width; it is NOT a fixed visible button width
+throughout dragging. Use one `TweenAnimationBuilder<double>` animation
+value for both capsule width and foreground translation, so neither
+their boundaries nor their animation frames can diverge. At rest hide
+the Delete button entirely. As drag advances, paint only the red capsule
+on transparent background; short swipes release to a 96dp exposed
+button, while deliberate full swipes still delete on release. Preserve
+existing selection/deletion haptics, no-delete-on-fast-short-flick policy,
+Set UUID/callbacks and screen state. Light/OLED 320dp tests now verify
+two progressive reveal widths, unclipped alignment, 38dp height,
+settled width and Delete haptics. No tokens, database writes or new PR.
+Flutter CI and real-device swipe/keyboard QA are still required.
