@@ -28,6 +28,7 @@ class RoutineSetInputRow extends StatefulWidget {
     this.startWithBlankReps = false,
     this.showPrevious = false,
     this.exerciseType,
+    this.showRangeDraft = false,
     super.key,
   });
 
@@ -52,6 +53,7 @@ class RoutineSetInputRow extends StatefulWidget {
   /// Canonical explicit measurement kind. Unclassified older catalog rows
   /// retain the existing weight/reps layout; never infer from category.
   final ExerciseType? exerciseType;
+  final bool showRangeDraft;
 
   @override
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
@@ -77,6 +79,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   // (notably the advanced Set sheet) so typing drafts/caret are not reset.
   SetPrescription? _lastInlineEdit;
   bool _valid = true;
+  bool get _rangeMode => widget.showRangeDraft || widget.set.prescription.isRepRange;
   static const double _revealWidth = TioSize.dp48 + TioSize.dp48;
   static const double _threshold = _revealWidth / 2;
   static const double _flickVelocity = 200;
@@ -142,7 +145,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     final before = oldWidget.set.prescription;
     final after = widget.set.prescription;
     final changedExternally = before != after && after != _lastInlineEdit;
-    final modeChanged = before.isRepRange != after.isRepRange;
+    final modeChanged = (oldWidget.showRangeDraft || before.isRepRange) != _rangeMode;
     final unitChanged = oldWidget.unit != widget.unit;
 
     // An inline text edit is echoed through the parent controller as a new
@@ -153,7 +156,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     if (changedExternally && before.reps != after.reps) {
       _reps.text = after.reps?.toString() ?? '';
     }
-    if (modeChanged && after.isRepRange) {
+    if (modeChanged && _rangeMode) {
       // Fixed -> Range uses a canonical provisional Max in the domain model.
       // It is not user-entered: keep its field blank and block Save until the
       // user explicitly supplies a valid maximum.
@@ -206,7 +209,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     if (isWeightReps) {
       final repsText = _reps.text.trim();
       final parsedReps = int.tryParse(repsText);
-      final inRange = source.isRepRange;
+      final inRange = _rangeMode;
       final maxText = _repsMax.text.trim();
       final parsedMax = int.tryParse(maxText);
       final rawWeight = _weight.text.trim();
@@ -486,7 +489,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           if (widget.exerciseType != ExerciseType.distanceDuration &&
               widget.exerciseType != ExerciseType.duration) ...[
           Expanded(
-            flex: widget.set.prescription.isRepRange ? 2 : 1,
+            flex: _rangeMode ? 2 : 1,
             child: Semantics(
               label: 'Set $setNumber Weight in ${widget.unit == WeightUnit.kg ? 'kg' : 'lb'}',
               child: TioInput.boxedNumber(
@@ -502,19 +505,19 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           Expanded(
-            flex: widget.set.prescription.isRepRange ? 3 : 1,
+            flex: _rangeMode ? 3 : 1,
             child: Row(
               children: [
                 Expanded(
                   child: Semantics(
-                    label: 'Set $setNumber ${widget.set.prescription.isRepRange ? 'minimum Reps' : 'Reps'}',
+                    label: 'Set $setNumber ${_rangeMode ? 'minimum Reps' : 'Reps'}',
                     child: TioInput.boxedNumber(
                       key: ValueKey('routine-set-reps-${widget.set.id}'),
                       controller: _reps,
                       enabled: widget.enabled,
                       hint: '–',
                       keyboardType: TextInputType.number,
-                      textInputAction: widget.set.prescription.isRepRange
+                      textInputAction: _rangeMode
                           ? TextInputAction.next : TextInputAction.done,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
@@ -524,7 +527,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                     ),
                   ),
                 ),
-                if (widget.set.prescription.isRepRange) ...[
+                if (_rangeMode) ...[
                   const SizedBox(width: TioSpacing.xs),
                   Text(
                     '–',
@@ -556,7 +559,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               ],
             ),
           ),
-          if (!widget.showPrevious && !widget.set.prescription.isRepRange)
+          if (!widget.showPrevious && !_rangeMode)
             const SizedBox(width: TioSize.dp48),
           ],
         ],
