@@ -309,17 +309,23 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   bool get _rangeCanSave {
     for (final entry in _draft.state.entries) {
-      if (!_draftRangeEntryIds.contains(entry.id)) continue;
+      if (!_draftRangeEntryIds.contains(entry.id)) {
+        continue;
+      }
       final hasFilledRange = entry.sets.any((s) => s.prescription.isRepRange);
       if (hasFilledRange &&
-          entry.sets.any((s) => !s.prescription.isRepRange)) return false;
+          entry.sets.any((s) => !s.prescription.isRepRange)) {
+        return false;
+      }
     }
     return true;
   }
 
   Future<void> _save() async {
     if (!_draft.state.canSave || !_enabled ||
-        _invalidSetIds.isNotEmpty || !_rangeCanSave) return;
+        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+      return;
+    }
     final confirmed = await _draft.save();
     if (confirmed && mounted) _closeConfirmed();
   }
