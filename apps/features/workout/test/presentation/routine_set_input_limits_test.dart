@@ -109,7 +109,7 @@ void main() {
     await tester.enterText(reps, '8');
     await tester.pump();
     expect(input(reps).controller!.text, '8');
-    expect(validity.last, isTrue);
+    expect(validity, isEmpty);
     expect(values.last.reps, 8);
 
     await tester.enterText(weight, '12.5432');
