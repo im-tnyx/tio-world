@@ -449,6 +449,42 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
             ),
             const SizedBox(width: TioSpacing.sm),
           ],
+          if (widget.exerciseType == ExerciseType.distanceDuration) ...[
+            Expanded(
+              child: Semantics(
+                label: 'Set $setNumber Distance in kilometers',
+                child: TioInput.boxedNumber(
+                  key: ValueKey('routine-set-distance-${widget.set.id}'),
+                  controller: _distance,
+                  enabled: widget.enabled,
+                  hint: '–',
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [RoutineSetInputLimits.weight],
+                  onChanged: (_) => _update(),
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+          ],
+          if (widget.exerciseType == ExerciseType.distanceDuration ||
+              widget.exerciseType == ExerciseType.duration)
+            Expanded(
+              child: Semantics(
+                label: 'Set $setNumber Time in minutes and seconds',
+                child: TioInput.boxedNumber(
+                  key: ValueKey('routine-set-duration-${widget.set.id}'),
+                  controller: _duration,
+                  enabled: widget.enabled,
+                  hint: '–',
+                  keyboardType: TextInputType.datetime,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [RoutineSetInputLimits.time],
+                  onChanged: (_) => _update(),
+                ),
+              ),
+            ),
+          if (widget.exerciseType != ExerciseType.distanceDuration &&
+              widget.exerciseType != ExerciseType.duration) ...[
           Expanded(
             flex: widget.set.prescription.isRepRange ? 2 : 1,
             child: Semantics(
@@ -522,6 +558,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           if (!widget.showPrevious && !widget.set.prescription.isRepRange)
             const SizedBox(width: TioSize.dp48),
+          ],
         ],
       ),
     );
