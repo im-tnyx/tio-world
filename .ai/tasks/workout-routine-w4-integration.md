@@ -1,6 +1,19 @@
 # W4 Routine Flutter PR consolidation / integration gate
 
-**Status:** In progress / integration review. **Approval evidence:** On 2026-10-14 the owner requested a reduction from many Routine feature PRs, then explicitly said "Go" after the plan to consolidate seven stacked Flutter PRs into one without inventing new PRs. This is **not** approval to merge, deploy, expand the feature, change database schema, or rewrite history.
+**Status:** In progress / integration review.
+
+## Active bounded P2 remediation — unknown Create exit (2026-10-14, pending validation)
+
+**Approval and scope:** Owner said “Go” to the next #551 integration P2 fix, following independent source review [#551 discussion r4269785813](https://github.com/im-tnyx/tio-world/pull/551#discussion_r4269785813). Implementation owner remains the consolidated #551 branch; old stacked Flutter PRs stay frozen. This normal review-finding remediation covers Create's uncertain-outcome exit/back behavior, truthful parent Program refresh, and focused route/widget tests; no schema, Supabase deploy, shared contract change, Core design change, rollout decision, or separate PR.
+
+**Source/runtime finding:** `RoutineCreateController._attempt` freezes Routine+mutation IDs on an ambiguous response, but `CreateRoutinePage.PopScope` only blocks while saving and Cancel directly pops. `ProgramDetailPage._openCreate` refreshed only after `true`, so an already-committed unknown Create could stay unseen. Re-entering generates different IDs, outside atomic Create's same-UUID idempotency.
+
+**Decision:** Preserve normal Cancel and Back when safe. On `outcomeUnknown` intercept both and use a one-off explicit warning/action policy: stay and retry read-only Verify, or consciously exit to check Program. The app shell tells Program Detail to re-read its owner-scoped list upon that explicitly unconfirmed exit without claiming the write was acknowledged. Never auto-retry a write or invent a stable-idempotency guarantee after a route/process restart. Test: committed RPC + lost response → Cancel/Back warning; no accidental second write; explicit exit refreshes Program list. If read remains unavailable, this is still a user-informed risk requiring old/new-client staging/review acceptance, not a provably cross-session no-duplicate solution.
+
+**Validation before edits:** exact remote PR #551 head `16bd4e3d9ad7166ab97bb68acf96f7fe5e32710c` Draft/main; one new P2 inline thread; GitHub CI #38531453666 passes on **old** head and is not evidence for remediation. GitHub API work surface has no local checked-out worktree or Flutter SDK; inspect remote API file blobs/parent SHA and require new exact-head CI after push. TNYX-81 Backlog blocked by TNYX-78/80; DB #536/#540 separately Draft/undeployed. Current P2 task status **In progress**, independent review owner still unassigned.
+
+**Next actions:** implement existing Create UI error-only exit confirmation + owner-bound Program refresh; add regression tests; verify no unrelated visual or source edits; run exact-head Flutter CI; reconcile new review thread, then re-evaluate whether this P2 needs an additional session/restart durable policy before merge. No merge or ancestor closure is authorized.
+ **Approval evidence:** On 2026-10-14 the owner requested a reduction from many Routine feature PRs, then explicitly said "Go" after the plan to consolidate seven stacked Flutter PRs into one without inventing new PRs. This is **not** approval to merge, deploy, expand the feature, change database schema, or rewrite history.
 
 **Implementation/coordination owner:** current connected GitHub session on existing branch `tnyx/routine-set-boxed-fields-compact-add-set`. Ownership transition: existing W4B1/Create/Set/visual branch implementations are frozen for further edits; this consolidated integration branch owns all fixes to that combined Flutter implementation until handoff. **Independent review owner:** not yet assigned. **Planning:** Linear [TNYX-81](https://linear.app/tnyx/issue/TNYX-81/w4-programs-and-routines-canonical-content-composition-and-builders) remains Backlog, blocked by TNYX-78 and TNYX-80.
 
