@@ -51,6 +51,20 @@ begin
       using errcode = '22023';
   end if;
 
+  -- A reusable Routine template requires a Set row per Exercise, but does
+  -- not require filled numeric targets. Future nullable-target support is
+  -- added in the later #540 Set migration; never fabricate reps in Create.
+  -- Reject bad/missing sets shape before metadata insertion, and leave full
+  -- row validation to the revision-guarded composition writer.
+  if exists (
+    select 1 from pg_catalog.jsonb_array_elements(p_exercises) as e(value)
+    where pg_catalog.jsonb_typeof(e.value) is distinct from 'object'
+       or pg_catalog.jsonb_typeof(e.value -> 'sets') is distinct from 'array'
+       or e.value -> 'sets' = '[]'::jsonb
+  ) then
+    raise exception 'routine_create_set_required' using errcode = '22023';
+  end if;
+
   -- Match the parent-to-child account deletion cascade lock order.
   -- Holding a user key-share lock before the Program lock also prevents
   -- the Routine FK check from deadlocking with delete_user_account().
