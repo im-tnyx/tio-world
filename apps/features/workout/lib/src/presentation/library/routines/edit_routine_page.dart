@@ -296,9 +296,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   void _addSetInline(RoutineCompositionEntry entry) {
     if (!_canEdit) return;
     if (_openSetId != null) setState(() => _openSetId = null);
+    final hadPersistedRange =
+        entry.sets.any((set) => set.prescription.isRepRange);
     final id = _editor?.addSet(entry.id, SetPrescription());
     if (id != null) {
       _blankSetIds.add(id);
+      // The new nullable Set cannot encode Range until both Reps fields
+      // are filled. Keep its editor in Range mode and block mixed writes.
+      if (hadPersistedRange) _draftRangeEntryIds.add(entry.id);
     }
   }
 
@@ -412,9 +417,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       return false;
     }
     for (final entry in editor.state.entries) {
-      if (!_draftRangeEntryIds.contains(entry.id)) {
-        continue;
-      }
+      // Persisted range entries must also be checked even before the user
+      // explicitly picks Range in this editing session. Otherwise Update
+      // sends mixed ranged/blank Sets rejected by the database RPC.
       if (entry.sets.any((s) => s.prescription.isRepRange) &&
           entry.sets.any((s) => !s.prescription.isRepRange)) {
         return false;

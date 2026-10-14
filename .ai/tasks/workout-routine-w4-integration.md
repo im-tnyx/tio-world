@@ -255,3 +255,17 @@ without remounting Create; loss/change of Auth identity still removes
 the private route. Added app route test for error then recovery while
 preserving typed draft name and Create widget. Source/test ready for
 exact-head Flutter CI; no claim physical QA or release safety yet.
+
+## Review P2: persisted Rep Range plus blank Set (2026-10-14)
+
+An existing ranged Routine Exercise loaded into Edit may receive a new
+nullable Set with neither Reps field provided. The stored range remains
+intact, but the new empty Set is temporarily not encodable as a range,
+and the SQL full-snapshot write rejects mixed repetition modes.
+The scoped fix records this entry's range draft marker when Add Set
+succeeds on a persisted ranged Exercise, displays both Min/Max controls
+on its new Set, and blocks Update while a persisted ranged entry contains
+a fixed/blank Set. Positive completion after explicit Min+Max permits
+one Update without modifying original Set IDs/ranges. No DB migration,
+Set-limit, unit, or UI geometry change. Added a focused widget regression;
+exact-head Flutter CI and reviewer disposition pending.

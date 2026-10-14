@@ -655,6 +655,44 @@ void main() {
     expect(saved.id, _setId);
   });
 
+  testWidgets('loaded Rep Range plus blank Set blocks mixed Update until filled',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(reps: 8, repsMax: 12),
+    ]);
+    await f.open(tester);
+    final addSet = find.byKey(
+        const ValueKey('edit-routine-add-set-$_entryId'));
+    await tester.ensureVisible(addSet);
+    await tester.tap(addSet);
+    await tester.pumpAndSettle();
+    const newSet = '90000000-0000-4000-8000-000000000001';
+    final min = find.byKey(const ValueKey('routine-set-reps-$newSet'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$newSet'));
+    expect(min, findsOneWidget);
+    expect(max, findsOneWidget);
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    expect(f.compositions.saveCount, 0);
+
+    await tester.enterText(min, '10');
+    await tester.pump();
+    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    await tester.enterText(max, '15');
+    await tester.pump();
+    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!.entries.single.sets;
+    expect(saved.length, 2);
+    expect(saved.first.prescription.repsMax, 12);
+    expect(saved.last.id, newSet);
+    expect(saved.last.prescription.reps, 10);
+    expect(saved.last.prescription.repsMax, 15);
+  });
+
   testWidgets('inline Add Set blank permits Update; invalid typed Reps block',
       (tester) async {
     final f = _Fixtures();
