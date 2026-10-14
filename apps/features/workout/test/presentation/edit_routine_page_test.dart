@@ -731,7 +731,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
+    // The screen header and sheet both say Cancel. Tap only the sheet action.
+    await tester.tap(find.widgetWithText(TioButton, 'Cancel'));
     await tester.pumpAndSettle();
 
     final update = find.byKey(const ValueKey('edit-routine-update'));
