@@ -63,7 +63,7 @@ void main() {
     expect(tester.getSize(find.byType(FilledButton)).height,
         greaterThanOrEqualTo(TioButtonTokens.height));
     expect(filled.style!.backgroundColor!.resolve({}),
-        TioColors.light.surface);
+        TioColors.light.surfaceVariant);
     expect(filled.style!.foregroundColor!.resolve({}),
         TioColors.light.textPrimary);
     expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
@@ -71,6 +71,33 @@ void main() {
     await tester.tap(find.text('Add Set'));
     expect(presses, 1);
   });
+
+  for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
+    testWidgets('supporting filled surface is visible in ${mode.name}',
+        (tester) async {
+      final palette =
+          mode == TioThemeMode.dark ? TioColors.oled : TioColors.light;
+      await tester.pumpWidget(_ButtonTestApp(
+        config: TioThemeConfig(mode: mode),
+        child: TioButton.supporting(
+          label: 'Add Set',
+          leading: const Icon(Icons.add),
+          expand: true,
+          onPressed: () {},
+        ),
+      ));
+      final filled = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(filled.style!.backgroundColor!.resolve({}),
+          palette.surfaceVariant);
+      expect(filled.style!.backgroundColor!.resolve({}),
+          isNot(palette.background));
+      expect(filled.style!.foregroundColor!.resolve({}),
+          palette.textPrimary);
+      expect(tester.getSize(find.byType(FilledButton)).height,
+          greaterThanOrEqualTo(TioButtonTokens.height));
+      expect(find.byIcon(Icons.add), findsOneWidget);
+    });
+  }
 
   testWidgets('supporting disables writes and holds its theme when loading',
       (tester) async {
@@ -88,6 +115,10 @@ void main() {
     await tester.pumpWidget(supporting());
     var filled = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(filled.onPressed, isNull);
+    expect(filled.style!.backgroundColor!.resolve({WidgetState.disabled}),
+        TioColors.oled.surfaceVariant.withValues(
+          alpha: TioButtonTokens.disabledContainerOpacity,
+        ));
     await tester.tap(find.text('Add Set'));
     expect(presses, 0);
 
@@ -98,6 +129,8 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.textPrimary);
+    expect(filled.style!.backgroundColor!.resolve({WidgetState.disabled}),
+        TioColors.oled.surfaceVariant);
     expect(presses, 0);
   });
 
