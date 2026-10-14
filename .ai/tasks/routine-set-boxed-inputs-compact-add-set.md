@@ -24,3 +24,12 @@
 - Parent #546 unresolved Codex P1 stale controllers/data overwrite + P2 auth overlay; #544 two P2 findings; ancestor #537 obsolete app route test; DB PRs #536/#540 not deployed. Those **separate** release gates remain. No issue marked complete, no merge or Supabase deployment.
 
 **Final handoff:** REVIEW, not ready for merge. Next: run strict Core/Workout focused tests on exact updated source, Flutter Analyze and full suite; reconcile findings without changing parent branch scope; obtain independent review and physical light/dark 320dp + large text QA.
+
+
+## 2026-10-14 visual-height reference checkpoint (owner screenshot)
+
+**Evidence:** Owner re-supplied original OLED reference images (Treadmill KM/TIME, Spinning TIME, Bench KG/REPS and Edit PREVIOUS/Rep Range) and a current-looking Tio-world screenshot of Arm Circles. Reference asks **the same *visible* row height** for Set type, outlined numeric cell(s) and Add Set, not merely declared 44dp minimum constraints. Arm Circles screenshot appears to have visibly thinner KG/REPS outlined borders than Set badge/Add Set; screenshot alone does not identify installed binary/commit, so do not assert a regression exists on the latest unmerged #551 head without testing.
+
+**Runtime/source truth:** Consolidated Draft #551 at inspection head `64013c81399b0c2c45200852d0cc4fb1727c74db` has Set badge minHeight 44dp, Core `TioInput.boxedNumber` decoration minHeight 44dp, Core `TioButton.supporting` FilledButton minHeight 44dp. Current `routine_set_input_row_test.dart` checks rendered `TioInput`/badge/filled Material height at 320dp light+OLED, but **does not directly assert InputDecorator visible outline geometry**. Min semantics permit content growth for accessible large fonts; do not globally force fixed heights or alter primary/destructive buttons.
+
+**Current bounded action:** Add visible `InputDecorator` geometry regression assertions for weight/reps and distance/time/range at default text scale, checking 44dp matching Set badge; use existing Core variants, no new widgets/tokens, no speculative visual redraw. Require exact-head Flutter CI. If assertions pass, unresolved owner screenshot-vs-head discrepancy becomes device build/version and physical rendering QA, not an invented source fix. If they fail, remediate in the narrow owning Core surface and revalidate. This visual slice is separately approved by owner reference and does not authorize any new notes/rest timer/exercise artwork UI from those screenshots.
