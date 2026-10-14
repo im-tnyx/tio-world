@@ -215,6 +215,20 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_535_atomic_routine_create.test.sql
 
+      - name: Run TNYX-538/539 Routine Set metadata SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_538_539_routine_set_metadata.test.sql
+
+      - name: Run W4 combined atomic Create and nullable Set SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_535_540_combined_routine_create.test.sql
+
       - name: Run TNYX-535 atomic Routine Create two-session races
         shell: bash
         run: bash supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh
