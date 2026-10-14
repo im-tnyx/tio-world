@@ -953,6 +953,90 @@ void main() {
     expect(create.calls, 0);
   });
 
+  testWidgets(
+      'unknown Create warns on Back/Cancel and never silently retries write',
+      (tester) async {
+    final create = _Create()..loseAcknowledgment = true;
+    var exits = 0;
+    var nextId = 0;
+    final uuids = [
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+    ];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Builder(builder: (context) => Scaffold(
+        body: TextButton(
+          key: const ValueKey('launch-create'),
+          onPressed: () => Navigator.of(context).push<void>(
+            MaterialPageRoute(builder: (_) => CreateRoutinePage(
+              program: Program(
+                id: ProgramId('11111111-1111-4111-8111-111111111111'),
+                name: 'Program 1',
+              ),
+              initialName: 'Routine 1',
+              createRepository: create,
+              catalogRepository: _Catalog(),
+              weightUnit: WeightUnit.kg,
+              newUuid: () => uuids[nextId++],
+              onUnconfirmedExit: () => exits++,
+            )),
+          ),
+          child: const Text('Open Create'),
+        ),
+      )),
+    ));
+    await tester.tap(find.byKey(const ValueKey('launch-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(create.calls, 1);
+    final firstMutation = create.command!.mutationId;
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+
+    // The platform back gesture cannot silently discard the frozen attempt.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(create.calls, 1);
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-stay-unconfirmed')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+
+    // Cancel is also an explicit decision, never a silent discarded token.
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(create.calls, 1);
+    expect(create.command!.mutationId, firstMutation);
+    await tester.tap(find.byKey(
+      const ValueKey('create-routine-exit-unconfirmed')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(exits, 1);
+    expect(create.calls, 1);
+
+    // Opening a fresh draft alone can never dispatch a second write.
+    await tester.tap(find.byKey(const ValueKey('launch-create')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(create.calls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Create reference empty state has disabled Save and Add exercise',
       (tester) async {
     final create = _Create();
@@ -1005,10 +1089,12 @@ class _Catalog implements ExerciseCatalogRepository {
 class _Create implements RoutineCreateRepository {
   int calls = 0;
   RoutineCreateCommand? command;
+  bool loseAcknowledgment = false;
   @override
   Future<int> create(RoutineCreateCommand value) async {
     calls++;
     command = value;
+    if (loseAcknowledgment) throw StateError('response lost after commit');
     return 1;
   }
 }
