@@ -60,8 +60,11 @@ void main() {
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byType(OutlinedButton), findsNothing);
     expect(find.byType(TextButton), findsNothing);
+    // Only the reusable supporting role is 44dp in the Set editor;
+    // primary/secondary keep the governed global 46dp theme.
+    expect(filled.style!.minimumSize!.resolve({})!.height, TioSize.dp44);
     expect(tester.getSize(find.byType(FilledButton)).height,
-        greaterThanOrEqualTo(TioButtonTokens.height));
+        greaterThanOrEqualTo(TioSize.dp44));
     expect(filled.style!.backgroundColor!.resolve({}),
         TioColors.light.surfaceVariant);
     expect(filled.style!.foregroundColor!.resolve({}),
@@ -93,8 +96,10 @@ void main() {
           isNot(palette.background));
       expect(filled.style!.foregroundColor!.resolve({}),
           palette.textPrimary);
+      expect(filled.style!.minimumSize!.resolve({})!.height,
+          TioSize.dp44);
       expect(tester.getSize(find.byType(FilledButton)).height,
-          greaterThanOrEqualTo(TioButtonTokens.height));
+          greaterThanOrEqualTo(TioSize.dp44));
       expect(find.byIcon(Icons.add), findsOneWidget);
     });
   }
@@ -115,6 +120,8 @@ void main() {
     await tester.pumpWidget(supporting());
     var filled = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(filled.onPressed, isNull);
+    expect(filled.style!.minimumSize!.resolve({WidgetState.disabled})!.height,
+        TioSize.dp44);
     expect(filled.style!.backgroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.surfaceVariant.withValues(
           alpha: TioButtonTokens.disabledContainerOpacity,
@@ -126,12 +133,36 @@ void main() {
     await tester.pump();
     filled = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(filled.onPressed, isNull);
+    expect(filled.style!.minimumSize!.resolve({WidgetState.disabled})!.height,
+        TioSize.dp44);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(filled.style!.foregroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.textPrimary);
     expect(filled.style!.backgroundColor!.resolve({WidgetState.disabled}),
         TioColors.oled.surfaceVariant);
     expect(presses, 0);
+  });
+
+  testWidgets('supporting visual surface is 44dp without shrinking '
+      'the primary action', (tester) async {
+    await tester.pumpWidget(_ButtonTestApp(
+      child: Column(
+        children: [
+          TioButton.supporting(label: 'Add Set', onPressed: () {}),
+          TioButton.primary(label: 'Save Routine', onPressed: () {}),
+        ],
+      ),
+    ));
+    final buttons = tester.widgetList<FilledButton>(
+      find.byType(FilledButton),
+    ).toList();
+    expect(buttons, hasLength(2));
+    expect(buttons[0].style!.minimumSize!.resolve({})!.height, TioSize.dp44);
+    expect(buttons[1].style?.minimumSize, isNull);
+    final theme = Theme.of(tester.element(find.byType(FilledButton).last));
+    expect(theme.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
+        TioButtonTokens.height);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('disabled button cannot invoke its callback', (tester) async {
