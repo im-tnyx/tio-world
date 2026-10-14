@@ -727,8 +727,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Routine save not confirmed'), findsOneWidget);
     expect(find.byType(CreateRoutinePage), findsOneWidget);
-    await tester.tap(find.byKey(
-        const ValueKey('create-routine-exit-unconfirmed')));
+    await tester.tap(find.text('Exit to Program'));
     await tester.pumpAndSettle();
 
     // The unconfirmed return refreshes owner-scoped Program truth; it never
