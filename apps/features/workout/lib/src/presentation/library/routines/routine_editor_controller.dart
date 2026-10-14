@@ -199,6 +199,8 @@ final class RoutineEditorController extends ChangeNotifier {
       repsMax: range ? prescription.reps : null,
       setType: RoutineSetType.normal,
       loadKg: prescription.loadKg,
+      distanceMeters: prescription.distanceMeters,
+      durationSeconds: prescription.durationSeconds,
       restSeconds: prescription.restSeconds,
     );
     _replaceEntry(index, RoutineCompositionEntry(
@@ -254,6 +256,8 @@ final class RoutineEditorController extends ChangeNotifier {
                   : null,
               setType: set.prescription.setType,
               loadKg: set.prescription.loadKg,
+              distanceMeters: set.prescription.distanceMeters,
+              durationSeconds: set.prescription.durationSeconds,
               restSeconds: set.prescription.restSeconds,
             ),
           ),
