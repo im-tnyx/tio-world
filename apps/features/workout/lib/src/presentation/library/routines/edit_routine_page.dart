@@ -583,6 +583,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           sliver: SliverReorderableList(
             key: const ValueKey('edit-routine-reorder-exercises'),
             itemCount: state.entries.length,
+            // Dragged entries move into an Overlay. Their Set badges,
+            // repetition controls and options need a Material ancestor
+            // there, exactly as in Create Routine's reorderable list.
+            // A transparent proxy preserves the approved resting visuals.
+            proxyDecorator: (child, _, __) => Material(
+              type: MaterialType.transparency,
+              child: child,
+            ),
             onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
             onReorderEnd: (_) => unawaited(HapticFeedback.selectionClick()),
             onReorderItem: (from, to) {
