@@ -164,8 +164,14 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    if (_selectionCatalogController != null) {
+      ref.listen<ExerciseMediaGender?>(
+        exerciseViewerMediaGenderProvider,
+        (_, gender) => _selectionCatalogController?.setMediaGender(gender),
+      );
+    }
     final catalogController = _selectionCatalogController ??
-        ref.watch(exercisesControllerProvider(widget.startSearching));
+        ref.watch(exercisesControllerProvider(widget.startSearching))!;
     final catalogState = catalogController.state;
     final customState = _customController?.state;
     final customExercises = customState?.status == CustomExercisesStatus.ready
