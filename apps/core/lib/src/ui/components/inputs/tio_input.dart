@@ -560,10 +560,13 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding ??
                   (isCompactNumeric
                       ? EdgeInsets.symmetric(
-                          // Keep the numeric inset substantial; the 38dp
-                          // minimum determines the default painted height.
+                          // Keep 38dp as a *painted* minimum: the
+                          // old 8dp inset made the text force 40dp even
+                          // after shrinking constraints to 38dp. Six
+                          // pixels allow default text to fit while larger
+                          // accessibility text still grows naturally.
                           vertical: isBoxedNumber
-                              ? TioSpacing.sm
+                              ? TioSize.dp6
                               : TioInputTokens.compactContentVerticalPadding,
                           horizontal:
                               TioInputTokens.compactContentHorizontalPadding,
