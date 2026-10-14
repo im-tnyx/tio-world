@@ -293,6 +293,23 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
               );
       }
       if (widget.userExerciseRepository != null &&
+          customState?.status == CustomExercisesStatus.ready) {
+        // A Routine selector must not expose a mixed/foreign or duplicated
+        // Custom collection even if the normal browse UI can display data.
+        final refs = <ExerciseRef>{};
+        final validOwnerCollection = customState!.exercises.every(
+          (exercise) =>
+              exercise.ref is UserCreatedExerciseRef &&
+              refs.add(exercise.ref),
+        );
+        if (!validOwnerCollection) {
+          return _Failure(
+            message: 'Could not load exercises.',
+            onRetry: _customController?.retryLoad,
+          );
+        }
+      }
+      if (widget.userExerciseRepository != null &&
           customState?.status != CustomExercisesStatus.ready) {
         if (customState?.status == CustomExercisesStatus.loadFailed) {
           return _Failure(
