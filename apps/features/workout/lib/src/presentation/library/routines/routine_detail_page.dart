@@ -4,6 +4,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../exercises/exercises_controller.dart';
+import 'routine_set_input_limits.dart';
 import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
@@ -314,15 +315,29 @@ class _RoutineEntryPreview extends StatelessWidget {
     final normalNumber = sets.take(index + 1)
         .where((s) => s.prescription.setType == RoutineSetType.normal)
         .length;
+    final profile = item.exercise?.exerciseType;
     final weight = p.loadKg == null
         ? '–'
         : weightUnit == null
             ? 'Load unavailable'
             : UnitFormatters.formatWeight(p.loadKg!, weightUnit!).split(' ').first;
-    final reps = p.repsMax == null ? '${p.reps}' : '${p.reps}–${p.repsMax}';
+    final reps = p.repsMax == null
+        ? (p.reps?.toString() ?? '–')
+        : '${p.reps}–${p.repsMax}';
+    final distance = p.distanceMeters == null
+        ? '–'
+        : RoutineSetInputLimits.displayDistanceKm(p.distanceMeters);
+    final time = p.durationSeconds == null
+        ? '–'
+        : RoutineSetInputLimits.displayDurationSeconds(p.durationSeconds);
+    final values = profile == ExerciseType.distanceDuration
+        ? [distance, time]
+        : profile == ExerciseType.duration
+            ? [time]
+            : [weight, reps];
     final color = context.tioColors.textPrimary;
     return Semantics(
-      label: 'Set ${index + 1}, ${p.setType.name}, weight $weight, reps $reps'
+      label: 'Set ${index + 1}, ${p.setType.name}, ${values.join(', ')}'
           '${p.restSeconds == null ? '' : ', rest ${p.restSeconds} seconds'}',
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
@@ -334,9 +349,17 @@ class _RoutineEntryPreview extends StatelessWidget {
               child: _cell(_typeLabel(p, normalNumber), color: color),
             ),
             const SizedBox(width: TioSpacing.sm),
-            Expanded(child: _cell(weight, color: context.tioColors.textSecondary)),
-            const SizedBox(width: TioSpacing.sm),
-            Expanded(child: _cell(reps, color: color)),
+            for (var i = 0; i < values.length; i++) ...[
+              if (i > 0) const SizedBox(width: TioSpacing.sm),
+              Expanded(
+                child: _cell(
+                  values[i],
+                  color: i == 0 && profile != ExerciseType.duration
+                      ? context.tioColors.textSecondary
+                      : color,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -393,12 +416,22 @@ class _RoutineEntryPreview extends StatelessWidget {
               child: Text('SET', textAlign: TextAlign.center),
             ),
             const SizedBox(width: TioSpacing.sm),
-            Expanded(child: Text(
-              weightUnit == null ? 'WEIGHT' : weightUnit == WeightUnit.lb ? 'LB' : 'KG',
-              textAlign: TextAlign.center,
-            )),
-            const SizedBox(width: TioSpacing.sm),
-            const Expanded(child: Text('REPS', textAlign: TextAlign.center)),
+            if (source?.exerciseType == ExerciseType.distanceDuration) ...[
+              const Expanded(child: Text('KM', textAlign: TextAlign.center)),
+              const SizedBox(width: TioSpacing.sm),
+              const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+            ] else if (source?.exerciseType == ExerciseType.duration) ...[
+              const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+            ] else ...[
+              Expanded(child: Text(
+                weightUnit == null
+                    ? 'WEIGHT'
+                    : weightUnit == WeightUnit.lb ? 'LB' : 'KG',
+                textAlign: TextAlign.center,
+              )),
+              const SizedBox(width: TioSpacing.sm),
+              const Expanded(child: Text('REPS', textAlign: TextAlign.center)),
+            ],
           ],
         ),
         const SizedBox(height: TioSpacing.sm),
