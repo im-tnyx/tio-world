@@ -173,7 +173,13 @@ void main() {
       await tester.pump();
       expect(weightFocus.hasFocus, isTrue);
       await tester.enterText(find.byKey(const ValueKey('weight-field')), '40');
-      await tester.tap(find.byKey(const ValueKey('reps-field')));
+      // Focus the actual EditableText: TioInput's outer Align occupies
+      // a wider hit-test area than the painted boxed numeric field.
+      final repsEditor = find.descendant(
+        of: find.byKey(const ValueKey('reps-field')),
+        matching: find.byType(EditableText),
+      );
+      await tester.showKeyboard(repsEditor);
       await tester.pump();
       expect(weightFocus.hasFocus, isFalse);
       expect(repsFocus.hasFocus, isTrue);
