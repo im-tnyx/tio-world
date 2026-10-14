@@ -426,8 +426,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 heightFactor: 1,
                 child: Container(
                   key: ValueKey('routine-set-type-box-${widget.set.id}'),
-                  width: TioSize.dp44,
-                  constraints: const BoxConstraints(minHeight: TioSize.dp44),
+                  width: TioSize.dp42,
+                  constraints: const BoxConstraints(minHeight: TioSize.dp42),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     // Create uses the neutral filled Set badge. The approved
