@@ -119,7 +119,9 @@ void main() {
           'exercise_ref': _owner,
           'sets': [
             {'id': _id(9), 'reps': 5, 'reps_max': null,
-             'set_type': 'normal', 'load_kg': 0.0, 'rest_seconds': 0}
+             'set_type': 'normal', 'load_kg': 0.0,
+              'distance_meters': null,'duration_seconds': null,
+              'rest_seconds': 0}
           ]
         }
       ],
