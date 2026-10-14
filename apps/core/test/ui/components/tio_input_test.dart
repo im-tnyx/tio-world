@@ -123,10 +123,12 @@ void main() {
       expect(decoration.hintStyle!.fontSize,
           TioInputTokens.compactHintFontSize);
       expect(decoration.counterText, '');
+      expect(decoration.isDense, isTrue);
+      expect(decoration.constraints?.minHeight, TioSize.dp44);
       expect(decoration.contentPadding,
           const EdgeInsets.symmetric(
             horizontal: TioInputTokens.compactContentHorizontalPadding,
-            vertical: TioInputTokens.compactContentVerticalPadding,
+            vertical: TioSpacing.xs,
           ));
 
       await tester.tap(find.byType(TextFormField));
