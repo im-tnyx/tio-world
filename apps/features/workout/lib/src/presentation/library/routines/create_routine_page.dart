@@ -13,7 +13,9 @@ import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
+import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
+import '../exercises/widgets/exercise_list_row.dart';
 import '../exercises/exercises_providers.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
@@ -28,6 +30,7 @@ class CreateRoutinePage extends StatefulWidget {
     required this.catalogRepository,
     required this.weightUnit,
     this.userExerciseRepository,
+    this.viewerMediaGender,
     this.routineRepository,
     this.compositionRepository,
     this.canWrite,
@@ -40,6 +43,8 @@ class CreateRoutinePage extends StatefulWidget {
   final RoutineCreateRepository createRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Resolved at app/profile boundary; null follows catalog default gender.
+  final ExerciseMediaGender? viewerMediaGender;
   final RoutineRepository? routineRepository;
   final RoutineCompositionRepository? compositionRepository;
   final WeightUnit weightUnit;
@@ -53,7 +58,9 @@ class CreateRoutinePage extends StatefulWidget {
 class _CreateRoutinePageState extends State<CreateRoutinePage> {
   late RoutineCreateController _draft;
   late TextEditingController _name;
-  final Map<String, String> _entryLabels = {};
+  // Presentation-only canonical Exercise snapshots for unsaved entries.
+  // Durable composition stores ExerciseRef, never duplicated image data.
+  final Map<String, Exercise> _entryExercises = {};
   final Set<String> _invalidSetIds = {};
   // Newly created Sets have no entered target. The canonical model requires
   // positive Reps, so its internal minimum is not interpreted as user input.
@@ -75,7 +82,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _draft.removeListener(_changed);
       _draft.dispose();
       _name.dispose();
-      _entryLabels.clear();
+      _entryExercises.clear();
       _invalidSetIds.clear();
       _untouchedRepSetIds.clear();
       _openSetId = null;
@@ -133,7 +140,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!mounted || !_enabled || exercise == null) return;
     final id = _draft.addPickedExercise(exercise);
     if (id != null) {
-      _entryLabels[id] = exercise.displayName;
+      _entryExercises[id] = exercise;
       final entry = _draft.state.entries.last;
       for (final set in entry.sets) {
         _invalidSetIds.add(set.id);
@@ -169,7 +176,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!_enabled) return;
     if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
     _draft.removeExercise(entry.id);
-    _entryLabels.remove(entry.id);
+    _entryExercises.remove(entry.id);
     final ids = entry.sets.map((set) => set.id);
     _invalidSetIds.removeAll(ids);
     _untouchedRepSetIds.removeAll(ids);
@@ -527,6 +534,13 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final colors = context.tioColors;
     final unit = widget.weightUnit;
+    final selected = _entryExercises[entry.id];
+    final thumbnail = selected == null
+        ? null
+        : ExercisesController.thumbnailUrlFor(
+            selected,
+            gender: widget.viewerMediaGender,
+          );
     final range = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     return Padding(
@@ -537,6 +551,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         children: [
           Row(
             children: [
+              if (thumbnail != null)
+                ExerciseThumbnail(url: thumbnail),
               Expanded(
                 child: Semantics(
                   key: ValueKey('create-routine-reorder-semantics-${entry.id}'),
@@ -565,7 +581,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            _entryLabels[entry.id] ?? 'Selected Exercise',
+                            selected?.displayName ?? 'Selected Exercise',
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
