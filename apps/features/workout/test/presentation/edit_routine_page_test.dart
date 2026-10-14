@@ -534,6 +534,40 @@ void main() {
     expect(f.editorResult, isTrue);
   });
 
+  testWidgets('clearing persisted Range bounds keeps Range until mode changes',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(reps: 8, repsMax: 12, rest: 60),
+    ]);
+    await f.open(tester);
+    final min = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
+    expect(max, findsOneWidget);
+
+    await tester.enterText(min, '');
+    await tester.pump();
+    await tester.enterText(max, '');
+    await tester.pumpAndSettle();
+    // Empty nullable targets are allowed, but the user's Range selection
+    // stays visible; it must not silently collapse to fixed Reps.
+    expect(min, findsOneWidget);
+    expect(max, findsOneWidget);
+    expect(tester.widget<TioInput>(min).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
+
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!.entries.single.sets.single;
+    expect(saved.prescription.reps, isNull);
+    expect(saved.prescription.repsMax, isNull);
+    expect(saved.prescription.restSeconds, 60);
+    expect(saved.id, _setId);
+  });
+
   testWidgets('inline Add Set blank permits Update; invalid typed Reps block',
       (tester) async {
     final f = _Fixtures();
