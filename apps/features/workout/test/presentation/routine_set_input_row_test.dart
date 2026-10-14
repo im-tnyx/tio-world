@@ -259,6 +259,101 @@ void main() {
     expect(current.value.repsMax, 12);
   });
 
+  testWidgets('Treadmill uses optional KM/TIME with canonical meters and seconds',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final current = ValueNotifier<SetPrescription>(SetPrescription());
+    addTearDown(current.dispose);
+    final validity = <bool>[];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+        valueListenable: current,
+        builder: (_, value, __) => RoutineSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: value),
+          index: 0,
+          normalNumber: 1,
+          onTypePressed: () {},
+          unit: WeightUnit.kg,
+          exerciseType: ExerciseType.distanceDuration,
+          enabled: true,
+          isOpen: false,
+          onOpenChanged: (_) {},
+          onChanged: (value) => current.value = value,
+          onValidityChanged: validity.add,
+          onRemove: () {},
+        ),
+      )),
+    ));
+    expect(find.byKey(const ValueKey('routine-set-weight-$id')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-set-reps-$id')), findsNothing);
+    final km = find.byKey(const ValueKey('routine-set-distance-$id'));
+    final time = find.byKey(const ValueKey('routine-set-duration-$id'));
+    expect(tester.widget<TioInput>(km).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(time).controller!.text, isEmpty);
+    await tester.enterText(km, '2.5');
+    await tester.pump();
+    expect(current.value.distanceMeters, 2500.0);
+    expect(current.value.durationSeconds, isNull);
+    expect(current.value.reps, isNull);
+    await tester.enterText(time, '15:05');
+    await tester.pump();
+    expect(current.value.durationSeconds, 905);
+    await tester.enterText(time, '15:');
+    await tester.pump();
+    expect(validity.last, isFalse);
+    expect(current.value.durationSeconds, 905);
+    await tester.enterText(time, '');
+    await tester.pump();
+    expect(validity.last, isTrue);
+    expect(current.value.durationSeconds, isNull);
+    expect(current.value.distanceMeters, 2500.0);
+  });
+
+  testWidgets('TIME-only Set hides KG/REPS/KM and preserves optional duration',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final current = ValueNotifier<SetPrescription>(SetPrescription());
+    addTearDown(current.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+        valueListenable: current,
+        builder: (_, value, __) => RoutineSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: value),
+          index: 0,
+          normalNumber: 1,
+          onTypePressed: () {},
+          unit: WeightUnit.kg,
+          exerciseType: ExerciseType.duration,
+          enabled: true,
+          isOpen: false,
+          onOpenChanged: (_) {},
+          onChanged: (value) => current.value = value,
+          onValidityChanged: (_) {},
+          onRemove: () {},
+        ),
+      )),
+    ));
+    for (final hidden in ['weight', 'reps', 'distance']) {
+      expect(find.byKey(ValueKey('routine-set-$hidden-$id')), findsNothing);
+    }
+    final time = find.byKey(const ValueKey('routine-set-duration-$id'));
+    expect(time, findsOneWidget);
+    await tester.enterText(time, '1:30');
+    await tester.pump();
+    expect(current.value.durationSeconds, 90);
+    expect(current.value.reps, isNull);
+    expect(current.value.loadKg, isNull);
+    expect(current.value.distanceMeters, isNull);
+  });
+
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);
