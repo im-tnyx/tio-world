@@ -4,7 +4,9 @@ import 'package:tio_shared/shared.dart';
 final class RoutineCompositionSet {
   RoutineCompositionSet({required String id, required this.prescription})
       : id = _uuid(id) {
-    if (prescription.reps > 2147483647 ||
+    if ((prescription.reps ?? 0) > 2147483647 ||
+        (prescription.repsMax ?? 0) > 2147483647 ||
+        (prescription.durationSeconds ?? 0) > 2147483647 ||
         (prescription.restSeconds ?? 0) > 2147483647) {
       throw ArgumentError('Prescription exceeds PostgreSQL integer range.');
     }
