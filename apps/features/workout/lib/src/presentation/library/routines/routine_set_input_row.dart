@@ -309,7 +309,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   }
 
   void _pointerDown(PointerDownEvent event) {
-    if (!widget.enabled || _swipePointer != null) return;
+    if (!widget.enabled || _swipePointer != null) {
+      return;
+    }
     _swipePointer = event.pointer;
     _swipeStart = event.position;
     _swipeLast = event.position;
@@ -320,13 +322,17 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
 
   void _pointerMove(PointerMoveEvent event) {
     if (!widget.enabled || event.pointer != _swipePointer ||
-        _swipeStart == null || _swipeLast == null) return;
+        _swipeStart == null || _swipeLast == null) {
+      return;
+    }
     final total = event.position - _swipeStart!;
     if (!_swipeActive) {
       // Vertical drags remain owned by the containing ScrollView. Only
       // deliberate horizontal movement can reveal/remove a Set.
       if (total.dx.abs() < kTouchSlop ||
-          total.dx.abs() <= total.dy.abs() * 1.3) return;
+          total.dx.abs() <= total.dy.abs() * 1.3) {
+        return;
+      }
       _swipeActive = true;
     }
     final dx = event.position.dx - _swipeLast!.dx;
@@ -341,7 +347,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   }
 
   void _pointerUp(PointerUpEvent event) {
-    if (event.pointer != _swipePointer) return;
+    if (event.pointer != _swipePointer) {
+      return;
+    }
     final wasActive = _swipeActive;
     final velocity = _swipeVelocity;
     _clearSwipePointer();
@@ -354,7 +362,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   }
 
   void _pointerCancel(PointerCancelEvent event) {
-    if (event.pointer != _swipePointer) return;
+    if (event.pointer != _swipePointer) {
+      return;
+    }
     _clearSwipePointer();
     if (mounted) {
       setState(() {
