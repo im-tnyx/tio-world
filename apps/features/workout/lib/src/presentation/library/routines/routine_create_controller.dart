@@ -25,12 +25,13 @@ final class RoutineCreateState {
   bool get canSave =>
       status == RoutineCreateStatus.ready &&
       name.trim().isNotEmpty &&
-      entries.isNotEmpty;
+      entries.isNotEmpty &&
+      entries.every((entry) => entry.sets.isNotEmpty);
 }
 
 /// One in-memory Program-owned draft; no metadata-only persistence path.
-/// UI can add Exercises without requiring extra set input because Set 1 is
-/// created with the minimum valid prescription (one rep, no load/rest target).
+/// Every selected Exercise immediately owns an identified Set; numeric targets
+/// remain genuinely unspecified until the user chooses to prescribe them.
 final class RoutineCreateController extends ChangeNotifier {
   RoutineCreateController({
     required this.program,
@@ -97,7 +98,7 @@ final class RoutineCreateController extends ChangeNotifier {
         sets: [
           RoutineCompositionSet(
             id: setId,
-            prescription: SetPrescription(reps: 1),
+            prescription: SetPrescription(),
           ),
         ],
       ),
@@ -139,6 +140,8 @@ final class RoutineCreateController extends ChangeNotifier {
       repsMax: inRange ? prescription.reps : null,
       setType: RoutineSetType.normal,
       loadKg: prescription.loadKg,
+      distanceMeters: prescription.distanceMeters,
+      durationSeconds: prescription.durationSeconds,
       restSeconds: prescription.restSeconds,
     );
     _replace(index, RoutineCompositionEntry(
@@ -180,7 +183,8 @@ final class RoutineCreateController extends ChangeNotifier {
     if (p.setType == type) return true;
     return editSet(entryId, setId, SetPrescription(
       reps: p.reps, repsMax: p.repsMax, setType: type,
-      loadKg: p.loadKg, restSeconds: p.restSeconds,
+      loadKg: p.loadKg, distanceMeters: p.distanceMeters,
+      durationSeconds: p.durationSeconds, restSeconds: p.restSeconds,
     ));
   }
 
@@ -205,6 +209,8 @@ final class RoutineCreateController extends ChangeNotifier {
                   : null,
               setType: s.prescription.setType,
               loadKg: s.prescription.loadKg,
+              distanceMeters: s.prescription.distanceMeters,
+              durationSeconds: s.prescription.durationSeconds,
               restSeconds: s.prescription.restSeconds,
             ),
           ),
