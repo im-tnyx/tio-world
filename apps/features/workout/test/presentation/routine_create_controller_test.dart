@@ -14,6 +14,7 @@ RoutineCreateController _controller(
   _Creates repo, {
   String name = 'Routine 1',
   bool saveAfterOneExercise = false,
+  bool retryAfterDefiniteFailure = false,
 }) {
   // Create gives every picked Exercise its own Set ID before allocating
   // Routine/mutation IDs. Keep the test fixture's allocation order explicit.
@@ -21,6 +22,10 @@ RoutineCreateController _controller(
     _entry1, _set1,
     if (!saveAfterOneExercise) ...[_entry2, _set2],
     _routineId, _mutation,
+    if (retryAfterDefiniteFailure) ...[
+      '88888888-8888-4888-8888-888888888888',
+      '99999999-9999-4999-8999-999999999999',
+    ],
   ].iterator;
   return RoutineCreateController(
     program: Program(id: ProgramId(_programId), name: 'Program 1'),
@@ -157,6 +162,39 @@ void main() {
     expect(repo.command!.entries.single.sets.single.prescription.reps, isNull);
     expect(await c.save(), isFalse);
     expect(repo.calls, 1);
+  });
+
+  test('definite Create rejection retains editable draft for explicit retry',
+      () async {
+    final repo = _Creates()
+      ..error = const RoutineCompositionException(
+        RoutineCompositionFailureKind.invalidRequest,
+      );
+    final c = _controller(
+      repo,
+      saveAfterOneExercise: true,
+      retryAfterDefiniteFailure: true,
+    );
+    addTearDown(c.dispose);
+    c.addPickedExercise(_exercise);
+
+    expect(await c.save(), isFalse);
+    expect(c.state.status, RoutineCreateStatus.ready);
+    expect(c.state.canSave, isTrue);
+    expect(c.state.entries.single.sets.single.id, _set1);
+    expect(c.state.message, contains('try again'));
+    expect(repo.calls, 1);
+    final firstRoutineId = repo.command!.routine.id.value;
+
+    // A definite SQL rejection did not commit, unlike transport uncertainty.
+    repo.error = null;
+    c.rename('Revised Routine');
+    expect(await c.save(), isTrue);
+    expect(repo.calls, 2);
+    expect(repo.command!.routine.id.value, isNot(firstRoutineId));
+    expect(repo.command!.routine.name, 'Revised Routine');
+    expect(repo.command!.entries.single.sets.single.id, _set1);
+    expect(c.state.status, RoutineCreateStatus.saved);
   });
 
   test('unknown Create outcome freezes exact command and blocks second write',
