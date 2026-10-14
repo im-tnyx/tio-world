@@ -126,6 +126,93 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('swipe shows compact rounded Delete with tactile feedback in '
+        '${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final feedback = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            feedback.add(call.arguments as String? ?? '');
+          }
+          return null;
+        },
+      );
+      addTearDown(() => tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      const id = '55555555-5555-4555-8555-555555555555';
+      final colors = mode == TioThemeMode.dark
+          ? TioColors.oled : TioColors.light;
+      var open = false;
+      var deletes = 0;
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => RoutineSetInputRow(
+              set: RoutineCompositionSet(
+                id: id,
+                prescription: SetPrescription(reps: 10),
+              ),
+              index: 0,
+              normalNumber: 1,
+              onTypePressed: () {},
+              unit: WeightUnit.kg,
+              enabled: true,
+              isOpen: open,
+              onOpenChanged: (value) => setState(() => open = value),
+              onChanged: (_) {},
+              onValidityChanged: (_) {},
+              onRemove: () => deletes++,
+            ),
+          ),
+        ),
+      ));
+      final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
+      final delete = find.byKey(const ValueKey('routine-set-remove-$id'));
+      expect(tester.widget<TextButton>(delete).onPressed, isNull);
+      await tester.drag(swipe, const Offset(-140, 0));
+      await tester.pumpAndSettle();
+      expect(open, isTrue);
+      expect(deletes, 0);
+      expect(feedback, contains('HapticFeedbackType.selectionClick'));
+
+      final action = tester.widget<TextButton>(delete);
+      expect(action.onPressed, isNotNull);
+      expect(action.style!.backgroundColor!.resolve({}), colors.danger);
+      expect(action.style!.minimumSize!.resolve({}),
+          const Size(TioSize.dp48 + TioSize.dp48, TioSize.dp38));
+      final shape = action.style!.shape!.resolve({});
+      expect(shape, isA<RoundedRectangleBorder>());
+      expect((shape! as RoundedRectangleBorder).borderRadius,
+          BorderRadius.circular(TioInputTokens.radius));
+      // The row behind the action must stay black/normal surface; only
+      // the Delete button may paint the destructive fill.
+      expect(find.byWidgetPredicate((widget) =>
+          widget is ColoredBox && widget.color == colors.danger),
+          findsNothing);
+      final material = find.descendant(
+        of: delete,
+        matching: find.byType(Material),
+      );
+      expect(material, findsWidgets);
+      expect(tester.getSize(material.first).height, TioSize.dp38);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      expect(deletes, 1);
+      expect(feedback, contains('HapticFeedbackType.mediumImpact'));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('Edit PREVIOUS Set number is blue and unboxed without '
         'shrinking its 38dp tap target in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);

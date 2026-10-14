@@ -418,6 +418,11 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
         : velocity > _flickVelocity
             ? false
             : _reveal >= _threshold;
+    // A short fast flick may reveal Delete without crossing the distance
+    // threshold during pointer movement. Give that reveal one tactile cue.
+    if (open && !_pastRevealThreshold) {
+      HapticFeedback.selectionClick();
+    }
     setState(() {
       _dragging = false;
       _reveal = open ? _revealWidth : 0;
@@ -454,25 +459,33 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
         child: Stack(
           children: [
             Positioned.fill(
-              // As the finger travels beyond the short action reveal,
-              // the full exposed area stays visibly destructive.
-              child: ColoredBox(
-                color: colors.danger,
+              // Keep the reveal background transparent. A full red row
+              // overpaints the Set table when a long swipe moves its
+              // foreground away and makes Delete look like a giant strip.
+              // Only the right-hand compact action is destructive-colored.
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: SizedBox(
                     width: _revealWidth,
                     child: TextButton(
                       key: ValueKey('routine-set-remove-${widget.set.id}'),
+                      style: TextButton.styleFrom(
+                        backgroundColor: colors.danger,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
+                        minimumSize: const Size(_revealWidth, TioSize.dp38),
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            TioInputTokens.radius,
+                          ),
+                        ),
+                      ),
                       onPressed: widget.enabled && widget.isOpen
                           ? _delete
                           : null,
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onError,
-                        ),
-                      ),
+                      child: const Text('Delete'),
                     ),
                   ),
                 ),

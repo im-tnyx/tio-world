@@ -350,3 +350,26 @@ Keep Edit's unboxed blue number; preserve 38dp heights and widths,
 accessible growth, press behavior and all model/DB rules. No new token,
 schema migration or PR. Exact-head Flutter CI and physical screenshot
 verification required.
+
+## Owner-reported Set swipe Delete shape + tactile action (2026-10-14)
+
+Two supplied OLED screenshots show the current broken reveal rendering
+a broad red stripe/oversized Delete surface, while the intended
+reference presents a small rounded Delete action at the right of the
+swiped Set row. Runtime root cause is the feature `RoutineSetInputRow`
+`Positioned.fill` background `ColoredBox(colors.danger)`, which paints
+every pixel exposed by a full/long swipe and is not a shaped button.
+Keep the existing page-controlled single-open swipe row, stable Set UUID,
+row number, Edit PREVIOUS data boundary, and two intentional deletion
+paths: partial swipe -> tap Delete; deliberate full-length left swipe ->
+delete on pointer release (not simply a velocity flick). Replace only the
+background with a right-aligned compact `TextButton`: danger fill only
+inside the button, 38dp visual minimum, governed 14dp boxed-field radius,
+and the existing 96dp reveal width. Preserve accessible button tap
+semantics and Set deletion callbacks; do not auto-save compositions.
+Keep `HapticFeedback.selectionClick` at reveal crossing and add its
+missing fast-flick reveal cue; `mediumImpact` remains on explicit
+Delete/full-swipe deletion. Add 320dp light/OLED reveal/shape and tap
+haptic regressions alongside existing full-swipe and no-accidental-delete
+tests. No new Core component/token, DB/schema, feature surface or PR.
+Exact-head Flutter CI and real device screenshots/tactile QA pending.

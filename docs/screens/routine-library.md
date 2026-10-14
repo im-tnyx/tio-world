@@ -138,3 +138,18 @@ shape follows that same radius. The previous Set number used
 numeric outlines. Edit retains its approved unboxed blue Set number.
 38dp visible minimum heights and widths, 8-Set cap, input/focus
 behavior, button shapes, and all persistence contracts remain unchanged.
+
+## Swipe-to-delete Set action (Draft #551; device QA pending)
+
+Swiping a Routine Set left reveals a compact right-aligned red
+`Delete` control, matching the 38dp boxed Set/input height and 14dp
+rounded input shape. The exposed remainder of the row stays the screen's
+normal background, **not a full-width red stripe**. Swipe crossing the
+reveal threshold (including a quick flick) gives selection haptics;
+tapping Delete gives deletion haptics. A deliberately long left swipe
+continues to remove the chosen Set on release with the deletion haptic;
+a short flick alone never auto-deletes, and reversing before release
+does not remove. Deletion is still an in-memory Routine draft action
+until Create Save/Edit Update; deleting the last Set obeys the existing
+Exercise removal policy. Actual touch and OLED/light appearance still
+need device QA.
