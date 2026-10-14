@@ -37,6 +37,8 @@ Map<String, dynamic> _set(int id, int entry, int position) => {
       'reps_max': null,
       'set_type': 'normal',
       'load_kg': null,
+      'distance_meters': null,
+      'duration_seconds': null,
       'rest_seconds': null,
       'entry': {
         'id': _id(entry),
@@ -188,6 +190,14 @@ void main() {
     'missing nullable key': (row) => row.remove('load_kg'),
     'missing type': (row) => row.remove('set_type'),
     'missing range key': (row) => row.remove('reps_max'),
+    'missing distance key': (row) => row.remove('distance_meters'),
+    'missing duration key': (row) => row.remove('duration_seconds'),
+    'nonfinite distance': (row) => row['distance_meters'] = double.nan,
+    'negative distance': (row) => row['distance_meters'] = -1,
+    'fractional duration': (row) => row['duration_seconds'] = 2.5,
+    'negative duration': (row) => row['duration_seconds'] = -1,
+    'duration exceeds int32': (row) => row['duration_seconds'] = 2147483648,
+    'range with unspecified reps': (row) { row['reps'] = null; row['reps_max'] = 10; },
     'unknown type': (row) => row['set_type'] = 'random',
     'wrong type kind': (row) => row['set_type'] = 12,
     'range max below minimum': (row) => row['reps_max'] = 7,
@@ -218,6 +228,35 @@ void main() {
           throwsA(_failure(RoutineCompositionFailureKind.malformedData)));
     });
   }
+
+  test('nullable Reps and exact meters/seconds roundtrip through payload',
+      () async {
+    final gateway = _Gateway()
+      ..entries = [_entry(1, 0)]
+      ..sets = [_set(10, 1, 0)];
+    gateway.sets[0]
+      ..['reps'] = null
+      ..['load_kg'] = null
+      ..['distance_meters'] = 2500.5
+      ..['duration_seconds'] = 905;
+    final snapshot = (await gateway.repository.read(_routine))!;
+    final prescription = snapshot.entries.single.sets.single.prescription;
+    expect(prescription.reps, isNull);
+    expect(prescription.loadKg, isNull);
+    expect(prescription.distanceMeters, 2500.5);
+    expect(prescription.durationSeconds, 905);
+    final encoded = SupabaseRoutineCompositionRepository.payload(
+      RoutineCompositionSave(
+        routineId: _routine,
+        expectedRevision: snapshot.revision,
+        mutationId: _mutation,
+        entries: snapshot.entries,
+      ),
+    ).single['sets'] as List<Map<String, dynamic>>;
+    expect(encoded.single['reps'], isNull);
+    expect(encoded.single['distance_meters'], 2500.5);
+    expect(encoded.single['duration_seconds'], 905);
+  });
 
   test('rich Set type and Rep Range read/write preserve stable UUIDs',
       () async {
@@ -333,7 +372,8 @@ void main() {
           'exercise_ref': 'ex_squat',
           'sets': [
             {'id': _id(10), 'reps': 8, 'reps_max': null,
-             'set_type': 'normal', 'load_kg': null, 'rest_seconds': null}
+             'set_type': 'normal', 'load_kg': null, 'distance_meters': null,
+              'duration_seconds': null, 'rest_seconds': null}
           ]
         }
       ],
