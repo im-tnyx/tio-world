@@ -396,11 +396,17 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   bool get _rangeCanSave {
     final editor = _editor;
-    if (editor == null) return false;
+    if (editor == null) {
+      return false;
+    }
     for (final entry in editor.state.entries) {
-      if (!_draftRangeEntryIds.contains(entry.id)) continue;
+      if (!_draftRangeEntryIds.contains(entry.id)) {
+        continue;
+      }
       if (entry.sets.any((s) => s.prescription.isRepRange) &&
-          entry.sets.any((s) => !s.prescription.isRepRange)) return false;
+          entry.sets.any((s) => !s.prescription.isRepRange)) {
+        return false;
+      }
     }
     return true;
   }
@@ -408,7 +414,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _save() async {
     final editor = _editor;
     if (!_canEdit || editor == null ||
-        _invalidSetIds.isNotEmpty || !_rangeCanSave) return;
+        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+      return;
+    }
     final confirmed = await editor.update();
     if (mounted &&
         identical(editor, _editor) &&
