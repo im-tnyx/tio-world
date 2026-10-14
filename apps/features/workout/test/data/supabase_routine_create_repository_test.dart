@@ -38,7 +38,7 @@ void main() {
           exercise: ExerciseRef.catalog('ex_bench_press'),
           sets: [RoutineCompositionSet(
             id: '55555555-5555-4555-8555-555555555555',
-            prescription: SetPrescription(reps: 1),
+            prescription: SetPrescription(),
           )],
         ),
       ],
@@ -60,10 +60,12 @@ void main() {
           'sets': [
             {
               'id': request.entries.single.sets.single.id,
-              'reps': 1,
+              'reps': null,
               'reps_max': null,
               'set_type': 'normal',
               'load_kg': null,
+              'distance_meters': null,
+              'duration_seconds': null,
               'rest_seconds': null,
             }
           ],
