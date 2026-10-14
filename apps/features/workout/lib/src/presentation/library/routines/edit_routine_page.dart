@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
@@ -13,7 +14,8 @@ import '../../../domain/repositories/routine_repository.dart';
 import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
-import 'routine_exercise_picker_page.dart';
+import '../exercises/exercises_page.dart';
+import '../exercises/exercises_providers.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
 import 'routine_set_input_row.dart';
@@ -153,9 +155,17 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final unit = widget.weightUnit;
     final exercise = await Navigator.of(context).push<Exercise>(
       MaterialPageRoute(
-        builder: (_) => RoutineExercisePickerPage(
-          catalogRepository: widget.catalogRepository,
-          userExerciseRepository: widget.userExerciseRepository,
+        builder: (routeContext) => ProviderScope(
+          overrides: [
+            exerciseCatalogRepositoryProvider.overrideWithValue(
+              widget.catalogRepository,
+            ),
+          ],
+          child: ExercisesPage(
+            userExerciseRepository: widget.userExerciseRepository,
+            onExerciseSelected: (selected) =>
+                Navigator.of(routeContext).pop<Exercise>(selected),
+          ),
         ),
       ),
     );
