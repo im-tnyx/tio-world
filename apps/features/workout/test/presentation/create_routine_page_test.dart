@@ -973,7 +973,7 @@ void main() {
       home: Builder(builder: (context) => Scaffold(
         body: TextButton(
           key: const ValueKey('launch-create'),
-          onPressed: () => Navigator.of(context).push<void>(
+          onPressed: () => Navigator.of(context).push<bool>(
             MaterialPageRoute(builder: (_) => CreateRoutinePage(
               program: Program(
                 id: ProgramId('11111111-1111-4111-8111-111111111111'),
