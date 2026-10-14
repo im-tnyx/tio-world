@@ -227,22 +227,29 @@ void main() {
       }
     });
 
-    test('Treadmill and Front Plank opt into explicit measurement profiles',
-        () async {
+    test('all bundled Treadmill variants use KM/TIME; other profiles stay '
+        'explicit', () async {
       final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
-      final treadmill = catalog.byRef(
+      final typedTreadmills = {
         ExerciseRef.catalog('ex_walking_on_treadmill'),
-      );
-      expect(treadmill, isNotNull);
-      expect(treadmill!.category, 'cardio');
-      expect(treadmill.exerciseType, ExerciseType.distanceDuration);
-      final plank = catalog.byRef(ExerciseRef.catalog('ex_front_plank'));
+        ExerciseRef.catalog('ex_run_on_treadmill'),
+        ExerciseRef.catalog('ex_walking_on_incline_treadmill'),
+      };
+      for (final ref in typedTreadmills) {
+        final treadmill = catalog.byRef(ref);
+        expect(treadmill, isNotNull, reason: ref.value);
+        expect(treadmill!.category, 'cardio', reason: ref.value);
+        expect(treadmill.exerciseType, ExerciseType.distanceDuration,
+            reason: '${ref.value} must display KM/TIME, not KG/REPS');
+      }
+      final plankRef = ExerciseRef.catalog('ex_front_plank');
+      final plank = catalog.byRef(plankRef);
       expect(plank, isNotNull);
       expect(plank!.exerciseType, ExerciseType.duration);
-      // A body's category or equipment cannot be used to infer which
-      // Routine measurement columns apply to an unrelated Exercise.
+      // An Exercise's category/equipment is not a valid substitute for its
+      // explicit persisted measurement type; other rows retain legacy null.
       for (final exercise in catalog.all.where((entry) =>
-          entry.ref != treadmill.ref && entry.ref != plank.ref)) {
+          !typedTreadmills.contains(entry.ref) && entry.ref != plankRef)) {
         expect(exercise.exerciseType, isNull, reason: exercise.ref.value);
       }
     });
@@ -276,7 +283,7 @@ void main() {
             'exercises',
           ]));
       expect(decoded['schemaVersion'], 1);
-      expect(decoded['catalogVersion'], 2);
+      expect(decoded['catalogVersion'], 3);
       expect(exercises, isNotEmpty);
 
       const allowedRowKeys = {
