@@ -342,11 +342,14 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               onTap: widget.enabled ? widget.onTypePressed : null,
               borderRadius: BorderRadius.circular(TioRadius.md),
               child: Container(
+                key: ValueKey('routine-set-type-box-${widget.set.id}'),
                 width: TioSize.dp44,
                 constraints: const BoxConstraints(minHeight: TioSize.dp44),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: colors.surface,
+                  // The near-black surface is indistinguishable from the
+                  // OLED background. Use the governed filled-cell surface.
+                  color: colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(TioRadius.md),
                 ),
                 child: Text(
