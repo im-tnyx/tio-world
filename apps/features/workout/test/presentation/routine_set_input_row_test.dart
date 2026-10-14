@@ -123,22 +123,29 @@ void main() {
           child: child ?? const SizedBox.shrink(),
         ),
         home: Scaffold(
-          body: RoutineSetInputRow(
-            set: RoutineCompositionSet(
-              id: id,
-              prescription: SetPrescription(reps: 8),
-            ),
-            index: 0,
-            normalNumber: 1,
-            onTypePressed: () => selections++,
-            unit: WeightUnit.kg,
-            enabled: true,
-            showPrevious: true,
-            isOpen: false,
-            onOpenChanged: (_) {},
-            onChanged: (_) {},
-            onValidityChanged: (_) {},
-            onRemove: () {},
+          // Match the page's column layout: a bare Sliver-row widget as the
+          // Scaffold body receives its full viewport height (712dp), which
+          // is not the real Create/Edit row's shrink-wrapped constraint.
+          body: Column(
+            children: [
+              RoutineSetInputRow(
+                set: RoutineCompositionSet(
+                  id: id,
+                  prescription: SetPrescription(reps: 8),
+                ),
+                index: 0,
+                normalNumber: 1,
+                onTypePressed: () => selections++,
+                unit: WeightUnit.kg,
+                enabled: true,
+                showPrevious: true,
+                isOpen: false,
+                onOpenChanged: (_) {},
+                onChanged: (_) {},
+                onValidityChanged: (_) {},
+                onRemove: () {},
+              ),
+            ],
           ),
         ),
       ));
@@ -159,7 +166,13 @@ void main() {
         final outline = find.descendant(
           of: input, matching: find.byType(InputDecorator),
         );
+        expect(outline, findsOneWidget);
         expect(tester.getSize(outline).height, TioSize.dp44);
+        // Prove the painted field and SET control are aligned on both edges.
+        expect(tester.getTopLeft(outline).dy,
+            closeTo(tester.getTopLeft(setBox).dy, 0.01));
+        expect(tester.getBottomLeft(outline).dy,
+            closeTo(tester.getBottomLeft(setBox).dy, 0.01));
       }
       await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
       expect(selections, 1,
