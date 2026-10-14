@@ -425,9 +425,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 constraints: const BoxConstraints(minHeight: TioSize.dp44),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  // The near-black surface is indistinguishable from the
-                  // OLED background. Use the governed filled-cell surface.
-                  color: colors.surfaceVariant,
+                  // Create uses the neutral filled Set badge. The approved
+                  // Edit/PREVIOUS reference instead shows an unboxed blue
+                  // number; preserve the same 44dp hit/layout footprint.
+                  color: widget.showPrevious ? null : colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(TioRadius.md),
                 ),
                 child: Text(
@@ -439,7 +440,9 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                   },
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: switch (widget.set.prescription.setType) {
-                      RoutineSetType.normal => colors.textPrimary,
+                      RoutineSetType.normal => widget.showPrevious
+                          ? colors.primary
+                          : colors.textPrimary,
                       RoutineSetType.warmUp => colors.warning,
                       RoutineSetType.failure => colors.danger,
                       RoutineSetType.drop => colors.info,
