@@ -316,6 +316,25 @@ List<RouteBase> _shellBranchChildRoutes(
             onProgramPressed: routineRepository == null
                 ? null
                 : (program) async {
+                    // This Program belongs to the session which opened Detail.
+                    // A mounted Detail must not create under an old Program
+                    // after an account switch or a new login cycle.
+                    final openingBoot =
+                        ref.read(appSessionBootstrapControllerProvider).state;
+                    final openingOwner = openingBoot is AppSessionBootstrapReady
+                        ? openingBoot.userId
+                        : null;
+                    final openingAuthAsync = ref.read(authSessionStateProvider);
+                    final openingAuth = openingAuthAsync.isLoading ||
+                            openingAuthAsync.hasError
+                        ? null
+                        : openingAuthAsync.valueOrNull;
+                    final openingCycle =
+                        openingAuth is AuthSessionAuthenticated &&
+                                openingAuth.session.userId == openingOwner
+                            ? openingAuth.session.loginCycleId
+                            : null;
+                    if (openingOwner == null || openingCycle == null) return;
                     await Navigator.of(context).push<void>(
                       MaterialPageRoute(
                         builder: (_) => ProgramDetailPage(
@@ -352,8 +371,9 @@ List<RouteBase> _shellBranchChildRoutes(
                                       initialAuth is AuthSessionAuthenticated
                                           ? initialAuth.session.loginCycleId
                                           : null;
-                                  if (initialOwner == null ||
-                                      initialOwner != initialAuthOwner) {
+                                  if (initialOwner != openingOwner ||
+                                      initialAuthOwner != openingOwner ||
+                                      initialCycle != openingCycle) {
                                     return false;
                                   }
                                   var revoked = false;
