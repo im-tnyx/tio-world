@@ -5,6 +5,7 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../exercises/exercises_controller.dart';
 import 'routine_set_input_limits.dart';
+import 'routine_measurement_profile.dart';
 import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
@@ -309,13 +310,14 @@ class _RoutineEntryPreview extends StatelessWidget {
       Text(value, textAlign: align,
         style: TextStyle(color: color, fontSize: TioFontSize.size14));
 
-  Widget _setRow(BuildContext context, int index) {
+  Widget _setRow(
+    BuildContext context, int index, ExerciseType? profile,
+  ) {
     final sets = item.entry.sets;
     final p = sets[index].prescription;
     final normalNumber = sets.take(index + 1)
         .where((s) => s.prescription.setType == RoutineSetType.normal)
         .length;
-    final profile = item.exercise?.exerciseType;
     final weight = p.loadKg == null
         ? '–'
         : weightUnit == null
@@ -371,6 +373,10 @@ class _RoutineEntryPreview extends StatelessWidget {
     final colors = context.tioColors;
     final entry = item.entry;
     final source = item.exercise;
+    final profile = routineEntryMeasurementProfile(
+      source?.exerciseType,
+      entry.sets,
+    );
     final thumbnail = source == null
         ? null
         : ExercisesController.thumbnailUrlFor(
@@ -416,11 +422,11 @@ class _RoutineEntryPreview extends StatelessWidget {
               child: Text('SET', textAlign: TextAlign.center),
             ),
             const SizedBox(width: TioSpacing.sm),
-            if (source?.exerciseType == ExerciseType.distanceDuration) ...[
+            if (profile == ExerciseType.distanceDuration) ...[
               const Expanded(child: Text('KM', textAlign: TextAlign.center)),
               const SizedBox(width: TioSpacing.sm),
               const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
-            ] else if (source?.exerciseType == ExerciseType.duration) ...[
+            ] else if (profile == ExerciseType.duration) ...[
               const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
             ] else ...[
               Expanded(child: Text(
@@ -443,11 +449,12 @@ class _RoutineEntryPreview extends StatelessWidget {
               primary: false,
               padding: EdgeInsets.zero,
               itemCount: entry.sets.length,
-              itemBuilder: (context, index) => _setRow(context, index),
+              itemBuilder: (context, index) => _setRow(context, index, profile),
             ),
           )
         else
-          for (var i = 0; i < entry.sets.length; i++) _setRow(context, i),
+          for (var i = 0; i < entry.sets.length; i++)
+            _setRow(context, i, profile),
         if (entry.sets.isEmpty)
           Text('No sets prescribed',
               style: TextStyle(color: colors.textSecondary)),

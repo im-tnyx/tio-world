@@ -15,6 +15,7 @@ import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
 import 'routine_set_input_row.dart';
+import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
@@ -213,7 +214,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     ExerciseType? profile;
     for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
       if (item.exercise.ref == entry.exercise) {
-        profile = item.exercise.exerciseType;
+        profile = routineEntryMeasurementProfile(
+          item.exercise.exerciseType,
+          entry.sets,
+        );
         break;
       }
     }
@@ -635,7 +639,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         break;
       }
     }
-    final exerciseType = found?.exerciseType;
+    final exerciseType = routineEntryMeasurementProfile(
+      found?.exerciseType,
+      entry.sets,
+    );
     return RoutineComposerExerciseCard(
       key: ValueKey('edit-routine-entry-${entry.id}'),
       mode: RoutineComposerMode.edit,

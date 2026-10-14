@@ -591,6 +591,43 @@ void main() {
     expect(f.editorResult, isTrue);
   });
 
+  testWidgets('legacy treadmill prescriptions remain editable as KG/REPS',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _entryId,
+        exercise: ExerciseRef.catalog('ex_run_on_treadmill'),
+        sets: [
+          RoutineCompositionSet(
+            id: _setId,
+            prescription: SetPrescription(reps: 8, loadKg: 12),
+          ),
+        ],
+      ),
+    ]);
+    await f.open(tester);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('KM'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final weight = find.byKey(const ValueKey('routine-set-weight-$_setId'));
+    expect(tester.widget<TioInput>(reps).controller!.text, '8');
+    expect(tester.widget<TioInput>(weight).controller!.text, '12');
+    await tester.enterText(reps, '9');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!.entries.single.sets.single;
+    expect(saved.id, _setId);
+    expect(saved.prescription.reps, 9);
+    expect(saved.prescription.loadKg, 12);
+    expect(saved.prescription.distanceMeters, isNull);
+    expect(saved.prescription.durationSeconds, isNull);
+  });
+
   testWidgets('inline range keeps Warm Up, UUID, kg and rest', (tester) async {
     final f = _Fixtures(unit: WeightUnit.lb);
     f.compositions.snapshot = _snapshot(entries: [

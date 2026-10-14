@@ -138,6 +138,56 @@ void main() {
         findsNothing);
   });
 
+  testWidgets('legacy Treadmill and Plank targets remain visible after catalog reprofile',
+      (tester) async {
+    final old = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_run_on_treadmill'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 6, loadKg: 22),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(old),
+    );
+    expect(find.text('Run on Treadmill'), findsOneWidget);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('KM'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('22'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e1,
+          exercise: ExerciseRef.catalog('ex_front_plank'),
+          sets: [
+            RoutineCompositionSet(
+              id: _s1,
+              prescription: SetPrescription(reps: 60),
+            ),
+          ],
+        ),
+      ])),
+    );
+    expect(find.text('Front Plank'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('60'), findsOneWidget);
+  });
+
   testWidgets('empty persisted Routine shows truthful empty state',
       (tester) async {
     await _pump(
@@ -532,6 +582,18 @@ final class _Catalog implements ExerciseCatalogRepository {
           ref: ExerciseRef.catalog('ex_bench_press'),
           displayName: 'Bench Press',
           status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+          displayName: 'Run on Treadmill',
+          status: ExerciseStatus.active,
+          exerciseType: ExerciseType.distanceDuration,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_front_plank'),
+          displayName: 'Front Plank',
+          status: ExerciseStatus.active,
+          exerciseType: ExerciseType.duration,
         ),
       ]);
 }

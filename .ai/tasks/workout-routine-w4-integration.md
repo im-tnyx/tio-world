@@ -269,3 +269,17 @@ a fixed/blank Set. Positive completion after explicit Min+Max permits
 one Update without modifying original Set IDs/ranges. No DB migration,
 Set-limit, unit, or UI geometry change. Added a focused widget regression;
 exact-head Flutter CI and reviewer disposition pending.
+
+## Review P2: catalog measurement-profile upgrade / historic targets
+
+Newer catalog types (Treadmill distance+duration, Front Plank duration)
+must not suppress persisted Reps/Load created before the catalog
+annotations. Add a single Workout presentation policy resolver consumed
+by Detail and Edit: when a newly typed Exercise entry contains legacy
+Reps/Load but **no** saved Distance/Duration anywhere in that entry,
+render/edit the actual KG/REPS columns instead of empty new-type fields.
+No synthetic conversion, mutation, schema migration or catalog-type
+rollback. Fresh typed records retain KM/TIME or TIME. Added widget
+regressions for legacy Treadmill/Plank Detail and legacy Treadmill Edit,
+including preservation of numeric targets on Update. Exact-head Flutter
+CI and independent reviewer disposition remain required.
