@@ -88,6 +88,15 @@ void main() {
         expect(setHeight, TioSize.dp44);
         expect(tester.getSize(weight).height, setHeight);
         expect(tester.getSize(reps).height, setHeight);
+        // The screenshot concern is the *painted outline*, not just the
+        // surrounding TioInput size. InputDecorator owns the outlined shape.
+        for (final input in [weight, reps]) {
+          final outline = find.descendant(
+            of: input, matching: find.byType(InputDecorator),
+          );
+          expect(outline, findsOneWidget);
+          expect(tester.getSize(outline).height, setHeight);
+        }
         expect(tester.getSize(filledSurface.first).height, setHeight);
         expect(find.text('${index + 1}'), findsOneWidget);
         expect(find.byKey(ValueKey('routine-set-type-${ids[index]}')),
@@ -233,7 +242,12 @@ void main() {
       expect(field.decoration!.focusedBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.hintText, '–');
       expect(field.textAlign, TextAlign.center);
-      expect(tester.getSize(input).height, greaterThanOrEqualTo(44));
+      expect(tester.getSize(input).height, TioSize.dp44);
+      final outline = find.descendant(
+        of: input, matching: find.byType(InputDecorator),
+      );
+      expect(outline, findsOneWidget);
+      expect(tester.getSize(outline).height, TioSize.dp44);
     }
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsOneWidget);
@@ -427,6 +441,13 @@ void main() {
     final time = find.byKey(const ValueKey('routine-set-duration-$id'));
     expect(tester.widget<TioInput>(km).controller!.text, isEmpty);
     expect(tester.widget<TioInput>(time).controller!.text, isEmpty);
+    for (final input in [km, time]) {
+      final outline = find.descendant(
+        of: input, matching: find.byType(InputDecorator),
+      );
+      expect(outline, findsOneWidget);
+      expect(tester.getSize(outline).height, TioSize.dp44);
+    }
     await tester.enterText(km, '2.5');
     await tester.pump();
     expect(current.value.distanceMeters, 2500.0);
@@ -479,6 +500,11 @@ void main() {
     }
     final time = find.byKey(const ValueKey('routine-set-duration-$id'));
     expect(time, findsOneWidget);
+    final timeOutline = find.descendant(
+      of: time, matching: find.byType(InputDecorator),
+    );
+    expect(timeOutline, findsOneWidget);
+    expect(tester.getSize(timeOutline).height, TioSize.dp44);
     await tester.enterText(time, '1:30');
     await tester.pump();
     expect(current.value.durationSeconds, 90);
