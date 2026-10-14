@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
@@ -25,6 +26,7 @@ class ExercisesPage extends ConsumerStatefulWidget {
     super.key,
     this.startSearching = false,
     this.userExerciseRepository,
+    this.catalogRepository,
     this.onExerciseSelected,
   });
 
@@ -36,6 +38,10 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// Null keeps the catalog fully usable while create/edit capability fails
   /// closed instead of reporting in-memory success.
   final UserExerciseRepository? userExerciseRepository;
+
+  /// An explicit canonical catalog source for the Routine selection context.
+  /// Browse uses the existing shared provider; no nested provider override.
+  final ExerciseCatalogRepository? catalogRepository;
 
   /// When supplied, reuse this canonical screen as a Routine Exercise
   /// selector rather than launching a duplicate picker UI. Browse behavior
@@ -57,11 +63,13 @@ class ExercisesPage extends ConsumerStatefulWidget {
 
 class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   CustomExercisesController? _customController;
+  ExercisesController? _selectionCatalogController;
 
   @override
   void initState() {
     super.initState();
     _bindCustomController();
+    _bindSelectionCatalog();
   }
 
   @override
@@ -73,6 +81,28 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     )) {
       _bindCustomController();
     }
+    if (!identical(oldWidget.catalogRepository, widget.catalogRepository) ||
+        oldWidget.startSearching != widget.startSearching) {
+      _bindSelectionCatalog();
+    }
+  }
+
+  void _bindSelectionCatalog() {
+    _selectionCatalogController?.removeListener(_onCustomChanged);
+    _selectionCatalogController?.dispose();
+    final repository = widget.catalogRepository;
+    if (repository == null) {
+      _selectionCatalogController = null;
+      return;
+    }
+    final controller = ExercisesController(
+      repository: repository,
+      mediaGender: ref.read(exerciseViewerMediaGenderProvider),
+      startSearching: widget.startSearching,
+    );
+    _selectionCatalogController = controller;
+    controller.addListener(_onCustomChanged);
+    controller.load();
   }
 
   void _bindCustomController() {
@@ -108,6 +138,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   void dispose() {
     _customController?.removeListener(_onCustomChanged);
     _customController?.dispose();
+    _selectionCatalogController?.removeListener(_onCustomChanged);
+    _selectionCatalogController?.dispose();
     super.dispose();
   }
 
@@ -132,7 +164,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final catalogController =
+    final catalogController = _selectionCatalogController ??
         ref.watch(exercisesControllerProvider(widget.startSearching));
     final catalogState = catalogController.state;
     final customState = _customController?.state;
