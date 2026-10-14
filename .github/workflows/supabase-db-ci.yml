@@ -37,14 +37,14 @@ jobs:
       # #536 together in this disposable runner without modifying either
       # migration, creating another PR, or deploying to hosted Supabase.
       - name: Checkout pinned W4 atomic Create dependency
-        if: github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db'
+        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
         uses: actions/checkout@v7
         with:
           ref: 015a2ec1c277fc5f82dda8a54d727d67a3187177
           path: .ci/routine-create-536
 
       - name: Stage combined W4 migrations and tests (disposable only)
-        if: github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db'
+        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
         shell: bash
         run: |
           dependency=".ci/routine-create-536"
@@ -255,7 +255,10 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_538_539_routine_set_metadata.test.sql
 
+      # Manual dispatch from other refs must not run a W4-specific matrix
+      # without the pinned #536 dependency staged in the disposable runner.
       - name: Run W4 combined atomic Create and nullable Set SQL matrix
+        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
         shell: bash
         run: |
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 \
