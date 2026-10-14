@@ -510,6 +510,12 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding,
             )
           : InputDecoration(
+              // Only the boxed numeric variant is denser; all legacy inputs
+              // retain their existing theme-driven geometry and padding.
+              isDense: isBoxedNumber,
+              constraints: isBoxedNumber
+                  ? const BoxConstraints(minHeight: TioSize.dp44)
+                  : null,
               labelText: isCompactNumeric ? null : widget.label,
               hintText: widget.hint,
               helperText: hasError ? null : widget.helperText,
@@ -550,9 +556,10 @@ class _TioInputState extends State<TioInput> {
               focusedErrorBorder: effectiveFocusedBorder,
               contentPadding: widget.contentPadding ??
                   (isCompactNumeric
-                      ? const EdgeInsets.symmetric(
-                          vertical:
-                              TioInputTokens.compactContentVerticalPadding,
+                      ? EdgeInsets.symmetric(
+                          vertical: isBoxedNumber
+                              ? TioSpacing.xs
+                              : TioInputTokens.compactContentVerticalPadding,
                           horizontal:
                               TioInputTokens.compactContentHorizontalPadding,
                         )
