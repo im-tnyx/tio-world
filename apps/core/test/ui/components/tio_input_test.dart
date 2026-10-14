@@ -142,6 +142,49 @@ void main() {
       expect(changed, '25');
     });
 
+    testWidgets('boxedNumber touch outside unfocuses; switching cells works',
+        (tester) async {
+      final weightFocus = FocusNode();
+      final repsFocus = FocusNode();
+      addTearDown(weightFocus.dispose);
+      addTearDown(repsFocus.dispose);
+      var weightValue = '';
+      await tester.pumpWidget(buildTestApp(Column(
+        children: [
+          TioInput.boxedNumber(
+            key: const ValueKey('weight-field'),
+            focusNode: weightFocus,
+            onChanged: (value) => weightValue = value,
+          ),
+          TioInput.boxedNumber(
+            key: const ValueKey('reps-field'),
+            focusNode: repsFocus,
+            onChanged: (_) {},
+          ),
+          const Expanded(
+            child: ColoredBox(
+              color: Colors.transparent,
+              child: SizedBox.expand(key: ValueKey('outside-fields')),
+            ),
+          ),
+        ],
+      )));
+      await tester.tap(find.byKey(const ValueKey('weight-field')));
+      await tester.pump();
+      expect(weightFocus.hasFocus, isTrue);
+      await tester.enterText(find.byKey(const ValueKey('weight-field')), '40');
+      await tester.tap(find.byKey(const ValueKey('reps-field')));
+      await tester.pump();
+      expect(weightFocus.hasFocus, isFalse);
+      expect(repsFocus.hasFocus, isTrue);
+      await tester.tap(find.byKey(const ValueKey('outside-fields')));
+      await tester.pump();
+      expect(weightFocus.hasFocus, isFalse);
+      expect(repsFocus.hasFocus, isFalse);
+      expect(weightValue, '40',
+          reason: 'Dismissing focus must not erase entered targets');
+    });
+
     testWidgets(
         'boxedNumber paints a 40dp outline in a taller parent and grows '
         'for accessible text', (tester) async {

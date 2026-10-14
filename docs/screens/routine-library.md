@@ -117,3 +117,13 @@ duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
 is authorized. The implementation is Draft until exact-head Flutter CI,
 review and device screenshot QA pass.
+
+## Numeric Set field focus dismissal (Draft #551; device QA pending)
+
+Create and Edit share the same Routine composer. Touching outside a
+focused boxed Set numeric field removes its focus outline; switching
+from KG to REPS still focuses the selected field. Hiding the on-screen
+keyboard explicitly dismisses focus on a visible-to-hidden IME event
+rather than leaving a numeric field permanently selected. Typed values
+are retained. This does not change the 40dp layout, visual styling,
+nullable Set targets, or generic TioInput forms.

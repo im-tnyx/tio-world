@@ -476,6 +476,9 @@ class _TioInputState extends State<TioInput> {
               : TextInputType.text),
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onSubmitted,
+      // Mobile's default tap-outside behavior retains text-field focus.
+      // Boxed numeric table cells intentionally dismiss on touch outside.
+      onTapOutside: isBoxedNumber ? (_) => _focusNode.unfocus() : null,
       validator: widget.validator,
       autofillHints: widget.autofillHints,
       inputFormatters: widget.inputFormatters,

@@ -14,7 +14,7 @@ import '../exercises/widgets/exercise_list_row.dart';
 /// Persistence, navigation and auth gates remain with the owning controller.
 enum RoutineComposerMode { create, edit }
 
-class RoutineComposerScreen extends StatelessWidget {
+class RoutineComposerScreen extends StatefulWidget {
   const RoutineComposerScreen({
     required this.mode,
     required this.pageKey,
@@ -37,11 +37,56 @@ class RoutineComposerScreen extends StatelessWidget {
   final VoidCallback? onSubmit;
 
   @override
+  State<RoutineComposerScreen> createState() => _RoutineComposerScreenState();
+}
+
+/// Keep the focus policy for both builder modes in one screen.
+/// Mobile keyboard Back can hide the IME while leaving a numeric field focused.
+class _RoutineComposerScreenState extends State<RoutineComposerScreen>
+    with WidgetsBindingObserver {
+  double? _previousKeyboardInset;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initial keyboard absence is not a dismissal event.
+    _previousKeyboardInset ??= View.of(context).viewInsets.bottom;
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final keyboardInset = View.of(context).viewInsets.bottom;
+    final previousInset = _previousKeyboardInset;
+    _previousKeyboardInset = keyboardInset;
+
+    // Do not dismiss another route's input (e.g. the Exercise picker).
+    if (previousInset != null &&
+        previousInset > 0 &&
+        keyboardInset == 0 &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      FocusScope.of(context).unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final isEdit = mode == RoutineComposerMode.edit;
+    final isEdit = widget.mode == RoutineComposerMode.edit;
     return Scaffold(
-      key: pageKey,
+      key: widget.pageKey,
       backgroundColor: colors.background,
       appBar: TioAppBar(
         backgroundColor: colors.background,
@@ -51,8 +96,8 @@ class RoutineComposerScreen extends StatelessWidget {
         title: Row(
           children: [
             TextButton(
-              key: cancelKey,
-              onPressed: cancelEnabled ? cancel : null,
+              key: widget.cancelKey,
+              onPressed: widget.cancelEnabled ? widget.cancel : null,
               child: const Text('Cancel'),
             ),
             Expanded(
@@ -74,22 +119,22 @@ class RoutineComposerScreen extends StatelessWidget {
               const SizedBox(width: TioSize.dp64)
             else
               TextButton(
-                key: submitKey,
-                onPressed: onSubmit,
+                key: widget.submitKey,
+                onPressed: widget.onSubmit,
                 child: const Text('Save'),
               ),
           ],
         ),
       ),
-      body: SafeArea(child: content),
-      bottomNavigationBar: isEdit && submitKey != null
+      body: SafeArea(child: widget.content),
+      bottomNavigationBar: isEdit && widget.submitKey != null
           ? SafeArea(
               minimum: const EdgeInsets.all(TioSpacing.lg),
               child: TioButton.primary(
-                key: submitKey,
+                key: widget.submitKey,
                 label: 'Update',
                 expand: true,
-                onPressed: onSubmit,
+                onPressed: widget.onSubmit,
               ),
             )
           : null,

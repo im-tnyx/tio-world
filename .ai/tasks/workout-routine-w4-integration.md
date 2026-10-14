@@ -300,3 +300,21 @@ still two inline Range fields -> details reopen still Maximum Reps ->
 explicit Routine Update preserves empty nullable target and Rest.
 No DB/schema change, redesign, or extra PR. New exact-head CI and
 independent review required before merge.
+
+## Owner-reported numeric focus dismissal (2026-10-14; CI/device QA pending)
+
+Create/Edit Routine KG/REPS inputs remained focused after dismissing the
+phone keyboard or touching the screen outside the input. Root cause:
+Flutter's implicit `TextField.onTapOutside` does not unfocus for mobile
+touches; Flutter can hide the IME on system Back without changing Focus.
+Bounded fix in existing #551: add an explicit `onTapOutside` unfocus
+**only** for Core `TioInput.boxedNumber`, and listen for the real
+keyboard `viewInsets.bottom > 0 -> 0` transition **once** in the shared
+feature-owned `RoutineComposerScreen`, only when its route is current.
+This covers Create and Edit, KG/REPS, Min/Max, KM/TIME, without changing
+global standard/compact input behavior. Switching KG -> REPS retains
+correct next focus; focus dismissal must preserve typed targets.
+Dedicated Core outside-touch/sibling-input tests and shared composer
+Create/Edit keyboard-metrics tests added. No geometry, 40dp, eight-Set
+policy, model, persistence, migration or new PR change. Physical Android
+system Back/keyboard hide and iOS keyboard dismissal QA still required.
