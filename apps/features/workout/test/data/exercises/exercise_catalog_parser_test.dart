@@ -64,6 +64,26 @@ void main() {
       expect(exercise.status, ExerciseStatus.active);
     });
 
+    test('maps optional Exercise Type without inferring it from category', () {
+      final old = parser.parse([syntheticRow()]).all.single;
+      expect(old.exerciseType, isNull);
+      final typed = parser.parse([
+        withField('exerciseType', ExerciseType.distanceDuration.storageValue),
+      ]).all.single;
+      expect(typed.exerciseType, ExerciseType.distanceDuration);
+      expect(typed.category, 'kind_a');
+      expect(typed.primaryEquipment, 'gear_a');
+    });
+
+    test('accepts all canonical Exercise Type storage values', () {
+      for (final kind in ExerciseType.values) {
+        final exercise = parser.parse([
+          withField('exerciseType', kind.storageValue),
+        ]).all.single;
+        expect(exercise.exerciseType, kind);
+      }
+    });
+
     test('map isArchived true to archived status', () {
       final exercise = parser.parse([withField('isArchived', true)]).all.single;
 
@@ -126,6 +146,15 @@ void main() {
       expectSingleIssue(withField('category', false), 'category');
       expectSingleIssue(withField('isArchived', 'false'), 'isArchived');
       expectSingleIssue(withField('isCustom', 0), 'isCustom');
+    });
+
+    test('rejects malformed/unknown Exercise Type instead of guessing', () {
+      expectSingleIssue(withField('exerciseType', 3), 'exerciseType');
+      expectSingleIssue(
+        withField('exerciseType', 'unapproved_future_profile'),
+        'exerciseType',
+      );
+      expectSingleIssue(withField('exerciseType', ''), 'exerciseType');
     });
 
     test('reject wrong list types', () {
