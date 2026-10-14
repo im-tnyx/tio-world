@@ -179,10 +179,10 @@ void main() {
     final selectedBadge = find.byKey(
       const ValueKey('exercise-selected-ex_bench_press'));
     expect(selectedBadge, findsOneWidget);
-    expect(tester.getSize(selectedBadge), const Size(20, 20));
+    expect(tester.getSize(selectedBadge), const Size(18, 18));
     expect(tester.widget<Icon>(
       find.descendant(of: selectedBadge, matching: find.byType(Icon)),
-    ).size, TioSize.dp14);
+    ).size, TioSize.dp12);
     await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
@@ -203,6 +203,40 @@ void main() {
       _customExercise().ref,
     ]);
     expect(user.writeCalls, 0);
+  });
+
+  testWidgets('selected thumbnail badge hugs the image top-right rim',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _catalogExercise(),
+            thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+            metadata: 'Chest',
+          ),
+          selectionMode: true,
+          isSelected: true,
+          onTap: () {},
+        ),
+      ),
+    ));
+    const key = ValueKey('exercise-selected-ex_bench_press');
+    final marker = find.byKey(key);
+    expect(marker, findsOneWidget);
+    expect(tester.getSize(marker), const Size(18, 18));
+    final parent = tester.widget<Positioned>(
+      find.ancestor(of: marker, matching: find.byType(Positioned)).first,
+    );
+    // Thumbnail reserves 12dp for the text gap. Moving to right=4dp
+    // places the 18dp check at its corner without shifting the row.
+    expect(parent.top, -TioSpacing.xs);
+    expect(parent.right, TioSpacing.xs);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
   });
 
   testWidgets('search, pick Custom result and return without persistence',

@@ -43,8 +43,10 @@ class ExerciseListRow extends StatelessWidget {
                         url: thumbnailUrl,
                       ),
                       Positioned(
-                        top: 0,
-                        right: TioSpacing.md,
+                        // Let the smaller check sit on the thumbnail rim,
+                        // not deep inside the artwork.
+                        top: -TioSpacing.xs,
+                        right: TioSpacing.xs,
                         child: _SelectedExerciseBadge(
                           key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
                         ),
@@ -149,12 +151,12 @@ class _SelectedExerciseBadge extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: const SizedBox(
-            width: TioSize.dp20,
-            height: TioSize.dp20,
+            width: TioSize.dp18,
+            height: TioSize.dp18,
             child: Icon(
               Icons.check_rounded,
               color: TioPalette.white,
-              size: TioSize.dp14,
+              size: TioSize.dp12,
             ),
           ),
         ),

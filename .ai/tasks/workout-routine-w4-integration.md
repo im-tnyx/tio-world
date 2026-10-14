@@ -468,3 +468,20 @@ checkmark circle from 24dp to governed 20dp, and its icon from 16dp to
 selected-state colors, browse/Replace modes and Add footer unchanged.
 Add focused widget geometry assertions. Exact-head Flutter CI and physical
 visual/accessibility QA remain required; no merge authorization.
+
+## Owner refinement: selected Exercise marker hugs thumbnail rim (2026-10-14)
+
+Follow-up to the approved Add-mode thumbnail-overlay checkmark. At the
+observed #551 HEAD `a643360b2aa6a1b5d5e3614eb843d18a16cd43a5`
+the marker was already reduced from 24dp to 20dp. Owner requested
+another slight size reduction and placement closer to the image border.
+Reduce only the governed marker circle to **18dp** and icon to **12dp**.
+Move the image-overlay `Positioned` marker from `top: 0`,
+`right: TioSpacing.md` to `top: -TioSpacing.xs`,
+`right: TioSpacing.xs` relative to the existing thumbnail + padding
+stack. The check now straddles the upper-right image rim while the
+thumbnail size/row geometry remain unchanged. Apply the smaller marker
+to the text-only fallback too; retain accessible row semantics and
+tap size. No new token, UI fork, database work, PR, merge or rollout.
+Focused UI geometry assertions added; exact-head Flutter CI and
+physical visual/accessibility QA still required.
