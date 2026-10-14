@@ -334,7 +334,8 @@ List<RouteBase> _shellBranchChildRoutes(
                                 openingAuth.session.userId == openingOwner
                             ? openingAuth.session.loginCycleId
                             : null;
-                    if (openingOwner == null || openingCycle == null) return;
+                    // Program Detail may still be navigated read-only;
+                    // only account-owned Create requires this capability.
                     await Navigator.of(context).push<void>(
                       MaterialPageRoute(
                         builder: (_) => ProgramDetailPage(
