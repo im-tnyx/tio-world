@@ -60,6 +60,65 @@ void main() {
         isNull);
   });
 
+  for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
+    testWidgets('Create Set/boxed number/Add Set rendered surfaces equal 44dp '
+        'at 320dp in ${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      var index = 0;
+      const entryId = '44444444-4444-4444-8444-444444444444';
+      const setId = '55555555-5555-4555-8555-555555555555';
+      final uuids = [entryId, setId].iterator;
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: CreateRoutinePage(
+          program: Program(
+            id: ProgramId('11111111-1111-4111-8111-111111111111'),
+            name: 'Program 1',
+          ),
+          initialName: 'Routine 1',
+          createRepository: _Create(),
+          catalogRepository: _Catalog(),
+          weightUnit: WeightUnit.kg,
+          newUuid: () {
+            index++;
+            if (!uuids.moveNext()) throw StateError('Unexpected UUID #$index');
+            return uuids.current;
+          },
+        ),
+      ));
+      await tester.tap(find.byKey(
+        const ValueKey('create-routine-add-exercise')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bench Press'));
+      await tester.pumpAndSettle();
+
+      final add = find.byKey(const ValueKey('create-routine-add-set-$entryId'));
+      await tester.ensureVisible(add);
+      final filled = find.descendant(of: add, matching: find.byType(FilledButton));
+      final surface = find.descendant(
+        of: filled, matching: find.byType(Material)).first;
+      const expected = TioSize.dp44;
+      expect(tester.getSize(surface).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-type-box-$setId'))).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-weight-$setId'))).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-reps-$setId'))).height, expected);
+      // The Material hit target may be taller, without changing visual size.
+      expect(tester.getSize(add).height, greaterThanOrEqualTo(expected));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Add Set appends blank valid row; invalid typed Reps block Save',
       (tester) async {
     final create = _Create();
