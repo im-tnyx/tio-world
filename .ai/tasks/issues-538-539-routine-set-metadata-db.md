@@ -49,3 +49,18 @@ Current connected session owns only this bounded DB slice on its original PR #54
 ## Owner 8-Set per Exercise policy (2026-10-14)
 
 The owner requested a practical maximum of 6–8 Sets; use **8 Sets per individual identified Routine Exercise** (not 8 per whole Routine). PR #551 owns Flutter Create/Edit button state and controller ID-allocation guards. This PR #540 owns the durable cardinality enforcement because the existing Set table uses zero-based positions and a unique per-exercise position key: append `CHECK (position < 8) NOT VALID`. The combined #535/#540 test proves exactly 8 Saves; 9th Set via Save and atomic Create both fail with SQLSTATE 23514 and transaction rollback; the existing snapshot stays unmodified. `NOT VALID` preserves preexisting >8 Sets without dropping historical rows; an Edit of an old >8-Set snapshot must reduce to <=8 before another full-snapshot Save. No new service, RLS, table/column shape, or privileged grant. Requires exact-head DB CI and independent rollout/security compatibility review; no hosted DB migration or merge is implied.
+
+## Main reconciliation checkpoint — 2026-10-14 (merge validation pending)
+
+PRs #533 and #536 are merged into `main`; #537 merged into its
+stack parent, not directly to `main`. Database #540 stays separate.
+Reconcile #540 using a non-forced merge commit with current main as an
+explicit parent, preserving its schema migration and SQL tests while
+taking current main's already-merged #536 migration/tests. The
+`.github/workflows/supabase-db-ci.yml` now uses current main's native
+atomic Create SQL/race jobs plus always-on #538/#539 and combined #535/#540
+SQL jobs. Removed obsolete pinned temporary #536 checkout/staging, so
+CI runs consistently on `pull_request` and `workflow_dispatch` after
+merge. No hosted Supabase deploy. Exact-head CI, independent security
+review, old-client rollout sequencing and live DB compatibility gates
+still required before merge/apply.

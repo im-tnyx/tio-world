@@ -45,18 +45,60 @@ final class SupabaseUserExerciseTableGateway
     required String userId,
     required bool includeArchived,
   }) async {
-    var query = _client
-        .from(_table)
-        .select('id, display_name, status, description, exercise_type, '
-            'primary_muscle, secondary_muscles, primary_equipment')
-        .eq('user_id', userId);
-
-    if (!includeArchived) {
-      query = query.eq('status', 'active');
+    // The Data API caps each response (currently 1,000 rows). The editor
+    // must validate against every active owner Exercise, not a truncated page.
+    // Keyset pagination avoids offset skips after an archive on another device.
+    const pageSize = 200;
+    final collected = <Map<String, dynamic>>[];
+    String? afterId;
+    while (true) {
+      var query = _client
+          .from(_table)
+          .select('id, created_at, display_name, status, description, '
+              'exercise_type, primary_muscle, secondary_muscles, '
+              'primary_equipment')
+          .eq('user_id', userId);
+      if (!includeArchived) {
+        query = query.eq('status', 'active');
+      }
+      if (afterId != null) {
+        query = query.gt('id', afterId);
+      }
+      final page = List<Map<String, dynamic>>.from(
+        await query.order('id', ascending: true).limit(pageSize),
+      );
+      if (page.isEmpty) break;
+      for (final row in page) {
+        final id = row['id'];
+        if (id is! String ||
+            (afterId != null && id.compareTo(afterId) <= 0)) {
+          throw const FormatException('Invalid paged user Exercise identity.');
+        }
+        afterId = id;
+      }
+      collected.addAll(page);
+      if (page.length < pageSize) break;
     }
 
-    final rows = await query.order('created_at');
-    return List<Map<String, dynamic>>.from(rows);
+    // Restore the pre-existing newest-first Custom Exercise display order
+    // (the SDK's old order('created_at') emits created_at.desc) after paging
+    // by immutable UUID so the read is complete beyond the API row cap.
+    final createdById = <String, DateTime>{};
+    for (final row in collected) {
+      final id = row['id'] as String;
+      final createdAt = row['created_at'];
+      if (createdAt is! String) {
+        throw const FormatException('Invalid user Exercise creation time.');
+      }
+      createdById[id] = DateTime.parse(createdAt);
+    }
+    collected.sort((a, b) {
+      final first = a['id'] as String;
+      final second = b['id'] as String;
+      final byDate = createdById[first]!.compareTo(createdById[second]!);
+      return byDate != 0 ? -byDate : first.compareTo(second);
+    });
+    return collected;
   }
 
   @override

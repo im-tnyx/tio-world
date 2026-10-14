@@ -19,6 +19,7 @@ class RoutineDetailPage extends StatefulWidget {
     required this.catalogRepository,
     this.userExerciseRepository,
     this.weightUnit = WeightUnit.kg,
+    this.onEditPressed,
     super.key,
   });
 
@@ -31,12 +32,17 @@ class RoutineDetailPage extends StatefulWidget {
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
 
+  /// App-provided, account-verified navigation. True only on confirmed save.
+  /// No edit capability is inferred from a read-only Detail repository.
+  final Future<bool?> Function(Routine routine)? onEditPressed;
+
   @override
   State<RoutineDetailPage> createState() => _RoutineDetailPageState();
 }
 
 class _RoutineDetailPageState extends State<RoutineDetailPage> {
   RoutineDetailController? _controller;
+  bool _editing = false;
 
   @override
   void initState() {
@@ -93,6 +99,33 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     super.dispose();
   }
 
+  Future<void> _openEditor() async {
+    final controller = _controller;
+    final state = controller?.state;
+    final edit = widget.onEditPressed;
+    final routine = state?.routine;
+    if (_editing ||
+        controller == null ||
+        state?.status != RoutineDetailStatus.ready ||
+        routine == null ||
+        widget.weightUnit == null ||
+        edit == null) {
+      return;
+    }
+    setState(() => _editing = true);
+    bool? confirmed;
+    try {
+      confirmed = await edit(routine);
+    } finally {
+      if (mounted && identical(controller, _controller)) {
+        setState(() => _editing = false);
+      }
+    }
+    if (!mounted || !identical(controller, _controller)) return;
+    // Always re-read owner-verified server truth after confirmed Update.
+    if (confirmed == true) await controller.load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -105,6 +138,17 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
+        actions: [
+          if (widget.onEditPressed != null &&
+              widget.weightUnit != null &&
+              state?.status == RoutineDetailStatus.ready &&
+              state?.routine != null)
+            TextButton(
+              key: const ValueKey('routine-detail-edit'),
+              onPressed: _editing ? null : _openEditor,
+              child: const Text('Edit Routine'),
+            ),
+        ],
         title: Text(
           state?.routine?.name ?? 'Routine',
           maxLines: 1,

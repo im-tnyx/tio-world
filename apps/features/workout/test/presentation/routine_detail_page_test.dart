@@ -28,6 +28,7 @@ Future<void> _pump(
   Routine? selected,
   TioThemeMode mode = TioThemeMode.light,
   WeightUnit? weightUnit = WeightUnit.kg,
+  Future<bool?> Function(Routine)? onEditPressed,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -42,6 +43,7 @@ Future<void> _pump(
         compositionRepository: compositions,
         catalogRepository: _Catalog(),
         weightUnit: weightUnit,
+        onEditPressed: onEditPressed,
       ),
     ),
   );
@@ -217,6 +219,169 @@ void main() {
     expect(find.text('No sets prescribed'), findsOneWidget);
   });
 
+  testWidgets('Edit action is gated by ready owner data and resolved unit',
+      (tester) async {
+    final compositions = _Compositions(_snapshot());
+    var calls = 0;
+    Future<bool?> navigate(Routine owned) async {
+      calls++;
+      expect(owned.id, _routine.id);
+      return false;
+    }
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: navigate,
+      weightUnit: null,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+
+    await _pump(
+      tester,
+      routines: _Routines([]),
+      compositions: compositions,
+      onEditPressed: navigate,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+    expect(calls, 0);
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: navigate,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    // Cancel/Back does not trigger a new composition read.
+    expect(compositions.readCount, 2);
+  });
+
+  testWidgets('confirmed editor return re-reads persisted Routine Detail',
+      (tester) async {
+    final compositions = _Compositions(_snapshot());
+    var callbacks = 0;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      onEditPressed: (owned) async {
+        callbacks++;
+        compositions.snapshot = _snapshot(entries: [
+          RoutineCompositionEntry(
+            id: _e1,
+            exercise: ExerciseRef.catalog('ex_bench_press'),
+            sets: [
+              RoutineCompositionSet(
+                id: _s1,
+                prescription: SetPrescription(reps: 10, restSeconds: 45),
+              ),
+            ],
+          ),
+        ]);
+        return true; // Existing revision-guarded Editor confirmed Update.
+      },
+    );
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+    expect(compositions.readCount, 1);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+
+    expect(callbacks, 1);
+    expect(compositions.readCount, 2);
+    expect(find.text('1 exercise · 1 set'), findsOneWidget);
+    expect(find.text('Set 1 · 10 reps · 45 sec rest'), findsOneWidget);
+  });
+
+  testWidgets('Detail to real Edit screen saves once and refreshes server truth',
+      (tester) async {
+    final comp = _Compositions(_snapshot());
+    final routines = _Routines([_routine]);
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: RoutineDetailPage(
+          program: _program,
+          routine: _routine,
+          routineRepository: routines,
+          compositionRepository: comp,
+          catalogRepository: _Catalog(),
+          weightUnit: WeightUnit.kg,
+          onEditPressed: (owned) =>
+              navigatorKey.currentState!.push<bool>(
+            MaterialPageRoute(
+              builder: (_) => EditRoutinePage(
+                program: _program,
+                routine: owned,
+                routineRepository: routines,
+                compositionRepository: comp,
+                catalogRepository: _Catalog(),
+                weightUnit: WeightUnit.kg,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-page')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    expect(comp.saveCount, 0);
+    await tester.tap(find.text('Add Set'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '8');
+    await tester.enterText(find.byKey(const ValueKey('routine-set-weight')), '12');
+    await tester.enterText(find.byKey(const ValueKey('routine-set-rest')), '60');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(comp.saveCount, 1);
+    expect(comp.readCount, 3); // initial Detail + Editor + refreshed Detail
+    expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
+    expect(find.text('1 exercise · 1 set'), findsOneWidget);
+    expect(find.text('Set 1 · 8 reps · 12 kg · 60 sec rest'), findsOneWidget);
+  });
+
+  testWidgets('read failure and missing repositories never expose Edit',
+      (tester) async {
+    final comp = _Compositions(_snapshot())..failures = 1;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: comp,
+      onEditPressed: (_) async => true,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-failed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+
+    await _pump(
+      tester,
+      routines: null,
+      compositions: comp,
+      onEditPressed: (_) async => true,
+    );
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+  });
+
   testWidgets('long Routine builds only visible cards until scrolling',
       (tester) async {
     final entries = [
@@ -325,9 +490,10 @@ final class _Routines implements RoutineRepository {
 
 final class _Compositions implements RoutineCompositionRepository {
   _Compositions(this.snapshot);
-  final RoutineCompositionSnapshot? snapshot;
+  RoutineCompositionSnapshot? snapshot;
   int readCount = 0;
   int failures = 0;
+  int saveCount = 0;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
@@ -340,8 +506,17 @@ final class _Compositions implements RoutineCompositionRepository {
   }
 
   @override
-  Future<int> save(RoutineCompositionSave command) async =>
-      throw UnimplementedError();
+  Future<int> save(RoutineCompositionSave command) async {
+    saveCount++;
+    final nextRevision = command.expectedRevision + 1;
+    snapshot = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: nextRevision,
+      lastMutationId: command.mutationId,
+      entries: command.entries,
+    );
+    return nextRevision;
+  }
 }
 
 final class _Catalog implements ExerciseCatalogRepository {

@@ -33,42 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # PR #540 is independently based on main. Test its real dependency
-      # #536 together in this disposable runner without modifying either
-      # migration, creating another PR, or deploying to hosted Supabase.
-      - name: Checkout pinned W4 atomic Create dependency
-        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
-        uses: actions/checkout@v7
-        with:
-          ref: 015a2ec1c277fc5f82dda8a54d727d67a3187177
-          path: .ci/routine-create-536
-
-      - name: Stage combined W4 migrations and tests (disposable only)
-        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
-        shell: bash
-        run: |
-          dependency=".ci/routine-create-536"
-          expected="015a2ec1c277fc5f82dda8a54d727d67a3187177"
-          actual="$(git -C "$dependency" rev-parse HEAD)"
-          test "$actual" = "$expected" || {
-            echo "Pinned #536 dependency SHA drift: $actual"
-            exit 1
-          }
-          for path in \
-            supabase/migrations/20261013080000_create_user_workout_routine_with_composition.sql \
-            supabase/tests/database/tnyx_535_atomic_routine_create.test.sql \
-            supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh; do
-            if [[ -e "$path" ]]; then
-              cmp "$dependency/$path" "$path" || {
-                echo "Existing $path differs from pinned #536; reconcile before integration."
-                exit 1
-              }
-            else
-              cp "$dependency/$path" "$path"
-            fi
-          done
-          echo "Combined W4 CI uses #536@$expected plus the actual #540 migration."
-
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -240,13 +204,16 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_509_routine_composition.test.sql
 
-      - name: Run TNYX-535 atomic Routine Create SQL matrix (combined)
+      - name: Run TNYX-509 Routine composition two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_509_routine_composition_concurrency.sh
+
+      - name: Run TNYX-535 atomic Routine Create SQL matrix
         shell: bash
         run: |
-          if [[ -f supabase/tests/database/tnyx_535_atomic_routine_create.test.sql ]]; then
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 \
-              --file=supabase/tests/database/tnyx_535_atomic_routine_create.test.sql
-          fi
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_535_atomic_routine_create.test.sql
 
       - name: Run TNYX-538/539 Routine Set metadata SQL matrix
         shell: bash
@@ -255,25 +222,16 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_538_539_routine_set_metadata.test.sql
 
-      # Manual dispatch from other refs must not run a W4-specific matrix
-      # without the pinned #536 dependency staged in the disposable runner.
       - name: Run W4 combined atomic Create and nullable Set SQL matrix
-        if: (github.event_name == 'pull_request' && github.head_ref == 'tnyx/issues-538-539-routine-set-metadata-db') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issues-538-539-routine-set-metadata-db')
         shell: bash
         run: |
-          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 \
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_535_540_combined_routine_create.test.sql
 
-      - name: Run TNYX-509 Routine composition two-session race
+      - name: Run TNYX-535 atomic Routine Create two-session races
         shell: bash
-        run: bash supabase/tests/database/tnyx_509_routine_composition_concurrency.sh
-
-      - name: Run TNYX-535 atomic Create two-session races (combined)
-        shell: bash
-        run: |
-          if [[ -f supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh ]]; then
-            bash supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh
-          fi
+        run: bash supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh
 
       - name: Run real two-session concurrency test
         shell: bash

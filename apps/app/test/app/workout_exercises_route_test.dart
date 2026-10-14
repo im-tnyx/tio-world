@@ -270,6 +270,16 @@ void main() {
     expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(find.text('Start Workout'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-page')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -302,6 +312,218 @@ void main() {
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.text('1. Synthetic Route Curl'), findsNothing);
+  });
+
+  testWidgets('Auth/bootstrap mismatch revokes Detail and Edit action',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-routine-30000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+
+    // Bootstrapped test-user is stale; Auth has already switched users.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'other-user', loginCycleId: 'other-cycle'),
+        );
+    await tester.pump();
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
+  });
+
+  testWidgets('account loss closes nested Routine Exercise picker and editor',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$programId-$routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.text('Synthetic Route Custom'), findsNothing);
+    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('account loss closes open Set sheet and private draft',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+        const ValueKey('library-routine-$programId-$routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo(null);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineSetEditorSheet), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('same-user new login cycle revokes private Exercise picker',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsOneWidget);
+
+    // No bootstrap transition: same principal, NEW interactive login cycle.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.text('Synthetic Route Custom'), findsNothing);
+    // Current account remains logged in; re-entry gets a fresh controller.
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('same-user new login cycle closes Set modal and private draft',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.byType(RoutineSetEditorSheet), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('same-user new login cycle discards editor while save is pending',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    final compositions = container.read(routineCompositionRepositoryProvider)
+        as _RouteCompositions;
+    compositions.saveGate = Completer<void>();
+    addTearDown(() {
+      if (compositions.saveGate?.isCompleted == false) {
+        compositions.saveGate!.complete();
+      }
+    });
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const p = '20000000-0000-4000-8000-000000000001';
+    const r = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-routine-$p-$r')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
+    await tester.pumpAndSettle();
+    // Create a valid dirty draft without a keyboard/sheet overlay: this
+    // regression exercises in-flight identity revocation, not Set input.
+    await tester.tap(find.byKey(const ValueKey(
+        'edit-routine-entry-remove-60000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-empty')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pump();
+    expect(compositions.saveCount, 1);
+    expect(find.byKey(const ValueKey('edit-routine-saving')), findsOneWidget);
+
+    // Same user signs in again before the already-issued write returns.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    // Never pumpAndSettle a deliberately unresolved save Future. Give Auth
+    // two bounded frames to revoke private UI before releasing the response.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final oldCycleSavingHidden =
+        find.byKey(const ValueKey('edit-routine-saving')).evaluate().isEmpty;
+
+    compositions.saveGate!.complete();
+    // Bound completion/route-animation frames too. If a revoked editor does
+    // not exit, assert failure directly rather than hanging in settle.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    // Assert the pre-response privacy observation only AFTER the deferred
+    // Future is released so failure cannot strand the test runner.
+    expect(oldCycleSavingHidden, isTrue);
+    // An old-cycle response must never navigate or restore a saved draft.
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(find.byType(RoutineDetailPage), findsOneWidget);
+    expect(compositions.saveCount, 1);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('account switch discards prior owner Routine before next read',
@@ -901,7 +1123,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
       ),
-      if (switchedOwnerProfiles != null) ...[
+      // Routine Detail tests need a consistent authenticated/bootstrap pair;
+      // otherwise the production fail-closed owner gate correctly hides data.
+      if (withRoutineComposition || switchedOwnerProfiles != null) ...[
         authSessionStateProvider.overrideWith((ref) =>
             Stream.value(ref.watch(_routineTestAuthStateProvider))),
         profileDataProvider.overrideWith((ref) {
@@ -910,7 +1134,8 @@ Future<(ProviderContainer, GoRouter)> _app(
               session.session.userId == 'test-user') {
             return Stream.value(_routineUnitProfile(WeightUnit.lb));
           }
-          return switchedOwnerProfiles;
+          return switchedOwnerProfiles ??
+              Stream<ProfileSetupData?>.value(null);
         }),
       ],
     ],
@@ -980,6 +1205,8 @@ final class _RouteCompositions implements RoutineCompositionRepository {
   int _readCount = 0;
   Completer<void>? nextOwnerReadGate;
   double? testLoadKg;
+  Completer<void>? saveGate;
+  int saveCount = 0;
 
   @override
   Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
@@ -1007,8 +1234,11 @@ final class _RouteCompositions implements RoutineCompositionRepository {
   }
 
   @override
-  Future<int> save(RoutineCompositionSave command) async =>
-      throw UnimplementedError();
+  Future<int> save(RoutineCompositionSave command) async {
+    saveCount++;
+    if (saveGate != null) await saveGate!.future;
+    return command.expectedRevision + 1;
+  }
 }
 
 final class _RouteCatalog implements ExerciseCatalogRepository {
