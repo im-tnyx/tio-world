@@ -135,7 +135,7 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
 
 void main() {
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
-    testWidgets('Edit Set/boxed number/Add Set rendered surfaces equal 44dp '
+    testWidgets('Edit Set/boxed number/Add Set rendered surfaces equal 42dp '
         'at 320dp in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -150,7 +150,7 @@ void main() {
       final filled = find.descendant(of: add, matching: find.byType(FilledButton));
       final surface = find.descendant(
         of: filled, matching: find.byType(Material)).first;
-      const expected = TioSize.dp44;
+      const expected = TioSize.dp42;
       expect(tester.getSize(surface).height, expected);
       expect(tester.getSize(find.byKey(
         const ValueKey('routine-set-type-box-$_setId'))).height, expected);
