@@ -74,6 +74,10 @@ void main() {
       '55555555-5555-4555-8555-555555555555',
       '66666666-6666-4666-8666-666666666666',
       '77777777-7777-4777-8777-777777777777',
+      // Save also allocates a Routine UUID and mutation UUID after
+      // the two Exercise/Set identity pairs have been created.
+      '88888888-8888-4888-8888-888888888888',
+      '99999999-9999-4999-8999-999999999999',
     ].iterator;
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => TioTheme(

@@ -397,8 +397,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
     expect(comp.saveCount, 0);
-    // Picker immediately creates Set 1; its target starts blank.
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(comp.saveCount, 0);
+    // Batch confirmation creates Set 1 locally; its target starts blank.
     final row = tester.widget<RoutineSetInputRow>(
       find.byType(RoutineSetInputRow));
     final reps = find.byKey(ValueKey('routine-set-reps-${row.set.id}'));

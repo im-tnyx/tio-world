@@ -485,3 +485,24 @@ to the text-only fallback too; retain accessible row semantics and
 tap size. No new token, UI fork, database work, PR, merge or rollout.
 Focused UI geometry assertions added; exact-head Flutter CI and
 physical visual/accessibility QA still required.
+
+
+## Exact-head Flutter CI #38616706794 remediation (2026-10-15; pending new CI)
+
+At PR #551 SHA `01834457c070051df05961f369dc36a5d4d6564b`,
+GitHub Flutter CI #38616706794 failed in the Workout package:
+**523 passed, 7 failed**. Flutter/Dart analyze passed; Dart package
+tests were skipped following the Flutter failure. From job
+`116033733560` logs, six failures were stale widget test flow
+assumptions following the approved batch picker (five Edit Custom
+preflight scenarios plus one Detail -> Edit scenario): those tests
+tapped a row and expected the picker to auto-close. They now assert
+the count-one action exists, tap `exercises-add-selected`, then
+continue their existing Custom-owner/RPC/cancel/refresh protections.
+The remaining new batch Create test supplied only four UUID fixtures
+for two Exercise+Set pairs, but `RoutineCreateController.save` also
+allocates Routine and mutation UUIDs. It now supplies six IDs,
+without changing source identity behavior. No production code or
+persistence contract changed in this remediation. New exact-head
+Flutter CI, independent review and physical accessibility/visual QA
+are required; prior 523/7 is not a pass.

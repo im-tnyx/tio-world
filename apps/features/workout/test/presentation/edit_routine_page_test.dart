@@ -357,6 +357,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remote Archive Candidate'));
     await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     await _fillNewSet(tester);
     expect(f.compositions.saveCount, 0);
 
@@ -397,6 +400,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Custom Lift'));
     await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     await _fillNewSet(tester);
 
     f.users.listFailure = StateError('offline');
@@ -430,6 +436,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Custom Lift'));
     await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     await _fillNewSet(tester);
 
     f.users.listGate = Completer<void>();
@@ -460,6 +469,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     await _fillNewSet(tester);
 
@@ -492,6 +504,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Custom Lift'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     await _fillNewSet(tester);
 
