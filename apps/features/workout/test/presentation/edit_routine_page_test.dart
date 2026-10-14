@@ -245,6 +245,37 @@ void main() {
     expect(f.editorResult, isTrue);
   });
 
+
+  testWidgets('Edit batch Add queues two Exercises and saves once',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: const []);
+    await f.open(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 2 exercises'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey(
+        'edit-routine-entry-90000000-0000-4000-8000-000000000001')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey(
+        'edit-routine-entry-90000000-0000-4000-8000-000000000003')),
+        findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(f.compositions.lastSave!.entries.map((e) => e.exercise).toList(), [
+      ExerciseRef.catalog('ex_bench_press'),
+      ExerciseRef.catalog('ex_run_on_treadmill'),
+    ]);
+  });
+
   testWidgets('empty Routine offers Add Exercise without a database write',
       (tester) async {
     final f = _Fixtures();
@@ -256,6 +287,8 @@ void main() {
     expect(find.byKey(const ValueKey('exercises-page')),
         findsOneWidget);
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('edit-routine-entry-90000000-0000-4000-8000-000000000001')),
         findsOneWidget);
@@ -287,6 +320,8 @@ void main() {
     expect(find.text('Fresh Custom Lift'), findsOneWidget);
     expect(f.users.listCalls, 2);
     await tester.tap(find.text('Fresh Custom Lift'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     await _fillNewSet(tester);
 

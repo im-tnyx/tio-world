@@ -668,6 +668,8 @@ void main() {
       'exercise-row-ex_synthetic_route_curl',
     )));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
 
     final reps = find.byWidgetPredicate((widget) =>
         widget is TioInput &&
@@ -734,6 +736,8 @@ void main() {
     await tester.tap(find.byKey(
         const ValueKey('exercise-row-ex_synthetic_route_curl')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     expect(find.text('KG'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -759,6 +763,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey(
         'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
     // The fake RPC commits the Routine, but its ACK is lost.
@@ -875,6 +881,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
       'exercise-row-ex_synthetic_route_curl',
     )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
     final options = find.byWidgetPredicate((widget) =>

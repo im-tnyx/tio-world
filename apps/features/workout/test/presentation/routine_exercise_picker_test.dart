@@ -137,6 +137,69 @@ void main() {
     expect(ctrl.state.items.single.exercise.ref, _catalogExercise().ref);
   });
 
+
+  testWidgets('multi Add hides zero footer and preserves ordered selection '
+      'across search and deselection', (tester) async {
+    final chosen = <Exercise>[];
+    final user = _User(() async => [_customExercise()]);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push<List<Exercise>>(
+              MaterialPageRoute(
+                builder: (routeContext) => ProviderScope(
+                  child: ExercisesPage(
+                    catalogRepository: _catalog(),
+                    userExerciseRepository: user,
+                    onExercisesAdded: (selected) {
+                      chosen.addAll(selected);
+                      Navigator.of(routeContext).pop<List<Exercise>>(selected);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            child: const Text('Open batch'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Open batch'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-selected-ex_bench_press')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('exercises-search')), 'my');
+    await tester.pumpAndSettle();
+    expect(find.text('Bench Press'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-$_customId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 2 exercises'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(chosen.map((e) => e.ref).toList(), [
+      _catalogExercise().ref,
+      _customExercise().ref,
+    ]);
+    expect(user.writeCalls, 0);
+  });
+
   testWidgets('search, pick Custom result and return without persistence',
       (tester) async {
     Exercise? selected;

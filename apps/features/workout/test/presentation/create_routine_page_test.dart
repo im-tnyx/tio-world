@@ -44,6 +44,8 @@ void main() {
         findsOneWidget);
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey(
         'create-routine-set-55555555-5555-4555-8555-555555555555')),
         findsOneWidget);
@@ -61,6 +63,65 @@ void main() {
     expect(create.command!.entries.single.sets.single.prescription.reps, isNull);
     expect(create.command!.entries.single.sets.single.prescription.loadKg,
         isNull);
+  });
+
+
+  testWidgets('batch Add two Exercises creates ordered blank Set 1 drafts',
+      (tester) async {
+    final create = _Create();
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+      '66666666-6666-4666-8666-666666666666',
+      '77777777-7777-4777-8777-777777777777',
+    ].iterator;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () {
+          if (!ids.moveNext()) throw StateError('Unexpected UUID');
+          return ids.current;
+        },
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 2 exercises'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey(
+        'create-routine-entry-44444444-4444-4444-8444-444444444444')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey(
+        'create-routine-entry-66666666-6666-4666-8666-666666666666')),
+        findsOneWidget);
+    expect(create.calls, 0);
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(create.calls, 1);
+    expect(create.command!.entries.map((e) => e.exercise).toList(), [
+      ExerciseRef.catalog('ex_bench_press'),
+      ExerciseRef.catalog('ex_run_on_treadmill'),
+    ]);
+    expect(create.command!.entries.every((e) =>
+        e.sets.length == 1 &&
+        e.sets.single.prescription.reps == null), isTrue);
   });
 
   testWidgets('Run on Treadmill uses full-width KM/TIME instead of KG/REPS',
@@ -93,6 +154,8 @@ void main() {
       const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     expect(find.text('KM'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
@@ -150,6 +213,8 @@ void main() {
         const ValueKey('create-routine-add-exercise')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Bench Press'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
       await tester.pumpAndSettle();
 
       final add = find.byKey(const ValueKey('create-routine-add-set-$entryId'));
@@ -213,6 +278,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
     final addSet = find.byKey(
@@ -316,6 +383,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     // Only the surviving, explicitly-entered Set makes Save available.
     await tester.enterText(
       find.byKey(const ValueKey(
@@ -386,6 +455,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     final addSet = find.byKey(const ValueKey(
       'create-routine-add-set-44444444-4444-4444-8444-444444444444',
@@ -475,6 +546,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('routine-set-reps-$first')), '8');
     await tester.pump();
@@ -548,6 +621,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
 
     final swipe = find.byKey(const ValueKey('routine-set-swipe-$first'));
     await tester.ensureVisible(swipe);
@@ -602,6 +677,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     final swipe = find.byKey(const ValueKey('routine-set-swipe-$onlySet'));
     await tester.ensureVisible(swipe);
     await tester.drag(swipe, const Offset(-320, 0));
@@ -645,6 +722,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     final swipe = find.byKey(const ValueKey('routine-set-swipe-$setId'));
     final delete = find.byKey(const ValueKey('routine-set-remove-$setId'));
@@ -696,6 +775,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     expect(find.text('LB'), findsOneWidget);
     final weight = find.byKey(const ValueKey('routine-set-weight-$set1'));
     await tester.ensureVisible(weight);
@@ -742,6 +823,8 @@ void main() {
       const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
     final type = find.byKey(const ValueKey('routine-set-type-$id'));
@@ -825,6 +908,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     final header = find.byKey(const ValueKey(
       'create-routine-repetition-options-44444444-4444-4444-8444-444444444444',
     ));
@@ -866,6 +951,8 @@ void main() {
       const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
     await tester.pumpAndSettle();
@@ -912,6 +999,8 @@ void main() {
         const ValueKey('create-routine-add-exercise')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Bench Press').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
       await tester.pumpAndSettle();
     }
     expect(find.byType(SliverReorderableList), findsOneWidget);
@@ -1041,6 +1130,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
     final menu = find.byKey(const ValueKey('create-routine-options-$entryId'));
     await tester.tap(menu);
     await tester.pumpAndSettle();
@@ -1117,6 +1208,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('create-routine-save')));
     await tester.pumpAndSettle();
@@ -1189,6 +1282,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.byKey(const ValueKey('routine-set-reps-$oldSet')), '12');

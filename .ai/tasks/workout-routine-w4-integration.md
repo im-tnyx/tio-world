@@ -438,3 +438,24 @@ ownership guard failure from the previous `Colors.white` constants
 colors with exported Core `TioPalette.white`; do not change visible
 RGB. Latest-head full Flutter CI and real-device screenshot/touch QA
 are required before declaring PASS or merging.
+
+## Owner-approved Add Exercises multi-select (2026-10-14; CI pending)
+
+Scope: existing PR #551, approved by owner screenshots and review
+#5522069160 plus revised GitHub comments #6174527380/#6174620850.
+Existing canonical `ExercisesPage` now has a distinct Add-only batch
+contract. Select/deselect is transient, insertion-ordered by canonical
+`ExerciseRef`, with a selected thumbnail-overlay checkmark or text-only
+fallback. The footer is absent at selection count zero, and updates to
+`Add 1 exercise` / `Add N exercises` on selection. Confirm appends
+fresh Exercise/blank Set 1 entries in memory to Create/Edit; ordinary
+browse, search/filter, and single-select Replace remain intact. No
+new screen/PR/schema/RPC/watch work or data write before Save/Update.
+
+Implementation source commit `2024568530bddc07d9263676baa94eb961d4762d`
+introduced the source behavior on the existing consolidated branch.
+This test/documentation follow-up updates former single-tap widget/route
+fixtures and adds multi-Add Create/Edit/picker checks. Exact-head Flutter
+CI and independent review **are required**; no installed-device or
+screen-reader QA has run in this session. Existing ownership and DB/
+release/merge gates remain unchanged.

@@ -191,3 +191,18 @@ Its top/bottom align with boxed REPS/KG inputs; the 8dp horizontal gap,
 remain. Use the theme's owned `TioPalette.white` token for the visible
 Delete label (including during disabled drag); never introduce raw
 framework colors into production UI.
+
+## Add Exercises selection-mode UI (PR #551, pending merge)
+
+In Create/Edit Routine `Add Exercise` context only, reuse the canonical
+`ExercisesPage` with transient, insertion-ordered multi-selection by
+canonical Exercise identity. A selected Exercise displays a small round
+check on its image; missing artwork uses a visible accessible checkmark.
+When zero Exercises are selected, no bottom Add button or reserved space
+appears. The first selection reveals `Add 1 exercise`; further
+selections update to `Add N exercises`. Search/filter changes do not
+clear selection. Confirmation appends individually identified Exercise
+entries with new blank Set 1 drafts, without persistence until Save/
+Update; Back discards pending picks. Normal Library browsing remains
+unchanged, and Replace Exercise keeps single selection. This behavior
+is owner-approved under existing PR #551, not released.
