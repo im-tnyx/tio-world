@@ -386,6 +386,39 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('Advanced Set save refreshes inline Reps and Weight',
+      (tester) async {
+    final f = _Fixtures();
+    await f.open(tester);
+    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
+    await tester.tap(badge);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutineSetEditorSheet), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-set-reps')), '14');
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-set-weight')), '32.75');
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+
+    final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final weight = find.byKey(const ValueKey('routine-set-weight-$_setId'));
+    expect(tester.widget<TioInput>(reps).controller!.text, '14');
+    expect(tester.widget<TioInput>(weight).controller!.text, '32.75');
+    await tester.enterText(reps, '15');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    final saved = f.compositions.lastSave!.entries.single.sets.single;
+    expect(saved.id, _setId);
+    expect(saved.prescription.reps, 15);
+    expect(saved.prescription.loadKg, 32.75);
+    expect(saved.prescription.restSeconds, 60);
+  });
+
   testWidgets('inline Edit retains precise kg and Set UUID', (tester) async {
     final f = _Fixtures(unit: WeightUnit.lb);
     await f.open(tester);
