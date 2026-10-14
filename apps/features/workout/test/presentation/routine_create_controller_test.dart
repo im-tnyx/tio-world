@@ -10,8 +10,18 @@ const _set1 = '55555555-5555-4555-8555-555555555555';
 const _entry2 = '66666666-6666-4666-8666-666666666666';
 const _set2 = '77777777-7777-4777-8777-777777777777';
 
-RoutineCreateController _controller(_Creates repo, {String name = 'Routine 1'}) {
-  final ids = [_entry1, _set1, _entry2, _set2, _routineId, _mutation].iterator;
+RoutineCreateController _controller(
+  _Creates repo, {
+  String name = 'Routine 1',
+  bool saveAfterOneExercise = false,
+}) {
+  // Create gives every picked Exercise its own Set ID before allocating
+  // Routine/mutation IDs. Keep the test fixture's allocation order explicit.
+  final ids = [
+    _entry1, _set1,
+    if (!saveAfterOneExercise) ...[_entry2, _set2],
+    _routineId, _mutation,
+  ].iterator;
   return RoutineCreateController(
     program: Program(id: ProgramId(_programId), name: 'Program 1'),
     initialName: name,
@@ -118,7 +128,7 @@ void main() {
     expect(noWrite.calls, 0);
 
     final repo = _Creates();
-    final c = _controller(repo);
+    final c = _controller(repo, saveAfterOneExercise: true);
     addTearDown(c.dispose);
     c.addPickedExercise(_exercise);
     expect(await c.save(), isTrue);
@@ -134,7 +144,7 @@ void main() {
   test('unknown Create outcome freezes exact command and blocks second write',
       () async {
     final repo = _Creates()..error = StateError('transport lost');
-    final c = _controller(repo);
+    final c = _controller(repo, saveAfterOneExercise: true);
     addTearDown(c.dispose);
     c.addPickedExercise(_exercise);
     expect(await c.save(), isFalse);
