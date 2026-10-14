@@ -304,6 +304,15 @@ final class RoutineCreateController extends ChangeNotifier {
       _status = RoutineCreateStatus.saved;
       _publish();
       return true;
+    } on RoutineCompositionException {
+      if (_disposed || !_authorized) return false;
+      // A definite server/auth rejection rolled back the transaction.
+      // Keep the editable Exercise/Set draft, but discard the rejected
+      // identity+mutation attempt so an explicit Save can try afresh.
+      _attempt = null;
+      _status = RoutineCreateStatus.ready;
+      _publish('Could not create Routine. Review Exercises and try again.');
+      return false;
     } catch (_) {
       if (_disposed) return false;
       // After the request, a transport error does NOT prove no commit.
