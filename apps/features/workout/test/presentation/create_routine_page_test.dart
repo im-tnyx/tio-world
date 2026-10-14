@@ -37,7 +37,7 @@ void main() {
       find.byKey(const ValueKey('create-routine-add-exercise')),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-exercise-picker-page')),
+    expect(find.byKey(const ValueKey('exercises-page')),
         findsOneWidget);
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
