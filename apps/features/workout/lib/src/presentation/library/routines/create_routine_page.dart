@@ -383,6 +383,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 sliver: SliverReorderableList(
                   key: const ValueKey('create-routine-exercise-reorder-list'),
                   itemCount: _draft.state.entries.length,
+                  // SliverReorderableList lifts the dragged item into an
+                  // Overlay. Give that proxy its own Material ancestor so
+                  // embedded InkWell/IconButton actions remain valid there.
+                  // Transparency preserves the approved card appearance.
+                  proxyDecorator: (child, _, __) => Material(
+                    type: MaterialType.transparency,
+                    child: child,
+                  ),
                   onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
                   onReorderEnd: (_) => unawaited(HapticFeedback.selectionClick()),
                   // SliverReorderableList supplies the already adjusted
