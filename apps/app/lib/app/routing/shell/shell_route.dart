@@ -373,7 +373,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                           ? initialAuth.session.loginCycleId
                                           : null;
                                   if (openingOwner == null || openingCycle == null ||
-                                      if (initialOwner != openingOwner ||
+                                      initialOwner != openingOwner ||
                                       initialAuthOwner != openingOwner ||
                                       initialCycle != openingCycle) {
                                     return false;
