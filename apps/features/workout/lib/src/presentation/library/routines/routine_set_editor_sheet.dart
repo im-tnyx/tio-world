@@ -7,10 +7,16 @@ import 'routine_set_input_limits.dart';
 /// Modal input for exactly one existing fixed-repetition prescription.
 /// No Routine mutation happens until the caller accepts its return value.
 class RoutineSetEditorSheet extends StatefulWidget {
-  const RoutineSetEditorSheet({required this.unit, this.initial, super.key});
+  const RoutineSetEditorSheet({
+    required this.unit,
+    this.initial,
+    this.exerciseType,
+    super.key,
+  });
 
   final WeightUnit unit;
   final SetPrescription? initial;
+  final ExerciseType? exerciseType;
 
   @override
   State<RoutineSetEditorSheet> createState() => _RoutineSetEditorSheetState();
@@ -24,10 +30,14 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   late final String _originalLoad;
   String? _error;
 
+  bool get _isWeightReps =>
+      widget.exerciseType != ExerciseType.distanceDuration &&
+      widget.exerciseType != ExerciseType.duration;
+
   @override
   void initState() {
     super.initState();
-    _reps = TextEditingController(text: widget.initial?.reps.toString() ?? '');
+    _reps = TextEditingController(text: widget.initial?.reps?.toString() ?? '');
     _repsMax = TextEditingController(
       text: widget.initial?.repsMax?.toString() ?? '',
     );
@@ -58,34 +68,42 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   }
 
   void _confirm() {
-    final reps = int.tryParse(_reps.text.trim());
-    final isRange = widget.initial?.isRepRange ?? false;
-    final repsMax = isRange ? int.tryParse(_repsMax.text.trim()) : null;
+    final repsText = _reps.text.trim();
+    final int? reps = _isWeightReps
+        ? (repsText.isEmpty ? null : int.tryParse(repsText))
+        : widget.initial?.reps;
+    final range = _isWeightReps && (widget.initial?.isRepRange ?? false);
+    final maxText = _repsMax.text.trim();
+    final int? repsMax = range
+        ? (maxText.isEmpty ? null : int.tryParse(maxText))
+        : widget.initial?.repsMax;
     final restText = _rest.text.trim();
     final rest = restText.isEmpty ? null : int.tryParse(restText);
     final weightText = _load.text.trim();
     final weight = weightText.isEmpty ? null : double.tryParse(weightText);
-
-    if (reps == null ||
-        reps <= 0 ||
-        reps > 2147483647 ||
-        (isRange && (repsMax == null ||
-            repsMax < reps || repsMax > 2147483647)) ||
+    final invalidReps = _isWeightReps &&
+        ((repsText.isNotEmpty &&
+          (reps == null || reps <= 0 ||
+           reps > RoutineSetInputLimits.maxReps)) ||
+         (range && !((repsText.isEmpty && maxText.isEmpty) ||
+           (reps != null && repsMax != null &&
+            repsMax >= reps && repsMax <= RoutineSetInputLimits.maxReps))));
+    if (invalidReps ||
         (restText.isNotEmpty && rest == null) ||
         (rest != null && (rest < 0 || rest > 2147483647)) ||
-        (weightText.isNotEmpty && weight == null) ||
-        (weight != null && (!weight.isFinite || weight < 0))) {
+        (_isWeightReps && weightText.isNotEmpty && weight == null) ||
+        (_isWeightReps && weight != null &&
+         (!weight.isFinite || weight < 0))) {
       setState(() {
-        _error = 'Reps must be positive. Weight and Rest must be nonnegative.';
+        _error = 'Invalid Set targets. Reps must be 1–999 when entered.';
       });
       return;
     }
 
-    // A displayed lb value is rounded. Retain original canonical kg bytes
-    // when the user did not change the Weight field.
     final double? kilograms;
-    if (widget.initial != null && weightText == _originalLoad) {
-      kilograms = widget.initial!.loadKg;
+    if (!_isWeightReps ||
+        (widget.initial != null && weightText == _originalLoad)) {
+      kilograms = widget.initial?.loadKg;
     } else if (weight == null) {
       kilograms = null;
     } else {
@@ -93,13 +111,14 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
           ? weight
           : UnitConverters.lbToKg(weight);
     }
-
     try {
       final prescription = SetPrescription(
         reps: reps,
         repsMax: repsMax,
         setType: widget.initial?.setType ?? RoutineSetType.normal,
         loadKg: kilograms,
+        distanceMeters: widget.initial?.distanceMeters,
+        durationSeconds: widget.initial?.durationSeconds,
         restSeconds: rest,
       );
       Navigator.of(context).pop<SetPrescription>(prescription);
@@ -111,12 +130,15 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   @override
   Widget build(BuildContext context) => TioEditorSheet(
         title: widget.initial == null ? 'Add Set' : 'Edit Set',
-        supportingText: widget.initial?.isRepRange ?? false
-            ? 'Rep Range with optional Weight and Rest.'
-            : 'Fixed Reps with optional Weight and Rest.',
+        supportingText: !_isWeightReps
+            ? 'Optional Rest after this Set.'
+            : widget.initial?.isRepRange ?? false
+                ? 'Optional Rep Range, Weight and Rest.'
+                : 'Optional Reps, Weight and Rest.',
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_isWeightReps) ...[
             Semantics(
               label: 'Reps',
               child: TioInput.numericEditor(
@@ -160,7 +182,8 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 onChanged: _inputChanged,
               ),
             ),
-            const SizedBox(height: TioSpacing.md),
+            ],
+            if (_isWeightReps) const SizedBox(height: TioSpacing.md),
             Semantics(
               label: 'Rest seconds',
               child: TioInput.numericEditor(
