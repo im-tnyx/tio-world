@@ -379,6 +379,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                     return false;
                                   }
                                   var revoked = false;
+                                  var exitedUnconfirmed = false;
                                   final confirmed = await Navigator.of(context)
                                       .push<bool>(MaterialPageRoute(
                                     builder: (_) => Consumer(
@@ -462,6 +463,12 @@ List<RouteBase> _shellBranchChildRoutes(
                                               userExerciseRepository,
                                           routineRepository: routineRepository,
                                           compositionRepository: compositions,
+                                          // An explicitly unconfirmed exit
+                                          // needs a fresh owner-bound Program
+                                          // read; it is not an ACK of Create.
+                                          onUnconfirmedExit: () {
+                                            exitedUnconfirmed = true;
+                                          },
                                           viewerMediaGender: authorized
                                               ? ref.watch(exerciseViewerMediaGenderProvider)
                                               : null,
@@ -490,7 +497,10 @@ List<RouteBase> _shellBranchChildRoutes(
                                       },
                                     ),
                                   ));
-                                  return confirmed == true;
+                                  // The parent refreshes on either a
+                                  // confirmed save or a consciously unconfirmed
+                                  // exit; the latter must not imply success.
+                                  return confirmed == true || exitedUnconfirmed;
                                 },
                         ),
                       ),
