@@ -136,13 +136,10 @@ void main() {
         throwsArgumentError);
     expect(() => RoutineCompositionSnapshot(routineId: _routine, revision: -1),
         throwsArgumentError);
-    for (final prescription in [
-      SetPrescription(reps: 2147483648),
-      SetPrescription(reps: 1, restSeconds: 2147483648)
-    ]) {
-      expect(() => RoutineCompositionSet(id: _set, prescription: prescription),
-          throwsArgumentError);
-    }
+    // Bounds are rejected by the shared value object itself.
+    expect(() => SetPrescription(reps: 2147483648), throwsArgumentError);
+    expect(() => SetPrescription(reps: 1, restSeconds: 2147483648),
+        throwsArgumentError);
     expect(
         RoutineCompositionSet(
                 id: _set,
