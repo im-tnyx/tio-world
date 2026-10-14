@@ -512,8 +512,10 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         startWithBlankReps: _untouchedRepSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
-        onChanged: (prescription) =>
-            _draft.editSet(entry.id, set.id, prescription),
+        onChanged: (prescription) {
+          _untouchedRepSetIds.remove(set.id);
+          _draft.editSet(entry.id, set.id, prescription);
+        },
         onValidityChanged: (valid) => _validityChanged(set.id, valid),
         onRemove: () => _removeSet(entry, set),
       );
