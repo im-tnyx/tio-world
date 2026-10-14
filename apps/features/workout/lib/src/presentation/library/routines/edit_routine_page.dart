@@ -184,10 +184,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (exercise.status != ExerciseStatus.active) return;
     final entryId = editor.addPickedExercise(exercise);
     if (entryId != null) {
-      final setId = editor.addSet(entryId, SetPrescription(reps: 1));
+      final setId = editor.addSet(entryId, SetPrescription());
       if (setId != null) {
         _blankSetIds.add(setId);
-        _invalidSetIds.add(setId);
       }
     }
     // Refresh labels and write-capability from the current source. A failed
@@ -274,10 +273,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   void _addSetInline(RoutineCompositionEntry entry) {
     if (!_canEdit) return;
     if (_openSetId != null) setState(() => _openSetId = null);
-    final id = _editor?.addSet(entry.id, SetPrescription(reps: 1));
+    final id = _editor?.addSet(entry.id, SetPrescription());
     if (id != null) {
       _blankSetIds.add(id);
-      _invalidSetIds.add(id);
     }
   }
 
@@ -336,6 +334,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       _editor?.editSet(entry.id, set.id, SetPrescription(
         reps: current.reps, repsMax: current.repsMax,
         setType: type, loadKg: current.loadKg,
+        distanceMeters: current.distanceMeters,
+        durationSeconds: current.durationSeconds,
         restSeconds: current.restSeconds,
       ));
     }
@@ -627,6 +627,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                           found,
                           gender: widget.viewerMediaGender,
                         ),
+                  exerciseType: found?.exerciseType,
                   index: index,
                   unit: widget.weightUnit!,
                   enabled: _canEdit,
@@ -674,6 +675,7 @@ class _EntryTable extends StatelessWidget {
     required this.entry,
     required this.title,
     required this.thumbnailUrl,
+    required this.exerciseType,
     required this.index,
     required this.unit,
     required this.enabled,
@@ -696,6 +698,7 @@ class _EntryTable extends StatelessWidget {
   final RoutineCompositionEntry entry;
   final String title;
   final Uri? thumbnailUrl;
+  final ExerciseType? exerciseType;
   final int index;
   final WeightUnit unit;
   final bool enabled;
@@ -723,6 +726,7 @@ class _EntryTable extends StatelessWidget {
             .length,
         unit: unit,
         enabled: enabled,
+        exerciseType: exerciseType,
         showPrevious: true,
         startWithBlankReps: blankSetIds.contains(set.id),
         isOpen: openSetId == set.id,
@@ -786,8 +790,10 @@ class _EntryTable extends StatelessWidget {
         ]),
         const SizedBox(height: TioSpacing.md),
         Row(children: [
-          const SizedBox(width: TioSize.dp44,
-              child: Text('SET', textAlign: TextAlign.center)),
+          const SizedBox(
+            width: TioSize.dp44,
+            child: Text('SET', textAlign: TextAlign.center),
+          ),
           const SizedBox(width: TioSpacing.sm),
           const SizedBox(
             width: TioSize.dp64,
@@ -797,34 +803,48 @@ class _EntryTable extends StatelessWidget {
             ),
           ),
           const SizedBox(width: TioSpacing.sm),
-          Expanded(
-            flex: range ? 2 : 1,
-            child: Text(unit == WeightUnit.kg ? 'KG' : 'LB',
-              textAlign: TextAlign.center),
-          ),
-          const SizedBox(width: TioSpacing.sm),
-          Expanded(
-            flex: range ? 3 : 1,
-            child: Semantics(
-              button: true,
-              label: 'Repetition Options',
-              child: InkWell(
-                key: ValueKey('edit-routine-repetition-options-${entry.id}'),
-                onTap: enabled ? onRepetitionMode : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(child: Text(range ? 'REP RANGE' : 'REPS',
-                        maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      const Icon(Icons.arrow_drop_down),
-                    ],
+          if (exerciseType == ExerciseType.distanceDuration) ...[
+            const Expanded(child: Text('KM', textAlign: TextAlign.center)),
+            const SizedBox(width: TioSpacing.sm),
+            const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+          ] else if (exerciseType == ExerciseType.duration) ...[
+            const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+          ] else ...[
+            Expanded(
+              flex: range ? 2 : 1,
+              child: Text(
+                unit == WeightUnit.kg ? 'KG' : 'LB',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(
+              flex: range ? 3 : 1,
+              child: Semantics(
+                button: true,
+                label: 'Repetition Options',
+                child: InkWell(
+                  key: ValueKey('edit-routine-repetition-options-${entry.id}'),
+                  onTap: enabled ? onRepetitionMode : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: TioSpacing.sm,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(range ? 'REP RANGE' : 'REPS',
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                        const Icon(Icons.arrow_drop_down),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ]),
         const SizedBox(height: TioSpacing.sm),
         if (entry.sets.length > 40)
