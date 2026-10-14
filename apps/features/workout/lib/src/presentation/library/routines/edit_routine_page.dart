@@ -201,12 +201,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final editor = _editor;
     final unit = widget.weightUnit;
     if (!_canEdit || editor == null || unit == null) return;
+    ExerciseType? profile;
+    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
+      if (item.exercise.ref == entry.exercise) {
+        profile = item.exercise.exerciseType;
+        break;
+      }
+    }
     final result = await showTioEditorSheet<SetPrescription>(
       context: context,
       useSafeArea: true,
       builder: (_) => RoutineSetEditorSheet(
         unit: unit,
         initial: existing?.prescription,
+        exerciseType: profile,
       ),
     );
     if (!mounted ||
