@@ -27,6 +27,7 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.onOpenChanged,
     this.startWithBlankReps = false,
     this.showPrevious = false,
+    this.exerciseType,
     super.key,
   });
 
@@ -48,6 +49,9 @@ class RoutineSetInputRow extends StatefulWidget {
   /// Previous workout history is a separate PerformedSet boundary.
   /// Its read-only placeholder is not derived from prescribed targets.
   final bool showPrevious;
+  /// Canonical explicit measurement kind. Unclassified older catalog rows
+  /// retain the existing weight/reps layout; never infer from category.
+  final ExerciseType? exerciseType;
 
   @override
   State<RoutineSetInputRow> createState() => _RoutineSetInputRowState();
@@ -63,6 +67,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   late final TextEditingController _weight;
   late final TextEditingController _reps;
   late final TextEditingController _repsMax;
+  late final TextEditingController _distance;
+  late final TextEditingController _duration;
+  late String _originalDistanceText;
+  late double? _originalMeters;
   late String _originalWeightText;
   late double? _originalKg;
   // Distinguish parent echoes of this row's own edits from external changes
@@ -92,11 +100,11 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     super.initState();
     _reveal = widget.isOpen ? _revealWidth : 0;
     _pastRevealThreshold = widget.isOpen;
-    _valid = !widget.startWithBlankReps;
+    _valid = true;
     _reps = TextEditingController(
       text: widget.startWithBlankReps
           ? ''
-          : widget.set.prescription.reps.toString(),
+          : widget.set.prescription.reps?.toString() ?? '',
     );
     _repsMax = TextEditingController(
       text: widget.startWithBlankReps
@@ -106,6 +114,15 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     _originalKg = widget.set.prescription.loadKg;
     _originalWeightText = _displayWeight(_originalKg);
     _weight = TextEditingController(text: _originalWeightText);
+    _originalMeters = widget.set.prescription.distanceMeters;
+    _originalDistanceText =
+        RoutineSetInputLimits.displayDistanceKm(_originalMeters);
+    _distance = TextEditingController(text: _originalDistanceText);
+    _duration = TextEditingController(
+      text: RoutineSetInputLimits.displayDurationSeconds(
+        widget.set.prescription.durationSeconds,
+      ),
+    );
   }
 
   String _displayWeight(double? kg) => kg == null
@@ -134,7 +151,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     // The advanced Set sheet is a DIFFERENT source and must refresh the edited
     // fields; otherwise a later inline change silently overwrites its values.
     if (changedExternally && before.reps != after.reps) {
-      _reps.text = after.reps.toString();
+      _reps.text = after.reps?.toString() ?? '';
     }
     if (modeChanged && after.isRepRange) {
       // Fixed -> Range uses a canonical provisional Max in the domain model.
@@ -152,7 +169,21 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
       _originalWeightText = _displayWeight(_originalKg);
       _weight.text = _originalWeightText;
     }
-    if (modeChanged || changedExternally) {
+    if (changedExternally &&
+        before.distanceMeters != after.distanceMeters) {
+      _originalMeters = after.distanceMeters;
+      _originalDistanceText =
+          RoutineSetInputLimits.displayDistanceKm(_originalMeters);
+      _distance.text = _originalDistanceText;
+    }
+    if (changedExternally &&
+        before.durationSeconds != after.durationSeconds) {
+      _duration.text = RoutineSetInputLimits.displayDurationSeconds(
+        after.durationSeconds,
+      );
+    }
+    if (modeChanged || changedExternally ||
+        oldWidget.exerciseType != widget.exerciseType) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && widget.set.prescription == after) _update();
       });
@@ -160,51 +191,88 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   }
 
   void _update() {
-    final reps = int.tryParse(_reps.text.trim());
-    final inRange = widget.set.prescription.isRepRange;
-    final max = inRange ? int.tryParse(_repsMax.text.trim()) : null;
-    final rawWeight = _weight.text.trim();
-    final weight = rawWeight.isEmpty ? null : double.tryParse(rawWeight);
-    final valid = reps != null &&
-        reps > 0 &&
-        reps <= 2147483647 &&
-        (!inRange || (max != null && max >= reps && max <= 2147483647)) &&
-        (rawWeight.isEmpty ||
-            (weight != null && weight.isFinite && weight >= 0));
+    final source = widget.set.prescription;
+    final isDistanceTime = widget.exerciseType == ExerciseType.distanceDuration;
+    final isTimeOnly = widget.exerciseType == ExerciseType.duration;
+    final isWeightReps = !isDistanceTime && !isTimeOnly;
+
+    int? reps = source.reps;
+    int? max = source.repsMax;
+    double? kg = source.loadKg;
+    double? meters = source.distanceMeters;
+    int? duration = source.durationSeconds;
+    var valid = true;
+
+    if (isWeightReps) {
+      final repsText = _reps.text.trim();
+      final parsedReps = int.tryParse(repsText);
+      final inRange = source.isRepRange;
+      final maxText = _repsMax.text.trim();
+      final parsedMax = int.tryParse(maxText);
+      final rawWeight = _weight.text.trim();
+      final weight = double.tryParse(rawWeight);
+      // A completely empty template target is valid. Half-entered ranges,
+      // zero/overflowing Reps and partial KG values must still block Save.
+      valid = (repsText.isEmpty ||
+               (parsedReps != null && parsedReps > 0 &&
+                parsedReps <= RoutineSetInputLimits.maxReps)) &&
+          (!inRange ||
+           ((repsText.isEmpty && maxText.isEmpty) ||
+            (parsedReps != null && parsedMax != null &&
+             parsedMax >= parsedReps &&
+             parsedMax <= RoutineSetInputLimits.maxReps))) &&
+          (rawWeight.isEmpty ||
+           (weight != null && weight.isFinite && weight >= 0));
+      reps = repsText.isEmpty ? null : parsedReps;
+      max = inRange && maxText.isNotEmpty ? parsedMax : null;
+      if (rawWeight == _originalWeightText) {
+        kg = _originalKg;
+      } else if (rawWeight.isEmpty) {
+        kg = null;
+      } else if (weight != null) {
+        kg = widget.unit == WeightUnit.kg
+            ? weight
+            : UnitConverters.lbToKg(weight);
+      }
+    }
+    if (isDistanceTime) {
+      final raw = _distance.text.trim();
+      final parsed = double.tryParse(raw);
+      valid = raw.isEmpty || (parsed != null &&
+          parsed.isFinite && parsed >= 0);
+      if (raw == _originalDistanceText) {
+        meters = _originalMeters; // Preserve precise canonical stored value.
+      } else {
+        meters = raw.isEmpty ? null : (parsed == null ? null : parsed * 1000);
+      }
+    }
+    if (isDistanceTime || isTimeOnly) {
+      final raw = _duration.text.trim();
+      final parsed = RoutineSetInputLimits.parseDurationSeconds(raw);
+      valid = valid && (raw.isEmpty || parsed != null);
+      duration = raw.isEmpty ? null : parsed;
+    }
     if (_valid != valid) {
       _valid = valid;
       widget.onValidityChanged(valid);
     }
     if (!valid || !widget.enabled) return;
 
-    // Keep exact previously stored kg when the rounded lb string is untouched,
-    // matching the existing Routine Set editor's unit conversion contract.
-    final double? kg;
-    if (rawWeight == _originalWeightText) {
-      kg = _originalKg;
-    } else if (weight == null) {
-      kg = null;
-    } else {
-      kg = widget.unit == WeightUnit.kg
-          ? weight
-          : UnitConverters.lbToKg(weight);
-    }
-
     try {
       final next = SetPrescription(
         reps: reps,
         repsMax: max,
-        setType: widget.set.prescription.setType,
+        setType: source.setType,
         loadKg: kg,
-        restSeconds: widget.set.prescription.restSeconds,
+        distanceMeters: meters,
+        durationSeconds: duration,
+        restSeconds: source.restSeconds,
       );
-      if (next != widget.set.prescription) {
+      if (next != source) {
         _lastInlineEdit = next;
         widget.onChanged(next);
       }
     } on ArgumentError {
-      // Defensive parity with the canonical Set constructor. A rejected
-      // draft must not leave Save enabled with stale persisted values.
       if (_valid) {
         _valid = false;
         widget.onValidityChanged(false);
@@ -217,6 +285,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     _weight.dispose();
     _reps.dispose();
     _repsMax.dispose();
+    _distance.dispose();
+    _duration.dispose();
     super.dispose();
   }
 
