@@ -842,7 +842,7 @@ class _EntryTable extends StatelessWidget {
         const SizedBox(height: TioSpacing.md),
         Row(children: [
           const SizedBox(
-            width: TioSize.dp44,
+            width: TioSize.dp42,
             child: Text('SET', textAlign: TextAlign.center),
           ),
           const SizedBox(width: TioSpacing.sm),
