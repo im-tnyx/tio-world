@@ -194,7 +194,7 @@ select pg_temp.assert_true(
 );
 select pg_temp.assert_true(
   (select count(*) = 8 from public.user_workout_routine_sets
-   where user_id = 'a5400000-0000-4000-8000-000000000001'),
+   where routine_exercise_id = 'a5400000-0000-4000-8000-000000000047'),
   'eight Set rows persist'
 );
 
@@ -224,7 +224,7 @@ select pg_temp.assert_true(
    from public.user_workout_routines
    where id = 'a5400000-0000-4000-8000-000000000024')
   and (select count(*) = 8 from public.user_workout_routine_sets
-       where user_id = 'a5400000-0000-4000-8000-000000000001'),
+       where routine_exercise_id = 'a5400000-0000-4000-8000-000000000047'),
   'rejected ninth Set leaves existing Save atomic and unchanged'
 );
 

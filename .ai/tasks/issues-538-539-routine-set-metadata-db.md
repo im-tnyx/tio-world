@@ -102,3 +102,12 @@ Routine with distinct stable IDs, leaving the original rich/nullable
 Routine and its preservation tests intact. Production RPC, RLS, CHECK,
 and legacy-overwrite protection remain untouched. Full exact-head CI
 must pass before any merge decision; no hosted DB deployment.
+
+## Isolated eight-Set SQL assertion correction (2026-10-14; CI pending)
+
+Combined SQL CI #38580860740 passed the per-Exercise cap write but the
+following assertion counted Sets across the entire owner's Routines, including
+the original rich-target fixture. Both positive and post-rejection counts now
+scope to the new cap fixture's exact `routine_exercise_id`, preserving the
+original rich data and the fail-closed 8-Set policy. No production SQL change.
+Run the full exact-head DB matrix before merge.
