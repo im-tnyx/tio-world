@@ -23,6 +23,7 @@ class ExercisesPage extends ConsumerStatefulWidget {
     super.key,
     this.startSearching = false,
     this.userExerciseRepository,
+    this.onExerciseSelected,
   });
 
   /// Opens with the top-bar search field active and focused.
@@ -33,6 +34,11 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// Null keeps the catalog fully usable while create/edit capability fails
   /// closed instead of reporting in-memory success.
   final UserExerciseRepository? userExerciseRepository;
+
+  /// When supplied, reuse this canonical screen as a Routine Exercise
+  /// selector rather than launching a duplicate picker UI. Browse behavior
+  /// and Custom Exercise editing remain unchanged without this callback.
+  final ValueChanged<Exercise>? onExerciseSelected;
 
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
@@ -85,6 +91,15 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
 
   void _onCustomChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _select(Exercise exercise) {
+    if (exercise.status != ExerciseStatus.active) return;
+    if (exercise.ref is UserCreatedExerciseRef &&
+        _customController?.state.status != CustomExercisesStatus.ready) {
+      return;
+    }
+    widget.onExerciseSelected?.call(exercise);
   }
 
   @override
@@ -143,6 +158,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
+    final isSelecting = widget.onExerciseSelected != null;
 
     return Scaffold(
       key: const ValueKey('exercises-page'),
@@ -169,7 +185,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 onChanged: catalogController.setSearchText,
               )
             : Text(
-                'Exercises',
+                isSelecting ? 'Add Exercise' : 'Exercises',
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: TioFontWeight.w800,
@@ -187,7 +203,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 ),
               ]
             : [
-                if (widget.userExerciseRepository != null)
+                if (!isSelecting && widget.userExerciseRepository != null)
                   IconButton(
                     key: const ValueKey('custom-exercise-create'),
                     tooltip: 'Create custom exercise',
@@ -257,6 +273,41 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     required CustomExercisesState? customState,
     required List<ExerciseListItem> customItems,
   }) {
+    // A selector must not offer only catalog (or only Custom) choices if
+    // either requested source has not resolved. Unlike casual browsing,
+    // it returns one verified, active Exercise to an owner-scoped draft.
+    if (widget.onExerciseSelected != null) {
+      if (catalogState.status != ExercisesStatus.ready) {
+        return catalogState.status == ExercisesStatus.loading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  semanticsLabel: ExercisesPage.loadingLabel,
+                ),
+              )
+            : _Message(
+                text: switch (catalogState.status) {
+                  ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
+                  ExercisesStatus.malformedCatalog => ExercisesPage.malformedCatalogMessage,
+                  _ => ExercisesPage.failedMessage,
+                },
+              );
+      }
+      if (widget.userExerciseRepository != null &&
+          customState?.status != CustomExercisesStatus.ready) {
+        if (customState?.status == CustomExercisesStatus.loadFailed) {
+          return _Failure(
+            message: customState?.loadError ??
+                'Could not load custom exercises. Please try again.',
+            onRetry: _customController?.retryLoad,
+          );
+        }
+        return const Center(
+          child: CircularProgressIndicator(
+            semanticsLabel: ExercisesPage.loadingLabel,
+          ),
+        );
+      }
+    }
     final customReady = customState?.status == CustomExercisesStatus.ready;
     final customHasAny = customReady && customState!.exercises.isNotEmpty;
     final catalogItems = catalogState.status == ExercisesStatus.ready
@@ -295,7 +346,12 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         return _ExerciseList(
           customItems: const [],
           catalogItems: const [],
-          onCustomTap: _openCustomEditor,
+          onCustomTap: widget.onExerciseSelected == null
+              ? _openCustomEditor
+              : _select,
+          onCatalogTap: widget.onExerciseSelected == null
+              ? null
+              : _select,
           customFailure: customFailureMessage,
           onRetryCustom: _customController?.retryLoad,
           catalogMessage: catalogFailureMessage,
@@ -335,7 +391,12 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     return _ExerciseList(
       customItems: customItems,
       catalogItems: catalogItems,
-      onCustomTap: _openCustomEditor,
+      onCustomTap: widget.onExerciseSelected == null
+          ? _openCustomEditor
+          : _select,
+      onCatalogTap: widget.onExerciseSelected == null
+          ? null
+          : _select,
       customFailure: customFailureMessage,
       onRetryCustom: _customController?.retryLoad,
       catalogMessage: catalogFailureMessage,
@@ -395,6 +456,7 @@ class _ExerciseList extends StatelessWidget {
     required this.customItems,
     required this.catalogItems,
     required this.onCustomTap,
+    this.onCatalogTap,
     this.customFailure,
     this.onRetryCustom,
     this.catalogMessage,
@@ -403,6 +465,7 @@ class _ExerciseList extends StatelessWidget {
   final List<ExerciseListItem> customItems;
   final List<ExerciseListItem> catalogItems;
   final ValueChanged<Exercise> onCustomTap;
+  final ValueChanged<Exercise>? onCatalogTap;
   final String? customFailure;
   final VoidCallback? onRetryCustom;
   final String? catalogMessage;
@@ -453,6 +516,9 @@ class _ExerciseList extends StatelessWidget {
               'exercise-row-${catalogItems[i].exercise.ref.value}',
             ),
             item: catalogItems[i],
+            onTap: onCatalogTap == null
+                ? null
+                : () => onCatalogTap!(catalogItems[i].exercise),
           ),
           if (i != catalogItems.length - 1) divider(),
         ],
