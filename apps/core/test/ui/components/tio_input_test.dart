@@ -128,7 +128,7 @@ void main() {
       expect(decoration.contentPadding,
           const EdgeInsets.symmetric(
             horizontal: TioInputTokens.compactContentHorizontalPadding,
-            vertical: TioSpacing.xs,
+            vertical: TioInputTokens.compactContentVerticalPadding,
           ));
 
       await tester.tap(find.byType(TextFormField));
@@ -140,6 +140,41 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField), '2a5');
       expect(changed, '25');
+    });
+
+    testWidgets(
+        'boxedNumber paints a 44dp outline in a taller parent and grows '
+        'for accessible text', (tester) async {
+      Widget boxed({double scale = 1}) => buildTioThemedTestApp(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: Center(
+            child: SizedBox(
+              width: 180,
+              height: 160,
+              child: TioInput.boxedNumber(
+                hint: '–',
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(boxed());
+      final outline = find.byType(InputDecorator);
+      expect(outline, findsOneWidget);
+      expect(tester.getSize(outline).width, 180);
+      expect(tester.getSize(outline).height, TioSize.dp44,
+          reason: 'The painted outline must not shrink below SET height '
+              'or stretch to the parent 160dp height');
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(boxed(scale: 2.5));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(outline).height, greaterThan(TioSize.dp44),
+          reason: 'Accessibility text must grow, never clip to fixed 44dp');
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('existing compactNumber remains borderless, not boxed',
