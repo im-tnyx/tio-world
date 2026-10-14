@@ -352,33 +352,44 @@ select pg_temp.assert_true(
   'empty draft save must clear children without orphan Sets'
 );
 
--- Large valid snapshots should not trip an accidental Exercise/Set count cap.
+-- Large valid snapshots are still permitted across distinct Exercises.
+-- The approved guard is eight Sets per identified Exercise, NOT eight total
+-- Sets in a Routine. Preserve the legacy payload-size stress coverage by
+-- distributing 352 Sets across 44 ordered Exercise entries (8 Sets each).
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
     'a5090000-0000-4000-8000-000000000021',3,
     'a5090000-0000-4000-8000-000000000094',
     (
-      select pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
-        'id', 'a5090000-0000-4000-8000-000000000044',
-        'exercise_ref', 'ex_squat',
-        'sets', (
-          select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-            'id', pg_catalog.gen_random_uuid()::text,
-            'reps', 8, 'rest_seconds', 0
-          ) order by n)
-          from pg_catalog.generate_series(1, 350) as n
-        )
-      ))
+      select pg_catalog.jsonb_agg(
+        pg_catalog.jsonb_build_object(
+          'id', pg_catalog.gen_random_uuid()::text,
+          'exercise_ref', 'ex_squat',
+          'sets', (
+            select pg_catalog.jsonb_agg(
+              pg_catalog.jsonb_build_object(
+                'id', pg_catalog.gen_random_uuid()::text,
+                'reps', 8, 'rest_seconds', 0
+              ) order by set_index
+            )
+            from pg_catalog.generate_series(1,8) as set_index
+          )
+        ) order by exercise_index
+      )
+      from pg_catalog.generate_series(1,44) as exercise_index
     )
   )=4,
-  'bounded 350-set payload is accepted'
+  'bounded 352-Set payload across 44 Exercises is accepted'
 );
 select pg_temp.assert_true(
-  (select count(*)=350 from public.user_workout_routine_sets)
-  and (select count(*)=1 from public.user_workout_routine_exercises),
-  'large ordered composition persisted atomically'
+  (select count(*)=352 from public.user_workout_routine_sets)
+  and (select count(*)=44 from public.user_workout_routine_exercises)
+  and not exists (
+    select 1 from public.user_workout_routine_sets
+    group by routine_exercise_id having count(*) > 8
+  ),
+  'large ordered composition keeps 8-Set per-Exercise policy'
 );
-
 reset role;
 
 -- Deferrable same-owner user-exercise FK must not block full-account cascades.

@@ -64,3 +64,18 @@ CI runs consistently on `pull_request` and `workflow_dispatch` after
 merge. No hosted Supabase deploy. Exact-head CI, independent security
 review, old-client rollout sequencing and live DB compatibility gates
 still required before merge/apply.
+
+## Main-replay SQL regression resolved (2026-10-14, CI rerun pending)
+
+After non-forced merge reconciliation with `main`, exact-head Supabase
+Database CI #38578625574 failed inside the historical TNYX-509 SQL matrix.
+The obsolete baseline test tried to insert 350 newly written Sets into
+one Exercise, contrary to the newly approved 8-Set per-Exercise CHECK.
+This was a real regression-test contract conflict, **not** proof that the
+new constraint should be removed. Preserve payload-size/multi-entry
+stress by rewriting that single fixture to 44 Exercise entries with
+8 newly written Sets each (352 total), and assert both the full count
+and no entry over eight. Dedicated #540 combined tests still assert that
+a ninth Set fails transactionally for Save and atomic Create. Keep the
+production SQL constraint unchanged; require a new full exact-head
+database run to confirm the updated legacy matrix and new matrices.
