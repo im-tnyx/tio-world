@@ -242,15 +242,13 @@ void main() {
     final picked = <Exercise>[];
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          exerciseCatalogRepositoryProvider.overrideWithValue(catalog),
-        ],
         child: MaterialApp(
           builder: (context, child) => TioTheme(
             config: const TioThemeConfig(mode: TioThemeMode.light),
             child: child ?? const SizedBox.shrink(),
           ),
           home: ExercisesPage(
+            catalogRepository: catalog,
             onExerciseSelected: picked.add,
           ),
         ),
@@ -287,12 +285,8 @@ Future<void> _pumpLauncher(
               final result = await Navigator.of(context).push<Exercise>(
                 MaterialPageRoute(
                   builder: (routeContext) => ProviderScope(
-                    overrides: [
-                      exerciseCatalogRepositoryProvider.overrideWithValue(
-                        catalog,
-                      ),
-                    ],
                     child: ExercisesPage(
+                      catalogRepository: catalog,
                       userExerciseRepository: user,
                       onExerciseSelected: (exercise) =>
                           Navigator.of(routeContext).pop<Exercise>(exercise),
