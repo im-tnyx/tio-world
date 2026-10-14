@@ -343,7 +343,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     }
     _swipeLast = event.position;
     _swipeLastTime = event.timeStamp;
-    _dragUpdate(DragUpdateDetails(delta: Offset(dx, 0)));
+    _dragUpdate(DragUpdateDetails(
+      delta: Offset(dx, 0),
+      globalPosition: event.position,
+    ));
   }
 
   void _pointerUp(PointerUpEvent event) {
