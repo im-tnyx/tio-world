@@ -696,6 +696,58 @@ void main() {
     );
   });
 
+  testWidgets(
+      'lost atomic Create ACK requires explicit exit and refreshes Program',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+
+    // The fake RPC commits the Routine, but its ACK is lost.
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    await tester.tap(find.byKey(
+        const ValueKey('create-routine-exit-unconfirmed')));
+    await tester.pumpAndSettle();
+
+    // The unconfirmed return refreshes owner-scoped Program truth; it never
+    // acknowledges a write or makes another Create request automatically.
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    final cardsBefore = find.byKey(
+        const ValueKey('program-routine-30000000-0000-4000-8000-000000000001'));
+    expect(cardsBefore, findsOneWidget);
+    // A new Create route is a deliberate user action, not an automatic retry.
+    await tester.tap(find.byKey(const ValueKey(
+        'program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('stale Program Detail cannot Create on a new login cycle',
       (tester) async {
     final (container, router) = await _app(
@@ -1211,6 +1263,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineRepository = true,
   bool withRoutineComposition = false,
   bool withRoutineCreate = false,
+  bool loseCreateAcknowledgment = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
 }) async {
@@ -1252,7 +1305,10 @@ Future<(ProviderContainer, GoRouter)> _app(
         withRoutineRepository ? routeRoutines : null,
       ),
       routineCreateRepositoryProvider.overrideWithValue(
-        withRoutineCreate ? _RouteCreate(routeRoutines) : null,
+        withRoutineCreate
+            ? _RouteCreate(routeRoutines,
+                loseAcknowledgment: loseCreateAcknowledgment)
+            : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
         withRoutineComposition ? _RouteCompositions() : null,
@@ -1339,15 +1395,17 @@ final class _RouteRoutines implements RoutineRepository {
 }
 
 final class _RouteCreate implements RoutineCreateRepository {
-  _RouteCreate(this._routines);
+  _RouteCreate(this._routines, {this.loseAcknowledgment = false});
 
   final _RouteRoutines _routines;
+  final bool loseAcknowledgment;
 
   @override
   Future<int> create(RoutineCreateCommand command) async {
     // Test fixture models an acknowledged atomic Create, not metadata-only
     // production persistence. The real service boundary remains #536.
     await _routines.create(command.routine);
+    if (loseAcknowledgment) throw StateError('response lost after commit');
     return 1;
   }
 }
