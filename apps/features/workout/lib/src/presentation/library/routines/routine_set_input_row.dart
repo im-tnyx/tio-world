@@ -419,34 +419,40 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               key: ValueKey('routine-set-type-${widget.set.id}'),
               onTap: widget.enabled ? widget.onTypePressed : null,
               borderRadius: BorderRadius.circular(TioRadius.md),
-              child: Container(
-                key: ValueKey('routine-set-type-box-${widget.set.id}'),
-                width: TioSize.dp44,
-                constraints: const BoxConstraints(minHeight: TioSize.dp44),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  // Create uses the neutral filled Set badge. The approved
-                  // Edit/PREVIOUS reference instead shows an unboxed blue
-                  // number; preserve the same 44dp hit/layout footprint.
-                  color: widget.showPrevious ? null : colors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(TioRadius.md),
-                ),
-                child: Text(
-                  switch (widget.set.prescription.setType) {
-                    RoutineSetType.normal => '${widget.normalNumber}',
-                    RoutineSetType.warmUp => 'W',
-                    RoutineSetType.failure => 'F',
-                    RoutineSetType.drop => 'D',
-                  },
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: switch (widget.set.prescription.setType) {
-                      RoutineSetType.normal => widget.showPrevious
-                          ? colors.primary
-                          : colors.textPrimary,
-                      RoutineSetType.warmUp => colors.warning,
-                      RoutineSetType.failure => colors.danger,
-                      RoutineSetType.drop => colors.info,
+              // Constrain painted SET surface to its content, not the
+              // viewport's loose max-height. The 44dp minimum remains and
+              // larger accessibility text can still grow this control.
+              child: Align(
+                heightFactor: 1,
+                child: Container(
+                  key: ValueKey('routine-set-type-box-${widget.set.id}'),
+                  width: TioSize.dp44,
+                  constraints: const BoxConstraints(minHeight: TioSize.dp44),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    // Create uses the neutral filled Set badge. The approved
+                    // Edit/PREVIOUS reference instead shows an unboxed blue
+                    // number; preserve the same 44dp hit/layout footprint.
+                    color: widget.showPrevious ? null : colors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(TioRadius.md),
+                  ),
+                  child: Text(
+                    switch (widget.set.prescription.setType) {
+                      RoutineSetType.normal => '${widget.normalNumber}',
+                      RoutineSetType.warmUp => 'W',
+                      RoutineSetType.failure => 'F',
+                      RoutineSetType.drop => 'D',
                     },
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: switch (widget.set.prescription.setType) {
+                        RoutineSetType.normal => widget.showPrevious
+                            ? colors.primary
+                            : colors.textPrimary,
+                        RoutineSetType.warmUp => colors.warning,
+                        RoutineSetType.failure => colors.danger,
+                        RoutineSetType.drop => colors.info,
+                      },
+                    ),
                   ),
                 ),
               ),
