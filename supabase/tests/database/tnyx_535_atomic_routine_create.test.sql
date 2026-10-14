@@ -88,7 +88,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     '  ','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'blank Routine name must be rejected');
 
@@ -101,7 +101,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     E'\t\n \r','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'tabs, newlines and CR-only name must be rejected');
 
@@ -113,7 +113,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     U&'\00A0','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'NBSP-only name must be rejected');
 
@@ -123,7 +123,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     U&'\2007','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'figure-space-only name must be rejected');
 
@@ -133,7 +133,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     U&'\202F','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'narrow-NBSP-only name must be rejected');
 
@@ -143,7 +143,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     U&'\FEFF','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'BOM-only name must be rejected');
 
@@ -153,7 +153,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     U&'\00A0\202F\0009\2007','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'mixed Unicode whitespace-only name must be rejected');
 
@@ -179,7 +179,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000012',
     'Wrong owner','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, 'P0002', 'other owner Program must be rejected');
 
@@ -191,7 +191,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Archived','a5350000-0000-4000-8000-000000000092',
     '[{"id":"a5350000-0000-4000-8000-000000000042",
-       "exercise_ref":"a5350000-0000-4000-8000-000000000032","sets":[]}]'::jsonb
+       "exercise_ref":"a5350000-0000-4000-8000-000000000032","sets":[{"id":"a5350000-0000-4000-8000-000000000142","reps":1}]}]'::jsonb
   )
 $sql$, 'P0002', 'archived Custom ref must fail closed');
 
@@ -201,7 +201,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Foreign','a5350000-0000-4000-8000-000000000093',
     '[{"id":"a5350000-0000-4000-8000-000000000043",
-       "exercise_ref":"a5350000-0000-4000-8000-000000000033","sets":[]}]'::jsonb
+       "exercise_ref":"a5350000-0000-4000-8000-000000000033","sets":[{"id":"a5350000-0000-4000-8000-000000000143","reps":1}]}]'::jsonb
   )
 $sql$, 'P0002', 'foreign Custom ref must fail closed');
 
@@ -222,9 +222,9 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Invalid Entries','a5350000-0000-4000-8000-000000000094',
     '[{"id":"a5350000-0000-4000-8000-000000000044",
-       "exercise_ref":"ex_squat","sets":[]},
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000144","reps":1}]},
       {"id":"a5350000-0000-4000-8000-000000000044",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000144","reps":1}]}]'::jsonb
   )
 $sql$, '22023', 'duplicate Exercise entry UUIDs must roll back all');
 
@@ -234,16 +234,34 @@ select pg_temp.assert_true(
   'canonical validation failure must not leave empty metadata'
 );
 
--- A valid catalog Exercise with zero Sets is sufficient: no invented
--- mandatory Set/reps requirement in the screenshot-backed approval.
+-- A nonempty Routine template requires >= 1 Set for each Exercise.
+-- This check must precede metadata insertion and reject zero/invalid sets.
+select pg_temp.assert_raises($sql$
+  select public.create_user_workout_routine_with_composition(
+    'a5350000-0000-4000-8000-000000000026',
+    'a5350000-0000-4000-8000-000000000011',
+    'Missing Set','a5350000-0000-4000-8000-000000000096',
+    '[{"id":"a5350000-0000-4000-8000-000000000047",
+       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+  )
+$sql$, '22023', 'Exercise with zero Sets must fail without metadata');
+select pg_temp.assert_true(
+  not exists (select 1 from public.user_workout_routines
+              where id='a5350000-0000-4000-8000-000000000026'),
+  'zero Set request leaves no metadata'
+);
+
+-- An Exercise with a valid Set can atomically Create and retry.
+-- The legacy SQL schema at this migration requires positive reps; the
+-- later Set migration makes Reps optional without disturbing migration order.
 select pg_temp.assert_true(
   public.create_user_workout_routine_with_composition(
     'a5350000-0000-4000-8000-000000000021',
     'a5350000-0000-4000-8000-000000000011',
     'Routine 1','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
-  )=1, 'one selected catalog Exercise must atomically create'
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
+  )=1, 'one catalog Exercise with one Set must atomically create'
 );
 
 select pg_temp.assert_true(
@@ -257,9 +275,9 @@ select pg_temp.assert_true(
        where routine_id='a5350000-0000-4000-8000-000000000021'
          and id='a5350000-0000-4000-8000-000000000041'
          and position=0 and catalog_exercise_id='ex_squat')
-  and (select count(*)=0 from public.user_workout_routine_sets
+  and (select count(*)=1 from public.user_workout_routine_sets
        where user_id='a5350000-0000-4000-8000-000000000001'),
-  'one RPC transaction must commit metadata and ordered Exercise together'
+  'one RPC transaction must commit metadata, Exercise and Set together'
 );
 
 -- Retried exact mutation cannot duplicate Routine or silently overwrite.
@@ -269,7 +287,7 @@ select pg_temp.assert_true(
     'a5350000-0000-4000-8000-000000000011',
     'Routine 1','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )=1, 'same exact RPC call must be idempotent'
 );
 
@@ -279,7 +297,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Changed Name','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, 'P0001', 'same token with different name is not a replay');
 
@@ -289,7 +307,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Routine 1','a5350000-0000-4000-8000-000000000099',
     '[{"id":"a5350000-0000-4000-8000-000000000041",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
   )
 $sql$, 'P0001', 'same Routine UUID with another mutation must fail');
 
@@ -299,7 +317,7 @@ select pg_temp.assert_raises($sql$
     'a5350000-0000-4000-8000-000000000011',
     'Routine 1','a5350000-0000-4000-8000-000000000091',
     '[{"id":"a5350000-0000-4000-8000-000000000045",
-       "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+       "exercise_ref":"ex_squat","sets":[{"id":"a5350000-0000-4000-8000-000000000145","reps":1}]}]'::jsonb
   )
 $sql$, 'P0001', 'same mutation but different entry UUID is not a replay');
 
@@ -311,7 +329,7 @@ select pg_temp.assert_true(
     'a5350000-0000-4000-8000-000000000011',
     'My Custom','a5350000-0000-4000-8000-000000000095',
     '[{"id":"a5350000-0000-4000-8000-000000000046",
-       "exercise_ref":"a5350000-0000-4000-8000-000000000031","sets":[]}]'::jsonb
+       "exercise_ref":"a5350000-0000-4000-8000-000000000031","sets":[{"id":"a5350000-0000-4000-8000-000000000146","reps":1}]}]'::jsonb
   )=1, 'active owner Custom Exercise is eligible for first create'
 );
 
@@ -325,7 +343,7 @@ select pg_temp.assert_true(
     'a5350000-0000-4000-8000-000000000011',
     'My Custom','a5350000-0000-4000-8000-000000000095',
     '[{"id":"a5350000-0000-4000-8000-000000000046",
-       "exercise_ref":"a5350000-0000-4000-8000-000000000031","sets":[]}]'::jsonb
+       "exercise_ref":"a5350000-0000-4000-8000-000000000031","sets":[{"id":"a5350000-0000-4000-8000-000000000146","reps":1}]}]'::jsonb
   )=1, 'same proven create replay remains valid after later archive'
 );
 
