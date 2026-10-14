@@ -858,8 +858,9 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-set-reps-$secondSet')),
         findsOneWidget);
+    // Reordering does not make an otherwise valid optional-target draft invalid.
     expect(tester.widget<TextButton>(
-      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNotNull);
     expect(create.calls, 0);
 
     await tester.ensureVisible(
