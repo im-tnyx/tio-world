@@ -459,3 +459,12 @@ fixtures and adds multi-Add Create/Edit/picker checks. Exact-head Flutter
 CI and independent review **are required**; no installed-device or
 screen-reader QA has run in this session. Existing ownership and DB/
 release/merge gates remain unchanged.
+
+## Owner adjustment: smaller selected Exercise badge (2026-10-14)
+
+Reduce only the Add-mode selected-thumbnail and text-only fallback
+checkmark circle from 24dp to governed 20dp, and its icon from 16dp to
+14dp. Keep the surrounding row tap target/semantics, thumbnail size,
+selected-state colors, browse/Replace modes and Add footer unchanged.
+Add focused widget geometry assertions. Exact-head Flutter CI and physical
+visual/accessibility QA remain required; no merge authorization.

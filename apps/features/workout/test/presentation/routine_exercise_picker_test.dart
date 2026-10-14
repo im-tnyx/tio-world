@@ -176,8 +176,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
     await tester.pumpAndSettle();
     expect(find.text('Add 1 exercise'), findsOneWidget);
-    expect(find.byKey(const ValueKey('exercise-selected-ex_bench_press')),
-        findsOneWidget);
+    final selectedBadge = find.byKey(
+      const ValueKey('exercise-selected-ex_bench_press'));
+    expect(selectedBadge, findsOneWidget);
+    expect(tester.getSize(selectedBadge), const Size(20, 20));
+    expect(tester.widget<Icon>(
+      find.descendant(of: selectedBadge, matching: find.byType(Icon)),
+    ).size, TioSize.dp14);
     await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
