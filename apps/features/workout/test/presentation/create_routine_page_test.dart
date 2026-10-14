@@ -338,7 +338,8 @@ void main() {
     expect(tester.widget<TextButton>(save).onPressed, isNull);
     final swipe = find.byKey(const ValueKey('routine-set-swipe-$set2'));
     final remove = find.byKey(const ValueKey('routine-set-remove-$set2'));
-    expect(tester.widget<TextButton>(remove).onPressed, isNull);
+    expect(remove, findsNothing,
+        reason: 'Delete must not paint at rest');
     await tester.ensureVisible(swipe);
     await tester.drag(swipe, const Offset(-140, 0));
     await tester.pumpAndSettle();
@@ -397,25 +398,25 @@ void main() {
     final secondSwipe = find.byKey(const ValueKey('routine-set-swipe-$second'));
     final firstDelete = find.byKey(const ValueKey('routine-set-remove-$first'));
     final secondDelete = find.byKey(const ValueKey('routine-set-remove-$second'));
-    expect(tester.widget<TextButton>(firstDelete).onPressed, isNull);
-    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+    expect(firstDelete, findsNothing);
+    expect(secondDelete, findsNothing);
 
     await tester.ensureVisible(firstSwipe);
     await tester.drag(firstSwipe, const Offset(-140, 0));
     await tester.pumpAndSettle();
     expect(tester.widget<TextButton>(firstDelete).onPressed, isNotNull);
-    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+    expect(secondDelete, findsNothing);
     expect(find.byKey(const ValueKey('create-routine-set-$first')),
         findsOneWidget);
 
     await tester.drag(secondSwipe, const Offset(-140, 0));
     await tester.pumpAndSettle();
-    expect(tester.widget<TextButton>(firstDelete).onPressed, isNull);
+    expect(firstDelete, findsNothing);
     expect(tester.widget<TextButton>(secondDelete).onPressed, isNotNull);
 
     await tester.drag(secondSwipe, const Offset(140, 0));
     await tester.pumpAndSettle();
-    expect(tester.widget<TextButton>(secondDelete).onPressed, isNull);
+    expect(secondDelete, findsNothing);
     expect(find.byKey(const ValueKey('create-routine-set-$first')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('create-routine-set-$second')),

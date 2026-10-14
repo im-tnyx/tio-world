@@ -395,3 +395,28 @@ Set UUID/callbacks and screen state. Light/OLED 320dp tests now verify
 two progressive reveal widths, unclipped alignment, 38dp height,
 settled width and Delete haptics. No tokens, database writes or new PR.
 Flutter CI and real-device swipe/keyboard QA are still required.
+
+## Owner swipe refinement: 8dp field/Delete gap, visible white label (2026-10-14)
+
+After the dynamic-width capsule fix, the owner observed Delete still
+touched the REPS text field and the label appeared missing. Confirmed
+the feature row gave Delete the *entire* revealed width and gated its
+label on reveal width while disabled during drag. The approved, narrow
+fix is to use the existing `TioSpacing.sm` = 8dp between the moving
+numeric field edge and the red capsule; animate capsule width as
+`max(0, revealed - 8dp)` using the existing shared Tween value.
+Display the `Delete` label explicitly in white, including the
+drag-disabled state, as soon as the available action width reaches
+the existing reveal threshold. Preserve the 38dp painted minimum
+height/field top-bottom alignment, 14dp corner radius, 96dp *total*
+settled reveal (88dp red + 8dp blank), accessible touch/semantics,
+and all haptic and swipe-delete policies. Light/OLED 320dp regression
+asserts gap at 55/125/96dp reveals, the white label, and 38dp vertical
+alignment. Exact-head Flutter CI #38609550012 failed two historical
+Create page tests that still assumed an always-mounted disabled
+Delete widget at rest. This is no longer the approved behavior; update
+only those test expectations to `findsNothing` while keeping their
+post-reveal actionable/delete/no-write assertions. No new PR,
+migration, layout redesign or change to Set fields/persistence.
+Required fresh exact-head full CI, independent review and installed
+device/keyboard/screenshot QA before merge.

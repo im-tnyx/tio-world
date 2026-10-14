@@ -187,25 +187,28 @@ void main() {
       await tester.pump();
       expect(delete, findsOneWidget);
       final shortWidth = tester.getSize(delete).width;
-      expect(shortWidth, closeTo(55, 1));
+      expect(shortWidth, closeTo(55 - TioSpacing.sm, 1));
       // The complete rounded capsule is exposed, not cropped by the
       // displaced Set foreground.
       expect(tester.getTopLeft(delete).dx,
-          closeTo(tester.getTopRight(swipe).dx, 1));
+          closeTo(tester.getTopRight(swipe).dx + TioSpacing.sm, 1),
+          reason: 'Delete needs the same 8dp gap as adjacent numeric fields');
 
       await gesture.moveBy(const Offset(-70, 0));
       await tester.pump();
       final wideWidth = tester.getSize(delete).width;
-      expect(wideWidth, closeTo(125, 1));
+      expect(wideWidth, closeTo(125 - TioSpacing.sm, 1));
       expect(wideWidth, greaterThan(shortWidth));
       expect(tester.getTopLeft(delete).dx,
-          closeTo(tester.getTopRight(swipe).dx, 1));
+          closeTo(tester.getTopRight(swipe).dx + TioSpacing.sm, 1),
+          reason: 'Delete needs the same 8dp gap as adjacent numeric fields');
       expect(deletes, 0,
           reason: 'Drag movement alone must not delete the Set');
       await gesture.up();
       await tester.pumpAndSettle();
-      // A partial swipe snaps to the normal 96dp exposed width.
-      expect(tester.getSize(delete).width, TioSize.dp48 + TioSize.dp48);
+      // The settled 96dp reveal includes 8dp of exposed background gap.
+      expect(tester.getSize(delete).width,
+          TioSize.dp48 + TioSize.dp48 - TioSpacing.sm);
       expect(open, isTrue);
       expect(deletes, 0);
       expect(feedback, contains('HapticFeedbackType.selectionClick'));
@@ -213,6 +216,15 @@ void main() {
       final action = tester.widget<TextButton>(delete);
       expect(action.onPressed, isNotNull);
       expect(action.style!.backgroundColor!.resolve({}), colors.danger);
+      expect(action.style!.foregroundColor!.resolve({}), Colors.white);
+      expect(action.style!.foregroundColor!
+          .resolve({WidgetState.disabled}), Colors.white);
+      final whiteLabel = find.descendant(
+        of: delete, matching: find.text('Delete'),
+      );
+      expect(whiteLabel, findsOneWidget,
+          reason: 'Delete label remains visible after settling');
+      expect(tester.widget<Text>(whiteLabel).style!.color, Colors.white);
       expect(action.style!.minimumSize!.resolve({}),
           const Size(0, TioSize.dp38));
       final shape = action.style!.shape!.resolve({});
@@ -230,6 +242,12 @@ void main() {
       );
       expect(material, findsWidgets);
       expect(tester.getSize(material.first).height, TioSize.dp38);
+      final repsField = find.byKey(const ValueKey('routine-set-reps-$id'));
+      expect(tester.getTopLeft(material.first).dy,
+          closeTo(tester.getTopLeft(repsField).dy, 0.01),
+          reason: 'Delete and REPS top edges must align');
+      expect(tester.getBottomLeft(material.first).dy,
+          closeTo(tester.getBottomLeft(repsField).dy, 0.01));
       await tester.tap(delete);
       await tester.pumpAndSettle();
       expect(deletes, 1);

@@ -158,10 +158,24 @@ need device QA.
 
 The red Delete action starts hidden. While dragging a Set left, its
 rounded shape grows **horizontally** with the exposed row area, staying
-fully visible and precisely attached to the moving field edge; it does
-not crop one rounded corner or become a full-height red strip. Its
+fully visible with the same 8dp gap as the KG/REPS fields; it does
+not touch the moving field, crop its corners or become a red strip. Its
 normal painted minimum height remains **38dp**, with the existing 14dp
 rounded corners. On partial release it settles to the usual 96dp
 Delete width; deliberate full swipe still removes the Set, with
 selection and deletion haptic feedback intact. Physical-device
 validation remains pending.
+
+## Delete action gap, label and height (Draft #551; device QA pending)
+
+Owner clarified that, while swiping, the Delete shape must not stick
+directly to the numeric field: preserve **8dp** of clear space between
+the moving field edge and the red capsule, matching the KG/REPS field
+gap. The capsule still expands with the swipe: its painted width equals
+the revealed region **minus 8dp**, and the settled 96dp reveal therefore
+shows an **88dp** action plus the 8dp gap. The Delete label is
+**explicitly white** while swiping and once revealed (including the
+temporarily disabled drag state). Its 14dp corner radius and
+**38dp painted minimum height** align vertically with KG/REPS fields.
+Short swipe/tap, full-swipe deletion and the two haptic stages are
+unchanged. Real device screenshot/touch verification is still pending.

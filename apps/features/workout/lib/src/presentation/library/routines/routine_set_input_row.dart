@@ -467,7 +467,14 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               : const Duration(milliseconds: TioDuration.ms180),
           curve: Curves.easeOutCubic,
           child: foreground,
-          builder: (context, revealed, child) => Stack(
+          builder: (context, revealed, child) {
+            // Match the 8dp spacing between boxed KG and REPS fields.
+            // Both boundaries move using the same reveal animation so the
+            // rounded Delete shape stays visible without touching the field.
+            final actionWidth = revealed > TioSpacing.sm
+                ? revealed - TioSpacing.sm
+                : 0.0;
+            return Stack(
             children: [
               Positioned.fill(
                 child: Padding(
@@ -475,10 +482,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: SizedBox(
-                      // During drag the red capsule grows exactly with the
-                      // uncovered row. No fixed hidden pill or clipped end.
-                      width: revealed,
-                      child: revealed <= 0
+                      // Leave an 8dp gap to the displaced numeric field.
+                      // The capsule grows with swipe distance, less that gap.
+                      width: actionWidth,
+                      child: actionWidth <= 0
                           ? const SizedBox.shrink()
                           : TextButton(
                               key: ValueKey(
@@ -487,10 +494,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                               style: TextButton.styleFrom(
                                 backgroundColor: colors.danger,
                                 disabledBackgroundColor: colors.danger,
-                                foregroundColor:
-                                    Theme.of(context).colorScheme.onError,
-                                disabledForegroundColor:
-                                    Theme.of(context).colorScheme.onError,
+                                // Text stays white while the action is
+                                // disabled during dragging and when opened.
+                                foregroundColor: Colors.white,
+                                disabledForegroundColor: Colors.white,
                                 minimumSize: const Size(0, TioSize.dp38),
                                 padding: EdgeInsets.zero,
                                 shape: RoundedRectangleBorder(
@@ -502,8 +509,11 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                               onPressed: widget.enabled && widget.isOpen
                                   ? _delete
                                   : null,
-                              child: revealed >= _threshold
-                                  ? const Text('Delete')
+                              child: actionWidth >= _threshold
+                                  ? const Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.white),
+                                    )
                                   : const SizedBox.shrink(),
                             ),
                     ),
@@ -515,7 +525,8 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 child: child,
               ),
             ],
-          ),
+          );
+          },
         ),
       ),
     );
