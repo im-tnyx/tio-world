@@ -8,6 +8,5 @@ export 'routines/create_routine_page.dart';
 export 'routines/edit_routine_page.dart';
 export 'routines/routine_set_editor_sheet.dart';
 export 'routines/routine_exercise_picker_controller.dart';
-export 'routines/routine_exercise_picker_page.dart';
 export 'routines/routine_detail_page.dart';
 export 'routines/routine_set_input_row.dart';
