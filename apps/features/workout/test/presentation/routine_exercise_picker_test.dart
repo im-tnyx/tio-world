@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
@@ -149,12 +150,15 @@ void main() {
     );
     await tester.tap(find.text('Open picker'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-exercise-picker-page')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    expect(find.text('Add Exercise'), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercise-create')), findsNothing);
     expect(find.text('My Lift'), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('routine-exercise-picker-search')),
+      find.byKey(const ValueKey('exercises-search')),
       'my',
     );
     await tester.pumpAndSettle();
@@ -189,31 +193,36 @@ void main() {
     expect(user.writeCalls, 0);
   });
 
-  testWidgets('source error disables selection until retry', (tester) async {
-    var reads = 0;
+  testWidgets('source failure never exposes a partial selectable list',
+      (tester) async {
     final catalog = _Catalog(() async {
-      if (reads++ == 0) throw StateError('offline');
-      return ExerciseCatalog([_catalogExercise()]);
+      throw StateError('offline');
     });
+    final picked = <Exercise>[];
     await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.light),
-          child: child ?? const SizedBox.shrink(),
+      ProviderScope(
+        overrides: [
+          exerciseCatalogRepositoryProvider.overrideWithValue(catalog),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: ExercisesPage(
+            onExerciseSelected: picked.add,
+          ),
         ),
-        home: RoutineExercisePickerPage(catalogRepository: catalog),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-exercise-picker-failed')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    expect(find.text(ExercisesPage.failedMessage), findsOneWidget);
     expect(find.text('Bench Press'), findsNothing);
-    await tester.tap(
-      find.byKey(const ValueKey('routine-exercise-picker-retry')),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Bench Press'), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-list')), findsNothing);
+    expect(picked, isEmpty);
   });
+
 }
 
 Future<void> _pumpLauncher(
@@ -236,9 +245,17 @@ Future<void> _pumpLauncher(
             onPressed: () async {
               final result = await Navigator.of(context).push<Exercise>(
                 MaterialPageRoute(
-                  builder: (_) => RoutineExercisePickerPage(
-                    catalogRepository: catalog,
-                    userExerciseRepository: user,
+                  builder: (routeContext) => ProviderScope(
+                    overrides: [
+                      exerciseCatalogRepositoryProvider.overrideWithValue(
+                        catalog,
+                      ),
+                    ],
+                    child: ExercisesPage(
+                      userExerciseRepository: user,
+                      onExerciseSelected: (exercise) =>
+                          Navigator.of(routeContext).pop<Exercise>(exercise),
+                    ),
                   ),
                 ),
               );
