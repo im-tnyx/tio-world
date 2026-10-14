@@ -88,3 +88,17 @@ reused the same eight `gen_random_uuid()` Set IDs in all 44 entries.
 Make each Set ID deterministic and distinct from the outer Exercise
 index plus inner Set index, using a v4-shaped test UUID. Keep the 44x8
 stress and production 8-Set CHECK unchanged. Re-run full database CI.
+
+## Rich-overwrite guard fixture isolation (2026-10-14, CI pending)
+
+#540 exact-head database CI #38580154770 passed TNYX-509 after the
+unique Set ID repair, then failed the new combined SQL matrix at the
+eight-Set positive case with `routine_composition_legacy_rich_set_overwrite`.
+The matrix had reused its first Routine containing rich KM/TIME Sets for
+a new full-snapshot replacement that dropped those measurements. This
+is a **correct fail-closed data-integrity guard**, not a schema failure.
+Move only the 8/9-Set Save cases into a separate ordinary atomic-created
+Routine with distinct stable IDs, leaving the original rich/nullable
+Routine and its preservation tests intact. Production RPC, RLS, CHECK,
+and legacy-overwrite protection remain untouched. Full exact-head CI
+must pass before any merge decision; no hosted DB deployment.

@@ -155,13 +155,29 @@ select pg_temp.assert_true(
   '8-Set per Exercise DB guard installed without historical rewrite'
 );
 
+-- Use a separate freshly created Routine for the cardinality test.
+-- The prior Routine contains rich treadmill/plank measurements: the legacy
+-- full-snapshot overwrite guard must continue protecting those values.
+select pg_temp.assert_true(
+  public.create_user_workout_routine_with_composition(
+    'a5400000-0000-4000-8000-000000000024',
+    'a5400000-0000-4000-8000-000000000011',
+    'Eight Set Cap Fixture',
+    'a5400000-0000-4000-8000-000000000096',
+    '[{"id":"a5400000-0000-4000-8000-000000000047",
+       "exercise_ref":"ex_bench_press","sets":[
+       {"id":"a5400000-0000-4000-8000-000000000054",
+        "reps":8,"set_type":"normal"}]}]'::jsonb
+  ) = 1, 'isolated ordinary Routine starts at revision one'
+);
+
 -- Existing owner can save exactly eight Sets in a single Exercise.
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
-    'a5400000-0000-4000-8000-000000000021', 1,
+    'a5400000-0000-4000-8000-000000000024', 1,
     'a5400000-0000-4000-8000-000000000093',
     pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
-      'id', 'a5400000-0000-4000-8000-000000000041',
+      'id', 'a5400000-0000-4000-8000-000000000047',
       'exercise_ref', 'ex_bench_press',
       'sets', (
         select pg_catalog.jsonb_agg(
@@ -185,10 +201,10 @@ select pg_temp.assert_true(
 -- A ninth Set is rejected even if an outdated client bypasses Add Set UI.
 select pg_temp.assert_raises($sql$
   select public.save_user_workout_routine_composition(
-    'a5400000-0000-4000-8000-000000000021', 2,
+    'a5400000-0000-4000-8000-000000000024', 2,
     'a5400000-0000-4000-8000-000000000094',
     pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
-      'id', 'a5400000-0000-4000-8000-000000000041',
+      'id', 'a5400000-0000-4000-8000-000000000047',
       'exercise_ref', 'ex_bench_press',
       'sets', (
         select pg_catalog.jsonb_agg(
@@ -206,7 +222,7 @@ $sql$, '23514', 'Save must reject ninth Set under CHECK constraint');
 select pg_temp.assert_true(
   (select composition_revision = 2
    from public.user_workout_routines
-   where id = 'a5400000-0000-4000-8000-000000000021')
+   where id = 'a5400000-0000-4000-8000-000000000024')
   and (select count(*) = 8 from public.user_workout_routine_sets
        where user_id = 'a5400000-0000-4000-8000-000000000001'),
   'rejected ninth Set leaves existing Save atomic and unchanged'
