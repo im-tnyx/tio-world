@@ -800,8 +800,9 @@ void main() {
         findsNothing);
     expect(find.byKey(const ValueKey('create-routine-options-$firstEntry')),
         findsOneWidget);
+    // Two identified Exercises and Sets are enough, without targets.
     expect(tester.widget<TextButton>(
-      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+      find.byKey(const ValueKey('create-routine-save'))).onPressed, isNotNull);
 
     final first = find.byKey(const ValueKey('create-routine-entry-$firstEntry'));
     final second = find.byKey(const ValueKey('create-routine-entry-$secondEntry'));
