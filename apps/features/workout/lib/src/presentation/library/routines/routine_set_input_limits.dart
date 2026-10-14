@@ -42,4 +42,40 @@ abstract final class RoutineSetInputLimits {
     (previous, proposed) =>
         _weightPattern.hasMatch(proposed.text) ? proposed : previous,
   );
+
+  /// TIME text uses an explicit minutes:seconds target (e.g. 12:30).
+  /// A partial field can remain visible while typing but blocks Save.
+  /// At most 6 minute digits; even 999999:59 fits the int32 SQL contract.
+  static final RegExp _timeDraftPattern =
+      RegExp(r'^[0-9]{0,6}(?::[0-5]?[0-9]?)?$');
+  static final RegExp _timeCompletePattern =
+      RegExp(r'^([0-9]{1,6}):([0-5][0-9])$');
+  static final TextInputFormatter time = TextInputFormatter.withFunction(
+    (previous, proposed) => _timeDraftPattern.hasMatch(proposed.text)
+        ? proposed
+        : previous,
+  );
+
+  static int? parseDurationSeconds(String text) {
+    final match = _timeCompletePattern.firstMatch(text.trim());
+    if (match == null) return null;
+    final minutes = int.tryParse(match.group(1)!);
+    final seconds = int.tryParse(match.group(2)!);
+    if (minutes == null || seconds == null) return null;
+    final total = minutes * 60 + seconds;
+    return total <= maxInt32 ? total : null;
+  }
+
+  static String displayDurationSeconds(int? seconds) {
+    if (seconds == null) return '';
+    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+  }
+
+  /// Canonical meters -> KM up to the governed 3-digit fractional UI cap.
+  static String displayDistanceKm(double? meters) {
+    if (meters == null) return '';
+    return (meters / 1000).toStringAsFixed(3)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
 }
