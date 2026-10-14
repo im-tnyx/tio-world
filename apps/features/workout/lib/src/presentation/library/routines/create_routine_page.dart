@@ -32,6 +32,7 @@ class CreateRoutinePage extends StatefulWidget {
     this.viewerMediaGender,
     this.routineRepository,
     this.compositionRepository,
+    this.onUnconfirmedExit,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -46,6 +47,9 @@ class CreateRoutinePage extends StatefulWidget {
   final ExerciseMediaGender? viewerMediaGender;
   final RoutineRepository? routineRepository;
   final RoutineCompositionRepository? compositionRepository;
+  /// App composition uses this to refresh the Program after an explicitly
+  /// unconfirmed Create exit; this does not mean a write was acknowledged.
+  final VoidCallback? onUnconfirmedExit;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -67,6 +71,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   // positive Reps, so its internal minimum is not interpreted as user input.
   final Set<String> _untouchedRepSetIds = {};
   String? _openSetId;
+  bool _unknownExitPromptOpen = false;
 
   @override
   void initState() {
@@ -348,6 +353,50 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     });
   }
 
+  // An RPC can commit before its response is lost. A normal Cancel/Back must
+  // not silently discard the frozen mutation and suggest that no write
+  // happened. Leaving is deliberate, followed by an owner-scoped list refresh.
+  Future<void> _confirmUnknownExit() async {
+    if (!mounted || _unknownExitPromptOpen ||
+        _draft.state.status != RoutineCreateStatus.outcomeUnknown) {
+      return;
+    }
+    _unknownExitPromptOpen = true;
+    try {
+      final leave = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Routine save not confirmed'),
+          content: const Text(
+            'This Routine may already have been saved. Check your Program '
+            'before creating another Routine.',
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('create-routine-stay-unconfirmed'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Keep verifying'),
+            ),
+            TextButton(
+              key: const ValueKey('create-routine-exit-unconfirmed'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Exit and check Program'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || leave != true ||
+          _draft.state.status != RoutineCreateStatus.outcomeUnknown ||
+          (widget.canWrite != null && !widget.canWrite!())) {
+        return;
+      }
+      widget.onUnconfirmedExit?.call();
+      Navigator.of(context).pop<bool>(false);
+    } finally {
+      _unknownExitPromptOpen = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -356,7 +405,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final canSave = _enabled && _draft.state.canSave &&
         _invalidSetIds.isEmpty && _rangeCanSave;
     return PopScope(
-      canPop: !locked,
+      canPop: !locked && status != RoutineCreateStatus.outcomeUnknown,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && status == RoutineCreateStatus.outcomeUnknown) {
+          unawaited(_confirmUnknownExit());
+        }
+      },
       child: Scaffold(
         key: const ValueKey('create-routine-page'),
         backgroundColor: colors.background,
@@ -374,7 +428,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 key: const ValueKey('create-routine-cancel'),
                 onPressed: locked
                     ? null
-                    : () => Navigator.of(context).pop<bool>(false),
+                    : status == RoutineCreateStatus.outcomeUnknown
+                        ? _confirmUnknownExit
+                        : () => Navigator.of(context).pop<bool>(false),
                 child: const Text('Cancel'),
               ),
               Expanded(
