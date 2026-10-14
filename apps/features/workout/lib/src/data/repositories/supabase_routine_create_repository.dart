@@ -60,13 +60,22 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
           reason: RoutineCompositionSaveUncertainty.authChanged,
         );
       }
-      // Definite SQL/auth rejection: no second write or fake local success.
-      if (const ['28000', '42501', '22023', 'P0001', 'P0002',
-                  '23503', '23505', 'PGRST202', '401', '403']
-          .contains(error.code)) {
-        throw const RoutineCompositionException(
+      // Mirror the composition adapter: these are definite SQL/Auth
+      // rejections (including PostgREST JWT failures), not ambiguous writes.
+      // Preserve outcomeUnknown for transport/5xx or malformed 2xx only.
+      final kind = switch (error.code) {
+        '28000' || '28P01' || '401' ||
+        'PGRST301' || 'PGRST302' || 'PGRST303' =>
+          RoutineCompositionFailureKind.unauthorized,
+        '42501' || '403' =>
+          RoutineCompositionFailureKind.forbidden,
+        '22023' || '22P02' || '22003' || '23514' ||
+        '23503' || '23505' || 'P0001' || 'P0002' || 'PGRST202' =>
           RoutineCompositionFailureKind.invalidRequest,
-        );
+        _ => null,
+      };
+      if (kind != null) {
+        throw RoutineCompositionException(kind);
       }
       // Transport/5xx/malformed 2xx can follow a committed DB transaction.
       throw const RoutineCompositionSaveOutcomeUnknown();
