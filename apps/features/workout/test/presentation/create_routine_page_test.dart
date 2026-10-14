@@ -1011,8 +1011,7 @@ void main() {
     expect(find.text('Routine save not confirmed'), findsOneWidget);
     expect(find.byType(CreateRoutinePage), findsOneWidget);
     expect(create.calls, 1);
-    await tester.tap(find.byKey(
-      const ValueKey('create-routine-stay-unconfirmed')));
+    await tester.tap(find.text('Keep verifying'));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsOneWidget);
 
@@ -1022,8 +1021,7 @@ void main() {
     expect(find.text('Routine save not confirmed'), findsOneWidget);
     expect(create.calls, 1);
     expect(create.command!.mutationId, firstMutation);
-    await tester.tap(find.byKey(
-      const ValueKey('create-routine-exit-unconfirmed')));
+    await tester.tap(find.text('Exit to Program'));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);
     expect(exits, 1);
