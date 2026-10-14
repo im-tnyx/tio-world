@@ -726,6 +726,7 @@ class _EntryTable extends StatelessWidget {
         Row(children: [
           Expanded(
             child: Semantics(
+              key: ValueKey('edit-routine-reorder-semantics-${entry.id}'),
               customSemanticsActions: enabled ? {
                 if (canMoveUp)
                   const CustomSemanticsAction(label: 'Move exercise up'): moveUp,
