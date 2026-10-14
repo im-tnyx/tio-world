@@ -380,6 +380,10 @@ List<RouteBase> _shellBranchChildRoutes(
                                   }
                                   var revoked = false;
                                   var exitedUnconfirmed = false;
+                                  // Scoped to the opening owner/login cycle.
+                                  // Transient Profile errors must not replace
+                                  // this route's unsaved Create controller.
+                                  WeightUnit? lastVerifiedUnit;
                                   final confirmed = await Navigator.of(context)
                                       .push<bool>(MaterialPageRoute(
                                     builder: (_) => Consumer(
@@ -436,11 +440,17 @@ List<RouteBase> _shellBranchChildRoutes(
                                         }
                                         final profile =
                                             ref.watch(profileDataProvider);
-                                        final unit = authorized &&
+                                        final resolvedUnit = authorized &&
                                                 !profile.isLoading &&
                                                 !profile.hasError
                                             ? profile.valueOrNull
                                                 ?.unitPreferences.weightUnit
+                                            : null;
+                                        if (resolvedUnit != null) {
+                                          lastVerifiedUnit = resolvedUnit;
+                                        }
+                                        final unit = authorized
+                                            ? lastVerifiedUnit
                                             : null;
                                         if (!authorized || unit == null) {
                                           return const Scaffold(

@@ -242,3 +242,16 @@ threshold and vertical scroll gesture behavior must pass existing tests.
 This source was not locally Flutter-tested; exact-head Flutter CI and
 independent review remain mandatory. Reconcile all current #551 changes
 with #540's merged main without overwriting its migrations or DB CI/tests.
+
+## P1 same-owner Profile refresh Create preservation (2026-10-14)
+
+Newest #551 P1 review found that a transient `profileDataProvider`
+loading/error replaced the still-authorized Create widget with a
+Scaffold, disposing the draft/frozen atomic mutation identity.
+Fix: keep the last verified weight unit scoped **only to this opening
+owner/login-cycle Create route**, and reuse it through transient Profile
+loading/error. A subsequent verified unit replaces the display unit
+without remounting Create; loss/change of Auth identity still removes
+the private route. Added app route test for error then recovery while
+preserving typed draft name and Create widget. Source/test ready for
+exact-head Flutter CI; no claim physical QA or release safety yet.

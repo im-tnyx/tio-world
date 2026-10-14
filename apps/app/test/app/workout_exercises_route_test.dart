@@ -696,6 +696,48 @@ void main() {
     );
   });
 
+  testWidgets('same-owner Profile failure preserves Create draft and unit',
+      (tester) async {
+    final profileEvents = StreamController<ProfileSetupData?>.broadcast();
+    addTearDown(profileEvents.close);
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      sameOwnerProfiles: profileEvents.stream,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    final name = find.byKey(const ValueKey('create-routine-name'));
+    await tester.enterText(name, 'Preserved across Profile failure');
+    await tester.pump();
+    profileEvents.addError(StateError('transient Profile read failed'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(tester.widget<TioInput>(name).controller!.text,
+        'Preserved across Profile failure');
+    profileEvents.add(_routineUnitProfile(WeightUnit.kg));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(tester.widget<TioInput>(name).controller!.text,
+        'Preserved across Profile failure');
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    expect(find.text('KG'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'lost atomic Create ACK requires explicit exit and refreshes Program',
       (tester) async {
@@ -1265,6 +1307,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool loseCreateAcknowledgment = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
+  Stream<ProfileSetupData?>? sameOwnerProfiles,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
@@ -1324,7 +1367,13 @@ Future<(ProviderContainer, GoRouter)> _app(
           final session = ref.watch(authSessionStateProvider).valueOrNull;
           if (session is AuthSessionAuthenticated &&
               session.session.userId == 'test-user') {
-            return Stream.value(_routineUnitProfile(WeightUnit.lb));
+            if (sameOwnerProfiles == null) {
+              return Stream.value(_routineUnitProfile(WeightUnit.lb));
+            }
+            return (() async* {
+              yield _routineUnitProfile(WeightUnit.lb);
+              yield* sameOwnerProfiles;
+            })();
           }
           return switchedOwnerProfiles ??
               Stream<ProfileSetupData?>.value(null);
