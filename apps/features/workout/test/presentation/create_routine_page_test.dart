@@ -33,6 +33,9 @@ void main() {
         newUuid: () => uuids[index++],
       ),
     ));
+    expect(find.byKey(const ValueKey('routine-composer-screen')),
+        findsOneWidget);
+    expect(find.text('Create Routine'), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey('create-routine-add-exercise')),
     );

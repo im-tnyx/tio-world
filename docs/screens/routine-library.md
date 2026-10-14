@@ -100,3 +100,20 @@ unchanged; Edit writes only after explicit Update. Current-owner/Custom
 preflight, auth/session revocation, eight-Set cap, and nullable target
 contracts remain in force. Exact-head CI and physical visual QA are pending.
 This is unmerged client behavior, not a shipped app capability.
+
+## One Create/Edit Routine screen on Draft #551 (2026-10-14)
+
+Owner explicitly rejected separately maintained Create and Edit screen UI.
+The existing Draft #551 uses a **single `RoutineComposerScreen`,
+`RoutineComposerContent` and `RoutineComposerExerciseCard`** for both
+routes, including the title bar, ordered Exercises, column headings, Set rows,
+the 40dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
+composition is configured in Create mode (`Create Routine`, empty draft,
+atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine, read-only
+PREVIOUS column and revision-guarded Update). Existing Create/Edit route
+entrypoint state owners remain thin adapters for different auth/persistence,
+Custom preflight, unknown-write resolution and validation rules. This avoids
+duplicated visual implementations without incorrectly unifying two distinct
+database commands. No new DB schema, service, route, watch UI or visual redesign
+is authorized. The implementation is Draft until exact-head Flutter CI,
+review and device screenshot QA pass.

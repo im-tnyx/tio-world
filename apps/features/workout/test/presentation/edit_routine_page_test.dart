@@ -145,6 +145,9 @@ void main() {
       });
       final f = _Fixtures();
       await f.open(tester, mode: mode);
+      expect(find.byKey(const ValueKey('routine-composer-screen')),
+          findsOneWidget);
+      expect(find.text('Edit Routine'), findsOneWidget);
       final add = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
       await tester.ensureVisible(add);
       final filled = find.descendant(of: add, matching: find.byType(FilledButton));

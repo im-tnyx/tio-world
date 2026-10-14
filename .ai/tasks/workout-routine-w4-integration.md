@@ -166,3 +166,30 @@ Validation: source/tests staged for one atomic commit on existing #551 branch.
 No local Flutter SDK/worktree in this connected session. Exact-head Flutter CI,
 independent review and manual device visual/accessibility checks remain
 required. Previous W4 DB/old-client compatibility gates remain unchanged.
+
+## Owner approval: one screen, not two UI implementations (2026-10-14)
+
+User requested that Create/Edit Routine use one screen; the title changes
+to `Edit Routine` in edit mode. Owner explicitly rejected two duplicated
+screen implementations. This is an approved presentation-consolidation
+slice in existing #551, not a new PR or data-model change.
+
+Source finding: before consolidation Create and Edit each had independent
+`Scaffold` headers, `CustomScrollView`/reorder lists and ~150-line
+Exercise/Set card compositions with diverging layout. Reuse the
+`RoutineComposerScreen` (single Scaffold/chassis), `RoutineComposerContent`
+(single ordered list), `RoutineComposerExerciseCard` (one Set header and
+Add Set layout) and existing shared `RoutineSetInputRow`. Preserve existing
+route keys and test selectors for compatibility. Create/Edit page classes
+remain state/persistence adapters only; they do **not** maintain a second
+Exercise card, reorder list, Scaffold or Set table. Create retains
+atomic-create idempotency/unknown-outcome Back blocking; Edit retains
+owner-scope reads, revision/mutation/Custom preflight and Update-only writes.
+Edit alone shows the truthful PREVIOUS dash (not fake performed history).
+Keep approved 40dp and eight-Set policy, user-owned Exercise picker and
+Replace/Remove actions. No schema migration or runtime deployment.
+
+Validation: source and focused page assertions written; remote staging is
+not Flutter execution. Exact-head Flutter Analyze/full tests, independent
+review, accessibility/320dp light/OLED visual comparison and old-client DB
+rollout checks are pending. Do not claim merge-ready or deployed.
