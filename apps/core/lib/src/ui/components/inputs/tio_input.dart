@@ -464,7 +464,7 @@ class _TioInputState extends State<TioInput> {
             ),
           );
 
-    return TextFormField(
+    final field = TextFormField(
       controller: _controller,
       onChanged: widget.onChanged,
       focusNode: _focusNode,
@@ -557,8 +557,11 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding ??
                   (isCompactNumeric
                       ? EdgeInsets.symmetric(
+                          // Give the outlined numeric cell enough actual
+                          // vertical content padding to match a filled SET
+                          // box rather than appearing like a thin strip.
                           vertical: isBoxedNumber
-                              ? TioSpacing.xs
+                              ? TioSpacing.md
                               : TioInputTokens.compactContentVerticalPadding,
                           horizontal:
                               TioInputTokens.compactContentHorizontalPadding,
@@ -569,6 +572,17 @@ class _TioInputState extends State<TioInput> {
                               TioInputTokens.standardContentVerticalPadding,
                         )),
             ),
+    );
+    if (!isBoxedNumber) return field;
+    // The outlined numeric cell owns its minimum visible size and shrinks to
+    // its contents when a parent provides more vertical space. Default 44dp
+    // remains a minimum; accessibility text may naturally grow taller.
+    return Align(
+      heightFactor: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: TioSize.dp44),
+        child: field,
+      ),
     );
   }
 }
