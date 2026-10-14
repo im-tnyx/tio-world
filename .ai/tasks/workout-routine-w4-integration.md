@@ -206,3 +206,17 @@ triggered mandatory `curly_braces_in_flow_control_structures` lint. Fix
 only these precise source errors. **CI failure is not a pass**; rerun
 exact-head Flutter analyze and full tests before a review/merge decision.
 Database PR #540 owns SQL/schema compatibility and its independent CI.
+
+## Shared reorder-list Key correction (2026-10-14; exact-head CI pending)
+
+Exact-head Flutter CI #38579814984 passed the analyzer after prior
+syntax/import fixes, but **FAILED** the Flutter app tests (402 passed,
+9 failed). All nine were rooted in the shared `SliverReorderableList`
+assertion `All list items must have a key`: the itemBuilder now
+returned an unkeyed `RoutineComposerExerciseCard`, whose *inner*
+Padding carried the entry key. Move each prior stable entry ValueKey
+to the top-level card widget returned by the itemBuilder, remove the
+duplicate child key, and preserve all existing test selectors.
+This is one shared-component defect, not nine unrelated route defects.
+Require fresh exact-head Flutter Analyze and full tests; no merge or
+release claim until verified.

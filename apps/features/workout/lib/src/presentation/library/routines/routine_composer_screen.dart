@@ -215,7 +215,6 @@ class RoutineComposerExerciseCard extends StatelessWidget {
         (entry.sets.isNotEmpty &&
             entry.sets.first.prescription.isRepRange);
     return Padding(
-      key: ValueKey('$prefix-entry-${entry.id}'),
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

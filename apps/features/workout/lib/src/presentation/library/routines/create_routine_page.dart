@@ -578,6 +578,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             gender: widget.viewerMediaGender,
           );
     return RoutineComposerExerciseCard(
+      key: ValueKey('create-routine-entry-${entry.id}'),
       mode: RoutineComposerMode.create,
       entry: entry,
       index: position,

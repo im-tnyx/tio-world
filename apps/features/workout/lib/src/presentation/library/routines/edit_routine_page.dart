@@ -632,6 +632,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     final exerciseType = found?.exerciseType;
     return RoutineComposerExerciseCard(
+      key: ValueKey('edit-routine-entry-${entry.id}'),
       mode: RoutineComposerMode.edit,
       entry: entry,
       index: position,
