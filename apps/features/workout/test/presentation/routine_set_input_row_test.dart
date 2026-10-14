@@ -104,6 +104,68 @@ void main() {
       }
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('Edit PREVIOUS Set number is blue and unboxed without '
+        'shrinking its 44dp tap target in ${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      const id = '55555555-5555-4555-8555-555555555555';
+      var selections = 0;
+      final palette =
+          mode == TioThemeMode.dark ? TioColors.oled : TioColors.light;
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: RoutineSetInputRow(
+            set: RoutineCompositionSet(
+              id: id,
+              prescription: SetPrescription(reps: 8),
+            ),
+            index: 0,
+            normalNumber: 1,
+            onTypePressed: () => selections++,
+            unit: WeightUnit.kg,
+            enabled: true,
+            showPrevious: true,
+            isOpen: false,
+            onOpenChanged: (_) {},
+            onChanged: (_) {},
+            onValidityChanged: (_) {},
+            onRemove: () {},
+          ),
+        ),
+      ));
+      final setBox = find.byKey(const ValueKey('routine-set-type-box-$id'));
+      final decoration =
+          tester.widget<Container>(setBox).decoration! as BoxDecoration;
+      expect(decoration.color, isNull,
+          reason: 'Edit SET is unboxed, unlike the Create filled badge');
+      expect(tester.getSize(setBox).height, TioSize.dp44);
+      expect(tester.getSize(setBox).width, TioSize.dp44);
+      final number = find.descendant(of: setBox, matching: find.text('1'));
+      expect(number, findsOneWidget);
+      expect(tester.widget<Text>(number).style!.color, palette.primary);
+      final weight = find.byKey(const ValueKey('routine-set-weight-$id'));
+      final reps = find.byKey(const ValueKey('routine-set-reps-$id'));
+      for (final input in [weight, reps]) {
+        expect(tester.getSize(input).height, TioSize.dp44);
+        final outline = find.descendant(
+          of: input, matching: find.byType(InputDecorator),
+        );
+        expect(tester.getSize(outline).height, TioSize.dp44);
+      }
+      await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
+      expect(selections, 1,
+          reason: 'Edit blue number must still open Set Type selection');
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('inline row preserves kg when lb display is unchanged', (tester) async {
