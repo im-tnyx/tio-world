@@ -509,7 +509,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
             child: InkWell(
               key: ValueKey('routine-set-type-${widget.set.id}'),
               onTap: widget.enabled ? widget.onTypePressed : null,
-              borderRadius: BorderRadius.circular(TioRadius.md),
+              borderRadius: BorderRadius.circular(TioInputTokens.radius),
               // Constrain painted SET surface to its content, not the
               // viewport's loose max-height. The 38dp minimum remains and
               // larger accessibility text can still grow this control.
@@ -527,7 +527,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                       // Edit/PREVIOUS reference instead shows an unboxed blue
                       // number; preserve the same 38dp visual footprint.
                       color: widget.showPrevious ? null : colors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(TioRadius.md),
+                      borderRadius: BorderRadius.circular(TioInputTokens.radius),
                     ),
                     child: Text(
                       switch (widget.set.prescription.setType) {

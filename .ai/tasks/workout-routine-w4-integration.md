@@ -335,3 +335,18 @@ Core, 320dp Create/Edit light/OLED and row geometry tests now assert
 38dp. No token, database migration, new PR or unrelated UI redesign.
 Exact-head CI and physical compact/light/OLED/large-text QA remain
 required before merge.
+
+## Owner-approved SET/Input corner radius match (2026-10-14; CI pending)
+
+After the 38dp geometry change, owner observed a mismatch between the
+SET-number box and boxed numeric input corners. Source audit proved the
+feature-local badge used `TioRadius.md` = 12dp for both decoration and
+InkWell, while Core `TioInput.boxedNumber` has a governed
+`TioInputTokens.radius` = 14dp. Align the badge decoration and InkWell
+to the existing Core 14dp input radius (do **not** restyle Core/global
+inputs). Add a light/OLED widget assertion checking painted SET, focused
+and unfocused KG/REPS border radii and InkWell share that value.
+Keep Edit's unboxed blue number; preserve 38dp heights and widths,
+accessible growth, press behavior and all model/DB rules. No new token,
+schema migration or PR. Exact-head Flutter CI and physical screenshot
+verification required.

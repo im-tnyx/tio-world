@@ -75,8 +75,12 @@ void main() {
             as BoxDecoration;
         expect(decoration.color, palette.surfaceVariant);
         expect(decoration.color, isNot(palette.background));
-        expect(decoration.borderRadius,
-            BorderRadius.circular(TioRadius.md));
+        final expectedRadius = BorderRadius.circular(TioInputTokens.radius);
+        expect(decoration.borderRadius, expectedRadius,
+            reason: 'SET surface and boxed KG/REPS outlines must match');
+        final setTap = find.byKey(ValueKey('routine-set-type-${ids[index]}'));
+        expect(tester.widget<InkWell>(setTap).borderRadius, expectedRadius,
+            reason: 'Ink/tap clipping must follow the painted SET radius');
         expect(tester.getSize(box).width, TioSize.dp38);
         final setHeight = tester.getSize(box).height;
         final weight = find.byKey(
@@ -96,6 +100,17 @@ void main() {
           );
           expect(outline, findsOneWidget);
           expect(tester.getSize(outline).height, setHeight);
+          final field = tester.widget<TextField>(
+            find.descendant(of: input, matching: find.byType(TextField)),
+          );
+          final enabledBorder = field.decoration!.enabledBorder;
+          final focusedBorder = field.decoration!.focusedBorder;
+          expect(enabledBorder, isA<OutlineInputBorder>());
+          expect(focusedBorder, isA<OutlineInputBorder>());
+          expect((enabledBorder! as OutlineInputBorder).borderRadius,
+              decoration.borderRadius);
+          expect((focusedBorder! as OutlineInputBorder).borderRadius,
+              decoration.borderRadius);
           expect(tester.getTopLeft(outline).dy,
               closeTo(tester.getTopLeft(box).dy, 0.01),
               reason: 'Visible SET and outlined input top edges must align');

@@ -127,3 +127,14 @@ keyboard explicitly dismisses focus on a visible-to-hidden IME event
 rather than leaving a numeric field permanently selected. Typed values
 are retained. This does not change the 38dp layout, visual styling,
 nullable Set targets, or generic TioInput forms.
+
+## SET badge and boxed input corner alignment (Draft #551; device QA pending)
+
+The Create Routine SET-number filled badge and KG/LB/REPS/Range/KM/TIME
+outlined input fields use one matching **14dp** corner radius, governed
+by Core `TioInputTokens.radius`. The Set number's InkWell splash/tap
+shape follows that same radius. The previous Set number used
+`TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
+numeric outlines. Edit retains its approved unboxed blue Set number.
+38dp visible minimum heights and widths, 8-Set cap, input/focus
+behavior, button shapes, and all persistence contracts remain unchanged.
