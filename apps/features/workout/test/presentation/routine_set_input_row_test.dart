@@ -44,9 +44,30 @@ void main() {
                 onValidityChanged: (_) {},
                 onRemove: () {},
               ),
+            TioButton.supporting(
+              key: const ValueKey('test-add-set'),
+              label: 'Add Set',
+              leading: const Icon(Icons.add),
+              expand: true,
+              onPressed: () {},
+            ),
           ]),
         ),
       ));
+      final addSet = find.byKey(const ValueKey('test-add-set'));
+      final filledButton = find.descendant(
+        of: addSet,
+        matching: find.byType(FilledButton),
+      );
+      expect(filledButton, findsOneWidget);
+      // The default Material tap area can exceed the visual button body.
+      // Match the actual filled Material surface, not just the style token.
+      final filledSurface = find.descendant(
+        of: filledButton,
+        matching: find.byType(Material),
+      );
+      expect(filledSurface, findsWidgets);
+      expect(tester.getSize(filledSurface.first).height, TioSize.dp44);
       for (var index = 0; index < ids.length; index++) {
         final box = find.byKey(ValueKey('routine-set-type-box-${ids[index]}'));
         expect(box, findsOneWidget);
@@ -57,8 +78,17 @@ void main() {
         expect(decoration.borderRadius,
             BorderRadius.circular(TioRadius.md));
         expect(tester.getSize(box).width, TioSize.dp44);
-        expect(tester.getSize(box).height,
-            greaterThanOrEqualTo(TioSize.dp44));
+        final setHeight = tester.getSize(box).height;
+        final weight = find.byKey(
+          ValueKey('routine-set-weight-${ids[index]}'),
+        );
+        final reps = find.byKey(
+          ValueKey('routine-set-reps-${ids[index]}'),
+        );
+        expect(setHeight, TioSize.dp44);
+        expect(tester.getSize(weight).height, setHeight);
+        expect(tester.getSize(reps).height, setHeight);
+        expect(tester.getSize(filledSurface.first).height, setHeight);
         expect(find.text('${index + 1}'), findsOneWidget);
         expect(find.byKey(ValueKey('routine-set-type-${ids[index]}')),
             findsOneWidget);
