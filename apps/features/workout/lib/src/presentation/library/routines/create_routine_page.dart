@@ -127,8 +127,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     return _draft.state.status == RoutineCreateStatus.ready;
   }
 
-  Future<void> _pick() async {
+  Future<void> _pick({RoutineCompositionEntry? replacing}) async {
     if (!_enabled) return;
+    final openingDraft = _draft;
     final exercise = await Navigator.of(context).push<Exercise>(
       MaterialPageRoute(
         builder: (routeContext) => ProviderScope(
@@ -141,14 +142,32 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         ),
       ),
     );
-    if (!mounted || !_enabled || exercise == null) return;
+    if (!mounted || !_enabled || !identical(openingDraft, _draft) ||
+        exercise == null) return;
+    if (replacing != null) {
+      final oldEntries = _draft.state.entries
+          .where((current) => current.id == replacing.id);
+      if (oldEntries.length != 1) return;
+      final old = oldEntries.single;
+      final newId = _draft.replacePickedExercise(old.id, exercise);
+      if (newId == null) return;
+      _entryExercises.remove(old.id);
+      _entryExercises[newId] = exercise;
+      _draftRangeEntryIds.remove(old.id);
+      final oldSetIds = old.sets.map((set) => set.id);
+      _invalidSetIds.removeAll(oldSetIds);
+      _untouchedRepSetIds.removeAll(oldSetIds);
+      if (oldSetIds.contains(_openSetId)) _openSetId = null;
+      final fresh = _draft.state.entries.singleWhere((e) => e.id == newId);
+      _untouchedRepSetIds.add(fresh.sets.single.id);
+      return;
+    }
     final id = _draft.addPickedExercise(exercise);
     if (id != null) {
       _entryExercises[id] = exercise;
       final entry = _draft.state.entries.last;
       for (final set in entry.sets) {
         // A new identified Set has intentionally blank optional targets.
-        // Only malformed/partially typed numeric text should block Save.
         _untouchedRepSetIds.add(set.id);
       }
     }
@@ -169,12 +188,15 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_enabled) return;
     final openingDraft = _draft;
-    final remove = await showRoutineExerciseOptionsSheet(context);
-    if (!mounted || !identical(openingDraft, _draft) || !_enabled || !remove) {
-      return;
-    }
+    final action = await showRoutineExerciseOptionsSheet(context);
+    if (!mounted || !identical(openingDraft, _draft) ||
+        !_enabled || action == null) return;
     if (!_draft.state.entries.any((current) => current.id == entry.id)) return;
-    _removeEntry(entry);
+    if (action == RoutineExerciseOption.replace) {
+      await _pick(replacing: entry);
+    } else if (action == RoutineExerciseOption.remove) {
+      _removeEntry(entry);
+    }
   }
 
   void _removeEntry(RoutineCompositionEntry entry) {
@@ -535,7 +557,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                   key: const ValueKey('create-routine-add-exercise'),
                   label: 'Add exercise',
                   expand: true,
-                  onPressed: _enabled ? _pick : null,
+                  onPressed: _enabled ? () => _pick() : null,
                 ),
               ],
                 ]),

@@ -108,6 +108,28 @@ final class RoutineCreateController extends ChangeNotifier {
     return entryId;
   }
 
+  /// Replace in the same ordered slot, but never reuse old Exercise targets.
+  /// Fresh entry/Set UUIDs prevent cross-exercise prescription attribution.
+  String? replacePickedExercise(String entryId, Exercise exercise) {
+    if (!_editable || !_authorized ||
+        exercise.status != ExerciseStatus.active) return null;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0 || _entries[index].exercise == exercise.ref) return null;
+    final newId = _newUuid();
+    final setId = _newUuid();
+    _replace(index, RoutineCompositionEntry(
+      id: newId,
+      exercise: exercise.ref,
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(),
+        ),
+      ],
+    ));
+    return newId;
+  }
+
   bool removeExercise(String entryId) {
     if (!_editable || !_entries.any((e) => e.id == entryId)) return false;
     _entries = _entries.where((e) => e.id != entryId).toList();

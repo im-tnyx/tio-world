@@ -60,6 +60,32 @@ RoutineEditorController _make(
 }
 
 void main() {
+  test('Replace creates fresh blank Set and saves once without old targets',
+      () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final replacement = Exercise(
+      ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+      displayName: 'Run on Treadmill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
+    );
+    final id = ctrl.replacePickedExercise(_e, replacement);
+    expect(id, _newE);
+    expect(ctrl.replacePickedExercise(_newE, replacement), isNull);
+    expect(ctrl.state.entries.single.id, _newE);
+    expect(ctrl.state.entries.single.sets.single.id, _newS);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, isNull);
+    expect(ctrl.state.entries.single.sets.single.prescription.loadKg, isNull);
+    expect(comp.saveCount, 0);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.exercise, replacement.ref);
+    expect(comp.lastSave!.entries.single.sets.single.id, _newS);
+  });
+
   test('Edit cannot add a ninth Set to the same Exercise', () async {
     final ids = [
       for (var index = 0; index < 7; index++)

@@ -188,6 +188,60 @@ void main() {
     expect(f.compositions.saveCount, 0);
   });
 
+  testWidgets('Replace Exercise resets incompatible Set until explicit Update',
+      (tester) async {
+    final f = _Fixtures();
+    await f.open(tester);
+    final menu = find.byKey(const ValueKey(
+        'edit-routine-entry-options-$_entryId'));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-replace')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsOneWidget);
+    await tester.tap(find.text('Replace Exercise'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Replace Exercise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    const newEntry = '90000000-0000-4000-8000-000000000001';
+    const newSet = '90000000-0000-4000-8000-000000000002';
+    expect(find.byKey(const ValueKey('edit-routine-entry-$_entryId')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-entry-$newEntry')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-set-reps-$_setId')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('routine-set-distance-$newSet')),
+        findsOneWidget);
+    expect(find.text('KM'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('KG'), findsNothing);
+    expect(find.text('REPS'), findsNothing);
+    expect(f.compositions.saveCount, 0);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!.entries.single;
+    expect(saved.id, newEntry);
+    expect(saved.exercise, ExerciseRef.catalog('ex_run_on_treadmill'));
+    expect(saved.sets.single.id, newSet);
+    expect(saved.sets.single.prescription.reps, isNull);
+    expect(saved.sets.single.prescription.loadKg, isNull);
+    expect(saved.sets.single.prescription.distanceMeters, isNull);
+    expect(f.editorResult, isTrue);
+  });
+
   testWidgets('empty Routine offers Add Exercise without a database write',
       (tester) async {
     final f = _Fixtures();
@@ -773,6 +827,12 @@ final class _Catalog implements ExerciseCatalogRepository {
       ref: ExerciseRef.catalog(_exerciseRef),
       displayName: 'Bench Press',
       status: ExerciseStatus.active,
+    ),
+    Exercise(
+      ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+      displayName: 'Run on Treadmill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
     ),
   ]);
 }

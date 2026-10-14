@@ -87,3 +87,16 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - [Library](library.md)
 - [Programs](programs.md)
 - [Exercise Search](exercise-search.md)
+
+## Draft W4B Exercise replacement (not merged)
+
+The owner approved `Replace Exercise` alongside `Remove Exercise` in the
+existing Create/Edit Exercise `⋮` sheet. Draft PR #551 reuses the canonical
+Exercise picker, keeps the replaced Exercise's ordered position, and gives
+the selected Exercise a **new entry UUID and blank Set 1 UUID**. It does not
+copy prescriptions, range modes or targets between potentially incompatible
+Exercise measurement types. Canceling the sheet/picker leaves the draft
+unchanged; Edit writes only after explicit Update. Current-owner/Custom
+preflight, auth/session revocation, eight-Set cap, and nullable target
+contracts remain in force. Exact-head CI and physical visual QA are pending.
+This is unmerged client behavior, not a shipped app capability.

@@ -166,6 +166,28 @@ final class RoutineEditorController extends ChangeNotifier {
     return id;
   }
 
+  /// Replacing a draft slot gets fresh Exercise/Set identities and blank
+  /// targets; old persisted IDs are retired only by explicit Update.
+  String? replacePickedExercise(String entryId, Exercise exercise) {
+    if (!_state.canEdit || !_authorized ||
+        exercise.status != ExerciseStatus.active) return null;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0 || _draft[index].exercise == exercise.ref) return null;
+    final newId = _newUuid();
+    final setId = _newUuid();
+    _replaceEntry(index, RoutineCompositionEntry(
+      id: newId,
+      exercise: exercise.ref,
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(),
+        ),
+      ],
+    ));
+    return newId;
+  }
+
   bool removeExercise(String entryId) {
     if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());

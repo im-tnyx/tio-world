@@ -45,6 +45,44 @@ Exercise get _exercise => Exercise(
 );
 
 void main() {
+  test('Replace keeps order, never carries old targets, and ignores same selection',
+      () {
+    var next = 0;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: _Creates(),
+      newUuid: () {
+        next++;
+        return '90000000-0000-4000-8000-${next.toString().padLeft(12, '0')}';
+      },
+    );
+    addTearDown(draft.dispose);
+    final first = draft.addPickedExercise(_exercise)!;
+    final originalSet = draft.state.entries.first.sets.single.id;
+    final second = draft.addPickedExercise(_exercise)!;
+    expect(draft.editSet(first, originalSet,
+        SetPrescription(reps: 10, loadKg: 20)), isTrue);
+    final replacement = Exercise(
+      ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+      displayName: 'Run on Treadmill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
+    );
+    final newId = draft.replacePickedExercise(first, replacement)!;
+    expect(draft.state.entries.map((e) => e.id), [newId, second]);
+    expect(newId, isNot(first));
+    final newSet = draft.state.entries.first.sets.single;
+    expect(newSet.id, isNot(originalSet));
+    expect(newSet.prescription.reps, isNull);
+    expect(newSet.prescription.loadKg, isNull);
+    expect(newSet.prescription.distanceMeters, isNull);
+    final allocated = next;
+    expect(draft.replacePickedExercise(newId, replacement), isNull);
+    expect(draft.replacePickedExercise('missing', replacement), isNull);
+    expect(next, allocated);
+  });
+
   test('at most 8 Sets per Exercise; a ninth does not allocate or mutate',
       () {
     var next = 0;

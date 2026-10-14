@@ -145,3 +145,24 @@ The previously approved 42dp SET/input/Supporting button values are present on #
 ## Owner sizing update 2026-10-14: 40dp replaces 42dp
 
 Owner explicitly requested the Routine SET visual badge, boxed numeric input outline and neutral Add Set filled surface be 40dp (previous 42dp remains historical only). Flutter PR #551 updated existing Core boxedNumber/supporting contracts and Create/Edit Set alignment, with min rather than fixed heights and unchanged 46dp primary button contract. Latest-head Flutter CI and real installed-build visual comparison are required before merge. The separately approved **8 Sets per Exercise** cap remains unchanged (Flutter #551, PostgreSQL #540). No DB deployment or merge is authorized by this sizing update.
+
+## Owner-approved Replace Exercise from ⋮ (2026-10-14, validation pending)
+
+Owner requested `Replace Exercise` alongside the existing `Remove Exercise`
+option for Routine Exercise cards. Single bounded owner/surface: consolidated
+Draft PR #551. Reuse the feature-owned options sheet, canonical catalog/Custom
+Exercise picker and existing Create/Edit authorization. No new PR, Core
+component, database shape, service, deployment or UI geometry change.
+
+After a real selection, replace only the chosen Exercise in its ordered slot
+with a fresh entry UUID and fresh **blank Set 1**. Retire old Set UUIDs,
+typed target validity, Rep Range draft mode and type; never transfer old KG/REPS
+into a KM/TIME Exercise. Cancel/Back or same-Exercise selection makes no edit.
+Edit persists only on explicit Update, with existing owner Custom preflight.
+Focused controller and page regressions cover cancellation, type-specific
+fields, no premature writes, fresh identity and null targets.
+
+Validation: source/tests staged for one atomic commit on existing #551 branch.
+No local Flutter SDK/worktree in this connected session. Exact-head Flutter CI,
+independent review and manual device visual/accessibility checks remain
+required. Previous W4 DB/old-client compatibility gates remain unchanged.

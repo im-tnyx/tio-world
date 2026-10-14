@@ -156,7 +156,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         );
   }
 
-  Future<void> _addExercise() async {
+  Future<void> _addExercise({RoutineCompositionEntry? replacing}) async {
     final editor = _editor;
     if (!_canEdit || editor == null) return;
     final unit = widget.weightUnit;
@@ -176,24 +176,33 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         !identical(editor, _editor) ||
         !_canEdit ||
         unit != widget.weightUnit ||
-        exercise == null) {
-      return;
-    }
-    // The picker validates selection against its own freshly loaded,
-    // owner-scoped catalog/Custom snapshot before returning this Exercise.
-    // The editor's initial _source snapshot can be older (e.g. another
-    // device created a Custom Exercise while this screen stayed open).
-    // Do not reject a valid picker result against that stale snapshot.
+        exercise == null) return;
+    // The picker freshly verifies owner-scoped Custom and catalog selection.
     if (exercise.status != ExerciseStatus.active) return;
-    final entryId = editor.addPickedExercise(exercise);
-    if (entryId != null) {
-      final setId = editor.addSet(entryId, SetPrescription());
-      if (setId != null) {
-        _blankSetIds.add(setId);
+    if (replacing != null) {
+      final oldEntries = editor.state.entries
+          .where((entry) => entry.id == replacing.id);
+      if (oldEntries.length != 1) return;
+      final old = oldEntries.single;
+      final newId = editor.replacePickedExercise(old.id, exercise);
+      if (newId != null) {
+        _draftRangeEntryIds.remove(old.id);
+        final oldSetIds = old.sets.map((set) => set.id);
+        _invalidSetIds.removeAll(oldSetIds);
+        _blankSetIds.removeAll(oldSetIds);
+        if (oldSetIds.contains(_openSetId)) _openSetId = null;
+        final fresh = editor.state.entries.singleWhere((e) => e.id == newId);
+        _blankSetIds.add(fresh.sets.single.id);
+      }
+    } else {
+      final entryId = editor.addPickedExercise(exercise);
+      if (entryId != null) {
+        final setId = editor.addSet(entryId, SetPrescription());
+        if (setId != null) _blankSetIds.add(setId);
       }
     }
-    // Refresh labels and write-capability from the current source. A failed
-    // reload disables Update until Retry; the draft stays unsaved.
+    // Refresh labels and write-capability from the current owner source.
+    // A failed reload disables Update; no premature persistence.
     await _source?.load();
   }
 
@@ -249,15 +258,18 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_canEdit) return;
     final openingEditor = _editor;
-    final remove = await showRoutineExerciseOptionsSheet(context);
-    if (!mounted || !identical(openingEditor, _editor) || !_canEdit || !remove) {
-      return;
-    }
+    final action = await showRoutineExerciseOptionsSheet(context);
+    if (!mounted || !identical(openingEditor, _editor) ||
+        !_canEdit || action == null) return;
     if (openingEditor == null ||
         !openingEditor.state.entries.any((current) => current.id == entry.id)) {
       return;
     }
-    _removeEntry(entry);
+    if (action == RoutineExerciseOption.replace) {
+      await _addExercise(replacing: entry);
+    } else if (action == RoutineExerciseOption.remove) {
+      _removeEntry(entry);
+    }
   }
 
   void _removeEntry(RoutineCompositionEntry entry) {
@@ -710,7 +722,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
               key: const ValueKey('edit-routine-add-exercise'),
               label: 'Add Exercise',
               expand: true,
-              onPressed: _canEdit ? _addExercise : null,
+              onPressed: _canEdit ? () => _addExercise() : null,
             ),
           ),
         ),

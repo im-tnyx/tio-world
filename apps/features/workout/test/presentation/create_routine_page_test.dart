@@ -1150,6 +1150,96 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Replace Exercise cancels safely, then resets targets for KM/TIME',
+      (tester) async {
+    final creates = _Create();
+    const oldEntry = '44444444-4444-4444-8444-444444444444';
+    const oldSet = '55555555-5555-4555-8555-555555555555';
+    const newEntry = '66666666-6666-4666-8666-666666666666';
+    const newSet = '77777777-7777-4777-8777-777777777777';
+    final ids = [
+      oldEntry, oldSet, newEntry, newSet,
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+    ].iterator;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: creates,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: () {
+          if (!ids.moveNext()) throw StateError('Unexpected UUID');
+          return ids.current;
+        },
+      ),
+    ));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('routine-set-reps-$oldSet')), '12');
+    await tester.pump();
+    final menu = find.byKey(const ValueKey('create-routine-options-$oldEntry'));
+    await tester.ensureVisible(menu);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-exercise-option-replace')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-exercise-option-remove')),
+        findsOneWidget);
+    await tester.tap(find.text('Replace Exercise'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-$oldEntry')),
+        findsOneWidget);
+    expect(tester.widget<TioInput>(
+        find.byKey(const ValueKey('routine-set-reps-$oldSet')))
+        .controller!.text, '12');
+    expect(creates.calls, 0);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Replace Exercise'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run on Treadmill'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-entry-$oldEntry')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$newEntry')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('create-routine-set-$oldSet')), findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-set-$newSet')), findsOneWidget);
+    expect(find.text('KG'), findsNothing);
+    expect(find.text('REPS'), findsNothing);
+    expect(find.text('KM'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(tester.widget<TioInput>(
+        find.byKey(const ValueKey('routine-set-distance-$newSet')))
+        .controller!.text, isEmpty);
+    expect(creates.calls, 0);
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump();
+    expect(creates.calls, 1);
+    final saved = creates.command!.entries.single;
+    expect(saved.id, newEntry);
+    expect(saved.exercise, ExerciseRef.catalog('ex_run_on_treadmill'));
+    expect(saved.sets.single.id, newSet);
+    expect(saved.sets.single.prescription.reps, isNull);
+    expect(saved.sets.single.prescription.loadKg, isNull);
+    expect(saved.sets.single.prescription.distanceMeters, isNull);
+  });
+
   testWidgets('Create reference empty state has disabled Save and Add exercise',
       (tester) async {
     final create = _Create();
