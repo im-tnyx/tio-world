@@ -359,14 +359,14 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.text('Synthetic Route Custom'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo(null);
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.text('Synthetic Route Custom'), findsNothing);
     expect(find.text('Synthetic Route Curl'), findsNothing);
@@ -419,7 +419,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.text('Synthetic Route Custom'), findsOneWidget);
 
     // No bootstrap transition: same principal, NEW interactive login cycle.
@@ -428,7 +428,7 @@ void main() {
           AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
         );
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.text('Synthetic Route Custom'), findsNothing);
     // Current account remains logged in; re-entry gets a fresh controller.
@@ -665,7 +665,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey(
-      'routine-exercise-picker-ex_synthetic_route_curl',
+      'exercise-row-ex_synthetic_route_curl',
     )));
     await tester.pumpAndSettle();
 
@@ -734,7 +734,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey(
-      'routine-exercise-picker-ex_synthetic_route_curl',
+      'exercise-row-ex_synthetic_route_curl',
     )));
     await tester.pumpAndSettle();
 
