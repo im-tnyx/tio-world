@@ -116,7 +116,7 @@ select public.create_user_workout_routine_with_composition(
   'a5351000-0000-4000-8000-000000000021'::uuid, :'program_id'::uuid,
   'Race', 'a5351000-0000-4000-8000-000000000091'::uuid,
   '[{"id":"a5351000-0000-4000-8000-000000000041",
-     "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+     "exercise_ref":"ex_squat","sets":[{"id":"a5351000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
 );
 \echo SESSION_A_CREATED_HELD
 SQL
@@ -133,7 +133,7 @@ select public.create_user_workout_routine_with_composition(
   'a5351000-0000-4000-8000-000000000021'::uuid, :'program_id'::uuid,
   'Race', 'a5351000-0000-4000-8000-000000000091'::uuid,
   '[{"id":"a5351000-0000-4000-8000-000000000041",
-     "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+     "exercise_ref":"ex_squat","sets":[{"id":"a5351000-0000-4000-8000-000000000141","reps":1}]}]'::jsonb
 );
 commit;
 \echo SESSION_B_REPLAY_CONFIRMED
@@ -170,7 +170,9 @@ select public.create_user_workout_routine_with_composition(
   'Rejected', 'a5351000-0000-4000-8000-000000000092'::uuid,
   jsonb_build_array(jsonb_build_object(
     'id','a5351000-0000-4000-8000-000000000042',
-    'exercise_ref', :'race_custom', 'sets','[]'::jsonb
+    'exercise_ref', :'race_custom', 'sets',
+      jsonb_build_array(jsonb_build_object(
+        'id','a5351000-0000-4000-8000-000000000142','reps',1))
   ))
 );
 commit;
@@ -197,7 +199,9 @@ select public.create_user_workout_routine_with_composition(
   'Create first', 'a5351000-0000-4000-8000-000000000093'::uuid,
   jsonb_build_array(jsonb_build_object(
     'id','a5351000-0000-4000-8000-000000000043',
-    'exercise_ref', :'custom_id', 'sets','[]'::jsonb
+    'exercise_ref', :'custom_id', 'sets',
+      jsonb_build_array(jsonb_build_object(
+        'id','a5351000-0000-4000-8000-000000000143','reps',1))
   ))
 );
 \echo SESSION_A_CREATE_FIRST_HELD
@@ -270,7 +274,7 @@ select public.create_user_workout_routine_with_composition(
   'a5351000-0000-4000-8000-000000000024'::uuid, :'program_id'::uuid,
   'Must not survive','a5351000-0000-4000-8000-000000000094'::uuid,
   '[{"id":"a5351000-0000-4000-8000-000000000044",
-     "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+     "exercise_ref":"ex_squat","sets":[{"id":"a5351000-0000-4000-8000-000000000144","reps":1}]}]'::jsonb
 );
 commit;
 SQL
@@ -313,7 +317,7 @@ select public.create_user_workout_routine_with_composition(
   'a5351000-0000-4000-8000-000000000025'::uuid, :'program_id'::uuid,
   'Create before delete','a5351000-0000-4000-8000-000000000095'::uuid,
   '[{"id":"a5351000-0000-4000-8000-000000000045",
-     "exercise_ref":"ex_squat","sets":[]}]'::jsonb
+     "exercise_ref":"ex_squat","sets":[{"id":"a5351000-0000-4000-8000-000000000145","reps":1}]}]'::jsonb
 );
 \echo SESSION_A_CREATE_BEFORE_DELETE_HELD
 SQL
