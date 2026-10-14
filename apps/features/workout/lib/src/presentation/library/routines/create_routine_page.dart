@@ -16,7 +16,6 @@ import 'routine_create_controller.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
 import '../exercises/widgets/exercise_list_row.dart';
-import '../exercises/exercises_providers.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 
@@ -124,12 +123,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final exercise = await Navigator.of(context).push<Exercise>(
       MaterialPageRoute(
         builder: (routeContext) => ProviderScope(
-          overrides: [
-            exerciseCatalogRepositoryProvider.overrideWithValue(
-              widget.catalogRepository,
-            ),
-          ],
           child: ExercisesPage(
+            catalogRepository: widget.catalogRepository,
             userExerciseRepository: widget.userExerciseRepository,
             onExerciseSelected: (selected) =>
                 Navigator.of(routeContext).pop<Exercise>(selected),
