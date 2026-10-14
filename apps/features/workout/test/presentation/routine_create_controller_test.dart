@@ -154,7 +154,7 @@ void main() {
     expect(repo.command!.routine.id.value, _routineId);
     expect(repo.command!.routine.programId, ProgramId(_programId));
     expect(repo.command!.mutationId, _mutation);
-    expect(repo.command!.entries.single.sets.single.prescription.reps, 1);
+    expect(repo.command!.entries.single.sets.single.prescription.reps, isNull);
     expect(await c.save(), isFalse);
     expect(repo.calls, 1);
   });
