@@ -567,8 +567,6 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               ],
             ),
           ),
-          if (!widget.showPrevious && !_rangeMode)
-            const SizedBox(width: TioSize.dp48),
           ],
         ],
       ),
