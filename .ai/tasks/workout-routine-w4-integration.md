@@ -35,3 +35,21 @@
 - [ ] When reconciled, safely close redundant superseded PRs without deleting branches and reflect final status in Linear.
 
 **Validation recorded so far:** remote GitHub metadata/source/diff and review-thread read only. No local git/Flutter execution or successful GitHub CI at the new integration head has been claimed.
+
+
+## Owner correction checkpoint — 2026-10-14 (single existing PR)
+
+**Approval:** The owner requires shorter boxed fields, Reps/Rep Range Min/Max **at most three digits (0–999 typed; positive persisted)**, one canonical Exercises screen in both browse/selection, and Exercise artwork in Routine screens. The owner separately requires an Exercise AND Set but **optional unfilled Reps/KG** at Create Save; this last requirement is **not yet implemented** because the canonical Dart/hosted SQL contract rejects null Reps. Do not mistake the old `SetPrescription(reps:1)` internal draft placeholder for truthful persistence.
+
+**Implemented on #551, no new PR:**
+- Core `TioInput.boxedNumber` now has denser variant-only styling (44dp minimum InputDecoration constraints, smaller governed vertical padding); Core test reflects the approved geometry. Legacy Core inputs remain unchanged.
+- Workout Reps/Range Min/Max input formatter rejects more than **3 whole digits**, including paste, without truncation; the Rest field retains its separate int32 cap and Weight retains 6+3 format. Unit/precision and schema int32 guard are not replaced.
+- Deleted duplicate `RoutineExercisePickerPage` and removed its public export; Create/Edit route the **existing** `ExercisesPage` with a scoped selection callback and title `Add Exercise`. Normal browsing retains `Exercises` title, filters, search and Custom edit action. Selection reuses `ExercisesController`, the same list row/thumbnail, owner-scoped Custom source and fail-closed readiness; non-pointer browse does not accidentally select.
+- Root navigation and widget tests now expect `ExercisesPage`, not the deleted picker. The existing `RoutineExercisePickerController` is **not** a UI screen; retained for canonical Exercise lookup and owner-verified Edit/Detail source resolution. No extra catalog or data storage.
+- Create, Edit and Detail resolve artwork from canonical `Exercise.media` with `ExercisesController.thumbnailUrlFor` and reuse `ExerciseThumbnail` (existing text-only fallback). Nullable viewer media gender is supplied by app composition only when the session/profile is verified. No hard-coded image URL or independent network widget.
+
+**Validation truth / known regressions:** Initial CI #38509724461 failed because a nested Riverpod catalog source override violated scope dependencies. Corrected by binding the existing `ExercisesController` to an explicit catalog source within `ExercisesPage` selection context instead of overriding a nested provider. Follow-up CI #38510341736 caught a nullable local controller expression, fixed. CI #38510586889 passed app route and Workout tests but failed a pre-refinement Core boxedNumber padding assertion, corrected in `apps/core/test/ui/components/tio_input_test.dart`. **A new exact-head run is needed before declaring these changes validated.** Never claim pass based on earlier #551 heads.
+
+**Unimplemented backend blocker / owner decision needed:** For a genuinely blank Reps Set to save, shared `SetPrescription`, Create/Edit adapters, `reps NOT NULL`, existing Save RPC and atomic Create RPC (plus old-client compatibility) must all be coordinated. Also, #536 currently allows zero-Set Exercises whereas owner now requires at least one Set. GitHub #536 / #540 have read-only handoff comments; no SQL was edited/deployed. Current `repsMax != null` marks Range mode: when both Min/Max are blank, the schema cannot preserve Range selection without an explicit persisted mode. Decide/approve that representation before touching DB; do not silently degrade range to fixed or store invented 1/0 reps. Combined replay, RLS, idempotency, concurrency and old-client rollout gates remain mandatory.
+
+**Disposition:** Keep #551 and #536/#540 Draft, no merge/production deployment/ancestor cleanup until exact-head CI, independent review, owner-approved nullable Set design, combined DB migration validation and phone QA. 
