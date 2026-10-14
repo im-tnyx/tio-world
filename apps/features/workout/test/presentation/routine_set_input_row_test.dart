@@ -313,6 +313,11 @@ void main() {
     }
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsOneWidget);
+    // The Edit/PREVIOUS Rep Range already occupies the full available row.
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
+    expect(tester.getTopRight(
+        find.byKey(const ValueKey('routine-set-reps-max-$id'))).dx,
+        closeTo(tester.getTopRight(swipe).dx, 0.01));
     expect(find.text('to'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -503,6 +508,9 @@ void main() {
     final time = find.byKey(const ValueKey('routine-set-duration-$id'));
     expect(tester.widget<TioInput>(km).controller!.text, isEmpty);
     expect(tester.widget<TioInput>(time).controller!.text, isEmpty);
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
+    expect(tester.getTopRight(time).dx,
+        closeTo(tester.getTopRight(swipe).dx, 0.01));
     for (final input in [km, time]) {
       final outline = find.descendant(
         of: input, matching: find.byType(InputDecorator),
@@ -562,6 +570,10 @@ void main() {
     }
     final time = find.byKey(const ValueKey('routine-set-duration-$id'));
     expect(time, findsOneWidget);
+    // TIME-only Set remains full width when no KG/REPS fields are present.
+    final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
+    expect(tester.getTopRight(time).dx,
+        closeTo(tester.getTopRight(swipe).dx, 0.01));
     final timeOutline = find.descendant(
       of: time, matching: find.byType(InputDecorator),
     );
