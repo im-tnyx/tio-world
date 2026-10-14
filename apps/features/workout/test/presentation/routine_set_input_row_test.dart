@@ -105,6 +105,52 @@ void main() {
     expect(values.last.restSeconds, 60);
   });
 
+  testWidgets('unspecified Range shows Min/Max without fabricating Reps',
+      (tester) async {
+    const id = '55555555-5555-4555-8555-555555555555';
+    final edits = <SetPrescription>[];
+    final valid = <bool>[];
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: RoutineSetInputRow(
+        set: RoutineCompositionSet(
+          id: id, prescription: SetPrescription()),
+        index: 0,
+        normalNumber: 1,
+        onTypePressed: () {},
+        unit: WeightUnit.kg,
+        enabled: true,
+        showRangeDraft: true,
+        isOpen: false,
+        onOpenChanged: (_) {},
+        onChanged: edits.add,
+        onValidityChanged: valid.add,
+        onRemove: () {},
+      )),
+    ));
+    final min = find.byKey(const ValueKey('routine-set-reps-$id'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$id'));
+    expect(min, findsOneWidget);
+    expect(max, findsOneWidget);
+    expect(tester.widget<TioInput>(min).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
+    expect(edits, isEmpty);
+    expect(valid, isEmpty);
+    await tester.enterText(max, '12');
+    await tester.pump();
+    expect(valid.last, isFalse);
+    expect(edits, isEmpty);
+    await tester.enterText(min, '8');
+    await tester.pump();
+    expect(valid.last, isTrue);
+    expect(edits.single.reps, 8);
+    expect(edits.single.repsMax, 12);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'Edit range shows distinct outlined Min/Max and Previous at 320dp',
       (tester) async {
