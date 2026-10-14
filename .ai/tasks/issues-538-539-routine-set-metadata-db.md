@@ -79,3 +79,12 @@ and no entry over eight. Dedicated #540 combined tests still assert that
 a ninth Set fails transactionally for Save and atomic Create. Keep the
 production SQL constraint unchanged; require a new full exact-head
 database run to confirm the updated legacy matrix and new matrices.
+
+## Large-snapshot fixture identity correction (2026-10-14; CI pending)
+
+The updated TNYX-509 test failed again on #540 CI #38579448754
+(`duplicate_routine_set`): a non-correlated nested SQL aggregation had
+reused the same eight `gen_random_uuid()` Set IDs in all 44 entries.
+Make each Set ID deterministic and distinct from the outer Exercise
+index plus inner Set index, using a v4-shaped test UUID. Keep the 44x8
+stress and production 8-Set CHECK unchanged. Re-run full database CI.

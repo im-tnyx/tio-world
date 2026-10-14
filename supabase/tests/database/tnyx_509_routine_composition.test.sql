@@ -368,7 +368,9 @@ select pg_temp.assert_true(
           'sets', (
             select pg_catalog.jsonb_agg(
               pg_catalog.jsonb_build_object(
-                'id', pg_catalog.gen_random_uuid()::text,
+                'id', 'a5090000-0000-4000-8000-' ||
+                      pg_catalog.lpad((exercise_index * 100 + set_index)::text,
+                                      12, '0'),
                 'reps', 8, 'rest_seconds', 0
               ) order by set_index
             )
