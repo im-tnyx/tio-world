@@ -283,3 +283,20 @@ rollback. Fresh typed records retain KM/TIME or TIME. Added widget
 regressions for legacy Treadmill/Plank Detail and legacy Treadmill Edit,
 including preservation of numeric targets on Update. Exact-head Flutter
 CI and independent reviewer disposition remain required.
+
+## Codex follow-up P2: advanced sheet clears a persisted Rep Range (2026-10-14)
+
+Codex latest-head review at `75bfdb6e` identified that `_setEditor`
+directly invoked `editor.editSet`, bypassing the inline Set row's
+transient Rep Range preservation. Clearing both bounds in `Rest & set
+details` therefore silently switched a persisted ranged Exercise to
+fixed Reps. Fix within existing #551: centralize this transient-mode
+preservation in one `_editSetPreservingRange` action called by both
+inline row edits and details-sheet saves. Pass the same transient
+`showRangeDraft` to `RoutineSetEditorSheet` so reopening details also
+retains Maximum Reps when the persisted bounds are blank. A focused
+widget regression covers details open -> clear both -> Save Set ->
+still two inline Range fields -> details reopen still Maximum Reps ->
+explicit Routine Update preserves empty nullable target and Rest.
+No DB/schema change, redesign, or extra PR. New exact-head CI and
+independent review required before merge.

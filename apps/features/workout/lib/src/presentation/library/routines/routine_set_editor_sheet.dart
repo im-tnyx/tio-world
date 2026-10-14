@@ -11,12 +11,16 @@ class RoutineSetEditorSheet extends StatefulWidget {
     required this.unit,
     this.initial,
     this.exerciseType,
+    this.showRangeDraft = false,
     super.key,
   });
 
   final WeightUnit unit;
   final SetPrescription? initial;
   final ExerciseType? exerciseType;
+  /// Retains an explicitly selected Range while both nullable bounds
+  /// are empty and therefore cannot encode the mode in a prescription.
+  final bool showRangeDraft;
 
   @override
   State<RoutineSetEditorSheet> createState() => _RoutineSetEditorSheetState();
@@ -33,6 +37,8 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
   bool get _isWeightReps =>
       widget.exerciseType != ExerciseType.distanceDuration &&
       widget.exerciseType != ExerciseType.duration;
+  bool get _rangeMode => _isWeightReps &&
+      (widget.showRangeDraft || (widget.initial?.isRepRange ?? false));
 
   @override
   void initState() {
@@ -72,7 +78,7 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
     final int? reps = _isWeightReps
         ? (repsText.isEmpty ? null : int.tryParse(repsText))
         : widget.initial?.reps;
-    final range = _isWeightReps && (widget.initial?.isRepRange ?? false);
+    final range = _rangeMode;
     final maxText = _repsMax.text.trim();
     final int? repsMax = range
         ? (maxText.isEmpty ? null : int.tryParse(maxText))
@@ -132,7 +138,7 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
         title: widget.initial == null ? 'Add Set' : 'Edit Set',
         supportingText: !_isWeightReps
             ? 'Optional Rest after this Set.'
-            : widget.initial?.isRepRange ?? false
+            : _rangeMode
                 ? 'Optional Rep Range, Weight and Rest.'
                 : 'Optional Reps, Weight and Rest.',
         content: Column(
@@ -152,7 +158,7 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
                 onChanged: _inputChanged,
               ),
             ),
-            if (widget.initial?.isRepRange ?? false) ...[
+            if (_rangeMode) ...[
               const SizedBox(height: TioSpacing.md),
               Semantics(
                 label: 'Maximum Reps',

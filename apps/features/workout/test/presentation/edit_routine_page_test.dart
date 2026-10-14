@@ -692,6 +692,60 @@ void main() {
     expect(saved.id, _setId);
   });
 
+  testWidgets('details sheet clearing both Range bounds retains Range mode',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(reps: 8, repsMax: 12, rest: 60),
+    ]);
+    await f.open(tester);
+    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
+    await tester.tap(badge);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
+    await tester.pumpAndSettle();
+    final reps = find.byKey(const ValueKey('routine-set-reps'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max'));
+    expect(reps, findsOneWidget);
+    expect(max, findsOneWidget);
+    await tester.enterText(reps, '');
+    await tester.enterText(max, '');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    await tester.pumpAndSettle();
+
+    final inlineMin =
+        find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final inlineMax =
+        find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
+    expect(inlineMin, findsOneWidget);
+    expect(inlineMax, findsOneWidget);
+    expect(tester.widget<TioInput>(inlineMin).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(inlineMax).controller!.text, isEmpty);
+    expect(f.compositions.saveCount, 0);
+
+    // A second details-sheet visit must use the same transient Range mode;
+    // never infer a fixed-mode switch from empty nullable persisted values.
+    await tester.tap(badge);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    final saved = f.compositions.lastSave!.entries.single.sets.single;
+    expect(saved.id, _setId);
+    expect(saved.prescription.reps, isNull);
+    expect(saved.prescription.repsMax, isNull);
+    expect(saved.prescription.restSeconds, 60);
+  });
+
   testWidgets('loaded Rep Range plus blank Set blocks mixed Update until filled',
       (tester) async {
     final f = _Fixtures();

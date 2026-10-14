@@ -227,6 +227,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       builder: (_) => RoutineSetEditorSheet(
         unit: unit,
         initial: existing?.prescription,
+        showRangeDraft: _draftRangeEntryIds.contains(entry.id),
         exerciseType: profile,
       ),
     );
@@ -240,8 +241,22 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (existing == null) {
       editor.addSet(entry.id, result);
     } else {
-      editor.editSet(entry.id, existing.id, result);
+      _editSetPreservingRange(entry, existing, result);
     }
+  }
+
+  /// Inline cells and the advanced sheet must preserve the same transient
+  /// Range choice when its saved bounds become fully blank. Only the
+  /// explicit Repetition Options action switches the Exercise to fixed.
+  void _editSetPreservingRange(
+    RoutineCompositionEntry entry,
+    RoutineCompositionSet set,
+    SetPrescription prescription,
+  ) {
+    if (set.prescription.isRepRange && !prescription.isRepRange) {
+      _draftRangeEntryIds.add(entry.id);
+    }
+    _editor?.editSet(entry.id, set.id, prescription);
   }
 
   void _validityChanged(String id, bool valid) {
@@ -688,13 +703,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
         onTypePressed: () => _selectSetType(entry, set),
-        onChanged: (prescription) {
-          if (set.prescription.isRepRange &&
-              !prescription.isRepRange) {
-            _draftRangeEntryIds.add(entry.id);
-          }
-          _editor?.editSet(entry.id, set.id, prescription);
-        },
+        onChanged: (prescription) =>
+            _editSetPreservingRange(entry, set, prescription),
         onValidityChanged: (valid) => _validityChanged(set.id, valid),
         onRemove: () => _removeSet(entry, set),
       );
