@@ -823,9 +823,19 @@ void main() {
         isNot(contains('Move exercise down')));
     final drag = find.byKey(const ValueKey('create-routine-drag-$firstEntry'));
     await tester.ensureVisible(drag);
+    final rowDistance =
+        tester.getTopLeft(second).dy - tester.getTopLeft(first).dy;
     final gesture = await tester.startGesture(tester.getCenter(drag));
     await tester.pump(const Duration(milliseconds: 700));
-    await gesture.moveBy(const Offset(0, 350));
+    // With SliverReorderableList, the drop gap is selected while the
+    // dragged item's END remains inside the second item's lower half.
+    // Overshooting the next row by 350px skips that window entirely.
+    // Move across it in frames, like an actual finger drag.
+    final distance = rowDistance - TioSpacing.lg;
+    for (var step = 0; step < 10; step++) {
+      await gesture.moveBy(Offset(0, distance / 10));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
     await tester.pump(const Duration(milliseconds: 250));
     await gesture.up();
     await tester.pumpAndSettle();
