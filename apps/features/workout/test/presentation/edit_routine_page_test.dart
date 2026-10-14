@@ -386,6 +386,66 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('Edit title long press and semantics reorder without writing',
+      (tester) async {
+    const secondId = '30000000-0000-4000-8000-000000000002';
+    const secondSetId = '40000000-0000-4000-8000-000000000002';
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(),
+      RoutineCompositionEntry(
+        id: secondId,
+        exercise: ExerciseRef.catalog(_exerciseRef),
+        sets: [
+          RoutineCompositionSet(
+            id: secondSetId,
+            prescription: SetPrescription(reps: 8),
+          ),
+        ],
+      ),
+    ]);
+    await f.open(tester);
+    expect(find.byType(SliverReorderableList), findsOneWidget);
+    final first = find.byKey(const ValueKey('edit-routine-entry-$_entryId'));
+    final second = find.byKey(const ValueKey('edit-routine-entry-$secondId'));
+    final drag = find.byKey(const ValueKey('edit-routine-drag-$_entryId'));
+    final secondSemantics = find.byKey(
+      const ValueKey('edit-routine-reorder-semantics-$secondId'),
+    );
+    final actions = tester.widget<Semantics>(secondSemantics)
+        .properties.customSemanticsActions!;
+    expect(actions.keys.map((action) => action.label),
+        contains('Move exercise up'));
+
+    await tester.ensureVisible(drag);
+    final distance =
+        tester.getTopLeft(second).dy - tester.getTopLeft(first).dy -
+            TioSpacing.lg;
+    expect(distance, greaterThan(0));
+    final gesture = await tester.startGesture(tester.getCenter(drag));
+    await tester.pump(const Duration(milliseconds: 700));
+    for (var step = 0; step < 10; step++) {
+      await gesture.moveBy(Offset(0, distance / 10));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getTopLeft(first).dy,
+        greaterThan(tester.getTopLeft(second).dy));
+
+    final moveDown = tester.widget<Semantics>(secondSemantics)
+        .properties.customSemanticsActions!.entries
+        .singleWhere((entry) => entry.key.label == 'Move exercise down')
+        .value;
+    moveDown();
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(first).dy,
+        lessThan(tester.getTopLeft(second).dy));
+    expect(f.compositions.saveCount, 0);
+  });
+
   testWidgets('Advanced Set save refreshes inline Reps and Weight',
       (tester) async {
     final f = _Fixtures();
