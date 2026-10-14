@@ -682,7 +682,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           Row(
             children: [
               const SizedBox(
-                width: TioSize.dp42,
+                width: TioSize.dp40,
                 child: Text('SET', textAlign: TextAlign.center),
               ),
               const SizedBox(width: TioSpacing.sm),
