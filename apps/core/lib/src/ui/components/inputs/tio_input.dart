@@ -557,12 +557,9 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding ??
                   (isCompactNumeric
                       ? EdgeInsets.symmetric(
-                          // Give the outlined numeric cell enough actual
-                          // vertical content padding to match a filled SET
-                          // box rather than appearing like a thin strip.
-                          vertical: isBoxedNumber
-                              ? TioSpacing.md
-                              : TioInputTokens.compactContentVerticalPadding,
+                          // Keep the numeric inset substantial; the 44dp
+                          // minimum determines the default painted height.
+                          vertical: TioInputTokens.compactContentVerticalPadding,
                           horizontal:
                               TioInputTokens.compactContentHorizontalPadding,
                         )
