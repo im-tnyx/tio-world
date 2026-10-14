@@ -96,6 +96,12 @@ void main() {
           );
           expect(outline, findsOneWidget);
           expect(tester.getSize(outline).height, setHeight);
+          expect(tester.getTopLeft(outline).dy,
+              closeTo(tester.getTopLeft(box).dy, 0.01),
+              reason: 'Visible SET and outlined input top edges must align');
+          expect(tester.getBottomLeft(outline).dy,
+              closeTo(tester.getBottomLeft(box).dy, 0.01),
+              reason: 'Visible SET and outlined input bottom edges must align');
         }
         expect(tester.getSize(filledSurface.first).height, setHeight);
         expect(find.text('${index + 1}'), findsOneWidget);
