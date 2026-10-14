@@ -60,11 +60,28 @@ void main() {
     expect(entry.id, _entry1);
     expect(entry.sets, hasLength(1));
     expect(entry.sets.single.id, _set1);
-    expect(entry.sets.single.prescription.reps, 1);
+    expect(entry.sets.single.prescription.reps, isNull);
     expect(entry.sets.single.prescription.loadKg, isNull);
     expect(entry.sets.single.prescription.restSeconds, isNull);
     expect(c.removeExercise(_entry1), isTrue);
     expect(c.state.canSave, isFalse);
+  });
+
+  test('blank targets remain valid across Create Save as an identified Set',
+      () async {
+    final repo = _Creates();
+    final c = _controller(repo, saveAfterOneExercise: true);
+    addTearDown(c.dispose);
+    c.addPickedExercise(_exercise);
+    expect(c.state.canSave, isTrue);
+    final set = c.state.entries.single.sets.single;
+    expect(set.prescription.reps, isNull);
+    expect(set.prescription.loadKg, isNull);
+    expect(await c.save(), isTrue);
+    final saved = repo.commands.single.entries.single.sets.single;
+    expect(saved.id, _set1);
+    expect(saved.prescription.reps, isNull);
+    expect(saved.prescription.loadKg, isNull);
   });
 
   test('two copies of same canonical Exercise have independent Set identities', () {
@@ -83,13 +100,14 @@ void main() {
     addTearDown(c.dispose);
     c.addPickedExercise(_exercise);
     final before = c.state.entries.single.sets.single;
+    expect(c.editSet(_entry1, _set1, SetPrescription(reps: 8)), isTrue);
     expect(c.changeSetType(_entry1, _set1, RoutineSetType.warmUp), isTrue);
     expect(c.changeRepetitionMode(_entry1, range: true), isTrue);
     final warm = c.state.entries.single.sets.single;
     expect(warm.id, before.id);
     expect(warm.prescription.setType, RoutineSetType.warmUp);
-    expect(warm.prescription.reps, 1);
-    expect(warm.prescription.repsMax, 1);
+    expect(warm.prescription.reps, 8);
+    expect(warm.prescription.repsMax, 8);
 
     final second = c.addSet(_entry1, SetPrescription(reps: 1));
     expect(second, _entry2);
