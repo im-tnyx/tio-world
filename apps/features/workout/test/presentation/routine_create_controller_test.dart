@@ -78,7 +78,7 @@ void main() {
     expect(set.prescription.reps, isNull);
     expect(set.prescription.loadKg, isNull);
     expect(await c.save(), isTrue);
-    final saved = repo.commands.single.entries.single.sets.single;
+    final saved = repo.command!.entries.single.sets.single;
     expect(saved.id, _set1);
     expect(saved.prescription.reps, isNull);
     expect(saved.prescription.loadKg, isNull);
