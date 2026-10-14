@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -86,6 +87,15 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   double _reveal = 0;
   bool _dragging = false;
   bool _pastRevealThreshold = false;
+  // Raw pointer tracking lets users swipe the whole Set row, including
+  // editable numeric fields whose text-selection recognizers otherwise win
+  // Flutter's horizontal gesture arena and silently swallow the swipe.
+  int? _swipePointer;
+  Offset? _swipeStart;
+  Offset? _swipeLast;
+  Duration? _swipeLastTime;
+  bool _swipeActive = false;
+  double _swipeVelocity = 0;
 
   // The full gesture is proportional to the actual row width, not the
   // much shorter width needed to expose the Delete button.
@@ -298,6 +308,72 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     super.dispose();
   }
 
+  void _pointerDown(PointerDownEvent event) {
+    if (!widget.enabled || _swipePointer != null) return;
+    _swipePointer = event.pointer;
+    _swipeStart = event.position;
+    _swipeLast = event.position;
+    _swipeLastTime = event.timeStamp;
+    _swipeActive = false;
+    _swipeVelocity = 0;
+  }
+
+  void _pointerMove(PointerMoveEvent event) {
+    if (!widget.enabled || event.pointer != _swipePointer ||
+        _swipeStart == null || _swipeLast == null) return;
+    final total = event.position - _swipeStart!;
+    if (!_swipeActive) {
+      // Vertical drags remain owned by the containing ScrollView. Only
+      // deliberate horizontal movement can reveal/remove a Set.
+      if (total.dx.abs() < kTouchSlop ||
+          total.dx.abs() <= total.dy.abs() * 1.3) return;
+      _swipeActive = true;
+    }
+    final dx = event.position.dx - _swipeLast!.dx;
+    final elapsed = event.timeStamp - (_swipeLastTime ?? event.timeStamp);
+    if (elapsed.inMicroseconds > 0) {
+      _swipeVelocity = dx * Duration.microsecondsPerSecond /
+          elapsed.inMicroseconds;
+    }
+    _swipeLast = event.position;
+    _swipeLastTime = event.timeStamp;
+    _dragUpdate(DragUpdateDetails(delta: Offset(dx, 0)));
+  }
+
+  void _pointerUp(PointerUpEvent event) {
+    if (event.pointer != _swipePointer) return;
+    final wasActive = _swipeActive;
+    final velocity = _swipeVelocity;
+    _clearSwipePointer();
+    if (wasActive && mounted) {
+      _dragEnd(DragEndDetails(
+        velocity: Velocity(pixelsPerSecond: Offset(velocity, 0)),
+        primaryVelocity: velocity,
+      ));
+    }
+  }
+
+  void _pointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _swipePointer) return;
+    _clearSwipePointer();
+    if (mounted) {
+      setState(() {
+        _dragging = false;
+        _reveal = widget.isOpen ? _revealWidth : 0;
+        _pastRevealThreshold = widget.isOpen;
+      });
+    }
+  }
+
+  void _clearSwipePointer() {
+    _swipePointer = null;
+    _swipeStart = null;
+    _swipeLast = null;
+    _swipeLastTime = null;
+    _swipeActive = false;
+    _swipeVelocity = 0;
+  }
+
   void _dragUpdate(DragUpdateDetails details) {
     if (!widget.enabled) return;
     final width = context.size?.width ?? _revealWidth * 4;
@@ -344,11 +420,13 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     final colors = context.tioColors;
     final foreground = Material(
       color: colors.background,
-      child: GestureDetector(
+      child: Listener(
         key: ValueKey('routine-set-swipe-${widget.set.id}'),
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragUpdate: widget.enabled ? _dragUpdate : null,
-        onHorizontalDragEnd: widget.enabled ? _dragEnd : null,
+        onPointerDown: widget.enabled ? _pointerDown : null,
+        onPointerMove: widget.enabled ? _pointerMove : null,
+        onPointerUp: widget.enabled ? _pointerUp : null,
+        onPointerCancel: widget.enabled ? _pointerCancel : null,
         child: _fields(context),
       ),
     );
@@ -424,34 +502,37 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
               // larger accessibility text can still grow this control.
               child: Align(
                 heightFactor: 1,
-                child: Container(
-                  key: ValueKey('routine-set-type-box-${widget.set.id}'),
-                  width: TioSize.dp40,
-                  constraints: const BoxConstraints(minHeight: TioSize.dp40),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    // Create uses the neutral filled Set badge. The approved
-                    // Edit/PREVIOUS reference instead shows an unboxed blue
-                    // number; preserve the same 40dp visual footprint.
-                    color: widget.showPrevious ? null : colors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(TioRadius.md),
-                  ),
-                  child: Text(
-                    switch (widget.set.prescription.setType) {
-                      RoutineSetType.normal => '${widget.normalNumber}',
-                      RoutineSetType.warmUp => 'W',
-                      RoutineSetType.failure => 'F',
-                      RoutineSetType.drop => 'D',
-                    },
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: switch (widget.set.prescription.setType) {
-                        RoutineSetType.normal => widget.showPrevious
-                            ? colors.primary
-                            : colors.textPrimary,
-                        RoutineSetType.warmUp => colors.warning,
-                        RoutineSetType.failure => colors.danger,
-                        RoutineSetType.drop => colors.info,
+                child: UnconstrainedBox(
+                  constrainedAxis: Axis.horizontal,
+                  child: Container(
+                    key: ValueKey('routine-set-type-box-${widget.set.id}'),
+                    width: TioSize.dp40,
+                    constraints: const BoxConstraints(minHeight: TioSize.dp40),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      // Create uses the neutral filled Set badge. The approved
+                      // Edit/PREVIOUS reference instead shows an unboxed blue
+                      // number; preserve the same 40dp visual footprint.
+                      color: widget.showPrevious ? null : colors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(TioRadius.md),
+                    ),
+                    child: Text(
+                      switch (widget.set.prescription.setType) {
+                        RoutineSetType.normal => '${widget.normalNumber}',
+                        RoutineSetType.warmUp => 'W',
+                        RoutineSetType.failure => 'F',
+                        RoutineSetType.drop => 'D',
                       },
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: switch (widget.set.prescription.setType) {
+                          RoutineSetType.normal => widget.showPrevious
+                              ? colors.primary
+                              : colors.textPrimary,
+                          RoutineSetType.warmUp => colors.warning,
+                          RoutineSetType.failure => colors.danger,
+                          RoutineSetType.drop => colors.info,
+                        },
+                      ),
                     ),
                   ),
                 ),

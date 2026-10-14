@@ -220,3 +220,25 @@ duplicate child key, and preserve all existing test selectors.
 This is one shared-component defect, not nine unrelated route defects.
 Require fresh exact-head Flutter Analyze and full tests; no merge or
 release claim until verified.
+
+## Consolidated PR after #540 code merge (2026-10-14)
+
+Database PR #540 was **squash-merged into repository main** at
+`6a76011f10be1828b1dc661b2293de6ae41e775b` after exact-head
+Supabase Database CI #38581426089 SUCCESS and Commit attribution guard.
+This was a Git merge only: the hosted Supabase project still ends at
+`20261010061809`, so the #536 atomic Create and #540 nullable targets
+migrations are **not deployed**. Old-client compatibility/staged DB
+deployment and device QA remain separate release gates.
+
+Flutter CI #38580502750 (before merging new main) passed Flutter/Dart
+analysis and app tests, then failed 7 Workout tests: 2 under tall viewport
+SET badge expanding to 712 instead of 40dp, and 5 swipe/Delete interactions
+whose horizontal recognizer can lose to inline numeric-field selection.
+Scoped correction uses vertically-unconstrained painted SET content, and
+raw-pointer horizontal intent tracking so child text-selection recognizers
+cannot swallow the parent Set swipe. The existing drag/reveal/full-delete
+threshold and vertical scroll gesture behavior must pass existing tests.
+This source was not locally Flutter-tested; exact-head Flutter CI and
+independent review remain mandatory. Reconcile all current #551 changes
+with #540's merged main without overwriting its migrations or DB CI/tests.
