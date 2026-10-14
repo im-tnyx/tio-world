@@ -134,6 +134,36 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
 }
 
 void main() {
+  for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
+    testWidgets('Edit Set/boxed number/Add Set rendered surfaces equal 44dp '
+        'at 320dp in ${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final f = _Fixtures();
+      await f.open(tester, mode: mode);
+      final add = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
+      await tester.ensureVisible(add);
+      final filled = find.descendant(of: add, matching: find.byType(FilledButton));
+      final surface = find.descendant(
+        of: filled, matching: find.byType(Material)).first;
+      const expected = TioSize.dp44;
+      expect(tester.getSize(surface).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-type-box-$_setId'))).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-weight-$_setId'))).height, expected);
+      expect(tester.getSize(find.byKey(
+        const ValueKey('routine-set-reps-$_setId'))).height, expected);
+      expect(tester.getSize(add).height, greaterThanOrEqualTo(expected));
+      expect(f.compositions.saveCount, 0);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Exercise options dismiss without removing or saving',
       (tester) async {
     final f = _Fixtures();
