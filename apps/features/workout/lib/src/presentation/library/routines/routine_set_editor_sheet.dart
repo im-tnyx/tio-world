@@ -50,7 +50,7 @@ class _RoutineSetEditorSheetState extends State<RoutineSetEditorSheet> {
           ).split(' ').first;
     _load = TextEditingController(text: _originalLoad);
     _rest = TextEditingController(
-      text: widget.initial?.restSeconds.toString() ?? '',
+      text: widget.initial?.restSeconds?.toString() ?? '',
     );
   }
 
