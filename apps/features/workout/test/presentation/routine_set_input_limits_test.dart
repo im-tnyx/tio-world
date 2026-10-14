@@ -8,7 +8,7 @@ import 'package:tio_shared/shared.dart';
 TextEditingValue _value(String text) => TextEditingValue(text: text);
 
 void main() {
-  test('Reps and Rest input accept signed-int32 maximum, never exceed it', () {
+  test('Rest input accepts signed-int32 maximum, never exceeds it', () {
     final formatter = RoutineSetInputLimits.int32;
     expect(formatter.formatEditUpdate(_value('8'), _value('2147483647')).text,
         '2147483647');
@@ -26,6 +26,20 @@ void main() {
       _value('8'), _value('123.4')).text, '8');
     expect(formatter.formatEditUpdate(
       _value('8'), _value('0000000000')).text, '0000000000');
+  });
+
+  test('Reps and range targets cap at three whole digits', () {
+    final formatter = RoutineSetInputLimits.reps;
+    expect(RoutineSetInputLimits.maxRepsDigits, 3);
+    expect(RoutineSetInputLimits.maxReps, 999);
+    expect(formatter.formatEditUpdate(_value(''), _value('999')).text, '999');
+    expect(formatter.formatEditUpdate(_value('8'), _value('1000')).text, '8');
+    expect(formatter.formatEditUpdate(_value('8'), _value('9999')).text, '8');
+    expect(formatter.formatEditUpdate(_value('999'), _value('')).text, '');
+    expect(formatter.formatEditUpdate(_value('8'), _value('0')).text, '0');
+    expect(formatter.formatEditUpdate(_value('8'), _value('000')).text, '000');
+    expect(formatter.formatEditUpdate(_value('8'), _value('-2')).text, '8');
+    expect(formatter.formatEditUpdate(_value('8'), _value('12.0')).text, '8');
   });
 
   test('KG/LB field allows six whole and three fractional digits only', () {
@@ -86,6 +100,12 @@ void main() {
     expect(input(reps).controller!.text, isEmpty);
     expect(values, isEmpty);
 
+    await tester.enterText(reps, '999');
+    await tester.pump();
+    expect(input(reps).controller!.text, '999');
+    await tester.enterText(reps, '1000');
+    await tester.pump();
+    expect(input(reps).controller!.text, '999');
     await tester.enterText(reps, '8');
     await tester.pump();
     expect(input(reps).controller!.text, '8');
