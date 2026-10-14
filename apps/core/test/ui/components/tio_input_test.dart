@@ -128,7 +128,7 @@ void main() {
       expect(decoration.contentPadding,
           const EdgeInsets.symmetric(
             horizontal: TioInputTokens.compactContentHorizontalPadding,
-            vertical: TioSpacing.sm,
+            vertical: TioSize.dp6,
           ));
 
       await tester.tap(find.byType(TextFormField));
@@ -163,8 +163,9 @@ void main() {
           ),
           const Expanded(
             child: ColoredBox(
+              key: ValueKey('outside-fields'),
               color: Colors.transparent,
-              child: SizedBox.expand(key: ValueKey('outside-fields')),
+              child: SizedBox.expand(),
             ),
           ),
         ],
