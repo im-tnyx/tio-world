@@ -60,6 +60,27 @@ RoutineEditorController _make(
 }
 
 void main() {
+  test('Edit cannot add a ninth Set to the same Exercise', () async {
+    final ids = [
+      for (var index = 0; index < 7; index++)
+        '50000000-0000-4000-8000-${index.toString().padLeft(12, '0')}',
+      _m,
+    ];
+    final repository = _Compositions(_snapshot(entries: [_entry()]));
+    final controller = _make(_Routines([_routine()]), repository, ids: ids);
+    addTearDown(controller.dispose);
+    await controller.load();
+    for (var index = 1; index < 8; index++) {
+      expect(controller.addSet(_e, SetPrescription()), isNotNull);
+    }
+    expect(controller.state.entries.single.sets, hasLength(8));
+    expect(controller.addSet(_e, SetPrescription()), isNull);
+    expect(controller.state.entries.single.sets, hasLength(8));
+    // No silent ninth Set persists after the rejected operation.
+    expect(await controller.update(), isTrue);
+    expect(repository.lastSave!.entries.single.sets, hasLength(8));
+  });
+
   test('wrong owning Program refuses metadata and composition reads', () async {
     final routines = _Routines([_routine()]);
     final compositions = _Compositions(_snapshot());

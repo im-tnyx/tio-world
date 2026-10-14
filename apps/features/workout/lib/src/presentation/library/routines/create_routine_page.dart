@@ -9,6 +9,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
@@ -739,7 +740,15 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             label: 'Add Set',
             leading: const Icon(Icons.add),
             expand: true,
-            onPressed: _enabled ? () => _addSet(entry) : null,
+            semanticLabel: entry.sets.length >=
+                    RoutineCompositionLimits.maxSetsPerExercise
+                ? 'Add Set: maximum 8 Sets per Exercise reached'
+                : null,
+            onPressed: _enabled &&
+                    entry.sets.length <
+                        RoutineCompositionLimits.maxSetsPerExercise
+                ? () => _addSet(entry)
+                : null,
           ),
         ],
       ),

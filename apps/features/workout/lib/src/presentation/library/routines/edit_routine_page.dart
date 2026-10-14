@@ -9,6 +9,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../exercises/exercises_controller.dart';
@@ -916,7 +917,15 @@ class _EntryTable extends StatelessWidget {
           label: 'Add Set',
           leading: const Icon(Icons.add),
           expand: true,
-          onPressed: enabled ? addSet : null,
+          semanticLabel: entry.sets.length >=
+                  RoutineCompositionLimits.maxSetsPerExercise
+              ? 'Add Set: maximum 8 Sets per Exercise reached'
+              : null,
+          onPressed: enabled &&
+                  entry.sets.length <
+                      RoutineCompositionLimits.maxSetsPerExercise
+              ? addSet
+              : null,
         ),
       ],
     );

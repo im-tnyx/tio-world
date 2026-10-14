@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -188,8 +189,11 @@ final class RoutineEditorController extends ChangeNotifier {
     if (!_state.canEdit) return null;
     final index = _draft.indexWhere((e) => e.id == entryId);
     if (index < 0) return null;
-    final id = _newUuid();
     final current = _draft[index];
+    if (current.sets.length >= RoutineCompositionLimits.maxSetsPerExercise) {
+      return null;
+    }
+    final id = _newUuid();
     final range = current.sets.isNotEmpty &&
         current.sets.first.prescription.isRepRange;
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise

@@ -45,6 +45,34 @@ Exercise get _exercise => Exercise(
 );
 
 void main() {
+  test('at most 8 Sets per Exercise; a ninth does not allocate or mutate',
+      () {
+    var next = 0;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: _Creates(),
+      newUuid: () {
+        next++;
+        return '00000000-0000-4000-8000-${next.toString().padLeft(12, '0')}';
+      },
+    );
+    addTearDown(draft.dispose);
+    final first = draft.addPickedExercise(_exercise)!;
+    for (var index = 1; index < 8; index++) {
+      expect(draft.addSet(first, SetPrescription()), isNotNull);
+    }
+    expect(draft.state.entries.single.sets, hasLength(8));
+    final allocated = next;
+    expect(draft.addSet(first, SetPrescription()), isNull);
+    expect(next, allocated);
+    expect(draft.state.entries.single.sets, hasLength(8));
+    final separate = draft.addPickedExercise(_exercise)!;
+    expect(draft.state.entries.last.sets, hasLength(1));
+    expect(draft.addSet(separate, SetPrescription()), isNotNull);
+    expect(draft.state.entries.last.sets, hasLength(2));
+  });
+
   test('empty and name-only cannot save, no persistence', () async {
     final repo = _Creates();
     final c = _controller(repo);

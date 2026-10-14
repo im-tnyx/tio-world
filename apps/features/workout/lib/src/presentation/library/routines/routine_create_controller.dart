@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
@@ -130,8 +131,13 @@ final class RoutineCreateController extends ChangeNotifier {
     if (!_editable) return null;
     final index = _entries.indexWhere((e) => e.id == entryId);
     if (index < 0) return null;
-    final id = _newUuid();
     final entry = _entries[index];
+    // Guard at the controller boundary, not only the Add Set button. Never
+    // allocate an ID or change the draft after reaching the per-entry cap.
+    if (entry.sets.length >= RoutineCompositionLimits.maxSetsPerExercise) {
+      return null;
+    }
+    final id = _newUuid();
     // Repetition mode is Exercise-wide. New Set remains Normal in that mode.
     final inRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
