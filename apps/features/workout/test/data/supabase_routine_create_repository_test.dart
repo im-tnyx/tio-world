@@ -73,4 +73,84 @@ void main() {
       ],
     });
   });
+
+  for (final code in ['PGRST301', 'PGRST302', 'PGRST303', '28P01']) {
+    test('definite Create Auth $code remains retryable, not uncertain', () async {
+      var requests = 0;
+      final client = SupabaseClient(
+        'https://example.test', 'synthetic-publishable-key',
+        httpClient: MockClient((request) async {
+          requests++;
+          return http.Response(
+            jsonEncode({'code': code, 'message': 'Authentication rejected'}),
+            401,
+            headers: {'content-type': 'application/json'},
+            request: request,
+          );
+        }),
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      addTearDown(client.dispose);
+      final repo = SupabaseRoutineCreateRepository(
+        client: client,
+        currentUserId: () => '11111111-1111-4111-8111-111111111111',
+      );
+      await expectLater(
+        repo.create(_testCreateCommand()),
+        throwsA(isA<RoutineCompositionException>().having(
+          (e) => e.kind, 'kind', RoutineCompositionFailureKind.unauthorized,
+        )),
+      );
+      expect(requests, 1); // Never issue an automatic second Create.
+    });
+  }
+
+  test('uncertain Create server error keeps frozen-mutation outcome', () async {
+    var requests = 0;
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests++;
+        return http.Response(
+          jsonEncode({'code': 'XX000', 'message': 'Server failure'}),
+          500,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        );
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final repo = SupabaseRoutineCreateRepository(
+      client: client,
+      currentUserId: () => '11111111-1111-4111-8111-111111111111',
+    );
+    await expectLater(
+      repo.create(_testCreateCommand()),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()),
+    );
+    expect(requests, 1);
+  });
+
 }
+
+RoutineCreateCommand _testCreateCommand() => RoutineCreateCommand(
+  routine: Routine(
+    id: RoutineId('22222222-2222-4222-8222-222222222222'),
+    programId: ProgramId('11111111-1111-4111-8111-111111111111'),
+    name: 'Routine 1',
+  ),
+  mutationId: '33333333-3333-4333-8333-333333333333',
+  entries: [
+    RoutineCompositionEntry(
+      id: '44444444-4444-4444-8444-444444444444',
+      exercise: ExerciseRef.catalog('ex_bench_press'),
+      sets: [
+        RoutineCompositionSet(
+          id: '55555555-5555-4555-8555-555555555555',
+          prescription: SetPrescription(),
+        ),
+      ],
+    ),
+  ],
+);
