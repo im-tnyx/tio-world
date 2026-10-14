@@ -26,6 +26,8 @@ class ProgramDetailPage extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
 
   /// Atomic Create draft action supplied by the authenticated app shell.
+  /// True means re-read the Program: either a confirmed Create or an explicit
+  /// unconfirmed exit where the server may already have committed.
   /// Production must never fall back to metadata-only creation.
   final Future<bool> Function(String suggestedName)? onCreateRoutine;
 
@@ -95,8 +97,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     // No protected atomic Create capability means no Create action.
     // Never expose metadata-only name persistence as a fallback.
     if (!_canEdit || controller == null || create == null) return;
-    final created = await create(controller.suggestedName());
-    if (mounted && identical(controller, _controller) && created) {
+    final shouldRefresh = await create(controller.suggestedName());
+    if (mounted && identical(controller, _controller) && shouldRefresh) {
       await controller.load();
     }
   }
