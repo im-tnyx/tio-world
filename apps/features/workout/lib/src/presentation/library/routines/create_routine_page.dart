@@ -138,7 +138,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _entryExercises[id] = exercise;
       final entry = _draft.state.entries.last;
       for (final set in entry.sets) {
-        _invalidSetIds.add(set.id);
+        // A new identified Set has intentionally blank optional targets.
+        // Only malformed/partially typed numeric text should block Save.
         _untouchedRepSetIds.add(set.id);
       }
     }
@@ -195,9 +196,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!_enabled) return;
     // The reference's Add Set is immediate: no modal or second confirmation.
     if (_openSetId != null) setState(() => _openSetId = null);
-    final setId = _draft.addSet(entry.id, SetPrescription(reps: 1));
+    final setId = _draft.addSet(entry.id, SetPrescription());
     if (setId != null) {
-      _invalidSetIds.add(setId);
       _untouchedRepSetIds.add(setId);
     }
   }
@@ -508,6 +508,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         onTypePressed: () => _selectSetType(entry, set),
         unit: widget.weightUnit,
         enabled: _enabled,
+        exerciseType: _entryExercises[entry.id]?.exerciseType,
         startWithBlankReps: _untouchedRepSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
@@ -607,47 +608,52 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                 child: Text('SET', textAlign: TextAlign.center),
               ),
               const SizedBox(width: TioSpacing.sm),
-              Expanded(
-                flex: range ? 2 : 1,
-                child: Text(
-                  unit == WeightUnit.kg ? 'KG' : 'LB',
-                  textAlign: TextAlign.center,
+              if (selected?.exerciseType == ExerciseType.distanceDuration) ...[
+                const Expanded(child: Text('KM', textAlign: TextAlign.center)),
+                const SizedBox(width: TioSpacing.sm),
+                const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+              ] else if (selected?.exerciseType == ExerciseType.duration) ...[
+                const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
+              ] else ...[
+                Expanded(
+                  flex: range ? 2 : 1,
+                  child: Text(
+                    unit == WeightUnit.kg ? 'KG' : 'LB',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TioSpacing.sm),
-              Expanded(
-                flex: range ? 3 : 1,
-                child: Semantics(
-                  button: true,
-                  label: 'Repetition Options',
-                  child: InkWell(
-                    key: ValueKey('create-routine-repetition-options-${entry.id}'),
-                    onTap: _enabled
-                        ? () => _selectRepetitionMode(entry)
-                        : null,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              entry.sets.isNotEmpty &&
-                                      entry.sets.first.prescription.isRepRange
-                                  ? 'REP RANGE'
-                                  : 'REPS',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                const SizedBox(width: TioSpacing.sm),
+                Expanded(
+                  flex: range ? 3 : 1,
+                  child: Semantics(
+                    button: true,
+                    label: 'Repetition Options',
+                    child: InkWell(
+                      key: ValueKey('create-routine-repetition-options-${entry.id}'),
+                      onTap: _enabled ? () => _selectRepetitionMode(entry) : null,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: TioSpacing.sm,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                range ? 'REP RANGE' : 'REPS',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                          const Icon(Icons.arrow_drop_down),
-                        ],
+                            const Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              if (!range) const SizedBox(width: TioSize.dp48),
+                if (!range) const SizedBox(width: TioSize.dp48),
+              ],
             ],
           ),
           for (var i = 0; i < entry.sets.length; i++)
