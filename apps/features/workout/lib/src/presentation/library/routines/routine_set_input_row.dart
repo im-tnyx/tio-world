@@ -144,7 +144,12 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     }
     final before = oldWidget.set.prescription;
     final after = widget.set.prescription;
-    final changedExternally = before != after && after != _lastInlineEdit;
+    // One local edit has at most one parent echo. Consume its marker on that
+    // matching rebuild; a later sheet edit may legitimately return to the
+    // same value and must never be mistaken for an old inline echo.
+    final inlineEcho = before != after && after == _lastInlineEdit;
+    if (before != after) _lastInlineEdit = null;
+    final changedExternally = before != after && !inlineEcho;
     final modeChanged = (oldWidget.showRangeDraft || before.isRepRange) != _rangeMode;
     final unitChanged = oldWidget.unit != widget.unit;
 
