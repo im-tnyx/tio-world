@@ -153,6 +153,8 @@ void main() {
           'reps_max': null,
           'set_type': 'normal',
           'load_kg': null,
+          'distance_meters': null,
+          'duration_seconds': null,
           'rest_seconds': null,
           'entry': {'id': _id(1), 'user_id': _owner, 'routine_id': _routine},
         }
