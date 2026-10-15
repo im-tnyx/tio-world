@@ -1,3 +1,11 @@
+## Codex Review Gate — 2026-10-15 exact reviewed HEAD
+The independent Codex review completed on `f13b3a3635870a782a81ba6d1728466ffe79ca16` after Flutter CI #38788227679 SUCCESS. Four **open P2** issues (do not claim APPROVE):
+- PRRT_kwDOTOXwB86s7LRF: one-flight direct Create launch shared across Program dotted and bottom-sheet entry points, including distinct Programs.
+- PRRT_kwDOTOXwB86s7LRQ: remove stale handoff SHA and obsolete CI claims.
+- PRRT_kwDOTOXwB86s7LRb: reject delayed Create if the initiating Library route is no longer current.
+- PRRT_kwDOTOXwB86s7LRf: visible pending/unknown-outcome Create gate on the owning Program; disable Add while unconfirmed, preserve owner-only path to verification in existing Program Detail.
+Scope of remediation: existing Flutter Program/Library route and feature UI, plus focused widget/route regression tests and task handoff. **No schema, RLS, delete, move, playback or unrelated visual work.** Revalidate at **new exact head** after fixes and request Codex re-review before merge. Repo source/current HEAD must be checked after every commit.
+
 # GitHub #529 — Program-scoped Add Routine entry points
 
 **Status:** In progress
@@ -19,15 +27,15 @@
 **Ownership transition:** Not applicable; no #529 active branch or PR found on preflight
 **Repository state last verified:** GitHub API main = `4090e3a143fcfc309a3020e73823bc30ec40c282`
 **Branch:** `tnyx/issue-529-inline-add-routine`
-**HEAD SHA:** `d8eced8b57ff0d045a19d8aca7e5e210cdc83d90` (source checkpoint; recheck exact PR HEAD)
+**HEAD SHA:** Reviewed Codex baseline `f13b3a3635870a782a81ba6d1728466ffe79ca16`; remediation branch moving, verify live PR head before final handoff.
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
 **Current implementation state:** Remote branch has feature-owned dotted-outline Add new routine for authoritative empty Program, Program 3-dot Add New Routine, preserved Edit→Rename, and **direct Library → canonical CreateRoutinePage navigation** with no intermediate Program Detail. Direct Create and ordinary Program Detail use the same owner/session-guarded app-shell callback. Focused widget/app route tests cover direct Cancel/Save plus existing Program Detail navigation.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell direct Create route; Program Detail's existing Create action shares the same guarded callback
-**Validation completed at SHA:** Flutter CI #38779638889 SUCCESS at prior head `cbc16bd5` before dotted refinement; exact new head CI/review pending
-**Validation remaining:** Widget/app-route tests, exact-head CI, diff audit, security/API re-check and review
-**Current blocker:** Direct Program Delete unavailable (#567); review/exact-head CI and deployment gates pending.
+**Validation completed at SHA:** Flutter Analyze/Tests CI #38788227679 SUCCESS at reviewed `f13b3a36` only. Codex review completed with 4 P2 on that same head, 0 resolved yet; fixes and *new-head* CI pending.
+**Validation remaining:** Four P2 Codex remediations, focused new tests, exact corrected-head CI, reviewer re-review, diff/security QA and Android device visual QA.
+**Current blocker:** Four Codex P2 findings unresolved on reviewed #566 head; new-head CI/re-review and owner device QA pending. Direct Program Delete belongs to separate #567.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
 **Next exact action:** Validate direct-route NAV-01 and accurate unknown-write exit destination at exact new PR head via Flutter CI; then independent review and device QA. Confirm both dotted and Program 3-dot actions enter Create directly, Cancel/Back returns to Library, confirmed Save refreshes Library and unknown write retains pending identity without false success. Do not merge/deploy without explicit approval.
 
