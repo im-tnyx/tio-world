@@ -380,12 +380,15 @@ begin
           raise exception 'routine_composition_custom_type_changed'
             using errcode = '22023';
         end if;
+        if v_custom_type = 'steps_duration' then
+          raise exception 'routine_composition_custom_type_incompatible'
+            using errcode = '22023';
+        end if;
         for v_set in
           select e.value from pg_catalog.jsonb_array_elements(
             v_entry -> 'sets') as e(value)
         loop
-          if v_custom_type = 'steps_duration'
-              or (v_custom_type = 'duration' and
+          if (v_custom_type = 'duration' and
                 ((v_set ->> 'reps') is not null
                  or (v_set ->> 'reps_max') is not null
                  or (v_set ->> 'load_kg') is not null
