@@ -8,6 +8,7 @@ Future<void> _pump(
   WidgetTester tester, {
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
+  Future<void> Function(Program)? onAddRoutinePressed,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
@@ -38,6 +39,7 @@ Future<void> _pump(
         programIdGenerator: programIdGenerator,
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
+        onAddRoutinePressed: onAddRoutinePressed,
         onRoutinePressed: onRoutinePressed,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
@@ -242,6 +244,79 @@ void main() {
     expect(find.text('New Routine'), findsOneWidget);
     expect(repository.queries.where((p) => p == _id(1)).length,
         greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('empty Program Add Routine uses its identity and refreshes',
+      (tester) async {
+    final routines = _FakeRoutineRepository();
+    ProgramId? target;
+    await _pump(
+      tester,
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {
+        target = program.id;
+        routines.rows.add(_routine(1, 103, 'New Routine'));
+      },
+    );
+
+    final add = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    expect(add, findsOneWidget);
+    expect(find.text('No routines yet'), findsNothing);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+
+    expect(target, _id(1));
+    expect(find.text('New Routine'), findsOneWidget);
+    expect(add, findsNothing, reason: 'Populated Program has no empty Add CTA');
+    expect(routines.queries.where((id) => id == _id(1)).length,
+        greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('empty Add Routine is Program-scoped, hidden when unavailable',
+      (tester) async {
+    final routines = _FakeRoutineRepository([_routine(2, 201, 'Legs')]);
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {},
+    );
+    expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-add-routine-${_id(2).value}')),
+        findsNothing);
+    expect(find.text('Legs'), findsOneWidget);
+
+    await _pump(tester, routineRepository: routines);
+    expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
+        findsNothing);
+    expect(find.text('No routines yet'), findsOneWidget);
+  });
+
+  testWidgets('Program bottom sheet Add Routine reuses selected Program',
+      (tester) async {
+    final routines = _FakeRoutineRepository();
+    ProgramId? target;
+    await _pump(
+      tester,
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {
+        target = program.id;
+      },
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(find.text('Add New Routine'), findsOneWidget);
+    expect(find.text('Delete Program'), findsNothing,
+        reason: 'No Program Delete lifecycle or permission yet');
+    await tester.tap(find.byKey(const ValueKey('program-action-add-routine')));
+    await tester.pumpAndSettle();
+    expect(target, _id(1));
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
   });
 
   testWidgets('Routine child load error retries without leaking another Program',
