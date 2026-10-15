@@ -224,6 +224,113 @@ void main() {
     expect(user.writeCalls, 0);
   });
 
+  for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+    testWidgets('selected Custom icon badge matches catalog at 320dp '
+        'in ${mode.name}', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Column(
+            children: [
+              ExerciseListRow(
+                key: const ValueKey('test-custom-row'),
+                item: ExerciseListItem(
+                  exercise: _customExercise(),
+                  thumbnailUrl: null,
+                  metadata: 'Strength',
+                  isCustom: true,
+                ),
+                selectionMode: true,
+                isSelected: true,
+                onTap: () {},
+              ),
+              ExerciseListRow(
+                item: ExerciseListItem(
+                  exercise: _catalogExercise(),
+                  thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+                  metadata: 'Chest',
+                ),
+                selectionMode: true,
+                isSelected: true,
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final iconSlot = find.byKey(
+        const ValueKey('exercise-custom-thumbnail-$_customId'));
+      final selected = find.byKey(
+        const ValueKey('exercise-selected-$_customId'));
+      expect(iconSlot, findsOneWidget);
+      expect(tester.getSize(iconSlot), const Size(68, 56));
+      expect(find.descendant(
+        of: iconSlot,
+        matching: find.byIcon(Icons.fitness_center_rounded),
+      ), findsOneWidget);
+      expect(selected, findsOneWidget);
+      expect(tester.getSize(selected), const Size(18, 18));
+      final stack = find.ancestor(
+        of: selected,
+        matching: find.byType(Stack),
+      ).first;
+      expect(tester.getSize(stack), const Size(68, 56));
+      final position = tester.widget<Positioned>(
+        find.ancestor(of: selected, matching: find.byType(Positioned)).first,
+      );
+      expect(position.top, -TioSpacing.xs);
+      expect(position.right, TioSpacing.xs);
+      expect(tester.getRect(selected).right,
+          closeTo(tester.getRect(iconSlot).right - TioSpacing.xs, 0.1));
+      // Both sources use the same 56dp media column and existing 12dp gap.
+      expect(tester.getRect(find.text('My Lift')).left,
+          closeTo(tester.getRect(find.text('Bench Press')).left, 0.1));
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('test-custom-row')))
+            .getSemanticsData()
+            .hasFlag(SemanticsFlag.isSelected),
+        isTrue,
+      );
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('unselected Custom browse shows icon but no selection badge',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _customExercise(),
+            thumbnailUrl: null,
+            isCustom: true,
+          ),
+          onTap: () {},
+        ),
+      ),
+    ));
+    final slot = find.byKey(
+      const ValueKey('exercise-custom-thumbnail-$_customId'));
+    expect(slot, findsOneWidget);
+    expect(tester.getSize(slot), const Size(68, 56));
+    expect(find.byKey(const ValueKey('exercise-selected-$_customId')),
+        findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    expect(find.text('Custom'), findsOneWidget);
+  });
+
   testWidgets('selected thumbnail badge hugs the image top-right rim',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
