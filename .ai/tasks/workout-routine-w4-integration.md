@@ -2,6 +2,18 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 Codex latest-head two P1 review fixes (active)
+
+**Owner instruction and boundaries:** Owner accepted current Routine UI and explicitly said `Go` to advance gate. The follow-on `@codex review` on #551 head `c13bc1a4206532cd89a49bd65d6bca5a2d3a1d8c` returned TWO NEW P1 threads (19 total, 13 unresolved). Normal bounded review remediation on the same exclusive implementation branch. No redesign, new UI, new screens, services, Supabase columns/migrations, merge or deployment.
+
+1. `PRRT_kwDOTOXwB86soz-m` app shell `shell_route.dart:481`: auth/login-cycle revocation while `RoutineCreateController` RPC is `saving` forcibly disposes draft before pending mutation is transferred to `RoutinePendingCreateGate`. In-process same-owner reauth can create a second Routine while first RPC commits. Design must preserve opaque immutable attempt only for same owner, never expose old-session UI, verify under NEW owner-authenticated capability, never authorize write from revoked route, and retain fail-closed unknown status. Different owner must clear the pending identity. Existing in-memory guard does NOT solve process restarts.
+2. `PRRT_kwDOTOXwB86soz-t` `EditRoutinePage._setEditor` ignores `_blankSetIds` for a valid `Rest & set details` replacement. Definite RPC rejection unmounts/remounts list and displays blank inline Reps despite saved draft value; accepted sheet change should remove stale blank marker before controller save. Preserve untouched genuinely blank/null Reps.
+
+**Validation:** add unit/widget tests for in-flight Save revocation, same-owner next-cycle gate survival and eventual positive verification, different-owner discard, no second Create writes, continued overlay revocation; advanced-sheet Reps persisted visibly after definite rejected Update with same Set ID. CI rerun on exact new head and request review on the two new P1 threads. Existing CI #38684571808 SUCCESS only at *old head*, so it is not evidence for new commits. Independent review and hosted DB/client compatibility #559, Custom/Edit race #534, physical QA and owner release authorization remain open.
+
+---
+
+
 ## 2026-10-15 approved #556 Custom media-slot selection alignment slice (active; validation pending)
 
 **Approval and ownership:** Owner explicitly said `Go` to existing PR #551 merge-gate plan; immediate first task is their reported Custom Exercise thumbnail/icon and selection badge bug tracked by [#556](https://github.com/im-tnyx/tio-world/issues/556). Existing #551 branch `tnyx/routine-set-boxed-fields-compact-add-set` remains the single implementation owner for this W4 selection presentation regression. No branch takeover, extra PR, unrelated new Custom editor or Exercise Detail changes. This remote connector does not expose the owner's local worktree; do not claim local `git status`, Flutter runtime or physical device QA.
