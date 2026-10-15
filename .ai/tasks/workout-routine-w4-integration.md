@@ -506,3 +506,30 @@ without changing source identity behavior. No production code or
 persistence contract changed in this remediation. New exact-head
 Flutter CI, independent review and physical accessibility/visual QA
 are required; prior 523/7 is not a pass.
+
+## Codex exact-head review remediations (2026-10-15; CI pending)
+
+Latest Codex review on #551 head `5b50f0a77ba1bfa642ddea2df871b28ecbc83ede` added three P2 threads:
+late-running Create RPC commit after parent Program refresh, definite HTTP
+4xx incorrectly treated as unknown, and disappearing Add-mode selected
+badge on broken network thumbnail. These are real review findings; 7 total
+#551 threads remain unreviewed/resolution pending.
+
+This **bounded first fix** keeps the Create adapter's existing explicit
+SQL/Auth cases, adds definite handling for unclassified numeric HTTP
+400–499 errors (matching the Edit adapter's ambiguity criteria), and
+adds a real-SDK MockClient test for 400/404/409/422/429 with one request.
+The selected-only ExerciseThumbnail now retains its original 56dp media
+footprint when network imagery fails so the 18dp overlay remains visible.
+Browse/single-select thumbnail failure still collapses as before and
+no new media loader/selection state is introduced. Widget regression
+asserts a failed network thumbnail retains badge, size and legible name.
+No schema, new page, change to Routine identities, or hosted deployment.
+
+The **late-commit P2 is NOT fixed** by this slice: one initial refresh
+cannot prove absence after a timed-out RPC. Needs an explicit protected
+same-session pending-attempt/settlement gate or a thoroughly reviewed
+server-backed reconciliation design plus tests before resolution. No
+unapproved arbitrary polling window or false no-duplicate promise.
+Exact-head Flutter CI, independent Code review, DB old-client staging,
+and manual device QA remain required before merge.

@@ -239,6 +239,43 @@ void main() {
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
   });
 
+
+  testWidgets('selected failed-network thumbnail keeps its badge visible',
+      (tester) async {
+    // Widget tests cannot successfully load external network images.
+    // The failure state must not collapse the badge's Stack to zero size.
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _catalogExercise(),
+            thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+            metadata: 'Chest',
+          ),
+          selectionMode: true,
+          isSelected: true,
+          onTap: () {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    const key = ValueKey('exercise-selected-ex_bench_press');
+    final selected = find.byKey(key);
+    expect(selected, findsOneWidget);
+    expect(tester.getSize(selected), const Size(18, 18));
+    final stack = find.ancestor(of: selected, matching: find.byType(Stack)).first;
+    expect(tester.getSize(stack).width, greaterThanOrEqualTo(68));
+    expect(tester.getSize(stack).height, greaterThanOrEqualTo(56));
+    expect(tester.getRect(selected).left,
+        greaterThanOrEqualTo(tester.getRect(stack).left));
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('search, pick Custom result and return without persistence',
       (tester) async {
     Exercise? selected;

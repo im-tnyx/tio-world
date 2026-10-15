@@ -41,6 +41,7 @@ class ExerciseListRow extends StatelessWidget {
                       ExerciseThumbnail(
                         key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
                         url: thumbnailUrl,
+                        retainSizeOnFailure: true,
                       ),
                       Positioned(
                         // Let the smaller check sit on the thumbnail rim,
@@ -195,11 +196,19 @@ class _CustomBadge extends StatelessWidget {
 /// Exercise image plus its gap to the text, removed entirely if the image
 /// cannot load so the row falls back to text-only.
 class ExerciseThumbnail extends StatefulWidget {
-  const ExerciseThumbnail({required this.url, super.key});
+  const ExerciseThumbnail({
+    required this.url,
+    this.retainSizeOnFailure = false,
+    super.key,
+  });
 
   static const size = TioSize.dp56;
 
   final Uri url;
+  // In selected rows, retain the thumbnail's existing footprint on a
+  // failed network image so its 18dp selected marker stays visible.
+  // Other Library/browse rows still collapse to their text-only layout.
+  final bool retainSizeOnFailure;
 
   @override
   State<ExerciseThumbnail> createState() => _ExerciseThumbnailState();
@@ -222,7 +231,17 @@ class _ExerciseThumbnailState extends State<ExerciseThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    if (_failed) return const SizedBox.shrink();
+    if (_failed) {
+      return widget.retainSizeOnFailure
+          ? const Padding(
+              padding: EdgeInsets.only(right: TioSpacing.md),
+              child: SizedBox(
+                width: ExerciseThumbnail.size,
+                height: ExerciseThumbnail.size,
+              ),
+            )
+          : const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.only(right: TioSpacing.md),
@@ -239,7 +258,12 @@ class _ExerciseThumbnailState extends State<ExerciseThumbnail> {
             excludeFromSemantics: true,
             errorBuilder: (context, error, stackTrace) {
               _markFailed();
-              return const SizedBox.shrink();
+              return widget.retainSizeOnFailure
+                  ? const SizedBox(
+                      width: ExerciseThumbnail.size,
+                      height: ExerciseThumbnail.size,
+                    )
+                  : const SizedBox.shrink();
             },
           ),
         ),

@@ -77,7 +77,16 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
       if (kind != null) {
         throw RoutineCompositionException(kind);
       }
-      // Transport/5xx/malformed 2xx can follow a committed DB transaction.
+      // Like the existing Edit adapter, any other ordinary HTTP 4xx is
+      // a definite rejection. Do not freeze an editable Create draft for
+      // validation/conflict/throttle failures with numeric HTTP codes.
+      final httpCode = int.tryParse(error.code ?? '');
+      if (httpCode != null && httpCode >= 400 && httpCode < 500) {
+        throw const RoutineCompositionException(
+          RoutineCompositionFailureKind.invalidRequest,
+        );
+      }
+      // Transport/connection, 5xx or malformed 2xx may follow a commit.
       throw const RoutineCompositionSaveOutcomeUnknown();
     } on RoutineCompositionException {
       rethrow;
