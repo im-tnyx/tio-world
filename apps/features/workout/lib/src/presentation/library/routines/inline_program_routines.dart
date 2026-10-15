@@ -14,6 +14,7 @@ class InlineProgramRoutines extends StatefulWidget {
     required this.repository,
     required this.refreshVersion,
     this.onRoutinePressed,
+    this.onAddRoutine,
     super.key,
   });
 
@@ -21,6 +22,8 @@ class InlineProgramRoutines extends StatefulWidget {
   final RoutineRepository? repository;
   final int refreshVersion;
   final Future<void> Function(Routine routine)? onRoutinePressed;
+  /// Opens canonical Create for this exact Program; injected by app shell.
+  final Future<void> Function()? onAddRoutine;
 
   @override
   State<InlineProgramRoutines> createState() => _InlineProgramRoutinesState();
@@ -28,6 +31,23 @@ class InlineProgramRoutines extends StatefulWidget {
 
 class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
   ProgramRoutinesController? _controller;
+  bool _openingCreate = false;
+
+  Future<void> _addRoutine() async {
+    final add = widget.onAddRoutine;
+    final controller = _controller;
+    if (_openingCreate || add == null || controller == null ||
+        controller.state.status != ProgramRoutinesStatus.ready ||
+        controller.state.routines.isNotEmpty) {
+      return;
+    }
+    setState(() => _openingCreate = true);
+    try {
+      await add();
+    } finally {
+      if (mounted) setState(() => _openingCreate = false);
+    }
+  }
 
   @override
   void initState() {
@@ -116,10 +136,18 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
         );
       case ProgramRoutinesStatus.ready:
         if (state.routines.isEmpty) {
-          content = Text(
-            'No routines yet',
-            style: TextStyle(color: context.tioColors.textSecondary),
-          );
+          content = widget.onAddRoutine == null
+              ? Text(
+                  'No routines yet',
+                  style: TextStyle(color: context.tioColors.textSecondary),
+                )
+              : TioButton.secondary(
+                  key: ValueKey(
+                    'library-add-routine-${widget.program.id.value}',
+                  ),
+                  label: 'Add Routine',
+                  onPressed: _openingCreate ? null : _addRoutine,
+                );
         } else {
           content = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
