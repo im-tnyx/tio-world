@@ -28,17 +28,12 @@ abstract final class RoutineCompositionLimits {
           p.reps != null || p.repsMax != null || p.loadKg != null;
       final hasDistance = p.distanceMeters != null;
       final hasDuration = p.durationSeconds != null;
-      switch (type) {
-        case ExerciseType.duration:
-          if (hasRepsOrLoad || hasDistance) return false;
-        case ExerciseType.distanceDuration:
-          if (hasRepsOrLoad) return false;
-        case ExerciseType.stepsDuration:
-          return false;
-        case null:
-          break; // Existing nullable definition; do not manufacture a type.
-        default:
-          if (hasDistance || hasDuration) return false;
+      if (type == ExerciseType.duration) {
+        if (hasRepsOrLoad || hasDistance) return false;
+      } else if (type == ExerciseType.distanceDuration) {
+        if (hasRepsOrLoad) return false;
+      } else if (type != null && (hasDistance || hasDuration)) {
+        return false; // All remaining supported types use Reps/Load targets.
       }
     }
     return true;
