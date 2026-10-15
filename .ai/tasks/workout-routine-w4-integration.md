@@ -2,6 +2,20 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 Codex exact-head 3 P2 review follow-up
+
+**Reconciled source:** Latest Codex reviewed `cf4e5b3ff1614b33006581600ea2ec891a2a435c` with Flutter CI #38692605004 + attribution guards PASS, and reported three **new** P2 threads `PRRT_kwDOTOXwB86sp4uS` (historical 9+ Set Update), `PRRT_kwDOTOXwB86sp4uX` (pre-execution `PGRST203` Create rejection), `PRRT_kwDOTOXwB86sp4ua` (stale Custom Exercise type/Set-target compatibility on Create AND Edit). 22 threads total, 16 unresolved. Owner accepted Routine UI; this is the already-approved bounded PR #551 code review gate, not a new screen/visual/DB task. Existing branch remains only implementation owner; preserve UI and database compatibility.
+
+**Implementation sequence, one slice at a time:**
+1. Enforce `RoutineCompositionLimits.maxSetsPerExercise=8` on **controller Update** and show actionable message while preserving read/edit/removal of legacy 9+ Set rows. Zero RPC for over-cap drafts, tests including first invalid then corrected retry; don't hide or delete historical rows automatically.
+2. Treat PostgREST `PGRST203` overload-resolution (HTTP 300, pre-RPC) as a definite `invalidRequest` rejection, not unknown, with real SDK MockClient test, preserve 5xx/transport uncertainty and JWT mapping.
+3. Before Create/Update RPC, validate current active Custom Exercise measurement type against the draft's selected/expected profile and stored prescription fields. No stale KG/REPS↔KM/TIME writes, no imaginary conversions, zero RPC and editable guidance, preserve historical referenced Exercise IDs. Unit and async owner-change tests; check supported types via existing enum/taxonomy, no model/schema change.
+
+**Gates:** Only exact-head CI and independent Codex reviewer disposition may close review findings; preserve #534 server-side Custom archive race, #559 older-client null-Reps rollout, 55-migration hosted ledger (new migrations #536/#540 merged source but not deployed), no device QA claim, no merge/deploy/ancestors cleanup. Check repo-side file Sha/head before each remote write; the GitHub connector does not expose local git worktree status.
+
+---
+
+
 ## 2026-10-15 Codex latest-head two P1 review fixes (active)
 
 **Owner instruction and boundaries:** Owner accepted current Routine UI and explicitly said `Go` to advance gate. The follow-on `@codex review` on #551 head `c13bc1a4206532cd89a49bd65d6bca5a2d3a1d8c` returned TWO NEW P1 threads (19 total, 13 unresolved). Normal bounded review remediation on the same exclusive implementation branch. No redesign, new UI, new screens, services, Supabase columns/migrations, merge or deployment.
