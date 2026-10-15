@@ -139,6 +139,40 @@ void main() {
     });
   }
 
+  test('PGRST203 overload ambiguity is a definite pre-execution rejection',
+      () async {
+    var requests = 0;
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests++;
+        return http.Response(
+          jsonEncode({
+            'code': 'PGRST203',
+            'message': 'RPC overload is ambiguous',
+          }),
+          300,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        );
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final repo = SupabaseRoutineCreateRepository(
+      client: client,
+      currentUserId: () => '11111111-1111-4111-8111-111111111111',
+    );
+    await expectLater(
+      repo.create(_testCreateCommand()),
+      throwsA(isA<RoutineCompositionException>().having(
+        (e) => e.kind, 'kind',
+        RoutineCompositionFailureKind.invalidRequest,
+      )),
+    );
+    expect(requests, 1, reason: 'Never retry an atomic Create automatically');
+  });
+
   test('uncertain Create server error keeps frozen-mutation outcome', () async {
     var requests = 0;
     final client = SupabaseClient(
