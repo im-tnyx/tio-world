@@ -26,6 +26,21 @@ class ExerciseListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final thumbnailUrl = item.thumbnailUrl;
+    // A Custom Exercise without an asset still occupies the canonical image
+    // column. Selection belongs to the media rim, never the row's trailing edge.
+    final Widget? thumbnail = thumbnailUrl != null
+        ? ExerciseThumbnail(
+            key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
+            url: thumbnailUrl,
+            retainSizeOnFailure: selectionMode && isSelected,
+          )
+        : item.isCustom
+            ? _CustomExerciseThumbnail(
+                key: ValueKey(
+                  'exercise-custom-thumbnail-${item.exercise.ref.value}',
+                ),
+              )
+            : null;
     final body = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.lg,
@@ -33,31 +48,25 @@ class ExerciseListRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (thumbnailUrl != null)
+          if (thumbnail != null)
             selectionMode && isSelected
                 ? Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      ExerciseThumbnail(
-                        key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
-                        url: thumbnailUrl,
-                        retainSizeOnFailure: true,
-                      ),
+                      thumbnail,
                       Positioned(
-                        // Let the smaller check sit on the thumbnail rim,
-                        // not deep inside the artwork.
+                        // Identical rim position for real and Custom fallback art.
                         top: -TioSpacing.xs,
                         right: TioSpacing.xs,
                         child: _SelectedExerciseBadge(
-                          key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
+                          key: ValueKey(
+                            'exercise-selected-${item.exercise.ref.value}',
+                          ),
                         ),
                       ),
                     ],
                   )
-                : ExerciseThumbnail(
-                    key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
-                    url: thumbnailUrl,
-                  ),
+                : thumbnail,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,7 +111,7 @@ class ExerciseListRow extends StatelessWidget {
               ],
             ),
           ),
-          if (selectionMode && isSelected && thumbnailUrl == null) ...[
+          if (selectionMode && isSelected && thumbnail == null) ...[
             const SizedBox(width: TioSpacing.sm),
             _SelectedExerciseBadge(
               key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
@@ -158,6 +167,33 @@ class _SelectedExerciseBadge extends StatelessWidget {
               Icons.check_rounded,
               color: TioPalette.white,
               size: TioSize.dp12,
+            ),
+          ),
+        ),
+      );
+}
+
+/// Decorative, non-persisted artwork for user-created Exercises without media.
+class _CustomExerciseThumbnail extends StatelessWidget {
+  const _CustomExerciseThumbnail({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: TioSpacing.md),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(TioRadius.sm),
+          child: ColoredBox(
+            color: context.tioColors.surfaceVariant,
+            child: SizedBox(
+              width: ExerciseThumbnail.size,
+              height: ExerciseThumbnail.size,
+              child: ExcludeSemantics(
+                child: Icon(
+                  Icons.fitness_center_rounded,
+                  size: TioSize.dp24,
+                  color: context.tioColors.textSecondary,
+                ),
+              ),
             ),
           ),
         ),
