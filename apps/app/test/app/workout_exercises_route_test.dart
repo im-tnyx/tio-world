@@ -886,6 +886,60 @@ void main() {
       loginCycle: 'test-cycle',
       programId: ProgramId(programId),
     ), isTrue, reason: 'Lost ACK must never be treated as success');
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('library-verify-routine-$programId'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('program-routines-verify-create'),
+    ));
+    await tester.pumpAndSettle();
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse);
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsNothing);
+  });
+
+  testWidgets('pending Library read cannot launch Create over another route',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    final routines = container.read(routineRepositoryProvider)
+        as _RouteRoutines;
+    final hold = Completer<void>();
+    routines.holdNextRead = hold;
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+      const ValueKey('library-add-routine-$programId'),
+    ));
+    await tester.pump();
+    router.go(_exercisesPath);
+    await tester.pumpAndSettle();
+    hold.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      0,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('same-owner Profile failure preserves Create draft and unit',
@@ -1850,6 +1904,8 @@ final class _RoutePrograms implements ProgramRepository {
 }
 
 final class _RouteRoutines implements RoutineRepository {
+  Completer<void>? holdNextRead;
+
   _RouteRoutines({bool empty = false}) {
     if (empty) rows.clear();
   }
@@ -1863,8 +1919,12 @@ final class _RouteRoutines implements RoutineRepository {
   ];
 
   @override
-  Future<List<Routine>> list(ProgramId programId) async =>
-      List.unmodifiable(rows.where((item) => item.programId == programId));
+  Future<List<Routine>> list(ProgramId programId) async {
+    final hold = holdNextRead;
+    holdNextRead = null;
+    if (hold != null) await hold.future;
+    return List.unmodifiable(rows.where((item) => item.programId == programId));
+  }
 
   @override
   Future<void> create(Routine routine) async => rows.add(routine);
