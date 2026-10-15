@@ -70,7 +70,8 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
         '42501' || '403' =>
           RoutineCompositionFailureKind.forbidden,
         '22023' || '22P02' || '22003' || '23514' ||
-        '23503' || '23505' || 'P0001' || 'P0002' || 'PGRST202' =>
+        '23503' || '23505' || 'P0001' || 'P0002' ||
+        'PGRST202' || 'PGRST203' =>
           RoutineCompositionFailureKind.invalidRequest,
         _ => null,
       };
