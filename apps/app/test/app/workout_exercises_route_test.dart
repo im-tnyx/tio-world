@@ -721,13 +721,100 @@ void main() {
 
     expect(find.byType(CreateRoutinePage), findsOneWidget);
     expect(find.byKey(const ValueKey('create-routine-name')), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing,
+        reason: 'Program Detail must not be pushed behind direct Create');
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(
+      tester.widget<TioInput>(
+        find.byKey(const ValueKey('create-routine-name')),
+      ).controller!.text,
+      'Routine 1',
+    );
 
     await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
     await tester.pumpAndSettle();
     expect(find.byType(LibraryPage), findsOneWidget);
     expect(find.byType(ProgramDetailPage), findsNothing);
     expect(find.byType(CreateRoutinePage), findsNothing);
+  });
+
+  testWidgets('Library dotted Add Routine opens Create directly and returns on Cancel',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const action = ValueKey('library-add-routine-$programId');
+    expect(find.byKey(action), findsOneWidget);
+    await tester.tap(find.byKey(action));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byKey(action), findsOneWidget);
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      0,
+    );
+  });
+
+  testWidgets('Library dotted Add Routine Save refreshes its owning Program directly',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-add-routine-$programId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('create-routine-name')),
+      'Saved Directly',
+    );
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    final scoped = find.byKey(const ValueKey('library-routines-$programId'));
+    expect(
+      find.descendant(of: scoped, matching: find.text('Saved Directly')),
+      findsOneWidget,
+    );
+    final created = (container.read(routineCreateRepositoryProvider)
+        as _RouteCreate);
+    expect(created.createCalls, 1);
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse);
   });
 
   testWidgets('same-owner Profile failure preserves Create draft and unit',
@@ -1567,6 +1654,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   AppMode mode, {
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
+  bool emptyProgramRoutines = false,
   bool withRoutineComposition = false,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
@@ -1590,7 +1678,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   final calendarController =
       CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
   await calendarController.load();
-  final routeRoutines = _RouteRoutines();
+  final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
 
   final container = ProviderContainer(
@@ -1691,6 +1779,10 @@ final class _RoutePrograms implements ProgramRepository {
 }
 
 final class _RouteRoutines implements RoutineRepository {
+  _RouteRoutines({bool empty = false}) {
+    if (empty) rows.clear();
+  }
+
   final List<Routine> rows = [
     Routine(
       id: RoutineId('30000000-0000-4000-8000-000000000001'),
