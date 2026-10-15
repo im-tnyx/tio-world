@@ -528,6 +528,27 @@ List<RouteBase> _shellBranchChildRoutes(
                                             );
                                             exitedUnconfirmed = true;
                                           },
+                                          // Capture immutable identity BEFORE
+                                          // dispatch, not only on an optional
+                                          // user-triggered unknown exit. A
+                                          // revoked route cannot stop an RPC
+                                          // which is already in-flight.
+                                          onWriteStarted: (command) {
+                                            if (!openingSessionValid()) return;
+                                            pendingGate.retain(
+                                              owner: openingOwner!,
+                                              loginCycle: openingCycle!,
+                                              command: command,
+                                            );
+                                          },
+                                          onWriteResolved: (command) {
+                                            if (!openingSessionValid()) return;
+                                            pendingGate.release(
+                                              owner: openingOwner!,
+                                              loginCycle: openingCycle!,
+                                              command: command,
+                                            );
+                                          },
                                           viewerMediaGender: authorized
                                               ? ref.watch(exerciseViewerMediaGenderProvider)
                                               : null,
