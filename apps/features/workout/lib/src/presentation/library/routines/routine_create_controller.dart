@@ -374,6 +374,7 @@ final class RoutineCreateController extends ChangeNotifier {
       ),
       mutationId: _newUuid(),
       entries: _entries,
+      expectedCustomTypes: _pickedCustomTypes,
     );
     _status = RoutineCreateStatus.saving;
     _publish();
