@@ -18,6 +18,7 @@ class ProgramDetailPage extends StatefulWidget {
     this.onCreateRoutine,
     this.hasUnconfirmedCreate,
     this.onVerifyUnconfirmedCreate,
+    this.pendingCreateChanges,
   });
 
   final Program program;
@@ -35,6 +36,9 @@ class ProgramDetailPage extends StatefulWidget {
   /// Volatile app owner/login-cycle protection, not stored Routine truth.
   final bool Function()? hasUnconfirmedCreate;
   final Future<bool> Function()? onVerifyUnconfirmedCreate;
+  /// Refresh the disabled Create action when an in-flight RPC settles.
+  /// No draft payload or auth credentials cross this notification boundary.
+  final Listenable? pendingCreateChanges;
 
   @override
   State<ProgramDetailPage> createState() => _ProgramDetailPageState();
@@ -61,12 +65,21 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   @override
   void initState() {
     super.initState();
+    widget.pendingCreateChanges?.addListener(_pendingChanged);
     _bind();
+  }
+
+  void _pendingChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant ProgramDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.pendingCreateChanges, widget.pendingCreateChanges)) {
+      oldWidget.pendingCreateChanges?.removeListener(_pendingChanged);
+      widget.pendingCreateChanges?.addListener(_pendingChanged);
+    }
     if (oldWidget.program.id != widget.program.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
         !identical(oldWidget.newRoutineUuid, widget.newRoutineUuid)) {
@@ -98,6 +111,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
   @override
   void dispose() {
+    widget.pendingCreateChanges?.removeListener(_pendingChanged);
     _controller
       ?..removeListener(_onChanged)
       ..dispose();
