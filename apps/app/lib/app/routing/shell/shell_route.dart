@@ -312,6 +312,7 @@ List<RouteBase> _shellBranchChildRoutes(
 
           Future<void> openProgram(Program program,
               {bool launchCreate = false}) async {
+            if (routineRepository == null) return;
             // This Program belongs to the session which opened Detail.
             // A mounted Detail must not create under an old Program
             // after an account switch or a new login cycle.
