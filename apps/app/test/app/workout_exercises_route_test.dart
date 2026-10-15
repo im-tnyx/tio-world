@@ -826,6 +826,68 @@ void main() {
     ), isFalse);
   });
 
+  testWidgets('unconfirmed direct Create exits to Library, not Program Detail',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-add-routine-$programId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(find.text('Exit to Library'), findsOneWidget);
+    expect(find.text('Exit to Program'), findsNothing);
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('library-routines-$programId')),
+        matching: find.text('Routine 1'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      1,
+    );
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isTrue, reason: 'Lost ACK must never be treated as success');
+  });
+
   testWidgets('same-owner Profile failure preserves Create draft and unit',
       (tester) async {
     final profileEvents = StreamController<ProfileSetupData?>.broadcast();
