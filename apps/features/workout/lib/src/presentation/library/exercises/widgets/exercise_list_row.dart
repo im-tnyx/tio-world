@@ -160,12 +160,12 @@ class _SelectedExerciseBadge extends StatelessWidget {
             color: context.tioColors.primary,
             shape: BoxShape.circle,
           ),
-          child: const SizedBox(
+          child: SizedBox(
             width: TioSize.dp18,
             height: TioSize.dp18,
             child: Icon(
               Icons.check_rounded,
-              color: TioPalette.white,
+              color: context.tioColors.onPrimary,
               size: TioSize.dp12,
             ),
           ),
