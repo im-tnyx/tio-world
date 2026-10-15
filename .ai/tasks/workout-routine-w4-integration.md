@@ -2,6 +2,15 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 #534 post-preflight atomic rejection classification
+
+**Owner-approved subtask within prior #534 W4 parity (NO new feature or UI layout):** source/manual integration review verified DB #561 raises `22023/routine_composition_archived_exercise_modified` for an archive racing after Flutter's active-owner preflight. Existing W4 Supabase Save adapter maps all `22023` to generic `invalidRequest` and Edit controller shows retry-only text; this is a definite **non-retryable until user changes archived entry** rejection, not an uncertain commit. Keep server atomic guard authoritative, preserve in-memory draft/Set identities, do not retry RPC, map only exact approved backend message (no raw SQL details) to already existing `exerciseUnavailable` kind; controller should present guidance to reload/remove archived Custom and never clear the Routine on that kind. Cover real PostgREST classification+single-call test, focused controller no-draft-loss/zero retry regression, preserve other `22023` mapping. Re-run exact-head Flutter tests, no production DDL or UI redesign, no merge.
+
+**Prior heads:** Flutter #551 `25d7d0ab`, Flutter CI #38711522429 + attribution PASS. DB #561 `664d830a`, Supabase CI #38709576284 + attribution PASS; #561 Ready for Review but independently unapproved. Review threads, #559 rollout/hosted migrations and owner merge/deploy gates remain blocked.
+
+---
+
+
 ## 2026-10-15 approved #534 historical Custom archive Flutter parity
 
 Owner approved historical-preserving policy on 2026-10-15; separate DB-only [draft #561](https://github.com/im-tnyx/tio-world/pull/561) passed disposable exact-head Supabase CI #38709576284, is still unmerged and NOT hosted-deployed. Existing #551 Edit preflight `RoutineEditorController.update()` calls active-only `userExercises.list()` and rejects Routines which retain archived Custom refs, even when the entry is unchanged. This conflicts with approved historical behavior.
