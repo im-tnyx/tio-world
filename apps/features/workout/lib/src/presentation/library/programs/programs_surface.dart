@@ -45,7 +45,6 @@ class ProgramsSurface extends StatefulWidget {
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
-  final Future<void> Function(Program)? onAddRoutinePressed;
   final RoutineRepository? routineRepository;
 
   @override
@@ -387,6 +386,7 @@ class _ProgramsList extends StatefulWidget {
   final bool embedded;
   final Future<void> Function(Program program) onProgramActions;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
   final int routineRefreshVersion;
