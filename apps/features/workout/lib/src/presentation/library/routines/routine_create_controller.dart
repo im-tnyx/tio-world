@@ -316,6 +316,15 @@ final class RoutineCreateController extends ChangeNotifier {
           return false;
         }
       }
+      // A Custom type may change on another device *after* picker selection.
+      // Do not persist reps/load under a newly STEPS/TIME-only definition.
+      if (current.any((exercise) =>
+          customRefs.contains(exercise.ref) &&
+          !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType))) {
+        _status = RoutineCreateStatus.ready;
+        _publish('Steps & Duration Exercises cannot be saved to Routines yet.');
+        return false;
+      }
       if (!active.containsAll(customRefs)) {
         _status = RoutineCreateStatus.ready;
         _publish('A selected Custom Exercise is no longer active.');
@@ -376,8 +385,7 @@ final class RoutineCreateController extends ChangeNotifier {
       if (!_authorized) return false;
       final found = owned.where((r) => r.id == attempted.routine.id).toList();
       if (found.length != 1 ||
-          found.single.programId != program.id ||
-          found.single.name != attempted.routine.name) {
+          found.single.programId != program.id) {
         return false;
       }
       final snapshot = await compositions.read(attempted.routine.id);

@@ -383,6 +383,16 @@ final class RoutineEditorController extends ChangeNotifier {
           return false;
         }
       }
+      // Custom definition can change in a different session after Add.
+      // Never write KG/REPS against an updated STEPS/TIME-only Exercise.
+      if (current.any((exercise) =>
+          customRefs.contains(exercise.ref) &&
+          !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType))) {
+        _publish(_ready(
+          message: 'Steps & Duration Exercises cannot be saved to Routines yet.',
+        ));
+        return false;
+      }
       if (!activeRefs.containsAll(customRefs)) {
         _publish(_ready(
           message: 'A Custom Exercise is no longer active. Remove it before Update.',

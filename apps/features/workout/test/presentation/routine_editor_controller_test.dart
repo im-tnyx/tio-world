@@ -297,6 +297,29 @@ void main() {
     expect(comp.saveCount, 0);
   });
 
+  test('Edit preflight blocks remotely retyped Custom STEPS/TIME', () async {
+    final custom = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001'),
+      sets: [RoutineCompositionSet(id: _s,
+        prescription: SetPrescription(reps: 8))],
+    );
+    final comp = _Compositions(_snapshot(entries: [custom]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(), newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 9)), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('Steps & Duration'));
+    expect(comp.saveCount, 0);
+  });
+
   test('old pending save cannot submit twice even with repeated Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     comp.saveGate = Completer<void>();
@@ -355,4 +378,16 @@ final class _Compositions implements RoutineCompositionRepository {
     if (saveError case final error?) throw error;
     return command.expectedRevision + 1;
   }
+}
+
+final class _StepExerciseRepository extends Fake
+    implements UserExerciseRepository {
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async => [
+    Exercise(
+      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+      displayName: 'Step Mill', status: ExerciseStatus.active,
+      exerciseType: ExerciseType.stepsDuration,
+    ),
+  ];
 }

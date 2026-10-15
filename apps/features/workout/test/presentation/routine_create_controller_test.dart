@@ -282,6 +282,56 @@ void main() {
     expect(c.state.status, RoutineCreateStatus.saved);
   });
 
+  test('Create preflight blocks a Custom switched remotely to STEPS/TIME',
+      () async {
+    final repo = _Creates();
+    final ids = [_entry1, _set1, _routineId, _mutation].iterator;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: repo,
+      userExercises: _StepExerciseRepository(),
+      newUuid: () {
+        if (!ids.moveNext()) throw StateError('Unexpected UUID');
+        return ids.current;
+      },
+    );
+    addTearDown(draft.dispose);
+    final custom = Exercise(
+      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+      displayName: 'Custom', status: ExerciseStatus.active,
+      exerciseType: ExerciseType.weightReps,
+    );
+    expect(draft.addPickedExercise(custom), _entry1);
+    expect(await draft.save(), isFalse);
+    expect(draft.state.status, RoutineCreateStatus.ready);
+    expect(draft.state.message, contains('Steps & Duration'));
+    expect(repo.calls, 0);
+  });
+
+  test('unknown Create reconcile accepts a renamed committed Routine', () async {
+    final repo = _Creates()..error = StateError('lost ACK');
+    final draft = _controller(repo, saveAfterOneExercise: true);
+    addTearDown(draft.dispose);
+    draft.addPickedExercise(_exercise);
+    expect(await draft.save(), isFalse);
+    final command = repo.command!;
+    expect(await draft.reconcileUnknown(
+      routines: _RenamedRoutineRepository(Routine(
+        id: command.routine.id, programId: command.routine.programId,
+        name: 'Renamed on another device',
+      )),
+      compositions: _CommittedCompositionRepository(
+        RoutineCompositionSnapshot(
+          routineId: command.routine.id, revision: 1,
+          lastMutationId: command.mutationId, entries: command.entries,
+        ),
+      ),
+    ), isTrue);
+    expect(draft.state.status, RoutineCreateStatus.saved);
+    expect(repo.calls, 1);
+  });
+
   test('unknown Create outcome freezes exact command and blocks second write',
       () async {
     final repo = _Creates()..error = StateError('transport lost');
@@ -318,4 +368,32 @@ final class _Creates implements RoutineCreateRepository {
     if (error != null) throw error!;
     return 1;
   }
+}
+
+final class _StepExerciseRepository extends Fake
+    implements UserExerciseRepository {
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async => [
+    Exercise(
+      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+      displayName: 'Step Mill', status: ExerciseStatus.active,
+      exerciseType: ExerciseType.stepsDuration,
+    ),
+  ];
+}
+
+final class _RenamedRoutineRepository extends Fake
+    implements RoutineRepository {
+  _RenamedRoutineRepository(this.row);
+  final Routine row;
+  @override
+  Future<List<Routine>> list(ProgramId id) async => [row];
+}
+
+final class _CommittedCompositionRepository extends Fake
+    implements RoutineCompositionRepository {
+  _CommittedCompositionRepository(this.snapshot);
+  final RoutineCompositionSnapshot snapshot;
+  @override
+  Future<RoutineCompositionSnapshot?> read(RoutineId id) async => snapshot;
 }

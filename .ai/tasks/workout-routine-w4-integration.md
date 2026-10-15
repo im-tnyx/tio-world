@@ -598,3 +598,15 @@ show a specific selection-context message. Add picker and controller tests.
 Do not implement Steps storage, backend schema or core redesign here.
 This is source remediation pending exact-head CI and independent thread
 re-review; 9 unresolved threads as of audit, without reviewer approvals.
+
+## Save-time verification hardening (2026-10-15; CI pending)
+
+Besides picker and controller Add/Replace guards for STEPS/TIME, verify the
+current authenticated Custom Exercise type again immediately before Create
+or Edit RPC. Another device may change the active Custom definition after the
+picker returns; a still-active ref is not sufficient to authorize treating
+STEPS as REPS. Retain fail-closed no-write behavior with a precise message.
+Test both Create and Edit stale-definition preflights with zero writes.
+Likewise the Create editor's in-place unknown ACK reconciliation uses stable
+Routine ID, owner Program, mutation ID and composition equality rather than
+requiring the initial mutable display name; regression for rename. No schema.
