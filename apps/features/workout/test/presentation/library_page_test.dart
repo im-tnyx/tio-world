@@ -375,7 +375,7 @@ void main() {
     await tester.tap(find.byKey(ValueKey('program-overflow-${_id(2).value}')));
     await tester.pumpAndSettle();
     final action = find.byKey(const ValueKey('program-action-add-routine'));
-    expect(find.byKey(action.key!), findsOneWidget);
+    expect(action, findsOneWidget);
     expect(
       tester.widget<TioSettingsNavigationRow>(action).onTap,
       isNull,
