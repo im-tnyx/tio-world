@@ -27,17 +27,17 @@ Scope of remediation: existing Flutter Program/Library route and feature UI, plu
 **Ownership transition:** Not applicable; no #529 active branch or PR found on preflight
 **Repository state last verified:** GitHub API main = `4090e3a143fcfc309a3020e73823bc30ec40c282`
 **Branch:** `tnyx/issue-529-inline-add-routine`
-**HEAD SHA:** P2 remediation source checkpoint `ae48bffbdd473ff493c86010224a877d15b8c78d`, before this handoff update; verify exact final PR head before re-review.
+**HEAD SHA:** P2 source/test checkpoint `73ce7ffb5809f6afef85a1f71b5f12a21e2eb3ab` with Flutter CI #38792692455 SUCCESS; latest docs checkpoint `d1c31117` immediately before this task handoff update. GitHub PR HEAD must be re-read after this commit.
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
 **Current implementation state:** Dotted empty Program and overflow actions open canonical Create directly. Codex P2 remediation now includes shared ProgramsSurface one-flight guard, modal dismissal before direct route, `ModalRoute.isCurrent` after owner read, disabled Add plus Program Detail verification affordance on uncertain Save, and reactive notifier-backed Library updates. Focused feature/route tests added; exact corrected-head CI pending.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell direct Create route; Program Detail's existing Create action shares the same guarded callback
-**Validation completed at SHA:** Flutter Analyze/Tests CI #38788227679 SUCCESS at reviewed `f13b3a36` only. Codex review completed with 4 P2 on that same head, 0 resolved yet; fixes and *new-head* CI pending.
-**Validation remaining:** Four P2 Codex remediations, focused new tests, exact corrected-head CI, reviewer re-review, diff/security QA and Android device visual QA.
-**Current blocker:** Four Codex P2 findings unresolved on reviewed #566 head; new-head CI/re-review and owner device QA pending. Direct Program Delete belongs to separate #567.
+**Validation completed at SHA:** Flutter Analyze/Tests CI #38788227679 SUCCESS on original Codex-reviewed `f13b3a36`; Codex found 4 P2. Corrected source/test HEAD `73ce7ffb` Flutter Analyze + Tests CI **#38792692455 SUCCESS**. Docs-only commits followed; exact latest-doc-head CI and Codex re-review not yet complete.
+**Validation remaining:** New docs-head exact CI, Codex re-review and thread disposition for the four reported P2, Android device visual QA and explicit owner merge authorization. Source/test-head CI and read-only added-line whitespace check passed.
+**Current blocker:** Four original Codex P2 threads remain formally unresolved until re-review; new docs-head CI and owner device QA pending. Direct Program Delete belongs to separate #567.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
-**Next exact action:** Verify new exact-head Flutter Analyze + Tests for Codex P2 fixes, resolve any concrete failures, inspect diff and request Codex re-review, reply/resolve only verified threads, then owner Android visual QA. No merge without explicit approval.
+**Next exact action:** Verify new docs-head Flutter CI after this handoff commit, then request Codex re-review of exact head. Reply to each original P2 with evidence; resolve only on verified disposition, preserve Draft pending Android device QA and owner merge go.
 
 ## 2026-10-15 Owner Alignment Refinement (active bounded slice)
 Owner reports continued visible side space on Program header and Routine card edges and an overly heavy dotted Create-card stroke. Fresh Draft PR #566 source audit confirms Library itself has governed 16dp side padding; saved Routine and dotted card wrappers now have no extra horizontal inset. Program header chevron and overflow `IconButton` have 48dp interactive regions but center their 24dp glyphs, adding apparent left/right space. **Approved UI correction:** align leading glyph to start and trailing glyph to end within their existing >=48dp action regions. Do not globally alter Library padding or Routine internal card content. The feature-owned `_DottedOutline` stroke is currently `TioStroke.width2`; switch only its paint stroke to `TioStroke.width1` and preserve the rounded/dashed shape/theme color. Add geometry/widget assertions for Program header icon edges and Program/Routine/dotted card shared outer bounds, and validate current PR head via CI after commits. Root + feature AGENTS and Core theme README checked. Pre-edit branch head `38c4df88`. Applied `AlignmentDirectional.centerStart`/`centerEnd`, zero internal IconButton padding and exact 48dp constraints to the Program header chevron and overflow, and changed only dotted painter stroke to `TioStroke.width1`. Added widget assertions for glyph edge coordinates, action dimensions, and unchanged Library-side routine rows. Follow-up source commit `f78a7355` before docs/handoff updates; verify new exact PR head and new-run Flutter CI. Prior Flutter CI #38783537219 was for a superseded head. GitHub API cannot verify local worktree/device rendering. No DB or security change.
@@ -96,7 +96,7 @@ Hide Add when repository or callback absent; no creation during loading/error; r
 ## 6. Quality Review
 ### Validation Run
 Owner screenshot refinement: dotted card is a local Workout empty-state composition (single consumer), not a new generic Core component/token or physical copy of the screenshot. Focused light/dark/widget assertions added; verify again at new source HEAD. Earlier `cbc16bd5` Flutter CI #38779638889 SUCCESS before dotted visual change, **not evidence for current head**.
-No Flutter SDK/worktree accessible in connector-only runtime. Earlier compile failures were resolved. Flutter CI #38788227679 succeeded on `f13b3a36`, then Codex returned 4 P2 findings. New P2 remediation head requires its own CI; previous PASS is **not** evidence for corrected head. Codex re-review and owner device QA pending.
+No Flutter SDK/worktree accessible in connector-only runtime. Flutter CI #38788227679 succeeded on initial Codex-reviewed `f13b3a36` (four P2). Latest corrected *source/test* checkpoint `73ce7ffb` Flutter Analyze + Tests succeeded in CI #38792692455, including focused regression tests. Subsequent docs/handoff commits require a fresh exact-head CI. Independent Codex re-review and Android device QA pending.
 ### Review Findings and Resolution
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
 |---|---|---|---|---|---|
@@ -106,7 +106,7 @@ No Flutter SDK/worktree accessible in connector-only runtime. Earlier compile fa
 ### Changed Files
 App shell `shell_route.dart`; Workout `library_page.dart`, `programs_surface.dart`, `inline_program_routines.dart`, `program_detail_page.dart`; app and Workout tests; `docs/screens/programs.md`; task brief and index.
 ### Actual Behavior
-Branch-only implementation: capability-gated selected-Program Add Routine, one direct Create route, no intermediate Program Detail, shared launch serialization, route-current cancellation, uncertain-write disabled UI and verification path, plus Edit Program Rename. Pre-review head CI passed; post-P2 exact-head CI pending. Not merged/released.
+Branch-only implementation: capability-gated selected-Program Add Routine, one direct Create route, no intermediate Program Detail, shared launch serialization, route-current cancellation, uncertain-write disabled UI and verification path, plus Edit Program Rename. P2 corrected source/test head CI #38792692455 PASS; subsequent docs/handoff exact-head CI and Codex re-review pending. Not merged/released.
 ### Known Limitations
 Program Delete deliberately not part of this safe UI slice; dedicated security/lifecycle issue #567. Hosted atomic Create RPC availability and mobile release remain separate gates.
 ### Final Status
