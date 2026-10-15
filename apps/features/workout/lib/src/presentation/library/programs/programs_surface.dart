@@ -24,6 +24,7 @@ class ProgramsSurface extends StatefulWidget {
         onManagePressed = null,
         onProgramPressed = null,
         onRoutinePressed = null,
+        onAddRoutinePressed = null,
         routineRepository = null;
 
   const ProgramsSurface.library({
@@ -31,6 +32,7 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.onProgramPressed,
     this.onRoutinePressed,
+    this.onAddRoutinePressed,
     this.routineRepository,
     this.idGenerator,
     super.key,
@@ -41,7 +43,9 @@ class ProgramsSurface extends StatefulWidget {
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
   final RoutineRepository? routineRepository;
 
   @override
@@ -101,6 +105,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openProgram(Program program) async {
     final open = widget.onProgramPressed;
+    if (open == null) return;
+    await open(program);
+    if (!mounted) return;
+    setState(() => _routineRefreshVersion++);
+  }
+
+  Future<void> _openAddRoutine(Program program) async {
+    final open = widget.onAddRoutinePressed;
     if (open == null) return;
     await open(program);
     if (!mounted) return;
@@ -178,6 +190,19 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                       await _openRename(program);
                     },
                   ),
+                  if (widget.onAddRoutinePressed != null)
+                    TioSettingsNavigationRow(
+                      key: const ValueKey('program-action-add-routine'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.add_rounded,
+                      ),
+                      title: 'Add New Routine',
+                      showChevron: false,
+                      onTap: () async {
+                        Navigator.of(sheetContext).pop();
+                        await _openAddRoutine(program);
+                      },
+                    ),
                 ],
               ),
             ],
@@ -322,6 +347,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           onProgramPressed: widget.onProgramPressed == null
               ? null
               : _openProgram,
+          onAddRoutinePressed: widget.onAddRoutinePressed == null
+              ? null
+              : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
           routineRefreshVersion: _routineRefreshVersion,
@@ -349,6 +377,7 @@ class _ProgramsList extends StatefulWidget {
     required this.embedded,
     required this.onProgramActions,
     required this.onProgramPressed,
+    required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
     required this.routineRefreshVersion,
@@ -430,6 +459,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
+            onAddRoutine: widget.onAddRoutinePressed == null
+                ? null
+                : () => widget.onAddRoutinePressed!(program),
           ),
         );
       }
