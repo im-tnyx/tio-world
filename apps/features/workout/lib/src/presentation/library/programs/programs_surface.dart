@@ -25,6 +25,7 @@ class ProgramsSurface extends StatefulWidget {
         onProgramPressed = null,
         onRoutinePressed = null,
         onAddRoutinePressed = null,
+        hasUnconfirmedCreate = null,
         routineRepository = null;
 
   const ProgramsSurface.library({
@@ -33,6 +34,7 @@ class ProgramsSurface extends StatefulWidget {
     this.onProgramPressed,
     this.onRoutinePressed,
     this.onAddRoutinePressed,
+    this.hasUnconfirmedCreate,
     this.routineRepository,
     this.idGenerator,
     super.key,
@@ -44,6 +46,8 @@ class ProgramsSurface extends StatefulWidget {
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+  /// Program-scoped uncertain save flag scoped by caller auth/login-cycle.
+  final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
 
@@ -54,6 +58,7 @@ class ProgramsSurface extends StatefulWidget {
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
   int _routineRefreshVersion = 0;
+  bool _openingAddRoutine = false;
 
   @override
   void initState() {
@@ -112,10 +117,22 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openAddRoutine(Program program) async {
     final open = widget.onAddRoutinePressed;
-    if (open == null) return;
-    await open(program);
-    if (!mounted) return;
-    setState(() => _routineRefreshVersion++);
+    if (_openingAddRoutine || open == null ||
+        (widget.hasUnconfirmedCreate?.call(program) ?? false)) {
+      return;
+    }
+    // Shared single flight across every Program card and overflow action.
+    setState(() => _openingAddRoutine = true);
+    try {
+      await open(program);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _openingAddRoutine = false;
+          _routineRefreshVersion++;
+        });
+      }
+    }
   }
 
   Future<void> _openManage() async {
@@ -152,6 +169,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   Future<void> _openProgramActions(Program program) async {
+    final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -196,9 +214,11 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                         icon: Icons.add_rounded,
                       ),
                       title: 'Add New Routine',
-                      supportingText: 'Create in this Program',
+                      supportingText: pendingSave
+                          ? 'Check the previous save in Program'
+                          : 'Create in this Program',
                       showChevron: false,
-                      onTap: () async {
+                      onTap: _openingAddRoutine || pendingSave ? null : () async {
                         Navigator.of(sheetContext).pop();
                         await _openAddRoutine(program);
                       },
@@ -352,6 +372,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
+          hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
+          isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
         );
     }
@@ -380,6 +402,8 @@ class _ProgramsList extends StatefulWidget {
     required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
+    required this.hasUnconfirmedCreate,
+    required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
   });
 
@@ -390,6 +414,8 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
+  final bool Function(Program)? hasUnconfirmedCreate;
+  final bool isLaunchingRoutine;
   final int routineRefreshVersion;
 
   @override
@@ -463,6 +489,13 @@ class _ProgramsListState extends State<_ProgramsList> {
             onAddRoutine: widget.onAddRoutinePressed == null
                 ? null
                 : () => widget.onAddRoutinePressed!(program),
+            disableAddRoutine: widget.isLaunchingRoutine ||
+                (widget.hasUnconfirmedCreate?.call(program) ?? false),
+            hasUnconfirmedCreate:
+                widget.hasUnconfirmedCreate?.call(program) ?? false,
+            onOpenProgram: widget.onProgramPressed == null
+                ? null
+                : () => widget.onProgramPressed!(program),
           ),
         );
       }
