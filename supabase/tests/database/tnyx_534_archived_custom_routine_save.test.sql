@@ -28,6 +28,38 @@ begin
 end;
 $$;
 
+
+-- Exercise the #540 nullable metric Set contract through the #534 lifecycle
+-- gate: historical targetless Reps + distance/duration must remain identical.
+create function pg_temp.metric_archive_payload(
+  p_catalog_reps integer, p_distance double precision
+) returns jsonb language sql as $
+  select pg_catalog.jsonb_build_array(
+    pg_catalog.jsonb_build_object(
+      'id', 'a5340000-0000-4000-8000-000000000046',
+      'exercise_ref', 'a5340000-0000-4000-8000-000000000034',
+      'sets', pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'id', 'a5340000-0000-4000-8000-000000000056',
+        'reps', null::integer, 'reps_max', null::integer,
+        'set_type', 'normal', 'load_kg', null::double precision,
+        'distance_meters', p_distance, 'duration_seconds', 900,
+        'rest_seconds', 60
+      ))
+    ),
+    pg_catalog.jsonb_build_object(
+      'id', 'a5340000-0000-4000-8000-000000000047',
+      'exercise_ref', 'ex_bench_press',
+      'sets', pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'id', 'a5340000-0000-4000-8000-000000000057',
+        'reps', p_catalog_reps, 'reps_max', null::integer,
+        'set_type', 'normal', 'load_kg', 30.0::double precision,
+        'distance_meters', null::double precision,
+        'duration_seconds', null::integer, 'rest_seconds', 90
+      ))
+    )
+  );
+$;
+
 select pg_temp.assert_true(
   has_function_privilege('authenticated',
     'public.save_user_workout_routine_composition(uuid,bigint,uuid,jsonb)', 'EXECUTE')
@@ -47,12 +79,14 @@ insert into public.user_workout_programs (id, user_id, name) values
  ('a5340000-0000-4000-8000-000000000011','a5340000-0000-4000-8000-000000000001','Program A');
 
 insert into public.user_workout_routines (id, user_id, program_id, name) values
- ('a5340000-0000-4000-8000-000000000021','a5340000-0000-4000-8000-000000000001','a5340000-0000-4000-8000-000000000011','Routine A');
+ ('a5340000-0000-4000-8000-000000000021','a5340000-0000-4000-8000-000000000001','a5340000-0000-4000-8000-000000000011','Routine A'),
+ ('a5340000-0000-4000-8000-000000000022','a5340000-0000-4000-8000-000000000001','a5340000-0000-4000-8000-000000000011','Nullable Metric Routine');
 
 insert into public.user_workout_exercises (id,user_id,display_name,status) values
  ('a5340000-0000-4000-8000-000000000031','a5340000-0000-4000-8000-000000000001','Archive Later','active'),
  ('a5340000-0000-4000-8000-000000000032','a5340000-0000-4000-8000-000000000001','Still Active','active'),
- ('a5340000-0000-4000-8000-000000000033','a5340000-0000-4000-8000-000000000002','Foreign Owner','active');
+ ('a5340000-0000-4000-8000-000000000033','a5340000-0000-4000-8000-000000000002','Foreign Owner','active'),
+ ('a5340000-0000-4000-8000-000000000034','a5340000-0000-4000-8000-000000000001','Metric Custom','active');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a5340000-0000-4000-8000-000000000001',true);
@@ -272,6 +306,62 @@ select pg_temp.assert_true(
   and (select count(*)=1 from public.user_workout_routine_exercises
       where routine_id='a5340000-0000-4000-8000-000000000021'),
   'archived entry and its Sets were removed, other composition survived'
+);
+
+
+-- #534 + #540: unchanged archived metric Sets with reps=NULL remain
+-- retainable while an unrelated Set changes, without converting targets.
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000022', 0,
+    'a5340000-0000-4000-8000-000000000110',
+    pg_temp.metric_archive_payload(10, 1500)
+  ) = 1,
+  'active metric Custom allows nullable Reps with distance and duration'
+);
+
+update public.user_workout_exercises set status='archived'
+where id='a5340000-0000-4000-8000-000000000034'
+  and user_id='a5340000-0000-4000-8000-000000000001';
+
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000022', 0,
+    'a5340000-0000-4000-8000-000000000110',
+    pg_temp.metric_archive_payload(10, 1500)
+  ) = 1,
+  'same-token nullable metric replay remains valid after archive'
+);
+
+select pg_temp.assert_true(
+  public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000022', 1,
+    'a5340000-0000-4000-8000-000000000111',
+    pg_temp.metric_archive_payload(12, 1500)
+  ) = 2,
+  'unchanged archived nullable Set can coexist with unrelated catalog edit'
+);
+
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000022', 2,
+    'a5340000-0000-4000-8000-000000000112',
+    pg_temp.metric_archive_payload(12, 1600)
+  )
+$sql$, '22023', 'archived nullable metric target change must be rejected');
+
+select pg_temp.assert_true(
+  (select composition_revision = 2 from public.user_workout_routines
+   where id='a5340000-0000-4000-8000-000000000022')
+  and (select reps is null and distance_meters = 1500
+              and duration_seconds = 900 and rest_seconds = 60
+       from public.user_workout_routine_sets
+       where id='a5340000-0000-4000-8000-000000000056')
+  and (select reps = 12 from public.user_workout_routine_sets
+       where id='a5340000-0000-4000-8000-000000000057')
+  and (select count(*) = 2 from public.user_workout_routine_exercises
+       where routine_id='a5340000-0000-4000-8000-000000000022'),
+  'rejected archived metric edit preserves revision and both ordered entries'
 );
 
 rollback;
