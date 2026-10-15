@@ -365,9 +365,9 @@ final class RoutineEditorController extends ChangeNotifier {
       ));
       return true;
     }
-    // Revalidate all Custom refs from the active owner source immediately
-    // before RPC. Picker/editor snapshots can become stale after archive on
-    // another device; an unavailable/invalid read is NOT an unknown RPC write.
+    // Revalidate Custom refs against the owner's current ACTIVE + ARCHIVED
+    // definitions. This is still only a preflight; the #534 Save RPC locks
+    // rows atomically against an archive racing after this read.
     final customRefs = _draft
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
@@ -381,57 +381,79 @@ final class RoutineEditorController extends ChangeNotifier {
       ));
       final repository = userExercises;
       if (repository == null) {
-        _publish(_ready(message: 'Custom Exercises cannot be verified. Try again.'));
+        _publish(_ready(
+          message: 'Custom Exercises cannot be verified. Try again.',
+        ));
         return false;
       }
       List<Exercise> current;
       try {
-        // This is a read-only preflight: never hold Cancel/Back hostage
-        // while a network read is slow. A late timed-out read is ignored.
-        current = await repository.list().timeout(const Duration(seconds: 10));
+        current = await repository
+            .list(includeArchived: true)
+            .timeout(const Duration(seconds: 10));
       } catch (_) {
         if (_disposed) return false;
-        _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+        _publish(_ready(
+          message: 'Could not verify Custom Exercises. Try again.',
+        ));
         return false;
       }
       if (!_authorized) return false;
-      final activeRefs = <UserCreatedExerciseRef>{};
+      final currentByRef = <ExerciseRef, Exercise>{};
       for (final exercise in current) {
         if (exercise.ref is! UserCreatedExerciseRef ||
-            exercise.status != ExerciseStatus.active ||
-            !activeRefs.add(exercise.ref as UserCreatedExerciseRef)) {
-          _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+            (exercise.status != ExerciseStatus.active &&
+                exercise.status != ExerciseStatus.archived) ||
+            currentByRef.containsKey(exercise.ref)) {
+          _publish(_ready(
+            message: 'Could not verify Custom Exercises. Try again.',
+          ));
           return false;
         }
+        currentByRef[exercise.ref] = exercise;
       }
-      // Custom definition can change in a different session after Add.
-      // Never write KG/REPS against an updated STEPS/TIME-only Exercise.
-      if (current.any((exercise) =>
-          customRefs.contains(exercise.ref) &&
-          !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType))) {
-        _publish(_ready(
-          message: 'Steps & Duration Exercises cannot be saved to Routines yet.',
-        ));
-        return false;
-      }
-      if (!activeRefs.containsAll(customRefs)) {
-        _publish(_ready(
-          message: 'A Custom Exercise is no longer active. Remove it before Update.',
-        ));
-        return false;
-      }
-      final currentByRef = {for (final exercise in current) exercise.ref: exercise};
       for (final entry in _draft) {
         if (entry.exercise is! UserCreatedExerciseRef) continue;
-        final live = currentByRef[entry.exercise]!;
+        final live = currentByRef[entry.exercise];
+        if (live == null) {
+          _publish(_ready(
+            message: 'A Custom Exercise is no longer available.',
+          ));
+          return false;
+        }
+        if (live.status == ExerciseStatus.archived) {
+          // The DB permits only unchanged historical entry identity and
+          // ordered Sets. Entry-level reordering/unrelated edits are fine.
+          final unchanged = _baseline.any(
+            (original) => original.id == entry.id && original == entry,
+          );
+          if (!unchanged) {
+            _publish(_ready(
+              message: 'An archived Custom Exercise cannot be changed. '
+                  'Restore its original Sets or remove the Exercise.',
+            ));
+            return false;
+          }
+          continue;
+        }
+        if (!RoutineCompositionLimits.supportsExerciseType(
+          live.exerciseType,
+        )) {
+          _publish(_ready(
+            message: 'Steps & Duration Exercises cannot be saved to '
+                'Routines yet.',
+          ));
+          return false;
+        }
         if ((_pickedCustomTypes.containsKey(entry.id) &&
-             _pickedCustomTypes[entry.id] != live.exerciseType) ||
+                _pickedCustomTypes[entry.id] != live.exerciseType) ||
             !RoutineCompositionLimits.targetsMatchExerciseType(
               live.exerciseType,
               entry.sets.map((set) => set.prescription),
             )) {
           _publish(_ready(
-            message: 'A Custom Exercise type changed. Review or replace it before Update.',
+            message: 'A Custom Exercise type changed. '
+                'Review or replace it before Update.',
           ));
           return false;
         }
