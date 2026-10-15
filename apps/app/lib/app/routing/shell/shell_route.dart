@@ -569,6 +569,10 @@ List<RouteBase> _shellBranchChildRoutes(
             // Reuse the same owner-scoped read/naming and guarded Create
             // callback as the Program Detail app-bar action.
             if (launchCreate) {
+              // A delayed owner read may outlive Library navigation.
+              // Never push Create over a different current destination.
+              final libraryRoute = ModalRoute.of(context);
+              if (libraryRoute == null || !libraryRoute.isCurrent) return;
               if (createRepository == null ||
                   compositions == null ||
                   userExerciseRepository == null ||
@@ -587,6 +591,7 @@ List<RouteBase> _shellBranchChildRoutes(
               try {
                 await routines.load();
                 if (!context.mounted ||
+                    !libraryRoute.isCurrent ||
                     !openingSessionValid() ||
                     routines.state.status != ProgramRoutinesStatus.ready ||
                     pendingGate.hasPending(
@@ -650,6 +655,15 @@ List<RouteBase> _shellBranchChildRoutes(
           final canCreateForSession = boot is AppSessionBootstrapReady &&
               auth is AuthSessionAuthenticated &&
               auth.session.userId == boot.userId;
+          // This is a Provider holding a ChangeNotifier, not a notifier
+          // provider. Library explicitly subscribes via ListenableBuilder.
+          final pendingCreates = ref.read(routinePendingCreateGateProvider);
+          final currentOwner =
+              boot is AppSessionBootstrapReady ? boot.userId : null;
+          final currentCycle = auth is AuthSessionAuthenticated &&
+                  auth.session.userId == currentOwner
+              ? auth.session.loginCycleId
+              : null;
 
           return LibraryPage(
             programRepository: programRepository,
@@ -664,6 +678,14 @@ List<RouteBase> _shellBranchChildRoutes(
                     userExerciseRepository == null
                 ? null
                 : (program) => openProgram(program, launchCreate: true),
+            pendingCreateChanges: pendingCreates,
+            hasUnconfirmedCreate: (program) =>
+                currentOwner != null && currentCycle != null &&
+                pendingCreates.hasPending(
+                  owner: currentOwner,
+                  loginCycle: currentCycle,
+                  programId: program.id,
+                ),
             onRoutinePressed: compositions == null || routineRepository == null
                 ? null
                 : openRoutine,
