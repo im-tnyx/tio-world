@@ -59,7 +59,9 @@ final class RoutinePendingCreateGate {
       if (!_same(owner, loginCycle) || !canWrite()) return false;
       if (rows.where((row) => row.id == command.routine.id &&
           row.programId == programId &&
-          row.name == command.routine.name).length != 1) return false;
+          row.name == command.routine.name).length != 1) {
+        return false;
+      }
       final snapshot = await compositions.read(command.routine.id);
       if (!_same(owner, loginCycle) || !canWrite()) return false;
       final expected = RoutineCompositionSave(
@@ -70,7 +72,9 @@ final class RoutinePendingCreateGate {
       );
       if (snapshot == null || snapshot.revision != 1 ||
           snapshot.lastMutationId != command.mutationId ||
-          !snapshot.hasSameContent(expected)) return false;
+          !snapshot.hasSameContent(expected)) {
+        return false;
+      }
       if (!identical(_pending[programId], command)) return false;
       _pending.remove(programId);
       return true;

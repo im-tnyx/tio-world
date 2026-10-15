@@ -117,7 +117,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     // No protected atomic Create capability means no Create action.
     // Never expose metadata-only name persistence as a fallback.
     if (!_canEdit || _hasUnconfirmed ||
-        controller == null || create == null) return;
+        controller == null || create == null) {
+      return;
+    }
     final shouldRefresh = await create(controller.suggestedName());
     if (mounted && identical(controller, _controller) && shouldRefresh) {
       await controller.load();

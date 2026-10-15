@@ -560,3 +560,12 @@ reads empty, verification reads empty, the user returns to Library and
 reopens Program Detail, then the original RPC commits. The original
 Create must have only one request; only positive full-content verification
 may unlock fresh Create. Await runner CI and independent review.
+
+## Workout analyzer follow-up (2026-10-15; CI pending)
+
+Commit `ba47e9785d688013070ee6a0f5740dc47643659e` Flutter CI
+#38677601745 failed after Flutter/Dart app analysis passed: Workout
+package emitted only three `curly_braces_in_flow_control_structures`
+info-level diagnostics treated as CI failures. Wrap those three
+multi-line if statements with braces without changing control flow.
+No other production changes; next runner must verify tests.
