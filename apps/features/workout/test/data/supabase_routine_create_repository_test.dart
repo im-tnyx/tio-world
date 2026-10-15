@@ -74,6 +74,54 @@ void main() {
     });
   });
 
+  test('atomic Create forwards frozen Custom measurement type hint', () async {
+    final requests = <http.Request>[];
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests.add(request);
+        return http.Response('1', 200,
+          headers: {'content-type': 'application/json'}, request: request);
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    const entryId = '44444444-4444-4444-8444-444444444445';
+    final command = RoutineCreateCommand(
+      routine: Routine(
+        id: RoutineId('22222222-2222-4222-8222-222222222222'),
+        programId: ProgramId('11111111-1111-4111-8111-111111111111'),
+        name: 'Custom Type Routine',
+      ),
+      mutationId: '33333333-3333-4333-8333-333333333333',
+      entries: [
+        RoutineCompositionEntry(
+          id: entryId,
+          exercise: ExerciseRef.userCreated(
+            '66666666-6666-4666-8666-666666666666'),
+          sets: [
+            RoutineCompositionSet(
+              id: '55555555-5555-4555-8555-555555555555',
+              prescription: SetPrescription(reps: 12),
+            ),
+          ],
+        ),
+      ],
+      expectedCustomTypes: {entryId: ExerciseType.weightReps},
+    );
+    final repository = SupabaseRoutineCreateRepository(
+      client: client,
+      currentUserId: () => '11111111-1111-4111-8111-111111111111',
+    );
+    expect(await repository.create(command), 1);
+    expect(requests, hasLength(1));
+    final payload = (jsonDecode(requests.single.body) as Map<String, dynamic>)
+      ['p_exercises'] as List<dynamic>;
+    final sent = payload.single as Map<String, dynamic>;
+    expect(sent['expected_exercise_type'], 'weight_reps');
+    expect(sent['exercise_ref'], '66666666-6666-4666-8666-666666666666');
+  });
+
   for (final code in ['PGRST301', 'PGRST302', 'PGRST303', '28P01']) {
     test('definite Create Auth $code remains retryable, not uncertain', () async {
       var requests = 0;
