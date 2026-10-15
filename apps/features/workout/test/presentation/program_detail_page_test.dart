@@ -16,7 +16,6 @@ Future<void> _pump(
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
   Future<bool> Function(String suggestedName)? onCreateRoutine,
-  bool launchCreateOnReady = false,
   double textScale = 1,
 }) async {
   await tester.pumpWidget(
@@ -36,7 +35,6 @@ Future<void> _pump(
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
         onCreateRoutine: onCreateRoutine,
-        launchCreateOnReady: launchCreateOnReady,
       ),
     ),
   );
@@ -44,33 +42,6 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('Library entry starts existing atomic Create exactly once',
-      (tester) async {
-    final repository = _MemoryRoutines();
-    final suggested = <String>[];
-    await _pump(
-      tester,
-      repository: repository,
-      launchCreateOnReady: true,
-      onCreateRoutine: (name) async {
-        suggested.add(name);
-        return false;
-      },
-    );
-    expect(suggested, ['Routine 1']);
-    expect(repository.created, isEmpty);
-    expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
-  });
-
-  testWidgets('auto Create stays unavailable without an atomic callback',
-      (tester) async {
-    await _pump(tester, repository: _MemoryRoutines(),
-        launchCreateOnReady: true);
-    expect(find.byKey(const ValueKey('program-routines-empty')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
-  });
-
   testWidgets('atomic Create callback bypasses legacy name-only INSERT',
       (tester) async {
     final repository = _MemoryRoutines();
