@@ -80,6 +80,11 @@ final class RoutineEditorController extends ChangeNotifier {
   );
   RoutineEditorState get state => _state;
 
+  /// Historical rows remain readable/editable, but a full-snapshot Update
+  /// must not submit more than the current eight-Set server policy.
+  bool get exceedsSetLimit => _draft.any((entry) =>
+      entry.sets.length > RoutineCompositionLimits.maxSetsPerExercise);
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
   int _revision = 0;
@@ -336,6 +341,10 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Do not re-send an unknown mutation with a freshly generated token.
   Future<bool> update() async {
     if (!_state.canEdit || !_authorized) return false;
+    if (exceedsSetLimit) {
+      _publish(_ready(message: 'Reduce each Exercise to at most 8 Sets before Update.'));
+      return false;
+    }
     if (!_state.dirty) {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
