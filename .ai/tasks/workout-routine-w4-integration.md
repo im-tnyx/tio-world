@@ -547,3 +547,16 @@ re-entry in the same session retains the gate. This is intentionally NOT
 durable process-restart recovery; its residual risk requires review.
 No schema, backend service or unsafe time-based unlock; exact-head CI and
 independent review plus device QA are still pending.
+
+## Follow-up CI and late-commit integration (2026-10-15)
+
+First in-session gate commit `cf553a367244b25ae3aaba86caf4a727403ea9d1`
+failed exact-head Flutter CI #38677295359 on five analyzer warnings for
+redundant null checks/assertions in the app shell; no tests ran.
+Remove those redundancies without changing actual session authorization.
+Strengthen app integration fixtures: simulate an ACK lost **after** commit
+and a second case where the RPC times out while uncommitted, the Program
+reads empty, verification reads empty, the user returns to Library and
+reopens Program Detail, then the original RPC commits. The original
+Create must have only one request; only positive full-content verification
+may unlock fresh Create. Await runner CI and independent review.

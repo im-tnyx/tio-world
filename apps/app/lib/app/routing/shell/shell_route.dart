@@ -371,8 +371,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                 loginCycle: openingCycle,
                                 programId: program.id,
                               ),
-                          onVerifyUnconfirmedCreate: routineRepository == null ||
-                                  compositions == null || openingOwner == null ||
+                          onVerifyUnconfirmedCreate: compositions == null || openingOwner == null ||
                                   openingCycle == null
                               ? null
                               : () => pendingGate.verify(
@@ -417,8 +416,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                       initialAuth is AuthSessionAuthenticated
                                           ? initialAuth.session.loginCycleId
                                           : null;
-                                  if (openingOwner == null || openingCycle == null ||
-                                      initialOwner != openingOwner ||
+                                  if (initialOwner != openingOwner ||
                                       initialAuthOwner != openingOwner ||
                                       initialCycle != openingCycle) {
                                     return false;
@@ -524,8 +522,8 @@ List<RouteBase> _shellBranchChildRoutes(
                                           onUnconfirmedExit: (command) {
                                             if (!openingSessionValid()) return;
                                             pendingGate.retain(
-                                              owner: openingOwner!,
-                                              loginCycle: openingCycle!,
+                                              owner: openingOwner,
+                                              loginCycle: openingCycle,
                                               command: command,
                                             );
                                             exitedUnconfirmed = true;

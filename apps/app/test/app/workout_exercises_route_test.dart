@@ -793,10 +793,73 @@ void main() {
     expect(tester.widget<IconButton>(add).onPressed, isNull);
     expect(find.byKey(const ValueKey('program-routines-verify-create')),
         findsOneWidget);
-    expect(container.read(routinePendingCreateGateProvider).hasPending(
+    final pending = container.read(routinePendingCreateGateProvider);
+    final programId = ProgramId('20000000-0000-4000-8000-000000000001');
+    expect(pending.hasPending(
       owner: 'test-user', loginCycle: 'test-cycle',
-      programId: ProgramId('20000000-0000-4000-8000-000000000001'),
+      programId: programId,
     ), isTrue);
+    await tester.tap(find.byKey(const ValueKey('program-routines-verify-create')));
+    await tester.pumpAndSettle();
+    expect(pending.hasPending(owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId), isFalse);
+    expect(tester.widget<IconButton>(add).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+
+  testWidgets('late Create after empty refresh stays guarded across navigation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      delayCreateCommit: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    const addKey = ValueKey('program-detail-add-routine');
+    const checkKey = ValueKey('program-routines-verify-create');
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(addKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit to Program'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await tester.tap(find.byKey(checkKey)); // Read BEFORE delayed commit.
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    expect(create.createCalls, 1);
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await create.commitLate(); // Original RPC commits AFTER first read.
+    expect(create.createCalls, 1);
+    await tester.tap(find.byKey(checkKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull);
     expect(tester.takeException(), isNull);
   });
 
@@ -1318,6 +1381,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineComposition = false,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
+  bool delayCreateCommit = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
   Stream<ProfileSetupData?>? sameOwnerProfiles,
@@ -1336,6 +1400,7 @@ Future<(ProviderContainer, GoRouter)> _app(
       CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
   await calendarController.load();
   final routeRoutines = _RouteRoutines();
+  final routeCompositions = _RouteCompositions();
 
   final container = ProviderContainer(
     overrides: [
@@ -1361,12 +1426,13 @@ Future<(ProviderContainer, GoRouter)> _app(
       ),
       routineCreateRepositoryProvider.overrideWithValue(
         withRoutineCreate
-            ? _RouteCreate(routeRoutines,
-                loseAcknowledgment: loseCreateAcknowledgment)
+            ? _RouteCreate(routeRoutines, routeCompositions,
+                loseAcknowledgment: loseCreateAcknowledgment,
+                delayCommit: delayCreateCommit)
             : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
-        withRoutineComposition ? _RouteCompositions() : null,
+        withRoutineComposition ? routeCompositions : null,
       ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
@@ -1456,22 +1522,46 @@ final class _RouteRoutines implements RoutineRepository {
 }
 
 final class _RouteCreate implements RoutineCreateRepository {
-  _RouteCreate(this._routines, {this.loseAcknowledgment = false});
+  _RouteCreate(this._routines, this._compositions, {
+    this.loseAcknowledgment = false,
+    this.delayCommit = false,
+  });
 
   final _RouteRoutines _routines;
+  final _RouteCompositions _compositions;
   final bool loseAcknowledgment;
+  final bool delayCommit;
+  RoutineCreateCommand? _delayed;
+  int createCalls = 0;
+
+  Future<void> _commit(RoutineCreateCommand command) async {
+    await _routines.create(command.routine);
+    _compositions.created = command;
+  }
+
+  Future<void> commitLate() async {
+    final pending = _delayed;
+    if (pending == null) throw StateError('No delayed RPC');
+    _delayed = null;
+    await _commit(pending);
+  }
 
   @override
   Future<int> create(RoutineCreateCommand command) async {
-    // Test fixture models an acknowledged atomic Create, not metadata-only
-    // production persistence. The real service boundary remains #536.
-    await _routines.create(command.routine);
+    createCalls++;
+    if (delayCommit) {
+      // Client stopped waiting, but server-side commit may still be pending.
+      _delayed = command;
+      throw StateError('response lost before late server commit');
+    }
+    await _commit(command);
     if (loseAcknowledgment) throw StateError('response lost after commit');
     return 1;
   }
 }
 
 final class _RouteCompositions implements RoutineCompositionRepository {
+  RoutineCreateCommand? created;
   int _readCount = 0;
   Completer<void>? nextOwnerReadGate;
   double? testLoadKg;
@@ -1484,6 +1574,13 @@ final class _RouteCompositions implements RoutineCompositionRepository {
     if (_readCount > 1 && nextOwnerReadGate != null) {
       await nextOwnerReadGate!.future;
       return null;
+    }
+    final saved = created;
+    if (saved != null && saved.routine.id == routineId) {
+      return RoutineCompositionSnapshot(
+        routineId: routineId, revision: 1,
+        lastMutationId: saved.mutationId, entries: saved.entries,
+      );
     }
     return RoutineCompositionSnapshot(
       routineId: routineId,
