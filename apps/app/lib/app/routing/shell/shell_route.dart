@@ -361,6 +361,7 @@ List<RouteBase> _shellBranchChildRoutes(
                         builder: (_) => ProgramDetailPage(
                           program: program,
                           routineRepository: routineRepository,
+                          pendingCreateChanges: pendingGate,
                           onRoutinePressed: compositions == null
                               ? null
                               : (routine) => openRoutine(program, routine),
