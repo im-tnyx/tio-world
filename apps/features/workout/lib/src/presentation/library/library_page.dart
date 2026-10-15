@@ -27,6 +27,7 @@ class LibraryPage extends StatefulWidget {
     required this.onProgramsManagePressed,
     this.onProgramPressed,
     this.onAddRoutinePressed,
+    this.hasUnconfirmedCreate,
     this.onRoutinePressed,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
@@ -42,6 +43,7 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function() onProgramsManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+  final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
@@ -126,6 +128,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   onManagePressed: widget.onProgramsManagePressed,
                   onProgramPressed: widget.onProgramPressed,
                   onAddRoutinePressed: widget.onAddRoutinePressed,
+                  hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
                   onRoutinePressed: widget.onRoutinePressed,
                 ),
               _LibraryCategory.exercises => _ExercisesContent(
