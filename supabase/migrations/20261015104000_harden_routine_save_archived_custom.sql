@@ -335,7 +335,7 @@ begin
   -- Keep this AFTER same-token replay, legacy overwrite and revision gates.
   -- Consistent UUID lock ordering avoids opposing Routine writers deadlocking.
   for v_user_exercise_id in
-    select refs.ref_id from (
+    select distinct refs.ref_id from (
       select distinct case
         when e.value ->> 'exercise_ref' ~ '^ex_' then null::uuid
         else (e.value ->> 'exercise_ref')::uuid
