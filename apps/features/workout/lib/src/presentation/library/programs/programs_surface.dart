@@ -170,6 +170,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openProgramActions(Program program) async {
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
+    var addRequested = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -218,9 +219,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                           ? 'Check the previous save in Program'
                           : 'Create in this Program',
                       showChevron: false,
-                      onTap: _openingAddRoutine || pendingSave ? null : () async {
+                      onTap: _openingAddRoutine || pendingSave ? null : () {
+                        addRequested = true;
                         Navigator.of(sheetContext).pop();
-                        await _openAddRoutine(program);
                       },
                     ),
                 ],
@@ -230,6 +231,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         ),
       ),
     );
+    // The bottom-sheet transition must finish before the shell tests whether
+    // Library is still the current route and launches canonical Create.
+    if (addRequested && mounted) await _openAddRoutine(program);
   }
 
   Future<void> _openCreate() async {
