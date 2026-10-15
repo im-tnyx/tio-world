@@ -334,6 +334,26 @@ List<RouteBase> _shellBranchChildRoutes(
                                 openingAuth.session.userId == openingOwner
                             ? openingAuth.session.loginCycleId
                             : null;
+                    final pendingGate = ref.read(routinePendingCreateGateProvider);
+                    if (openingOwner != null && openingCycle != null) {
+                      pendingGate.bindSession(
+                        owner: openingOwner, loginCycle: openingCycle);
+                    }
+                    bool openingSessionValid() {
+                      try {
+                        final boot = ref.read(
+                            appSessionBootstrapControllerProvider).state;
+                        final value = ref.read(authSessionStateProvider);
+                        final auth = value.isLoading || value.hasError
+                            ? null : value.valueOrNull;
+                        return openingOwner != null && openingCycle != null &&
+                            boot is AppSessionBootstrapReady &&
+                            boot.userId == openingOwner &&
+                            auth is AuthSessionAuthenticated &&
+                            auth.session.userId == openingOwner &&
+                            auth.session.loginCycleId == openingCycle;
+                      } catch (_) { return false; }
+                    }
                     // Program Detail may still be navigated read-only;
                     // only account-owned Create requires this capability.
                     await Navigator.of(context).push<void>(
@@ -344,13 +364,38 @@ List<RouteBase> _shellBranchChildRoutes(
                           onRoutinePressed: compositions == null
                               ? null
                               : (routine) => openRoutine(program, routine),
+                          hasUnconfirmedCreate: () =>
+                              openingOwner != null && openingCycle != null &&
+                              pendingGate.hasPending(
+                                owner: openingOwner,
+                                loginCycle: openingCycle,
+                                programId: program.id,
+                              ),
+                          onVerifyUnconfirmedCreate: routineRepository == null ||
+                                  compositions == null || openingOwner == null ||
+                                  openingCycle == null
+                              ? null
+                              : () => pendingGate.verify(
+                                owner: openingOwner,
+                                loginCycle: openingCycle,
+                                programId: program.id,
+                                routines: routineRepository,
+                                compositions: compositions,
+                                canWrite: openingSessionValid,
+                              ),
                           // Always supply the Create action to keep
                           // the legacy metadata-only sheet unreachable in
                           // production, including if RPC dependencies fail.
                           onCreateRoutine: (suggestedName) async {
                                   if (createRepository == null ||
                                       compositions == null ||
-                                      userExerciseRepository == null) {
+                                      userExerciseRepository == null ||
+                                      !openingSessionValid() ||
+                                      pendingGate.hasPending(
+                                        owner: openingOwner!,
+                                        loginCycle: openingCycle!,
+                                        programId: program.id,
+                                      )) {
                                     return false;
                                   }
                                   final boot = ref
@@ -476,7 +521,13 @@ List<RouteBase> _shellBranchChildRoutes(
                                           // An explicitly unconfirmed exit
                                           // needs a fresh owner-bound Program
                                           // read; it is not an ACK of Create.
-                                          onUnconfirmedExit: () {
+                                          onUnconfirmedExit: (command) {
+                                            if (!openingSessionValid()) return;
+                                            pendingGate.retain(
+                                              owner: openingOwner!,
+                                              loginCycle: openingCycle!,
+                                              command: command,
+                                            );
                                             exitedUnconfirmed = true;
                                           },
                                           viewerMediaGender: authorized

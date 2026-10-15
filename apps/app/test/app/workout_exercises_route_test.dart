@@ -745,7 +745,7 @@ void main() {
   testWidgets(
       'lost atomic Create ACK requires explicit exit and refreshes Program',
       (tester) async {
-    final (_, router) = await _app(
+    final (container, router) = await _app(
       tester, AppMode.hybrid,
       withRoutineComposition: true,
       withRoutineCreate: true,
@@ -787,11 +787,16 @@ void main() {
     final cardsBefore = find.byKey(
         const ValueKey('program-routine-30000000-0000-4000-8000-000000000001'));
     expect(cardsBefore, findsOneWidget);
-    // A new Create route is a deliberate user action, not an automatic retry.
-    await tester.tap(find.byKey(const ValueKey(
-        'program-detail-add-routine')));
-    await tester.pumpAndSettle();
-    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    // A late commit can follow this first refresh. Never start a new
+    // Routine with fresh UUIDs while the old attempt is unresolved.
+    final add = find.byKey(const ValueKey('program-detail-add-routine'));
+    expect(tester.widget<IconButton>(add).onPressed, isNull);
+    expect(find.byKey(const ValueKey('program-routines-verify-create')),
+        findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: ProgramId('20000000-0000-4000-8000-000000000001'),
+    ), isTrue);
     expect(tester.takeException(), isNull);
   });
 

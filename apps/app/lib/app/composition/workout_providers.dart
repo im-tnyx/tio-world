@@ -69,3 +69,8 @@ final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref)
   if (client == null) return null;
   return SupabaseRoutineCreateRepository(client: client);
 });
+
+/// Ephemeral owner/login-cycle pending Create identities, not persisted content.
+final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
+  (ref) => RoutinePendingCreateGate(),
+);

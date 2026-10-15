@@ -1198,7 +1198,7 @@ void main() {
               catalogRepository: _Catalog(),
               weightUnit: WeightUnit.kg,
               newUuid: () => uuids[nextId++],
-              onUnconfirmedExit: () => exits++,
+              onUnconfirmedExit: (_) => exits++,
             )),
           ),
           child: const Text('Open Create'),

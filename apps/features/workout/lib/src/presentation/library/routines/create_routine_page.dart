@@ -48,7 +48,7 @@ class CreateRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   /// App composition uses this to refresh the Program after an explicitly
   /// unconfirmed Create exit; this does not mean a write was acknowledged.
-  final VoidCallback? onUnconfirmedExit;
+  final ValueChanged<RoutineCreateCommand>? onUnconfirmedExit;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -422,7 +422,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           (widget.canWrite != null && !widget.canWrite!())) {
         return;
       }
-      widget.onUnconfirmedExit?.call();
+      final attempt = _draft.unconfirmedAttempt;
+      if (attempt == null) return;
+      widget.onUnconfirmedExit?.call(attempt);
       Navigator.of(context).pop<bool>(false);
     } finally {
       _unknownExitPromptOpen = false;

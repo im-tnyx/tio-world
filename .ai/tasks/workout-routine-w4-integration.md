@@ -533,3 +533,17 @@ server-backed reconciliation design plus tests before resolution. No
 unapproved arbitrary polling window or false no-duplicate promise.
 Exact-head Flutter CI, independent Code review, DB old-client staging,
 and manual device QA remain required before merge.
+
+## Same-session late-commit Create gate (2026-10-15; CI pending)
+
+Codex P2: the client's 15s timeout does not cancel the original atomic RPC.
+An immediate owner-scoped Program read may miss a late commit. Preserve the
+same RoutineCreateCommand in a volatile app Provider keyed by verified owner,
+login cycle and Program when the user explicitly exits an unknown Create.
+Block further Program Add actions until an explicit positive matching read
+confirms metadata and composition revision 1 / mutation UUID / exact content.
+Negative, stale owner, partial and failed reads never unlock. Program route
+re-entry in the same session retains the gate. This is intentionally NOT
+durable process-restart recovery; its residual risk requires review.
+No schema, backend service or unsafe time-based unlock; exact-head CI and
+independent review plus device QA are still pending.

@@ -55,6 +55,9 @@ final class RoutineCreateController extends ChangeNotifier {
   List<RoutineCompositionEntry> _entries = const [];
   RoutineCreateStatus _status = RoutineCreateStatus.ready;
   RoutineCreateCommand? _attempt;
+  /// The exact uncertain mutation, for owner-scoped recovery on route exit.
+  RoutineCreateCommand? get unconfirmedAttempt =>
+      _status == RoutineCreateStatus.outcomeUnknown ? _attempt : null;
   String? _message;
   bool _disposed = false;
 
