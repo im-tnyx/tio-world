@@ -41,6 +41,14 @@ Current behavior:
 
 For explicit user-created Programs, initial creation is intentionally limited to the generated/renamable name. The separate default `My Program` used by direct Library Routine creation is a target ownership contract, not current runtime behavior. Description, goal, level, type, duration, image/media and scheduling are not part of this slice.
 
+## GitHub #529 — Program-scoped Routine create entry (review branch, not released)
+
+The owner-approved target for an expanded **owner-read and empty** Library Program is a functional **Add Routine** action rather than passive `No routines yet`. Its action creates no Program or Routine metadata by itself; it enters the **same guarded atomic `CreateRoutinePage` flow** already supplied by Program Detail, tied to that selected `ProgramId`. After Cancel/Save/explicit unknown-outcome exit the Library re-reads persisted owner-scoped Routine children; an uncertain write is never claimed successful. A missing data source, create capability, or verified session must not expose a working Create action.
+
+The Program-scoped **3-dot bottom sheet** preserves **Edit Program → existing Rename** and exposes **Add New Routine** when canonical Create is available. It does not use the separate Routine-card anchored popup. The actual **Delete Program** action remains a separate approved product target, not a real current capability: authenticated direct DELETE was revoked, `ProgramRepository` has no delete method, and confirmation plus dependent Routine/history semantics require independently reviewed owner-safe backend and rollout contracts. Do not show a fake/inert Delete row or regrant direct table DELETE.
+
+Implementation is being reviewed on `tnyx/issue-529-inline-add-routine` (GitHub #529); this subsection is **not** evidence of a merged main change, hosted DB deployment or installed phone-app release. Existing older "current runtime" statements above are historical and must be reconciled on merge.
+
 ## Target Library Integration
 
 GitHub #475 changes how this capability is entered without changing Program ownership:
