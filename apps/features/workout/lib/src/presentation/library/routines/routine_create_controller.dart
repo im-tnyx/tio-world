@@ -58,6 +58,10 @@ final class RoutineCreateController extends ChangeNotifier {
   /// The exact uncertain mutation, for owner-scoped recovery on route exit.
   RoutineCreateCommand? get unconfirmedAttempt =>
       _status == RoutineCreateStatus.outcomeUnknown ? _attempt : null;
+  /// Capturable only once the atomic write is actually dispatched, before
+  /// its network Future can outlive an auth-revoked Create route.
+  RoutineCreateCommand? get inFlightAttempt =>
+      _status == RoutineCreateStatus.saving ? _attempt : null;
   String? _message;
   bool _disposed = false;
 
