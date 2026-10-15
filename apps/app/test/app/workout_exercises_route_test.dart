@@ -797,6 +797,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
+    // Use a valid exercise prescription, as in the established atomic Create
+    // route test. The Save assertion must test routing, not invalid-set UI.
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    expect(reps, findsOneWidget);
+    await tester.enterText(reps, '8');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('create-routine-save')));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);
