@@ -32,6 +32,8 @@ class CreateRoutinePage extends StatefulWidget {
     this.routineRepository,
     this.compositionRepository,
     this.onUnconfirmedExit,
+    this.onWriteStarted,
+    this.onWriteResolved,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -49,6 +51,11 @@ class CreateRoutinePage extends StatefulWidget {
   /// App composition uses this to refresh the Program after an explicitly
   /// unconfirmed Create exit; this does not mean a write was acknowledged.
   final ValueChanged<RoutineCreateCommand>? onUnconfirmedExit;
+  /// Reserve the immutable Create identity BEFORE the network request;
+  /// revoking the private route cannot cancel an already dispatched RPC.
+  final ValueChanged<RoutineCreateCommand>? onWriteStarted;
+  /// Release that reservation only on acknowledged Save or definite failure.
+  final ValueChanged<RoutineCreateCommand>? onWriteResolved;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -71,6 +78,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   final Set<String> _untouchedRepSetIds = {};
   String? _openSetId;
   bool _unknownExitPromptOpen = false;
+  RoutineCreateCommand? _trackedWriteAttempt;
 
   @override
   void initState() {
@@ -109,7 +117,20 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   }
 
   void _changed() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final inFlight = _draft.inFlightAttempt;
+    if (inFlight != null &&
+        !identical(_trackedWriteAttempt, inFlight)) {
+      _trackedWriteAttempt = inFlight;
+      widget.onWriteStarted?.call(inFlight);
+    } else if (_trackedWriteAttempt != null &&
+        (_draft.state.status == RoutineCreateStatus.ready ||
+         _draft.state.status == RoutineCreateStatus.saved)) {
+      final resolved = _trackedWriteAttempt!;
+      _trackedWriteAttempt = null;
+      widget.onWriteResolved?.call(resolved);
+    }
+    setState(() {});
   }
 
   @override
