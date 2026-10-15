@@ -59,6 +59,20 @@ final class RoutinePendingCreateGate {
     }
   }
 
+  /// A DEFINITE server rejection proves that this specific Create did not
+  /// commit, even if its original screen was removed on same-owner reauth.
+  /// Do not use this for timeouts, lost ACKs or other uncertain outcomes.
+  void releaseDefiniteForOwner({
+    required String owner,
+    required RoutineCreateCommand command,
+  }) {
+    if (_owner != owner) return; // Never clear another signed-in account.
+    final id = command.routine.programId;
+    if (identical(_pending[id], command)) {
+      _pending.remove(id); // Never clear a newer/different mutation.
+    }
+  }
+
   /// Only positive matching metadata and composition clears the safety gate.
   Future<bool> verify({
     required String owner, required String loginCycle,
