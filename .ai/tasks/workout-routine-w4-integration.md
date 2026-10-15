@@ -2,6 +2,19 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 latest Codex P2 remediation — CI green at implementation head
+
+**Owner instruction:** Fix Codex's two concrete P2 findings and advance toward merge gate. No Routine UI redesign. **Implementation head:** #551 `692c5d4de4fb8b0b52e4bc7385752a3839be8910`; [Flutter CI #38734786149](https://github.com/im-tnyx/tio-world/actions/runs/38734786149) **SUCCESS** (Flutter/Dart analyze + tests). Attribution guard and runner SUCCESS. GitHub compare from previously green `b58e01c3` reports 10 focused Workout-owned source/test files, zero behind, no DB migration or UI geometry change.
+
+1. **Owner A → B → A pending Create:** `RoutinePendingCreateGate` now holds distinct private owner-keyed maps of immutable submitted commands. Only currently authenticated owner and login cycle may inspect/reconcile their own Program's pending command. A's in-flight Create reservation persists privately while B is active and blocks another Create when A returns, even after an early empty read. Older owner's definite rejection removes only its identical command without touching B's. Unit tests cover cross-owner isolation, negative read/late server commit, stale-cycle release and definite rollback. No cold-process-restart/durable offline recovery is claimed; that remains separate #559 release risk/policy.
+
+2. **Type TOCTOU parity:** active Custom entries carry their preflight-verified optional `expected_exercise_type` (canonical W3D2 wire token or explicit null) from frozen Create/Update commands through shared Supabase JSON codec. Archived historical refs have no hint and remain protected by #534 historical Set identity check. Legacy callers still omit this optional field. Added codec/real Create SDK tests. The **authoritative server check** is a separate DB-only stacked [PR #562](https://github.com/im-tnyx/tio-world/pull/562) on top of [#561](https://github.com/im-tnyx/tio-world/pull/561), migration `20261015180000_guard_routine_custom_type_at_save.sql`; [Supabase DB CI #38735614700](https://github.com/im-tnyx/tio-world/actions/runs/38735614700) **SUCCESS** with two real type-update/Save sessions, SQL fixture and lint. No table/column/RLS/grant/RPC signature change; the #555 broader historical-post-Save and STEPS/TIME product decisions remain separate.
+
+**Merge gate still requires:** new exact-head independent Codex re-review and disposition of previously open threads/new P2, protected-main policy verification, and explicit owner merge command. The four ancestor PRs #541/#544/#546/#549 must not merge separately. **Integration order** if authorized: #561 → #562 → #551. Hosted database (four ordered migrations) and old/new APK rollout remain separate #559 approval/testing, not implied by code merge. No production migrations, branch cleanup, thread self-resolution or PR merges executed.
+
+---
+
+
 ## 2026-10-15 Routine device visual QA owner acceptance
 
 **Owner confirmation:** The Tio-world owner states Routine UI has already been checked on a device and looks correct. Record this as **owner-accepted Routine visual/UI QA** for existing #551 presentation; do **not** require a repeat visual screenshot/layout approval before proceeding to code/security/rollout gates. This is an owner-reported acceptance, not a device test run executed or independently verified by the agent. The installed APK build SHA, backend/environment, screen-by-screen test steps, and accessory/emulator coverage were not provided, so do **not** attribute this acceptance to a specific PR commit or claim end-to-end persistence, multi-account/auth, accessibility or same-account concurrency passed.
