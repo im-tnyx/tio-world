@@ -274,6 +274,51 @@ void main() {
     expect(comp.saveCount, 0);
   });
 
+  test('server-side Custom archive race keeps draft and explains correction',
+      () async {
+    final custom = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _s, prescription: SetPrescription(reps: 8, loadKg: 12),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [custom]))
+      ..saveError = const RoutineCompositionException(
+        RoutineCompositionFailureKind.exerciseUnavailable,
+      );
+    // The owner-scoped preflight still sees active. The DB may serialize
+    // an archive before Save and reject this mutation authoritatively.
+    final ctrl = RoutineEditorController(
+      program: _program,
+      routine: _routine(),
+      routines: _Routines([_routine()]),
+      compositions: comp,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.weightReps,
+      ),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 10, loadKg: 12),
+    ), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('was archived or is unavailable'));
+    expect(ctrl.state.dirty, isTrue);
+    expect(ctrl.state.entries.single.id, _e);
+    expect(ctrl.state.entries.single.sets.single.id, _s);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, 10);
+    expect(comp.saveCount, 1,
+        reason: 'definite server rejection must not trigger an auto retry');
+  });
+
   test('revision conflict locks draft and never rebases or retries RPC', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]))
       ..saveError = const RoutineCompositionException(
