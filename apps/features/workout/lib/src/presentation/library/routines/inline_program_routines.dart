@@ -15,6 +15,9 @@ class InlineProgramRoutines extends StatefulWidget {
     required this.refreshVersion,
     this.onRoutinePressed,
     this.onAddRoutine,
+    this.onOpenProgram,
+    this.disableAddRoutine = false,
+    this.hasUnconfirmedCreate = false,
     super.key,
   });
 
@@ -24,6 +27,10 @@ class InlineProgramRoutines extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
   /// Opens canonical Create for this exact Program; injected by app shell.
   final Future<void> Function()? onAddRoutine;
+  /// Existing Program Detail exposes owner-scoped unknown-save verification.
+  final Future<void> Function()? onOpenProgram;
+  final bool disableAddRoutine;
+  final bool hasUnconfirmedCreate;
 
   @override
   State<InlineProgramRoutines> createState() => _InlineProgramRoutinesState();
@@ -36,7 +43,7 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
   Future<void> _addRoutine() async {
     final add = widget.onAddRoutine;
     final controller = _controller;
-    if (_openingCreate || add == null || controller == null ||
+    if (_openingCreate || widget.disableAddRoutine || add == null || controller == null ||
         controller.state.status != ProgramRoutinesStatus.ready ||
         controller.state.routines.isNotEmpty) {
       return;
@@ -145,7 +152,8 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   key: ValueKey(
                     'library-add-routine-${widget.program.id.value}',
                   ),
-                  onPressed: _openingCreate ? null : _addRoutine,
+                  onPressed: _openingCreate || widget.disableAddRoutine
+                      ? null : _addRoutine,
                 );
         } else {
           content = Column(
@@ -167,6 +175,30 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
             ],
           );
         }
+    }
+    if (widget.hasUnconfirmedCreate) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Previous Routine save is not confirmed. '
+            'Open this Program to check its status.',
+            style: TextStyle(color: context.tioColors.textSecondary),
+          ),
+          if (widget.onOpenProgram != null) ...[
+            const SizedBox(height: TioSpacing.sm),
+            TioButton.secondary(
+              key: ValueKey(
+                'library-verify-routine-${widget.program.id.value}',
+              ),
+              label: 'Open Program to verify save',
+              onPressed: widget.onOpenProgram,
+            ),
+          ],
+          const SizedBox(height: TioSpacing.sm),
+          content,
+        ],
+      );
     }
     // All Program-owned content shares the Library's outer horizontal margin.
     // Do not indent saved Routine cards, empty Create, loading or retry states.
