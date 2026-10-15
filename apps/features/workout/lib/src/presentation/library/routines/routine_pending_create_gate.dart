@@ -13,7 +13,10 @@ final class RoutinePendingCreateGate {
 
   void bindSession({required String owner, required String loginCycle}) {
     if (_owner == owner && _cycle == loginCycle) return;
-    _pending.clear();
+    // A same-owner reauthentication must not erase an atomic Create which
+    // was already sent and may still commit. Never carry it across owners.
+    // The NEW login cycle alone may verify the previous immutable identity.
+    if (_owner != owner) _pending.clear();
     _owner = owner;
     _cycle = loginCycle;
   }
@@ -41,6 +44,19 @@ final class RoutinePendingCreateGate {
       throw StateError('Unconfirmed Create already exists.');
     }
     _pending[id] = command;
+  }
+
+  /// Clear only a DEFINITELY failed or acknowledged attempt in its own
+  /// opening login cycle. A revoked cycle cannot clear a newer session's gate.
+  void release({
+    required String owner, required String loginCycle,
+    required RoutineCreateCommand command,
+  }) {
+    if (!_same(owner, loginCycle)) return;
+    final programId = command.routine.programId;
+    if (identical(_pending[programId], command)) {
+      _pending.remove(programId);
+    }
   }
 
   /// Only positive matching metadata and composition clears the safety gate.
