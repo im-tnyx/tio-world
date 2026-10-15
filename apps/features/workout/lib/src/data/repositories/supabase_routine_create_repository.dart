@@ -56,11 +56,10 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
       if (result is int && result == 1) return 1;
       throw const RoutineCompositionSaveOutcomeUnknown();
     } on PostgrestException catch (error) {
-      if (_currentUserId()?.trim() != owner) {
-        throw const RoutineCompositionSaveOutcomeUnknown(
-          reason: RoutineCompositionSaveUncertainty.authChanged,
-        );
-      }
+      // A definite SQL/PostgREST rejection proves the original attempted
+      // mutation rolled back, even when its opening account is no longer
+      // active. Classify it BEFORE the owner-change uncertainty check so the
+      // old owner-bound pending gate can release only this exact command.
       // Mirror the composition adapter: these are definite SQL/Auth
       // rejections (including PostgREST JWT failures), not ambiguous writes.
       // Preserve outcomeUnknown for transport/5xx or malformed 2xx only.
@@ -88,7 +87,14 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
           RoutineCompositionFailureKind.invalidRequest,
         );
       }
-      // Transport/connection, 5xx or malformed 2xx may follow a commit.
+      // A 5xx/non-definite server response may follow an actual commit.
+      // An auth change affects only the unresolved outcome, never a proven
+      // rollback. Do not retry the frozen command automatically.
+      if (_currentUserId()?.trim() != owner) {
+        throw const RoutineCompositionSaveOutcomeUnknown(
+          reason: RoutineCompositionSaveUncertainty.authChanged,
+        );
+      }
       throw const RoutineCompositionSaveOutcomeUnknown();
     } on RoutineCompositionException {
       rethrow;
