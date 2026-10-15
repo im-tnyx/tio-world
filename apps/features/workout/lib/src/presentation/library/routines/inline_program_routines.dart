@@ -168,18 +168,11 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
           );
         }
     }
-    // Only the empty Create card aligns with the Library's outer margins.
-    // Saved Routine cards keep their existing child indentation.
-    final fullWidthEmptyCreate =
-        state.status == ProgramRoutinesStatus.ready &&
-        state.routines.isEmpty &&
-        widget.onAddRoutine != null;
+    // All Program-owned content shares the Library's outer horizontal margin.
+    // Do not indent saved Routine cards, empty Create, loading or retry states.
     return Padding(
       key: ValueKey('library-routines-${widget.program.id.value}'),
-      padding: EdgeInsetsDirectional.only(
-        start: fullWidthEmptyCreate ? 0 : TioSpacing.xl,
-        bottom: TioSpacing.sm,
-      ),
+      padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: content,
     );
   }
