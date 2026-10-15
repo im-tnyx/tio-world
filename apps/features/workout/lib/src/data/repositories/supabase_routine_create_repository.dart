@@ -34,6 +34,7 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
         expectedRevision: 0,
         mutationId: command.mutationId,
         entries: command.entries,
+        expectedCustomTypes: command.expectedCustomTypes,
       ),
     );
     try {
