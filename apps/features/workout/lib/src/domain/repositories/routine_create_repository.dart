@@ -9,7 +9,9 @@ final class RoutineCreateCommand {
     required this.routine,
     required String mutationId,
     required List<RoutineCompositionEntry> entries,
-  })  : mutationId = mutationId,
+    Map<String, ExerciseType?> expectedCustomTypes = const {},
+  })  : expectedCustomTypes = Map.unmodifiable(expectedCustomTypes),
+         mutationId = mutationId,
         entries = List.unmodifiable(entries) {
     if (routine.name.trim().isEmpty || entries.isEmpty) {
       throw ArgumentError('Create requires a name and an Exercise.');
@@ -21,12 +23,14 @@ final class RoutineCreateCommand {
       expectedRevision: 0,
       mutationId: mutationId,
       entries: entries,
+      expectedCustomTypes: expectedCustomTypes,
     );
   }
 
   final Routine routine;
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
+  final Map<String, ExerciseType?> expectedCustomTypes;
 
   /// Positive read-only evidence that this unique Routine ID was committed.
   /// Revision 1 must match the original mutation and complete payload.
