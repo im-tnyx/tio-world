@@ -188,6 +188,39 @@ void main() {
     expect(find.text('60'), findsOneWidget);
   });
 
+  testWidgets('Custom missing type still displays persisted KM/TIME targets',
+      (tester) async {
+    final historic = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001',
+        ),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(
+              distanceMeters: 3000, durationSeconds: 900,
+            ),
+          ),
+        ],
+      ),
+    ]);
+    // No Custom metadata is available; canonical type is null. Read-only
+    // Detail must render stored metric values rather than fake KG/REPS.
+    await _pump(tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(historic),
+    );
+    expect(find.text('KM'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('900'), findsOneWidget);
+    expect(find.text('REPS'), findsNothing);
+    expect(find.text('KG'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('empty persisted Routine shows truthful empty state',
       (tester) async {
     await _pump(
