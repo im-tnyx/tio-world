@@ -516,6 +516,14 @@ final class RoutineEditorController extends ChangeNotifier {
           status: RoutineEditorStatus.notFound,
           entries: const [],
         ));
+      } else if (error.kind ==
+          RoutineCompositionFailureKind.exerciseUnavailable) {
+        // The authoritative #534 RPC may observe an archive that raced
+        // after our owner-scoped client preflight. Keep the editable draft.
+        _publish(_ready(
+          message: 'A Custom Exercise was archived or is unavailable. '
+              'Review or remove it before Update.',
+        ));
       } else {
         _publish(_ready(message: 'Could not update Routine. Try again.'));
       }
