@@ -842,7 +842,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Exit to Program'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+    // The shared route fixture already contains one older Routine. The
+    // *new* timed-out Routine must still be absent from this first read.
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsOneWidget);
+    expect(find.text('Routine 1'), findsNothing);
     expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
     await tester.tap(find.byKey(checkKey)); // Read BEFORE delayed commit.
     await tester.pumpAndSettle();

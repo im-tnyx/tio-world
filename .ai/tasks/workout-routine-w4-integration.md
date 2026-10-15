@@ -569,3 +569,13 @@ package emitted only three `curly_braces_in_flow_control_structures`
 info-level diagnostics treated as CI failures. Wrap those three
 multi-line if statements with braces without changing control flow.
 No other production changes; next runner must verify tests.
+
+## Latest CI fixture correction (2026-10-15; exact-head validation pending)
+
+At `3689e9d60d96b18c9983f4374116a1c91e2dca38`, CI #38677830512
+passed Flutter/Dart analysis, and 412 tio_app tests passed with one newly
+introduced late-Create test failure. Its assertion incorrectly claimed the
+Program had no Routines at all; the canonical route fixture already seeds
+`Synthetic Route Routine`. Update the assertion to require the existing list
+and existing Routine, but **absence of the uncommitted new `Routine 1`**.
+Guard/production code unchanged. New CI required.
