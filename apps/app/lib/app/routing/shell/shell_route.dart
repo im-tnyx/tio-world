@@ -549,6 +549,18 @@ List<RouteBase> _shellBranchChildRoutes(
                                               command: command,
                                             );
                                           },
+                                          onDefiniteFailure: (command) {
+                                            // A definite rejected RPC is safe
+                                            // to forget even if this old route
+                                            // was removed after reauthentication.
+                                            // The gate checks SAME owner and
+                                            // exact command object, not an old
+                                            // login-cycle write capability.
+                                            pendingGate.releaseDefiniteForOwner(
+                                              owner: openingOwner,
+                                              command: command,
+                                            );
+                                          },
                                           viewerMediaGender: authorized
                                               ? ref.watch(exerciseViewerMediaGenderProvider)
                                               : null,
