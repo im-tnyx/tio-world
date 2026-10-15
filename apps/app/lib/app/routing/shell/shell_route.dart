@@ -597,13 +597,23 @@ List<RouteBase> _shellBranchChildRoutes(
             );
           }
 
+          final boot = ref.watch(appSessionBootstrapControllerProvider).state;
+          final authValue = ref.watch(authSessionStateProvider);
+          final auth = authValue.isLoading || authValue.hasError
+              ? null
+              : authValue.valueOrNull;
+          final canCreateForSession = boot is AppSessionBootstrapReady &&
+              auth is AuthSessionAuthenticated &&
+              auth.session.userId == boot.userId;
+
           return LibraryPage(
             programRepository: programRepository,
             routineRepository: routineRepository,
             onProgramPressed: routineRepository == null
                 ? null
                 : (program) => openProgram(program),
-            onAddRoutinePressed: routineRepository == null ||
+            onAddRoutinePressed: !canCreateForSession ||
+                    routineRepository == null ||
                     createRepository == null ||
                     compositions == null ||
                     userExerciseRepository == null
