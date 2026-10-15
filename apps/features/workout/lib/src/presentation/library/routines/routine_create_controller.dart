@@ -40,6 +40,7 @@ final class RoutineCreateController extends ChangeNotifier {
     required this.repository,
     this.userExercises,
     this.canWrite,
+    this.onDefiniteFailure,
     String Function()? newUuid,
   })  : _name = initialName,
         _newUuid = newUuid ?? (() => const Uuid().v4()) {
@@ -50,6 +51,9 @@ final class RoutineCreateController extends ChangeNotifier {
   final RoutineCreateRepository repository;
   final UserExerciseRepository? userExercises;
   final bool Function()? canWrite;
+  /// The rejected command can outlive a revoked/disposed Create route.
+  /// This callback never transfers session capabilities or draft content.
+  final ValueChanged<RoutineCreateCommand>? onDefiniteFailure;
   final String Function() _newUuid;
   String _name;
   List<RoutineCompositionEntry> _entries = const [];
@@ -381,6 +385,15 @@ final class RoutineCreateController extends ChangeNotifier {
       _publish();
       return true;
     } on RoutineCompositionException {
+      // The RPC definitively rejected this exact command. Even after this
+      // controller was disposed by auth revocation, release the old pending
+      // identity through the app's owner-bound gate. Do not notify UI state.
+      try {
+        onDefiniteFailure?.call(command);
+      } catch (_) {
+        // Fail closed: a broken cleanup callback must not turn a rejection
+        // into an unhandled error or a new/unknown write attempt.
+      }
       if (_disposed || !_authorized) return false;
       // A definite server/auth rejection rolled back the transaction.
       // Keep the editable Exercise/Set draft, but discard the rejected
