@@ -1,8 +1,25 @@
 # Issue #534 — Atomic Custom archive guard in Routine Save RPC
 
-**Status:** In progress, unvalidated.
+**Status:** Implemented; disposable Supabase CI passed at 2026-10-15 checkpoint. Independent review, production rollout, and merge remain blocked.
 **Primary owner:** Supabase DB security implementation, this branch only.
 **Platforms:** Supabase RPC; Flutter parity separately tracked.
+
+
+## Current verified gate — 2026-10-15 (supersedes initial draft checkpoints)
+
+- **PR:** #561 Ready for Review, branch `security/issue-534-archive-routine-save`, base `main`; latest tested implementation head `d0c7a8416736a39fe862627c59b1dc23e33b5b06`.
+- **Exact-head CI:** [Supabase Database CI #38718509800](https://github.com/im-tnyx/tio-world/actions/runs/38718509800) **SUCCESS**, and exact-head attribution guard + runner **SUCCESS**. Complete disposable migration replay, #534 SQL matrix, real two-session race and schema-lint regression checks succeeded.
+- **Focused regression extension:** only `supabase/tests/database/tnyx_534_archived_custom_routine_save.test.sql` changed after previously green DB implementation head `664d830a`. The new SQL test protects #540 nullable `reps=NULL` Distance/Duration Sets during archived historical retention, same-token replay and unrelated edit; changed archived metric targets fail with zero partial writes.
+- **Source diff security audit:** compared the replacement RPC to #540's immediate predecessor; differences were the scoped declarations and post-replay, pre-child-DML owner Custom `FOR SHARE`/archived historical Set-equality guard. No new role grants or table/column changes.
+- **External truth:** Connected hosted Supabase remains **55 migrations** through `20261010061809`; #536/#540/#561 migration chain is not live. #551 consolidated Flutter latest tested head `a21c0e9c` is green but its 24 review threads include 18 unresolved; #559 requires owner-controlled 4–5-device APK/version inventory, old/new reader compatibility and same-owner device QA.
+- **Outstanding gates:** independent security review/approval, branch-protection policy visibility (API 403), real-device/a11y QA, explicit hosted migration authorization, distinct app activation/merge approval. **No production DDL, merge, deployment, independent approval, or branch cleanup occurred.**
+- **Review checkpoint:** https://github.com/im-tnyx/tio-world/pull/561#issuecomment-6189718074
+- **Source environment:** GitHub connector; no local `git status` or local SQL command claimed. Latest CI was executed by GitHub Actions, not this agent's local machine.
+
+### Historical notes below
+
+Earlier unvalidated/pending-run descriptions document the original draft sequence and do not override the exact-head gate above.
+
 
 ## Approval and scope
 Owner said "Go" on 2026-10-15 in response to explicit historical-preserving policy proposal. This is a security/correctness subtask, without table/column shape changes.
@@ -31,7 +48,7 @@ Implementation owner: Supabase security, single active branch.
 Branch: security/issue-534-archive-routine-save (from exact main SHA above).
 Worktree state: unavailable from GitHub connector; no local git status claimed.
 Scope: this task file, new DB migration, new SQL/tests concurrency script, DB CI workflow.
-Validation: not run yet; no production apply, merge, device QA, or review approval.
+Validation at initial draft: not yet run; current exact-head CI outcome is recorded above. No production apply, merge, device QA, or reviewer approval.
 Next: implement and test, then open draft DB-only PR.
 
 ## Draft PR checkpoint
