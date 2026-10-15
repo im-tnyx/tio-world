@@ -702,6 +702,34 @@ void main() {
     );
   });
 
+  testWidgets('Library Program overflow Add Routine opens canonical Create',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+
+    await tester.tap(find.byKey(const ValueKey('program-overflow-$programId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-add-routine')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('create-routine-name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+  });
+
   testWidgets('same-owner Profile failure preserves Create draft and unit',
       (tester) async {
     final profileEvents = StreamController<ProfileSetupData?>.broadcast();
