@@ -372,6 +372,7 @@ final class RoutineEditorController extends ChangeNotifier {
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
         .toSet();
+    final expectedCustomTypes = <String, ExerciseType?>{};
     if (customRefs.isNotEmpty) {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.verifying,
@@ -457,6 +458,7 @@ final class RoutineEditorController extends ChangeNotifier {
           ));
           return false;
         }
+        expectedCustomTypes[entry.id] = live.exerciseType;
       }
     }
     // Auth may change while Custom source preflight awaits. Route removal
@@ -467,6 +469,7 @@ final class RoutineEditorController extends ChangeNotifier {
       expectedRevision: _revision,
       mutationId: _newUuid(),
       entries: _draft,
+      expectedCustomTypes: expectedCustomTypes,
     );
     _publish(RoutineEditorState(
       status: RoutineEditorStatus.saving,
