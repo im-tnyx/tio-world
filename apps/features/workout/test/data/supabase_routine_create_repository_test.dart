@@ -122,6 +122,74 @@ void main() {
     expect(sent['exercise_ref'], '66666666-6666-4666-8666-666666666666');
   });
 
+  for (final failure in <(String, int)>[
+    ('22023', 400), ('23503', 409), ('PGRST203', 300),
+    ('422', 422),
+  ]) {
+    test('owner switch retains definite Create rejection ${failure.$1}',
+        () async {
+      var currentOwner = '11111111-1111-4111-8111-111111111111';
+      var requests = 0;
+      final client = SupabaseClient(
+        'https://example.test', 'synthetic-publishable-key',
+        httpClient: MockClient((request) async {
+          requests++;
+          // The request was sent as owner A, but the auth client now
+          // reports B before the DEFINITE server rejection is received.
+          currentOwner = '22222222-2222-4222-8222-222222222222';
+          return http.Response(
+            jsonEncode({'code': failure.$1, 'message': 'Request rejected'}),
+            failure.$2,
+            headers: {'content-type': 'application/json'},
+            request: request,
+          );
+        }),
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      addTearDown(client.dispose);
+      final repo = SupabaseRoutineCreateRepository(
+        client: client, currentUserId: () => currentOwner);
+      await expectLater(
+        repo.create(_testCreateCommand()),
+        throwsA(isA<RoutineCompositionException>().having(
+          (e) => e.kind, 'kind',
+          RoutineCompositionFailureKind.invalidRequest,
+        )),
+      );
+      expect(requests, 1, reason: 'Definite rollback never retries');
+    });
+  }
+
+  test('owner switch keeps ambiguous Create 5xx frozen', () async {
+    var currentOwner = '11111111-1111-4111-8111-111111111111';
+    var requests = 0;
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests++;
+        currentOwner = '22222222-2222-4222-8222-222222222222';
+        return http.Response(
+          jsonEncode({'code': '500', 'message': 'Unknown server outcome'}),
+          500,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        );
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final repo = SupabaseRoutineCreateRepository(
+      client: client, currentUserId: () => currentOwner);
+    await expectLater(
+      repo.create(_testCreateCommand()),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>().having(
+        (e) => e.reason, 'reason',
+        RoutineCompositionSaveUncertainty.authChanged,
+      )),
+    );
+    expect(requests, 1);
+  });
+
   for (final code in ['PGRST301', 'PGRST302', 'PGRST303', '28P01']) {
     test('definite Create Auth $code remains retryable, not uncertain', () async {
       var requests = 0;
