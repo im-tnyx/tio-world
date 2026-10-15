@@ -16,6 +16,16 @@
 - **Review checkpoint:** https://github.com/im-tnyx/tio-world/pull/561#issuecomment-6189718074
 - **Source environment:** GitHub connector; no local `git status` or local SQL command claimed. Latest CI was executed by GitHub Actions, not this agent's local machine.
 
+## 2026-10-15 Codex P1 archived entry ref-swap remediation
+
+**Exact validation pending on new head.** Codex correctly identified that the original #534 lock loop inspected *incoming* Custom refs only. A historical entry with the same UUID could change from archived Custom A to active Custom B or catalog, bypassing archived history checks. A second finding identified trailing whitespace in this handoff; removed.
+
+**Bounded fix:** The Save RPC now locks the union of incoming **and persisted original** owner Custom refs in deduplicated UUID order, preserving existing replay / legacy / revision precedence. For a locked archived original ref, any incoming entry with its original UUID but a different Exercise ref fails with the established `22023/routine_composition_archived_exercise_modified` error. Full historical entry removal, unrelated edits, reordering Routine entries, and exact unchanged archived Set retention remain allowed; no table/column/RLS/grant/RPC signature changes.
+
+**SQL coverage:** Existing disposable #534 matrix now tests the same archived entry UUID reassigned to (1) another still-active owner Custom ref and (2) a catalog ref, with exactly unchanged historic Sets. Existing archive-vs-Save two-session concurrency and historical nullable Set tests remain required. Follow-on #562 (type guard) copies the same corrective check into its own full-RPC replacement migration; source merge cannot use old #562 implementation or old CI evidence. Reviewer thread disposition and exact-head CI checks pending. No hosted DDL or merge.
+
+---
+
 ### Historical notes below
 
 Earlier unvalidated/pending-run descriptions document the original draft sequence and do not override the exact-head gate above.
@@ -58,4 +68,4 @@ Next: implement and test, then open draft DB-only PR.
 - Test files and workflow are committed; do not state validated until exact-head checks conclude.
 - Live hosted migration ledger remains 55, through 20261010061809. New source #536/#540 and this #534 migration are **not hosted deployed**.
 - Residual: Flutter #551 Edit preflight rejects legacy archived references; owner-approved UX needs a separate bounded Flutter parity correction, no UI redesign.
-- Next exact action: check disposable CI logs, correct focused SQL/security findings, request independent PR review and then re-evaluate rollout/deployment gates. 
+- Next exact action: check disposable CI logs, correct focused SQL/security findings, request independent PR review and then re-evaluate rollout/deployment gates.
