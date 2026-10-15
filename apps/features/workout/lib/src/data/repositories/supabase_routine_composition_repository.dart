@@ -431,6 +431,11 @@ final class SupabaseRoutineCompositionRepository
         RoutineCompositionFailureKind.revisionConflict,
       'P0001' when error.message == 'routine_composition_mutation_conflict' =>
         RoutineCompositionFailureKind.mutationConflict,
+      // #534: a race against Custom archive is a DEFINITE no-write rejection.
+      // Reuse the existing sanitized category; do not leak raw SQL details.
+      '22023' when error.message ==
+              'routine_composition_archived_exercise_modified' =>
+        RoutineCompositionFailureKind.exerciseUnavailable,
       '22023' ||
       '22P02' ||
       '22003' ||
