@@ -191,6 +191,26 @@ void main() {
     expect(find.descendant(of: two, matching: find.text('Legs')), findsOneWidget);
     expect(find.descendant(of: one, matching: find.byType(TioCard)),
         findsNWidgets(2));
+
+    // No extra left inset for any persisted Program-owned Routine, including
+    // both Programs, matching the Library's existing outer horizontal margin.
+    final section = find.byKey(const ValueKey('library-programs-content'));
+    final left = tester.getTopLeft(section).dx;
+    final right = tester.getTopRight(section).dx;
+    final firstCard = find.byKey(
+        ValueKey('library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    final secondCard = find.byKey(
+        ValueKey('library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+    for (final card in [firstCard, secondCard]) {
+      expect(tester.getTopLeft(card).dx, closeTo(left, 0.1));
+      expect(tester.getTopRight(card).dx, closeTo(right, 0.1));
+    }
+    for (final container in [one, two]) {
+      expect(
+        tester.widget<Padding>(container).padding,
+        const EdgeInsets.only(bottom: TioSpacing.sm),
+      );
+    }
     expect(repository.queries, containsAll([_id(1), _id(2)]));
 
     await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
@@ -274,7 +294,7 @@ void main() {
       find.descendant(of: add, matching: find.byType(CustomPaint)),
       findsOneWidget,
     );
-    // No extra left inset on the dotted card, unlike persisted Routine rows.
+    // The dotted card and persisted Routine cards share Library margins.
     final programSection =
         find.byKey(const ValueKey('library-programs-content'));
     final routineContainer =
