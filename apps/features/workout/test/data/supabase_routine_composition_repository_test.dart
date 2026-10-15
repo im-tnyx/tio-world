@@ -57,6 +57,46 @@ Matcher _failure(RoutineCompositionFailureKind kind) =>
     isA<RoutineCompositionException>().having((e) => e.kind, 'kind', kind);
 
 void main() {
+  test('type hint is carried only on Custom entries, with explicit null', () {
+    final customId = _id(61);
+    final catalogId = _id(62);
+    final custom = RoutineCompositionEntry(
+      id: customId, exercise: ExerciseRef.userCreated(_id(31)),
+      sets: [RoutineCompositionSet(
+        id: _id(71), prescription: SetPrescription(reps: 12),
+      )],
+    );
+    final catalog = RoutineCompositionEntry(
+      id: catalogId, exercise: ExerciseRef.catalog('ex_bench_press'),
+      sets: [RoutineCompositionSet(
+        id: _id(72), prescription: SetPrescription(reps: 8),
+      )],
+    );
+    final command = RoutineCompositionSave(
+      routineId: _routine, expectedRevision: 0, mutationId: _mutation,
+      entries: [custom, catalog],
+      expectedCustomTypes: {customId: ExerciseType.weightReps},
+    );
+    final payload = SupabaseRoutineCompositionRepository.payload(command);
+    expect(payload[0]['expected_exercise_type'], 'weight_reps');
+    expect(payload[1].containsKey('expected_exercise_type'), isFalse);
+    final none = SupabaseRoutineCompositionRepository.payload(
+      RoutineCompositionSave(
+        routineId: _routine, expectedRevision: 0, mutationId: _mutation,
+        entries: [custom], expectedCustomTypes: {customId: null},
+      ),
+    );
+    expect(none.single.containsKey('expected_exercise_type'), isTrue);
+    expect(none.single['expected_exercise_type'], isNull);
+    expect(SupabaseRoutineCompositionRepository.payload(
+      RoutineCompositionSave(
+        routineId: _routine, expectedRevision: 0, mutationId: _mutation,
+        entries: [custom],
+      ),
+    ).single.containsKey('expected_exercise_type'), isFalse,
+      reason: 'older clients can omit the optional type hint');
+  });
+
   test(
       'reads owner-scoped rows in position order with independent repeated refs and nullable sets',
       () async {
