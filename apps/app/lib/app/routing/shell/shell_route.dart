@@ -354,213 +354,213 @@ List<RouteBase> _shellBranchChildRoutes(
             // Canonical guarded atomic Create, shared by Program Detail and
             // direct Library Add. No metadata-only or duplicate persistence.
             Future<bool> createRoutine(String suggestedName) async {
-                          if (createRepository == null ||
-                              compositions == null ||
-                              userExerciseRepository == null ||
-                              !openingSessionValid() ||
-                              pendingGate.hasPending(
-                                owner: openingOwner!,
-                                loginCycle: openingCycle!,
-                                programId: program.id,
-                              )) {
-                            return false;
-                          }
-                          final boot = ref
+              if (createRepository == null ||
+                  compositions == null ||
+                  userExerciseRepository == null ||
+                  !openingSessionValid() ||
+                  pendingGate.hasPending(
+                    owner: openingOwner!,
+                    loginCycle: openingCycle!,
+                    programId: program.id,
+                  )) {
+                return false;
+              }
+              final boot = ref
+                  .read(appSessionBootstrapControllerProvider)
+                  .state;
+              final initialOwner = boot is AppSessionBootstrapReady
+                  ? boot.userId
+                  : null;
+              final authValue = ref.read(authSessionStateProvider);
+              final initialAuth = authValue.isLoading ||
+                      authValue.hasError
+                  ? null
+                  : authValue.valueOrNull;
+              final initialAuthOwner =
+                  initialAuth is AuthSessionAuthenticated
+                      ? initialAuth.session.userId
+                      : null;
+              final initialCycle =
+                  initialAuth is AuthSessionAuthenticated
+                      ? initialAuth.session.loginCycleId
+                      : null;
+              if (initialOwner != openingOwner ||
+                  initialAuthOwner != openingOwner ||
+                  initialCycle != openingCycle) {
+                return false;
+              }
+              var revoked = false;
+              var exitedUnconfirmed = false;
+              // Scoped to the opening owner/login cycle.
+              // Transient Profile errors must not replace
+              // this route's unsaved Create controller.
+              WeightUnit? lastVerifiedUnit;
+              final confirmed = await Navigator.of(context)
+                  .push<bool>(MaterialPageRoute(
+                builder: (_) => Consumer(
+                  builder: (context, ref, _) {
+                    final boot = ref
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
+                    final owner = boot is AppSessionBootstrapReady
+                        ? boot.userId
+                        : null;
+                    final authAsync =
+                        ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading ||
+                            authAsync.hasError
+                        ? null
+                        : authAsync.valueOrNull;
+                    final authOwner =
+                        auth is AuthSessionAuthenticated
+                            ? auth.session.userId
+                            : null;
+                    final cycle =
+                        auth is AuthSessionAuthenticated
+                            ? auth.session.loginCycleId
+                            : null;
+                    final authorized =
+                        owner == initialOwner &&
+                        authOwner == initialOwner &&
+                        cycle == initialCycle;
+                    if (!authorized && !revoked) {
+                      revoked = true;
+                      final privateRoute =
+                          ModalRoute.of(context);
+                      WidgetsBinding.instance
+                          .addPostFrameCallback((_) {
+                        if (!context.mounted ||
+                            privateRoute == null ||
+                            !privateRoute.isActive) {
+                          return;
+                        }
+                        // A picker or Exercise Options
+                        // modal is a separate Navigator
+                        // route above the Create draft.
+                        // Dismiss every private overlay
+                        // before removing the revoked
+                        // session's underlying route.
+                        final navigator = Navigator.of(context);
+                        navigator.popUntil((route) =>
+                            identical(route, privateRoute));
+                        // RemoveRoute bypasses a pending
+                        // save's PopScope; revoked content
+                        // must not survive the login cycle.
+                        navigator.removeRoute(privateRoute);
+                      });
+                    }
+                    final profile =
+                        ref.watch(profileDataProvider);
+                    final resolvedUnit = authorized &&
+                            !profile.isLoading &&
+                            !profile.hasError
+                        ? profile.valueOrNull
+                            ?.unitPreferences.weightUnit
+                        : null;
+                    if (resolvedUnit != null) {
+                      lastVerifiedUnit = resolvedUnit;
+                    }
+                    final unit = authorized
+                        ? lastVerifiedUnit
+                        : null;
+                    if (!authorized || unit == null) {
+                      return const Scaffold(
+                        body: Center(
+                          child: Text(
+                            'Create Routine is unavailable.',
+                          ),
+                        ),
+                      );
+                    }
+                    return CreateRoutinePage(
+                      key: ValueKey(
+                        'create-routine-owner-$owner-cycle-$cycle',
+                      ),
+                      program: program,
+                      initialName: suggestedName,
+                      createRepository: createRepository,
+                      catalogRepository: catalog,
+                      userExerciseRepository:
+                          userExerciseRepository,
+                      routineRepository: routineRepository,
+                      compositionRepository: compositions,
+                      // An explicitly unconfirmed exit
+                      // needs a fresh owner-bound Program
+                      // read; it is not an ACK of Create.
+                      onUnconfirmedExit: (command) {
+                        if (!openingSessionValid()) return;
+                        pendingGate.retain(
+                          owner: openingOwner,
+                          loginCycle: openingCycle,
+                          command: command,
+                        );
+                        exitedUnconfirmed = true;
+                      },
+                      // Capture immutable identity BEFORE
+                      // dispatch, not only on an optional
+                      // user-triggered unknown exit. A
+                      // revoked route cannot stop an RPC
+                      // which is already in-flight.
+                      onWriteStarted: (command) {
+                        if (!openingSessionValid()) return;
+                        pendingGate.retain(
+                          owner: openingOwner,
+                          loginCycle: openingCycle,
+                          command: command,
+                        );
+                      },
+                      onWriteResolved: (command) {
+                        if (!openingSessionValid()) return;
+                        pendingGate.release(
+                          owner: openingOwner,
+                          loginCycle: openingCycle,
+                          command: command,
+                        );
+                      },
+                      onDefiniteFailure: (command) {
+                        // A definite rejected RPC is safe
+                        // to forget even if this old route
+                        // was removed after reauthentication.
+                        // The gate checks SAME owner and
+                        // exact command object, not an old
+                        // login-cycle write capability.
+                        pendingGate.releaseDefiniteForOwner(
+                          owner: openingOwner,
+                          command: command,
+                        );
+                      },
+                      viewerMediaGender: authorized
+                          ? ref.watch(exerciseViewerMediaGenderProvider)
+                          : null,
+                      weightUnit: unit,
+                      canWrite: () {
+                        try {
+                          final current = ref
                               .read(appSessionBootstrapControllerProvider)
                               .state;
-                          final initialOwner = boot is AppSessionBootstrapReady
-                              ? boot.userId
-                              : null;
-                          final authValue = ref.read(authSessionStateProvider);
-                          final initialAuth = authValue.isLoading ||
-                                  authValue.hasError
+                          final a = ref
+                              .read(authSessionStateProvider);
+                          final auth = a.isLoading || a.hasError
                               ? null
-                              : authValue.valueOrNull;
-                          final initialAuthOwner =
-                              initialAuth is AuthSessionAuthenticated
-                                  ? initialAuth.session.userId
-                                  : null;
-                          final initialCycle =
-                              initialAuth is AuthSessionAuthenticated
-                                  ? initialAuth.session.loginCycleId
-                                  : null;
-                          if (initialOwner != openingOwner ||
-                              initialAuthOwner != openingOwner ||
-                              initialCycle != openingCycle) {
-                            return false;
-                          }
-                          var revoked = false;
-                          var exitedUnconfirmed = false;
-                          // Scoped to the opening owner/login cycle.
-                          // Transient Profile errors must not replace
-                          // this route's unsaved Create controller.
-                          WeightUnit? lastVerifiedUnit;
-                          final confirmed = await Navigator.of(context)
-                              .push<bool>(MaterialPageRoute(
-                            builder: (_) => Consumer(
-                              builder: (context, ref, _) {
-                                final boot = ref
-                                    .watch(appSessionBootstrapControllerProvider)
-                                    .state;
-                                final owner = boot is AppSessionBootstrapReady
-                                    ? boot.userId
-                                    : null;
-                                final authAsync =
-                                    ref.watch(authSessionStateProvider);
-                                final auth = authAsync.isLoading ||
-                                        authAsync.hasError
-                                    ? null
-                                    : authAsync.valueOrNull;
-                                final authOwner =
-                                    auth is AuthSessionAuthenticated
-                                        ? auth.session.userId
-                                        : null;
-                                final cycle =
-                                    auth is AuthSessionAuthenticated
-                                        ? auth.session.loginCycleId
-                                        : null;
-                                final authorized =
-                                    owner == initialOwner &&
-                                    authOwner == initialOwner &&
-                                    cycle == initialCycle;
-                                if (!authorized && !revoked) {
-                                  revoked = true;
-                                  final privateRoute =
-                                      ModalRoute.of(context);
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((_) {
-                                    if (!context.mounted ||
-                                        privateRoute == null ||
-                                        !privateRoute.isActive) {
-                                      return;
-                                    }
-                                    // A picker or Exercise Options
-                                    // modal is a separate Navigator
-                                    // route above the Create draft.
-                                    // Dismiss every private overlay
-                                    // before removing the revoked
-                                    // session's underlying route.
-                                    final navigator = Navigator.of(context);
-                                    navigator.popUntil((route) =>
-                                        identical(route, privateRoute));
-                                    // RemoveRoute bypasses a pending
-                                    // save's PopScope; revoked content
-                                    // must not survive the login cycle.
-                                    navigator.removeRoute(privateRoute);
-                                  });
-                                }
-                                final profile =
-                                    ref.watch(profileDataProvider);
-                                final resolvedUnit = authorized &&
-                                        !profile.isLoading &&
-                                        !profile.hasError
-                                    ? profile.valueOrNull
-                                        ?.unitPreferences.weightUnit
-                                    : null;
-                                if (resolvedUnit != null) {
-                                  lastVerifiedUnit = resolvedUnit;
-                                }
-                                final unit = authorized
-                                    ? lastVerifiedUnit
-                                    : null;
-                                if (!authorized || unit == null) {
-                                  return const Scaffold(
-                                    body: Center(
-                                      child: Text(
-                                        'Create Routine is unavailable.',
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return CreateRoutinePage(
-                                  key: ValueKey(
-                                    'create-routine-owner-$owner-cycle-$cycle',
-                                  ),
-                                  program: program,
-                                  initialName: suggestedName,
-                                  createRepository: createRepository,
-                                  catalogRepository: catalog,
-                                  userExerciseRepository:
-                                      userExerciseRepository,
-                                  routineRepository: routineRepository,
-                                  compositionRepository: compositions,
-                                  // An explicitly unconfirmed exit
-                                  // needs a fresh owner-bound Program
-                                  // read; it is not an ACK of Create.
-                                  onUnconfirmedExit: (command) {
-                                    if (!openingSessionValid()) return;
-                                    pendingGate.retain(
-                                      owner: openingOwner,
-                                      loginCycle: openingCycle,
-                                      command: command,
-                                    );
-                                    exitedUnconfirmed = true;
-                                  },
-                                  // Capture immutable identity BEFORE
-                                  // dispatch, not only on an optional
-                                  // user-triggered unknown exit. A
-                                  // revoked route cannot stop an RPC
-                                  // which is already in-flight.
-                                  onWriteStarted: (command) {
-                                    if (!openingSessionValid()) return;
-                                    pendingGate.retain(
-                                      owner: openingOwner,
-                                      loginCycle: openingCycle,
-                                      command: command,
-                                    );
-                                  },
-                                  onWriteResolved: (command) {
-                                    if (!openingSessionValid()) return;
-                                    pendingGate.release(
-                                      owner: openingOwner,
-                                      loginCycle: openingCycle,
-                                      command: command,
-                                    );
-                                  },
-                                  onDefiniteFailure: (command) {
-                                    // A definite rejected RPC is safe
-                                    // to forget even if this old route
-                                    // was removed after reauthentication.
-                                    // The gate checks SAME owner and
-                                    // exact command object, not an old
-                                    // login-cycle write capability.
-                                    pendingGate.releaseDefiniteForOwner(
-                                      owner: openingOwner,
-                                      command: command,
-                                    );
-                                  },
-                                  viewerMediaGender: authorized
-                                      ? ref.watch(exerciseViewerMediaGenderProvider)
-                                      : null,
-                                  weightUnit: unit,
-                                  canWrite: () {
-                                    try {
-                                      final current = ref
-                                          .read(appSessionBootstrapControllerProvider)
-                                          .state;
-                                      final a = ref
-                                          .read(authSessionStateProvider);
-                                      final auth = a.isLoading || a.hasError
-                                          ? null
-                                          : a.valueOrNull;
-                                      return current is AppSessionBootstrapReady &&
-                                          current.userId == initialOwner &&
-                                          auth is AuthSessionAuthenticated &&
-                                          auth.session.userId == initialOwner &&
-                                          auth.session.loginCycleId ==
-                                              initialCycle;
-                                    } catch (_) {
-                                      return false;
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-                          ));
-                          // The parent refreshes on either a
-                          // confirmed save or a consciously unconfirmed
-                          // exit; the latter must not imply success.
-                          return confirmed == true || exitedUnconfirmed;
+                              : a.valueOrNull;
+                          return current is AppSessionBootstrapReady &&
+                              current.userId == initialOwner &&
+                              auth is AuthSessionAuthenticated &&
+                              auth.session.userId == initialOwner &&
+                              auth.session.loginCycleId ==
+                                  initialCycle;
+                        } catch (_) {
+                          return false;
+                        }
+                      },
+                    );
+                  },
+                ),
+              ));
+              // The parent refreshes on either a
+              // confirmed save or a consciously unconfirmed
+              // exit; the latter must not imply success.
+              return confirmed == true || exitedUnconfirmed;
             }
 
             // Library's Add action must not push a visible Program Detail.
