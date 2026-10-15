@@ -262,6 +262,18 @@ void main() {
     final add = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
     expect(add, findsOneWidget);
     expect(find.text('No routines yet'), findsNothing);
+    expect(
+      find.descendant(of: add, matching: find.text('Add new routine')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: add, matching: find.byIcon(Icons.add_rounded)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: add, matching: find.byType(CustomPaint)),
+      findsOneWidget,
+    );
     await tester.tap(add);
     await tester.pumpAndSettle();
 
@@ -293,6 +305,28 @@ void main() {
     expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
         findsNothing);
     expect(find.text('No routines yet'), findsOneWidget);
+  });
+
+  testWidgets('dotted Add new routine keeps Core dark theme and remains tappable',
+      (tester) async {
+    ProgramId? target;
+    await _pump(
+      tester,
+      mode: TioThemeMode.dark,
+      routineRepository: _FakeRoutineRepository([]),
+      onAddRoutinePressed: (program) async { target = program.id; },
+    );
+    final action =
+        find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    expect(action, findsOneWidget);
+    expect(
+      find.descendant(of: action, matching: find.text('Add new routine')),
+      findsOneWidget,
+    );
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(target, _id(1));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Program bottom sheet Add Routine reuses selected Program',
