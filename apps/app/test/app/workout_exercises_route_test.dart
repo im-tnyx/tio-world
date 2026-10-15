@@ -940,7 +940,7 @@ void main() {
     expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
     expect(create.createCalls, 1, reason: 'No new Create UUID dispatched');
 
-    await create.completeInFlight();
+    create.completeInFlight();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(verifyKey));
     await tester.pumpAndSettle();
@@ -1635,11 +1635,12 @@ final class _RouteCreate implements RoutineCreateRepository {
     _compositions.created = command;
   }
 
-  Future<void> completeInFlight() async {
+  void completeInFlight() {
     final response = _inFlightResponse;
     if (response == null) throw StateError('No in-flight RPC');
+    // Complete synchronously. Awaiting a zero-duration timer before the
+    // next tester.pump deadlocks under Flutter test's fake async clock.
     response.complete();
-    await Future<void>.delayed(Duration.zero);
   }
 
   Future<void> commitLate() async {
