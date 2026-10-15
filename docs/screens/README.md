@@ -87,6 +87,8 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 
 ## Screen References
 
+Repository-implemented status is not proof of a distributed app release. The 2026-10-15 focused status verification reconciled **Profile**, **Profile Photo**, **Nutrition Targets**, and **Settings** with their owning source/routes; other rows retain their separately documented evidence and should be rechecked before related work.
+
 | Surface | Screen | Current status |
 | :--- | :--- | :--- |
 | Entry | [Splash](splash.md) | Implemented bootstrap surface; app-level session/bootstrap state owns destination decisions and recoverable retry. |
@@ -103,15 +105,15 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
 | Phone | [Nutrition](nutrition.md) | `/nutrition` now renders the Nutrition-owned Meal Diary date-navigation surface; later Nutrition sections remain target work. |
 | Phone | [Meal Diary](meal-diary.md) | Meal Diary date navigation, manual create/read foundations, selected-day cards, Quick Edit, daily summary and primary calorie-progress ring are implemented; later mutation/editor slices remain. |
-| Phone | [Nutrition Targets](nutrition-targets.md) | Future Nutrition-owned target configuration. |
+| Phone | [Nutrition Targets](nutrition-targets.md) | Settings-launched Nutrition-owned targets configuration is implemented with repository-backed load/save, Macronutrients and Additional Nutrition child flows. Recommendation and override UX may evolve separately. |
 | Phone | [Meal Plan](meal-plan.md) | Future post-diary Nutrition flow. |
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |
 | Phone | [Recovery](recovery.md) | Future module and screen. |
 | Phone | [Coach](coach.md) | Registered shell branch only; current App Modes do not expose Coach as a guided destination, and direct `/coach` access redirects to an allowed destination. Phase 7 remains the product gate. |
 | Phone | [Onboarding](onboarding.md) | Implemented/frozen Product Onboarding flow with mode-specific Profile, Body/Wellness, Nutrition, Workout, Targets, optional Health Connections, Review, and durable completion. |
-| Phone | [Profile](profile.md) | Avatar/photo-preview/Settings launcher implemented; profile details remain planned. |
-| Phone | [Profile Photo](profile-avatar.md) | 1:1 preview route and safe disabled media actions implemented; Storage operations planned. |
-| Phone | [Settings](settings.md) | App Mode editor implemented; remaining preferences planned. |
+| Phone | [Profile](profile.md) | Profile shows canonical profile/account/body information with persisted Profile Settings editing, Settings access and Profile-owned avatar management. Additional cross-feature content stays with its owner. |
+| Phone | [Profile Photo](profile-avatar.md) | 1:1 preview and Profile-owned Supabase avatar upload/delete are implemented through the existing user-owned media path; Download remains unavailable. |
+| Phone | [Settings](settings.md) | Settings hub includes App Mode, Theme, Measurement Units and Calendar Preferences, plus Health & Goals / Daily Wellness and device-local Glass Size. Broader Settings readiness and Daily Wellness device/layout acceptance remain separately gated. |
 | Wear OS | [Wear Home](wear-home.md) | Static action list; actions are placeholders. |
 
 ## Shared Screen Quality Rules
