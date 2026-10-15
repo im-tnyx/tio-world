@@ -261,14 +261,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (existing == null) {
       editor.addSet(entry.id, result);
     } else {
-      _editSetPreservingRange(entry, existing, result);
+      if (_editSetPreservingRange(entry, existing, result) &&
+          result.reps != null) {
+        // An accepted advanced-sheet Reps value is no longer an untouched
+        // blank Set. Otherwise a rejected Update remounts a blank row while
+        // the real entered value remains hidden in the pending draft.
+        _blankSetIds.remove(existing.id);
+      }
     }
   }
 
   /// Inline cells and the advanced sheet must preserve the same transient
   /// Range choice when its saved bounds become fully blank. Only the
   /// explicit Repetition Options action switches the Exercise to fixed.
-  void _editSetPreservingRange(
+  bool _editSetPreservingRange(
     RoutineCompositionEntry entry,
     RoutineCompositionSet set,
     SetPrescription prescription,
@@ -276,7 +282,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (set.prescription.isRepRange && !prescription.isRepRange) {
       _draftRangeEntryIds.add(entry.id);
     }
-    _editor?.editSet(entry.id, set.id, prescription);
+    return _editor?.editSet(entry.id, set.id, prescription) ?? false;
   }
 
   void _validityChanged(String id, bool valid) {
