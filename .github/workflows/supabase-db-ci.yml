@@ -233,6 +233,17 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_535_atomic_routine_create_concurrency.sh
 
+      - name: Run #534 archived Custom Routine Save SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_534_archived_custom_routine_save.test.sql
+
+      - name: Run #534 archived Custom vs Routine Save two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_534_archived_custom_routine_save_concurrency.sh
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
