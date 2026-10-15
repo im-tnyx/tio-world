@@ -243,7 +243,7 @@ class _DottedOutline extends CustomPainter {
       );
     final paint = Paint()
       ..color = color
-      ..strokeWidth = TioStroke.width2
+      ..strokeWidth = TioStroke.width1
       ..style = PaintingStyle.stroke;
     for (final metric in path.computeMetrics()) {
       for (var start = 0.0;
