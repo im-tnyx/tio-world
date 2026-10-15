@@ -72,5 +72,9 @@ final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref)
 
 /// Ephemeral owner/login-cycle pending Create identities, not persisted content.
 final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
-  (ref) => RoutinePendingCreateGate(),
+  (ref) {
+    final gate = RoutinePendingCreateGate();
+    ref.onDispose(gate.dispose);
+    return gate;
+  },
 );
