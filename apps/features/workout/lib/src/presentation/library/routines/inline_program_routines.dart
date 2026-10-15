@@ -168,10 +168,16 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
           );
         }
     }
+    // Only the empty Create card aligns with the Library's outer margins.
+    // Saved Routine cards keep their existing child indentation.
+    final fullWidthEmptyCreate =
+        state.status == ProgramRoutinesStatus.ready &&
+        state.routines.isEmpty &&
+        widget.onAddRoutine != null;
     return Padding(
       key: ValueKey('library-routines-${widget.program.id.value}'),
-      padding: const EdgeInsetsDirectional.only(
-        start: TioSpacing.xl,
+      padding: EdgeInsetsDirectional.only(
+        start: fullWidthEmptyCreate ? 0 : TioSpacing.xl,
         bottom: TioSpacing.sm,
       ),
       child: content,
@@ -201,7 +207,7 @@ class _DottedAddRoutineCard extends StatelessWidget {
           painter: _DottedOutline(color: colors.outlineStrong),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              vertical: TioSpacing.xl,
+              vertical: TioSpacing.lg,
               horizontal: TioSpacing.lg,
             ),
             child: Center(
