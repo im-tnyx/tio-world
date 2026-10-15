@@ -16,7 +16,6 @@ class ProgramDetailPage extends StatefulWidget {
     this.newRoutineUuid,
     this.onRoutinePressed,
     this.onCreateRoutine,
-    this.launchCreateOnReady = false,
     this.hasUnconfirmedCreate,
     this.onVerifyUnconfirmedCreate,
     this.pendingCreateChanges,
@@ -34,9 +33,6 @@ class ProgramDetailPage extends StatefulWidget {
   /// unconfirmed exit where the server may already have committed.
   /// Production must never fall back to metadata-only creation.
   final Future<bool> Function(String suggestedName)? onCreateRoutine;
-  /// A Library Add Routine entry opens this Program's existing Create flow
-  /// after its owner-scoped Routine read succeeds, then returns to Library.
-  final bool launchCreateOnReady;
   /// Volatile app owner/login-cycle protection, not stored Routine truth.
   final bool Function()? hasUnconfirmedCreate;
   final Future<bool> Function()? onVerifyUnconfirmedCreate;
@@ -51,23 +47,6 @@ class ProgramDetailPage extends StatefulWidget {
 class _ProgramDetailPageState extends State<ProgramDetailPage> {
   ProgramRoutinesController? _controller;
   bool _verifyingUnconfirmed = false;
-  bool _autoCreateTriggered = false;
-
-  void _maybeAutoCreate() {
-    if (!widget.launchCreateOnReady || _autoCreateTriggered ||
-        !_canEdit || _hasUnconfirmed || widget.onCreateRoutine == null) {
-      return;
-    }
-    _autoCreateTriggered = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _openCreate();
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-    });
-  }
-
   bool get _hasUnconfirmed => widget.hasUnconfirmedCreate?.call() ?? false;
 
   Future<void> _verifyUnconfirmed() async {
@@ -92,7 +71,6 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   void _pendingChanged() {
     if (!mounted) return;
     setState(() {});
-    _maybeAutoCreate();
   }
 
   @override
@@ -105,7 +83,6 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     if (oldWidget.program.id != widget.program.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
         !identical(oldWidget.newRoutineUuid, widget.newRoutineUuid)) {
-      _autoCreateTriggered = false;
       _bind();
     }
   }
@@ -131,7 +108,6 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   void _onChanged() {
     if (!mounted) return;
     setState(() {});
-    _maybeAutoCreate();
   }
 
   @override
