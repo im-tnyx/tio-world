@@ -970,15 +970,19 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('library-verify-routine-$programId')),
         findsOneWidget);
+    // The fake RPC commits before losing its ACK, so this Program is no
+    // longer empty: no dotted card exists. Verify the real overflow Add path.
+    await tester.tap(find.byKey(
+      const ValueKey('program-overflow-$programId'),
+    ));
+    await tester.pumpAndSettle();
     final blocked = find.byKey(
-      const ValueKey('library-add-routine-$programId'),
+      const ValueKey('program-action-add-routine'),
     );
     expect(
-      tester.widget<InkWell>(
-        find.descendant(of: blocked, matching: find.byType(InkWell)),
-      ).onTap,
+      tester.widget<TioSettingsNavigationRow>(blocked).onTap,
       isNull,
-      reason: 'Reauth must not expose a silent stale Add action',
+      reason: 'Reauth must not expose a silent stale overflow Add action',
     );
     expect(
       (container.read(routineCreateRepositoryProvider) as _RouteCreate)
