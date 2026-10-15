@@ -142,6 +142,52 @@ void main() {
       programId: programId), isTrue);
   });
 
+  test('in-flight Create survives same-owner reauthentication, then verifies',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.bindSession(owner: owner, loginCycle: 'cycle-2');
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue);
+
+    // A stale route must not clear a new session's in-flight reservation.
+    gate.release(owner: owner, loginCycle: cycle, command: command);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue);
+
+    final routines = _Routines();
+    final compositions = _Compositions();
+    Future<bool> check() => gate.verify(
+      owner: owner, loginCycle: 'cycle-2', programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true,
+    );
+    expect(await check(), isFalse);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue);
+    routines.rows.add(command.routine);
+    compositions.snapshot = RoutineCompositionSnapshot(
+      routineId: routineId, revision: 1,
+      lastMutationId: command.mutationId, entries: command.entries,
+    );
+    expect(await check(), isTrue);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isFalse);
+  });
+
+  test('definite Create result clears only its own pending reservation',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.release(owner: owner, loginCycle: cycle, command: command);
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse);
+  });
+
   test('revocation and next login cycle cannot access old mutation', () async {
     final gate = RoutinePendingCreateGate()
       ..bindSession(owner: owner, loginCycle: cycle);
