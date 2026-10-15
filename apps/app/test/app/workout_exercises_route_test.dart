@@ -1386,6 +1386,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
   bool delayCreateCommit = false,
+  bool holdCreateResponse = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
   Stream<ProfileSetupData?>? sameOwnerProfiles,
@@ -1432,7 +1433,8 @@ Future<(ProviderContainer, GoRouter)> _app(
         withRoutineCreate
             ? _RouteCreate(routeRoutines, routeCompositions,
                 loseAcknowledgment: loseCreateAcknowledgment,
-                delayCommit: delayCreateCommit)
+                delayCommit: delayCreateCommit,
+                holdResponse: holdCreateResponse)
             : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
@@ -1529,18 +1531,28 @@ final class _RouteCreate implements RoutineCreateRepository {
   _RouteCreate(this._routines, this._compositions, {
     this.loseAcknowledgment = false,
     this.delayCommit = false,
+    this.holdResponse = false,
   });
 
   final _RouteRoutines _routines;
   final _RouteCompositions _compositions;
   final bool loseAcknowledgment;
   final bool delayCommit;
+  final bool holdResponse;
+  Completer<void>? _inFlightResponse;
   RoutineCreateCommand? _delayed;
   int createCalls = 0;
 
   Future<void> _commit(RoutineCreateCommand command) async {
     await _routines.create(command.routine);
     _compositions.created = command;
+  }
+
+  Future<void> completeInFlight() async {
+    final response = _inFlightResponse;
+    if (response == null) throw StateError('No in-flight RPC');
+    response.complete();
+    await Future<void>.delayed(Duration.zero);
   }
 
   Future<void> commitLate() async {
@@ -1553,6 +1565,12 @@ final class _RouteCreate implements RoutineCreateRepository {
   @override
   Future<int> create(RoutineCreateCommand command) async {
     createCalls++;
+    if (holdResponse) {
+      // Simulates a dispatched RPC whose response returns only after
+      // login-cycle revocation has already disposed the private screen.
+      _inFlightResponse = Completer<void>();
+      await _inFlightResponse!.future;
+    }
     if (delayCommit) {
       // Client stopped waiting, but server-side commit may still be pending.
       _delayed = command;
