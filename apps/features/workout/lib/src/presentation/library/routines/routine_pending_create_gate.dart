@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_composition_repository.dart';
@@ -6,7 +7,7 @@ import '../../../domain/repositories/routine_repository.dart';
 
 /// In-memory owner/login-cycle protection for an unconfirmed Create.
 /// Negative reads never prove that the timed-out atomic RPC cannot commit.
-final class RoutinePendingCreateGate {
+final class RoutinePendingCreateGate extends ChangeNotifier {
   String? _owner;
   String? _cycle;
   final Map<ProgramId, RoutineCreateCommand> _pending = {};
@@ -19,6 +20,7 @@ final class RoutinePendingCreateGate {
     if (_owner != owner) _pending.clear();
     _owner = owner;
     _cycle = loginCycle;
+    notifyListeners();
   }
 
   bool _same(String owner, String cycle) =>
@@ -44,6 +46,7 @@ final class RoutinePendingCreateGate {
       throw StateError('Unconfirmed Create already exists.');
     }
     _pending[id] = command;
+    notifyListeners();
   }
 
   /// Clear only a DEFINITELY failed or acknowledged attempt in its own
@@ -56,6 +59,7 @@ final class RoutinePendingCreateGate {
     final programId = command.routine.programId;
     if (identical(_pending[programId], command)) {
       _pending.remove(programId);
+      notifyListeners();
     }
   }
 
@@ -70,6 +74,7 @@ final class RoutinePendingCreateGate {
     final id = command.routine.programId;
     if (identical(_pending[id], command)) {
       _pending.remove(id); // Never clear a newer/different mutation.
+      notifyListeners();
     }
   }
 
@@ -98,6 +103,7 @@ final class RoutinePendingCreateGate {
       }
       if (!identical(_pending[programId], command)) return false;
       _pending.remove(programId);
+      notifyListeners();
       return true;
     } catch (_) {
       return false;
