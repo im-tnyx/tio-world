@@ -954,6 +954,76 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'definite rejected Create unlocks Program after same-owner re-login',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      holdCreateResponse: true,
+      rejectHeldCreate: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    final gate = container.read(routinePendingCreateGateProvider);
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    final programId = ProgramId(
+        '20000000-0000-4000-8000-000000000001');
+
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump();
+    expect(create.createCalls, 1);
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId), isTrue);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    const addKey = ValueKey('program-detail-add-routine');
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId), isTrue);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+
+    create.completeInFlight(); // Definite SQL/validation rejection; NO COMMIT.
+    await tester.pumpAndSettle();
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId), isFalse);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull,
+      reason: 'Program Detail must rebuild without manual navigation');
+    expect(find.byKey(const ValueKey('program-routines-verify-create')),
+      findsNothing);
+    expect(create.createCalls, 1);
+    expect(find.text('Routine 1'), findsNothing,
+      reason: 'A rejected Create cannot add a persisted Routine');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('stale Program Detail cannot Create on a new login cycle',
       (tester) async {
     final (container, router) = await _app(
@@ -1474,6 +1544,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool loseCreateAcknowledgment = false,
   bool delayCreateCommit = false,
   bool holdCreateResponse = false,
+  bool rejectHeldCreate = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
   Stream<ProfileSetupData?>? sameOwnerProfiles,
@@ -1521,7 +1592,8 @@ Future<(ProviderContainer, GoRouter)> _app(
             ? _RouteCreate(routeRoutines, routeCompositions,
                 loseAcknowledgment: loseCreateAcknowledgment,
                 delayCommit: delayCreateCommit,
-                holdResponse: holdCreateResponse)
+                holdResponse: holdCreateResponse,
+                definiteFailureAfterHold: rejectHeldCreate)
             : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
@@ -1619,6 +1691,7 @@ final class _RouteCreate implements RoutineCreateRepository {
     this.loseAcknowledgment = false,
     this.delayCommit = false,
     this.holdResponse = false,
+    this.definiteFailureAfterHold = false,
   });
 
   final _RouteRoutines _routines;
@@ -1626,6 +1699,7 @@ final class _RouteCreate implements RoutineCreateRepository {
   final bool loseAcknowledgment;
   final bool delayCommit;
   final bool holdResponse;
+  final bool definiteFailureAfterHold;
   Completer<void>? _inFlightResponse;
   RoutineCreateCommand? _delayed;
   int createCalls = 0;
@@ -1658,6 +1732,11 @@ final class _RouteCreate implements RoutineCreateRepository {
       // login-cycle revocation has already disposed the private screen.
       _inFlightResponse = Completer<void>();
       await _inFlightResponse!.future;
+    }
+    if (definiteFailureAfterHold) {
+      throw const RoutineCompositionException(
+        RoutineCompositionFailureKind.invalidRequest,
+      );
     }
     if (delayCommit) {
       // Client stopped waiting, but server-side commit may still be pending.
