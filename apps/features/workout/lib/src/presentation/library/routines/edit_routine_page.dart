@@ -476,6 +476,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _save() async {
     final editor = _editor;
     if (!_canEdit || editor == null ||
+        editor.exceedsSetLimit ||
         _invalidSetIds.isNotEmpty || !_rangeCanSave) {
       return;
     }
@@ -527,7 +528,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                 widget.weightUnit != null
             ? const ValueKey('edit-routine-update')
             : null,
-        onSubmit: _canEdit && _invalidSetIds.isEmpty && _rangeCanSave
+        onSubmit: _canEdit &&
+                !(_editor?.exceedsSetLimit ?? true) &&
+                _invalidSetIds.isEmpty && _rangeCanSave
             ? _save
             : null,
         content: _body(),
@@ -645,6 +648,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   e.exercise is UserCreatedExerciseRef))
             const _Message(
               message: 'Custom Exercises are unavailable for this account.',
+            ),
+          if (_editor?.exceedsSetLimit ?? false)
+            const _Message(
+              key: ValueKey('edit-routine-too-many-sets'),
+              message: 'This Routine has more than 8 Sets in an Exercise. '
+                  'Remove extra Sets before Update.',
             ),
           if (state.message != null)
             Padding(
