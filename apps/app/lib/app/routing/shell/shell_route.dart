@@ -665,13 +665,18 @@ List<RouteBase> _shellBranchChildRoutes(
               ? auth.session.loginCycleId
               : null;
 
-          return LibraryPage(
+          return _VerifiedLibraryCreateSession(
+            gate: pendingCreates,
+            owner: canCreateForSession ? currentOwner : null,
+            loginCycle: canCreateForSession ? currentCycle : null,
+            builder: (bound) => LibraryPage(
             programRepository: programRepository,
             routineRepository: routineRepository,
             onProgramPressed: routineRepository == null
                 ? null
                 : (program) => openProgram(program),
-            onAddRoutinePressed: !canCreateForSession ||
+            onAddRoutinePressed: !bound ||
+                    !canCreateForSession ||
                     routineRepository == null ||
                     createRepository == null ||
                     compositions == null ||
@@ -680,7 +685,7 @@ List<RouteBase> _shellBranchChildRoutes(
                 : (program) => openProgram(program, launchCreate: true),
             pendingCreateChanges: pendingCreates,
             hasUnconfirmedCreate: (program) =>
-                currentOwner != null && currentCycle != null &&
+                bound && currentOwner != null && currentCycle != null &&
                 pendingCreates.hasPending(
                   owner: currentOwner,
                   loginCycle: currentCycle,
@@ -710,6 +715,7 @@ List<RouteBase> _shellBranchChildRoutes(
                 path: AppRoutes.workoutExercises.path,
                 queryParameters: const {_exercisesSearchParameter: 'true'},
               ).toString(),
+            ),
             ),
           );
         },
@@ -948,3 +954,68 @@ StatefulShellRoute buildAppShellRoute({
           }).toList(growable: false),
         );
 }
+
+/// App-only gate: reconcile the verified Library owner/login-cycle *before*
+/// enabling either Add Routine entry point. Binding notifies listeners, so do
+/// it after the current frame rather than mutating a ChangeNotifier in build.
+/// The first frame of a new identity fails closed until the gate is bound.
+class _VerifiedLibraryCreateSession extends StatefulWidget {
+  const _VerifiedLibraryCreateSession({
+    required this.gate,
+    required this.owner,
+    required this.loginCycle,
+    required this.builder,
+  });
+
+  final RoutinePendingCreateGate gate;
+  final String? owner;
+  final String? loginCycle;
+  final Widget Function(bool bound) builder;
+
+  @override
+  State<_VerifiedLibraryCreateSession> createState() =>
+      _VerifiedLibraryCreateSessionState();
+}
+
+class _VerifiedLibraryCreateSessionState
+    extends State<_VerifiedLibraryCreateSession> {
+  bool _bound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleBinding();
+  }
+
+  @override
+  void didUpdateWidget(covariant _VerifiedLibraryCreateSession oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.gate != oldWidget.gate ||
+        widget.owner != oldWidget.owner ||
+        widget.loginCycle != oldWidget.loginCycle) {
+      _bound = false;
+      _scheduleBinding();
+    }
+  }
+
+  void _scheduleBinding() {
+    final gate = widget.gate;
+    final owner = widget.owner;
+    final cycle = widget.loginCycle;
+    if (owner == null || cycle == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          widget.gate != gate ||
+          widget.owner != owner ||
+          widget.loginCycle != cycle) {
+        return;
+      }
+      gate.bindSession(owner: owner, loginCycle: cycle);
+      if (mounted) setState(() => _bound = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_bound);
+}
+
