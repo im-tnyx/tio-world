@@ -86,7 +86,7 @@ insert into public.user_workout_exercises (id,user_id,display_name,status,exerci
  ('a5340000-0000-4000-8000-000000000031','a5340000-0000-4000-8000-000000000001','Archive Later','active',null),
  ('a5340000-0000-4000-8000-000000000032','a5340000-0000-4000-8000-000000000001','Still Active','active',null),
  ('a5340000-0000-4000-8000-000000000033','a5340000-0000-4000-8000-000000000002','Foreign Owner','active',null),
- ('a5340000-0000-4000-8000-000000000034','a5340000-0000-4000-8000-000000000001','Metric Custom','active,'distance_duration');
+ ('a5340000-0000-4000-8000-000000000034','a5340000-0000-4000-8000-000000000001','Metric Custom','active','distance_duration');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a5340000-0000-4000-8000-000000000001',true);
