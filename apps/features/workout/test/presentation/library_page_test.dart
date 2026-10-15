@@ -248,7 +248,7 @@ void main() {
 
   testWidgets('empty Program Add Routine uses its identity and refreshes',
       (tester) async {
-    final routines = _FakeRoutineRepository();
+    final routines = _FakeRoutineRepository([]);
     ProgramId? target;
     await _pump(
       tester,
@@ -297,7 +297,7 @@ void main() {
 
   testWidgets('Program bottom sheet Add Routine reuses selected Program',
       (tester) async {
-    final routines = _FakeRoutineRepository();
+    final routines = _FakeRoutineRepository([]);
     ProgramId? target;
     await _pump(
       tester,
