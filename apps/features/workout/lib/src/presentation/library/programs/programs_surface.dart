@@ -196,6 +196,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                         icon: Icons.add_rounded,
                       ),
                       title: 'Add New Routine',
+                      supportingText: 'Create in this Program',
                       showChevron: false,
                       onTap: () async {
                         Navigator.of(sheetContext).pop();
