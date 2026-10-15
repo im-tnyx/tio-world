@@ -224,7 +224,11 @@ void main() {
     expect(user.writeCalls, 0);
   });
 
-  for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+  for (final mode in [
+    TioThemeMode.light,
+    TioThemeMode.dark,
+    TioThemeMode.tioDark,
+  ]) {
     testWidgets('selected Custom icon badge matches catalog at 320dp '
         'in ${mode.name}', (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 640));
@@ -293,11 +297,36 @@ void main() {
       expect(tester.getRect(find.text('My Lift')).left,
           closeTo(tester.getRect(find.text('Bench Press')).left, 0.1));
       expect(
-        tester.getSemantics(find.byKey(const ValueKey('test-custom-row')))
-            .getSemanticsData()
-            .hasFlag(SemanticsFlag.isSelected),
+        tester.widgetList<Semantics>(
+          find.descendant(
+            of: find.byKey(const ValueKey('test-custom-row')),
+            matching: find.byType(Semantics),
+          ),
+        ).any((semantics) => semantics.properties.selected == true),
         isTrue,
       );
+      // Theme primary is white in OLED/Tio Dark; the tick cannot also
+      // remain white or it becomes invisible.
+      final themeColors = switch (mode) {
+        TioThemeMode.light => TioColors.light,
+        TioThemeMode.dark => TioColors.oled,
+        TioThemeMode.tioDark => TioColors.dark,
+        TioThemeMode.system => TioColors.light,
+      };
+      for (final key in [
+        const ValueKey('exercise-selected-$_customId'),
+        const ValueKey('exercise-selected-ex_bench_press'),
+      ]) {
+        final badge = find.byKey(key);
+        final icon = tester.widget<Icon>(
+          find.descendant(
+            of: badge,
+            matching: find.byIcon(Icons.check_rounded),
+          ),
+        );
+        expect(icon.color, themeColors.onPrimary);
+        expect(icon.color, isNot(themeColors.primary));
+      }
       expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
       expect(tester.takeException(), isNull);
     });
@@ -315,6 +344,7 @@ void main() {
           item: ExerciseListItem(
             exercise: _customExercise(),
             thumbnailUrl: null,
+            metadata: null,
             isCustom: true,
           ),
           onTap: () {},
