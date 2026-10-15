@@ -276,6 +276,36 @@ void main() {
     ]);
   });
 
+  testWidgets('legacy 9 Set Routine shows actionable cap warning, no Update',
+      (tester) async {
+    final f = _Fixtures();
+    final historical = RoutineCompositionEntry(
+      id: _entryId,
+      exercise: ExerciseRef.catalog(_exerciseRef),
+      sets: [
+        for (var index = 0; index < 9; index++)
+          RoutineCompositionSet(
+            id: '50000000-0000-4000-8000-${index.toString().padLeft(12, '0')}',
+            prescription: SetPrescription(reps: 8),
+          ),
+      ],
+    );
+    f.compositions.snapshot = _snapshot(entries: [historical]);
+    await f.open(tester);
+    expect(find.byKey(const ValueKey('edit-routine-too-many-sets')),
+        findsOneWidget);
+    expect(find.textContaining('Remove extra Sets before Update'),
+        findsOneWidget);
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(update, findsOneWidget);
+    final button = find.descendant(
+      of: update, matching: find.byType(FilledButton),
+    );
+    expect(tester.widget<FilledButton>(button).onPressed, isNull);
+    expect(f.compositions.saveCount, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('empty Routine offers Add Exercise without a database write',
       (tester) async {
     final f = _Fixtures();
