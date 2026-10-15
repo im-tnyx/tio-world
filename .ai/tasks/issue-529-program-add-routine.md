@@ -8,7 +8,7 @@
 **Trigger:** Approved Program-visible UI/navigation feature slice
 **Approval status:** Approved
 **Approval evidence:** Owner on 2026-10-15: "Agar program par routine nahi h to add routine rahega is kaam ko start kare go follow agent.md" and "And program ke 3dot se add routine and delate program bhi rahega edit program rename bhi rahega bottom sheet se".
-**Approved boundaries:** Expanded Library Program with authoritative zero Routines exposes functional Add Routine. Program 3-dot remains Tio bottom sheet; preserve Edit Program→Rename, add real Program-scoped Add Routine. Delete Program is approved target behavior but its destructive persistence/RLS/cascade/history contract is a separate gated slice, not authorized as a fake action or direct client DELETE.
+**Approved boundaries:** Expanded Library Program with authoritative zero Routines exposes functional **dotted-outline `+ Add new routine`** matching the owner-supplied 2026-10-15 reference, using Core tokens in a feature-local composition. Program 3-dot remains Tio bottom sheet; preserve Edit Program→Rename, add real Program-scoped Add Routine. Delete Program is approved target behavior but its destructive persistence/RLS/cascade/history contract is a separate gated slice, not authorized as a fake action or direct client DELETE.
 **Explicit non-changes:** No SQL/RLS/grants, Program Delete implementation, new Routine create repository/editor, new Program ownership or default My Program behavior, new Core UI contracts, new backend or existing nonempty Program geometry.
 
 ## Active Handoff
@@ -23,9 +23,9 @@
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
-**Current implementation state:** Remote branch has empty Program Add Routine, 3-dot Add New Routine, preserved Edit→Rename, thin Program Detail auto-launch into existing atomic Create, focused widget/app route tests.
+**Current implementation state:** Remote branch has feature-owned dotted-outline Add new routine for authoritative empty Program, 3-dot Add New Routine, preserved Edit→Rename, thin Program Detail auto-launch into existing atomic Create, focused widget/app route tests.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell's ProgramDetail/Create route
-**Validation completed at SHA:** Source/planning review only, no Flutter checks yet
+**Validation completed at SHA:** Flutter CI #38779638889 SUCCESS at prior head `cbc16bd5` before dotted refinement; exact new head CI/review pending
 **Validation remaining:** Widget/app-route tests, exact-head CI, diff audit, security/API re-check and review
 **Current blocker:** Direct Program Delete unavailable (#567); review/exact-head CI and deployment gates pending.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
@@ -79,6 +79,7 @@ Hide Add when repository or callback absent; no creation during loading/error; r
 
 ## 6. Quality Review
 ### Validation Run
+Owner screenshot refinement: dotted card is a local Workout empty-state composition (single consumer), not a new generic Core component/token or physical copy of the screenshot. Focused light/dark/widget assertions added; verify again at new source HEAD. Earlier `cbc16bd5` Flutter CI #38779638889 SUCCESS before dotted visual change, **not evidence for current head**.
 No Flutter SDK or worktree is accessible in this connector-only runtime. Initial PR head `677d20a8` and intermediate `831cad6f` failed Flutter Analyze on duplicate callback declaration / nullable repository; fixed on subsequent commits. Head `dac03d79` Analyze failed missing `supportingText`, fixed at `d8eced8b`. New exact-head Flutter CI queued; no passing test claim. Review and CI still pending.
 ### Review Findings and Resolution
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
