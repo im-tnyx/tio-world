@@ -215,7 +215,7 @@ void main() {
     expect(find.text('KM'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
-    expect(find.text('900'), findsOneWidget);
+    expect(find.text('15:00'), findsOneWidget);
     expect(find.text('REPS'), findsNothing);
     expect(find.text('KG'), findsNothing);
     expect(tester.takeException(), isNull);
