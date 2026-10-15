@@ -53,6 +53,9 @@ final class RoutineCreateController extends ChangeNotifier {
   final String Function() _newUuid;
   String _name;
   List<RoutineCompositionEntry> _entries = const [];
+  // One selected Custom measurement contract per *entry* (not per Exercise
+  // ref: duplicate refs may be added independently to a Routine).
+  final Map<String, ExerciseType?> _pickedCustomTypes = {};
   RoutineCreateStatus _status = RoutineCreateStatus.ready;
   RoutineCreateCommand? _attempt;
   /// The exact uncertain mutation, for owner-scoped recovery on route exit.
@@ -101,6 +104,9 @@ final class RoutineCreateController extends ChangeNotifier {
     }
     final entryId = _newUuid();
     final setId = _newUuid();
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[entryId] = exercise.exerciseType;
+    }
     _entries = [
       ..._entries,
       RoutineCompositionEntry(
@@ -130,6 +136,10 @@ final class RoutineCreateController extends ChangeNotifier {
     if (index < 0 || _entries[index].exercise == exercise.ref) return null;
     final newId = _newUuid();
     final setId = _newUuid();
+    _pickedCustomTypes.remove(entryId);
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[newId] = exercise.exerciseType;
+    }
     _replace(index, RoutineCompositionEntry(
       id: newId,
       exercise: exercise.ref,
@@ -146,6 +156,7 @@ final class RoutineCreateController extends ChangeNotifier {
   bool removeExercise(String entryId) {
     if (!_editable || !_entries.any((e) => e.id == entryId)) return false;
     _entries = _entries.where((e) => e.id != entryId).toList();
+    _pickedCustomTypes.remove(entryId);
     _publish();
     return true;
   }
@@ -333,6 +344,21 @@ final class RoutineCreateController extends ChangeNotifier {
         _status = RoutineCreateStatus.ready;
         _publish('A selected Custom Exercise is no longer active.');
         return false;
+      }
+      final currentByRef = {for (final exercise in current) exercise.ref: exercise};
+      for (final entry in _entries) {
+        if (entry.exercise is! UserCreatedExerciseRef) continue;
+        final live = currentByRef[entry.exercise]!;
+        if (!_pickedCustomTypes.containsKey(entry.id) ||
+            _pickedCustomTypes[entry.id] != live.exerciseType ||
+            !RoutineCompositionLimits.targetsMatchExerciseType(
+              live.exerciseType,
+              entry.sets.map((set) => set.prescription),
+            )) {
+          _status = RoutineCreateStatus.ready;
+          _publish('A Custom Exercise type changed. Remove and add it again.');
+          return false; // Never send old KG/REPS under a KM/TIME definition.
+        }
       }
     }
     if (!_authorized) return false;
