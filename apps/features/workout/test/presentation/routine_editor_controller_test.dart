@@ -478,6 +478,143 @@ void main() {
     expect(comp.lastSave!.entries.single.sets.single.prescription.reps, 9);
   });
 
+  test('archived unchanged Custom stays while unrelated Set is edited',
+      () async {
+    final archived = RoutineCompositionEntry(
+      id: _newE,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _newS,
+          prescription: SetPrescription(
+            reps: 6,
+            loadKg: 10,
+            setType: RoutineSetType.warmUp,
+            restSeconds: 30,
+          ),
+        ),
+      ],
+    );
+    final repo = _StepExerciseRepository(
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.archived,
+    );
+    final comp = _Compositions(_snapshot(entries: [_entry(), archived]));
+    final ctrl = RoutineEditorController(
+      program: _program,
+      routine: _routine(),
+      routines: _Routines([_routine()]),
+      compositions: comp,
+      userExercises: repo,
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 10, loadKg: 12.5, restSeconds: 30),
+    ), isTrue);
+    expect(ctrl.moveExercise(1, 0), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(repo.archivedInclusiveReads, 1);
+    expect(comp.lastSave!.entries.first, archived,
+      reason: 'Set ID/order/targets for archived Custom must be untouched');
+    expect(comp.lastSave!.entries.last.sets.first.prescription.reps, 10);
+  });
+
+  test('archived Custom Set edits fail closed with zero RPC writes', () async {
+    final historical = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _s,
+          prescription: SetPrescription(reps: 8, loadKg: 12),
+        ),
+      ],
+    );
+    final repo = _StepExerciseRepository(status: ExerciseStatus.archived);
+    final comp = _Compositions(_snapshot(entries: [historical]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: repo, newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 9, loadKg: 12),
+    ), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('archived Custom Exercise'));
+    expect(comp.saveCount, 0);
+    expect(repo.archivedInclusiveReads, 1);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, 9);
+  });
+
+  test('newly selected Custom archived remotely cannot be submitted',
+      () async {
+    final repo = _StepExerciseRepository(
+      exerciseType: ExerciseType.weightReps,
+      status: ExerciseStatus.archived,
+    );
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ids = [_newE, _newS, _m].iterator;
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: repo,
+      newUuid: () {
+        if (!ids.moveNext()) throw StateError('Unexpected UUID');
+        return ids.current;
+      },
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final newEntry = ctrl.addPickedExercise(Exercise(
+      ref: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      displayName: 'Picked before archive',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.weightReps,
+    ));
+    expect(newEntry, _newE);
+    expect(ctrl.addSet(_newE, SetPrescription(reps: 10)), _newS);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.message, contains('archived Custom Exercise'));
+    expect(comp.saveCount, 0);
+    expect(repo.archivedInclusiveReads, 1);
+  });
+
+  test('historical archived Custom entry may be removed', () async {
+    final archived = RoutineCompositionEntry(
+      id: _newE,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _newS, prescription: SetPrescription(reps: 8),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [archived, _entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.removeExercise(_newE), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.id, _e);
+    expect(comp.lastSave!.entries.single.exercise, ExerciseRef.catalog(_ref));
+  });
+
   test('Edit compatible Custom definition still updates without conversion',
       () async {
     final persisted = RoutineCompositionEntry(
@@ -569,15 +706,27 @@ final class _Compositions implements RoutineCompositionRepository {
 
 final class _StepExerciseRepository extends Fake
     implements UserExerciseRepository {
-  _StepExerciseRepository({this.exerciseType = ExerciseType.stepsDuration});
+  _StepExerciseRepository({
+    this.exerciseType = ExerciseType.stepsDuration,
+    this.status = ExerciseStatus.active,
+  });
   final ExerciseType? exerciseType;
+  final ExerciseStatus status;
+  int archivedInclusiveReads = 0;
 
   @override
-  Future<List<Exercise>> list({bool includeArchived = false}) async => [
-    Exercise(
-      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-      displayName: 'Custom Exercise', status: ExerciseStatus.active,
-      exerciseType: exerciseType,
-    ),
-  ];
+  Future<List<Exercise>> list({bool includeArchived = false}) async {
+    if (includeArchived) archivedInclusiveReads++;
+    if (status == ExerciseStatus.archived && !includeArchived) return [];
+    return [
+      Exercise(
+        ref: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001',
+        ),
+        displayName: 'Custom Exercise',
+        status: status,
+        exerciseType: exerciseType,
+      ),
+    ];
+  }
 }
