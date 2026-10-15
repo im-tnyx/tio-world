@@ -131,6 +131,28 @@ void main() {
       tester.widget<IconButton>(toggle).tooltip,
       'Collapse Strength',
     );
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final leftGlyph = find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    final rightGlyph = find.descendant(
+      of: overflow,
+      matching: find.byIcon(Icons.more_horiz_rounded),
+    );
+    final sectionRect = tester.getRect(programs);
+    final leftAction = tester.widget<IconButton>(toggle);
+    final rightAction = tester.widget<IconButton>(overflow);
+    expect(leftAction.padding, EdgeInsets.zero);
+    expect(rightAction.padding, EdgeInsets.zero);
+    expect(leftAction.alignment, AlignmentDirectional.centerStart);
+    expect(rightAction.alignment, AlignmentDirectional.centerEnd);
+    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
+    // The glyphs meet the same outer bounds as the Routine and dotted cards.
+    // Do not shrink accessible hit targets just to remove visible side gaps.
+    expect(tester.getRect(leftGlyph).left, closeTo(sectionRect.left, 0.1));
+    expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
 
     await tester.tap(toggle);
     await tester.pump();
