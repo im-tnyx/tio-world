@@ -351,40 +351,9 @@ List<RouteBase> _shellBranchChildRoutes(
                     auth.session.loginCycleId == openingCycle;
               } catch (_) { return false; }
             }
-            // Program Detail may still be navigated read-only;
-            // only account-owned Create requires this capability.
-            await Navigator.of(context).push<void>(
-              MaterialPageRoute(
-                builder: (_) => ProgramDetailPage(
-                  program: program,
-                  launchCreateOnReady: launchCreate,
-                  routineRepository: routineRepository,
-                  pendingCreateChanges: pendingGate,
-                  onRoutinePressed: compositions == null
-                      ? null
-                      : (routine) => openRoutine(program, routine),
-                  hasUnconfirmedCreate: () =>
-                      openingOwner != null && openingCycle != null &&
-                      pendingGate.hasPending(
-                        owner: openingOwner,
-                        loginCycle: openingCycle,
-                        programId: program.id,
-                      ),
-                  onVerifyUnconfirmedCreate: compositions == null || openingOwner == null ||
-                          openingCycle == null
-                      ? null
-                      : () => pendingGate.verify(
-                        owner: openingOwner,
-                        loginCycle: openingCycle,
-                        programId: program.id,
-                        routines: routineRepository,
-                        compositions: compositions,
-                        canWrite: openingSessionValid,
-                      ),
-                  // Always supply the Create action to keep
-                  // the legacy metadata-only sheet unreachable in
-                  // production, including if RPC dependencies fail.
-                  onCreateRoutine: (suggestedName) async {
+            // Canonical guarded atomic Create, shared by Program Detail and
+            // direct Library Add. No metadata-only or duplicate persistence.
+            Future<bool> createRoutine(String suggestedName) async {
                           if (createRepository == null ||
                               compositions == null ||
                               userExerciseRepository == null ||
@@ -592,7 +561,79 @@ List<RouteBase> _shellBranchChildRoutes(
                           // confirmed save or a consciously unconfirmed
                           // exit; the latter must not imply success.
                           return confirmed == true || exitedUnconfirmed;
-                        },
+            }
+
+            // Library's Add action must not push a visible Program Detail.
+            // Reuse the same owner-scoped read/naming and guarded Create
+            // callback as the Program Detail app-bar action.
+            if (launchCreate) {
+              if (createRepository == null ||
+                  compositions == null ||
+                  userExerciseRepository == null ||
+                  !openingSessionValid() ||
+                  pendingGate.hasPending(
+                    owner: openingOwner!,
+                    loginCycle: openingCycle!,
+                    programId: program.id,
+                  )) {
+                return;
+              }
+              final routines = ProgramRoutinesController(
+                program: program,
+                repository: routineRepository,
+              );
+              try {
+                await routines.load();
+                if (!context.mounted ||
+                    !openingSessionValid() ||
+                    routines.state.status != ProgramRoutinesStatus.ready ||
+                    pendingGate.hasPending(
+                      owner: openingOwner!,
+                      loginCycle: openingCycle!,
+                      programId: program.id,
+                    )) {
+                  return;
+                }
+                await createRoutine(routines.suggestedName());
+              } finally {
+                routines.dispose();
+              }
+              return;
+            }
+
+            // Program Detail may still be navigated read-only;
+            // only account-owned Create requires this capability.
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => ProgramDetailPage(
+                  program: program,
+                  routineRepository: routineRepository,
+                  pendingCreateChanges: pendingGate,
+                  onRoutinePressed: compositions == null
+                      ? null
+                      : (routine) => openRoutine(program, routine),
+                  hasUnconfirmedCreate: () =>
+                      openingOwner != null && openingCycle != null &&
+                      pendingGate.hasPending(
+                        owner: openingOwner,
+                        loginCycle: openingCycle,
+                        programId: program.id,
+                      ),
+                  onVerifyUnconfirmedCreate: compositions == null || openingOwner == null ||
+                          openingCycle == null
+                      ? null
+                      : () => pendingGate.verify(
+                        owner: openingOwner,
+                        loginCycle: openingCycle,
+                        programId: program.id,
+                        routines: routineRepository,
+                        compositions: compositions,
+                        canWrite: openingSessionValid,
+                      ),
+                  // Always supply the Create action to keep
+                  // the legacy metadata-only sheet unreachable in
+                  // production, including if RPC dependencies fail.
+                  onCreateRoutine: createRoutine,
                 ),
               ),
             );
