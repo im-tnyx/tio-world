@@ -127,6 +127,40 @@ void main() {
     expect(repository.lastSave!.entries.single.sets, hasLength(8));
   });
 
+  test('historical nine Sets load intact but cannot Update until reduced',
+      () async {
+    final oldSets = [
+      for (var index = 0; index < 9; index++)
+        RoutineCompositionSet(
+          id: '50000000-0000-4000-8000-${index.toString().padLeft(12, '0')}',
+          prescription: SetPrescription(reps: 8),
+        ),
+    ];
+    final historical = RoutineCompositionEntry(
+      id: _e, exercise: ExerciseRef.catalog(_ref), sets: oldSets,
+    );
+    final comp = _Compositions(_snapshot(entries: [historical]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.state.entries.single.sets, hasLength(9));
+    expect(ctrl.exceedsSetLimit, isTrue);
+    expect(ctrl.editSet(_e, oldSets.first.id, SetPrescription(reps: 10)),
+        isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('at most 8 Sets'));
+    expect(comp.saveCount, 0);
+    expect(ctrl.removeSet(_e, oldSets.last.id), isTrue);
+    expect(ctrl.exceedsSetLimit, isFalse);
+    expect(ctrl.state.entries.single.sets, hasLength(8));
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.sets, hasLength(8));
+    expect(comp.lastSave!.entries.single.sets.first.prescription.reps, 10);
+    expect(oldSets.first.id, comp.lastSave!.entries.single.sets.first.id);
+  });
+
   test('wrong owning Program refuses metadata and composition reads', () async {
     final routines = _Routines([_routine()]);
     final compositions = _Compositions(_snapshot());
