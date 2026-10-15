@@ -32,6 +32,7 @@ class CreateRoutinePage extends StatefulWidget {
     this.routineRepository,
     this.compositionRepository,
     this.onUnconfirmedExit,
+    this.returnToLibrary = false,
     this.onWriteStarted,
     this.onWriteResolved,
     this.onDefiniteFailure,
@@ -52,6 +53,8 @@ class CreateRoutinePage extends StatefulWidget {
   /// App composition uses this to refresh the Program after an explicitly
   /// unconfirmed Create exit; this does not mean a write was acknowledged.
   final ValueChanged<RoutineCreateCommand>? onUnconfirmedExit;
+  /// The visible exit destination when Create was launched from Library.
+  final bool returnToLibrary;
   /// Reserve the immutable Create identity BEFORE the network request;
   /// revoking the private route cannot cancel an already dispatched RPC.
   final ValueChanged<RoutineCreateCommand>? onWriteStarted;
@@ -434,6 +437,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     }
     _unknownExitPromptOpen = true;
     try {
+      final returnToLibraryLabel =
+          widget.returnToLibrary ? 'Exit to Library' : 'Exit to Program';
       final leave = await showTioConfirmationBottomSheet(
         context: context,
         cardKey: const ValueKey('create-routine-unknown-confirmation'),
@@ -441,7 +446,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         message: 'This Routine may already have been saved. Check your '
             'Program before creating another Routine.',
         cancelLabel: 'Keep verifying',
-        confirmLabel: 'Exit to Program',
+        confirmLabel: returnToLibraryLabel,
       );
       if (!mounted || leave != true ||
           _draft.state.status != RoutineCreateStatus.outcomeUnknown ||
