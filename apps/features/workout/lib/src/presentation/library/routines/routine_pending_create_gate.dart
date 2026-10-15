@@ -6,18 +6,24 @@ import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
 /// In-memory owner/login-cycle protection for an unconfirmed Create.
+/// A dispatched Create can finish after A -> B -> A account switches; retain
+/// each owner's opaque command privately, but only expose it in that owner's
+/// authenticated login cycle. Never render a former owner's draft to another.
 /// Negative reads never prove that the timed-out atomic RPC cannot commit.
 final class RoutinePendingCreateGate extends ChangeNotifier {
   String? _owner;
   String? _cycle;
-  final Map<ProgramId, RoutineCreateCommand> _pending = {};
+  final Map<String, Map<ProgramId, RoutineCreateCommand>> _pendingByOwner = {};
+
+  Map<ProgramId, RoutineCreateCommand> _forOwner(String owner) =>
+      _pendingByOwner.putIfAbsent(owner, () => {});
 
   void bindSession({required String owner, required String loginCycle}) {
     if (_owner == owner && _cycle == loginCycle) return;
-    // A same-owner reauthentication must not erase an atomic Create which
-    // was already sent and may still commit. Never carry it across owners.
-    // The NEW login cycle alone may verify the previous immutable identity.
-    if (_owner != owner) _pending.clear();
+    // The previous owner's already-dispatched write may still commit.
+    // Preserve its opaque identity under that owner only; no cross-owner
+    // read or write capability is transferred with this session binding.
+    // The new login cycle alone can inspect its own owner's pending commands.
     _owner = owner;
     _cycle = loginCycle;
     notifyListeners();
@@ -29,7 +35,8 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
   bool hasPending({
     required String owner, required String loginCycle,
     required ProgramId programId,
-  }) => _same(owner, loginCycle) && _pending.containsKey(programId);
+  }) => _same(owner, loginCycle) &&
+      (_pendingByOwner[owner]?.containsKey(programId) ?? false);
 
   void retain({
     required String owner, required String loginCycle,
@@ -39,13 +46,14 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
       throw StateError('Unverified Routine Create owner.');
     }
     final id = command.routine.programId;
-    final previous = _pending[id];
+    final pending = _forOwner(owner);
+    final previous = pending[id];
     if (previous != null &&
         (previous.routine.id != command.routine.id ||
          previous.mutationId != command.mutationId)) {
       throw StateError('Unconfirmed Create already exists.');
     }
-    _pending[id] = command;
+    pending[id] = command;
     notifyListeners();
   }
 
@@ -57,8 +65,10 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
   }) {
     if (!_same(owner, loginCycle)) return;
     final programId = command.routine.programId;
-    if (identical(_pending[programId], command)) {
-      _pending.remove(programId);
+    final pending = _pendingByOwner[owner];
+    if (identical(pending?[programId], command)) {
+      pending!.remove(programId);
+      if (pending.isEmpty) _pendingByOwner.remove(owner);
       notifyListeners();
     }
   }
@@ -70,10 +80,13 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
     required String owner,
     required RoutineCreateCommand command,
   }) {
-    if (_owner != owner) return; // Never clear another signed-in account.
+    // The old owner's DEFINITE failure may arrive while B is signed in.
+    // Clear only A's exact identity, without touching B's active reservation.
+    final pending = _pendingByOwner[owner];
     final id = command.routine.programId;
-    if (identical(_pending[id], command)) {
-      _pending.remove(id); // Never clear a newer/different mutation.
+    if (identical(pending?[id], command)) {
+      pending!.remove(id);
+      if (pending.isEmpty) _pendingByOwner.remove(owner);
       notifyListeners();
     }
   }
@@ -87,7 +100,7 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
     required bool Function() canWrite,
   }) async {
     if (!_same(owner, loginCycle) || !canWrite()) return false;
-    final command = _pending[programId];
+    final command = _pendingByOwner[owner]?[programId];
     if (command == null) return false;
     try {
       final rows = await routines.list(programId);
@@ -101,8 +114,10 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
       if (snapshot == null || !command.confirmsPersistedRoutine(snapshot)) {
         return false;
       }
-      if (!identical(_pending[programId], command)) return false;
-      _pending.remove(programId);
+      final pending = _pendingByOwner[owner];
+      if (!identical(pending?[programId], command)) return false;
+      pending!.remove(programId);
+      if (pending.isEmpty) _pendingByOwner.remove(owner);
       notifyListeners();
       return true;
     } catch (_) {
