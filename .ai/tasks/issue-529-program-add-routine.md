@@ -9,7 +9,7 @@
 **Approval status:** Approved
 **Approval evidence:** Owner on 2026-10-15: "Agar program par routine nahi h to add routine rahega is kaam ko start kare go follow agent.md" and "And program ke 3dot se add routine and delate program bhi rahega edit program rename bhi rahega bottom sheet se".
 **Approved boundaries:** Expanded Library Program with authoritative zero Routines exposes functional **dotted-outline `+ Add new routine`** matching the owner-supplied 2026-10-15 reference, using Core tokens in a feature-local composition. Owner's further correction explicitly removes the additional 24dp start inset for **all expanded Program Routine content** (dotted card, persisted Routine cards and child loading/error states) so content uses only existing Library 16dp horizontal margins. Program 3-dot remains Tio bottom sheet; preserve Edit Program→Rename, add real Program-scoped Add Routine. Delete Program is approved target behavior but its destructive persistence/RLS/cascade/history contract is a separate gated slice, not authorized as a fake action or direct client DELETE.
-**Explicit non-changes:** No SQL/RLS/grants, Program Delete implementation, new Routine create repository/editor, new Program ownership or default My Program behavior, new Core UI contracts, new backend, Program header row/chevron/menu geometry or Routine card internal padding. The only approved nonempty Program geometry change is removal of extra outer left/start indentation.
+**Explicit non-changes:** No SQL/RLS/grants, Program Delete implementation, new Routine create repository/editor, new Program ownership or default My Program behavior, new Core UI contracts, new backend, Routine card internal padding, or global Library/other category geometry. Newly approved Program header icon edge alignment may change only icon positioning inside unchanged 48dp touch targets.
 
 ## Active Handoff
 **Planning owner:** Connected repository review
@@ -30,6 +30,9 @@
 **Current blocker:** Direct Program Delete unavailable (#567); review/exact-head CI and deployment gates pending.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
 **Next exact action:** Verify exact-head Flutter CI and source diff; fix concrete review/CI findings. Do not merge/deploy without explicit approval.
+
+## 2026-10-15 Owner Alignment Refinement (active bounded slice)
+Owner reports continued visible side space on Program header and Routine card edges and an overly heavy dotted Create-card stroke. Fresh Draft PR #566 source audit confirms Library itself has governed 16dp side padding; saved Routine and dotted card wrappers now have no extra horizontal inset. Program header chevron and overflow `IconButton` have 48dp interactive regions but center their 24dp glyphs, adding apparent left/right space. **Approved UI correction:** align leading glyph to start and trailing glyph to end within their existing >=48dp action regions. Do not globally alter Library padding or Routine internal card content. The feature-owned `_DottedOutline` stroke is currently `TioStroke.width2`; switch only its paint stroke to `TioStroke.width1` and preserve the rounded/dashed shape/theme color. Add geometry/widget assertions for Program header icon edges and Program/Routine/dotted card shared outer bounds, and validate current PR head via CI after commits. Root + feature AGENTS and Core theme README checked. Latest branch head before edit `38c4df88`; Flutter CI #38783537219 still in progress at pre-edit read. GitHub API cannot verify local worktree/device rendering. No DB or security change.
 
 ## 1. Discovery
 ### User Outcome
