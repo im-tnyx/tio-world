@@ -87,6 +87,9 @@ final class RoutineEditorController extends ChangeNotifier {
 
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
+  // Selected Custom definition per newly added/replaced entry. Historical
+  // entries have no such snapshot: validate their stored target shape.
+  final Map<String, ExerciseType?> _pickedCustomTypes = {};
   int _revision = 0;
   RoutineCompositionSave? _uncertainCommand;
   int _epoch = 0;
@@ -143,6 +146,7 @@ final class RoutineEditorController extends ChangeNotifier {
 
       _baseline = current.entries;
       _draft = current.entries;
+      _pickedCustomTypes.clear();
       _revision = current.revision;
       _uncertainCommand = null;
       _publish(_ready());
@@ -166,6 +170,9 @@ final class RoutineEditorController extends ChangeNotifier {
       return null;
     }
     final id = _newUuid();
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[id] = exercise.exerciseType;
+    }
     final next = [..._draft, RoutineCompositionEntry(
       id: id,
       exercise: exercise.ref,
@@ -186,6 +193,10 @@ final class RoutineEditorController extends ChangeNotifier {
     if (index < 0 || _draft[index].exercise == exercise.ref) return null;
     final newId = _newUuid();
     final setId = _newUuid();
+    _pickedCustomTypes.remove(entryId);
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[newId] = exercise.exerciseType;
+    }
     _replaceEntry(index, RoutineCompositionEntry(
       id: newId,
       exercise: exercise.ref,
@@ -202,6 +213,7 @@ final class RoutineEditorController extends ChangeNotifier {
   bool removeExercise(String entryId) {
     if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());
+    _pickedCustomTypes.remove(entryId);
     return true;
   }
 
@@ -407,6 +419,22 @@ final class RoutineEditorController extends ChangeNotifier {
           message: 'A Custom Exercise is no longer active. Remove it before Update.',
         ));
         return false;
+      }
+      final currentByRef = {for (final exercise in current) exercise.ref: exercise};
+      for (final entry in _draft) {
+        if (entry.exercise is! UserCreatedExerciseRef) continue;
+        final live = currentByRef[entry.exercise]!;
+        if ((_pickedCustomTypes.containsKey(entry.id) &&
+             _pickedCustomTypes[entry.id] != live.exerciseType) ||
+            !RoutineCompositionLimits.targetsMatchExerciseType(
+              live.exerciseType,
+              entry.sets.map((set) => set.prescription),
+            )) {
+          _publish(_ready(
+            message: 'A Custom Exercise type changed. Review or replace it before Update.',
+          ));
+          return false;
+        }
       }
     }
     // Auth may change while Custom source preflight awaits. Route removal
