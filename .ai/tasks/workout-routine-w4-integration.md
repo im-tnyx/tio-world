@@ -2,6 +2,19 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 post-review 2 P2 auth/profile gate
+
+Fresh Codex automated review of **exact `f2abb3fe125bc46516ec59f85e1857c71603b4cb`** arrived after [Flutter CI #38695799579 SUCCESS](https://github.com/im-tnyx/tio-world/actions/runs/38695799579) and all three prior P2 source fixes. It added two P2s: `PRRT_kwDOTOXwB86sqRsx` (pending Create reservation stranded if a revoked old-cycle RPC later returns **definite rejection**) and `PRRT_kwDOTOXwB86sqRs5` (null Custom profile hides historical saved metric targets and current null compatibility wildcard permits unsafe Update). 24 total / 18 unresolved threads. Owner Routine UI accepted; no new screen, schema/SQL, token, migration or cross-module infrastructure.
+
+**Approved correction of original W4 review behavior:**
+1. A definite rejected atomic Create must release the **identical** reserved Routine+mutation command even after its page/controller has been disposed by auth cycle revocation, but only while the current pending gate belongs to the SAME owner. Never release uncertain/timeout writes; never open old-session private UI, never mutate another owner's pending gate, and never free a newer command. Keep app restart limitation explicit. Add real held-RPC same-owner cycle widget integration and controller tests, plus normal/unknown/different-owner negative controls.
+2. `routineEntryMeasurementProfile(null, persisted Sets)` derives a **presentation-only** distance/duration profile from actual persisted metric fields when Custom metadata lost its Exercise Type, not a newly persisted source of truth. `RoutineCompositionLimits.targetsMatchExerciseType(null, ...)` must fail closed for existing metric targets during Update, providing actionable remediation. Preserve all original UUIDs/targets and never pretend KM/TIME is KG/REPS. Test read-only Detail/Edit rendering, rejected Edit with zero writes, and legacy nullable untyped Reps/Load stays supported.
+
+**Validation:** CI on new exact head and second Codex re-review; 3 earlier P2 review threads have evidence replies but remain unresolved. #534 server archived Custom race, #559 nullable-Reps old installed client compatibility, hosted #536/#540 migration release sequencing, device QA and final owner merge gates remain blocked. No production deployment or cleanup.
+
+---
+
+
 ## 2026-10-15 Codex exact-head 3 P2 review follow-up
 
 **Reconciled source:** Latest Codex reviewed `cf4e5b3ff1614b33006581600ea2ec891a2a435c` with Flutter CI #38692605004 + attribution guards PASS, and reported three **new** P2 threads `PRRT_kwDOTOXwB86sp4uS` (historical 9+ Set Update), `PRRT_kwDOTOXwB86sp4uX` (pre-execution `PGRST203` Create rejection), `PRRT_kwDOTOXwB86sp4ua` (stale Custom Exercise type/Set-target compatibility on Create AND Edit). 22 threads total, 16 unresolved. Owner accepted Routine UI; this is the already-approved bounded PR #551 code review gate, not a new screen/visual/DB task. Existing branch remains only implementation owner; preserve UI and database compatibility.
