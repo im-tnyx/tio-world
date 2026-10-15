@@ -2,6 +2,22 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 approved #534 historical Custom archive Flutter parity
+
+Owner approved historical-preserving policy on 2026-10-15; separate DB-only [draft #561](https://github.com/im-tnyx/tio-world/pull/561) passed disposable exact-head Supabase CI #38709576284, is still unmerged and NOT hosted-deployed. Existing #551 Edit preflight `RoutineEditorController.update()` calls active-only `userExercises.list()` and rejects Routines which retain archived Custom refs, even when the entry is unchanged. This conflicts with approved historical behavior.
+
+**Bounded feature slice (same W4 implementation owner, distinct from DB-only #561):**
+- In Edit preflight fetch **owner archived-inclusive** Custom definitions using existing `list(includeArchived:true)` in the current authenticated session; keep signed-out/revoked/invalid result fail-closed.
+- An archived ref in incoming snapshot is allowed only when an entry with the SAME UUID, Custom ref and ordered Set prescriptions exists in the originally loaded baseline (`RoutineCompositionEntry.==` includes Set order, type, IDs and values). Entry-level reorder and unrelated edits/removal permitted; new/replaced archived entry or changed archived Sets must fail before Save RPC. Active definitions still enforce current type/target compatibility and cannot silently convert old KG/REPS↔KM/TIME.
+- Preserve Routine UI, nav, tokens, existing owner/auth constraints; no table/schema/RPC changes here, no new screen/picker.
+- Add focused Edit controller tests for unchanged archived entry + unrelated edit, archived modified forbidden, stale picked archived forbidden, removal and active valid cases; full exact-head Flutter CI required, independent review and device QA outstanding.
+- Owner approved **behavior**, not production Supabase DDL; #561/#559 and 18 unresolved #551 Codex threads remain merge gates. Do not merge #551/#561 or close ancestor PRs from this slice.
+
+**State:** pending implementation/validation; existing W4 head `25ab1c71829e7eb4339ff0149802be708e306413` has green CI #38700120337 but changes below require a new exact-head run.
+
+---
+
+
 ## 2026-10-15 post-review 2 P2 auth/profile gate
 
 Fresh Codex automated review of **exact `f2abb3fe125bc46516ec59f85e1857c71603b4cb`** arrived after [Flutter CI #38695799579 SUCCESS](https://github.com/im-tnyx/tio-world/actions/runs/38695799579) and all three prior P2 source fixes. It added two P2s: `PRRT_kwDOTOXwB86sqRsx` (pending Create reservation stranded if a revoked old-cycle RPC later returns **definite rejection**) and `PRRT_kwDOTOXwB86sqRs5` (null Custom profile hides historical saved metric targets and current null compatibility wildcard permits unsafe Update). 24 total / 18 unresolved threads. Owner Routine UI accepted; no new screen, schema/SQL, token, migration or cross-module infrastructure.
