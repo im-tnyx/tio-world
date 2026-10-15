@@ -48,6 +48,49 @@ void main() {
       programId: programId), isFalse);
   });
 
+  test('remote rename does not invalidate confirmed immutable Create', () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    final routines = _Routines()
+      ..rows.add(Routine(
+        id: routineId, programId: programId, name: 'Renamed on another device',
+      ));
+    final compositions = _Compositions()
+      ..snapshot = RoutineCompositionSnapshot(
+        routineId: routineId, revision: 1,
+        lastMutationId: command.mutationId, entries: command.entries,
+      );
+    expect(await gate.verify(
+      owner: owner, loginCycle: cycle, programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true,
+    ), isTrue);
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse);
+  });
+
+  test('different committed mutation never clears gate despite name match',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    final routines = _Routines()..rows.add(command.routine);
+    final compositions = _Compositions()
+      ..snapshot = RoutineCompositionSnapshot(
+        routineId: routineId, revision: 1,
+        lastMutationId: '90000000-0000-4000-8000-000000000001',
+        entries: command.entries,
+      );
+    expect(await gate.verify(
+      owner: owner, loginCycle: cycle, programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true,
+    ), isFalse);
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isTrue);
+  });
+
   test('revocation and next login cycle cannot access old mutation', () async {
     final gate = RoutinePendingCreateGate()
       ..bindSession(owner: owner, loginCycle: cycle);

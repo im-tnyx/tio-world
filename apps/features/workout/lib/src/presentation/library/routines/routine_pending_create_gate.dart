@@ -58,8 +58,7 @@ final class RoutinePendingCreateGate {
       final rows = await routines.list(programId);
       if (!_same(owner, loginCycle) || !canWrite()) return false;
       if (rows.where((row) => row.id == command.routine.id &&
-          row.programId == programId &&
-          row.name == command.routine.name).length != 1) {
+          row.programId == programId).length != 1) {
         return false;
       }
       final snapshot = await compositions.read(command.routine.id);

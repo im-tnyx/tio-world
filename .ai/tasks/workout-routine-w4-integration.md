@@ -579,3 +579,22 @@ Program had no Routines at all; the canonical route fixture already seeds
 `Synthetic Route Routine`. Update the assertion to require the existing list
 and existing Routine, but **absence of the uncommitted new `Routine 1`**.
 Guard/production code unchanged. New CI required.
+
+## Codex second latest-head findings, scoped correction (2026-10-15)
+
+Latest reviewed head `4531c4160b2abeef2df860b282b015dd01de4805`
+has Flutter CI #38678197154 SUCCESS, and Codex identified two new P2s.
+First, `RoutinePendingCreateGate.verify` must not compare the mutable Routine
+name: a rename does not invalidate immutable Routine UUID, Program FK,
+revision-1 last mutation UUID and identical Exercise/Set composition.
+Retain all existing immutable identity, content, owner and login-cycle
+checks; add remote rename positive and wrong mutation negative tests.
+Second, `ExerciseType.stepsDuration` has approved catalog label STEPS/TIME
+but **no canonical Steps SetPrescription or SQL field**. A false KG/REPS
+mapping would be data corruption; no schema/repurposed field is approved.
+Fail closed in Create/Edit/Add/Replace Routine selectors and their draft
+controllers, preserve normal Exercise Library browse/Custom editing, and
+show a specific selection-context message. Add picker and controller tests.
+Do not implement Steps storage, backend schema or core redesign here.
+This is source remediation pending exact-head CI and independent thread
+re-review; 9 unresolved threads as of audit, without reviewer approvals.

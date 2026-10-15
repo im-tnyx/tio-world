@@ -86,6 +86,26 @@ void main() {
     expect(comp.lastSave!.entries.single.sets.single.id, _newS);
   });
 
+  test('Steps/Duration Custom cannot enter Edit or replace saved Exercise',
+      () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated('70000000-0000-4000-8000-000000000123'),
+      displayName: 'Step Mill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.stepsDuration,
+    );
+    expect(ctrl.addPickedExercise(steps), isNull);
+    expect(ctrl.replacePickedExercise(_e, steps), isNull);
+    expect(ctrl.state.entries.single.id, _e);
+    expect(ctrl.state.entries.single.exercise, ExerciseRef.catalog(_ref));
+    expect(ctrl.state.dirty, isFalse);
+    expect(comp.saveCount, 0);
+  });
+
   test('Edit cannot add a ninth Set to the same Exercise', () async {
     final ids = [
       for (var index = 0; index < 7; index++)

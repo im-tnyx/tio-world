@@ -91,7 +91,10 @@ final class RoutineCreateController extends ChangeNotifier {
   }
 
   String? addPickedExercise(Exercise exercise) {
-    if (!_editable || exercise.status != ExerciseStatus.active) return null;
+    if (!_editable || exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      return null;
+    }
     final entryId = _newUuid();
     final setId = _newUuid();
     _entries = [
@@ -115,7 +118,8 @@ final class RoutineCreateController extends ChangeNotifier {
   /// Fresh entry/Set UUIDs prevent cross-exercise prescription attribution.
   String? replacePickedExercise(String entryId, Exercise exercise) {
     if (!_editable || !_authorized ||
-        exercise.status != ExerciseStatus.active) {
+        exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
       return null;
     }
     final index = _entries.indexWhere((entry) => entry.id == entryId);

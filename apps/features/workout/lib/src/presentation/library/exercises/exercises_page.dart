@@ -6,6 +6,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
@@ -136,10 +137,23 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     if (mounted) setState(() {});
   }
 
+  static const unsupportedRoutineTypeMessage =
+      'Steps & Duration Exercises cannot be added to Routines yet.';
+
+  void _showUnsupportedRoutineType() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(unsupportedRoutineTypeMessage)),
+    );
+  }
+
   void _select(Exercise exercise) {
     if (exercise.status != ExerciseStatus.active) return;
     if (exercise.ref is UserCreatedExerciseRef &&
         _customController?.state.status != CustomExercisesStatus.ready) {
+      return;
+    }
+    if (!RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      _showUnsupportedRoutineType();
       return;
     }
     widget.onExerciseSelected?.call(exercise);
@@ -147,6 +161,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
 
   bool _canPick(Exercise exercise) {
     if (exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType) ||
         _selectionCatalogController?.state.status != ExercisesStatus.ready) {
       return false;
     }
@@ -165,6 +180,10 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   }
 
   void _toggle(Exercise exercise) {
+    if (!RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      _showUnsupportedRoutineType();
+      return;
+    }
     if (!_canPick(exercise)) return;
     setState(() {
       if (_pending.containsKey(exercise.ref)) {

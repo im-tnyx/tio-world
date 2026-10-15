@@ -111,6 +111,25 @@ void main() {
     expect(draft.state.entries.last.sets, hasLength(2));
   });
 
+  test('STEPS/TIME Custom cannot enter Create draft or replace a Set', () {
+    final draft = _controller(_Creates(), saveAfterOneExercise: true);
+    addTearDown(draft.dispose);
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated('10000000-0000-4000-8000-000000000123'),
+      displayName: 'Step Mill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.stepsDuration,
+    );
+    expect(draft.addPickedExercise(steps), isNull);
+    expect(draft.state.entries, isEmpty);
+    expect(draft.state.canSave, isFalse);
+    final entry = draft.addPickedExercise(_exercise)!;
+    expect(entry, _entry1, reason: 'Unsupported pick must allocate no UUIDs');
+    expect(draft.replacePickedExercise(entry, steps), isNull);
+    expect(draft.state.entries.single.id, _entry1);
+    expect(draft.state.entries.single.exercise, _exercise.ref);
+  });
+
   test('empty and name-only cannot save, no persistence', () async {
     final repo = _Creates();
     final c = _controller(repo);

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
+
+import '../../../domain/models/routine_composition_limits.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
@@ -156,7 +158,10 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Adds an Exercise selected from the verified catalog/owner picker.
   /// Repeated canonical refs are distinct persisted entry identities.
   String? addPickedExercise(Exercise exercise) {
-    if (!_state.canEdit || exercise.status != ExerciseStatus.active) return null;
+    if (!_state.canEdit || exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      return null;
+    }
     final id = _newUuid();
     final next = [..._draft, RoutineCompositionEntry(
       id: id,
@@ -170,7 +175,8 @@ final class RoutineEditorController extends ChangeNotifier {
   /// targets; old persisted IDs are retired only by explicit Update.
   String? replacePickedExercise(String entryId, Exercise exercise) {
     if (!_state.canEdit || !_authorized ||
-        exercise.status != ExerciseStatus.active) {
+        exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
       return null;
     }
     final index = _draft.indexWhere((entry) => entry.id == entryId);

@@ -70,6 +70,25 @@ void main() {
     expect(ctrl.state.hasActiveExercises, isTrue);
   });
 
+  test('legacy Routine picker cannot select unsupported STEPS/TIME ref',
+      () async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    final ctrl = RoutineExercisePickerController(
+      catalogRepository: _catalog(),
+      userExerciseRepository: _User(() async => [steps]),
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.state.items.any((item) => item.name == 'Step Mill'), isTrue);
+    expect(ctrl.select(steps.ref), isNull);
+    expect(ctrl.select(_catalogExercise().ref), isNotNull);
+  });
+
   test('unavailable Custom repository selects only catalog and never writes',
       () async {
     final ctrl = RoutineExercisePickerController(catalogRepository: _catalog());
@@ -307,6 +326,68 @@ void main() {
     expect(selected?.ref, _customExercise().ref);
     expect(user.listCalls, 1);
     expect(user.writeCalls, 0);
+  });
+
+  testWidgets('STEPS/TIME Custom cannot Replace, but normal Catalog can',
+      (tester) async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    Exercise? selected;
+    await _pumpLauncher(tester,
+      catalog: _catalog(), user: _User(() async => [steps]),
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Step Mill'));
+    await tester.pump();
+    expect(find.textContaining('cannot be added to Routines yet'),
+        findsOneWidget);
+    expect(selected, isNull);
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(selected?.ref, _catalogExercise().ref);
+  });
+
+  testWidgets('batch ignores unsupported STEPS/TIME and saves selected Catalog',
+      (tester) async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    final batches = <List<Exercise>>[];
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: ExercisesPage(
+          catalogRepository: _catalog(),
+          userExerciseRepository: _User(() async => [steps]),
+          onExercisesAdded: batches.add,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Step Mill'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    expect(find.textContaining('cannot be added to Routines yet'),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    expect(batches, hasLength(1));
+    expect(batches.single.map((x) => x.ref), [_catalogExercise().ref]);
   });
 
   testWidgets('Add Exercise title and catalog row select canonical Exercise',
