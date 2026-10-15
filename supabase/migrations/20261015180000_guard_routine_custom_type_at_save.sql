@@ -341,12 +341,19 @@ begin
   -- Keep this AFTER same-token replay, legacy overwrite and revision gates.
   -- Consistent UUID lock ordering avoids opposing Routine writers deadlocking.
   for v_user_exercise_id in
-    select refs.ref_id from (
+    select distinct refs.ref_id from (
       select distinct case
         when e.value ->> 'exercise_ref' ~ '^ex_' then null::uuid
         else (e.value ->> 'exercise_ref')::uuid
       end as ref_id
       from pg_catalog.jsonb_array_elements(v_normalized) as e(value)
+      -- Lock the original Custom refs as well. Reusing an archived entry UUID
+      -- with a different active/catalog ref otherwise bypasses incoming locks.
+      union all
+      select old_entry.user_exercise_id
+      from public.user_workout_routine_exercises as old_entry
+      where old_entry.user_id = v_user_id
+        and old_entry.routine_id = p_routine_id
     ) as refs
     where refs.ref_id is not null
     order by refs.ref_id
@@ -409,6 +416,24 @@ begin
     end if;
 
     if v_custom_status <> 'active' then
+      -- Removal of an old archived entry is allowed, but its historical UUID
+      -- cannot be reused with an active Custom or catalog reference.
+      if exists (
+        select 1
+        from public.user_workout_routine_exercises as old_entry
+        cross join lateral pg_catalog.jsonb_array_elements(v_normalized)
+          as proposed(value)
+        where old_entry.routine_id = p_routine_id
+          and old_entry.user_id = v_user_id
+          and old_entry.user_exercise_id = v_user_exercise_id
+          and (proposed.value ->> 'id')::uuid = old_entry.id
+          and (proposed.value ->> 'exercise_ref')
+            is distinct from v_user_exercise_id::text
+      ) then
+        raise exception 'routine_composition_archived_exercise_modified'
+          using errcode = '22023';
+      end if;
+
       -- Archived means the same entry ID/Custom reference and ordered Sets.
       -- Reordering Routine entries is allowed; changing archived Set order,
       -- targets, IDs or adding a new entry referencing it is not.
