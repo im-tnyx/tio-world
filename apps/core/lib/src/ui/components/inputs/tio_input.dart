@@ -8,8 +8,12 @@ enum TioInputVariant {
   /// Standard full-width outlined input for forms, auth, and search.
   standard,
 
-  /// Compact, high-visibility number field for workout sets/reps, weights, and timers.
+  /// Borderless centered number field for compact tables and fast entry.
   compactNumber,
+
+  /// Compact centered number field with an outlined, rounded surface.
+  /// The numeric formatters and validation remain the caller's responsibility.
+  boxedNumber,
 
   /// Dense, left-aligned number field for exact-value editor surfaces.
   numericEditor,
@@ -23,7 +27,9 @@ enum TioInputVariant {
 ///
 /// Supports:
 /// - [TioInputVariant.standard] for general form entries.
-/// - [TioInputVariant.compactNumber] for fast table inputs with `selectAllOnFocus`.
+/// - [TioInputVariant.compactNumber] for borderless fast numeric entry.
+/// - [TioInputVariant.boxedNumber] for outlined, centered numeric table fields.
+///   Both select existing text on focus.
 /// - [TioInputVariant.numericEditor] for dense exact-value editor surfaces.
 /// - [TioInputVariant.multiline] for longer free-text notes fields.
 class TioInput extends StatefulWidget {
@@ -97,6 +103,45 @@ class TioInput extends StatefulWidget {
     super.key,
   })  : variant = TioInputVariant.compactNumber,
         hintStyle = null,
+        textAlignVertical = null;
+
+  /// Centered, outlined version of compactNumber for tabular numeric editors.
+  ///
+  /// Only the visual contract is Core-owned: input formatters, bounds,
+  /// positivity, units, drafts and Save validation stay with each feature.
+  const TioInput.boxedNumber({
+    required this.onChanged,
+    this.value,
+    this.controller,
+    this.label,
+    this.hint,
+    this.helperText,
+    this.errorText,
+    this.leading,
+    this.trailing,
+    this.enabled = true,
+    this.readOnly = false,
+    this.obscureText = false,
+    this.keyboardType = const TextInputType.numberWithOptions(decimal: true),
+    this.textInputAction = TextInputAction.next,
+    this.onSubmitted,
+    this.focusNode,
+    this.autofocus = false,
+    this.maxLines = 1,
+    this.minLines,
+    this.maxLength,
+    this.textAlign = TextAlign.center,
+    this.textStyle,
+    this.hintStyle,
+    this.contentPadding,
+    this.selectAllOnFocus = true,
+    this.validator,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
+    this.suffixText,
+    super.key,
+  })  : variant = TioInputVariant.boxedNumber,
         textAlignVertical = null;
 
   /// Dense numeric field for exact-value editor surfaces.
@@ -351,13 +396,16 @@ class _TioInputState extends State<TioInput> {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final isCompact = widget.variant == TioInputVariant.compactNumber;
+    final isBoxedNumber = widget.variant == TioInputVariant.boxedNumber;
+    final isCompactNumeric = isCompact || isBoxedNumber;
     final isNumericEditor = widget.variant == TioInputVariant.numericEditor;
     final isMultiline = widget.variant == TioInputVariant.multiline;
     final isDark = colors.isDark;
     final hasError = widget.errorText != null;
 
     final defaultTextStyle = switch (widget.variant) {
-      TioInputVariant.compactNumber => TextStyle(
+      TioInputVariant.compactNumber ||
+      TioInputVariant.boxedNumber => TextStyle(
           color: hasError
               ? colors.danger
               : (widget.enabled ? colors.textPrimary : colors.textMuted),
@@ -416,18 +464,21 @@ class _TioInputState extends State<TioInput> {
             ),
           );
 
-    return TextFormField(
+    final field = TextFormField(
       controller: _controller,
       onChanged: widget.onChanged,
       focusNode: _focusNode,
       autofocus: widget.autofocus,
       obscureText: widget.obscureText,
       keyboardType: widget.keyboardType ??
-          (isCompact || isNumericEditor
+          (isCompactNumeric || isNumericEditor
               ? const TextInputType.numberWithOptions(decimal: true)
               : TextInputType.text),
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onSubmitted,
+      // Mobile's default tap-outside behavior retains text-field focus.
+      // Boxed numeric table cells intentionally dismiss on touch outside.
+      onTapOutside: isBoxedNumber ? (_) => _focusNode.unfocus() : null,
       validator: widget.validator,
       autofillHints: widget.autofillHints,
       inputFormatters: widget.inputFormatters,
@@ -439,7 +490,7 @@ class _TioInputState extends State<TioInput> {
       maxLength: widget.maxLength,
       textAlign: widget.textAlign,
       textAlignVertical:
-          isCompact ? TextAlignVertical.center : widget.textAlignVertical,
+          isCompactNumeric ? TextAlignVertical.center : widget.textAlignVertical,
       style: widget.textStyle ?? defaultTextStyle,
       cursorColor: hasError ? colors.danger : colors.primary,
       decoration: isNumericEditor
@@ -462,7 +513,13 @@ class _TioInputState extends State<TioInput> {
               contentPadding: widget.contentPadding,
             )
           : InputDecoration(
-              labelText: isCompact ? null : widget.label,
+              // Only the boxed numeric variant is denser; all legacy inputs
+              // retain their existing theme-driven geometry and padding.
+              isDense: isBoxedNumber,
+              constraints: isBoxedNumber
+                  ? const BoxConstraints(minHeight: TioSize.dp38)
+                  : null,
+              labelText: isCompactNumeric ? null : widget.label,
               hintText: widget.hint,
               helperText: hasError ? null : widget.helperText,
               errorText: widget.errorText,
@@ -471,7 +528,7 @@ class _TioInputState extends State<TioInput> {
               // Null unless a consumer opts in, so no field gains a suffix by
               // default and nothing currently rendered changes.
               suffixText: widget.suffixText,
-              counterText: isCompact ? '' : null,
+              counterText: isCompactNumeric ? '' : null,
               filled: !isCompact,
               fillColor: colors.surface,
               labelStyle: TextStyle(
@@ -490,21 +547,27 @@ class _TioInputState extends State<TioInput> {
               hintStyle: widget.hintStyle ??
                   TextStyle(
                     color: colors.textMuted,
-                    fontSize: isCompact
+                    fontSize: isCompactNumeric
                         ? TioInputTokens.compactHintFontSize
                         : TioInputTokens.standardHintFontSize,
                     fontWeight:
-                        isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
+                        isCompactNumeric ? TioFontWeight.w600 : TioFontWeight.w400,
                   ),
               enabledBorder: effectiveBorder,
               focusedBorder: effectiveFocusedBorder,
               errorBorder: effectiveBorder,
               focusedErrorBorder: effectiveFocusedBorder,
               contentPadding: widget.contentPadding ??
-                  (isCompact
-                      ? const EdgeInsets.symmetric(
-                          vertical:
-                              TioInputTokens.compactContentVerticalPadding,
+                  (isCompactNumeric
+                      ? EdgeInsets.symmetric(
+                          // Keep 38dp as a *painted* minimum: the
+                          // old 8dp inset made the text force 40dp even
+                          // after shrinking constraints to 38dp. Six
+                          // pixels allow default text to fit while larger
+                          // accessibility text still grows naturally.
+                          vertical: isBoxedNumber
+                              ? TioSize.dp6
+                              : TioInputTokens.compactContentVerticalPadding,
                           horizontal:
                               TioInputTokens.compactContentHorizontalPadding,
                         )
@@ -514,6 +577,17 @@ class _TioInputState extends State<TioInput> {
                               TioInputTokens.standardContentVerticalPadding,
                         )),
             ),
+    );
+    if (!isBoxedNumber) return field;
+    // The outlined numeric cell owns its minimum visible size and shrinks to
+    // its contents when a parent provides more vertical space. Default 38dp
+    // remains a minimum; accessibility text may naturally grow taller.
+    return Align(
+      heightFactor: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: TioSize.dp38),
+        child: field,
+      ),
     );
   }
 }

@@ -89,6 +89,155 @@ void main() {
       expect(editableText.controller.selection.extentOffset, 2);
     });
 
+    testWidgets('boxedNumber reuses outlined Core input with compact defaults',
+        (tester) async {
+      var changed = '';
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.boxedNumber(
+            value: '12',
+            hint: '–',
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (value) => changed = value,
+          ),
+        ),
+      );
+
+      final component = tester.widget<TioInput>(find.byType(TioInput));
+      final field = tester.widget<TextField>(find.byType(TextField));
+      final decoration = field.decoration!;
+      expect(component.variant, TioInputVariant.boxedNumber);
+      expect(field.textAlign, TextAlign.center);
+      expect(field.textAlignVertical, TextAlignVertical.center);
+      expect(field.keyboardType,
+          const TextInputType.numberWithOptions(decimal: true));
+      expect(field.style!.fontSize, TioInputTokens.compactTextFontSize);
+      expect(field.style!.fontWeight, TioFontWeight.w700);
+      expect(decoration.enabledBorder, isA<OutlineInputBorder>());
+      expect(decoration.focusedBorder, isA<OutlineInputBorder>());
+      expect(
+        (decoration.enabledBorder! as OutlineInputBorder).borderRadius,
+        BorderRadius.circular(TioInputTokens.radius),
+      );
+      expect(decoration.hintText, '–');
+      expect(decoration.hintStyle!.fontSize,
+          TioInputTokens.compactHintFontSize);
+      expect(decoration.counterText, '');
+      expect(decoration.isDense, isTrue);
+      expect(decoration.constraints?.minHeight, TioSize.dp38);
+      expect(decoration.contentPadding,
+          const EdgeInsets.symmetric(
+            horizontal: TioInputTokens.compactContentHorizontalPadding,
+            vertical: TioSize.dp6,
+          ));
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+      final editableText =
+          tester.widget<EditableText>(find.byType(EditableText));
+      expect(editableText.controller.selection.baseOffset, 0);
+      expect(editableText.controller.selection.extentOffset, 2);
+
+      await tester.enterText(find.byType(TextFormField), '2a5');
+      expect(changed, '25');
+    });
+
+    testWidgets('boxedNumber touch outside unfocuses; switching cells works',
+        (tester) async {
+      final weightFocus = FocusNode();
+      final repsFocus = FocusNode();
+      addTearDown(weightFocus.dispose);
+      addTearDown(repsFocus.dispose);
+      var weightValue = '';
+      await tester.pumpWidget(buildTestApp(Column(
+        children: [
+          TioInput.boxedNumber(
+            key: const ValueKey('weight-field'),
+            focusNode: weightFocus,
+            onChanged: (value) => weightValue = value,
+          ),
+          TioInput.boxedNumber(
+            key: const ValueKey('reps-field'),
+            focusNode: repsFocus,
+            onChanged: (_) {},
+          ),
+          const Expanded(
+            child: ColoredBox(
+              key: ValueKey('outside-fields'),
+              color: Colors.transparent,
+              child: SizedBox.expand(),
+            ),
+          ),
+        ],
+      )));
+      await tester.tap(find.byKey(const ValueKey('weight-field')));
+      await tester.pump();
+      expect(weightFocus.hasFocus, isTrue);
+      await tester.enterText(find.byKey(const ValueKey('weight-field')), '40');
+      // Focus the actual EditableText: TioInput's outer Align occupies
+      // a wider hit-test area than the painted boxed numeric field.
+      final repsEditor = find.descendant(
+        of: find.byKey(const ValueKey('reps-field')),
+        matching: find.byType(EditableText),
+      );
+      await tester.showKeyboard(repsEditor);
+      await tester.pump();
+      expect(weightFocus.hasFocus, isFalse);
+      expect(repsFocus.hasFocus, isTrue);
+      await tester.tap(find.byKey(const ValueKey('outside-fields')));
+      await tester.pump();
+      expect(weightFocus.hasFocus, isFalse);
+      expect(repsFocus.hasFocus, isFalse);
+      expect(weightValue, '40',
+          reason: 'Dismissing focus must not erase entered targets');
+    });
+
+    testWidgets(
+        'boxedNumber paints a 38dp outline in a taller parent and grows '
+        'for accessible text', (tester) async {
+      Widget boxed({double scale = 1}) => buildTioThemedTestApp(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: Center(
+            child: SizedBox(
+              width: 180,
+              height: 160,
+              child: TioInput.boxedNumber(
+                hint: '–',
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(boxed());
+      final outline = find.byType(InputDecorator);
+      expect(outline, findsOneWidget);
+      expect(tester.getSize(outline).width, 180);
+      expect(tester.getSize(outline).height, TioSize.dp38,
+          reason: 'The painted outline must not shrink below SET height '
+              'or stretch to the parent 160dp height');
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(boxed(scale: 2.5));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(outline).height, greaterThan(TioSize.dp38),
+          reason: 'Accessibility text must grow, never clip to fixed 38dp');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('existing compactNumber remains borderless, not boxed',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(TioInput.compactNumber(value: '12', onChanged: (_) {})),
+      );
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(decoration.enabledBorder, InputBorder.none);
+      expect(decoration.focusedBorder, isA<UnderlineInputBorder>());
+    });
+
     testWidgets(
         'numericEditor preserves dense exact-entry presentation and behavior',
         (tester) async {

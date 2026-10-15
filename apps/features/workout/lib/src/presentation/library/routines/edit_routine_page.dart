@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -6,11 +7,16 @@ import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
-import 'routine_exercise_picker_page.dart';
+import '../exercises/exercises_page.dart';
+import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
+import 'routine_set_input_row.dart';
+import 'routine_measurement_profile.dart';
+import 'routine_composer_screen.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
 /// Returns true only after a confirmed save or read-verified mutation.
@@ -23,6 +29,7 @@ class EditRoutinePage extends StatefulWidget {
     required this.catalogRepository,
     required this.weightUnit,
     this.userExerciseRepository,
+    this.viewerMediaGender,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -34,6 +41,8 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Profile-resolved by the app; null uses catalog's default media gender.
+  final ExerciseMediaGender? viewerMediaGender;
   /// Live opening-session capability, not a cached authorization snapshot.
   final bool Function()? canWrite;
   final WeightUnit? weightUnit;
@@ -48,6 +57,10 @@ class EditRoutinePage extends StatefulWidget {
 class _EditRoutinePageState extends State<EditRoutinePage> {
   RoutineEditorController? _editor;
   RoutineExercisePickerController? _source;
+  final Set<String> _invalidSetIds = {};
+  final Set<String> _draftRangeEntryIds = {};
+  final Set<String> _blankSetIds = {};
+  String? _openSetId;
 
   @override
   void initState() {
@@ -71,6 +84,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _bind() {
+    _draftRangeEntryIds.clear();
+    _invalidSetIds.clear();
+    _blankSetIds.clear();
+    _openSetId = null;
     _editor
       ?..removeListener(_changed)
       ..dispose();
@@ -135,34 +152,75 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         );
   }
 
-  Future<void> _addExercise() async {
+  Future<void> _addExercise({RoutineCompositionEntry? replacing}) async {
     final editor = _editor;
     if (!_canEdit || editor == null) return;
     final unit = widget.weightUnit;
-    final exercise = await Navigator.of(context).push<Exercise>(
-      MaterialPageRoute(
-        builder: (_) => RoutineExercisePickerPage(
-          catalogRepository: widget.catalogRepository,
-          userExerciseRepository: widget.userExerciseRepository,
+    final List<Exercise>? chosen;
+    if (replacing != null) {
+      final single = await Navigator.of(context).push<Exercise>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExerciseSelected: (selected) =>
+                  Navigator.of(routeContext).pop<Exercise>(selected),
+            ),
+          ),
         ),
-      ),
-    );
+      );
+      chosen = single == null ? null : [single];
+    } else {
+      chosen = await Navigator.of(context).push<List<Exercise>>(
+        MaterialPageRoute(
+          builder: (routeContext) => ProviderScope(
+            child: ExercisesPage(
+              catalogRepository: widget.catalogRepository,
+              userExerciseRepository: widget.userExerciseRepository,
+              onExercisesAdded: (selected) =>
+                  Navigator.of(routeContext).pop<List<Exercise>>(selected),
+            ),
+          ),
+        ),
+      );
+    }
     if (!mounted ||
         !identical(editor, _editor) ||
         !_canEdit ||
         unit != widget.weightUnit ||
-        exercise == null) {
+        chosen == null || chosen.isEmpty) {
       return;
     }
-    // The picker validates selection against its own freshly loaded,
-    // owner-scoped catalog/Custom snapshot before returning this Exercise.
-    // The editor's initial _source snapshot can be older (e.g. another
-    // device created a Custom Exercise while this screen stayed open).
-    // Do not reject a valid picker result against that stale snapshot.
-    if (exercise.status != ExerciseStatus.active) return;
-    editor.addPickedExercise(exercise);
-    // Refresh labels and write-capability from the current source. A failed
-    // reload disables Update until Retry; the draft stays unsaved.
+    if (replacing != null) {
+      final exercise = chosen.single;
+      if (exercise.status != ExerciseStatus.active) return;
+      final oldEntries = editor.state.entries
+          .where((entry) => entry.id == replacing.id);
+      if (oldEntries.length != 1) return;
+      final old = oldEntries.single;
+      final newId = editor.replacePickedExercise(old.id, exercise);
+      if (newId != null) {
+        _draftRangeEntryIds.remove(old.id);
+        final oldSetIds = old.sets.map((set) => set.id);
+        _invalidSetIds.removeAll(oldSetIds);
+        _blankSetIds.removeAll(oldSetIds);
+        if (oldSetIds.contains(_openSetId)) _openSetId = null;
+        final fresh = editor.state.entries.singleWhere((e) => e.id == newId);
+        _blankSetIds.add(fresh.sets.single.id);
+      }
+    } else {
+      for (final exercise in chosen) {
+        if (!_canEdit || exercise.status != ExerciseStatus.active) break;
+        final entryId = editor.addPickedExercise(exercise);
+        if (entryId != null) {
+          final setId = editor.addSet(entryId, SetPrescription());
+          if (setId != null) _blankSetIds.add(setId);
+        }
+      }
+    }
+    // Refresh labels and write-capability from the current owner source.
+    // A failed reload disables Update; no premature persistence.
     await _source?.load();
   }
 
@@ -173,12 +231,24 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final editor = _editor;
     final unit = widget.weightUnit;
     if (!_canEdit || editor == null || unit == null) return;
+    ExerciseType? profile;
+    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
+      if (item.exercise.ref == entry.exercise) {
+        profile = routineEntryMeasurementProfile(
+          item.exercise.exerciseType,
+          entry.sets,
+        );
+        break;
+      }
+    }
     final result = await showTioEditorSheet<SetPrescription>(
       context: context,
       useSafeArea: true,
       builder: (_) => RoutineSetEditorSheet(
         unit: unit,
         initial: existing?.prescription,
+        showRangeDraft: _draftRangeEntryIds.contains(entry.id),
+        exerciseType: profile,
       ),
     );
     if (!mounted ||
@@ -191,13 +261,225 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (existing == null) {
       editor.addSet(entry.id, result);
     } else {
-      editor.editSet(entry.id, existing.id, result);
+      if (_editSetPreservingRange(entry, existing, result) &&
+          result.reps != null) {
+        // An accepted advanced-sheet Reps value is no longer an untouched
+        // blank Set. Otherwise a rejected Update remounts a blank row while
+        // the real entered value remains hidden in the pending draft.
+        _blankSetIds.remove(existing.id);
+      }
     }
+  }
+
+  /// Inline cells and the advanced sheet must preserve the same transient
+  /// Range choice when its saved bounds become fully blank. Only the
+  /// explicit Repetition Options action switches the Exercise to fixed.
+  bool _editSetPreservingRange(
+    RoutineCompositionEntry entry,
+    RoutineCompositionSet set,
+    SetPrescription prescription,
+  ) {
+    if (set.prescription.isRepRange && !prescription.isRepRange) {
+      _draftRangeEntryIds.add(entry.id);
+    }
+    return _editor?.editSet(entry.id, set.id, prescription) ?? false;
+  }
+
+  void _validityChanged(String id, bool valid) {
+    if (!mounted) return;
+    setState(() {
+      if (valid) {
+        _blankSetIds.remove(id);
+        _invalidSetIds.remove(id);
+      } else {
+        _invalidSetIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
+    if (!_canEdit) return;
+    final openingEditor = _editor;
+    final action = await showRoutineExerciseOptionsSheet(context);
+    if (!mounted || !identical(openingEditor, _editor) ||
+        !_canEdit || action == null) {
+      return;
+    }
+    if (openingEditor == null ||
+        !openingEditor.state.entries.any((current) => current.id == entry.id)) {
+      return;
+    }
+    if (action == RoutineExerciseOption.replace) {
+      await _addExercise(replacing: entry);
+    } else if (action == RoutineExerciseOption.remove) {
+      _removeEntry(entry);
+    }
+  }
+
+  void _removeEntry(RoutineCompositionEntry entry) {
+    if (!_canEdit) return;
+    _editor?.removeExercise(entry.id);
+    _draftRangeEntryIds.remove(entry.id);
+    final ids = entry.sets.map((set) => set.id);
+    _invalidSetIds.removeAll(ids);
+    _blankSetIds.removeAll(ids);
+    if (entry.sets.any((set) => set.id == _openSetId)) _openSetId = null;
+  }
+
+  void _removeSet(RoutineCompositionEntry entry, RoutineCompositionSet set) {
+    if (!_canEdit) return;
+    if (entry.sets.length == 1) {
+      _removeEntry(entry);
+      return;
+    }
+    _editor?.removeSet(entry.id, set.id);
+    _invalidSetIds.remove(set.id);
+    _blankSetIds.remove(set.id);
+    if (_openSetId == set.id) _openSetId = null;
+  }
+
+  void _addSetInline(RoutineCompositionEntry entry) {
+    if (!_canEdit) return;
+    if (_openSetId != null) setState(() => _openSetId = null);
+    final hadPersistedRange =
+        entry.sets.any((set) => set.prescription.isRepRange);
+    final id = _editor?.addSet(entry.id, SetPrescription());
+    if (id != null) {
+      _blankSetIds.add(id);
+      // The new nullable Set cannot encode Range until both Reps fields
+      // are filled. Keep its editor in Range mode and block mixed writes.
+      if (hadPersistedRange) _draftRangeEntryIds.add(entry.id);
+    }
+  }
+
+  void _setOpen(String id, bool open) {
+    if (!mounted) return;
+    final next = open ? id : (_openSetId == id ? null : _openSetId);
+    if (next != _openSetId) setState(() => _openSetId = next);
+  }
+
+  Future<void> _selectSetType(
+    RoutineCompositionEntry entry, RoutineCompositionSet set,
+  ) async {
+    if (!_canEdit) return;
+    final type = await showTioEditorSheet<Object>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Select Set Type',
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final kind in RoutineSetType.values)
+            ListTile(
+              key: ValueKey('edit-routine-type-${kind.wireValue}'),
+              title: Text(switch (kind) {
+                RoutineSetType.normal => 'Normal Set',
+                RoutineSetType.warmUp => 'Warm Up Set',
+                RoutineSetType.failure => 'Failure Set',
+                RoutineSetType.drop => 'Drop Set',
+              }),
+              trailing: kind == set.prescription.setType
+                  ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
+            ),
+          // Existing Edit functionality still needs a path to Rest and
+          // other advanced prescription attributes. Numeric Reps/Weight
+          // remain inline; this secondary action preserves Rest editing.
+          ListTile(
+            key: const ValueKey('edit-routine-set-details'),
+            title: const Text('Rest & set details'),
+            onTap: () => Navigator.of(sheetContext).pop<Object>('details'),
+          ),
+          ListTile(
+            key: const ValueKey('edit-routine-type-remove'),
+            title: const Text('Remove Set'),
+            onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted || !_canEdit || type == null) return;
+    if (type == 'remove') {
+      _removeSet(entry, set);
+    } else if (type == 'details') {
+      await _setEditor(entry, existing: set);
+    } else if (type is RoutineSetType) {
+      final current = set.prescription;
+      _editor?.editSet(entry.id, set.id, SetPrescription(
+        reps: current.reps, repsMax: current.repsMax,
+        setType: type, loadKg: current.loadKg,
+        distanceMeters: current.distanceMeters,
+        durationSeconds: current.durationSeconds,
+        restSeconds: current.restSeconds,
+      ));
+    }
+  }
+
+  Future<void> _selectRepetitionMode(RoutineCompositionEntry entry) async {
+    if (!_canEdit || entry.sets.isEmpty) return;
+    final range = _draftRangeEntryIds.contains(entry.id) ||
+        entry.sets.first.prescription.isRepRange;
+    final selection = await showTioEditorSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => TioEditorSheet(
+        title: 'Repetition Options',
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            key: const ValueKey('edit-routine-reps-fixed'),
+            title: const Text('Reps'),
+            trailing: !range ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(sheetContext).pop<bool>(false),
+          ),
+          ListTile(
+            key: const ValueKey('edit-routine-reps-range'),
+            title: const Text('Rep Range'),
+            trailing: range ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(sheetContext).pop<bool>(true),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted || !_canEdit || selection == null) return;
+    if (selection) {
+      setState(() => _draftRangeEntryIds.add(entry.id));
+    } else {
+      setState(() => _draftRangeEntryIds.remove(entry.id));
+      _editor?.changeRepetitionMode(entry.id, range: false);
+    }
+  }
+
+  void _reload() {
+    _draftRangeEntryIds.clear();
+    _invalidSetIds.clear();
+    _blankSetIds.clear();
+    _openSetId = null;
+    _editor?.load();
+  }
+
+  bool get _rangeCanSave {
+    final editor = _editor;
+    if (editor == null) {
+      return false;
+    }
+    for (final entry in editor.state.entries) {
+      // Persisted range entries must also be checked even before the user
+      // explicitly picks Range in this editing session. Otherwise Update
+      // sends mixed ranged/blank Sets rejected by the database RPC.
+      if (entry.sets.any((s) => s.prescription.isRepRange) &&
+          entry.sets.any((s) => !s.prescription.isRepRange)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _save() async {
     final editor = _editor;
-    if (!_canEdit || editor == null) return;
+    if (!_canEdit || editor == null ||
+        editor.exceedsSetLimit ||
+        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+      return;
+    }
     final confirmed = await editor.update();
     if (mounted &&
         identical(editor, _editor) &&
@@ -231,49 +513,27 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.tioColors;
     final status = _editor?.state.status;
     final saving = status == RoutineEditorStatus.saving;
     return PopScope(
       canPop: !saving,
-      child: Scaffold(
-        key: const ValueKey('edit-routine-page'),
-        backgroundColor: colors.background,
-        appBar: TioAppBar(
-          backgroundColor: colors.background,
-          elevation: TioElevation.none,
-          scrolledUnderElevation: TioElevation.none,
-          leading: IconButton(
-            key: const ValueKey('edit-routine-cancel'),
-            tooltip: 'Cancel and discard draft',
-            icon: const Icon(Icons.close_rounded),
-            color: colors.textPrimary,
-            onPressed: saving
-                ? null
-                : () => Navigator.of(context).pop<bool>(false),
-          ),
-          title: Text(
-            'Edit Routine',
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontWeight: TioFontWeight.w800,
-              fontSize: TioFontSize.size20,
-            ),
-          ),
-        ),
-        body: SafeArea(child: _body()),
-        bottomNavigationBar: status == RoutineEditorStatus.ready &&
+      child: RoutineComposerScreen(
+        key: const ValueKey('routine-composer-screen'),
+        mode: RoutineComposerMode.edit,
+        pageKey: const ValueKey('edit-routine-page'),
+        cancelKey: const ValueKey('edit-routine-cancel'),
+        cancelEnabled: !saving,
+        cancel: () => Navigator.of(context).pop<bool>(false),
+        submitKey: status == RoutineEditorStatus.ready &&
                 widget.weightUnit != null
-            ? SafeArea(
-                minimum: const EdgeInsets.all(TioSpacing.lg),
-                child: TioButton.primary(
-                  key: const ValueKey('edit-routine-update'),
-                  label: 'Update',
-                  expand: true,
-                  onPressed: _canEdit ? _save : null,
-                ),
-              )
+            ? const ValueKey('edit-routine-update')
             : null,
+        onSubmit: _canEdit &&
+                !(_editor?.exceedsSetLimit ?? true) &&
+                _invalidSetIds.isEmpty && _rangeCanSave
+            ? _save
+            : null,
+        content: _body(),
       ),
     );
   }
@@ -315,7 +575,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           message: state.message ?? 'Could not load Routine.',
           action: TioButton.secondary(
             label: 'Try again',
-            onPressed: _editor?.load,
+            onPressed: _reload,
           ),
         );
       case RoutineEditorStatus.revisionConflict:
@@ -325,7 +585,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           action: TioButton.secondary(
             key: const ValueKey('edit-routine-reload'),
             label: 'Reload and discard changes',
-            onPressed: _editor?.load,
+            onPressed: _reload,
           ),
         );
       case RoutineEditorStatus.outcomeUnknown:
@@ -358,247 +618,137 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Widget _list(RoutineEditorState state) {
     final sourceStatus = _source?.state.status;
-    return ListView.builder(
-      key: const ValueKey('edit-routine-entries'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.md,
-      ),
-      itemCount: state.entries.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(widget.routine.name,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: TioSpacing.md),
-              if (sourceStatus != RoutineExercisePickerStatus.ready)
-                _Message(
-                  key: const ValueKey('edit-routine-source-unavailable'),
-                  message: sourceStatus == RoutineExercisePickerStatus.failed
-                      ? 'Could not verify Exercises. Try again.'
-                      : 'Loading Exercises...',
-                  action: sourceStatus == RoutineExercisePickerStatus.failed
-                      ? TioButton.secondary(
-                          key: const ValueKey('edit-routine-source-retry'),
-                          label: 'Try again',
-                          onPressed: _source?.load,
-                        )
-                      : null,
-                ),
-              if (widget.userExerciseRepository == null &&
-                  state.entries.any((e) =>
-                      e.exercise is UserCreatedExerciseRef))
-                const _Message(
-                  message: 'Custom Exercises are unavailable for this account.',
-                ),
-              TioButton.secondary(
-                key: const ValueKey('edit-routine-add-exercise'),
-                label: 'Add Exercise',
-                expand: true,
-                onPressed: _canEdit ? _addExercise : null,
-              ),
-              if (state.message != null)
-                Padding(
-                  padding: const EdgeInsets.all(TioSpacing.sm),
-                  child: Text(
-                    state.message!,
-                    style: TextStyle(color: context.tioColors.danger),
-                  ),
-                ),
-              if (state.entries.isEmpty)
-                const _Message(
-                  key: ValueKey('edit-routine-empty'),
-                  message: 'No exercises in this Routine yet.',
-                ),
-              const SizedBox(height: TioSpacing.md),
-            ],
-          );
-        }
-
-        final entry = state.entries[index - 1];
-        Exercise? found;
-        for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
-          if (item.exercise.ref == entry.exercise) {
-            found = item.exercise;
-            break;
-          }
-        }
-        return Padding(
-          padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-          child: TioCard(
-            key: ValueKey('edit-routine-entry-${entry.id}'),
-            child: _EntryCard(
-              entry: entry,
-              title: found?.displayName ?? 'Exercise unavailable',
-              index: index,
-              unit: widget.weightUnit!,
-              enabled: _canEdit,
-              hasPrevious: index > 1,
-              hasNext: index < state.entries.length,
-              moveUp: () => _editor?.moveExercise(index - 1, index - 2),
-              moveDown: () => _editor?.moveExercise(index - 1, index),
-              remove: () => _editor?.removeExercise(entry.id),
-              addSet: () => _setEditor(entry),
-              editSet: (set) => _setEditor(entry, existing: set),
-              removeSet: (set) => _editor?.removeSet(entry.id, set.id),
-              moveSet: (from, to) => _editor?.moveSet(entry.id, from, to),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _EntryCard extends StatelessWidget {
-  const _EntryCard({
-    required this.entry,
-    required this.title,
-    required this.index,
-    required this.unit,
-    required this.enabled,
-    required this.hasPrevious,
-    required this.hasNext,
-    required this.moveUp,
-    required this.moveDown,
-    required this.remove,
-    required this.addSet,
-    required this.editSet,
-    required this.removeSet,
-    required this.moveSet,
-  });
-
-  final RoutineCompositionEntry entry;
-  final String title;
-  final int index;
-  final WeightUnit unit;
-  final bool enabled;
-  final bool hasPrevious;
-  final bool hasNext;
-  final VoidCallback moveUp;
-  final VoidCallback moveDown;
-  final VoidCallback remove;
-  final VoidCallback addSet;
-  final ValueChanged<RoutineCompositionSet> editSet;
-  final ValueChanged<RoutineCompositionSet> removeSet;
-  final void Function(int, int) moveSet;
-
-  Widget _row(BuildContext context, int index) {
-    final set = entry.sets[index];
-    final label = <String>['${set.prescription.reps} reps'];
-    if (set.prescription.loadKg != null) {
-      label.add(UnitFormatters.formatWeight(set.prescription.loadKg!, unit));
-    }
-    if (set.prescription.restSeconds != null) {
-      label.add('${set.prescription.restSeconds} sec rest');
-    }
-    return Column(
-      key: ValueKey('edit-routine-set-${set.id}'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Set ${index + 1} · ${label.join(' · ')}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: context.tioColors.textSecondary),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              key: ValueKey('edit-routine-set-up-${set.id}'),
-              tooltip: 'Move Set up',
-              onPressed: enabled && index > 0
-                  ? () => moveSet(index, index - 1)
-                  : null,
-              icon: const Icon(Icons.arrow_upward_rounded),
-            ),
-            IconButton(
-              key: ValueKey('edit-routine-set-down-${set.id}'),
-              tooltip: 'Move Set down',
-              onPressed: enabled && index < entry.sets.length - 1
-                  ? () => moveSet(index, index + 1)
-                  : null,
-              icon: const Icon(Icons.arrow_downward_rounded),
-            ),
-            IconButton(
-              key: ValueKey('edit-routine-set-edit-${set.id}'),
-              tooltip: 'Edit Set',
-              onPressed: enabled ? () => editSet(set) : null,
-              icon: const Icon(Icons.edit_outlined),
-            ),
-            IconButton(
-              key: ValueKey('edit-routine-set-remove-${set.id}'),
-              tooltip: 'Remove Set',
-              onPressed: enabled ? () => removeSet(set) : null,
-              icon: const Icon(Icons.remove_circle_outline_rounded),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) => Column(
+    return RoutineComposerContent(
+      mode: RoutineComposerMode.edit,
+      scrollKey: const ValueKey('edit-routine-entries'),
+      reorderKey: const ValueKey('edit-routine-reorder-exercises'),
+      entries: state.entries,
+      header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '$index. $title',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          Row(
-            children: [
-              IconButton(
-                key: ValueKey('edit-routine-entry-up-${entry.id}'),
-                tooltip: 'Move Exercise up',
-                onPressed: enabled && hasPrevious ? moveUp : null,
-                icon: const Icon(Icons.arrow_upward_rounded),
-              ),
-              IconButton(
-                key: ValueKey('edit-routine-entry-down-${entry.id}'),
-                tooltip: 'Move Exercise down',
-                onPressed: enabled && hasNext ? moveDown : null,
-                icon: const Icon(Icons.arrow_downward_rounded),
-              ),
-              const Spacer(),
-              IconButton(
-                key: ValueKey('edit-routine-entry-remove-${entry.id}'),
-                tooltip: 'Remove Exercise',
-                onPressed: enabled ? remove : null,
-                icon: const Icon(Icons.delete_outline_rounded),
-              ),
-            ],
-          ),
-          if (entry.sets.length > 40)
-            SizedBox(
-              height: TioSize.dp200,
-              child: ListView.builder(
-                key: ValueKey('edit-routine-set-list-${entry.id}'),
-                primary: false,
-                itemCount: entry.sets.length,
-                itemBuilder: (context, index) => _row(context, index),
-              ),
-            )
-          else
-            for (var i = 0; i < entry.sets.length; i++) _row(context, i),
-          if (entry.sets.isEmpty)
-            Text(
-              'No sets prescribed',
-              style: TextStyle(color: context.tioColors.textSecondary),
+          Text(widget.routine.name,
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: TioSpacing.md),
+          if (sourceStatus != RoutineExercisePickerStatus.ready)
+            _Message(
+              key: const ValueKey('edit-routine-source-unavailable'),
+              message: sourceStatus == RoutineExercisePickerStatus.failed
+                  ? 'Could not verify Exercises. Try again.'
+                  : 'Loading Exercises...',
+              action: sourceStatus == RoutineExercisePickerStatus.failed
+                  ? TioButton.secondary(
+                      key: const ValueKey('edit-routine-source-retry'),
+                      label: 'Try again',
+                      onPressed: _source?.load,
+                    )
+                  : null,
             ),
-          const SizedBox(height: TioSpacing.sm),
-          TioButton.secondary(
-            key: ValueKey('edit-routine-add-set-${entry.id}'),
-            label: 'Add Set',
-            onPressed: enabled ? addSet : null,
-          ),
+          if (widget.userExerciseRepository == null &&
+              state.entries.any((e) =>
+                  e.exercise is UserCreatedExerciseRef))
+            const _Message(
+              message: 'Custom Exercises are unavailable for this account.',
+            ),
+          if (_editor?.exceedsSetLimit ?? false)
+            const _Message(
+              key: ValueKey('edit-routine-too-many-sets'),
+              message: 'This Routine has more than 8 Sets in an Exercise. '
+                  'Remove extra Sets before Update.',
+            ),
+          if (state.message != null)
+            Padding(
+              padding: const EdgeInsets.all(TioSpacing.sm),
+              child: Text(state.message!,
+                  style: TextStyle(color: context.tioColors.danger)),
+            ),
+          if (state.entries.isEmpty)
+            const _Message(
+              key: ValueKey('edit-routine-empty'),
+              message: 'No exercises in this Routine yet.',
+            ),
         ],
+      ),
+      onReorder: (from, to) {
+        if (_canEdit) _editor?.moveExercise(from, to);
+      },
+      itemBuilder: _exerciseCard,
+      footer: TioButton.secondary(
+        key: const ValueKey('edit-routine-add-exercise'),
+        label: 'Add Exercise',
+        expand: true,
+        onPressed: _canEdit ? () => _addExercise() : null,
+      ),
+    );
+  }
+
+  Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
+    Exercise? found;
+    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
+      if (item.exercise.ref == entry.exercise) {
+        found = item.exercise;
+        break;
+      }
+    }
+    final exerciseType = routineEntryMeasurementProfile(
+      found?.exerciseType,
+      entry.sets,
+    );
+    return RoutineComposerExerciseCard(
+      key: ValueKey('edit-routine-entry-${entry.id}'),
+      mode: RoutineComposerMode.edit,
+      entry: entry,
+      index: position,
+      totalEntries: _editor?.state.entries.length ?? 0,
+      title: found?.displayName ?? 'Exercise unavailable',
+      thumbnailUrl: found == null
+          ? null
+          : ExercisesController.thumbnailUrlFor(
+              found,
+              gender: widget.viewerMediaGender,
+            ),
+      exerciseType: exerciseType,
+      showRangeDraft: _draftRangeEntryIds.contains(entry.id),
+      unit: widget.weightUnit!,
+      enabled: _canEdit,
+      moveUp: () => _editor?.moveExercise(position, position - 1),
+      moveDown: () => _editor?.moveExercise(position, position + 1),
+      showOptions: () => _showExerciseOptions(entry),
+      selectRepetitionMode: () => _selectRepetitionMode(entry),
+      buildSetRow: (set, index) =>
+          _setRow(entry, set, index, exerciseType),
+      addSet: () => _addSetInline(entry),
+    );
+  }
+
+  Widget _setRow(RoutineCompositionEntry entry,
+      RoutineCompositionSet set, int index, ExerciseType? exerciseType) =>
+      RoutineSetInputRow(
+        key: ValueKey('edit-routine-set-${set.id}'),
+        set: set,
+        index: index,
+        normalNumber: entry.sets.take(index + 1)
+            .where((s) => s.prescription.setType == RoutineSetType.normal)
+            .length,
+        unit: widget.weightUnit!,
+        enabled: _canEdit,
+        exerciseType: exerciseType,
+        showRangeDraft: _draftRangeEntryIds.contains(entry.id),
+        showPrevious: true,
+        startWithBlankReps: _blankSetIds.contains(set.id),
+        isOpen: _openSetId == set.id,
+        onOpenChanged: (open) => _setOpen(set.id, open),
+        onTypePressed: () => _selectSetType(entry, set),
+        onChanged: (prescription) {
+          // A valid edit is persisted in the draft even when the field's
+          // validity stayed true throughout typing. Clear its blank marker
+          // before a pending Save/failure can unmount and remount this row.
+          _blankSetIds.remove(set.id);
+          _editSetPreservingRange(entry, set, prescription);
+        },
+        onValidityChanged: (valid) => _validityChanged(set.id, valid),
+        onRemove: () => _removeSet(entry, set),
       );
+
 }
 
 class _Message extends StatelessWidget {

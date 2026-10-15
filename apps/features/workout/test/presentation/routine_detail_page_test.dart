@@ -74,9 +74,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
     expect(find.text('Push Day'), findsOneWidget);
+    expect(find.text('Exercises'), findsOneWidget);
+    expect(find.text('SET'), findsOneWidget);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('1. Bench Press'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 0 kg · 60 sec rest'),
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(find.text('0'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
         findsOneWidget);
@@ -111,16 +115,16 @@ void main() {
         routines: routines,
         compositions: compositions,
         weightUnit: WeightUnit.kg);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsOneWidget);
 
     await _pump(tester,
         routines: routines,
         compositions: compositions,
         weightUnit: WeightUnit.lb);
-    expect(find.text('Set 1 · 5 reps · 27.6 lb · 90 sec rest'),
+    expect(find.text('27.6'),
         findsOneWidget);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsNothing);
 
     // No fabricated default on a route whose Profile data has not resolved.
@@ -128,10 +132,93 @@ void main() {
         routines: routines,
         compositions: compositions,
         weightUnit: null);
-    expect(find.text('Set 1 · 5 reps · Load unavailable · 90 sec rest'),
+    expect(find.text('Load unavailable'),
         findsOneWidget);
-    expect(find.text('Set 1 · 5 reps · 12.5 kg · 90 sec rest'),
+    expect(find.text('12.5'),
         findsNothing);
+  });
+
+  testWidgets('legacy Treadmill and Plank targets remain visible after catalog reprofile',
+      (tester) async {
+    final old = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_run_on_treadmill'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 6, loadKg: 22),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(old),
+    );
+    expect(find.text('Run on Treadmill'), findsOneWidget);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('KM'), findsNothing);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('22'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e1,
+          exercise: ExerciseRef.catalog('ex_front_plank'),
+          sets: [
+            RoutineCompositionSet(
+              id: _s1,
+              prescription: SetPrescription(reps: 60),
+            ),
+          ],
+        ),
+      ])),
+    );
+    expect(find.text('Front Plank'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('TIME'), findsNothing);
+    expect(find.text('60'), findsOneWidget);
+  });
+
+  testWidgets('Custom missing type still displays persisted KM/TIME targets',
+      (tester) async {
+    final historic = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001',
+        ),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(
+              distanceMeters: 3000, durationSeconds: 900,
+            ),
+          ),
+        ],
+      ),
+    ]);
+    // No Custom metadata is available; canonical type is null. Read-only
+    // Detail must render stored metric values rather than fake KG/REPS.
+    await _pump(tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(historic),
+    );
+    expect(find.text('KM'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('15:00'), findsOneWidget);
+    expect(find.text('REPS'), findsNothing);
+    expect(find.text('KG'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('empty persisted Routine shows truthful empty state',
@@ -213,7 +300,7 @@ void main() {
         ),
       ])),
     );
-    expect(find.text('1. Exercise unavailable'), findsOneWidget);
+    expect(find.text('Exercise unavailable'), findsOneWidget);
     expect(find.text('Exercise information is not available in this app.'),
         findsOneWidget);
     expect(find.text('No sets prescribed'), findsOneWidget);
@@ -295,7 +382,7 @@ void main() {
     expect(callbacks, 1);
     expect(compositions.readCount, 2);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Set 1 · 10 reps · 45 sec rest'), findsOneWidget);
+    expect(find.text('10'), findsOneWidget);
   });
 
   testWidgets('Detail to real Edit screen saves once and refreshes server truth',
@@ -343,14 +430,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bench Press'));
     await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
     expect(comp.saveCount, 0);
-    await tester.tap(find.text('Add Set'));
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '8');
-    await tester.enterText(find.byKey(const ValueKey('routine-set-weight')), '12');
-    await tester.enterText(find.byKey(const ValueKey('routine-set-rest')), '60');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
+    expect(comp.saveCount, 0);
+    // Batch confirmation creates Set 1 locally; its target starts blank.
+    final row = tester.widget<RoutineSetInputRow>(
+      find.byType(RoutineSetInputRow));
+    final reps = find.byKey(ValueKey('routine-set-reps-${row.set.id}'));
+    final weight = find.byKey(ValueKey('routine-set-weight-${row.set.id}'));
+    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
+    await tester.enterText(reps, '8');
+    await tester.enterText(weight, '12');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
 
@@ -358,7 +451,7 @@ void main() {
     expect(comp.readCount, 3); // initial Detail + Editor + refreshed Detail
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 12 kg · 60 sec rest'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
   });
 
   testWidgets('read failure and missing repositories never expose Edit',
@@ -450,7 +543,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('routine-detail-set-${setId(totalSets)}')),
         findsOneWidget);
-    expect(find.text('Set 1007 · 8 reps'), findsOneWidget);
+    expect(find.text('1007'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -526,6 +619,18 @@ final class _Catalog implements ExerciseCatalogRepository {
           ref: ExerciseRef.catalog('ex_bench_press'),
           displayName: 'Bench Press',
           status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+          displayName: 'Run on Treadmill',
+          status: ExerciseStatus.active,
+          exerciseType: ExerciseType.distanceDuration,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_front_plank'),
+          displayName: 'Front Plank',
+          status: ExerciseStatus.active,
+          exerciseType: ExerciseType.duration,
         ),
       ]);
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 2,
+  "catalogVersion": 3,
   "exercises": [
     {
       "id": "ex_cable_one_arm_lateral_raise",
@@ -1859,6 +1859,7 @@
     {
       "id": "ex_walking_on_treadmill",
       "title": "Walking on Treadmill",
+      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "quadriceps",
@@ -1900,6 +1901,7 @@
     {
       "id": "ex_run_on_treadmill",
       "title": "Run on Treadmill",
+      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "quadriceps",
@@ -1942,6 +1944,7 @@
     {
       "id": "ex_walking_on_incline_treadmill",
       "title": "Walking on Incline Treadmill",
+      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "glutes",
@@ -3110,6 +3113,7 @@
     {
       "id": "ex_front_plank",
       "title": "Front Plank",
+      "exerciseType": "duration",
       "muscleGroup": "waist",
       "primaryMuscles": [
         "rectus_abdominis"

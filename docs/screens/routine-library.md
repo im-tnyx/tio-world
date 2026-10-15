@@ -87,3 +87,122 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - [Library](library.md)
 - [Programs](programs.md)
 - [Exercise Search](exercise-search.md)
+
+## Draft W4B Exercise replacement (not merged)
+
+The owner approved `Replace Exercise` alongside `Remove Exercise` in the
+existing Create/Edit Exercise `⋮` sheet. Draft PR #551 reuses the canonical
+Exercise picker, keeps the replaced Exercise's ordered position, and gives
+the selected Exercise a **new entry UUID and blank Set 1 UUID**. It does not
+copy prescriptions, range modes or targets between potentially incompatible
+Exercise measurement types. Canceling the sheet/picker leaves the draft
+unchanged; Edit writes only after explicit Update. Current-owner/Custom
+preflight, auth/session revocation, eight-Set cap, and nullable target
+contracts remain in force. Exact-head CI and physical visual QA are pending.
+This is unmerged client behavior, not a shipped app capability.
+
+## One Create/Edit Routine screen on Draft #551 (2026-10-14)
+
+Owner explicitly rejected separately maintained Create and Edit screen UI.
+The existing Draft #551 uses a **single `RoutineComposerScreen`,
+`RoutineComposerContent` and `RoutineComposerExerciseCard`** for both
+routes, including the title bar, ordered Exercises, column headings, Set rows,
+the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
+composition is configured in Create mode (`Create Routine`, empty draft,
+atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine, read-only
+PREVIOUS column and revision-guarded Update). Existing Create/Edit route
+entrypoint state owners remain thin adapters for different auth/persistence,
+Custom preflight, unknown-write resolution and validation rules. This avoids
+duplicated visual implementations without incorrectly unifying two distinct
+database commands. No new DB schema, service, route, watch UI or visual redesign
+is authorized. The implementation is Draft until exact-head Flutter CI,
+review and device screenshot QA pass.
+
+## Numeric Set field focus dismissal (Draft #551; device QA pending)
+
+Create and Edit share the same Routine composer. Touching outside a
+focused boxed Set numeric field removes its focus outline; switching
+from KG to REPS still focuses the selected field. Hiding the on-screen
+keyboard explicitly dismisses focus on a visible-to-hidden IME event
+rather than leaving a numeric field permanently selected. Typed values
+are retained. This does not change the 38dp layout, visual styling,
+nullable Set targets, or generic TioInput forms.
+
+## SET badge and boxed input corner alignment (Draft #551; device QA pending)
+
+The Create Routine SET-number filled badge and KG/LB/REPS/Range/KM/TIME
+outlined input fields use one matching **14dp** corner radius, governed
+by Core `TioInputTokens.radius`. The Set number's InkWell splash/tap
+shape follows that same radius. The previous Set number used
+`TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
+numeric outlines. Edit retains its approved unboxed blue Set number.
+38dp visible minimum heights and widths, 8-Set cap, input/focus
+behavior, button shapes, and all persistence contracts remain unchanged.
+
+## Swipe-to-delete Set action (Draft #551; device QA pending)
+
+Swiping a Routine Set left reveals a compact right-aligned red
+`Delete` control, matching the 38dp boxed Set/input height and 14dp
+rounded input shape. The exposed remainder of the row stays the screen's
+normal background, **not a full-width red stripe**. Swipe crossing the
+reveal threshold (including a quick flick) gives selection haptics;
+tapping Delete gives deletion haptics. A deliberately long left swipe
+continues to remove the chosen Set on release with the deletion haptic;
+a short flick alone never auto-deletes, and reversing before release
+does not remove. Deletion is still an in-memory Routine draft action
+until Create Save/Edit Update; deleting the last Set obeys the existing
+Exercise removal policy. Actual touch and OLED/light appearance still
+need device QA.
+
+## Dynamic swipe reveal shape (Draft #551; screenshot QA pending)
+
+The red Delete action starts hidden. While dragging a Set left, its
+rounded shape grows **horizontally** with the exposed row area, staying
+fully visible with the same 8dp gap as the KG/REPS fields; it does
+not touch the moving field, crop its corners or become a red strip. Its
+normal painted minimum height remains **38dp**, with the existing 14dp
+rounded corners. On partial release it settles to the usual 96dp
+Delete width; deliberate full swipe still removes the Set, with
+selection and deletion haptic feedback intact. Physical-device
+validation remains pending.
+
+## Delete action gap, label and height (Draft #551; device QA pending)
+
+Owner clarified that, while swiping, the Delete shape must not stick
+directly to the numeric field: preserve **8dp** of clear space between
+the moving field edge and the red capsule, matching the KG/REPS field
+gap. The capsule still expands with the swipe: its painted width equals
+the revealed region **minus 8dp**, and the settled 96dp reveal therefore
+shows an **88dp** action plus the 8dp gap. The Delete label is
+**explicitly white** while swiping and once revealed (including the
+temporarily disabled drag state). Its 14dp corner radius and
+**38dp painted minimum height** align vertically with KG/REPS fields.
+Short swipe/tap, full-swipe deletion and the two haptic stages are
+unchanged. Real device screenshot/touch verification is still pending.
+
+## Delete painted-height correction (Draft #551; device QA pending)
+
+The Delete action must appear **exactly 38dp tall at normal text scale**,
+not merely request a 38dp *minimum*. Enforce the 38dp painted Material
+button height explicitly while keeping Material's padded tap-target
+policy; large accessibility text is permitted to grow rather than clip.
+Its top/bottom align with boxed REPS/KG inputs; the 8dp horizontal gap,
+14dp corner radius, swipe-progressive width and settled 88dp capsule
+remain. Use the theme's owned `TioPalette.white` token for the visible
+Delete label (including during disabled drag); never introduce raw
+framework colors into production UI.
+
+## Add Exercises selection-mode UI (PR #551, pending merge)
+
+In Create/Edit Routine `Add Exercise` context only, reuse the canonical
+`ExercisesPage` with transient, insertion-ordered multi-selection by
+canonical Exercise identity. A selected Exercise displays a small round
+check on its image; missing artwork uses a visible accessible checkmark.
+When zero Exercises are selected, no bottom Add button or reserved space
+appears. The first selection reveals `Add 1 exercise`; further
+selections update to `Add N exercises`. Search/filter changes do not
+clear selection. Confirmation appends individually identified Exercise
+entries with new blank Set 1 drafts, without persistence until Save/
+Update; Back discards pending picks. Normal Library browsing remains
+unchanged, and Replace Exercise keeps single selection. This behavior
+is owner-approved under existing PR #551, not released.

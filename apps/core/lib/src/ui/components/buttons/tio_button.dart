@@ -20,7 +20,7 @@ import '../../../theme/theme.dart';
 /// is no separate public confirmation-card component to converge. Remaining
 /// #173 work is auditing other destructive confirmations onto the same
 /// presenter, not migrating this variant itself.
-enum TioButtonVariant { primary, secondary, ghost, destructive }
+enum TioButtonVariant { primary, secondary, supporting, ghost, destructive }
 
 class TioButton extends StatelessWidget {
   const TioButton({
@@ -62,6 +62,21 @@ class TioButton extends StatelessWidget {
     this.leading,
     this.trailing,
   }) : variant = TioButtonVariant.secondary;
+
+  /// Subdued filled action for supporting, non-primary operations.
+  /// Reuses the governed FilledButton geometry and state handling.
+  const TioButton.supporting({
+    required this.label,
+    required this.onPressed,
+    super.key,
+    this.enabled = true,
+    this.expand = false,
+    this.loading = false,
+    this.loadingLabel,
+    this.semanticLabel,
+    this.leading,
+    this.trailing,
+  }) : variant = TioButtonVariant.supporting;
 
   const TioButton.ghost({
     required this.label,
@@ -113,6 +128,7 @@ class TioButton extends StatelessWidget {
     final indicatorColor = switch (variant) {
       TioButtonVariant.primary => colors.onPrimary,
       TioButtonVariant.destructive => colors.danger,
+      TioButtonVariant.supporting => colors.textPrimary,
       _ => colors.primary,
     };
     // The destructive variant owns its colours in every state, so it styles
@@ -121,6 +137,8 @@ class TioButton extends StatelessWidget {
     final style = switch (variant) {
       TioButtonVariant.destructive =>
         _destructiveStyle(colors, loading: loading),
+      TioButtonVariant.supporting =>
+        _supportingStyle(colors, loading: loading),
       _ => loading ? _loadingStyle(variant, colors) : null,
     };
     final content = AnimatedSwitcher(
@@ -145,7 +163,9 @@ class TioButton extends StatelessWidget {
       // Destructive shares primary's filled chassis, so it inherits the same
       // governed minimum height, pill radius, horizontal padding, typography
       // and tap-target behaviour. Only the colour roles differ.
-      TioButtonVariant.primary || TioButtonVariant.destructive => FilledButton(
+      TioButtonVariant.primary ||
+      TioButtonVariant.supporting ||
+      TioButtonVariant.destructive => FilledButton(
           onPressed: callback,
           style: style,
           child: widthWrapper,
@@ -172,6 +192,39 @@ class TioButton extends StatelessWidget {
       child: ExcludeSemantics(child: button),
     );
   }
+}
+
+/// Neutral filled appearance for a supporting, non-primary action.
+///
+/// This is a Core semantic variant, not a Workout-specific button surface.
+/// The governed surfaceVariant keeps the filled action visible against an
+/// OLED black background; FilledButtonTheme retains its geometry and states.
+ButtonStyle _supportingStyle(TioColors colors, {required bool loading}) {
+  bool genuinelyDisabled(Set<WidgetState> states) =>
+      !loading && states.contains(WidgetState.disabled);
+
+  return ButtonStyle(
+    // This supporting action sits directly beneath the 38dp Set-number and
+    // boxed-number cells. Keep the same compact *visual* minimum without
+    // changing the global 46dp FilledButton contract or Material tap target.
+    // Min (not fixed) height still accommodates accessibility text scaling.
+    minimumSize: const WidgetStatePropertyAll(
+      Size(TioButtonTokens.minimumWidth, TioSize.dp38),
+    ),
+    backgroundColor: WidgetStateProperty.resolveWith(
+      (states) => genuinelyDisabled(states)
+          ? colors.surfaceVariant.withValues(
+              alpha: TioButtonTokens.disabledContainerOpacity,
+            )
+          : colors.surfaceVariant,
+    ),
+    foregroundColor: WidgetStateProperty.resolveWith(
+      (states) => genuinelyDisabled(states)
+          ? colors.textMuted
+          : colors.textPrimary,
+    ),
+    overlayColor: _tintedStateLayer(colors.textPrimary),
+  );
 }
 
 /// Destructive appearance for [TioButtonVariant.destructive].
@@ -208,16 +261,16 @@ ButtonStyle _destructiveStyle(TioColors colors, {required bool loading}) {
     foregroundColor: WidgetStateProperty.resolveWith(
       (states) => governedDisabled(states) ? null : colors.danger,
     ),
-    overlayColor: _destructiveStateLayer(colors.danger),
+    overlayColor: _tintedStateLayer(colors.danger),
   );
 }
 
-/// Pressed/focused/hovered wash for the destructive variant.
+/// Pressed/focused/hovered wash for neutral and destructive variants.
 ///
 /// The shared `filledButtonTheme` tints its state layer with `onPrimary`,
 /// which would put a light wash over a danger action. Same governed
 /// opacities, danger colour.
-WidgetStateProperty<Color?> _destructiveStateLayer(Color color) {
+WidgetStateProperty<Color?> _tintedStateLayer(Color color) {
   return WidgetStateProperty.resolveWith((states) {
     // Transparent means no Material state overlay; it is an intentional
     // framework state, not a palette color role.
@@ -241,6 +294,7 @@ ButtonStyle _loadingStyle(TioButtonVariant variant, TioColors colors) {
         backgroundColor: WidgetStatePropertyAll(colors.primary),
         foregroundColor: WidgetStatePropertyAll(colors.onPrimary),
       ),
+    TioButtonVariant.supporting => _supportingStyle(colors, loading: true),
     TioButtonVariant.secondary => ButtonStyle(
         foregroundColor: WidgetStatePropertyAll(colors.primary),
         side: WidgetStatePropertyAll(

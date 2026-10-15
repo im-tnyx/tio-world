@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
@@ -67,6 +68,25 @@ void main() {
     ctrl.search('no matches');
     expect(ctrl.state.items, isEmpty);
     expect(ctrl.state.hasActiveExercises, isTrue);
+  });
+
+  test('legacy Routine picker cannot select unsupported STEPS/TIME ref',
+      () async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    final ctrl = RoutineExercisePickerController(
+      catalogRepository: _catalog(),
+      userExerciseRepository: _User(() async => [steps]),
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.state.items.any((item) => item.name == 'Step Mill'), isTrue);
+    expect(ctrl.select(steps.ref), isNull);
+    expect(ctrl.select(_catalogExercise().ref), isNotNull);
   });
 
   test('unavailable Custom repository selects only catalog and never writes',
@@ -136,6 +156,282 @@ void main() {
     expect(ctrl.state.items.single.exercise.ref, _catalogExercise().ref);
   });
 
+
+  testWidgets('multi Add hides zero footer and preserves ordered selection '
+      'across search and deselection', (tester) async {
+    final chosen = <Exercise>[];
+    final user = _User(() async => [_customExercise()]);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push<List<Exercise>>(
+              MaterialPageRoute(
+                builder: (routeContext) => ProviderScope(
+                  child: ExercisesPage(
+                    catalogRepository: _catalog(),
+                    userExerciseRepository: user,
+                    onExercisesAdded: (selected) {
+                      chosen.addAll(selected);
+                      Navigator.of(routeContext).pop<List<Exercise>>(selected);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            child: const Text('Open batch'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Open batch'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    final selectedBadge = find.byKey(
+      const ValueKey('exercise-selected-ex_bench_press'));
+    expect(selectedBadge, findsOneWidget);
+    expect(tester.getSize(selectedBadge), const Size(18, 18));
+    expect(tester.widget<Icon>(
+      find.descendant(of: selectedBadge, matching: find.byType(Icon)),
+    ).size, TioSize.dp12);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('exercises-search')), 'my');
+    await tester.pumpAndSettle();
+    expect(find.text('Bench Press'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-$_customId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 2 exercises'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(chosen.map((e) => e.ref).toList(), [
+      _catalogExercise().ref,
+      _customExercise().ref,
+    ]);
+    expect(user.writeCalls, 0);
+  });
+
+  for (final mode in [
+    TioThemeMode.light,
+    TioThemeMode.dark,
+    TioThemeMode.tioDark,
+  ]) {
+    testWidgets('selected Custom icon badge matches catalog at 320dp '
+        'in ${mode.name}', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Column(
+            children: [
+              ExerciseListRow(
+                key: const ValueKey('test-custom-row'),
+                item: ExerciseListItem(
+                  exercise: _customExercise(),
+                  thumbnailUrl: null,
+                  metadata: 'Strength',
+                  isCustom: true,
+                ),
+                selectionMode: true,
+                isSelected: true,
+                onTap: () {},
+              ),
+              ExerciseListRow(
+                item: ExerciseListItem(
+                  exercise: _catalogExercise(),
+                  thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+                  metadata: 'Chest',
+                ),
+                selectionMode: true,
+                isSelected: true,
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final iconSlot = find.byKey(
+        const ValueKey('exercise-custom-thumbnail-$_customId'));
+      final selected = find.byKey(
+        const ValueKey('exercise-selected-$_customId'));
+      expect(iconSlot, findsOneWidget);
+      expect(tester.getSize(iconSlot), const Size(68, 56));
+      expect(find.descendant(
+        of: iconSlot,
+        matching: find.byIcon(Icons.fitness_center_rounded),
+      ), findsOneWidget);
+      expect(selected, findsOneWidget);
+      expect(tester.getSize(selected), const Size(18, 18));
+      final stack = find.ancestor(
+        of: selected,
+        matching: find.byType(Stack),
+      ).first;
+      expect(tester.getSize(stack), const Size(68, 56));
+      final position = tester.widget<Positioned>(
+        find.ancestor(of: selected, matching: find.byType(Positioned)).first,
+      );
+      expect(position.top, -TioSpacing.xs);
+      expect(position.right, TioSpacing.xs);
+      expect(tester.getRect(selected).right,
+          closeTo(tester.getRect(iconSlot).right - TioSpacing.xs, 0.1));
+      // Both sources use the same 56dp media column and existing 12dp gap.
+      expect(tester.getRect(find.text('My Lift')).left,
+          closeTo(tester.getRect(find.text('Bench Press')).left, 0.1));
+      expect(
+        tester.widgetList<Semantics>(
+          find.descendant(
+            of: find.byKey(const ValueKey('test-custom-row')),
+            matching: find.byType(Semantics),
+          ),
+        ).any((semantics) => semantics.properties.selected == true),
+        isTrue,
+      );
+      // Theme primary is white in OLED/Tio Dark; the tick cannot also
+      // remain white or it becomes invisible.
+      final themeColors = switch (mode) {
+        TioThemeMode.light => TioColors.light,
+        TioThemeMode.dark => TioColors.oled,
+        TioThemeMode.tioDark => TioColors.dark,
+        TioThemeMode.system => TioColors.light,
+      };
+      for (final key in [
+        const ValueKey('exercise-selected-$_customId'),
+        const ValueKey('exercise-selected-ex_bench_press'),
+      ]) {
+        final badge = find.byKey(key);
+        final icon = tester.widget<Icon>(
+          find.descendant(
+            of: badge,
+            matching: find.byIcon(Icons.check_rounded),
+          ),
+        );
+        expect(icon.color, themeColors.onPrimary);
+        expect(icon.color, isNot(themeColors.primary));
+      }
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('unselected Custom browse shows icon but no selection badge',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _customExercise(),
+            thumbnailUrl: null,
+            metadata: null,
+            isCustom: true,
+          ),
+          onTap: () {},
+        ),
+      ),
+    ));
+    final slot = find.byKey(
+      const ValueKey('exercise-custom-thumbnail-$_customId'));
+    expect(slot, findsOneWidget);
+    expect(tester.getSize(slot), const Size(68, 56));
+    expect(find.byKey(const ValueKey('exercise-selected-$_customId')),
+        findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    expect(find.text('Custom'), findsOneWidget);
+  });
+
+  testWidgets('selected thumbnail badge hugs the image top-right rim',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _catalogExercise(),
+            thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+            metadata: 'Chest',
+          ),
+          selectionMode: true,
+          isSelected: true,
+          onTap: () {},
+        ),
+      ),
+    ));
+    const key = ValueKey('exercise-selected-ex_bench_press');
+    final marker = find.byKey(key);
+    expect(marker, findsOneWidget);
+    expect(tester.getSize(marker), const Size(18, 18));
+    final parent = tester.widget<Positioned>(
+      find.ancestor(of: marker, matching: find.byType(Positioned)).first,
+    );
+    // Thumbnail reserves 12dp for the text gap. Moving to right=4dp
+    // places the 18dp check at its corner without shifting the row.
+    expect(parent.top, -TioSpacing.xs);
+    expect(parent.right, TioSpacing.xs);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+  });
+
+
+  testWidgets('selected failed-network thumbnail keeps its badge visible',
+      (tester) async {
+    // Widget tests cannot successfully load external network images.
+    // The failure state must not collapse the badge's Stack to zero size.
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseListRow(
+          item: ExerciseListItem(
+            exercise: _catalogExercise(),
+            thumbnailUrl: Uri.parse('https://example.invalid/bench.png'),
+            metadata: 'Chest',
+          ),
+          selectionMode: true,
+          isSelected: true,
+          onTap: () {},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    const key = ValueKey('exercise-selected-ex_bench_press');
+    final selected = find.byKey(key);
+    expect(selected, findsOneWidget);
+    expect(tester.getSize(selected), const Size(18, 18));
+    final stack = find.ancestor(of: selected, matching: find.byType(Stack)).first;
+    expect(tester.getSize(stack).width, greaterThanOrEqualTo(68));
+    expect(tester.getSize(stack).height, greaterThanOrEqualTo(56));
+    expect(tester.getRect(selected).left,
+        greaterThanOrEqualTo(tester.getRect(stack).left));
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('search, pick Custom result and return without persistence',
       (tester) async {
     Exercise? selected;
@@ -149,12 +445,15 @@ void main() {
     );
     await tester.tap(find.text('Open picker'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-exercise-picker-page')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    expect(find.text('Add Exercise'), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercise-create')), findsNothing);
     expect(find.text('My Lift'), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey('exercises-search-open')));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('routine-exercise-picker-search')),
+      find.byKey(const ValueKey('exercises-search')),
       'my',
     );
     await tester.pumpAndSettle();
@@ -164,6 +463,109 @@ void main() {
     expect(selected?.ref, _customExercise().ref);
     expect(user.listCalls, 1);
     expect(user.writeCalls, 0);
+  });
+
+  testWidgets('STEPS/TIME Custom cannot Replace, but normal Catalog can',
+      (tester) async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    Exercise? selected;
+    await _pumpLauncher(tester,
+      catalog: _catalog(), user: _User(() async => [steps]),
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Step Mill'));
+    await tester.pump();
+    expect(find.textContaining('cannot be added to Routines yet'),
+        findsOneWidget);
+    expect(selected, isNull);
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(selected?.ref, _catalogExercise().ref);
+  });
+
+  testWidgets('batch ignores unsupported STEPS/TIME and saves selected Catalog',
+      (tester) async {
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated(_customId),
+      displayName: 'Step Mill',
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.active,
+    );
+    final batches = <List<Exercise>>[];
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: ExercisesPage(
+          catalogRepository: _catalog(),
+          userExerciseRepository: _User(() async => [steps]),
+          onExercisesAdded: batches.add,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Step Mill'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+    expect(find.textContaining('cannot be added to Routines yet'),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 1 exercise'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    expect(batches, hasLength(1));
+    expect(batches.single.map((x) => x.ref), [_catalogExercise().ref]);
+  });
+
+  testWidgets('Add Exercise title and catalog row select canonical Exercise',
+      (tester) async {
+    Exercise? selected;
+    final user = _User(() async => []);
+    await _pumpLauncher(
+      tester,
+      catalog: _catalog(),
+      user: user,
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Add Exercise'), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-exercise-create')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    expect(selected?.ref, _catalogExercise().ref);
+    expect(user.writeCalls, 0);
+  });
+
+  testWidgets('Custom read failure hides all selectable Exercise rows',
+      (tester) async {
+    Exercise? selected;
+    final user = _User(() async => throw StateError('unavailable'));
+    await _pumpLauncher(
+      tester,
+      catalog: _catalog(),
+      user: user,
+      onResult: (result) => selected = result,
+    );
+    await tester.tap(find.text('Open picker'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+    expect(find.text('Bench Press'), findsNothing);
+    expect(find.byKey(const ValueKey('exercises-list')), findsNothing);
+    expect(find.textContaining('Could not load custom exercises'),
+        findsOneWidget);
+    expect(selected, isNull);
   });
 
   testWidgets('Back cancels selection, no database write', (tester) async {
@@ -189,31 +591,34 @@ void main() {
     expect(user.writeCalls, 0);
   });
 
-  testWidgets('source error disables selection until retry', (tester) async {
-    var reads = 0;
+  testWidgets('source failure never exposes a partial selectable list',
+      (tester) async {
     final catalog = _Catalog(() async {
-      if (reads++ == 0) throw StateError('offline');
-      return ExerciseCatalog([_catalogExercise()]);
+      throw StateError('offline');
     });
+    final picked = <Exercise>[];
     await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.light),
-          child: child ?? const SizedBox.shrink(),
+      ProviderScope(
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: ExercisesPage(
+            catalogRepository: catalog,
+            onExerciseSelected: picked.add,
+          ),
         ),
-        home: RoutineExercisePickerPage(catalogRepository: catalog),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-exercise-picker-failed')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+    expect(find.text(ExercisesPage.failedMessage), findsOneWidget);
     expect(find.text('Bench Press'), findsNothing);
-    await tester.tap(
-      find.byKey(const ValueKey('routine-exercise-picker-retry')),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Bench Press'), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercises-list')), findsNothing);
+    expect(picked, isEmpty);
   });
+
 }
 
 Future<void> _pumpLauncher(
@@ -236,9 +641,13 @@ Future<void> _pumpLauncher(
             onPressed: () async {
               final result = await Navigator.of(context).push<Exercise>(
                 MaterialPageRoute(
-                  builder: (_) => RoutineExercisePickerPage(
-                    catalogRepository: catalog,
-                    userExerciseRepository: user,
+                  builder: (routeContext) => ProviderScope(
+                    child: ExercisesPage(
+                      catalogRepository: catalog,
+                      userExerciseRepository: user,
+                      onExerciseSelected: (exercise) =>
+                          Navigator.of(routeContext).pop<Exercise>(exercise),
+                    ),
                   ),
                 ),
               );

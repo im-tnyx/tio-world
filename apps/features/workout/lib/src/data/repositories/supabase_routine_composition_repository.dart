@@ -118,7 +118,7 @@ final class SupabaseRoutineCompositionRepository
             routineId: command.routineId.value,
             expectedRevision: command.expectedRevision,
             mutationId: command.mutationId,
-            exercises: _payload(command),
+            exercises: payload(command),
           )
           .timeout(_requestTimeout);
     } on PostgrestException catch (error) {
@@ -302,26 +302,62 @@ final class SupabaseRoutineCompositionRepository
 
   static RoutineCompositionSet _set(Map<String, dynamic> row, int position) {
     if (_integer(row['position']) != position ||
+        !row.containsKey('reps') ||
         !row.containsKey('load_kg') ||
-        !row.containsKey('rest_seconds')) {
+        !row.containsKey('rest_seconds') ||
+        !row.containsKey('distance_meters') ||
+        !row.containsKey('duration_seconds') ||
+        !row.containsKey('set_type') ||
+        !row.containsKey('reps_max')) {
       throw _malformed;
     }
-    final reps = _integer(row['reps']);
+    final repsValue = row['reps'];
+    final int? reps = repsValue == null ? null : _integer(repsValue);
     if (reps == 0) throw _malformed;
     final load = row['load_kg'];
+    final distance = row['distance_meters'];
+    final durationValue = row['duration_seconds'];
+    final max = row['reps_max'];
+    final type = row['set_type'];
+    // Decode after the bracketed read, fail closed on malformed hosted data.
+    if (type is! String ||
+        !RoutineSetType.values.any((value) => value.wireValue == type) ||
+        (max != null &&
+            (reps == null ||
+             max is! int || max < reps || max > 2147483647))) {
+      throw _malformed;
+    }
     if (load != null &&
         (load is! num || !load.toDouble().isFinite || load < 0)) {
       throw _malformed;
     }
-    return RoutineCompositionSet(
+    if (distance != null &&
+        (distance is! num || !distance.toDouble().isFinite || distance < 0)) {
+      throw _malformed;
+    }
+    if (durationValue != null &&
+        (durationValue is! int ||
+         durationValue < 0 || durationValue > 2147483647)) {
+      throw _malformed;
+    }
+    try {
+      return RoutineCompositionSet(
         id: _uuid(row['id']),
         prescription: SetPrescription(
           reps: reps,
+          repsMax: max as int?,
+          setType: RoutineSetType.fromWire(type),
           loadKg: (load as num?)?.toDouble(),
+          distanceMeters: (distance as num?)?.toDouble(),
+          durationSeconds: durationValue as int?,
           restSeconds: row['rest_seconds'] == null
               ? null
               : _integer(row['rest_seconds']),
-        ));
+        ),
+      );
+    } on ArgumentError {
+      throw _malformed;
+    }
   }
 
   static void _owned(Map<String, dynamic> row, String owner) {
@@ -344,18 +380,25 @@ final class SupabaseRoutineCompositionRepository
     return value.toLowerCase();
   }
 
-  static List<Map<String, dynamic>> _payload(RoutineCompositionSave command) =>
+  static List<Map<String, dynamic>> payload(RoutineCompositionSave command) =>
       [
         for (final entry in command.entries)
           {
             'id': entry.id,
             'exercise_ref': entry.exercise.value,
+            if (command.expectedCustomTypes.containsKey(entry.id))
+              'expected_exercise_type':
+                  command.expectedCustomTypes[entry.id]?.storageValue,
             'sets': [
               for (final set in entry.sets)
                 {
                   'id': set.id,
                   'reps': set.prescription.reps,
+                  'reps_max': set.prescription.repsMax,
+                  'set_type': set.prescription.setType.wireValue,
                   'load_kg': set.prescription.loadKg,
+                  'distance_meters': set.prescription.distanceMeters,
+                  'duration_seconds': set.prescription.durationSeconds,
                   'rest_seconds': set.prescription.restSeconds,
                 }
             ],
@@ -391,6 +434,11 @@ final class SupabaseRoutineCompositionRepository
         RoutineCompositionFailureKind.revisionConflict,
       'P0001' when error.message == 'routine_composition_mutation_conflict' =>
         RoutineCompositionFailureKind.mutationConflict,
+      // #534: a race against Custom archive is a DEFINITE no-write rejection.
+      // Reuse the existing sanitized category; do not leak raw SQL details.
+      '22023' when error.message ==
+              'routine_composition_archived_exercise_modified' =>
+        RoutineCompositionFailureKind.exerciseUnavailable,
       '22023' ||
       '22P02' ||
       '22003' ||

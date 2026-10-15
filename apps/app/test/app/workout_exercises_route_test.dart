@@ -267,7 +267,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
     expect(find.text('Synthetic Route Routine'), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -303,15 +303,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo(null);
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
   });
 
   testWidgets('Auth/bootstrap mismatch revokes Detail and Edit action',
@@ -328,7 +328,7 @@ void main() {
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
 
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsOneWidget);
 
     // Bootstrapped test-user is stale; Auth has already switched users.
@@ -337,7 +337,7 @@ void main() {
           AuthSession(userId: 'other-user', loginCycleId: 'other-cycle'),
         );
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     expect(find.byKey(const ValueKey('routine-detail-edit')), findsNothing);
   });
 
@@ -359,17 +359,17 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.text('Synthetic Route Custom'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo(null);
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.text('Synthetic Route Custom'), findsNothing);
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -389,9 +389,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+        'routine-set-type-70000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+    expect(find.text('Select Set Type'), findsOneWidget);
 
     final bootstrap = container.read(appSessionBootstrapControllerProvider)
         as _ReadyAppSessionBootstrapController;
@@ -399,7 +399,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.text('Select Set Type'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -419,7 +419,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsOneWidget);
+    expect(find.byType(ExercisesPage), findsOneWidget);
     expect(find.text('Synthetic Route Custom'), findsOneWidget);
 
     // No bootstrap transition: same principal, NEW interactive login cycle.
@@ -428,7 +428,7 @@ void main() {
           AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
         );
     await tester.pumpAndSettle();
-    expect(find.byType(RoutineExercisePickerPage), findsNothing);
+    expect(find.byType(ExercisesPage), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(find.text('Synthetic Route Custom'), findsNothing);
     // Current account remains logged in; re-entry gets a fresh controller.
@@ -451,16 +451,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-detail-edit')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-set-edit-70000000-0000-4000-8000-000000000001')));
+        'routine-set-type-70000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsOneWidget);
+    expect(find.text('Select Set Type'), findsOneWidget);
 
     container.read(_routineTestAuthStateProvider.notifier).state =
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'second-cycle'),
         );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps')), findsNothing);
+    expect(find.text('Select Set Type'), findsNothing);
     expect(find.byType(RoutineSetEditorSheet), findsNothing);
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(tester.takeException(), isNull);
@@ -490,7 +490,9 @@ void main() {
     // Create a valid dirty draft without a keyboard/sheet overlay: this
     // regression exercises in-flight identity revocation, not Set input.
     await tester.tap(find.byKey(const ValueKey(
-        'edit-routine-entry-remove-60000000-0000-4000-8000-000000000001')));
+        'edit-routine-entry-options-60000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove Exercise'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('edit-routine-empty')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
@@ -539,7 +541,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
 
     final compositions =
         container.read(routineCompositionRepositoryProvider)
@@ -549,12 +551,12 @@ void main() {
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo('second-user');
     await tester.pump();
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
 
     compositions.nextOwnerReadGate!.complete();
     await tester.pumpAndSettle();
     // The simulated new owner has no access to the prior owner's snapshot.
-    expect(find.text('1. Synthetic Route Curl'), findsNothing);
+    expect(find.text('Synthetic Route Curl'), findsNothing);
   });
 
   testWidgets('account switch does not reuse the previous Profile weight unit',
@@ -579,7 +581,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsOneWidget);
+    expect(find.text('17.6'), findsOneWidget);
 
     // ProfileDataProvider can retain A's last value while B is reloading.
     container.read(_routineTestAuthStateProvider.notifier).state =
@@ -589,14 +591,14 @@ void main() {
         as _ReadyAppSessionBootstrapController;
     bootstrap.transitionTo('second-user');
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · Load unavailable'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+    expect(find.text('Load unavailable'), findsOneWidget);
+    expect(find.text('17.6'), findsNothing);
 
     // Only B's completed Profile load can enable B's unit choice.
     nextProfile.add(_routineUnitProfile(WeightUnit.kg));
     await tester.pumpAndSettle();
-    expect(find.text('Set 1 · 8 reps · 8 kg'), findsOneWidget);
-    expect(find.text('Set 1 · 8 reps · 17.6 lb'), findsNothing);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('17.6'), findsNothing);
   });
 
   testWidgets('expanded Library Routine tap opens same owner-bound preview',
@@ -612,7 +614,7 @@ void main() {
         const ValueKey('library-routine-$parentId-$routineId')));
     await tester.pumpAndSettle();
     expect(find.byType(RoutineDetailPage), findsOneWidget);
-    expect(find.text('1. Synthetic Route Curl'), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
 
     await tester.tap(find.byType(BackButton));
@@ -637,39 +639,499 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
-  testWidgets('new Routine created in Program Detail appears under Library Program',
+  testWidgets('atomic Create Routine appears under owning Library Program',
       (tester) async {
-    final (_, router) = await _app(tester, AppMode.hybrid);
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
 
     const programId = '20000000-0000-4000-8000-000000000001';
-    const existingRoutineId = '30000000-0000-4000-8000-000000000001';
-    expect(
-      find.byKey(const ValueKey('library-routine-$programId-$existingRoutineId')),
-      findsOneWidget,
-    );
-
     await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
-    final nameField = find.descendant(
-      of: find.byKey(const ValueKey('routine-name-field')),
-      matching: find.byType(EditableText),
+
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('create-routine-name')),
+      'Added From Detail',
     );
-    await tester.enterText(nameField, 'Added From Detail');
-    await tester.tap(find.byKey(const ValueKey('routine-name-submit')));
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'exercise-row-ex_synthetic_route_curl',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    expect(reps, findsOneWidget);
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
     expect(find.text('Added From Detail'), findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse, reason: 'Confirmed Create must release its in-flight guard');
+
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-
     expect(find.byType(LibraryPage), findsOneWidget);
-    final programRoutines = find.byKey(const ValueKey('library-routines-$programId'));
-    expect(find.descendant(of: programRoutines,
-        matching: find.text('Added From Detail')), findsOneWidget);
+    final programRoutines = find.byKey(
+      const ValueKey('library-routines-$programId'),
+    );
+    expect(
+      find.descendant(
+        of: programRoutines,
+        matching: find.text('Added From Detail'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('same-owner Profile failure preserves Create draft and unit',
+      (tester) async {
+    final profileEvents = StreamController<ProfileSetupData?>.broadcast();
+    addTearDown(profileEvents.close);
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      sameOwnerProfiles: profileEvents.stream,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    final name = find.byKey(const ValueKey('create-routine-name'));
+    await tester.enterText(name, 'Preserved across Profile failure');
+    await tester.pump();
+    profileEvents.addError(StateError('transient Profile read failed'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(tester.widget<TioInput>(name).controller!.text,
+        'Preserved across Profile failure');
+    profileEvents.add(_routineUnitProfile(WeightUnit.kg));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(tester.widget<TioInput>(name).controller!.text,
+        'Preserved across Profile failure');
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    expect(find.text('KG'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'lost atomic Create ACK requires explicit exit and refreshes Program',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    // The fake RPC commits the Routine, but its ACK is lost.
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    await tester.tap(find.text('Exit to Program'));
+    await tester.pumpAndSettle();
+
+    // The unconfirmed return refreshes owner-scoped Program truth; it never
+    // acknowledges a write or makes another Create request automatically.
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    final cardsBefore = find.byKey(
+        const ValueKey('program-routine-30000000-0000-4000-8000-000000000001'));
+    expect(cardsBefore, findsOneWidget);
+    // A late commit can follow this first refresh. Never start a new
+    // Routine with fresh UUIDs while the old attempt is unresolved.
+    final add = find.byKey(const ValueKey('program-detail-add-routine'));
+    expect(tester.widget<IconButton>(add).onPressed, isNull);
+    expect(find.byKey(const ValueKey('program-routines-verify-create')),
+        findsOneWidget);
+    final pending = container.read(routinePendingCreateGateProvider);
+    final programId = ProgramId('20000000-0000-4000-8000-000000000001');
+    expect(pending.hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId,
+    ), isTrue);
+    await tester.tap(find.byKey(const ValueKey('program-routines-verify-create')));
+    await tester.pumpAndSettle();
+    expect(pending.hasPending(owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId), isFalse);
+    expect(tester.widget<IconButton>(add).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+
+  testWidgets('late Create after empty refresh stays guarded across navigation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      delayCreateCommit: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    const addKey = ValueKey('program-detail-add-routine');
+    const checkKey = ValueKey('program-routines-verify-create');
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(addKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit to Program'));
+    await tester.pumpAndSettle();
+    // The shared route fixture already contains one older Routine. The
+    // *new* timed-out Routine must still be absent from this first read.
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsOneWidget);
+    expect(find.text('Routine 1'), findsNothing);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await tester.tap(find.byKey(checkKey)); // Read BEFORE delayed commit.
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    expect(create.createCalls, 1);
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await create.commitLate(); // Original RPC commits AFTER first read.
+    expect(create.createCalls, 1);
+    await tester.tap(find.byKey(checkKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-routines-list')), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'in-flight Create survives same-owner login-cycle revocation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      holdCreateResponse: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    final gate = container.read(routinePendingCreateGateProvider);
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    final programId = ProgramId(
+        '20000000-0000-4000-8000-000000000001');
+
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump(); // The atomic RPC remains in flight.
+    expect(create.createCalls, 1);
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId,
+    ), isTrue);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    // The old RPC is deliberately *still* unresolved. An unrestricted
+    // pumpAndSettle can await its active progress indicator forever.
+    // Pump bounded route-revocation frames instead, then assert removal.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.byType(CreateRoutinePage), findsNothing,
+        reason: 'Revoked-session draft must disappear immediately');
+
+    // Old Program Detail does not inherit a new-cycle write capability.
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    const addKey = ValueKey('program-detail-add-routine');
+    const verifyKey = ValueKey('program-routines-verify-create');
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId,
+    ), isTrue);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await tester.tap(find.byKey(verifyKey)); // No commit yet.
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    expect(create.createCalls, 1, reason: 'No new Create UUID dispatched');
+
+    create.completeInFlight();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(verifyKey));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId,
+    ), isFalse);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull);
+    expect(create.createCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'definite rejected Create unlocks Program after same-owner re-login',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      holdCreateResponse: true,
+      rejectHeldCreate: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    final gate = container.read(routinePendingCreateGateProvider);
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    final programId = ProgramId(
+        '20000000-0000-4000-8000-000000000001');
+
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump();
+    expect(create.createCalls, 1);
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId), isTrue);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    const addKey = ValueKey('program-detail-add-routine');
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId), isTrue);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+
+    create.completeInFlight(); // Definite SQL/validation rejection; NO COMMIT.
+    await tester.pumpAndSettle();
+    expect(gate.hasPending(owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId), isFalse);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull,
+      reason: 'Program Detail must rebuild without manual navigation');
+    expect(find.byKey(const ValueKey('program-routines-verify-create')),
+      findsNothing);
+    expect(create.createCalls, 1);
+    expect(find.text('Routine 1'), findsNothing,
+      reason: 'A rejected Create cannot add a persisted Routine');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('stale Program Detail cannot Create on a new login cycle',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+
+    // Same owner signed in again. A still-mounted Program Detail must not
+    // inherit permission to create for a different login-cycle capability.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+
+    // Even if B's bootstrap and Auth identities agree with one another,
+    // the old Program Detail from A must never open a Create route for B.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'),
+        );
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    // Do not use the old Program's source to create under the new identity.
+    if (find.byKey(const ValueKey('program-detail-add-routine')).evaluate()
+        .isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(CreateRoutinePage), findsNothing);
+  });
+
+  testWidgets('missing atomic Create repository never opens legacy name sheet',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'program-open-20000000-0000-4000-8000-000000000001',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+  });
+
+  testWidgets('Create Exercise Options overlay closes on login-cycle revocation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'program-open-20000000-0000-4000-8000-000000000001',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'exercise-row-ex_synthetic_route_curl',
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    final options = find.byWidgetPredicate((widget) =>
+        widget is IconButton &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('create-routine-options-'));
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.text('Exercise Options'), findsOneWidget);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'new-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.text('Exercise Options'), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
   });
 
   testWidgets('Program Detail fails closed when Routine repository is unavailable',
@@ -1078,8 +1540,14 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
   bool withRoutineComposition = false,
+  bool withRoutineCreate = false,
+  bool loseCreateAcknowledgment = false,
+  bool delayCreateCommit = false,
+  bool holdCreateResponse = false,
+  bool rejectHeldCreate = false,
   bool withUserExerciseRepository = true,
   Stream<ProfileSetupData?>? switchedOwnerProfiles,
+  Stream<ProfileSetupData?>? sameOwnerProfiles,
 }) async {
   final appModeController = AppModeController(_MemoryAppModePreference(mode));
   await appModeController.load();
@@ -1094,6 +1562,8 @@ Future<(ProviderContainer, GoRouter)> _app(
   final calendarController =
       CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
   await calendarController.load();
+  final routeRoutines = _RouteRoutines();
+  final routeCompositions = _RouteCompositions();
 
   final container = ProviderContainer(
     overrides: [
@@ -1115,10 +1585,19 @@ Future<(ProviderContainer, GoRouter)> _app(
         withProgramRepository ? _RoutePrograms() : null,
       ),
       routineRepositoryProvider.overrideWithValue(
-        withRoutineRepository ? _RouteRoutines() : null,
+        withRoutineRepository ? routeRoutines : null,
+      ),
+      routineCreateRepositoryProvider.overrideWithValue(
+        withRoutineCreate
+            ? _RouteCreate(routeRoutines, routeCompositions,
+                loseAcknowledgment: loseCreateAcknowledgment,
+                delayCommit: delayCreateCommit,
+                holdResponse: holdCreateResponse,
+                definiteFailureAfterHold: rejectHeldCreate)
+            : null,
       ),
       routineCompositionRepositoryProvider.overrideWithValue(
-        withRoutineComposition ? _RouteCompositions() : null,
+        withRoutineComposition ? routeCompositions : null,
       ),
       userExerciseRepositoryProvider.overrideWithValue(
         withUserExerciseRepository ? _RouteUserExercises() : null,
@@ -1132,7 +1611,13 @@ Future<(ProviderContainer, GoRouter)> _app(
           final session = ref.watch(authSessionStateProvider).valueOrNull;
           if (session is AuthSessionAuthenticated &&
               session.session.userId == 'test-user') {
-            return Stream.value(_routineUnitProfile(WeightUnit.lb));
+            if (sameOwnerProfiles == null) {
+              return Stream.value(_routineUnitProfile(WeightUnit.lb));
+            }
+            return (() async* {
+              yield _routineUnitProfile(WeightUnit.lb);
+              yield* sameOwnerProfiles;
+            })();
           }
           return switchedOwnerProfiles ??
               Stream<ProfileSetupData?>.value(null);
@@ -1201,7 +1686,71 @@ final class _RouteRoutines implements RoutineRepository {
   }
 }
 
+final class _RouteCreate implements RoutineCreateRepository {
+  _RouteCreate(this._routines, this._compositions, {
+    this.loseAcknowledgment = false,
+    this.delayCommit = false,
+    this.holdResponse = false,
+    this.definiteFailureAfterHold = false,
+  });
+
+  final _RouteRoutines _routines;
+  final _RouteCompositions _compositions;
+  final bool loseAcknowledgment;
+  final bool delayCommit;
+  final bool holdResponse;
+  final bool definiteFailureAfterHold;
+  Completer<void>? _inFlightResponse;
+  RoutineCreateCommand? _delayed;
+  int createCalls = 0;
+
+  Future<void> _commit(RoutineCreateCommand command) async {
+    await _routines.create(command.routine);
+    _compositions.created = command;
+  }
+
+  void completeInFlight() {
+    final response = _inFlightResponse;
+    if (response == null) throw StateError('No in-flight RPC');
+    // Complete synchronously. Awaiting a zero-duration timer before the
+    // next tester.pump deadlocks under Flutter test's fake async clock.
+    response.complete();
+  }
+
+  Future<void> commitLate() async {
+    final pending = _delayed;
+    if (pending == null) throw StateError('No delayed RPC');
+    _delayed = null;
+    await _commit(pending);
+  }
+
+  @override
+  Future<int> create(RoutineCreateCommand command) async {
+    createCalls++;
+    if (holdResponse) {
+      // Simulates a dispatched RPC whose response returns only after
+      // login-cycle revocation has already disposed the private screen.
+      _inFlightResponse = Completer<void>();
+      await _inFlightResponse!.future;
+    }
+    if (definiteFailureAfterHold) {
+      throw const RoutineCompositionException(
+        RoutineCompositionFailureKind.invalidRequest,
+      );
+    }
+    if (delayCommit) {
+      // Client stopped waiting, but server-side commit may still be pending.
+      _delayed = command;
+      throw StateError('response lost before late server commit');
+    }
+    await _commit(command);
+    if (loseAcknowledgment) throw StateError('response lost after commit');
+    return 1;
+  }
+}
+
 final class _RouteCompositions implements RoutineCompositionRepository {
+  RoutineCreateCommand? created;
   int _readCount = 0;
   Completer<void>? nextOwnerReadGate;
   double? testLoadKg;
@@ -1214,6 +1763,13 @@ final class _RouteCompositions implements RoutineCompositionRepository {
     if (_readCount > 1 && nextOwnerReadGate != null) {
       await nextOwnerReadGate!.future;
       return null;
+    }
+    final saved = created;
+    if (saved != null && saved.routine.id == routineId) {
+      return RoutineCompositionSnapshot(
+        routineId: routineId, revision: 1,
+        lastMutationId: saved.mutationId, entries: saved.entries,
+      );
     }
     return RoutineCompositionSnapshot(
       routineId: routineId,

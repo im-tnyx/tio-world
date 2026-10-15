@@ -60,6 +60,107 @@ RoutineEditorController _make(
 }
 
 void main() {
+  test('Replace creates fresh blank Set and saves once without old targets',
+      () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final replacement = Exercise(
+      ref: ExerciseRef.catalog('ex_run_on_treadmill'),
+      displayName: 'Run on Treadmill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
+    );
+    final id = ctrl.replacePickedExercise(_e, replacement);
+    expect(id, _newE);
+    expect(ctrl.replacePickedExercise(_newE, replacement), isNull);
+    expect(ctrl.state.entries.single.id, _newE);
+    expect(ctrl.state.entries.single.sets.single.id, _newS);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, isNull);
+    expect(ctrl.state.entries.single.sets.single.prescription.loadKg, isNull);
+    expect(comp.saveCount, 0);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.exercise, replacement.ref);
+    expect(comp.lastSave!.entries.single.sets.single.id, _newS);
+  });
+
+  test('Steps/Duration Custom cannot enter Edit or replace saved Exercise',
+      () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final steps = Exercise(
+      ref: ExerciseRef.userCreated('70000000-0000-4000-8000-000000000123'),
+      displayName: 'Step Mill',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.stepsDuration,
+    );
+    expect(ctrl.addPickedExercise(steps), isNull);
+    expect(ctrl.replacePickedExercise(_e, steps), isNull);
+    expect(ctrl.state.entries.single.id, _e);
+    expect(ctrl.state.entries.single.exercise, ExerciseRef.catalog(_ref));
+    expect(ctrl.state.dirty, isFalse);
+    expect(comp.saveCount, 0);
+  });
+
+  test('Edit cannot add a ninth Set to the same Exercise', () async {
+    final ids = [
+      for (var index = 0; index < 7; index++)
+        '50000000-0000-4000-8000-${index.toString().padLeft(12, '0')}',
+      _m,
+    ];
+    final repository = _Compositions(_snapshot(entries: [_entry()]));
+    final controller = _make(_Routines([_routine()]), repository, ids: ids);
+    addTearDown(controller.dispose);
+    await controller.load();
+    for (var index = 1; index < 8; index++) {
+      expect(controller.addSet(_e, SetPrescription()), isNotNull);
+    }
+    expect(controller.state.entries.single.sets, hasLength(8));
+    expect(controller.addSet(_e, SetPrescription()), isNull);
+    expect(controller.state.entries.single.sets, hasLength(8));
+    // No silent ninth Set persists after the rejected operation.
+    expect(await controller.update(), isTrue);
+    expect(repository.lastSave!.entries.single.sets, hasLength(8));
+  });
+
+  test('historical nine Sets load intact but cannot Update until reduced',
+      () async {
+    final oldSets = [
+      for (var index = 0; index < 9; index++)
+        RoutineCompositionSet(
+          id: '50000000-0000-4000-8000-${index.toString().padLeft(12, '0')}',
+          prescription: SetPrescription(reps: 8),
+        ),
+    ];
+    final historical = RoutineCompositionEntry(
+      id: _e, exercise: ExerciseRef.catalog(_ref), sets: oldSets,
+    );
+    final comp = _Compositions(_snapshot(entries: [historical]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.state.entries.single.sets, hasLength(9));
+    expect(ctrl.exceedsSetLimit, isTrue);
+    expect(ctrl.editSet(_e, oldSets.first.id, SetPrescription(reps: 10)),
+        isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('at most 8 Sets'));
+    expect(comp.saveCount, 0);
+    expect(ctrl.removeSet(_e, oldSets.last.id), isTrue);
+    expect(ctrl.exceedsSetLimit, isFalse);
+    expect(ctrl.state.entries.single.sets, hasLength(8));
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.sets, hasLength(8));
+    expect(comp.lastSave!.entries.single.sets.first.prescription.reps, 10);
+    expect(oldSets.first.id, comp.lastSave!.entries.single.sets.first.id);
+  });
+
   test('wrong owning Program refuses metadata and composition reads', () async {
     final routines = _Routines([_routine()]);
     final compositions = _Compositions(_snapshot());
@@ -123,6 +224,41 @@ void main() {
     expect(comp.saveCount, 1);
   });
 
+  test('existing Edit preserves rich type/range and new Set adopts mode',
+      () async {
+    final enriched = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.catalog(_ref),
+      sets: [
+        RoutineCompositionSet(
+          id: _s,
+          prescription: SetPrescription(
+            reps: 8, repsMax: 12, setType: RoutineSetType.warmUp,
+            loadKg: 12.5, restSeconds: 30,
+          ),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [enriched]));
+    final ctrl = _make(_Routines([_routine()]), comp,
+        ids: [_newS, _m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.addSet(_e, SetPrescription(reps: 5)), _newS);
+    expect(ctrl.state.entries.single.sets[1].prescription.repsMax, 5);
+    expect(ctrl.state.entries.single.sets[1].prescription.setType,
+        RoutineSetType.normal);
+    expect(ctrl.editSet(_e, _s, SetPrescription(
+      reps: 9, repsMax: 13, setType: RoutineSetType.warmUp,
+      loadKg: 12.5, restSeconds: 30,
+    )), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.lastSave!.entries.single.sets.first.prescription.setType,
+        RoutineSetType.warmUp);
+    expect(comp.lastSave!.entries.single.sets.first.prescription.repsMax, 13);
+    expect(comp.lastSave!.entries.single.sets.last.prescription.repsMax, 5);
+  });
+
   test('add/remove/reorder sets and cancel never write before Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     final ctrl = _make(_Routines([_routine()]), comp, ids: [_newS]);
@@ -136,6 +272,51 @@ void main() {
     expect(ctrl.state.entries, isEmpty);
     ctrl.dispose();
     expect(comp.saveCount, 0);
+  });
+
+  test('server-side Custom archive race keeps draft and explains correction',
+      () async {
+    final custom = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _s, prescription: SetPrescription(reps: 8, loadKg: 12),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [custom]))
+      ..saveError = const RoutineCompositionException(
+        RoutineCompositionFailureKind.exerciseUnavailable,
+      );
+    // The owner-scoped preflight still sees active. The DB may serialize
+    // an archive before Save and reject this mutation authoritatively.
+    final ctrl = RoutineEditorController(
+      program: _program,
+      routine: _routine(),
+      routines: _Routines([_routine()]),
+      compositions: comp,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.weightReps,
+      ),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 10, loadKg: 12),
+    ), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('was archived or is unavailable'));
+    expect(ctrl.state.dirty, isTrue);
+    expect(ctrl.state.entries.single.id, _e);
+    expect(ctrl.state.entries.single.sets.single.id, _s);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, 10);
+    expect(comp.saveCount, 1,
+        reason: 'definite server rejection must not trigger an auto retry');
   });
 
   test('revision conflict locks draft and never rebases or retries RPC', () async {
@@ -195,6 +376,319 @@ void main() {
     expect(comp.saveCount, 0);
   });
 
+  test('Edit preflight blocks remotely retyped Custom STEPS/TIME', () async {
+    final custom = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001'),
+      sets: [RoutineCompositionSet(id: _s,
+        prescription: SetPrescription(reps: 8))],
+    );
+    final comp = _Compositions(_snapshot(entries: [custom]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(), newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 9)), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('Steps & Duration'));
+    expect(comp.saveCount, 0);
+  });
+
+  test('Edit historical KG/REPS Custom cannot Update under new duration',
+      () async {
+    final historical = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(reps: 8, loadKg: 12),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [historical]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.duration,
+      ),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 9)), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('type changed'));
+    expect(comp.saveCount, 0);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, 9);
+  });
+
+  test('Edit newly picked Custom KM/TIME cannot write after weightReps change',
+      () async {
+    final comp = _Compositions(_snapshot(entries: const []));
+    final ids = [_newE, _newS, _m].iterator;
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.weightReps,
+      ),
+      newUuid: () {
+        if (!ids.moveNext()) throw StateError('Unexpected UUID');
+        return ids.current;
+      },
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final added = ctrl.addPickedExercise(Exercise(
+      ref: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      displayName: 'Custom Run', status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
+    ))!;
+    expect(ctrl.addSet(added, SetPrescription(
+      distanceMeters: 1500, durationSeconds: 600,
+    )), _newS);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.message, contains('type changed'));
+    expect(comp.saveCount, 0);
+    expect(ctrl.state.entries.single.sets.single.prescription.distanceMeters,
+        1500);
+  });
+
+  test('Edit preserves metric targets when Custom type became null, no RPC',
+      () async {
+    final metric = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(
+          distanceMeters: 3000, durationSeconds: 900,
+        ),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [metric]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(exerciseType: null),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(
+      distanceMeters: 4000, durationSeconds: 900,
+    )), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.message, contains('type changed'));
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(comp.saveCount, 0);
+    expect(ctrl.state.entries.single.sets.single.prescription.distanceMeters,
+        4000);
+  });
+
+  test('legacy untyped Custom Reps/Load remains editable without guessing',
+      () async {
+    final legacy = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(reps: 8, loadKg: 10),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [legacy]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(exerciseType: null),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 9, loadKg: 10)),
+        isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.sets.single.prescription.reps, 9);
+  });
+
+  test('archived unchanged Custom stays while unrelated Set is edited',
+      () async {
+    final archived = RoutineCompositionEntry(
+      id: _newE,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _newS,
+          prescription: SetPrescription(
+            reps: 6,
+            loadKg: 10,
+            setType: RoutineSetType.warmUp,
+            restSeconds: 30,
+          ),
+        ),
+      ],
+    );
+    final repo = _StepExerciseRepository(
+      exerciseType: ExerciseType.stepsDuration,
+      status: ExerciseStatus.archived,
+    );
+    final comp = _Compositions(_snapshot(entries: [_entry(), archived]));
+    final ctrl = RoutineEditorController(
+      program: _program,
+      routine: _routine(),
+      routines: _Routines([_routine()]),
+      compositions: comp,
+      userExercises: repo,
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 10, loadKg: 12.5, restSeconds: 30),
+    ), isTrue);
+    expect(ctrl.moveExercise(1, 0), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(repo.archivedInclusiveReads, 1);
+    expect(comp.lastSave!.entries.first, archived,
+      reason: 'Set ID/order/targets for archived Custom must be untouched');
+    expect(comp.lastSave!.entries.last.sets.first.prescription.reps, 10);
+  });
+
+  test('archived Custom Set edits fail closed with zero RPC writes', () async {
+    final historical = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _s,
+          prescription: SetPrescription(reps: 8, loadKg: 12),
+        ),
+      ],
+    );
+    final repo = _StepExerciseRepository(status: ExerciseStatus.archived);
+    final comp = _Compositions(_snapshot(entries: [historical]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: repo, newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(
+      _e, _s, SetPrescription(reps: 9, loadKg: 12),
+    ), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(ctrl.state.message, contains('archived Custom Exercise'));
+    expect(comp.saveCount, 0);
+    expect(repo.archivedInclusiveReads, 1);
+    expect(ctrl.state.entries.single.sets.single.prescription.reps, 9);
+  });
+
+  test('newly selected Custom archived remotely cannot be submitted',
+      () async {
+    final repo = _StepExerciseRepository(
+      exerciseType: ExerciseType.weightReps,
+      status: ExerciseStatus.archived,
+    );
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ids = [_newE, _newS, _m].iterator;
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: repo,
+      newUuid: () {
+        if (!ids.moveNext()) throw StateError('Unexpected UUID');
+        return ids.current;
+      },
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    final newEntry = ctrl.addPickedExercise(Exercise(
+      ref: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      displayName: 'Picked before archive',
+      status: ExerciseStatus.active,
+      exerciseType: ExerciseType.weightReps,
+    ));
+    expect(newEntry, _newE);
+    expect(ctrl.addSet(_newE, SetPrescription(reps: 10)), _newS);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.message, contains('archived Custom Exercise'));
+    expect(comp.saveCount, 0);
+    expect(repo.archivedInclusiveReads, 1);
+  });
+
+  test('historical archived Custom entry may be removed', () async {
+    final archived = RoutineCompositionEntry(
+      id: _newE,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [
+        RoutineCompositionSet(
+          id: _newS, prescription: SetPrescription(reps: 8),
+        ),
+      ],
+    );
+    final comp = _Compositions(_snapshot(entries: [archived, _entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.removeExercise(_newE), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.id, _e);
+    expect(comp.lastSave!.entries.single.exercise, ExerciseRef.catalog(_ref));
+  });
+
+  test('Edit compatible Custom definition still updates without conversion',
+      () async {
+    final persisted = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(reps: 8, loadKg: 12),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [persisted]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.weightReps,
+      ),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 11, loadKg: 12)),
+        isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.sets.single.prescription.reps, 11);
+  });
+
   test('old pending save cannot submit twice even with repeated Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     comp.saveGate = Completer<void>();
@@ -252,5 +746,32 @@ final class _Compositions implements RoutineCompositionRepository {
     if (saveGate != null) await saveGate!.future;
     if (saveError case final error?) throw error;
     return command.expectedRevision + 1;
+  }
+}
+
+final class _StepExerciseRepository extends Fake
+    implements UserExerciseRepository {
+  _StepExerciseRepository({
+    this.exerciseType = ExerciseType.stepsDuration,
+    this.status = ExerciseStatus.active,
+  });
+  final ExerciseType? exerciseType;
+  final ExerciseStatus status;
+  int archivedInclusiveReads = 0;
+
+  @override
+  Future<List<Exercise>> list({bool includeArchived = false}) async {
+    if (includeArchived) archivedInclusiveReads++;
+    if (status == ExerciseStatus.archived && !includeArchived) return [];
+    return [
+      Exercise(
+        ref: ExerciseRef.userCreated(
+          '90000000-0000-4000-8000-000000000001',
+        ),
+        displayName: 'Custom Exercise',
+        status: status,
+        exerciseType: exerciseType,
+      ),
+    ];
   }
 }

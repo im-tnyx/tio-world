@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/exercises/exercise_catalog_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
@@ -23,7 +27,10 @@ class ExercisesPage extends ConsumerStatefulWidget {
     super.key,
     this.startSearching = false,
     this.userExerciseRepository,
-  });
+    this.catalogRepository,
+    this.onExerciseSelected,
+    this.onExercisesAdded,
+  }) : assert(onExerciseSelected == null || onExercisesAdded == null);
 
   /// Opens with the top-bar search field active and focused.
   final bool startSearching;
@@ -33,6 +40,18 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// Null keeps the catalog fully usable while create/edit capability fails
   /// closed instead of reporting in-memory success.
   final UserExerciseRepository? userExerciseRepository;
+
+  /// An explicit canonical catalog source for the Routine selection context.
+  /// Browse uses the existing shared provider; no nested provider override.
+  final ExerciseCatalogRepository? catalogRepository;
+
+  /// When supplied, reuse this canonical screen as a Routine Exercise
+  /// selector rather than launching a duplicate picker UI. Browse behavior
+  /// and Custom Exercise editing remain unchanged without this callback.
+  final ValueChanged<Exercise>? onExerciseSelected;
+
+  /// Explicit Routine Add-only batch. Ordinary browse and Replace are intact.
+  final ValueChanged<List<Exercise>>? onExercisesAdded;
 
   static const loadingLabel = 'Loading exercises';
   static const emptyCatalogMessage = 'No exercises available yet.';
@@ -49,22 +68,53 @@ class ExercisesPage extends ConsumerStatefulWidget {
 
 class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   CustomExercisesController? _customController;
+  ExercisesController? _selectionCatalogController;
+  // Ordered by first selection; canonical refs dedupe a single picker batch.
+  final Map<ExerciseRef, Exercise> _pending = {};
 
   @override
   void initState() {
     super.initState();
     _bindCustomController();
+    _bindSelectionCatalog();
   }
 
   @override
   void didUpdateWidget(covariant ExercisesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.catalogRepository, widget.catalogRepository) ||
+        !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        (oldWidget.onExercisesAdded == null) != (widget.onExercisesAdded == null)) {
+      _pending.clear();
+    }
     if (!identical(
       oldWidget.userExerciseRepository,
       widget.userExerciseRepository,
     )) {
       _bindCustomController();
     }
+    if (!identical(oldWidget.catalogRepository, widget.catalogRepository) ||
+        oldWidget.startSearching != widget.startSearching) {
+      _bindSelectionCatalog();
+    }
+  }
+
+  void _bindSelectionCatalog() {
+    _selectionCatalogController?.removeListener(_onCustomChanged);
+    _selectionCatalogController?.dispose();
+    final repository = widget.catalogRepository;
+    if (repository == null) {
+      _selectionCatalogController = null;
+      return;
+    }
+    final controller = ExercisesController(
+      repository: repository,
+      mediaGender: ref.read(exerciseViewerMediaGenderProvider),
+      startSearching: widget.startSearching,
+    );
+    _selectionCatalogController = controller;
+    controller.addListener(_onCustomChanged);
+    controller.load();
   }
 
   void _bindCustomController() {
@@ -87,10 +137,77 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     if (mounted) setState(() {});
   }
 
+  static const unsupportedRoutineTypeMessage =
+      'Steps & Duration Exercises cannot be added to Routines yet.';
+
+  void _showUnsupportedRoutineType() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(unsupportedRoutineTypeMessage)),
+    );
+  }
+
+  void _select(Exercise exercise) {
+    if (exercise.status != ExerciseStatus.active) return;
+    if (exercise.ref is UserCreatedExerciseRef &&
+        _customController?.state.status != CustomExercisesStatus.ready) {
+      return;
+    }
+    if (!RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      _showUnsupportedRoutineType();
+      return;
+    }
+    widget.onExerciseSelected?.call(exercise);
+  }
+
+  bool _canPick(Exercise exercise) {
+    if (exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType) ||
+        _selectionCatalogController?.state.status != ExercisesStatus.ready) {
+      return false;
+    }
+    final customState = _customController?.state;
+    if (widget.userExerciseRepository != null &&
+        customState?.status != CustomExercisesStatus.ready) {
+      return false;
+    }
+    if (exercise.ref is UserCreatedExerciseRef) {
+      return customState?.exercises.any((current) =>
+              current.ref == exercise.ref &&
+              current.status == ExerciseStatus.active) ??
+          false;
+    }
+    return true;
+  }
+
+  void _toggle(Exercise exercise) {
+    if (!RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      _showUnsupportedRoutineType();
+      return;
+    }
+    if (!_canPick(exercise)) return;
+    setState(() {
+      if (_pending.containsKey(exercise.ref)) {
+        _pending.remove(exercise.ref);
+      } else {
+        _pending[exercise.ref] = exercise;
+      }
+    });
+  }
+
+  void _confirmBatch() {
+    if (widget.onExercisesAdded == null || _pending.isEmpty ||
+        !_pending.values.every(_canPick)) {
+      return;
+    }
+    widget.onExercisesAdded!(List<Exercise>.unmodifiable(_pending.values));
+  }
+
   @override
   void dispose() {
     _customController?.removeListener(_onCustomChanged);
     _customController?.dispose();
+    _selectionCatalogController?.removeListener(_onCustomChanged);
+    _selectionCatalogController?.dispose();
     super.dispose();
   }
 
@@ -115,8 +232,14 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final catalogController =
-        ref.watch(exercisesControllerProvider(widget.startSearching));
+    if (_selectionCatalogController != null) {
+      ref.listen<ExerciseMediaGender?>(
+        exerciseViewerMediaGenderProvider,
+        (_, gender) => _selectionCatalogController?.setMediaGender(gender),
+      );
+    }
+    final catalogController = _selectionCatalogController ??
+        ref.watch(exercisesControllerProvider(widget.startSearching))!;
     final catalogState = catalogController.state;
     final customState = _customController?.state;
     final customExercises = customState?.status == CustomExercisesStatus.ready
@@ -143,6 +266,13 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
+    final isSelecting = widget.onExerciseSelected != null ||
+        widget.onExercisesAdded != null;
+    final batchReady = widget.onExercisesAdded != null &&
+        _pending.isNotEmpty &&
+        catalogState.status == ExercisesStatus.ready &&
+        (widget.userExerciseRepository == null ||
+            customState?.status == CustomExercisesStatus.ready);
 
     return Scaffold(
       key: const ValueKey('exercises-page'),
@@ -169,7 +299,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 onChanged: catalogController.setSearchText,
               )
             : Text(
-                'Exercises',
+                isSelecting ? 'Add Exercise' : 'Exercises',
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontWeight: TioFontWeight.w800,
@@ -187,7 +317,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
                 ),
               ]
             : [
-                if (widget.userExerciseRepository != null)
+                if (!isSelecting && widget.userExerciseRepository != null)
                   IconButton(
                     key: const ValueKey('custom-exercise-create'),
                     tooltip: 'Create custom exercise',
@@ -226,6 +356,23 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
           customItems: customItems,
         ),
       ),
+      // No reserved/disabled footer until the first confirmed selection.
+      bottomNavigationBar: batchReady
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(TioSpacing.lg),
+                child: TioButton.primary(
+                  key: const ValueKey('exercises-add-selected'),
+                  label: _pending.length == 1
+                      ? 'Add 1 exercise'
+                      : 'Add ${_pending.length} exercises',
+                  expand: true,
+                  onPressed: _confirmBatch,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -257,6 +404,59 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     required CustomExercisesState? customState,
     required List<ExerciseListItem> customItems,
   }) {
+    // A selector must not offer only catalog (or only Custom) choices if
+    // either requested source has not resolved. Unlike casual browsing,
+    // it returns one verified, active Exercise to an owner-scoped draft.
+    if (widget.onExerciseSelected != null ||
+        widget.onExercisesAdded != null) {
+      if (catalogState.status != ExercisesStatus.ready) {
+        return catalogState.status == ExercisesStatus.loading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  semanticsLabel: ExercisesPage.loadingLabel,
+                ),
+              )
+            : _Message(
+                text: switch (catalogState.status) {
+                  ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
+                  ExercisesStatus.malformedCatalog => ExercisesPage.malformedCatalogMessage,
+                  _ => ExercisesPage.failedMessage,
+                },
+              );
+      }
+      if (widget.userExerciseRepository != null &&
+          customState?.status == CustomExercisesStatus.ready) {
+        // A Routine selector must not expose a mixed/foreign or duplicated
+        // Custom collection even if the normal browse UI can display data.
+        final refs = <ExerciseRef>{};
+        final validOwnerCollection = customState!.exercises.every(
+          (exercise) =>
+              exercise.ref is UserCreatedExerciseRef &&
+              refs.add(exercise.ref),
+        );
+        if (!validOwnerCollection) {
+          return _Failure(
+            message: 'Could not load exercises.',
+            onRetry: () => unawaited(_customController!.retryLoad()),
+          );
+        }
+      }
+      if (widget.userExerciseRepository != null &&
+          customState?.status != CustomExercisesStatus.ready) {
+        if (customState?.status == CustomExercisesStatus.loadFailed) {
+          return _Failure(
+            message: customState?.loadError ??
+                'Could not load custom exercises. Please try again.',
+            onRetry: () => unawaited(_customController!.retryLoad()),
+          );
+        }
+        return const Center(
+          child: CircularProgressIndicator(
+            semanticsLabel: ExercisesPage.loadingLabel,
+          ),
+        );
+      }
+    }
     final customReady = customState?.status == CustomExercisesStatus.ready;
     final customHasAny = customReady && customState!.exercises.isNotEmpty;
     final catalogItems = catalogState.status == ExercisesStatus.ready
@@ -295,7 +495,18 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         return _ExerciseList(
           customItems: const [],
           catalogItems: const [],
-          onCustomTap: _openCustomEditor,
+          onCustomTap: widget.onExercisesAdded != null
+              ? _toggle
+              : widget.onExerciseSelected == null
+                  ? _openCustomEditor
+                  : _select,
+          onCatalogTap: widget.onExercisesAdded != null
+              ? _toggle
+              : widget.onExerciseSelected == null
+                  ? null
+                  : _select,
+          multiSelecting: widget.onExercisesAdded != null,
+          selectedRefs: _pending.keys.toSet(),
           customFailure: customFailureMessage,
           onRetryCustom: _customController?.retryLoad,
           catalogMessage: catalogFailureMessage,
@@ -335,7 +546,18 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     return _ExerciseList(
       customItems: customItems,
       catalogItems: catalogItems,
-      onCustomTap: _openCustomEditor,
+      onCustomTap: widget.onExercisesAdded != null
+          ? _toggle
+          : widget.onExerciseSelected == null
+              ? _openCustomEditor
+              : _select,
+      onCatalogTap: widget.onExercisesAdded != null
+          ? _toggle
+          : widget.onExerciseSelected == null
+              ? null
+              : _select,
+      multiSelecting: widget.onExercisesAdded != null,
+      selectedRefs: _pending.keys.toSet(),
       customFailure: customFailureMessage,
       onRetryCustom: _customController?.retryLoad,
       catalogMessage: catalogFailureMessage,
@@ -395,6 +617,9 @@ class _ExerciseList extends StatelessWidget {
     required this.customItems,
     required this.catalogItems,
     required this.onCustomTap,
+    required this.multiSelecting,
+    required this.selectedRefs,
+    this.onCatalogTap,
     this.customFailure,
     this.onRetryCustom,
     this.catalogMessage,
@@ -403,6 +628,9 @@ class _ExerciseList extends StatelessWidget {
   final List<ExerciseListItem> customItems;
   final List<ExerciseListItem> catalogItems;
   final ValueChanged<Exercise> onCustomTap;
+  final bool multiSelecting;
+  final Set<ExerciseRef> selectedRefs;
+  final ValueChanged<Exercise>? onCatalogTap;
   final String? customFailure;
   final VoidCallback? onRetryCustom;
   final String? catalogMessage;
@@ -437,6 +665,8 @@ class _ExerciseList extends StatelessWidget {
               'exercise-row-${customItems[i].exercise.ref.value}',
             ),
             item: customItems[i],
+            selectionMode: multiSelecting,
+            isSelected: selectedRefs.contains(customItems[i].exercise.ref),
             onTap: () => onCustomTap(customItems[i].exercise),
           ),
           if (i != customItems.length - 1) divider(),
@@ -453,6 +683,11 @@ class _ExerciseList extends StatelessWidget {
               'exercise-row-${catalogItems[i].exercise.ref.value}',
             ),
             item: catalogItems[i],
+            selectionMode: multiSelecting,
+            isSelected: selectedRefs.contains(catalogItems[i].exercise.ref),
+            onTap: onCatalogTap == null
+                ? null
+                : () => onCatalogTap!(catalogItems[i].exercise),
           ),
           if (i != catalogItems.length - 1) divider(),
         ],

@@ -13,15 +13,34 @@ class ExerciseListRow extends StatelessWidget {
     required this.item,
     super.key,
     this.onTap,
+    this.selectionMode = false,
+    this.isSelected = false,
   });
 
   final ExerciseListItem item;
   final VoidCallback? onTap;
+  final bool selectionMode;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final thumbnailUrl = item.thumbnailUrl;
+    // A Custom Exercise without an asset still occupies the canonical image
+    // column. Selection belongs to the media rim, never the row's trailing edge.
+    final Widget? thumbnail = thumbnailUrl != null
+        ? ExerciseThumbnail(
+            key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
+            url: thumbnailUrl,
+            retainSizeOnFailure: selectionMode && isSelected,
+          )
+        : item.isCustom
+            ? _CustomExerciseThumbnail(
+                key: ValueKey(
+                  'exercise-custom-thumbnail-${item.exercise.ref.value}',
+                ),
+              )
+            : null;
     final body = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.lg,
@@ -29,11 +48,25 @@ class ExerciseListRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (thumbnailUrl != null)
-            ExerciseThumbnail(
-              key: ValueKey('exercise-thumbnail-${item.exercise.ref.value}'),
-              url: thumbnailUrl,
-            ),
+          if (thumbnail != null)
+            selectionMode && isSelected
+                ? Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      thumbnail,
+                      Positioned(
+                        // Identical rim position for real and Custom fallback art.
+                        top: -TioSpacing.xs,
+                        right: TioSpacing.xs,
+                        child: _SelectedExerciseBadge(
+                          key: ValueKey(
+                            'exercise-selected-${item.exercise.ref.value}',
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : thumbnail,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +111,12 @@ class ExerciseListRow extends StatelessWidget {
               ],
             ),
           ),
-          if (onTap != null) ...[
+          if (selectionMode && isSelected && thumbnail == null) ...[
+            const SizedBox(width: TioSpacing.sm),
+            _SelectedExerciseBadge(
+              key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
+            ),
+          ] else if (onTap != null && !selectionMode) ...[
             const SizedBox(width: TioSpacing.sm),
             Icon(
               Icons.chevron_right_rounded,
@@ -96,9 +134,12 @@ class ExerciseListRow extends StatelessWidget {
 
     return Semantics(
       button: true,
+      selected: selectionMode ? isSelected : null,
       onTap: onTap,
       child: Material(
-        color: TioPalette.transparent,
+        color: selectionMode && isSelected
+            ? colors.surfaceVariant.withAlpha(TioAlpha.alpha20)
+            : TioPalette.transparent,
         child: InkWell(
           onTap: onTap,
           child: MergeSemantics(child: body),
@@ -106,6 +147,57 @@ class ExerciseListRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Decorative marker; row Semantics carries the selectable state.
+class _SelectedExerciseBadge extends StatelessWidget {
+  const _SelectedExerciseBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.tioColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: SizedBox(
+            width: TioSize.dp18,
+            height: TioSize.dp18,
+            child: Icon(
+              Icons.check_rounded,
+              color: context.tioColors.onPrimary,
+              size: TioSize.dp12,
+            ),
+          ),
+        ),
+      );
+}
+
+/// Decorative, non-persisted artwork for user-created Exercises without media.
+class _CustomExerciseThumbnail extends StatelessWidget {
+  const _CustomExerciseThumbnail({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: TioSpacing.md),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(TioRadius.sm),
+          child: ColoredBox(
+            color: context.tioColors.surfaceVariant,
+            child: SizedBox(
+              width: ExerciseThumbnail.size,
+              height: ExerciseThumbnail.size,
+              child: ExcludeSemantics(
+                child: Icon(
+                  Icons.fitness_center_rounded,
+                  size: TioSize.dp24,
+                  color: context.tioColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class _CustomBadge extends StatelessWidget {
@@ -140,11 +232,19 @@ class _CustomBadge extends StatelessWidget {
 /// Exercise image plus its gap to the text, removed entirely if the image
 /// cannot load so the row falls back to text-only.
 class ExerciseThumbnail extends StatefulWidget {
-  const ExerciseThumbnail({required this.url, super.key});
+  const ExerciseThumbnail({
+    required this.url,
+    this.retainSizeOnFailure = false,
+    super.key,
+  });
 
   static const size = TioSize.dp56;
 
   final Uri url;
+  // In selected rows, retain the thumbnail's existing footprint on a
+  // failed network image so its 18dp selected marker stays visible.
+  // Other Library/browse rows still collapse to their text-only layout.
+  final bool retainSizeOnFailure;
 
   @override
   State<ExerciseThumbnail> createState() => _ExerciseThumbnailState();
@@ -167,7 +267,17 @@ class _ExerciseThumbnailState extends State<ExerciseThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    if (_failed) return const SizedBox.shrink();
+    if (_failed) {
+      return widget.retainSizeOnFailure
+          ? const Padding(
+              padding: EdgeInsets.only(right: TioSpacing.md),
+              child: SizedBox(
+                width: ExerciseThumbnail.size,
+                height: ExerciseThumbnail.size,
+              ),
+            )
+          : const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.only(right: TioSpacing.md),
@@ -184,7 +294,12 @@ class _ExerciseThumbnailState extends State<ExerciseThumbnail> {
             excludeFromSemantics: true,
             errorBuilder: (context, error, stackTrace) {
               _markFailed();
-              return const SizedBox.shrink();
+              return widget.retainSizeOnFailure
+                  ? const SizedBox(
+                      width: ExerciseThumbnail.size,
+                      height: ExerciseThumbnail.size,
+                    )
+                  : const SizedBox.shrink();
             },
           ),
         ),

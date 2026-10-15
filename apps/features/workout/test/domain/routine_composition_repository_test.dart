@@ -136,13 +136,14 @@ void main() {
         throwsArgumentError);
     expect(() => RoutineCompositionSnapshot(routineId: _routine, revision: -1),
         throwsArgumentError);
-    for (final prescription in [
-      SetPrescription(reps: 2147483648),
-      SetPrescription(reps: 1, restSeconds: 2147483648)
-    ]) {
-      expect(() => RoutineCompositionSet(id: _set, prescription: prescription),
-          throwsArgumentError);
-    }
+    // Invalid Reps fail at value-object construction; other int32 bounds
+    // are enforced by the identified persistence envelope.
+    expect(() => SetPrescription(reps: 2147483648), throwsArgumentError);
+    expect(
+        () => RoutineCompositionSet(
+            id: _set,
+            prescription: SetPrescription(reps: 1, restSeconds: 2147483648)),
+        throwsArgumentError);
     expect(
         RoutineCompositionSet(
                 id: _set,

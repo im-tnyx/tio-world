@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/exercises/exercise_catalog_query.dart';
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
@@ -119,7 +120,9 @@ final class RoutineExercisePickerController extends ChangeNotifier {
     }
     for (final item in _state.items) {
       if (item.exercise.ref == ref &&
-          item.exercise.status == ExerciseStatus.active) {
+          item.exercise.status == ExerciseStatus.active &&
+          RoutineCompositionLimits.supportsExerciseType(
+            item.exercise.exerciseType)) {
         return item.exercise;
       }
     }

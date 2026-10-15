@@ -15,6 +15,10 @@ class ProgramDetailPage extends StatefulWidget {
     super.key,
     this.newRoutineUuid,
     this.onRoutinePressed,
+    this.onCreateRoutine,
+    this.hasUnconfirmedCreate,
+    this.onVerifyUnconfirmedCreate,
+    this.pendingCreateChanges,
   });
 
   final Program program;
@@ -24,22 +28,58 @@ class ProgramDetailPage extends StatefulWidget {
   final String Function()? newRoutineUuid;
   final Future<void> Function(Routine routine)? onRoutinePressed;
 
+  /// Atomic Create draft action supplied by the authenticated app shell.
+  /// True means re-read the Program: either a confirmed Create or an explicit
+  /// unconfirmed exit where the server may already have committed.
+  /// Production must never fall back to metadata-only creation.
+  final Future<bool> Function(String suggestedName)? onCreateRoutine;
+  /// Volatile app owner/login-cycle protection, not stored Routine truth.
+  final bool Function()? hasUnconfirmedCreate;
+  final Future<bool> Function()? onVerifyUnconfirmedCreate;
+  /// Refresh the disabled Create action when an in-flight RPC settles.
+  /// No draft payload or auth credentials cross this notification boundary.
+  final Listenable? pendingCreateChanges;
+
   @override
   State<ProgramDetailPage> createState() => _ProgramDetailPageState();
 }
 
 class _ProgramDetailPageState extends State<ProgramDetailPage> {
   ProgramRoutinesController? _controller;
+  bool _verifyingUnconfirmed = false;
+
+  bool get _hasUnconfirmed => widget.hasUnconfirmedCreate?.call() ?? false;
+
+  Future<void> _verifyUnconfirmed() async {
+    final verify = widget.onVerifyUnconfirmedCreate;
+    if (_verifyingUnconfirmed || !_hasUnconfirmed || verify == null) return;
+    setState(() => _verifyingUnconfirmed = true);
+    try {
+      await verify();
+      if (mounted) await _controller?.load();
+    } finally {
+      if (mounted) setState(() => _verifyingUnconfirmed = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    widget.pendingCreateChanges?.addListener(_pendingChanged);
     _bind();
+  }
+
+  void _pendingChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant ProgramDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.pendingCreateChanges, widget.pendingCreateChanges)) {
+      oldWidget.pendingCreateChanges?.removeListener(_pendingChanged);
+      widget.pendingCreateChanges?.addListener(_pendingChanged);
+    }
     if (oldWidget.program.id != widget.program.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
         !identical(oldWidget.newRoutineUuid, widget.newRoutineUuid)) {
@@ -71,6 +111,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
   @override
   void dispose() {
+    widget.pendingCreateChanges?.removeListener(_pendingChanged);
     _controller
       ?..removeListener(_onChanged)
       ..dispose();
@@ -86,20 +127,15 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
   Future<void> _openCreate() async {
     final controller = _controller;
-    if (!_canEdit || controller == null) return;
-    await showTioEditorSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      useSafeArea: true,
-      builder: (_) => _RoutineNameSheet(
-        controller: controller,
-        initialName: controller.suggestedName(),
-      ),
-    );
-    if (!mounted || !identical(controller, _controller)) return;
-    // A dismissed uncertain editor must not donate its pending UUID to the
-    // next Create Routine sheet. Refresh to surface any late durable write.
-    if (controller.abandonCreateAttempt()) {
+    final create = widget.onCreateRoutine;
+    // No protected atomic Create capability means no Create action.
+    // Never expose metadata-only name persistence as a fallback.
+    if (!_canEdit || _hasUnconfirmed ||
+        controller == null || create == null) {
+      return;
+    }
+    final shouldRefresh = await create(controller.suggestedName());
+    if (mounted && identical(controller, _controller) && shouldRefresh) {
       await controller.load();
     }
   }
@@ -149,7 +185,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             key: const ValueKey('program-detail-add-routine'),
             tooltip: 'Add Routine',
             color: colors.textPrimary,
-            onPressed: _canEdit ? _openCreate : null,
+            onPressed: _canEdit && !_hasUnconfirmed &&
+                    widget.onCreateRoutine != null
+                ? _openCreate
+                : null,
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -160,7 +199,26 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             horizontal: TioSpacing.lg,
             vertical: TioSpacing.md,
           ),
-          children: [_body()],
+          children: [
+            if (_hasUnconfirmed) ...[
+              Text(
+                'A previous Routine save is unconfirmed. '
+                'Check its status before creating another Routine.',
+                style: TextStyle(color: colors.textSecondary),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+              TioButton.secondary(
+                key: const ValueKey('program-routines-verify-create'),
+                label: 'Check save status',
+                onPressed: !_verifyingUnconfirmed &&
+                        widget.onVerifyUnconfirmedCreate != null
+                    ? _verifyUnconfirmed
+                    : null,
+              ),
+              const SizedBox(height: TioSpacing.lg),
+            ],
+            _body(),
+          ],
         ),
       ),
     );

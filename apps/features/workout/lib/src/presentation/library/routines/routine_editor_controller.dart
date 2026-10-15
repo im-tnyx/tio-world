@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -79,8 +80,16 @@ final class RoutineEditorController extends ChangeNotifier {
   );
   RoutineEditorState get state => _state;
 
+  /// Historical rows remain readable/editable, but a full-snapshot Update
+  /// must not submit more than the current eight-Set server policy.
+  bool get exceedsSetLimit => _draft.any((entry) =>
+      entry.sets.length > RoutineCompositionLimits.maxSetsPerExercise);
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
+  // Selected Custom definition per newly added/replaced entry. Historical
+  // entries have no such snapshot: validate their stored target shape.
+  final Map<String, ExerciseType?> _pickedCustomTypes = {};
   int _revision = 0;
   RoutineCompositionSave? _uncertainCommand;
   int _epoch = 0;
@@ -137,6 +146,7 @@ final class RoutineEditorController extends ChangeNotifier {
 
       _baseline = current.entries;
       _draft = current.entries;
+      _pickedCustomTypes.clear();
       _revision = current.revision;
       _uncertainCommand = null;
       _publish(_ready());
@@ -155,8 +165,14 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Adds an Exercise selected from the verified catalog/owner picker.
   /// Repeated canonical refs are distinct persisted entry identities.
   String? addPickedExercise(Exercise exercise) {
-    if (!_state.canEdit || exercise.status != ExerciseStatus.active) return null;
+    if (!_state.canEdit || exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      return null;
+    }
     final id = _newUuid();
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[id] = exercise.exerciseType;
+    }
     final next = [..._draft, RoutineCompositionEntry(
       id: id,
       exercise: exercise.ref,
@@ -165,9 +181,39 @@ final class RoutineEditorController extends ChangeNotifier {
     return id;
   }
 
+  /// Replacing a draft slot gets fresh Exercise/Set identities and blank
+  /// targets; old persisted IDs are retired only by explicit Update.
+  String? replacePickedExercise(String entryId, Exercise exercise) {
+    if (!_state.canEdit || !_authorized ||
+        exercise.status != ExerciseStatus.active ||
+        !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
+      return null;
+    }
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0 || _draft[index].exercise == exercise.ref) return null;
+    final newId = _newUuid();
+    final setId = _newUuid();
+    _pickedCustomTypes.remove(entryId);
+    if (exercise.ref is UserCreatedExerciseRef) {
+      _pickedCustomTypes[newId] = exercise.exerciseType;
+    }
+    _replaceEntry(index, RoutineCompositionEntry(
+      id: newId,
+      exercise: exercise.ref,
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(),
+        ),
+      ],
+    ));
+    return newId;
+  }
+
   bool removeExercise(String entryId) {
     if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());
+    _pickedCustomTypes.remove(entryId);
     return true;
   }
 
@@ -188,14 +234,30 @@ final class RoutineEditorController extends ChangeNotifier {
     if (!_state.canEdit) return null;
     final index = _draft.indexWhere((e) => e.id == entryId);
     if (index < 0) return null;
-    final id = _newUuid();
     final current = _draft[index];
+    if (current.sets.length >= RoutineCompositionLimits.maxSetsPerExercise) {
+      return null;
+    }
+    final id = _newUuid();
+    final range = current.sets.isNotEmpty &&
+        current.sets.first.prescription.isRepRange;
+    // Existing-Routine Edit must not introduce a fixed Set into an Exercise
+    // containing ranged Sets, which the canonical RPC correctly rejects.
+    final initial = SetPrescription(
+      reps: prescription.reps,
+      repsMax: range ? prescription.reps : null,
+      setType: RoutineSetType.normal,
+      loadKg: prescription.loadKg,
+      distanceMeters: prescription.distanceMeters,
+      durationSeconds: prescription.durationSeconds,
+      restSeconds: prescription.restSeconds,
+    );
     _replaceEntry(index, RoutineCompositionEntry(
       id: current.id,
       exercise: current.exercise,
       sets: [
         ...current.sets,
-        RoutineCompositionSet(id: id, prescription: prescription),
+        RoutineCompositionSet(id: id, prescription: initial),
       ],
     ));
     return id;
@@ -217,6 +279,38 @@ final class RoutineEditorController extends ChangeNotifier {
       id: entry.id,
       exercise: entry.exercise,
       sets: next,
+    ));
+    return true;
+  }
+
+  /// Repetition mode belongs to the Routine Exercise. Keep Set identity,
+  /// type, kg and rest stable when switching Fixed ↔ Range.
+  bool changeRepetitionMode(String entryId, {required bool range}) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    if (entry.sets.isEmpty) return false;
+    _replaceEntry(index, RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      sets: [
+        for (final set in entry.sets)
+          RoutineCompositionSet(
+            id: set.id,
+            prescription: SetPrescription(
+              reps: set.prescription.reps,
+              repsMax: range
+                  ? (set.prescription.repsMax ?? set.prescription.reps)
+                  : null,
+              setType: set.prescription.setType,
+              loadKg: set.prescription.loadKg,
+              distanceMeters: set.prescription.distanceMeters,
+              durationSeconds: set.prescription.durationSeconds,
+              restSeconds: set.prescription.restSeconds,
+            ),
+          ),
+      ],
     ));
     return true;
   }
@@ -259,6 +353,10 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Do not re-send an unknown mutation with a freshly generated token.
   Future<bool> update() async {
     if (!_state.canEdit || !_authorized) return false;
+    if (exceedsSetLimit) {
+      _publish(_ready(message: 'Reduce each Exercise to at most 8 Sets before Update.'));
+      return false;
+    }
     if (!_state.dirty) {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
@@ -267,13 +365,14 @@ final class RoutineEditorController extends ChangeNotifier {
       ));
       return true;
     }
-    // Revalidate all Custom refs from the active owner source immediately
-    // before RPC. Picker/editor snapshots can become stale after archive on
-    // another device; an unavailable/invalid read is NOT an unknown RPC write.
+    // Revalidate Custom refs against the owner's current ACTIVE + ARCHIVED
+    // definitions. This is still only a preflight; the #534 Save RPC locks
+    // rows atomically against an archive racing after this read.
     final customRefs = _draft
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
         .toSet();
+    final expectedCustomTypes = <String, ExerciseType?>{};
     if (customRefs.isNotEmpty) {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.verifying,
@@ -283,34 +382,83 @@ final class RoutineEditorController extends ChangeNotifier {
       ));
       final repository = userExercises;
       if (repository == null) {
-        _publish(_ready(message: 'Custom Exercises cannot be verified. Try again.'));
+        _publish(_ready(
+          message: 'Custom Exercises cannot be verified. Try again.',
+        ));
         return false;
       }
       List<Exercise> current;
       try {
-        // This is a read-only preflight: never hold Cancel/Back hostage
-        // while a network read is slow. A late timed-out read is ignored.
-        current = await repository.list().timeout(const Duration(seconds: 10));
+        current = await repository
+            .list(includeArchived: true)
+            .timeout(const Duration(seconds: 10));
       } catch (_) {
         if (_disposed) return false;
-        _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+        _publish(_ready(
+          message: 'Could not verify Custom Exercises. Try again.',
+        ));
         return false;
       }
       if (!_authorized) return false;
-      final activeRefs = <UserCreatedExerciseRef>{};
+      final currentByRef = <ExerciseRef, Exercise>{};
       for (final exercise in current) {
         if (exercise.ref is! UserCreatedExerciseRef ||
-            exercise.status != ExerciseStatus.active ||
-            !activeRefs.add(exercise.ref as UserCreatedExerciseRef)) {
-          _publish(_ready(message: 'Could not verify Custom Exercises. Try again.'));
+            (exercise.status != ExerciseStatus.active &&
+                exercise.status != ExerciseStatus.archived) ||
+            currentByRef.containsKey(exercise.ref)) {
+          _publish(_ready(
+            message: 'Could not verify Custom Exercises. Try again.',
+          ));
           return false;
         }
+        currentByRef[exercise.ref] = exercise;
       }
-      if (!activeRefs.containsAll(customRefs)) {
-        _publish(_ready(
-          message: 'A Custom Exercise is no longer active. Remove it before Update.',
-        ));
-        return false;
+      for (final entry in _draft) {
+        if (entry.exercise is! UserCreatedExerciseRef) continue;
+        final live = currentByRef[entry.exercise];
+        if (live == null) {
+          _publish(_ready(
+            message: 'A Custom Exercise is no longer available.',
+          ));
+          return false;
+        }
+        if (live.status == ExerciseStatus.archived) {
+          // The DB permits only unchanged historical entry identity and
+          // ordered Sets. Entry-level reordering/unrelated edits are fine.
+          final unchanged = _baseline.any(
+            (original) => original.id == entry.id && original == entry,
+          );
+          if (!unchanged) {
+            _publish(_ready(
+              message: 'An archived Custom Exercise cannot be changed. '
+                  'Restore its original Sets or remove the Exercise.',
+            ));
+            return false;
+          }
+          continue;
+        }
+        if (!RoutineCompositionLimits.supportsExerciseType(
+          live.exerciseType,
+        )) {
+          _publish(_ready(
+            message: 'Steps & Duration Exercises cannot be saved to '
+                'Routines yet.',
+          ));
+          return false;
+        }
+        if ((_pickedCustomTypes.containsKey(entry.id) &&
+                _pickedCustomTypes[entry.id] != live.exerciseType) ||
+            !RoutineCompositionLimits.targetsMatchExerciseType(
+              live.exerciseType,
+              entry.sets.map((set) => set.prescription),
+            )) {
+          _publish(_ready(
+            message: 'A Custom Exercise type changed. '
+                'Review or replace it before Update.',
+          ));
+          return false;
+        }
+        expectedCustomTypes[entry.id] = live.exerciseType;
       }
     }
     // Auth may change while Custom source preflight awaits. Route removal
@@ -321,6 +469,7 @@ final class RoutineEditorController extends ChangeNotifier {
       expectedRevision: _revision,
       mutationId: _newUuid(),
       entries: _draft,
+      expectedCustomTypes: expectedCustomTypes,
     );
     _publish(RoutineEditorState(
       status: RoutineEditorStatus.saving,
@@ -369,6 +518,14 @@ final class RoutineEditorController extends ChangeNotifier {
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.notFound,
           entries: const [],
+        ));
+      } else if (error.kind ==
+          RoutineCompositionFailureKind.exerciseUnavailable) {
+        // The authoritative #534 RPC may observe an archive that raced
+        // after our owner-scoped client preflight. Keep the editable draft.
+        _publish(_ready(
+          message: 'A Custom Exercise was archived or is unavailable. '
+              'Review or remove it before Update.',
         ));
       } else {
         _publish(_ready(message: 'Could not update Routine. Try again.'));

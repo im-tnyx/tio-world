@@ -227,6 +227,33 @@ void main() {
       }
     });
 
+    test('all bundled Treadmill variants use KM/TIME; other profiles stay '
+        'explicit', () async {
+      final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
+      final typedTreadmills = {
+        ExerciseRef.catalog('ex_walking_on_treadmill'),
+        ExerciseRef.catalog('ex_run_on_treadmill'),
+        ExerciseRef.catalog('ex_walking_on_incline_treadmill'),
+      };
+      for (final ref in typedTreadmills) {
+        final treadmill = catalog.byRef(ref);
+        expect(treadmill, isNotNull, reason: ref.value);
+        expect(treadmill!.category, 'cardio', reason: ref.value);
+        expect(treadmill.exerciseType, ExerciseType.distanceDuration,
+            reason: '${ref.value} must display KM/TIME, not KG/REPS');
+      }
+      final plankRef = ExerciseRef.catalog('ex_front_plank');
+      final plank = catalog.byRef(plankRef);
+      expect(plank, isNotNull);
+      expect(plank!.exerciseType, ExerciseType.duration);
+      // An Exercise's category/equipment is not a valid substitute for its
+      // explicit persisted measurement type; other rows retain legacy null.
+      for (final exercise in catalog.all.where((entry) =>
+          !typedTreadmills.contains(entry.ref) && entry.ref != plankRef)) {
+        expect(exercise.exerciseType, isNull, reason: exercise.ref.value);
+      }
+    });
+
     test('maps curated media with an image for every viewer', () async {
       final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
 
@@ -256,7 +283,7 @@ void main() {
             'exercises',
           ]));
       expect(decoded['schemaVersion'], 1);
-      expect(decoded['catalogVersion'], 2);
+      expect(decoded['catalogVersion'], 3);
       expect(exercises, isNotEmpty);
 
       const allowedRowKeys = {
@@ -276,8 +303,18 @@ void main() {
       const optionalMediaKeys = {'videoFallbackGender'};
       const variantKeys = {'imageUrl', 'thumbnailUrl', 'videoUrl'};
       for (final row in exercises.cast<Map<String, dynamic>>()) {
-        expect(row.keys, unorderedEquals(allowedRowKeys),
-            reason: '${row['id']}');
+        expect(
+          row.keys.toSet().difference({'exerciseType'}),
+          unorderedEquals(allowedRowKeys),
+          reason: '${row['id']}',
+        );
+        if (row.containsKey('exerciseType')) {
+          expect(
+            ExerciseType.fromStorageValue(row['exerciseType'] as String),
+            isA<ExerciseType>(),
+            reason: '${row['id']}.exerciseType',
+          );
+        }
         expect(
           (row['equipment'] as Map<String, dynamic>).keys,
           unorderedEquals(['primary']),

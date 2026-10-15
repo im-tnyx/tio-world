@@ -4,7 +4,9 @@ import 'package:tio_shared/shared.dart';
 final class RoutineCompositionSet {
   RoutineCompositionSet({required String id, required this.prescription})
       : id = _uuid(id) {
-    if (prescription.reps > 2147483647 ||
+    if ((prescription.reps ?? 0) > 2147483647 ||
+        (prescription.repsMax ?? 0) > 2147483647 ||
+        (prescription.durationSeconds ?? 0) > 2147483647 ||
         (prescription.restSeconds ?? 0) > 2147483647) {
       throw ArgumentError('Prescription exceeds PostgreSQL integer range.');
     }
@@ -87,7 +89,9 @@ final class RoutineCompositionSave {
     required int expectedRevision,
     required String mutationId,
     List<RoutineCompositionEntry> entries = const [],
-  })  : expectedRevision = _revision(expectedRevision),
+    Map<String, ExerciseType?> expectedCustomTypes = const {},
+  })  : expectedCustomTypes = Map.unmodifiable(expectedCustomTypes),
+         expectedRevision = _revision(expectedRevision),
         mutationId = _uuid(mutationId),
         entries = _entries(entries);
 
@@ -95,6 +99,9 @@ final class RoutineCompositionSave {
   final int expectedRevision;
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
+  /// Optional wire hints on Custom entry UUIDs; JSON null is an exact type.
+  /// Snapshot equality/replay intentionally compares persisted Sets, not hints.
+  final Map<String, ExerciseType?> expectedCustomTypes;
 }
 
 enum RoutineCompositionFailureKind {
