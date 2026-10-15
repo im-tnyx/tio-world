@@ -538,6 +538,12 @@ class _LibraryProgramRow extends StatelessWidget {
                 expanded ? 'Collapse ${program.name}' : 'Expand ${program.name}',
             onPressed: onToggleExpanded,
             color: colors.textSecondary,
+            padding: EdgeInsets.zero,
+            alignment: AlignmentDirectional.centerStart,
+            constraints: const BoxConstraints.tightFor(
+              width: TioSize.dp48,
+              height: TioSize.dp48,
+            ),
             icon: Icon(
               expanded
                   ? Icons.keyboard_arrow_down_rounded
@@ -582,6 +588,12 @@ class _LibraryProgramRow extends StatelessWidget {
             tooltip: 'Program actions',
             onPressed: onOverflowPressed,
             color: colors.textSecondary,
+            padding: EdgeInsets.zero,
+            alignment: AlignmentDirectional.centerEnd,
+            constraints: const BoxConstraints.tightFor(
+              width: TioSize.dp48,
+              height: TioSize.dp48,
+            ),
             icon: const Icon(Icons.more_horiz_rounded),
           ),
         ],
