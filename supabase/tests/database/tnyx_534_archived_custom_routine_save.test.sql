@@ -233,6 +233,42 @@ select pg_temp.assert_raises($sql$
 $sql$, '22023', 'newly introduced archived Custom ref must fail'
 );
 
+-- An archived entry cannot recycle its OLD UUID onto a different, still
+-- active Custom reference. Incoming-only archive checks used to miss this.
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000021',2,
+    'a5340000-0000-4000-8000-00000000009a',
+    '[
+      {"id":"a5340000-0000-4000-8000-000000000042",
+       "exercise_ref":"ex_bench_press","sets":[
+         {"id":"a5340000-0000-4000-8000-000000000053","reps":12,"load_kg":20}]},
+      {"id":"a5340000-0000-4000-8000-000000000041",
+       "exercise_ref":"a5340000-0000-4000-8000-000000000032","sets":[
+         {"id":"a5340000-0000-4000-8000-000000000051","reps":8,"load_kg":12},
+         {"id":"a5340000-0000-4000-8000-000000000052","reps":10,"load_kg":15}]}
+    ]'::jsonb
+  )
+$sql$, '22023', 'archived entry UUID cannot be reused with active Custom');
+
+-- A catalog ref bypasses the incoming Custom lock list entirely. The same
+-- historical entry ID must still not be recycled as a new catalog entry.
+select pg_temp.assert_raises($sql$
+  select public.save_user_workout_routine_composition(
+    'a5340000-0000-4000-8000-000000000021',2,
+    'a5340000-0000-4000-8000-00000000009b',
+    '[
+      {"id":"a5340000-0000-4000-8000-000000000042",
+       "exercise_ref":"ex_bench_press","sets":[
+         {"id":"a5340000-0000-4000-8000-000000000053","reps":12,"load_kg":20}]},
+      {"id":"a5340000-0000-4000-8000-000000000041",
+       "exercise_ref":"ex_squat","sets":[
+         {"id":"a5340000-0000-4000-8000-000000000051","reps":8,"load_kg":12},
+         {"id":"a5340000-0000-4000-8000-000000000052","reps":10,"load_kg":15}]}
+    ]'::jsonb
+  )
+$sql$, '22023', 'archived entry UUID cannot be reused with catalog ref');
+
 -- Same original entry ID cannot be reassigned to another archived ref.
 update public.user_workout_exercises
 set status='archived'
