@@ -274,6 +274,19 @@ void main() {
       find.descendant(of: add, matching: find.byType(CustomPaint)),
       findsOneWidget,
     );
+    // No extra left inset on the dotted card, unlike persisted Routine rows.
+    final programSection =
+        find.byKey(const ValueKey('library-programs-content'));
+    final routineContainer =
+        find.byKey(ValueKey('library-routines-${_id(1).value}'));
+    expect(tester.getTopLeft(add).dx,
+        closeTo(tester.getTopLeft(programSection).dx, 0.1));
+    expect(tester.getTopLeft(add).dx,
+        closeTo(tester.getTopLeft(routineContainer).dx, 0.1));
+    expect(tester.getTopRight(add).dx,
+        closeTo(tester.getTopRight(routineContainer).dx, 0.1));
+    expect(tester.getSize(add).height, lessThanOrEqualTo(TioSize.dp64));
+    expect(tester.getSize(add).height, greaterThanOrEqualTo(TioSize.dp48));
     await tester.tap(add);
     await tester.pumpAndSettle();
 
