@@ -914,7 +914,12 @@ void main() {
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
         );
-    await tester.pumpAndSettle();
+    // The old RPC is deliberately *still* unresolved. An unrestricted
+    // pumpAndSettle can await its active progress indicator forever.
+    // Pump bounded route-revocation frames instead, then assert removal.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
     expect(find.byType(CreateRoutinePage), findsNothing,
         reason: 'Revoked-session draft must disappear immediately');
 
