@@ -353,7 +353,8 @@ List<RouteBase> _shellBranchChildRoutes(
             }
             // Canonical guarded atomic Create, shared by Program Detail and
             // direct Library Add. No metadata-only or duplicate persistence.
-            Future<bool> createRoutine(String suggestedName) async {
+            Future<bool> createRoutine(String suggestedName,
+                {bool launchedFromLibrary = false}) async {
               if (createRepository == null ||
                   compositions == null ||
                   userExerciseRepository == null ||
@@ -478,6 +479,7 @@ List<RouteBase> _shellBranchChildRoutes(
                       ),
                       program: program,
                       initialName: suggestedName,
+                      returnToLibrary: launchedFromLibrary,
                       createRepository: createRepository,
                       catalogRepository: catalog,
                       userExerciseRepository:
@@ -594,7 +596,8 @@ List<RouteBase> _shellBranchChildRoutes(
                     )) {
                   return;
                 }
-                await createRoutine(routines.suggestedName());
+                await createRoutine(routines.suggestedName(),
+                    launchedFromLibrary: true);
               } finally {
                 routines.dispose();
               }
