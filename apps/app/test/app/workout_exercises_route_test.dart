@@ -908,6 +908,87 @@ void main() {
         findsNothing);
   });
 
+  testWidgets('relogin binds pending Library save before Add is enabled',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+      const ValueKey('library-add-routine-$programId'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+
+    final gate = container.read(routinePendingCreateGateProvider);
+    final program = ProgramId(programId);
+    expect(gate.hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: program,
+    ), isTrue);
+    // Same owner reauth changes the login-cycle while Library remains
+    // mounted. It must bind the gate WITHOUT requiring an Add tap.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(gate.hasPending(
+      owner: 'test-user',
+      loginCycle: 'next-cycle',
+      programId: program,
+    ), isTrue);
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('library-verify-routine-$programId')),
+        findsOneWidget);
+    final blocked = find.byKey(
+      const ValueKey('library-add-routine-$programId'),
+    );
+    expect(
+      tester.widget<InkWell>(
+        find.descendant(of: blocked, matching: find.byType(InkWell)),
+      ).onTap,
+      isNull,
+      reason: 'Reauth must not expose a silent stale Add action',
+    );
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      1,
+      reason: 'No new Create UUID may be issued for a retained write',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('pending Library read cannot launch Create over another route',
       (tester) async {
     final (container, router) = await _app(
