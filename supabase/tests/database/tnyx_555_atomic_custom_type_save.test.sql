@@ -157,7 +157,9 @@ select pg_temp.assert_rejected($stmt$
      "exercise_ref":"a5550000-0000-4000-8000-000000000031",
      "expected_exercise_type":"steps_duration",
      "sets":[{"id":"a5550000-0000-4000-8000-000000000051",
-              "reps":null}]}]'::jsonb)
+              "reps":null,"reps_max":null,"set_type":"normal",
+              "load_kg":null,"distance_meters":null,
+              "duration_seconds":null,"rest_seconds":null}]}]'::jsonb)
 $stmt$, 'unsupported STEPS type never commits a new snapshot');
 
 rollback;
