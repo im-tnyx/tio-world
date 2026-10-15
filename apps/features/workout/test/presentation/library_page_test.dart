@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -9,6 +11,7 @@ Future<void> _pump(
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
   Future<void> Function(Program)? onAddRoutinePressed,
+  bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
@@ -40,6 +43,7 @@ Future<void> _pump(
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
         onAddRoutinePressed: onAddRoutinePressed,
+        hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
@@ -337,6 +341,86 @@ void main() {
     expect(add, findsNothing, reason: 'Populated Program has no empty Add CTA');
     expect(routines.queries.where((id) => id == _id(1)).length,
         greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('one flight guards different Programs and overflow Add',
+      (tester) async {
+    final hold = Completer<void>();
+    var calls = 0;
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: _FakeRoutineRepository([]),
+      onAddRoutinePressed: (program) async {
+        calls++;
+        await hold.future;
+      },
+    );
+    final first = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    final second = find.byKey(ValueKey('library-add-routine-${_id(2).value}'));
+    await tester.tap(first);
+    await tester.pump();
+    expect(calls, 1);
+    expect(find.byKey(second), findsOneWidget);
+    // The next Program remains visible but cannot open another draft.
+    final secondCard = find.byKey(second);
+    expect(
+      tester.widget<InkWell>(
+        find.descendant(of: secondCard, matching: find.byType(InkWell)),
+      ).onTap,
+      isNull,
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(2).value}')));
+    await tester.pumpAndSettle();
+    final action = find.byKey(const ValueKey('program-action-add-routine'));
+    expect(find.byKey(action.key!), findsOneWidget);
+    expect(
+      tester.widget<TioSettingsNavigationRow>(action).onTap,
+      isNull,
+    );
+    hold.complete();
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+  });
+
+  testWidgets('pending save disables both Add entries and explains verification',
+      (tester) async {
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: _FakeRoutineRepository([]),
+      hasUnconfirmedCreate: (program) => program.id == _id(1),
+      onProgramPressed: (_) async {},
+      onAddRoutinePressed: (_) async {
+        fail('Unconfirmed Program must never launch another Create');
+      },
+    );
+    final blocked = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    final other = find.byKey(ValueKey('library-add-routine-${_id(2).value}'));
+    expect(blocked, findsOneWidget);
+    expect(other, findsOneWidget);
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-verify-routine-${_id(1).value}')),
+        findsOneWidget);
+    expect(
+      tester.widget<InkWell>(
+        find.descendant(of: blocked, matching: find.byType(InkWell)),
+      ).onTap,
+      isNull,
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioSettingsNavigationRow>(
+        find.byKey(const ValueKey('program-action-add-routine')),
+      ).onTap,
+      isNull,
+    );
   });
 
   testWidgets('empty Add Routine is Program-scoped, hidden when unavailable',
