@@ -178,6 +178,39 @@ void main() {
       programId: programId), isFalse);
   });
 
+  test('definite rejection frees exact in-flight Create across same owner cycles',
+      () {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.bindSession(owner: owner, loginCycle: 'cycle-2');
+
+    final distinctInstance = RoutineCreateCommand(
+      routine: command.routine, mutationId: command.mutationId,
+      entries: command.entries,
+    );
+    gate.releaseDefiniteForOwner(owner: owner, command: distinctInstance);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue,
+      reason: 'A different command instance must never free a reservation');
+
+    gate.releaseDefiniteForOwner(owner: owner, command: command);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isFalse);
+  });
+
+  test('rejected old-owner callback cannot clear a different owner gate', () {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.bindSession(owner: 'other-user', loginCycle: 'other-cycle');
+    gate.retain(owner: 'other-user', loginCycle: 'other-cycle',
+      command: command);
+    gate.releaseDefiniteForOwner(owner: owner, command: command);
+    expect(gate.hasPending(owner: 'other-user', loginCycle: 'other-cycle',
+      programId: programId), isTrue);
+  });
+
   test('different owner clears all previous pending Create identities',
       () async {
     final gate = RoutinePendingCreateGate()
