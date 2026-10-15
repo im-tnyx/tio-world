@@ -27,3 +27,12 @@ Do not freeze Custom Exercise type permanently whenever referenced: that changes
 
 ## Merge gate
 #561 → #562 DB-only follow-up → #551 consolidated Flutter. Independent Codex review and exact-head CI required; AGENTS.md security review and branch rules before merge; explicit owner instruction before source merge. Hosted migrations and APK rollout require distinct authorization.
+
+## 2026-10-15 #561 parent P1 synchronization
+
+Independent Codex review of parent #561 found archived Custom entry UUID could be reused with an active Custom or catalog ref. Parent #561 now locks the deduplicated union of incoming and persisted Custom refs and rejects archived original-entry UUID ref swaps; its matrix checks both cases. Parent **exact head** `8156aeb9bd2afc2de0db48b9085836ba5596f213` passed Supabase Database CI #38739224595.
+
+This stacked #562 **also** includes the same old-entry ref-swap prevention in its later full Save RPC replacement migration, and repeats the matrix cases. A non-destructive, two-parent merge commit `11239826` synchronized the new parent without discarding #562 work; GitHub compare verifies parent→child `behind_by=0`, six owning DB files. Revalidate exact new #562 head on disposable Supabase DB before claiming it green.
+
+PR #562 temporarily targets `main` strictly because DB validation workflow triggers only for base `main`; restore its intended base `security/issue-534-archive-routine-save` after the exact-head DB CI has finished. This temporary base change does **not** authorize merging both PRs together, production DDL, or UI/application rollout.
+
