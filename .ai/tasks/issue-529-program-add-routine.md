@@ -22,22 +22,22 @@ Scope of remediation: existing Flutter Program/Library route and feature UI, plu
 ## Active Handoff
 **Planning owner:** Connected repository review
 **Implementation owner:** This GitHub-connected #529 implementation branch; one owner for this slice
-**Review owner:** Independent reviewer pending
+**Review owner:** Codex reviewed `f13b3a36` (4 P2); corrected HEAD awaits re-review.
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable; no #529 active branch or PR found on preflight
 **Repository state last verified:** GitHub API main = `4090e3a143fcfc309a3020e73823bc30ec40c282`
 **Branch:** `tnyx/issue-529-inline-add-routine`
-**HEAD SHA:** Reviewed Codex baseline `f13b3a3635870a782a81ba6d1728466ffe79ca16`; remediation branch moving, verify live PR head before final handoff.
+**HEAD SHA:** P2 remediation source checkpoint `ae48bffbdd473ff493c86010224a877d15b8c78d`, before this handoff update; verify exact final PR head before re-review.
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
-**Current implementation state:** Remote branch has feature-owned dotted-outline Add new routine for authoritative empty Program, Program 3-dot Add New Routine, preserved Edit→Rename, and **direct Library → canonical CreateRoutinePage navigation** with no intermediate Program Detail. Direct Create and ordinary Program Detail use the same owner/session-guarded app-shell callback. Focused widget/app route tests cover direct Cancel/Save plus existing Program Detail navigation.
+**Current implementation state:** Dotted empty Program and overflow actions open canonical Create directly. Codex P2 remediation now includes shared ProgramsSurface one-flight guard, modal dismissal before direct route, `ModalRoute.isCurrent` after owner read, disabled Add plus Program Detail verification affordance on uncertain Save, and reactive notifier-backed Library updates. Focused feature/route tests added; exact corrected-head CI pending.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell direct Create route; Program Detail's existing Create action shares the same guarded callback
 **Validation completed at SHA:** Flutter Analyze/Tests CI #38788227679 SUCCESS at reviewed `f13b3a36` only. Codex review completed with 4 P2 on that same head, 0 resolved yet; fixes and *new-head* CI pending.
 **Validation remaining:** Four P2 Codex remediations, focused new tests, exact corrected-head CI, reviewer re-review, diff/security QA and Android device visual QA.
 **Current blocker:** Four Codex P2 findings unresolved on reviewed #566 head; new-head CI/re-review and owner device QA pending. Direct Program Delete belongs to separate #567.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
-**Next exact action:** Validate direct-route NAV-01 and accurate unknown-write exit destination at exact new PR head via Flutter CI; then independent review and device QA. Confirm both dotted and Program 3-dot actions enter Create directly, Cancel/Back returns to Library, confirmed Save refreshes Library and unknown write retains pending identity without false success. Do not merge/deploy without explicit approval.
+**Next exact action:** Verify new exact-head Flutter Analyze + Tests for Codex P2 fixes, resolve any concrete failures, inspect diff and request Codex re-review, reply/resolve only verified threads, then owner Android visual QA. No merge without explicit approval.
 
 ## 2026-10-15 Owner Alignment Refinement (active bounded slice)
 Owner reports continued visible side space on Program header and Routine card edges and an overly heavy dotted Create-card stroke. Fresh Draft PR #566 source audit confirms Library itself has governed 16dp side padding; saved Routine and dotted card wrappers now have no extra horizontal inset. Program header chevron and overflow `IconButton` have 48dp interactive regions but center their 24dp glyphs, adding apparent left/right space. **Approved UI correction:** align leading glyph to start and trailing glyph to end within their existing >=48dp action regions. Do not globally alter Library padding or Routine internal card content. The feature-owned `_DottedOutline` stroke is currently `TioStroke.width2`; switch only its paint stroke to `TioStroke.width1` and preserve the rounded/dashed shape/theme color. Add geometry/widget assertions for Program header icon edges and Program/Routine/dotted card shared outer bounds, and validate current PR head via CI after commits. Root + feature AGENTS and Core theme README checked. Pre-edit branch head `38c4df88`. Applied `AlignmentDirectional.centerStart`/`centerEnd`, zero internal IconButton padding and exact 48dp constraints to the Program header chevron and overflow, and changed only dotted painter stroke to `TioStroke.width1`. Added widget assertions for glyph edge coordinates, action dimensions, and unchanged Library-side routine rows. Follow-up source commit `f78a7355` before docs/handoff updates; verify new exact PR head and new-run Flutter CI. Prior Flutter CI #38783537219 was for a superseded head. GitHub API cannot verify local worktree/device rendering. No DB or security change.
@@ -91,12 +91,12 @@ Hide Add when repository or callback absent; no creation during loading/error; r
 - [x] Add guarded Program 3-dot Add Routine; retain Edit Program rename
 - [x] Connect direct entry to existing Create route without new write path
 - [x] Add focused feature widget and app route tests
-- [ ] Canonical doc updated; exact-head PR/CI review still pending
+- [x] Canonical Program doc updated; CI succeeded on pre-review `f13b3a36`; P2-corrected head requires new CI/re-review
 
 ## 6. Quality Review
 ### Validation Run
 Owner screenshot refinement: dotted card is a local Workout empty-state composition (single consumer), not a new generic Core component/token or physical copy of the screenshot. Focused light/dark/widget assertions added; verify again at new source HEAD. Earlier `cbc16bd5` Flutter CI #38779638889 SUCCESS before dotted visual change, **not evidence for current head**.
-No Flutter SDK or worktree is accessible in this connector-only runtime. Initial PR head `677d20a8` and intermediate `831cad6f` failed Flutter Analyze on duplicate callback declaration / nullable repository; fixed on subsequent commits. Head `dac03d79` Analyze failed missing `supportingText`, fixed at `d8eced8b`. New exact-head Flutter CI queued; no passing test claim. Review and CI still pending.
+No Flutter SDK/worktree accessible in connector-only runtime. Earlier compile failures were resolved. Flutter CI #38788227679 succeeded on `f13b3a36`, then Codex returned 4 P2 findings. New P2 remediation head requires its own CI; previous PASS is **not** evidence for corrected head. Codex re-review and owner device QA pending.
 ### Review Findings and Resolution
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
 |---|---|---|---|---|---|
@@ -106,7 +106,7 @@ No Flutter SDK or worktree is accessible in this connector-only runtime. Initial
 ### Changed Files
 App shell `shell_route.dart`; Workout `library_page.dart`, `programs_surface.dart`, `inline_program_routines.dart`, `program_detail_page.dart`; app and Workout tests; `docs/screens/programs.md`; task brief and index.
 ### Actual Behavior
-Branch-only implementation: capability-gated Add Routine at empty expanded Program and Program 3-dot, existing Edit Program Rename, selected Program bound atomic Create, Cancel/return owner-scoped refresh. Not yet verified by passing exact-head CI or released.
+Branch-only implementation: capability-gated selected-Program Add Routine, one direct Create route, no intermediate Program Detail, shared launch serialization, route-current cancellation, uncertain-write disabled UI and verification path, plus Edit Program Rename. Pre-review head CI passed; post-P2 exact-head CI pending. Not merged/released.
 ### Known Limitations
 Program Delete deliberately not part of this safe UI slice; dedicated security/lifecycle issue #567. Hosted atomic Create RPC availability and mobile release remain separate gates.
 ### Final Status
