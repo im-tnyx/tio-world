@@ -418,6 +418,66 @@ void main() {
         1500);
   });
 
+  test('Edit preserves metric targets when Custom type became null, no RPC',
+      () async {
+    final metric = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(
+          distanceMeters: 3000, durationSeconds: 900,
+        ),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [metric]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(exerciseType: null),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(
+      distanceMeters: 4000, durationSeconds: 900,
+    )), isTrue);
+    expect(await ctrl.update(), isFalse);
+    expect(ctrl.state.message, contains('type changed'));
+    expect(ctrl.state.status, RoutineEditorStatus.ready);
+    expect(comp.saveCount, 0);
+    expect(ctrl.state.entries.single.sets.single.prescription.distanceMeters,
+        4000);
+  });
+
+  test('legacy untyped Custom Reps/Load remains editable without guessing',
+      () async {
+    final legacy = RoutineCompositionEntry(
+      id: _e,
+      exercise: ExerciseRef.userCreated(
+        '90000000-0000-4000-8000-000000000001',
+      ),
+      sets: [RoutineCompositionSet(
+        id: _s, prescription: SetPrescription(reps: 8, loadKg: 10),
+      )],
+    );
+    final comp = _Compositions(_snapshot(entries: [legacy]));
+    final ctrl = RoutineEditorController(
+      program: _program, routine: _routine(),
+      routines: _Routines([_routine()]), compositions: comp,
+      userExercises: _StepExerciseRepository(exerciseType: null),
+      newUuid: () => _m,
+    );
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.editSet(_e, _s, SetPrescription(reps: 9, loadKg: 10)),
+        isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.saveCount, 1);
+    expect(comp.lastSave!.entries.single.sets.single.prescription.reps, 9);
+  });
+
   test('Edit compatible Custom definition still updates without conversion',
       () async {
     final persisted = RoutineCompositionEntry(
@@ -510,7 +570,7 @@ final class _Compositions implements RoutineCompositionRepository {
 final class _StepExerciseRepository extends Fake
     implements UserExerciseRepository {
   _StepExerciseRepository({this.exerciseType = ExerciseType.stepsDuration});
-  final ExerciseType exerciseType;
+  final ExerciseType? exerciseType;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async => [
