@@ -33,7 +33,7 @@ $$;
 -- gate: historical targetless Reps + distance/duration must remain identical.
 create function pg_temp.metric_archive_payload(
   p_catalog_reps integer, p_distance double precision
-) returns jsonb language sql as $
+) returns jsonb language sql as $$
   select pg_catalog.jsonb_build_array(
     pg_catalog.jsonb_build_object(
       'id', 'a5340000-0000-4000-8000-000000000046',
@@ -58,7 +58,7 @@ create function pg_temp.metric_archive_payload(
       ))
     )
   );
-$;
+$$;
 
 select pg_temp.assert_true(
   has_function_privilege('authenticated',
