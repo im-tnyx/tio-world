@@ -363,9 +363,9 @@ void main() {
     await tester.tap(first);
     await tester.pump();
     expect(calls, 1);
-    expect(find.byKey(second), findsOneWidget);
+    expect(second, findsOneWidget);
     // The next Program remains visible but cannot open another draft.
-    final secondCard = find.byKey(second);
+    final secondCard = second;
     expect(
       tester.widget<InkWell>(
         find.descendant(of: secondCard, matching: find.byType(InkWell)),
