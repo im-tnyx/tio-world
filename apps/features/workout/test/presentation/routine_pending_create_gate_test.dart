@@ -178,6 +178,20 @@ void main() {
       programId: programId), isFalse);
   });
 
+  test('different owner clears all previous pending Create identities',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.bindSession(owner: 'different-user', loginCycle: 'other-cycle');
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse);
+    gate.bindSession(owner: owner, loginCycle: 'cycle-2');
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isFalse,
+      reason: 'Another account must never inherit old immutable draft data');
+  });
+
   test('definite Create result clears only its own pending reservation',
       () async {
     final gate = RoutinePendingCreateGate()
