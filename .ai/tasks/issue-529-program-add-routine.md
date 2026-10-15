@@ -23,13 +23,13 @@
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
-**Current implementation state:** Remote branch has feature-owned dotted-outline Add new routine for authoritative empty Program, 3-dot Add New Routine, preserved Edit→Rename, thin Program Detail auto-launch into existing atomic Create, focused widget/app route tests.
-**Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell's ProgramDetail/Create route
+**Current implementation state:** Remote branch has feature-owned dotted-outline Add new routine for authoritative empty Program, Program 3-dot Add New Routine, preserved Edit→Rename, and **direct Library → canonical CreateRoutinePage navigation** with no intermediate Program Detail. Direct Create and ordinary Program Detail use the same owner/session-guarded app-shell callback. Focused widget/app route tests cover direct Cancel/Save plus existing Program Detail navigation.
+**Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell direct Create route; Program Detail's existing Create action shares the same guarded callback
 **Validation completed at SHA:** Flutter CI #38779638889 SUCCESS at prior head `cbc16bd5` before dotted refinement; exact new head CI/review pending
 **Validation remaining:** Widget/app-route tests, exact-head CI, diff audit, security/API re-check and review
 **Current blocker:** Direct Program Delete unavailable (#567); review/exact-head CI and deployment gates pending.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
-**Next exact action:** Verify exact-head Flutter CI and source diff; fix concrete review/CI findings. Do not merge/deploy without explicit approval.
+**Next exact action:** Validate direct-route NAV-01 fix at exact new PR head via Flutter CI and independent review, then device QA. Do not merge/deploy without explicit approval.
 
 ## 2026-10-15 Owner Alignment Refinement (active bounded slice)
 Owner reports continued visible side space on Program header and Routine card edges and an overly heavy dotted Create-card stroke. Fresh Draft PR #566 source audit confirms Library itself has governed 16dp side padding; saved Routine and dotted card wrappers now have no extra horizontal inset. Program header chevron and overflow `IconButton` have 48dp interactive regions but center their 24dp glyphs, adding apparent left/right space. **Approved UI correction:** align leading glyph to start and trailing glyph to end within their existing >=48dp action regions. Do not globally alter Library padding or Routine internal card content. The feature-owned `_DottedOutline` stroke is currently `TioStroke.width2`; switch only its paint stroke to `TioStroke.width1` and preserve the rounded/dashed shape/theme color. Add geometry/widget assertions for Program header icon edges and Program/Routine/dotted card shared outer bounds, and validate current PR head via CI after commits. Root + feature AGENTS and Core theme README checked. Pre-edit branch head `38c4df88`. Applied `AlignmentDirectional.centerStart`/`centerEnd`, zero internal IconButton padding and exact 48dp constraints to the Program header chevron and overflow, and changed only dotted painter stroke to `TioStroke.width1`. Added widget assertions for glyph edge coordinates, action dimensions, and unchanged Library-side routine rows. Follow-up source commit `f78a7355` before docs/handoff updates; verify new exact PR head and new-run Flutter CI. Prior Flutter CI #38783537219 was for a superseded head. GitHub API cannot verify local worktree/device rendering. No DB or security change.
@@ -70,9 +70,9 @@ Delete Program implementation, Program/Routine schema or RPC, top-level My Progr
 
 ## 4. Architecture Design
 ### Chosen Approach
-Pass a capability-gated Program create-entry callback from app shell to Library to ProgramsSurface and InlineProgramRoutines. Reuse the existing ProgramDetail screen as a guarded Create entry host and automatically open its canonical Create action once owner-scoped metadata is ready. Return to Library and refresh real persisted Routine reads. Do not write metadata from Library.
+Pass a capability-gated Program create-entry callback from app shell to Library to ProgramsSurface and InlineProgramRoutines. Enter canonical `CreateRoutinePage` directly from Library using the existing guarded app-shell Create function; use a fresh owner-scoped `ProgramRoutinesController` read only for naming/capability checks. Do not push Program Detail as an invisible or briefly visible routing host. Program Detail remains a separate destination with the same Create callback. Return to Library and refresh persisted owner-scoped Routine reads. Do not write metadata from Library.
 ### Ownership and Data Flow
-`Library Add/overflow → ProgramDetail (selected Program) → existing guarded shell callback → CreateRoutinePage → atomic owner-scoped RPC`.
+`Library Add/overflow → shared guarded shell Create callback → CreateRoutinePage (selected Program) → atomic owner-scoped RPC → Library refresh`.
 ### Alternative Rejected
 Direct metadata-only Create, new Routine editor, direct Program DELETE, inert destructive menu, optimistic fake row.
 ### Failure and Accessibility States
