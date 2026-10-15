@@ -641,7 +641,7 @@ void main() {
 
   testWidgets('atomic Create Routine appears under owning Library Program',
       (tester) async {
-    final (_, router) = await _app(
+    final (container, router) = await _app(
       tester,
       AppMode.hybrid,
       withRoutineComposition: true,
@@ -682,6 +682,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);
     expect(find.text('Added From Detail'), findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse, reason: 'Confirmed Create must release its in-flight guard');
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
