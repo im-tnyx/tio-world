@@ -33,3 +33,12 @@ Worktree state: unavailable from GitHub connector; no local git status claimed.
 Scope: this task file, new DB migration, new SQL/tests concurrency script, DB CI workflow.
 Validation: not run yet; no production apply, merge, device QA, or review approval.
 Next: implement and test, then open draft DB-only PR.
+
+## Draft PR checkpoint
+- [Draft PR #561](https://github.com/im-tnyx/tio-world/pull/561), based on main; this branch owns DB implementation only.
+- Source head when draft opened: 49d5db715c6b696054b90038835fe130383700e6.
+- Disposable Supabase DB CI: [run 38709360034](https://github.com/im-tnyx/tio-world/actions/runs/38709360034), pending; attribution pending at first check.
+- Test files and workflow are committed; do not state validated until exact-head checks conclude.
+- Live hosted migration ledger remains 55, through 20261010061809. New source #536/#540 and this #534 migration are **not hosted deployed**.
+- Residual: Flutter #551 Edit preflight rejects legacy archived references; owner-approved UX needs a separate bounded Flutter parity correction, no UI redesign.
+- Next exact action: check disposable CI logs, correct focused SQL/security findings, request independent PR review and then re-evaluate rollout/deployment gates. 
