@@ -332,6 +332,36 @@ void main() {
     expect(repo.calls, 1);
   });
 
+  test('unknown Create confirms later revised Routine without retrying RPC',
+      () async {
+    final repo = _Creates()..error = StateError('lost ACK');
+    final draft = _controller(repo, saveAfterOneExercise: true);
+    addTearDown(draft.dispose);
+    draft.addPickedExercise(_exercise);
+    expect(await draft.save(), isFalse);
+    final command = repo.command!;
+    final changedEntry = RoutineCompositionEntry(
+      id: command.entries.single.id,
+      exercise: command.entries.single.exercise,
+      sets: [RoutineCompositionSet(
+        id: command.entries.single.sets.single.id,
+        prescription: SetPrescription(reps: 16),
+      )],
+    );
+    expect(await draft.reconcileUnknown(
+      routines: _RenamedRoutineRepository(command.routine),
+      compositions: _CommittedCompositionRepository(
+        RoutineCompositionSnapshot(
+          routineId: command.routine.id, revision: 2,
+          lastMutationId: '90000000-0000-4000-8000-000000000001',
+          entries: [changedEntry],
+        ),
+      ),
+    ), isTrue);
+    expect(draft.state.status, RoutineCreateStatus.saved);
+    expect(repo.calls, 1);
+  });
+
   test('unknown Create outcome freezes exact command and blocks second write',
       () async {
     final repo = _Creates()..error = StateError('transport lost');

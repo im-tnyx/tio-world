@@ -27,6 +27,29 @@ final class RoutineCreateCommand {
   final Routine routine;
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
+
+  /// Positive read-only evidence that this unique Routine ID was committed.
+  /// Revision 1 must match the original mutation and complete payload.
+  /// A later revision means the already-persisted Routine has since been
+  /// edited; the original mutation/content no longer describe current truth.
+  /// Caller must separately verify owning Program and authenticated session.
+  bool confirmsPersistedRoutine(RoutineCompositionSnapshot snapshot) {
+    if (snapshot.routineId != routine.id) return false;
+    if (snapshot.revision > 1) {
+      // The reviewed composition writer only advances revision through a
+      // committed mutation. This confirms persistence, NOT original content.
+      return snapshot.lastMutationId != null;
+    }
+    if (snapshot.revision != 1 || snapshot.lastMutationId != mutationId) {
+      return false;
+    }
+    return snapshot.hasSameContent(RoutineCompositionSave(
+      routineId: routine.id,
+      expectedRevision: 0,
+      mutationId: mutationId,
+      entries: entries,
+    ));
+  }
 }
 
 /// Only the reviewed atomic Create RPC may fulfill this interface.

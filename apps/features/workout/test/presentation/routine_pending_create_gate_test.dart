@@ -91,6 +91,57 @@ void main() {
       programId: programId), isTrue);
   });
 
+  test('later composition edit can confirm original Routine identity',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    final routines = _Routines()..rows.add(command.routine);
+    final changedEntry = RoutineCompositionEntry(
+      id: command.entries.single.id,
+      exercise: command.entries.single.exercise,
+      sets: [RoutineCompositionSet(
+        id: command.entries.single.sets.single.id,
+        prescription: SetPrescription(reps: 12),
+      )],
+    );
+    final compositions = _Compositions()
+      ..snapshot = RoutineCompositionSnapshot(
+        routineId: routineId, revision: 2,
+        lastMutationId: '90000000-0000-4000-8000-000000000001',
+        entries: [changedEntry],
+      );
+    expect(await gate.verify(
+      owner: owner, loginCycle: cycle, programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true,
+    ), isTrue);
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse);
+    expect(compositions.snapshot!.entries.single.sets.single.prescription.reps,
+      12, reason: 'Checking status must not restore stale Create content');
+  });
+
+  test('revision greater than 1 without persisted mutation stays pending',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    final routines = _Routines()..rows.add(command.routine);
+    final compositions = _Compositions()
+      ..snapshot = RoutineCompositionSnapshot(
+        routineId: routineId, revision: 2,
+        entries: command.entries,
+      );
+    expect(await gate.verify(
+      owner: owner, loginCycle: cycle, programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true,
+    ), isFalse);
+    expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isTrue);
+  });
+
   test('revocation and next login cycle cannot access old mutation', () async {
     final gate = RoutinePendingCreateGate()
       ..bindSession(owner: owner, loginCycle: cycle);

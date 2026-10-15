@@ -390,15 +390,7 @@ final class RoutineCreateController extends ChangeNotifier {
       }
       final snapshot = await compositions.read(attempted.routine.id);
       if (!_authorized) return false;
-      final frozen = RoutineCompositionSave(
-        routineId: attempted.routine.id,
-        expectedRevision: 0,
-        mutationId: attempted.mutationId,
-        entries: attempted.entries,
-      );
-      if (snapshot == null || snapshot.revision != 1 ||
-          snapshot.lastMutationId != attempted.mutationId ||
-          !snapshot.hasSameContent(frozen)) {
+      if (snapshot == null || !attempted.confirmsPersistedRoutine(snapshot)) {
         return false;
       }
       _status = RoutineCreateStatus.saved;

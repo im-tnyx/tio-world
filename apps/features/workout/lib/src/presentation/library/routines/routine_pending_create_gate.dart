@@ -63,15 +63,7 @@ final class RoutinePendingCreateGate {
       }
       final snapshot = await compositions.read(command.routine.id);
       if (!_same(owner, loginCycle) || !canWrite()) return false;
-      final expected = RoutineCompositionSave(
-        routineId: command.routine.id,
-        expectedRevision: 0,
-        mutationId: command.mutationId,
-        entries: command.entries,
-      );
-      if (snapshot == null || snapshot.revision != 1 ||
-          snapshot.lastMutationId != command.mutationId ||
-          !snapshot.hasSameContent(expected)) {
+      if (snapshot == null || !command.confirmsPersistedRoutine(snapshot)) {
         return false;
       }
       if (!identical(_pending[programId], command)) return false;

@@ -610,3 +610,10 @@ Test both Create and Edit stale-definition preflights with zero writes.
 Likewise the Create editor's in-place unknown ACK reconciliation uses stable
 Routine ID, owner Program, mutation ID and composition equality rather than
 requiring the initial mutable display name; regression for rename. No schema.
+
+## Latest Codex P1/P2 remediations — newer revision confirmation + Edit blank marker (2026-10-15; CI pending)
+
+Codex on #551 head `a659455316a9dd3b0b3a0470a3f2137c2ea2b598` reported:
+- P1 new/Replace Edit Set typed Reps can disappear after an Update reject/rebuild because the blank marker remains when validity stays true→true. Fix on successful inline onChanged before editor publishes/rebuilds; regression checks typed Reps remain visible and in unchanged draft after definite RPC failure.
+- P2 Create RPC may commit and later Edit advances the same persisted Routine to revision > 1, replacing lastMutationId and content. Strict revision-1 confirmation would strand a same-session Program Add lock. Centralize read-only confirmation in RoutineCreateCommand: require owner-verified Routine ID/Program listing, snapshot's Routine ID, and at revision 1 exact original mutation/content; for revision > 1 require a committed mutation marker. Later revision proves this stable Routine exists, NOT that the original payload is unchanged. Both pending Program gate and in-place Create editor use this contract; add positive later-edit and negative no-provenance regressions. This is not a new DB column or permission to trust unscoped source data.
+Original process-death recovery, old client compatibility, #534, device QA and independent review remain merge/release gates.

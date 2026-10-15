@@ -723,8 +723,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
         onTypePressed: () => _selectSetType(entry, set),
-        onChanged: (prescription) =>
-            _editSetPreservingRange(entry, set, prescription),
+        onChanged: (prescription) {
+          // A valid edit is persisted in the draft even when the field's
+          // validity stayed true throughout typing. Clear its blank marker
+          // before a pending Save/failure can unmount and remount this row.
+          _blankSetIds.remove(set.id);
+          _editSetPreservingRange(entry, set, prescription);
+        },
         onValidityChanged: (valid) => _validityChanged(set.id, valid),
         onRemove: () => _removeSet(entry, set),
       );

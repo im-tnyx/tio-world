@@ -616,6 +616,35 @@ void main() {
     expect(saved.prescription.restSeconds, 60);
   });
 
+  testWidgets('valid new Edit Set Reps remain visible after rejected Update',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.error = const RoutineCompositionException(
+      RoutineCompositionFailureKind.invalidRequest,
+    );
+    await f.open(tester);
+    final add = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    const newSetId = '90000000-0000-4000-8000-000000000001';
+    final reps = find.byKey(const ValueKey('routine-set-reps-$newSetId'));
+    expect(reps, findsOneWidget);
+    await tester.enterText(reps, '12');
+    await tester.pump();
+    expect(tester.widget<TioInput>(reps).controller!.text, '12');
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(f.editorResult, isNull);
+    expect(tester.widget<TioInput>(reps).controller!.text, '12',
+      reason: 'Rejected RPC must not remount a typed Set as blank');
+    final written = f.compositions.lastSave!.entries.single.sets.last;
+    expect(written.id, newSetId);
+    expect(written.prescription.reps, 12);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('inline Edit retains precise kg and Set UUID', (tester) async {
     final f = _Fixtures(unit: WeightUnit.lb);
     await f.open(tester);
