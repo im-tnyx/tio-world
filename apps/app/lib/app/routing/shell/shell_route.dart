@@ -590,8 +590,8 @@ List<RouteBase> _shellBranchChildRoutes(
                     !openingSessionValid() ||
                     routines.state.status != ProgramRoutinesStatus.ready ||
                     pendingGate.hasPending(
-                      owner: openingOwner!,
-                      loginCycle: openingCycle!,
+                      owner: openingOwner,
+                      loginCycle: openingCycle,
                       programId: program.id,
                     )) {
                   return;
