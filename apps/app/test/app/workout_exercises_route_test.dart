@@ -867,6 +867,84 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'in-flight Create survives same-owner login-cycle revocation',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      holdCreateResponse: true,
+    );
+    final create = container.read(routineCreateRepositoryProvider)
+        as _RouteCreate;
+    final gate = container.read(routinePendingCreateGateProvider);
+    const programKey = ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001');
+    final programId = ProgramId(
+        '20000000-0000-4000-8000-000000000001');
+
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump(); // The atomic RPC remains in flight.
+    expect(create.createCalls, 1);
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'test-cycle',
+      programId: programId,
+    ), isTrue);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing,
+        reason: 'Revoked-session draft must disappear immediately');
+
+    // Old Program Detail does not inherit a new-cycle write capability.
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(programKey));
+    await tester.pumpAndSettle();
+    const addKey = ValueKey('program-detail-add-routine');
+    const verifyKey = ValueKey('program-routines-verify-create');
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId,
+    ), isTrue);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    await tester.tap(find.byKey(verifyKey)); // No commit yet.
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
+    expect(create.createCalls, 1, reason: 'No new Create UUID dispatched');
+
+    await create.completeInFlight();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(verifyKey));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(gate.hasPending(
+      owner: 'test-user', loginCycle: 'next-cycle',
+      programId: programId,
+    ), isFalse);
+    expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNotNull);
+    expect(create.createCalls, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('stale Program Detail cannot Create on a new login cycle',
       (tester) async {
     final (container, router) = await _app(
