@@ -19,17 +19,17 @@
 **Ownership transition:** Not applicable; no #529 active branch or PR found on preflight
 **Repository state last verified:** GitHub API main = `4090e3a143fcfc309a3020e73823bc30ec40c282`
 **Branch:** `tnyx/issue-529-inline-add-routine`
-**HEAD SHA:** `4090e3a143fcfc309a3020e73823bc30ec40c282` (before implementation)
+**HEAD SHA:** `d8eced8b57ff0d045a19d8aca7e5e210cdc83d90` (source checkpoint; recheck exact PR HEAD)
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
-**PR / tracker:** GitHub #529 / #475, Linear TNYX-267 and TNYX-81
-**Current implementation state:** Not yet committed
+**PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
+**Current implementation state:** Remote branch has empty Program Add Routine, 3-dot Add New Routine, preserved Edit→Rename, thin Program Detail auto-launch into existing atomic Create, focused widget/app route tests.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell's ProgramDetail/Create route
 **Validation completed at SHA:** Source/planning review only, no Flutter checks yet
 **Validation remaining:** Widget/app-route tests, exact-head CI, diff audit, security/API re-check and review
-**Current blocker:** Direct Program Delete unavailable (ProgramRepository.list/create/rename only; authenticated DELETE revoked).
+**Current blocker:** Direct Program Delete unavailable (#567); review/exact-head CI and deployment gates pending.
 **Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
-**Next exact action:** Add guarded Library Add Routine and Program 3-dot Add Routine reusing ProgramDetail/Create.
+**Next exact action:** Verify exact-head Flutter CI and source diff; fix concrete review/CI findings. Do not merge/deploy without explicit approval.
 
 ## 1. Discovery
 ### User Outcome
@@ -71,15 +71,15 @@ Direct metadata-only Create, new Routine editor, direct Program DELETE, inert de
 Hide Add when repository or callback absent; no creation during loading/error; retries and empty state honest; pending unknown write guard maintained. Use TioButton/TioSettingsNavigationRow, accessible labels.
 
 ## 5. Implementation Plan
-- [ ] Add callback propagation and empty-state Add button
-- [ ] Add guarded Program 3-dot Add Routine; retain Edit Program rename
-- [ ] Connect direct entry to existing Create route without new write path
-- [ ] Add focused feature widget and app route tests
-- [ ] Update canonical docs and audit PR/CI
+- [x] Add callback propagation and empty-state Add button
+- [x] Add guarded Program 3-dot Add Routine; retain Edit Program rename
+- [x] Connect direct entry to existing Create route without new write path
+- [x] Add focused feature widget and app route tests
+- [ ] Canonical doc updated; exact-head PR/CI review still pending
 
 ## 6. Quality Review
 ### Validation Run
-No Flutter SDK or worktree is accessible in this connector-only runtime. Remote GitHub Actions exact-head evidence required.
+No Flutter SDK or worktree is accessible in this connector-only runtime. Initial PR head `677d20a8` and intermediate `831cad6f` failed Flutter Analyze on duplicate callback declaration / nullable repository; fixed on subsequent commits. Head `dac03d79` Analyze failed missing `supportingText`, fixed at `d8eced8b`. New exact-head Flutter CI queued; no passing test claim. Review and CI still pending.
 ### Review Findings and Resolution
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
 |---|---|---|---|---|---|
@@ -87,10 +87,10 @@ No Flutter SDK or worktree is accessible in this connector-only runtime. Remote 
 
 ## 7. Final Handoff
 ### Changed Files
-Pending implementation
+App shell `shell_route.dart`; Workout `library_page.dart`, `programs_surface.dart`, `inline_program_routines.dart`, `program_detail_page.dart`; app and Workout tests; `docs/screens/programs.md`; task brief and index.
 ### Actual Behavior
-Pending implementation
+Branch-only implementation: capability-gated Add Routine at empty expanded Program and Program 3-dot, existing Edit Program Rename, selected Program bound atomic Create, Cancel/return owner-scoped refresh. Not yet verified by passing exact-head CI or released.
 ### Known Limitations
-Program Delete deliberately not part of this safe UI slice.
+Program Delete deliberately not part of this safe UI slice; dedicated security/lifecycle issue #567. Hosted atomic Create RPC availability and mobile release remain separate gates.
 ### Final Status
 PARTIAL (in progress; not release-ready)
