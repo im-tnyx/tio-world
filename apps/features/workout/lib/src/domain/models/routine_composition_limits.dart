@@ -16,8 +16,8 @@ abstract final class RoutineCompositionLimits {
 
   /// Protect authored Set targets when a Custom Exercise's measurement type
   /// changes on another device. Rest and Set Type belong to every profile.
-  /// Missing/legacy untyped Custom definitions retain their existing draft
-  /// semantics; caller separately checks the originally selected type.
+  /// Legacy untyped Reps/Load may be retained, but metric targets cannot be
+  /// rewritten under a missing type; caller checks originally selected type.
   static bool targetsMatchExerciseType(
     ExerciseType? type,
     Iterable<SetPrescription> prescriptions,
@@ -32,8 +32,9 @@ abstract final class RoutineCompositionLimits {
         if (hasRepsOrLoad || hasDistance) return false;
       } else if (type == ExerciseType.distanceDuration) {
         if (hasRepsOrLoad) return false;
-      } else if (type != null && (hasDistance || hasDuration)) {
-        return false; // All remaining supported types use Reps/Load targets.
+      } else if (hasDistance || hasDuration) {
+        // Null Custom type cannot justify rewriting stored metric targets.
+        return false; // All other types use Reps/Load targets.
       }
     }
     return true;
