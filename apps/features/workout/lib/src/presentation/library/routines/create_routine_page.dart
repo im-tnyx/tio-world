@@ -34,6 +34,7 @@ class CreateRoutinePage extends StatefulWidget {
     this.onUnconfirmedExit,
     this.onWriteStarted,
     this.onWriteResolved,
+    this.onDefiniteFailure,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -56,6 +57,9 @@ class CreateRoutinePage extends StatefulWidget {
   final ValueChanged<RoutineCreateCommand>? onWriteStarted;
   /// Release that reservation only on acknowledged Save or definite failure.
   final ValueChanged<RoutineCreateCommand>? onWriteResolved;
+  /// Exact RPC rejection can arrive after auth revoked and disposed this
+  /// screen; pending-gate cleanup must not depend on a widget listener.
+  final ValueChanged<RoutineCreateCommand>? onDefiniteFailure;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -112,6 +116,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       repository: widget.createRepository,
       userExercises: widget.userExerciseRepository,
       canWrite: widget.canWrite,
+      onDefiniteFailure: widget.onDefiniteFailure,
       newUuid: widget.newUuid,
     )..addListener(_changed);
   }
