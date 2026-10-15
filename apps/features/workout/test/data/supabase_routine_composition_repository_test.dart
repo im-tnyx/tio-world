@@ -419,6 +419,11 @@ void main() {
     ('42501', 'private details', RoutineCompositionFailureKind.forbidden),
     (
       '22023',
+      'routine_composition_archived_exercise_modified',
+      RoutineCompositionFailureKind.exerciseUnavailable
+    ),
+    (
+      '22023',
       'routine_composition_payload_too_large',
       RoutineCompositionFailureKind.invalidRequest
     ),
