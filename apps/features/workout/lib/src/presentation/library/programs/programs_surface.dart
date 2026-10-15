@@ -215,9 +215,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                         icon: Icons.add_rounded,
                       ),
                       title: 'Add New Routine',
+                      titleColor: pendingSave || _openingAddRoutine
+                          ? sheetContext.tioColors.textMuted
+                          : null,
                       supportingText: pendingSave
                           ? 'Check the previous save in Program'
-                          : 'Create in this Program',
+                          : _openingAddRoutine
+                              ? 'Another Routine is opening'
+                              : 'Create in this Program',
                       showChevron: false,
                       onTap: _openingAddRoutine || pendingSave ? null : () {
                         addRequested = true;
