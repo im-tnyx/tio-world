@@ -536,16 +536,16 @@ List<RouteBase> _shellBranchChildRoutes(
                                           onWriteStarted: (command) {
                                             if (!openingSessionValid()) return;
                                             pendingGate.retain(
-                                              owner: openingOwner!,
-                                              loginCycle: openingCycle!,
+                                              owner: openingOwner,
+                                              loginCycle: openingCycle,
                                               command: command,
                                             );
                                           },
                                           onWriteResolved: (command) {
                                             if (!openingSessionValid()) return;
                                             pendingGate.release(
-                                              owner: openingOwner!,
-                                              loginCycle: openingCycle!,
+                                              owner: openingOwner,
+                                              loginCycle: openingCycle,
                                               command: command,
                                             );
                                           },
