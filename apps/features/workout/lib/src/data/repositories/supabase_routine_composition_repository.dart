@@ -386,6 +386,9 @@ final class SupabaseRoutineCompositionRepository
           {
             'id': entry.id,
             'exercise_ref': entry.exercise.value,
+            if (command.expectedCustomTypes.containsKey(entry.id))
+              'expected_exercise_type':
+                  command.expectedCustomTypes[entry.id]?.storageValue,
             'sets': [
               for (final set in entry.sets)
                 {
