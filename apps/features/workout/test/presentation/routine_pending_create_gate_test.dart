@@ -199,30 +199,78 @@ void main() {
       programId: programId), isFalse);
   });
 
-  test('rejected old-owner callback cannot clear a different owner gate', () {
-    final gate = RoutinePendingCreateGate()
-      ..bindSession(owner: owner, loginCycle: cycle);
-    gate.retain(owner: owner, loginCycle: cycle, command: command);
-    gate.bindSession(owner: 'other-user', loginCycle: 'other-cycle');
-    gate.retain(owner: 'other-user', loginCycle: 'other-cycle',
-      command: command);
-    gate.releaseDefiniteForOwner(owner: owner, command: command);
-    expect(gate.hasPending(owner: 'other-user', loginCycle: 'other-cycle',
-      programId: programId), isTrue);
-  });
-
-  test('different owner clears all previous pending Create identities',
+  test('A -> B -> A retains owner A attempt without exposing it to B',
       () async {
     final gate = RoutinePendingCreateGate()
       ..bindSession(owner: owner, loginCycle: cycle);
     gate.retain(owner: owner, loginCycle: cycle, command: command);
-    gate.bindSession(owner: 'different-user', loginCycle: 'other-cycle');
+    gate.bindSession(owner: 'other-user', loginCycle: 'other-cycle');
     expect(gate.hasPending(owner: owner, loginCycle: cycle,
+      programId: programId), isFalse,
+      reason: 'A pending identity must not be readable while B is active');
+    expect(gate.hasPending(owner: 'other-user', loginCycle: 'other-cycle',
+      programId: programId), isFalse,
+      reason: 'B cannot inherit A pending identity or draft');
+    expect(await gate.verify(
+      owner: owner, loginCycle: cycle, programId: programId,
+      routines: _Routines(), compositions: _Compositions(),
+      canWrite: () => true), isFalse,
+      reason: 'A cannot verify through a B session');
+
+    gate.bindSession(owner: owner, loginCycle: 'cycle-2');
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue,
+      reason: 'A must be blocked from a second Create after returning');
+    final routines = _Routines();
+    final compositions = _Compositions();
+    expect(await gate.verify(
+      owner: owner, loginCycle: 'cycle-2', programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true), isFalse,
+      reason: 'An empty read never proves the old RPC cannot commit');
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
+      programId: programId), isTrue);
+    routines.rows.add(command.routine);
+    compositions.snapshot = RoutineCompositionSnapshot(
+      routineId: routineId, revision: 1,
+      lastMutationId: command.mutationId, entries: command.entries,
+    );
+    expect(await gate.verify(
+      owner: owner, loginCycle: 'cycle-2', programId: programId,
+      routines: routines, compositions: compositions,
+      canWrite: () => true), isTrue);
+    expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
       programId: programId), isFalse);
+  });
+
+  test('B reservations stay private and an old A definite failure clears A',
+      () {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    gate.bindSession(owner: 'other-user', loginCycle: 'other-cycle');
+    final bCommand = RoutineCreateCommand(
+      routine: Routine(
+        id: RoutineId('20000000-0000-4000-8000-000000000002'),
+        programId: programId, name: 'Owner B Routine',
+      ),
+      mutationId: '30000000-0000-4000-8000-000000000002',
+      entries: command.entries,
+    );
+    gate.retain(owner: 'other-user', loginCycle: 'other-cycle',
+      command: bCommand);
+    gate.releaseDefiniteForOwner(owner: owner, command: command);
+    expect(gate.hasPending(owner: 'other-user', loginCycle: 'other-cycle',
+      programId: programId), isTrue,
+      reason: 'Old A RPC callback cannot release B in-flight Create');
     gate.bindSession(owner: owner, loginCycle: 'cycle-2');
     expect(gate.hasPending(owner: owner, loginCycle: 'cycle-2',
       programId: programId), isFalse,
-      reason: 'Another account must never inherit old immutable draft data');
+      reason: 'A definite rollback must not leave A permanently blocked');
+    gate.bindSession(owner: 'other-user', loginCycle: 'other-cycle');
+    expect(gate.hasPending(owner: 'other-user', loginCycle: 'other-cycle',
+      programId: programId), isTrue,
+      reason: 'B retained its independent reservation across A login');
   });
 
   test('definite Create result clears only its own pending reservation',
