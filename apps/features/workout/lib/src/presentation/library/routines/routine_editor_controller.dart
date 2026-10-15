@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
-
-import '../../../domain/models/routine_composition_limits.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
