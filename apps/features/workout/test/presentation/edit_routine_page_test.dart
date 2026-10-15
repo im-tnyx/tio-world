@@ -394,10 +394,19 @@ void main() {
     expect(f.compositions.saveCount, 0);
 
     // Another device archives the Exercise after picker selection.
-    f.users.rows = const [];
+    // The owner-inclusive preflight now sees its archived status, rather
+    // than treating the exercise as missing. A newly added archived entry
+    // is never an unchanged historical reference.
+    f.users.rows = [
+      Exercise(
+        ref: UserCreatedExerciseRef(_newCustomRef),
+        displayName: 'Remote Archive Candidate',
+        status: ExerciseStatus.archived,
+      ),
+    ];
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('no longer active'), findsOneWidget);
+    expect(find.textContaining('archived Custom Exercise'), findsOneWidget);
     expect(f.compositions.saveCount, 0);
     expect(f.editorResult, isNull);
 
