@@ -2,6 +2,16 @@
 
 **Status:** In progress / integration review.
 
+## 2026-10-15 Routine device visual QA owner acceptance
+
+**Owner confirmation:** The Tio-world owner states Routine UI has already been checked on a device and looks correct. Record this as **owner-accepted Routine visual/UI QA** for existing #551 presentation; do **not** require a repeat visual screenshot/layout approval before proceeding to code/security/rollout gates. This is an owner-reported acceptance, not a device test run executed or independently verified by the agent. The installed APK build SHA, backend/environment, screen-by-screen test steps, and accessory/emulator coverage were not provided, so do **not** attribute this acceptance to a specific PR commit or claim end-to-end persistence, multi-account/auth, accessibility or same-account concurrency passed.
+
+**Current source gate before this documentation change:** consolidated Flutter PR #551 head `a21c0e9cbd7e8b22c79daa914f4ae804fce1a7d3`, [Flutter CI #38714703558](https://github.com/im-tnyx/tio-world/actions/runs/38714703558) PASS and attribution PASS. DB security PR #561 head `9c1b26938aa0e21e22a26e131ded53972aa52505`, [Supabase Database CI #38719053304](https://github.com/im-tnyx/tio-world/actions/runs/38719053304) PASS. There are 24 historical #551 review threads, 18 unresolved (all have author-side replies, not independent resolutions); #561 has zero threads but no independent APPROVE. Branch protection remains unreadable (403), CODEOWNERS has no actual assigned reviewers. Live hosted DB still 55 migrations through `20261010061809`. #559's controlled 4–5-device old/new APK and two-session data-integrity checks remain distinct from accepted appearance.
+
+**Next boundary:** Review/reconcile unclosed code/security findings and stage #559 old/new client policy. No UI redesign, source merge, hosted database migration, app activation, review-thread self-resolution, or branch cleanup is authorized by this QA acceptance. Source review evidence, exact-head CI, formal merge and hosted DDL authorization remain separate gates.
+
+---
+
 ## 2026-10-15 #534 post-preflight atomic rejection classification
 
 **Owner-approved subtask within prior #534 W4 parity (NO new feature or UI layout):** source/manual integration review verified DB #561 raises `22023/routine_composition_archived_exercise_modified` for an archive racing after Flutter's active-owner preflight. Existing W4 Supabase Save adapter maps all `22023` to generic `invalidRequest` and Edit controller shows retry-only text; this is a definite **non-retryable until user changes archived entry** rejection, not an uncertain commit. Keep server atomic guard authoritative, preserve in-memory draft/Set identities, do not retry RPC, map only exact approved backend message (no raw SQL details) to already existing `exerciseUnavailable` kind; controller should present guidance to reload/remove archived Custom and never clear the Routine on that kind. Cover real PostgREST classification+single-call test, focused controller no-draft-loss/zero retry regression, preserve other `22023` mapping. Re-run exact-head Flutter tests, no production DDL or UI redesign, no merge.
