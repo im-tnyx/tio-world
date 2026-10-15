@@ -14,6 +14,17 @@ ExerciseType? routineEntryMeasurementProfile(
   ExerciseType? canonical,
   List<RoutineCompositionSet> sets,
 ) {
+  if (canonical == null) {
+    // Custom definitions historically allow missing type. Reconstruct only
+    // the visible measurement shape from stored targets; never mutate data.
+    if (sets.any((set) => set.prescription.distanceMeters != null)) {
+      return ExerciseType.distanceDuration;
+    }
+    if (sets.any((set) => set.prescription.durationSeconds != null)) {
+      return ExerciseType.duration;
+    }
+    return null;
+  }
   if (canonical != ExerciseType.distanceDuration &&
       canonical != ExerciseType.duration) {
     return canonical;
