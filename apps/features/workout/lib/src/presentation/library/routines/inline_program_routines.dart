@@ -141,11 +141,10 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   'No routines yet',
                   style: TextStyle(color: context.tioColors.textSecondary),
                 )
-              : TioButton.secondary(
+              : _DottedAddRoutineCard(
                   key: ValueKey(
                     'library-add-routine-${widget.program.id.value}',
                   ),
-                  label: 'Add Routine',
                   onPressed: _openingCreate ? null : _addRoutine,
                 );
         } else {
@@ -178,4 +177,92 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
       child: content,
     );
   }
+}
+
+
+/// One-off Program empty-state action. Uses Core tokens without adding a
+/// duplicate Card variant for a presentation used in only this Workout flow.
+class _DottedAddRoutineCard extends StatelessWidget {
+  const _DottedAddRoutineCard({required this.onPressed, super.key});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final foreground =
+        onPressed == null ? colors.textSecondary : colors.primary;
+    return Material(
+      color: TioPalette.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(TioRadius.lg),
+        onTap: onPressed,
+        child: CustomPaint(
+          painter: _DottedOutline(color: colors.outlineStrong),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: TioSpacing.xl,
+              horizontal: TioSpacing.lg,
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_rounded, color: foreground),
+                  const SizedBox(width: TioSpacing.sm),
+                  Text(
+                    'Add new routine',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: foreground,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dashed border follows the same rounded card shape in all Tio themes.
+class _DottedOutline extends CustomPainter {
+  const _DottedOutline({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(TioStroke.width1),
+          const Radius.circular(TioRadius.lg),
+        ),
+      );
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = TioStroke.width2
+      ..style = PaintingStyle.stroke;
+    for (final metric in path.computeMetrics()) {
+      for (var start = 0.0;
+          start < metric.length;
+          start += TioSize.dp12) {
+        final end = start + TioSize.dp6;
+        canvas.drawPath(
+          metric.extractPath(
+            start,
+            end < metric.length ? end : metric.length,
+          ),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedOutline oldDelegate) =>
+      oldDelegate.color != color;
 }
