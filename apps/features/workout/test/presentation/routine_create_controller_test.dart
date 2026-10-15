@@ -309,6 +309,71 @@ void main() {
     expect(repo.calls, 0);
   });
 
+  for (final currentType in [
+    ExerciseType.duration, ExerciseType.distanceDuration,
+  ]) {
+    test('Create fails closed when Custom weightReps became ${currentType.name}',
+        () async {
+      final repo = _Creates();
+      final ids = [_entry1, _set1, _routineId, _mutation].iterator;
+      final draft = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'Program 1'),
+        initialName: 'Routine 1', repository: repo,
+        userExercises: _StepExerciseRepository(exerciseType: currentType),
+        newUuid: () {
+          if (!ids.moveNext()) throw StateError('Unexpected UUID');
+          return ids.current;
+        },
+      );
+      addTearDown(draft.dispose);
+      final selected = Exercise(
+        ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+        displayName: 'My Lift', status: ExerciseStatus.active,
+        exerciseType: ExerciseType.weightReps,
+      );
+      final entry = draft.addPickedExercise(selected)!;
+      expect(draft.editSet(entry, _set1, SetPrescription(
+        reps: 10, loadKg: 25,
+      )), isTrue);
+      expect(await draft.save(), isFalse);
+      expect(draft.state.status, RoutineCreateStatus.ready);
+      expect(draft.state.message, contains('type changed'));
+      expect(repo.calls, 0);
+      expect(draft.state.entries.single.sets.single.prescription.reps, 10);
+    });
+  }
+
+  test('Create does not write KM/TIME targets under remotely changed KG/REPS',
+      () async {
+    final repo = _Creates();
+    final ids = [_entry1, _set1, _routineId, _mutation].iterator;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1', repository: repo,
+      userExercises: _StepExerciseRepository(
+        exerciseType: ExerciseType.weightReps,
+      ),
+      newUuid: () {
+        if (!ids.moveNext()) throw StateError('Unexpected UUID');
+        return ids.current;
+      },
+    );
+    addTearDown(draft.dispose);
+    final entry = draft.addPickedExercise(Exercise(
+      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+      displayName: 'My Run', status: ExerciseStatus.active,
+      exerciseType: ExerciseType.distanceDuration,
+    ))!;
+    expect(draft.editSet(entry, _set1, SetPrescription(
+      distanceMeters: 3000, durationSeconds: 900,
+    )), isTrue);
+    expect(await draft.save(), isFalse);
+    expect(draft.state.message, contains('type changed'));
+    expect(repo.calls, 0);
+    expect(draft.state.entries.single.sets.single.prescription.distanceMeters,
+        3000);
+  });
+
   test('unknown Create reconcile accepts a renamed committed Routine', () async {
     final repo = _Creates()..error = StateError('lost ACK');
     final draft = _controller(repo, saveAfterOneExercise: true);
@@ -402,12 +467,15 @@ final class _Creates implements RoutineCreateRepository {
 
 final class _StepExerciseRepository extends Fake
     implements UserExerciseRepository {
+  _StepExerciseRepository({this.exerciseType = ExerciseType.stepsDuration});
+  final ExerciseType exerciseType;
+
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async => [
     Exercise(
       ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-      displayName: 'Step Mill', status: ExerciseStatus.active,
-      exerciseType: ExerciseType.stepsDuration,
+      displayName: 'Custom Exercise', status: ExerciseStatus.active,
+      exerciseType: exerciseType,
     ),
   ];
 }
