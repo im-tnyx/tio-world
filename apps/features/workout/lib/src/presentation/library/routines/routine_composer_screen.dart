@@ -157,7 +157,7 @@ class RoutineComposerContent extends StatelessWidget {
         key: scrollKey,
         slivers: [
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               TioSpacing.lg,
               // Identical top Name field position in Create and Edit.
               TioSpacing.xl,
