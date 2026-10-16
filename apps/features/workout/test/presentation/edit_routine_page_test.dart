@@ -154,6 +154,14 @@ void main() {
       final badge = tester.widget<RoutineSetTypeBadge>(finder);
       expect(badge.setType, kind);
       expect(badge.useEditSetNumberColor, isTrue);
+      final card = find.descendant(
+        of: option,
+        matching: find.byType(TioSelectableCard),
+      );
+      expect(card, findsOneWidget);
+      expect(tester.widget<TioSelectableCard>(card).selected,
+          kind == RoutineSetType.warmUp);
+
       expect(badge.normalNumber, 1);
     }
     expect(find.descendant(
