@@ -283,10 +283,13 @@ void main() {
       const ValueKey('routine-edit-$_routineId'),
     );
     final routineHeight = tester.getSize(routineOption).height;
-    // Both options use the same 38dp badge/icon area and 8dp top/bottom
-    // padding; this detects future visual drift between the two sheets.
-    expect(referenceHeight, TioSize.dp38 + TioSpacing.sm * 2);
-    expect(routineHeight, referenceHeight);
+    // Both options use the same governed 38dp badge/icon area, padding and
+    // outlined border. Container borders contribute to rendered dimensions,
+    // so compare actual widget heights rather than assuming 38 + 8 + 8.
+    expect(referenceHeight, greaterThanOrEqualTo(
+      TioSize.dp38 + TioSpacing.sm * 2,
+    ));
+    expect(routineHeight, closeTo(referenceHeight, 0.01));
     final outlined = find.descendant(
       of: routineOption,
       matching: find.byType(TioCard),
@@ -447,7 +450,7 @@ void main() {
   testWidgets('Routine overflow has one accessible tap action and label',
       (tester) async {
     final handle = tester.ensureSemantics();
-    addTearDown(handle.dispose);
+    try {
     await _pump(
       tester,
       repository: _MemoryRoutines([
@@ -469,6 +472,10 @@ void main() {
     expect(editSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
         findsOneWidget);
+    } finally {
+      // WidgetTester verifies disposal before addTearDown callbacks run.
+      handle.dispose();
+    }
   });
 
   testWidgets('failed atomic Create retains empty Program without legacy write',
