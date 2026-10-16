@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Workout screen product contract, ownership
 **Surface:** Phone primary tab for `workout` and `hybrid` modes
 **Current route:** `/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** `/workout` renders the Workout-owned `WorkoutHomePage` with the current calendar/date surface and a real Library entry. `/workout/library`, `/workout/programs`, and `/workout/exercises` are shipped nested routes. The persisted Program collection/create foundation is implemented; Program detail/Routine management, active-session execution, Insights and broader Workout Settings remain later capability slices.
+**Status (focused current-source verification 2026-10-17, `main@633dbf38`):** `/workout` renders Workout-owned `WorkoutHomePage` with its date/calendar surface and Library entry. Nested Library, Programs and Exercises routes are implemented. Persisted Programs and selected Program Detail with owner-scoped Routine metadata, authenticated Program-scoped Routine Create/Edit, canonical Routine-context Exercise picker, read-only Routine Detail, atomic Routine Name+composition Update and Routine-card Core actions sheet are on merged `main` (#551/#566/#570/#577/#581). Entry points fail closed without the applicable repositories, owner/session and Profile-unit state. This is implemented source, not evidence of a distributed app release or phone QA. Direct Library-root default `My Program` quick-create, active workout execution, scheduled TrainingPlan, Insights and broader Workout Settings remain gated.
 
 ## Purpose
 
