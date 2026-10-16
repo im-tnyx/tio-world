@@ -280,6 +280,13 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_526_routine_delete_anti_resurrection.test.sql
 
+      - name: Enforce #526 cumulative Routine identity storage budget
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_526_routine_identity_budget.test.sql
+
       - name: Run #526 Create/Delete retirement order two-session races
         shell: bash
         run: bash supabase/tests/database/tnyx_526_routine_delete_anti_resurrection_concurrency.sh
