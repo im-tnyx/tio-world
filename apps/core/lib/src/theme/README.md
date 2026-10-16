@@ -402,6 +402,16 @@ TioDateTimeWheelPicker
 core reusable dialogs/pickers/sheets
 ```
 
+`TioCard(variant: TioCardVariant.outlined)` retains its pre-existing
+1dp (`TioStroke.width1`) outline and `colors.outlineStrong` by default.
+For a narrowly owner-approved compact outline, callers may pass the optional
+`outlinedBorderWidth: TioCardTokens.borderThin` (`TioStroke.width075`, 0.75dp).
+The parameter is valid **only** for the `outlined` variant; it does not alter
+any other card variant, outline color, radius or default padding. Use a governed
+stroke token, not an untracked raw width. This is separate from the
+`TioSelectableCard` selected/unselected fill and border contract, which keeps
+its own fixed 0.75dp/1.25dp widths and padding.
+
 `TioButton` is the shared button family for every action in the app. Its variants are semantic intents, not surfaces or features:
 
 ```text
