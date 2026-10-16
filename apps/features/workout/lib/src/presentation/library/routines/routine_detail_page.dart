@@ -152,8 +152,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           softWrap: false,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioFontSize.size16,
-            fontWeight: TioFontWeight.w400,
+            fontSize: TioFontSize.size20,
+            fontWeight: TioFontWeight.w800,
           ),
         ),
       ),
@@ -408,8 +408,8 @@ class _RoutineEntryPreview extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size20,
+                  fontWeight: TioFontWeight.w400,
+                  fontSize: TioFontSize.size16,
                 ),
               ),
             ),
