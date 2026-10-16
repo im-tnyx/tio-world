@@ -64,7 +64,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) =>
           TioTheme(child: child ?? const SizedBox.shrink()),
-      home: const RoutineComposerScreen(
+      home: RoutineComposerScreen(
         mode: RoutineComposerMode.edit,
         pageKey: ValueKey('shared-composer'),
         cancelKey: ValueKey('shared-cancel'),
