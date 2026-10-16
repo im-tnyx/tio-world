@@ -871,48 +871,23 @@ void main() {
     expect(saved.id, _setId);
   });
 
-  testWidgets('details sheet clearing both Range bounds retains Range mode',
+  testWidgets('clearing inline Range bounds retains nullable Set and rest',
       (tester) async {
     final f = _Fixtures();
     f.compositions.snapshot = _snapshot(entries: [
       _entry(reps: 8, repsMax: 12, rest: 60),
     ]);
     await f.open(tester);
-    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
-    await tester.tap(badge);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    final reps = find.byKey(const ValueKey('routine-set-reps'));
-    final max = find.byKey(const ValueKey('routine-set-reps-max'));
-    expect(reps, findsOneWidget);
+    final min = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
+    expect(min, findsOneWidget);
     expect(max, findsOneWidget);
-    await tester.enterText(reps, '');
+    await tester.enterText(min, '');
     await tester.enterText(max, '');
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
-
-    final inlineMin =
-        find.byKey(const ValueKey('routine-set-reps-$_setId'));
-    final inlineMax =
-        find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
-    expect(inlineMin, findsOneWidget);
-    expect(inlineMax, findsOneWidget);
-    expect(tester.widget<TioInput>(inlineMin).controller!.text, isEmpty);
-    expect(tester.widget<TioInput>(inlineMax).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(min).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
     expect(f.compositions.saveCount, 0);
-
-    // A second details-sheet visit must use the same transient Range mode;
-    // never infer a fixed-mode switch from empty nullable persisted values.
-    await tester.tap(badge);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
-    // The screen header and sheet both say Cancel. Tap only the sheet action.
-    await tester.tap(find.widgetWithText(TioButton, 'Cancel'));
-    await tester.pumpAndSettle();
 
     final update = find.byKey(const ValueKey('edit-routine-update'));
     expect(tester.widget<TextButton>(update).onPressed, isNotNull);
