@@ -183,7 +183,11 @@ unboxed blue Set number, unlike Create's filled badge. The owner-approved
 filled Set badge in **both Create and Edit**. The preferred number/type
 foreground stays on its existing theme role where readable (including the
 Edit primary/blue number), but falls back to black or white when necessary
-to achieve at least **4.5:1 contrast** against the filled background. This
+to achieve at least **4.5:1 contrast** against the filled background.
+History-column visibility is **independent** of Set-number foreground:
+Create retains the Create normal-Set theme foreground when PREVIOUS is
+visible, whereas Edit explicitly selects its existing Edit primary/blue
+preference (still subject to the same contrast fallback). This
 applies to normal and W/F/D Set types, standard light/dark/Tio Dark and OS
 high-contrast variants. Both modes reserve a read-only PREVIOUS
 column; empty cells display only a dash and do not represent historic
