@@ -41,6 +41,18 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 
 **Additional owner decision:** Remove the existing `Rest & set details` action from Edit's `Select Set Type` sheet. The current Edit-only advanced editor is reached exclusively through this action; eliminate its dead entrypoint and rewrite affected integration regressions to exercise the existing inline Reps/Weight/Rep Range editor. Current persisted per-Set `restSeconds` must survive every type/inline edit and Update, but the old Rest editing entrypoint is intentionally no longer offered until the independently planned W4B2 Rest Timer/Notes slices (GitHub #532 / Linear TNYX-81) are approved and implemented. **Do not implement any Rest Timer or Notes UI/data here**. Keep `Remove Set` and existing selected Set actions.
 
+## Owner visual correction — compact outlined variant and Delete icon (2026-10-16)
+
+**Explicit approval evidence:** Owner supplied `IMG_0615.jpeg` and observed the current outlined option rows are too tall, the Delete row lacks the red trash icon and its outline should reuse the Core reusable card's **outlined variant**. Scope stays within Draft PR #574.
+
+**Measured source cause:** Existing `TioSelectableCard` enforces `TioCardTokens.padding = TioSpacing.lg` (16dp per side), so its 38dp Set badge drives an approximately 70dp option height. This global selectable contract has no padding override, and changing it would break unrelated screens.
+
+**Chosen smallest solution:** In Workout-owned `RoutineSetTypeOption`, use existing Core `TioCard(variant: TioCardVariant.outlined, padding: EdgeInsets.symmetric(horizontal: TioSpacing.md, vertical: TioSpacing.sm), onTap: ...)`. Option normal-height target = 38 + 8 + 8 = **54dp**, preserving 48dp minimum usable touch area and allowing growth for text scale. Keep semantic button + selected announcements, existing selected checkmark, Normal/W/F/D badge colors/contrast and stable option keys. Add shared `RoutineRemoveSetOption` composition using the **same** outlined card and 54dp control surface, leading semantic `colors.danger` **trash icon** and unchanged Remove Set action/keys. Use `Icons.delete_outline` and no extra `More` action. Create and Edit must render the same visual pattern.
+
+**Rejected:** altering the shared Core `TioSelectableCard` fixed padding or introducing a new Core card/token variant; rebuilding a bespoke hard-coded outlined `Container`; altering modal shell, Set persistence, Remove Set semantics, or separately planned Rest Timer/Notes.
+
+**Validation needed:** exact-head Flutter CI, compact 320dp light/dark/Tio Dark/high-contrast and text-scale widget assertions, 54dp compact card geometry, Core variant usage, red trash icon, tap/action/selected semantics, remove-last-Set contract and no unrelated regressions. This screenshot is a design reference, not evidence of current PR code running on-device.
+
 ## Verified source-review checkpoint (2026-10-16)
 
 - GitHub source HEAD `18bc0ffaca94f207c4bee534416f6fb0f32a92d2`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, covering analyze (Flutter/Dart), Dart tests, 3 Flutter test shards, and fail-closed `Analyze and test` aggregate.
