@@ -159,9 +159,8 @@ class RoutineComposerContent extends StatelessWidget {
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
               TioSpacing.lg,
-              mode == RoutineComposerMode.create
-                  ? TioSpacing.xl
-                  : TioSpacing.md,
+              // Identical top Name field position in Create and Edit.
+              TioSpacing.xl,
               TioSpacing.lg,
               TioSpacing.none,
             ),
