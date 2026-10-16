@@ -533,7 +533,7 @@ final class RoutineEditorController extends ChangeNotifier {
                 throw const RoutineCompositionException(
                     RoutineCompositionFailureKind.unavailable);
               }
-              return adapter.updateAggregate(command);
+              return (adapter as RoutineAggregateUpdateRepository).updateAggregate(command);
             })();
       if (_disposed || !_authorized) return false;
       _revision = revision;
