@@ -1,6 +1,6 @@
 # GitHub #526 — Owner-scoped permanent Delete Routine DB-only slice
 
-**Status:** In progress — SQL source and disposable CI pending; **not deployed**.
+**Status:** P1 anti-resurrection remediation in progress after approved private-table shape; **not deployed or merge-ready**.
 **Primary owner:** Workout persistence / Supabase security.
 **Affected platforms:** Supabase Postgres only; Flutter/UI/Watch code unchanged.
 
@@ -20,7 +20,7 @@
 - **Parent:** `main@2fad164981ff4ab41cd3d493a5f3f2213d0c6af7`; zero open PRs verified at task start.
 - **Observed working tree:** GitHub remote branch. Windows `G:\projects\Tio-World` checkout **not inspected**, so cannot claim local clean or synced after #577.
 - **Review owner:** Independent review requested at exact source head after CI; Codex quota may be a blocker.
-- **Approval caveat:** No new table/column shape. No authorized production DDL or data change.
+- **Approval update (2026-10-16):** Owner's `Next go` directly after the explicit private Routine tombstone table/guard approval question authorizes exactly that one **private table + server-side anti-resurrection guard**, only on the existing #578 draft branch. This supersedes the older `No new table/column shape` caveat for this narrow table only. **Hosted deployment is not authorized.**
 
 ## Runtime & Hosted Metadata Audited (read-only)
 
@@ -34,7 +34,7 @@
 - `public.delete_user_workout_routine(p_routine_id uuid,p_program_id uuid,p_expected_revision bigint) returns boolean`.
 - Authenticated-only EXECUTE; SECDEF `set search_path=''`, `auth.uid()` required. Guard nonnull Routine/Program and nonnegative revision; select `WHERE id,user_id,program_id` FOR UPDATE to ensure owner and target, then compare exact aggregate revision and issue one protected parent `DELETE`. Return true iff exactly one targeted owner row was removed. Delete triggers existing FK cascades in same SQL transaction.
 - Unowned, cross-Program, missing or already removed Routine → same not-found error. Stale revision → explicit conflict. Do not expose routine existence across owners. No client table DELETE grant, no global cascade/RLS changes, no storage/media delete and no new history delete.
-- Unknown outcome client semantics (later Flutter): original RPC may commit despite network failure. Recheck signed-in same owner/login-cycle and the **Routine UUID across all owner Programs** to distinguish true deletion from a concurrent Move to another Program. Treat confirmed absence only with trustworthy owner read; if network/auth uncertainty persists do not claim success. Do not automatically issue a second destructive call after an ambiguous first response. Duplicate retry after completed delete returns not-found, never touches other Routines. No durable mutation log or new column for deletion replay.
+- Unknown outcome client semantics (later Flutter): original RPC may commit despite network failure. Recheck signed-in same owner/login-cycle and the **Routine UUID across all owner Programs** to distinguish true deletion from a concurrent Move to another Program. Treat confirmed absence only with trustworthy owner read; if network/auth uncertainty persists do not claim success. Do not automatically issue a second destructive call after an ambiguous first response. Duplicate retry after completed delete returns not-found, never touches other Routines. A private owner-bound retired Routine UUID ledger (approved 2026-10-16) now prevents the previous Create replay gap. No general-purpose mutation log or new column in existing tables.
 
 ## Proposed Checks
 
@@ -53,3 +53,11 @@
 Only `supabase/migrations/*`, `supabase/tests/database/*`, additive `.github/workflows/supabase-db-ci.yml` test invocation and this short handoff. No `apps/**` UI, `docs/screens/**` visual design, new columns/tables, direct DELETE permissions or generalized Program/Move lifecycle. Future source/docs status reconciliation (#577 stale canonical brief) is separate governance work.
 
 **Validation at start:** Hosted read-only schema/grants/FKs/ledger and GitHub tests inspected; no newly implemented Delete SQL run, no CI, no Codex verdict yet. **Status IN PROGRESS.**
+
+
+## 2026-10-16 P1 permanent Delete identity guard — approved implementation handoff
+
+- Independent manual security review [#5550163644](https://github.com/im-tnyx/tio-world/pull/578#pullrequestreview-5550163644) on `e3ccab68` found a valid P1: old atomic Create `INSERT ... ON CONFLICT (id) DO NOTHING` permits same UUID replay after a hard Delete; legacy authenticated direct metadata INSERT is a second bypass. Old CI did not test either; PR was intentionally not merged.
+- Owner approved proposed **private retired Routine UUID table and guard** via `Next go` immediately after exact approval question. Scope: minimal `private.deleted_user_workout_routine_ids(routine_id UUID PRIMARY KEY, user_id UUID FK→public.users ON DELETE CASCADE)`, private-only privileges and RLS, no composition stored; insert-side BEFORE trigger for all Create paths; shared per-UUID transaction-level advisory lock acquired by the trigger and Delete RPC before locking the parent; same Delete transaction inserts tombstone and deletes the parent. Lock account/Program key-share before Delete lock to avoid account-deletion/foreign-key ordering deadlocks. Existing RPC signature and authenticated grants stay unchanged.
+- Validation: SQL atomic Create→Delete→same replay + fresh Create, old direct INSERT and cross-account, private grants/RLS/account-delete retention; two-session Create-first/Delete-second and Delete-first/Create-retry races; exact-head full migration replay, SQL/race tests, lint and independent security re-review. If CI exposes a flaw, repair only this boundary. Keep PR Draft/unmerged; no hosted migration or Flutter/Move/Program work.
+- Ownership: this GitHub-connected implementation session continues the explicitly handed-off `security/issue-526-owner-scoped-routine-delete-db` branch. The local Windows checkout is inaccessible; do not claim local status. Prior recorded P1 review remains a blocker until proven repaired and independently accepted.
