@@ -106,8 +106,8 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioFontSize.size18,
-            fontWeight: TioFontWeight.w600,
+            fontSize: TioFontSize.size16,
+            fontWeight: TioFontWeight.w400,
           ),
         ),
         actions: [
