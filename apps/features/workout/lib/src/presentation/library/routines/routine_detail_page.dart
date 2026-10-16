@@ -145,17 +145,6 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
-        actions: [
-          if (widget.onEditPressed != null &&
-              widget.weightUnit != null &&
-              state?.status == RoutineDetailStatus.ready &&
-              state?.routine != null)
-            TextButton(
-              key: const ValueKey('routine-detail-edit'),
-              onPressed: _editing ? null : _openEditor,
-              child: const Text('Edit Routine'),
-            ),
-        ],
         title: Text(
           state?.routine?.name ?? 'Routine',
           maxLines: 1,
@@ -170,8 +159,7 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
       ),
       body: SafeArea(
         child: state != null &&
-                state.status == RoutineDetailStatus.ready &&
-                state.entries.isNotEmpty
+                state.status == RoutineDetailStatus.ready
             ? _readyList(state)
             : ListView(
                 padding: const EdgeInsets.symmetric(
@@ -184,16 +172,22 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     );
   }
 
-  /// Keep each persisted entry lazy while retaining its stable Exercise/Set
-  /// identities. The count header is the first sliver child, not a wrapper
-  /// Column that eagerly builds the full Routine.
+  /// The same owner-verified Edit capability applies to ready-but-empty
+  /// Routines; loading/not-found/failed states never expose editing.
+  bool _canShowEdit(RoutineDetailState state) =>
+      widget.onEditPressed != null &&
+      widget.weightUnit != null &&
+      state.status == RoutineDetailStatus.ready &&
+      state.routine != null;
+
+  /// Keep persisted entries lazy with a shared header for ready states.
   Widget _readyList(RoutineDetailState state) => ListView.builder(
         key: const ValueKey('routine-detail-entries'),
         padding: const EdgeInsets.symmetric(
           horizontal: TioSpacing.lg,
           vertical: TioSpacing.md,
         ),
-        itemCount: state.entries.length + 1,
+        itemCount: state.entries.isEmpty ? 2 : state.entries.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
             return Padding(
@@ -201,12 +195,26 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Exercises',
-                    key: const ValueKey('routine-detail-exercises-header'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: context.tioColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Exercises',
+                          key: const ValueKey('routine-detail-exercises-header'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: context.tioColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (_canShowEdit(state))
+                        TextButton(
+                          key: const ValueKey('routine-detail-edit'),
+                          onPressed: _editing ? null : _openEditor,
+                          child: const Text('Edit Routine'),
+                        ),
+                    ],
                   ),
                   Semantics(
                     label: '${state.exerciseCount} exercises, ${state.setCount} sets',
@@ -222,6 +230,12 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                   ),
                 ],
               ),
+            );
+          }
+          if (state.entries.isEmpty) {
+            return const _RoutineDetailMessage(
+              key: ValueKey('routine-detail-empty'),
+              label: 'No exercises in this Routine yet.',
             );
           }
           final entry = state.entries[index - 1];
@@ -272,11 +286,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           ],
         );
       case RoutineDetailStatus.ready:
-        // Populated content is rendered lazily by _readyList.
-        return const _RoutineDetailMessage(
-          key: ValueKey('routine-detail-empty'),
-          label: 'No exercises in this Routine yet.',
-        );
+        // Ready content, including historical empties, uses _readyList.
+        return const SizedBox.shrink();
     }
   }
 }
