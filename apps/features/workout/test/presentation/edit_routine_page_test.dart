@@ -162,6 +162,28 @@ void main() {
     expect(fixture.compositions.lastAggregate!.entries, isNull);
   });
 
+  testWidgets('name-only save works even when Exercise catalog load fails',
+      (tester) async {
+    final fixture = _Fixtures();
+    fixture.catalog.fail = true;
+    await fixture.open(tester);
+    expect(find.byKey(const ValueKey('edit-routine-source-unavailable')),
+        findsOneWidget);
+    final field = find.byKey(const ValueKey('edit-routine-name'));
+    expect(field, findsOneWidget);
+    expect(tester.widget<TioInput>(field).enabled, isTrue);
+    await tester.enterText(field, 'Renamed Offline Catalog');
+    await tester.pumpAndSettle();
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(fixture.editorResult, isTrue);
+    expect(fixture.compositions.aggregateCalls, 1);
+    expect(fixture.compositions.lastAggregate!.entries, isNull);
+    expect(fixture.compositions.saveCount, 0);
+  });
+
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
       (tester) async {
     final f = _Fixtures();
@@ -1159,8 +1181,11 @@ void main() {
 }
 
 final class _Catalog implements ExerciseCatalogRepository {
+  bool fail = false;
   @override
-  Future<ExerciseCatalog> load() async => ExerciseCatalog([
+  Future<ExerciseCatalog> load() async {
+    if (fail) throw StateError('Catalog unavailable for test');
+    return ExerciseCatalog([
     Exercise(
       ref: ExerciseRef.catalog(_exerciseRef),
       displayName: 'Bench Press',
@@ -1173,6 +1198,7 @@ final class _Catalog implements ExerciseCatalogRepository {
       exerciseType: ExerciseType.distanceDuration,
     ),
   ]);
+  }
 }
 
 final class _Routines implements RoutineRepository {
