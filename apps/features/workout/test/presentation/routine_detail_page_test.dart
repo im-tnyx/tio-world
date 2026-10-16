@@ -79,14 +79,18 @@ void main() {
     );
     expect(routineTitle, findsOneWidget);
     final titleStyle = tester.widget<Text>(routineTitle).style;
-    expect(titleStyle?.fontSize, TioFontSize.size16);
-    expect(titleStyle?.fontWeight, TioFontWeight.w400);
+    expect(titleStyle?.fontSize, TioFontSize.size20);
+    expect(titleStyle?.fontWeight, TioFontWeight.w800);
     expect(find.text('Exercises'), findsOneWidget);
     expect(find.text('SET'), findsOneWidget);
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Bench Press'), findsOneWidget);
+    final exerciseName = find.text('Bench Press');
+    expect(exerciseName, findsOneWidget);
+    final exerciseStyle = tester.widget<Text>(exerciseName).style;
+    expect(exerciseStyle?.fontSize, TioFontSize.size16);
+    expect(exerciseStyle?.fontWeight, TioFontWeight.w400);
     expect(find.text('0'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
@@ -125,8 +129,8 @@ void main() {
       );
       expect(title, findsOneWidget);
       final label = tester.widget<Text>(title);
-      expect(label.style?.fontSize, TioFontSize.size16);
-      expect(label.style?.fontWeight, TioFontWeight.w400);
+      expect(label.style?.fontSize, TioFontSize.size20);
+      expect(label.style?.fontWeight, TioFontWeight.w800);
       expect(label.maxLines, 1);
       expect(label.overflow, TextOverflow.ellipsis);
       expect(tester.takeException(), isNull);
