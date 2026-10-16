@@ -121,7 +121,6 @@ class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
                 vertical: TioSpacing.sm,
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.edit_outlined,
@@ -129,11 +128,15 @@ class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
                     color: colors.textPrimary,
                   ),
                   const SizedBox(width: TioSpacing.md),
-                  Text(
-                    'Edit Routine',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: colors.textPrimary,
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Edit Routine',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: colors.textPrimary,
+                          ),
+                    ),
                   ),
                 ],
               ),
