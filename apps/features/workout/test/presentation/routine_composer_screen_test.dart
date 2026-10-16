@@ -180,10 +180,17 @@ void main() {
     tester.view.devicePixelRatio = 1;
     const title = 'Barbell Standing Military Press (Without Rack)';
     double? previousStart;
+    double? headerToSetSpacing;
+    const setId = '44444444-4444-4444-8444-444444444444';
     final entry = RoutineCompositionEntry(
       id: '33333333-3333-4333-8333-333333333333',
       exercise: ExerciseRef.catalog('ex_bench_press'),
-      sets: const [],
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(reps: 8),
+        ),
+      ],
     );
     for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {
       for (final mode in [RoutineComposerMode.create, RoutineComposerMode.edit]) {
@@ -208,7 +215,20 @@ void main() {
               moveDown: () {},
               showOptions: () {},
               selectRepetitionMode: () {},
-              buildSetRow: (_, __) => const SizedBox.shrink(),
+              buildSetRow: (set, index) => RoutineSetInputRow(
+                set: set,
+                index: index,
+                normalNumber: index + 1,
+                onTypePressed: () {},
+                unit: WeightUnit.kg,
+                enabled: false,
+                showPrevious: true,
+                isOpen: false,
+                onOpenChanged: (_) {},
+                onChanged: (_) {},
+                onValidityChanged: (_) {},
+                onRemove: () {},
+              ),
               addSet: () {},
             ),
           ),
@@ -229,6 +249,18 @@ void main() {
           expect(start, closeTo(previousStart!, 0.01));
         }
         previousStart = start;
+        // Both modes show only an unavailable placeholder until actual
+        // performed Set history is available, never prescribed targets.
+        final previousCell = find.text('–');
+        expect(previousCell, findsOneWidget);
+        final setBox = find.byKey(const ValueKey('routine-set-type-box-$setId'));
+        expect(setBox, findsOneWidget);
+        final relativeGap =
+            tester.getTopLeft(setBox).dy - tester.getBottomLeft(previous).dy;
+        if (headerToSetSpacing != null) {
+          expect(relativeGap, closeTo(headerToSetSpacing!, 0.01));
+        }
+        headerToSetSpacing = relativeGap;
         final options = find.byTooltip('Exercise options');
         expect(options, findsOneWidget);
         expect(
