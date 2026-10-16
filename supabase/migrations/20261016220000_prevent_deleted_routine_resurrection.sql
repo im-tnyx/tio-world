@@ -51,6 +51,13 @@ begin
       using errcode = '25001';
   end if;
 
+  -- Serialize every Routine creation for this owner, even for different IDs.
+  -- A statement-level budget check below then observes a committed,
+  -- owner-consistent cumulative count. Acquire owner lock before UUID lock.
+  perform pg_catalog.pg_advisory_xact_lock(
+    1726041619, pg_catalog.hashtext(new.user_id::text)
+  );
+
   perform private.lock_user_workout_routine_identity(new.id);
 
   if exists (
@@ -71,6 +78,67 @@ revoke all on function private.guard_deleted_user_workout_routine_insert()
 create trigger trg_user_workout_routines_reject_retired_identity
 before insert on public.user_workout_routines
 for each row execute function private.guard_deleted_user_workout_routine_insert();
+
+-- P2 / #578: bound permanent retired-ID storage. Since retired UUIDs cannot
+-- expire without reopening Create replay, cap the combined number of active
+-- and retired Routine identities per owner at 20,000 *for the account's life*.
+-- This is a storage-safety ceiling, NOT a per-day rate limit or a visual
+-- Routine-card limit. One ID is counted once after its committed Delete.
+-- All Create routes (legacy metadata INSERT and atomic Create RPC) pass this
+-- table trigger. Retry ON CONFLICT DO NOTHING inserts no row, preserving
+-- existing idempotent replays even exactly at the ceiling.
+--
+-- AFTER STATEMENT + transition rows are essential: a BEFORE ROW count alone
+-- could miss earlier rows in a multi-row INSERT. The BEFORE ROW guard above
+-- holds the same owner advisory lock for the whole transaction, preventing
+-- independent Create statements from both passing a concurrent count.
+-- A failed statement rolls back every newly inserted row. No client grants.
+create function private.enforce_user_workout_routine_identity_budget()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_user_id uuid;
+  v_total bigint;
+begin
+  for v_user_id in
+    select distinct user_id from newly_inserted_routines
+    order by user_id
+  loop
+    -- This lock is already held by the BEFORE ROW guard. Re-acquisition
+    -- is safe and asserts the same owner-scoped serialization contract.
+    perform pg_catalog.pg_advisory_xact_lock(
+      1726041619, pg_catalog.hashtext(v_user_id::text)
+    );
+
+    select
+      (select count(*) from public.user_workout_routines
+       where user_id = v_user_id)
+      + (select count(*) from private.deleted_user_workout_routine_ids
+         where user_id = v_user_id)
+    into v_total;
+
+    if v_total > 20000 then
+      raise exception 'routine_create_lifetime_budget_exhausted'
+        using errcode = 'P0001';
+    end if;
+  end loop;
+
+  return null;
+end;
+$;
+
+revoke all on function private.enforce_user_workout_routine_identity_budget()
+  from public, anon, authenticated, service_role;
+
+create trigger trg_user_workout_routines_identity_budget
+after insert on public.user_workout_routines
+referencing new table as newly_inserted_routines
+for each statement
+execute function private.enforce_user_workout_routine_identity_budget();
+
 
 -- Same public signature, same narrow grants, same owner/program/revision CAS.
 -- Account then Program key-share lock matches existing atomic Create ordering
