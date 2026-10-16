@@ -431,7 +431,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (!_canEdit || editor == null ||
         editor.updateExceedsSetLimit ||
         (_name.text.trim().isEmpty) ||
-        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+        (editor.compositionDirty &&
+            (_invalidSetIds.isNotEmpty || !_rangeCanSave))) {
       return;
     }
     final confirmed = await editor.update();
@@ -485,7 +486,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         onSubmit: _canEdit &&
                 !(_editor?.updateExceedsSetLimit ?? true) &&
                 _name.text.trim().isNotEmpty &&
-                _invalidSetIds.isEmpty && _rangeCanSave
+                (!(_editor?.compositionDirty ?? true) ||
+                    (_invalidSetIds.isEmpty && _rangeCanSave))
             ? _save
             : null,
         content: _body(),
