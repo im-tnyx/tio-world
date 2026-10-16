@@ -262,6 +262,10 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_81_atomic_routine_update.test.sql
 
+      - name: Run TNYX-81 old Rename/new Update two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
