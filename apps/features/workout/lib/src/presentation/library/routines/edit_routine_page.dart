@@ -16,6 +16,7 @@ import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
+import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
