@@ -1,6 +1,6 @@
 # GitHub #538 — Routine Set Type bottom-sheet color parity
 
-**Status:** In review — Draft PR #574; full exact-head Flutter CI #38875397438 passed at `b108ed48`; final Codex P2 documentation reconciliation and owner device QA remain gates.
+**Status:** In review — Draft PR #574; owner-approved 0.75dp picker outline trial implemented after prior 1dp CI, so new exact-head Flutter CI/review and owner device QA are required. Prior 1dp CI passed at `69c16e98`.
 **Primary owner:** Workout feature presentation (this branch only)
 **Affected platforms:** Flutter Android/iOS phone Routine Create/Edit
 **GitHub:** #538; Draft PR #574; follow-up to merged PR #570
@@ -79,6 +79,7 @@ Extract the existing 38dp Set badge rendering and contrast computation into one 
 - [x] Independent Codex review of compact production changes at `71c073c` reported no major issues.
 - [x] Flutter CI #38875397438 passed at docs-only `b108ed48`; earlier P2/P3 findings replied to and resolved, with 46 ahead/0 behind and 12 scoped paths verified at that checkpoint.
 - [ ] Validate the new documentation-only P2 handoff remediation HEAD with exact-head CI, independent review, no unresolved findings and refreshed ancestry/paths.
+- [ ] Validate the owner's **0.75dp** thin-outline trial on both picker option and Remove Set using `TioCardTokens.borderThin` while Core's default outlined width remains 1dp; verify expected 55.5dp height, theme/contrast, large text and unchanged actions under new exact-head CI/review.
 - [ ] Owner physical-device QA (light/dark, compact width, text scale, selected state and Remove Set) and separately explicit `Go merge`.
 
 
