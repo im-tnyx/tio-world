@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Exercises screen/picker product contract, 
 **Surface:** Nested phone Workout flow; never a primary tab
 **Route:** `/workout/exercises` (`AppRoutes.workoutExercises`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status:** Dedicated Exercises screen implemented (W3A2b, TNYX-272) and user-reachable through Workout Home → Library → Exercises (W6A, TNYX-266). Minimal user-owned Exercise persistence is live from W1B1, W3D1 provides the controller/composition foundation, W3D2 provides the live structured definition contract, and W3D3 is merged via PR #497: catalog + user-created Exercises compose on canonical `/workout/exercises`, user-created rows carry a `Custom` badge/tag, and the separate `/workout/custom-exercises` collection route is retired. Detail, picker mode and visible Favorites/Folders remain separately planned.
+**Status (focused current-source verification 2026-10-17, `main@633dbf38`):** The unified bundled + user-owned Exercises screen is implemented and reachable through Workout Home → Library → Exercises (W3A/W3D3). `Custom` rows have a real feature-owned create/edit path; the separate Custom-only collection is retired. The **Routine-context Exercise picker** is also implemented via `RoutineExercisePickerPage` in merged Program-owned Routine Create/Edit (#551), with selection returning to the same guarded unsaved draft and no direct Workout Start. It is distinct from a standalone Exercise Detail destination, which remains gated, as do Favorites/Folders and future catalog capabilities. Implementation on merged `main` does not establish a published app release.
 
 ## Custom Exercises Runtime And Corrected Target
 
