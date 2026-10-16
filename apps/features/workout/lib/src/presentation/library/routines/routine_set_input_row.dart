@@ -8,6 +8,20 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import 'routine_set_input_limits.dart';
 
+// Preserve the Set-type semantic color when readable. High-contrast theme
+// surfaces invert light/dark values, so a fixed foreground is not safe.
+Color _readableSetBadgeColor(Color preferred, Color background) {
+  final foregroundLuminance = preferred.computeLuminance();
+  final backgroundLuminance = background.computeLuminance();
+  final contrast = foregroundLuminance > backgroundLuminance
+      ? (foregroundLuminance + 0.05) / (backgroundLuminance + 0.05)
+      : (backgroundLuminance + 0.05) / (foregroundLuminance + 0.05);
+  if (contrast >= 4.5) return preferred;
+
+  // Black/white selection guarantees >=4.5:1 for opaque surfaces.
+  return backgroundLuminance > 0.179 ? TioPalette.black : TioPalette.white;
+}
+
 /// Compact inline prescription editor for one identified Routine Set.
 ///
 /// Reusable within the Workout feature's Create/Editor surfaces. It delegates
@@ -28,6 +42,7 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.onOpenChanged,
     this.startWithBlankReps = false,
     this.showPrevious = false,
+    this.useEditSetNumberColor = false,
     this.exerciseType,
     this.showRangeDraft = false,
     super.key,
@@ -51,6 +66,10 @@ class RoutineSetInputRow extends StatefulWidget {
   /// Previous workout history is a separate PerformedSet boundary.
   /// Its read-only placeholder is not derived from prescribed targets.
   final bool showPrevious;
+  /// Edit-specific normal Set color; independent of history visibility.
+  /// Create retains its current accessible theme foreground even when
+  /// the PREVIOUS column is visible in the same shared layout.
+  final bool useEditSetNumberColor;
   /// Canonical explicit measurement kind. Unclassified older catalog rows
   /// retain the existing weight/reps layout; never infer from category.
   final ExerciseType? exerciseType;
@@ -547,6 +566,13 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   Widget _fields(BuildContext context) {
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
+    final preferredSetColor = switch (widget.set.prescription.setType) {
+      RoutineSetType.normal =>
+        widget.useEditSetNumberColor ? colors.primary : colors.textPrimary,
+      RoutineSetType.warmUp => colors.warning,
+      RoutineSetType.failure => colors.danger,
+      RoutineSetType.drop => colors.info,
+    };
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: Row(
@@ -571,10 +597,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                     constraints: const BoxConstraints(minHeight: TioSize.dp38),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      // Create uses the neutral filled Set badge. The approved
-                      // Edit/PREVIOUS reference instead shows an unboxed blue
-                      // number; preserve the same 38dp visual footprint.
-                      color: widget.showPrevious ? null : colors.surfaceVariant,
+                      // Keep the same Core-themed 38dp filled Set badge
+                      // in Create and Edit. PREVIOUS is a separate column;
+                      // Edit retains blue where its contrast is accessible.
+                      color: colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(TioInputTokens.radius),
                     ),
                     child: Text(
@@ -585,14 +611,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                         RoutineSetType.drop => 'D',
                       },
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: switch (widget.set.prescription.setType) {
-                          RoutineSetType.normal => widget.showPrevious
-                              ? colors.primary
-                              : colors.textPrimary,
-                          RoutineSetType.warmUp => colors.warning,
-                          RoutineSetType.failure => colors.danger,
-                          RoutineSetType.drop => colors.info,
-                        },
+                        color: _readableSetBadgeColor(
+                          preferredSetColor,
+                          colors.surfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -602,9 +624,16 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           if (widget.showPrevious) ...[
-            const SizedBox(
+            SizedBox(
               width: TioSize.dp64,
-              child: Text('–', textAlign: TextAlign.center),
+              child: Semantics(
+                label: 'Previous performed Set unavailable',
+                child: Text(
+                  '–',
+                  key: ValueKey('routine-set-previous-${widget.set.id}'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
             const SizedBox(width: TioSpacing.sm),
           ],

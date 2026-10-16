@@ -73,13 +73,24 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
-    expect(find.text('Push Day'), findsOneWidget);
+    final routineTitle = find.descendant(
+      of: find.byType(TioAppBar),
+      matching: find.text('Push Day'),
+    );
+    expect(routineTitle, findsOneWidget);
+    final titleStyle = tester.widget<Text>(routineTitle).style;
+    expect(titleStyle?.fontSize, TioFontSize.size20);
+    expect(titleStyle?.fontWeight, TioFontWeight.w800);
     expect(find.text('Exercises'), findsOneWidget);
     expect(find.text('SET'), findsOneWidget);
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
-    expect(find.text('Bench Press'), findsOneWidget);
+    final exerciseName = find.text('Bench Press');
+    expect(exerciseName, findsOneWidget);
+    final exerciseStyle = tester.widget<Text>(exerciseName).style;
+    expect(exerciseStyle?.fontSize, TioFontSize.size16);
+    expect(exerciseStyle?.fontWeight, TioFontWeight.w500);
     expect(find.text('0'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
@@ -91,6 +102,78 @@ void main() {
         findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.text('5 min cardio'), findsNothing);
+  });
+
+  testWidgets('Detail exercise name matches composer trailing slot at 320dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const name = 'Barbell Standing Military Press (Without Rack)';
+    final snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_long_title'),
+      ),
+    ]);
+
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([_routine]),
+        compositions: _Compositions(snapshot),
+        mode: mode,
+      );
+      final labelFinder = find.text(name);
+      expect(labelFinder, findsOneWidget);
+      final label = tester.widget<Text>(labelFinder);
+      expect(label.style?.fontSize, TioFontSize.size16);
+      expect(label.style?.fontWeight, TioFontWeight.w500);
+      expect(label.maxLines, 2);
+      expect(label.overflow, TextOverflow.ellipsis);
+      expect(
+        tester.getTopRight(labelFinder).dx,
+        closeTo(320 - TioSpacing.lg - kMinInteractiveDimension, 0.01),
+        reason: 'Detail reserves the same 48dp trailing IconButton slot '
+            'without adding an action',
+      );
+      expect(find.byTooltip('Exercise options'), findsNothing);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('long Routine Detail title remains single-line at 320dp in both themes',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final longRoutine = Routine(
+      id: RoutineId(_r1),
+      programId: ProgramId(_p1),
+      name: 'A Very Long Routine Name That Must Ellipsize At Compact Width',
+    );
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([longRoutine]),
+        compositions: _Compositions(_snapshot()),
+        selected: longRoutine,
+        mode: mode,
+      );
+      final title = find.descendant(
+        of: find.byType(TioAppBar),
+        matching: find.text(longRoutine.name),
+      );
+      expect(title, findsOneWidget);
+      final label = tester.widget<Text>(title);
+      expect(label.style?.fontSize, TioFontSize.size20);
+      expect(label.style?.fontWeight, TioFontWeight.w800);
+      expect(label.maxLines, 1);
+      expect(label.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('load display follows kg/lb preference and avoids guesses',
@@ -232,6 +315,74 @@ void main() {
     expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
     expect(find.text('No exercises in this Routine yet.'), findsOneWidget);
     expect(find.text('Start Workout'), findsNothing);
+  });
+
+  testWidgets('Exercises row owns the only Edit action on ready-empty Routine',
+      (tester) async {
+    var edits = 0;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(_snapshot()),
+      onEditPressed: (_) async {
+        edits++;
+        return false;
+      },
+    );
+
+    final header = find.byKey(
+      const ValueKey('routine-detail-exercises-header'),
+    );
+    final edit = find.byKey(const ValueKey('routine-detail-edit'));
+    expect(header, findsOneWidget);
+    expect(edit, findsOneWidget);
+    final headerRow = find.ancestor(
+      of: header,
+      matching: find.byType(Row),
+    ).first;
+    expect(find.descendant(of: headerRow, matching: edit), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(TioAppBar),
+        matching: edit,
+      ),
+      findsNothing,
+      reason: 'Edit Routine must not appear in the top app bar',
+    );
+    expect(find.text('0 exercises · 0 sets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    expect(edits, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Exercises and Edit stay together at compact width in both themes',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+
+    for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([_routine]),
+        compositions: _Compositions(_snapshot()),
+        mode: theme,
+        onEditPressed: (_) async => false,
+      );
+
+      final header = find.byKey(
+        const ValueKey('routine-detail-exercises-header'),
+      );
+      final edit = find.byKey(const ValueKey('routine-detail-edit'));
+      expect(header, findsOneWidget);
+      expect(edit, findsOneWidget);
+      final row = find.ancestor(of: header, matching: find.byType(Row)).first;
+      expect(find.descendant(of: row, matching: edit), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('missing repository fails closed without fabricated content',
@@ -618,6 +769,11 @@ final class _Catalog implements ExerciseCatalogRepository {
         Exercise(
           ref: ExerciseRef.catalog('ex_bench_press'),
           displayName: 'Bench Press',
+          status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_long_title'),
+          displayName: 'Barbell Standing Military Press (Without Rack)',
           status: ExerciseStatus.active,
         ),
         Exercise(

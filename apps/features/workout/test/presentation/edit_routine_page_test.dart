@@ -298,10 +298,7 @@ void main() {
         findsOneWidget);
     final update = find.byKey(const ValueKey('edit-routine-update'));
     expect(update, findsOneWidget);
-    final button = find.descendant(
-      of: update, matching: find.byType(FilledButton),
-    );
-    expect(tester.widget<FilledButton>(button).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNull);
     expect(f.compositions.saveCount, 0);
     expect(tester.takeException(), isNull);
   });
@@ -800,7 +797,7 @@ void main() {
     expect(max, findsOneWidget);
     await tester.enterText(max, '7');
     await tester.pump();
-    expect(tester.widget<TioButton>(
+    expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('edit-routine-update'))), isNotNull);
     await tester.enterText(min, '9');
     await tester.enterText(max, '13');
@@ -840,7 +837,7 @@ void main() {
     expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
 
     final update = find.byKey(const ValueKey('edit-routine-update'));
-    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
     await tester.tap(update);
     await tester.pumpAndSettle();
     expect(f.compositions.saveCount, 1);
@@ -895,7 +892,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final update = find.byKey(const ValueKey('edit-routine-update'));
-    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
     await tester.tap(update);
     await tester.pumpAndSettle();
     expect(f.compositions.saveCount, 1);
@@ -924,15 +921,15 @@ void main() {
     expect(min, findsOneWidget);
     expect(max, findsOneWidget);
     final update = find.byKey(const ValueKey('edit-routine-update'));
-    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNull);
     expect(f.compositions.saveCount, 0);
 
     await tester.enterText(min, '10');
     await tester.pump();
-    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNull);
     await tester.enterText(max, '15');
     await tester.pump();
-    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
     await tester.tap(update);
     await tester.pumpAndSettle();
     expect(f.compositions.saveCount, 1);
@@ -964,16 +961,16 @@ void main() {
     final reps = find.byKey(const ValueKey('routine-set-reps-$newSet'));
     expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
     final update = find.byKey(const ValueKey('edit-routine-update'));
-    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
     await tester.enterText(reps, '0');
     await tester.pump();
-    expect(tester.widget<TioButton>(update).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNull);
     expect(f.compositions.saveCount, 0);
     await tester.enterText(reps, '6');
     await tester.enterText(find.byKey(
       const ValueKey('routine-set-weight-$newSet')), '22.5');
     await tester.pump();
-    expect(tester.widget<TioButton>(update).onPressed, isNotNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
     await tester.tap(update);
     await tester.pumpAndSettle();
     final added = f.compositions.lastSave!.entries.single.sets.last;

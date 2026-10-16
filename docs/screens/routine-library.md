@@ -1,22 +1,22 @@
 # Program-owned Routines
 
-Document Status: Canonical Live Doc (merged W4A metadata + owner-scoped read-only Routine Detail; builder future)
-Last Verified: 2026-10-12
+Document Status: Canonical Live Doc (merged W4 Create/Edit composer and read-only Detail; #564 name Update parity still gated)
+Last Verified: 2026-10-16 (bounded current-state reconciliation; older subsections retain historical dates)
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for canonical user-owned Routine scope, merged W4A metadata UI, and the distinction between separately reviewed read-only Detail and the unimplemented composition builder. Runtime on merged main plus live PR/CI status determines which presentation is actually shipped.
+Truth Boundary: Authoritative for Program-owned Routine behavior, merged Create/Edit composition, read-only Detail and remaining gated capabilities. Checked-in runtime proves implementation; merge does not prove app-store release.
 
 **Surface:** Nested Phone Workout flow inside an owning Program
 **Route:** Program Detail is pushed from the selected Library Program name above `/workout/library`; no standalone Routine route exists.
 **Primary owner:** `apps/features/workout`
-**Status (verified on protected `main`, 2026-10-12):** W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) (closed) / [PR #522](https://github.com/im-tnyx/tio-world/pull/522) (merged at `12999565`) implements Program-owned Routine metadata list/create/rename through durable persistence. The ordered Exercise/set database foundation and feature composition adapter were merged via PR #511/#513. [PR #530](https://github.com/im-tnyx/tio-world/pull/530) subsequently **squash-merged into `main` at `0c2a6cd0`**, adding owner-scoped **read-only Routine Detail** from saved Routine cards using the nullable composition provider and Workout-owned read controller. This is verified repository implementation, **not** confirmation of a published phone app release. A visible Exercise picker, Exercise/Set composition editor, Workout Start and broader W4B acceptance remain gated.
+**Historical 2026-10-12 baseline (superseded by current-runtime note immediately below):** W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) (closed) / [PR #522](https://github.com/im-tnyx/tio-world/pull/522) (merged at `12999565`) implements Program-owned Routine metadata list/create/rename through durable persistence. The ordered Exercise/set database foundation and feature composition adapter were merged via PR #511/#513. [PR #530](https://github.com/im-tnyx/tio-world/pull/530) subsequently **squash-merged into `main` at `0c2a6cd0`**, adding owner-scoped **read-only Routine Detail** from saved Routine cards using the nullable composition provider and Workout-owned read controller. This is verified repository implementation, **not** confirmation of a published phone app release. Exercise picker and composition editor were gated at that historical checkpoint but subsequently merged through #551; Workout Start and broader W4 acceptance remain separately gated.
 
-**Unmerged W4B1 implementation (Draft [PR #533](https://github.com/im-tnyx/tio-world/pull/533), GitHub #532):** A separate `EditRoutinePage` is now wired from the existing owner-verified, read-only Routine Detail through an `Edit Routine` app-bar action. It consumes the canonical Exercise picker, ordered entry/Set drafts, fixed Reps plus optional canonical kg load and Rest seconds, and the already-deployed revision/mutation-guarded composition RPC. Cancel does not write; confirmed Update returns to Detail and re-reads persisted owner-scoped content. The app shell requires matching authenticated/bootstrap identity and resolved Profile weight unit; account revocation invalidates the editor and dismisses any nested private Exercise picker or Set-input overlay so the prior account's draft cannot linger. The Routine card overflow Edit is **still Rename**. This code remains **Draft/unmerged**, exact-head CI and independent review must pass before it is treated as a delivered app capability. No Workout Start, schema or watch work is included.
+**Current Flutter runtime (verified GitHub `main@5aec6ef1`, 2026-10-16):** Consolidated W4 [PR #551](https://github.com/im-tnyx/tio-world/pull/551) is **merged**, including the existing owner-verified Create/Edit state adapters, canonical shared `RoutineComposerScreen`, real Exercise picker, revision-guarded Set composition Update and safe unknown-outcome flow. [PR #566](https://github.com/im-tnyx/tio-world/pull/566) then merged the selected-Program Library Add Routine entry. On this main snapshot, Create has top-right **Save**, Edit has bottom **Update**, Routine Detail has top-bar **Edit Routine**, and the Routine-card overflow `Edit` still opens metadata **Rename**. These differences motivate [GitHub #564](https://github.com/im-tnyx/tio-world/issues/564). Prior #532/#533 text below is historical implementation/planning evidence, not a currently open Draft or a mandate to retain two user-facing editors. A GitHub merge does not establish a published mobile app release.
 
 ## Purpose
 
 A Routine is a stable reusable workout composition built from canonical Exercises. For user-owned content, every saved Routine belongs to exactly one user-owned Program.
 
-Routine keeps its own `RoutineId` and owning `ProgramId`. Ordered Exercise references and prescription/template state use separate immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` domain values. Their relational database/RPC foundation is deployed; the feature-owned composition adapter projects those models while retaining persisted entry/set UUIDs in immutable envelopes. The W4A metadata repository provider and ProgramRoutinesController remain scoped to Routine names/list. Merged PR #530 provides a separate nullable app composition repository provider and owner-scoped **read-only** Routine Detail controller for persisted Exercise/Set display; this does not implement composition editing. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
+Routine keeps its own `RoutineId` and owning `ProgramId`. Ordered Exercise references and prescription/template state use separate immutable `RoutineComposition`, `RoutineExercise`, and `SetPrescription` domain values. Their relational database/RPC foundation is deployed; the feature-owned composition adapter projects those models while retaining persisted entry/set UUIDs in immutable envelopes. The W4A metadata repository provider and ProgramRoutinesController remain scoped to Routine names/list. Merged PR #530 provides a separate nullable app composition repository provider and owner-scoped **read-only** Routine Detail controller for persisted Exercise/Set display; this read-only Detail path itself does not mutate composition; merged #551 separately supplies guarded Create/Edit. Program ownership does not mean embedding anonymous Routine JSON or removing Routine identity.
 
 ## Target Flow
 
@@ -64,8 +64,8 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - **Shipped minimal Routine metadata persistence:** The original six columns `public.user_workout_routines(id, user_id, program_id, name, created_at, updated_at)` remain live, with owner RLS and the composite `(program_id, user_id)` Program foreign key. `RoutineRepository` and `SupabaseRoutineRepository` expose `list(programId)`, `create(routine)`, and `rename(id, name)`. Authenticated clients have SELECT, INSERT limited to those six metadata columns, and UPDATE(name); direct delete, ownership changes and moves remain unavailable.
 - **Deployed composition database foundation:** Migration `20261010061809_create_user_workout_routine_composition.sql` from [#511](https://github.com/im-tnyx/tio-world/pull/511) was applied and independently hosted-verified on 2026-10-11. Routine adds `composition_revision` and `last_composition_mutation_id`; ordered Exercise/set child tables have owner-safe FKs and authenticated owner SELECT only. The narrow atomic save RPC manages revision/idempotency and child writes; direct client revision/token writes are denied. See [schema inventory](../data/SUPABASE_SCHEMA.md).
 - **Approved adapter slice:** `RoutineCompositionRepository` / `SupabaseRoutineCompositionRepository` implement owner-scoped reads drained through empty UUID-cursor pages and bracketed by the parent revision/mutation token. These are validated independent requests, not one database transaction. Saves call the existing RPC once with frozen IDs/token/expected revision; ambiguous replies use read-only reconciliation and may remain explicitly unknown. Feature analysis and 84 focused tests passed for the approved adapter slice; reviewed PR #513 merged at `dfe9cee7389165f0a485623a1e3e69477eb1dc37`.
-- **W4A UI (merged PR #522):** The nullable app-level `routineRepositoryProvider` uses `SupabaseRoutineRepository` without an in-memory durability fallback. Selected Program names open `ProgramDetailPage` when the repository exists; `ProgramRoutinesController` owns Program-scoped Routine list, generated-name metadata creation, persisted rename, failure/retry and ambiguous-save reconciliation. On current merged `main`, the Routine card's **primary tap** opens selected owner-scoped **read-only Routine Detail** while the separate overflow **Edit → Rename** retains metadata rename. Absent repository/auth capability fails closed. This repository state does **not** establish an app-store release or enable Exercise/Set editor or Workout Start.
-- **Next data gate:** W1/TNYX-78 remains In Progress for broader Workout acceptance; [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509) is Closed after the composition persistence foundation and Flutter adapter were merged. Composition provider/controller **read-only consumption** is implemented on merged `main` via PR #530; a visible Routine **builder/editor** and the stable default `My Program` identity decision remain separately gated. The adapter merge alone did not approve composition editing or Workout Start. Any additional Supabase table/column shape still requires explicit Owner Approval.
+- **W4A UI (merged PR #522):** The nullable app-level `routineRepositoryProvider` uses `SupabaseRoutineRepository` without an in-memory durability fallback. Selected Program names open `ProgramDetailPage` when the repository exists; `ProgramRoutinesController` owns Program-scoped Routine list, generated-name metadata creation, persisted rename, failure/retry and ambiguous-save reconciliation. On current merged `main`, the Routine card's **primary tap** opens selected owner-scoped **read-only Routine Detail** while the separate overflow **Edit → Rename** retains metadata rename. Absent repository/auth capability fails closed. After #551 the Create/Edit Exercise+Set editor exists on merged main, but the repository is **not** evidence of an app-store release or Workout Start.
+- **Next data gate:** W1/TNYX-78 remains In Progress for broader Workout acceptance; [GitHub #509](https://github.com/im-tnyx/tio-world/issues/509) is Closed after the composition persistence foundation and Flutter adapter were merged. Composition provider/controller **read-only consumption** was merged via PR #530, and the visible Routine Create/Edit builder subsequently merged in PR #551; stable default `My Program` identity and atomic Name+composition Update remain separately gated. The adapter merge alone did not approve composition editing or Workout Start. Any additional Supabase table/column shape still requires explicit Owner Approval.
 - **Separate W1 decision:** direct Library Create Routine remains blocked on stable, idempotent default `My Program` identity independent of its mutable display name.
 - The historical W1B0 Program privilege-hardening slice is complete; it was not approval for Routine composition or Exercise Favorites/Folders persistence.
 - Completed WorkoutSession history must not be silently rewritten by later Routine edits.
@@ -79,7 +79,7 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - Optional image/metadata does not block initial Routine creation.
 - Scheduling/following remains separate from reusable Routine truth.
 
-**Delivery boundary:** The read-only Routine Detail path is implemented on `main` after PR #530; a distributed app release has not been verified. The Exercise/Set builder and Workout Start remain gated until their own approved implementation merges.
+**Delivery boundary:** Read-only Routine Detail (#530) and Create/Edit Exercise+Set builder (#551) are merged into `main`, but no distributed release is verified. Workout Start, atomic Name+composition Update and secure Routine Delete are separate gates.
 
 ## Related
 
@@ -88,37 +88,79 @@ Exercise selection opens the canonical Workout Exercise picker. Routine composit
 - [Programs](programs.md)
 - [Exercise Search](exercise-search.md)
 
-## Draft W4B Exercise replacement (not merged)
+## Historical W4B Exercise replacement (merged via #551)
 
 The owner approved `Replace Exercise` alongside `Remove Exercise` in the
-existing Create/Edit Exercise `⋮` sheet. Draft PR #551 reuses the canonical
+existing Create/Edit Exercise `⋮` sheet. Merged PR #551 reuses the canonical
 Exercise picker, keeps the replaced Exercise's ordered position, and gives
 the selected Exercise a **new entry UUID and blank Set 1 UUID**. It does not
 copy prescriptions, range modes or targets between potentially incompatible
 Exercise measurement types. Canceling the sheet/picker leaves the draft
 unchanged; Edit writes only after explicit Update. Current-owner/Custom
 preflight, auth/session revocation, eight-Set cap, and nullable target
-contracts remain in force. Exact-head CI and physical visual QA are pending.
-This is unmerged client behavior, not a shipped app capability.
+contracts remain in force. Source code is merged on `main`; release/device verification was not established by the code merge alone.
 
-## One Create/Edit Routine screen on Draft #551 (2026-10-14)
+## One canonical Create/Edit Routine composer — merged #551
+
+Owner-approved #564 follow-up (UI-only bounded branch, **not yet on main**):
+- Put Create **Save** and Edit **Update** in the same top-right composer action slot. Keep distinct guarded persistence adapters and their existing confirmation/cancel semantics; do not add a bottom duplicate action.
+- Use an accessible leading **X** close action instead of the visible **Cancel** text in both modes; place the mode title start-aligned after X using existing Core `TioAppBar` placement. X still invokes the existing guarded Cancel callback and is disabled while writing; no new draft-discard/persistence behavior.
+- On owner-verified read-only Detail, move the existing **Edit Routine** action from the top bar to the right of **Exercises** in that heading row; counts stay below. Preserve it for a historical ready-but-empty Routine and preserve its owner/session/weight-unit guard.
+- Owner also requires the same top editable Routine Name input in Edit (prefilled saved name) instead of static name, plus Routine-card 3-dot **Edit Routine** into that full editor. **Those features are separately gated** until a reviewed atomic name+composition Update is available; current metadata rename and composition RPC are distinct. Do not expose a false combined Update or an enabled Delete without its independently authorized lifecycle.
+
 
 Owner explicitly rejected separately maintained Create and Edit screen UI.
-The existing Draft #551 uses a **single `RoutineComposerScreen`,
+Merged #551 already uses a **single `RoutineComposerScreen`,
 `RoutineComposerContent` and `RoutineComposerExerciseCard`** for both
 routes, including the title bar, ordered Exercises, column headings, Set rows,
 the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
 composition is configured in Create mode (`Create Routine`, empty draft,
-atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine, read-only
-PREVIOUS column and revision-guarded Update). Existing Create/Edit route
+atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine,
+revision-guarded Update). Both modes reserve the same read-only PREVIOUS
+header and 64dp Set-row slot in Draft #570, displaying an unavailable dash
+until genuine performed workout history exists. Existing Create/Edit route
 entrypoint state owners remain thin adapters for different auth/persistence,
 Custom preflight, unknown-write resolution and validation rules. This avoids
 duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
-is authorized. The implementation is Draft until exact-head Flutter CI,
-review and device screenshot QA pass.
+is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge. In that Draft, Create/Edit app-bar title typography remains 18sp/w800 and Routine Detail app-bar remains 20sp/w800. All three surfaces display Exercise names at 16sp/w500, maximum two lines with ellipsis. Read-only Routine Detail reserves the same trailing 48dp space used by the Create/Edit Exercise-row 3-dot action, without displaying an inert options button; this keeps long-name wrapping consistent at equal viewport sizes.
 
-## Numeric Set field focus dismissal (Draft #551; device QA pending)
+## Previous Workout values in Routine composer (Draft #570 layout, history deferred)
+
+The owner-approved shared Create/Edit Set grid is always laid out as
+`SET | PREVIOUS | KG/LB | REPS` for weight-and-reps exercises. The
+corresponding distance/time measurement profile keeps its existing units,
+but uses the same 64dp PREVIOUS placeholder slot. The header and row
+spacing are identical in Create and Edit. In Draft #570, these are
+**presentation-only placeholders**, shown as `–` with an accessible
+unavailable label; nothing is auto-filled. Template `SetPrescription` data
+must never be passed off as performed workout history.
+
+**Deferred performed-history interaction (not implemented):** When
+actual completed `WorkoutSession`/`PerformedSet` history exists for
+the authenticated owner and canonical Exercise identity, a matching
+previous performed set may display a compact truthful value such as
+`10kg x 10` (or correctly converted LB / a suitable typed profile).
+Selecting an available previous value copies its supported load/reps
+into that **one current draft Set** in Create or Edit without an automatic
+Save, Update, history mutation or new logged session. When no matching
+history exists, keep a dash; it is not tappable. Historical Set matching,
+set type/ordering, unit conversion, mixed measurement profiles, ambiguous
+sources, and edit-overwrite semantics need separately reviewed rules
+rather than inferred values.
+
+**Deferred preference:** Workout Runtime Settings (#48; W10/TNYX-87)
+will eventually offer `Show Previous Workout Values` (preserve the
+currently visible default unless the owner changes it). Its visibility
+setting must feed a single canonical Workout preference into **both**
+Create and Edit, hiding header and row cells together and returning that
+space to the input columns. Setting persistence/eligibility must follow
+the audited Workout Settings boundary; do not add local duplicate
+booleans or Profile/Targets storage now. True performed data requires
+W7/TNYX-84 and W8/TNYX-85; this Draft implements no schema,
+`PerformedSet` repository, session history read or tap-to-copy.
+
+## Numeric Set field focus dismissal (merged #551; release/device QA unverified)
 
 Create and Edit share the same Routine composer. Touching outside a
 focused boxed Set numeric field removes its focus outline; switching
@@ -128,18 +170,33 @@ rather than leaving a numeric field permanently selected. Typed values
 are retained. This does not change the 38dp layout, visual styling,
 nullable Set targets, or generic TioInput forms.
 
-## SET badge and boxed input corner alignment (Draft #551; device QA pending)
+## SET badge and boxed input corner alignment (merged #551; release/device QA unverified)
 
 The Create Routine SET-number filled badge and KG/LB/REPS/Range/KM/TIME
 outlined input fields use one matching **14dp** corner radius, governed
 by Core `TioInputTokens.radius`. The Set number's InkWell splash/tap
 shape follows that same radius. The previous Set number used
 `TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
-numeric outlines. Edit retains its approved unboxed blue Set number.
-38dp visible minimum heights and widths, 8-Set cap, input/focus
-behavior, button shapes, and all persistence contracts remain unchanged.
+numeric outlines. On the merged #551 baseline, Edit/PREVIOUS kept an
+unboxed blue Set number, unlike Create's filled badge. The owner-approved
+#564 follow-up in Draft PR #570 uses the same Core `surfaceVariant`
+filled Set badge in **both Create and Edit**. The preferred number/type
+foreground stays on its existing theme role where readable (including the
+Edit primary/blue number), but falls back to black or white when necessary
+to achieve at least **4.5:1 contrast** against the filled background.
+History-column visibility is **independent** of Set-number foreground:
+Create retains the Create normal-Set theme foreground when PREVIOUS is
+visible, whereas Edit explicitly selects its existing Edit primary/blue
+preference (still subject to the same contrast fallback). This
+applies to normal and W/F/D Set types, standard light/dark/Tio Dark and OS
+high-contrast variants. Both modes reserve a read-only PREVIOUS
+column; empty cells display only a dash and do not represent historic
+WorkoutSession values. Both modes use the same 38dp filled, 14dp rounded
+Set type control.
+The 8-Set cap, input/focus behavior, button geometry and persistence
+contracts remain unchanged.
 
-## Swipe-to-delete Set action (Draft #551; device QA pending)
+## Swipe-to-delete Set action (merged #551; release/device QA unverified)
 
 Swiping a Routine Set left reveals a compact right-aligned red
 `Delete` control, matching the 38dp boxed Set/input height and 14dp
@@ -154,7 +211,7 @@ until Create Save/Edit Update; deleting the last Set obeys the existing
 Exercise removal policy. Actual touch and OLED/light appearance still
 need device QA.
 
-## Dynamic swipe reveal shape (Draft #551; screenshot QA pending)
+## Dynamic swipe reveal shape (merged #551; release/device QA unverified)
 
 The red Delete action starts hidden. While dragging a Set left, its
 rounded shape grows **horizontally** with the exposed row area, staying
@@ -166,7 +223,7 @@ Delete width; deliberate full swipe still removes the Set, with
 selection and deletion haptic feedback intact. Physical-device
 validation remains pending.
 
-## Delete action gap, label and height (Draft #551; device QA pending)
+## Delete action gap, label and height (merged #551; release/device QA unverified)
 
 Owner clarified that, while swiping, the Delete shape must not stick
 directly to the numeric field: preserve **8dp** of clear space between
@@ -180,7 +237,7 @@ temporarily disabled drag state). Its 14dp corner radius and
 Short swipe/tap, full-swipe deletion and the two haptic stages are
 unchanged. Real device screenshot/touch verification is still pending.
 
-## Delete painted-height correction (Draft #551; device QA pending)
+## Delete painted-height correction (merged #551; release/device QA unverified)
 
 The Delete action must appear **exactly 38dp tall at normal text scale**,
 not merely request a 38dp *minimum*. Enforce the 38dp painted Material
@@ -192,7 +249,7 @@ remain. Use the theme's owned `TioPalette.white` token for the visible
 Delete label (including during disabled drag); never introduce raw
 framework colors into production UI.
 
-## Add Exercises selection-mode UI (PR #551, pending merge)
+## Add Exercises selection-mode UI (merged #551; release/device QA unverified)
 
 In Create/Edit Routine `Add Exercise` context only, reuse the canonical
 `ExercisesPage` with transient, insertion-ordered multi-selection by

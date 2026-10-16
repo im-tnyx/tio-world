@@ -260,8 +260,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Edit PREVIOUS Set number is blue and unboxed without '
-        'shrinking its 38dp tap target in ${mode.name}', (tester) async {
+    testWidgets('Edit PREVIOUS Set number is blue on matching filled '
+        '38dp Create badge in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
@@ -278,7 +278,7 @@ void main() {
           child: child ?? const SizedBox.shrink(),
         ),
         home: Scaffold(
-          // Deliberately supply a tall bounded viewport: the filled/unboxed
+          // Deliberately supply a tall bounded viewport: the filled
           // SET surface must shrink-wrap to 38dp rather than fill 712dp.
           // Real Create/Edit page compositions are checked separately.
           body: RoutineSetInputRow(
@@ -292,6 +292,7 @@ void main() {
             unit: WeightUnit.kg,
             enabled: true,
             showPrevious: true,
+            useEditSetNumberColor: true,
             isOpen: false,
             onOpenChanged: (_) {},
             onChanged: (_) {},
@@ -303,8 +304,11 @@ void main() {
       final setBox = find.byKey(const ValueKey('routine-set-type-box-$id'));
       final decoration =
           tester.widget<Container>(setBox).decoration! as BoxDecoration;
-      expect(decoration.color, isNull,
-          reason: 'Edit SET is unboxed, unlike the Create filled badge');
+      expect(decoration.color, palette.surfaceVariant,
+          reason: 'Edit and Create must share the filled SET badge surface');
+      expect(decoration.color, isNot(palette.background));
+      expect(decoration.borderRadius,
+          BorderRadius.circular(TioInputTokens.radius));
       expect(tester.getSize(setBox).height, TioSize.dp38);
       expect(tester.getSize(setBox).width, TioSize.dp38);
       final number = find.descendant(of: setBox, matching: find.text('1'));
@@ -327,9 +331,156 @@ void main() {
       }
       await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
       expect(selections, 1,
-          reason: 'Edit blue number must still open Set Type selection');
+          reason: 'Edit blue number inside filled badge must open Set Type selection');
       expect(tester.takeException(), isNull);
     });
+  }
+
+  for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+    testWidgets('PREVIOUS visibility does not recolor Create or Edit Set badge '
+        'in ${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const id = '55555555-5555-4555-8555-555555555555';
+
+      Future<Color> pumpRow({
+        required bool showPrevious,
+        required bool editColor,
+      }) async {
+        await tester.pumpWidget(MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: TioThemeConfig(mode: mode),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: RoutineSetInputRow(
+              set: RoutineCompositionSet(
+                id: id,
+                prescription: SetPrescription(reps: 8),
+              ),
+              index: 0,
+              normalNumber: 1,
+              onTypePressed: () {},
+              unit: WeightUnit.kg,
+              enabled: true,
+              showPrevious: showPrevious,
+              useEditSetNumberColor: editColor,
+              isOpen: false,
+              onOpenChanged: (_) {},
+              onChanged: (_) {},
+              onValidityChanged: (_) {},
+              onRemove: () {},
+            ),
+          ),
+        ));
+        final box = find.byKey(const ValueKey('routine-set-type-box-$id'));
+        final number = find.descendant(of: box, matching: find.text('1'));
+        expect(number, findsOneWidget);
+        final previous = find.byKey(const ValueKey('routine-set-previous-$id'));
+        expect(previous, showPrevious ? findsOneWidget : findsNothing);
+        expect(tester.takeException(), isNull);
+        return tester.widget<Text>(number).style!.color!;
+      }
+
+      final originalCreate = await pumpRow(
+        showPrevious: false,
+        editColor: false,
+      );
+      final sharedCreate = await pumpRow(
+        showPrevious: true,
+        editColor: false,
+      );
+      expect(sharedCreate, originalCreate,
+          reason: 'Adding PREVIOUS must not silently recolor Create SET');
+      final editWithHistory = await pumpRow(
+        showPrevious: true,
+        editColor: true,
+      );
+      final editWithoutHistory = await pumpRow(
+        showPrevious: false,
+        editColor: true,
+      );
+      expect(editWithoutHistory, editWithHistory,
+          reason: 'Edit foreground must survive a future history toggle');
+    });
+  }
+
+  // All Set types share this 38dp filled badge in Create and Edit.
+  // High-contrast mode reverses surface brightness and cannot reuse a fixed
+  // semantic foreground safely.
+  for (final mode in [
+    TioThemeMode.light,
+    TioThemeMode.dark,
+    TioThemeMode.tioDark,
+  ]) {
+    for (final highContrast in [false, true]) {
+      testWidgets('Set type contrast >= 4.5 in ${mode.name} '
+          'highContrast=$highContrast for Create and Edit', (tester) async {
+        tester.view.physicalSize = const Size(320, 720);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const id = '55555555-5555-4555-8555-555555555555';
+        final baseColors = switch (mode) {
+          TioThemeMode.light => TioColors.light,
+          TioThemeMode.dark => TioColors.oled,
+          TioThemeMode.tioDark => TioColors.dark,
+          TioThemeMode.system => throw StateError('Explicit test mode required'),
+        };
+        final expectedColors = highContrast ? baseColors.highContrast : baseColors;
+
+        for (final showPrevious in [false, true]) {
+          for (final setType in RoutineSetType.values) {
+            await tester.pumpWidget(MaterialApp(
+              builder: (context, child) => TioTheme(
+                config: TioThemeConfig(mode: mode, highContrast: highContrast),
+                child: child ?? const SizedBox.shrink(),
+              ),
+              home: Scaffold(
+                body: RoutineSetInputRow(
+                  set: RoutineCompositionSet(
+                    id: id,
+                    prescription: SetPrescription(reps: 8, setType: setType),
+                  ),
+                  index: 0,
+                  normalNumber: 1,
+                  unit: WeightUnit.kg,
+                  enabled: true,
+                  showPrevious: showPrevious,
+                  useEditSetNumberColor: showPrevious,
+                  isOpen: false,
+                  onTypePressed: () {},
+                  onOpenChanged: (_) {},
+                  onChanged: (_) {},
+                  onValidityChanged: (_) {},
+                  onRemove: () {},
+                ),
+              ),
+            ));
+            final box = find.byKey(const ValueKey('routine-set-type-box-$id'));
+            final surface = tester.widget<Container>(box).decoration! as BoxDecoration;
+            expect(surface.color, expectedColors.surfaceVariant);
+            final badgeText = tester.widget<Text>(
+              find.descendant(of: box, matching: find.byType(Text)),
+            );
+            final ink = badgeText.style!.color!;
+            final contrastRatio = _contrastRatio(ink, surface.color!);
+            expect(contrastRatio, greaterThanOrEqualTo(4.5),
+                reason: '${mode.name}, highContrast=$highContrast, '
+                    'showPrevious=$showPrevious, setType=${setType.name}');
+            expect(tester.getSize(box).width, TioSize.dp38);
+            expect(tester.getSize(box).height, TioSize.dp38);
+            if (showPrevious && setType == RoutineSetType.normal && !highContrast) {
+              expect(ink, expectedColors.primary,
+                  reason: 'Keep the current Edit number color where readable');
+            }
+            expect(tester.takeException(), isNull);
+          }
+        }
+      });
+    }
   }
 
   testWidgets('inline row preserves kg when lb display is unchanged', (tester) async {
@@ -801,4 +952,10 @@ void main() {
     expect(field.decoration!.enabledBorder, isA<OutlineInputBorder>());
     expect(tester.takeException(), isNull);
   });
+}
+
+double _contrastRatio(Color first, Color second) {
+  final a = first.computeLuminance();
+  final b = second.computeLuminance();
+  return a > b ? (a + 0.05) / (b + 0.05) : (b + 0.05) / (a + 0.05);
 }

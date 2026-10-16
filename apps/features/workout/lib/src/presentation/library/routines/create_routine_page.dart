@@ -602,6 +602,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         enabled: _enabled,
         exerciseType: _entryExercises[entry.id]?.exerciseType,
         showRangeDraft: _draftRangeEntryIds.contains(entry.id),
+        // Match Edit's read-only history slot without inventing performed data.
+        showPrevious: true,
         startWithBlankReps: _untouchedRepSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),

@@ -93,51 +93,37 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            TextButton(
-              key: widget.cancelKey,
-              onPressed: widget.cancelEnabled ? widget.cancel : null,
-              child: const Text('Cancel'),
-            ),
-            Expanded(
-              child: Text(
-                isEdit ? 'Edit Routine' : 'Create Routine',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: TioFontSize.size20,
-                  fontWeight: TioFontWeight.w800,
-                ),
-              ),
-            ),
-            if (isEdit)
-              // Keep the existing Edit Update action in its bottom bar.
-              // The same screen chassis does not own persistence policy.
-              const SizedBox(width: TioSize.dp64)
-            else
-              TextButton(
-                key: widget.submitKey,
-                onPressed: widget.onSubmit,
-                child: const Text('Save'),
-              ),
-          ],
+        leading: IconButton(
+          key: widget.cancelKey,
+          tooltip: 'Cancel',
+          onPressed: widget.cancelEnabled ? widget.cancel : null,
+          icon: const Icon(Icons.close_rounded),
         ),
+        title: Text(
+          isEdit ? 'Edit Routine' : 'Create Routine',
+          key: const ValueKey('routine-composer-title'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: TioFontSize.size18,
+            fontWeight: TioFontWeight.w800,
+          ),
+        ),
+        actions: [
+          // Identical submit position; Create/Edit adapters retain guarded
+          // persistence and submit availability.
+          if (isEdit && widget.submitKey == null)
+            const SizedBox(width: TioSize.dp64)
+          else
+            TextButton(
+              key: widget.submitKey,
+              onPressed: widget.onSubmit,
+              child: Text(isEdit ? 'Update' : 'Save'),
+            ),
+        ],
       ),
       body: SafeArea(child: widget.content),
-      bottomNavigationBar: isEdit && widget.submitKey != null
-          ? SafeArea(
-              minimum: const EdgeInsets.all(TioSpacing.lg),
-              child: TioButton.primary(
-                key: widget.submitKey,
-                label: 'Update',
-                expand: true,
-                onPressed: widget.onSubmit,
-              ),
-            )
-          : null,
     );
   }
 }
@@ -300,8 +286,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: TioFontSize.size20,
-                              fontWeight: TioFontWeight.w800,
+                              fontSize: TioFontSize.size16,
+                              fontWeight: TioFontWeight.w500,
                               color: colors.textPrimary,
                             ),
                           ),
@@ -329,16 +315,16 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                 child: Text('SET', textAlign: TextAlign.center),
               ),
               const SizedBox(width: TioSpacing.sm),
-              if (isEdit) ...[
-                const SizedBox(
-                  width: TioSize.dp64,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('PREVIOUS'),
-                  ),
+              // Reserve the same history column in Create and Edit. Until
+              // performed-workout history exists, Set rows show only a dash.
+              const SizedBox(
+                width: TioSize.dp64,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('PREVIOUS'),
                 ),
-                const SizedBox(width: TioSpacing.sm),
-              ],
+              ),
+              const SizedBox(width: TioSpacing.sm),
               if (exerciseType == ExerciseType.distanceDuration) ...[
                 const Expanded(
                   child: Text('KM', textAlign: TextAlign.center),
@@ -394,7 +380,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ],
             ],
           ),
-          if (isEdit) const SizedBox(height: TioSpacing.sm),
+          // Match the header-to-Set spacing across Create and Edit.
+          const SizedBox(height: TioSpacing.sm),
           // Historical >40-Set rows remain readable, not truncated by the
           // current 8-Set creation guard.
           if (entry.sets.length > 40)
