@@ -15,6 +15,7 @@ Future<void> _pump(
   TioThemeMode mode = TioThemeMode.light,
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
+  Future<bool> Function(Routine)? onEditRoutine,
   Future<bool> Function(String suggestedName)? onCreateRoutine,
   double textScale = 1,
 }) async {
@@ -34,6 +35,7 @@ Future<void> _pump(
         routineRepository: repository,
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
+        onEditRoutine: onEditRoutine,
         onCreateRoutine: onCreateRoutine,
       ),
     ),
@@ -170,16 +172,18 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('Routine 3-dot opens only the real Edit metadata action',
+  testWidgets('Routine 3-dot keeps popup and launches full Edit callback',
       (tester) async {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
     Routine? navigated;
+    Routine? edited;
     await _pump(
       tester,
       repository: repository,
       onRoutinePressed: (routine) async { navigated = routine; },
+      onEditRoutine: (routine) async { edited = routine; return true; },
     );
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
     final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
@@ -194,7 +198,7 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
         findsOneWidget);
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Edit Routine'), findsOneWidget);
     expect(find.text('Change Picture'), findsNothing);
     expect(find.text('Delete'), findsNothing);
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
@@ -211,9 +215,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(popup, findsNothing);
-    expect(find.text('Edit Routine'), findsOneWidget);
     expect(navigated, isNull);
-    expect(find.byKey(const ValueKey('routine-name-field')), findsOneWidget);
+    expect(edited?.id.value, _routineId);
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
   testWidgets('Routine popup stays anchored within narrow dark viewport',
@@ -229,6 +233,7 @@ void main() {
       tester,
       repository: repository,
       mode: TioThemeMode.dark,
+      onEditRoutine: (_) async => false,
     );
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
     await tester.tap(options);
