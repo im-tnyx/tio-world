@@ -317,11 +317,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
               ),
               const SizedBox(height: TioSpacing.sm),
             ],
-            ListTile(
+            RoutineRemoveSetOption(
               key: const ValueKey('routine-type-remove-set'),
-              leading: Icon(Icons.close, color: context.tioColors.danger),
-              title: Text('Remove Set',
-                style: TextStyle(color: context.tioColors.danger)),
               onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
             ),
           ],
