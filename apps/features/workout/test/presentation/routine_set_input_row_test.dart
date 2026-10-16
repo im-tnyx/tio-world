@@ -335,6 +335,81 @@ void main() {
     });
   }
 
+  // All Set types share this 38dp filled badge in Create and Edit.
+  // High-contrast mode reverses surface brightness and cannot reuse a fixed
+  // semantic foreground safely.
+  for (final mode in [
+    TioThemeMode.light,
+    TioThemeMode.dark,
+    TioThemeMode.tioDark,
+  ]) {
+    for (final highContrast in [false, true]) {
+      testWidgets('Set type contrast >= 4.5 in ${mode.name} '
+          'highContrast=$highContrast for Create and Edit', (tester) async {
+        tester.view.physicalSize = const Size(320, 720);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const id = '55555555-5555-4555-8555-555555555555';
+        final baseColors = switch (mode) {
+          TioThemeMode.light => TioColors.light,
+          TioThemeMode.dark => TioColors.oled,
+          TioThemeMode.tioDark => TioColors.dark,
+          TioThemeMode.system => throw StateError('Explicit test mode required'),
+        };
+        final expectedColors = highContrast ? baseColors.highContrast : baseColors;
+
+        for (final showPrevious in [false, true]) {
+          for (final setType in RoutineSetType.values) {
+            await tester.pumpWidget(MaterialApp(
+              builder: (context, child) => TioTheme(
+                config: TioThemeConfig(mode: mode, highContrast: highContrast),
+                child: child ?? const SizedBox.shrink(),
+              ),
+              home: Scaffold(
+                body: RoutineSetInputRow(
+                  set: RoutineCompositionSet(
+                    id: id,
+                    prescription: SetPrescription(reps: 8, setType: setType),
+                  ),
+                  index: 0,
+                  normalNumber: 1,
+                  unit: WeightUnit.kg,
+                  enabled: true,
+                  showPrevious: showPrevious,
+                  isOpen: false,
+                  onTypePressed: () {},
+                  onOpenChanged: (_) {},
+                  onChanged: (_) {},
+                  onValidityChanged: (_) {},
+                  onRemove: () {},
+                ),
+              ),
+            ));
+            final box = find.byKey(const ValueKey('routine-set-type-box-$id'));
+            final surface = tester.widget<Container>(box).decoration! as BoxDecoration;
+            expect(surface.color, expectedColors.surfaceVariant);
+            final badgeText = tester.widget<Text>(
+              find.descendant(of: box, matching: find.byType(Text)),
+            );
+            final ink = badgeText.style!.color!;
+            final contrastRatio = _contrastRatio(ink, surface.color!);
+            expect(contrastRatio, greaterThanOrEqualTo(4.5),
+                reason: '${mode.name}, highContrast=$highContrast, '
+                    'showPrevious=$showPrevious, setType=${setType.name}');
+            expect(tester.getSize(box).width, TioSize.dp38);
+            expect(tester.getSize(box).height, TioSize.dp38);
+            if (showPrevious && setType == RoutineSetType.normal && !highContrast) {
+              expect(ink, expectedColors.primary,
+                  reason: 'Keep the current Edit number color where readable');
+            }
+            expect(tester.takeException(), isNull);
+          }
+        }
+      });
+    }
+  }
+
   testWidgets('inline row preserves kg when lb display is unchanged', (tester) async {
     final values = <SetPrescription>[];
     final validity = <bool>[];
@@ -804,4 +879,10 @@ void main() {
     expect(field.decoration!.enabledBorder, isA<OutlineInputBorder>());
     expect(tester.takeException(), isNull);
   });
+}
+
+double _contrastRatio(Color first, Color second) {
+  final a = first.computeLuminance();
+  final b = second.computeLuminance();
+  return a > b ? (a + 0.05) / (b + 0.05) : (b + 0.05) / (a + 0.05);
 }
