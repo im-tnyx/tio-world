@@ -303,7 +303,7 @@ void main() {
     const rid = '30000000-0000-4000-8000-000000000001';
     await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-popup-card-$rid')),
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
         findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('routine-edit-$rid')));
     await tester.pumpAndSettle();
