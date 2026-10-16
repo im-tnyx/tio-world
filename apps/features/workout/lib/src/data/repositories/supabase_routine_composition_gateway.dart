@@ -29,8 +29,22 @@ abstract interface class RoutineCompositionGateway {
   });
 }
 
+/// Separate opt-in transport for the additive 7-arg atomic name/Set RPC.
+/// Existing composition test gateways need not gain a fake capability.
+abstract interface class RoutineAggregateUpdateGateway {
+  Future<Object?> updateAggregate({
+    required String routineId,
+    required String programId,
+    required int expectedRevision,
+    required String expectedName,
+    required String mutationId,
+    String? name,
+    List<Map<String, dynamic>>? exercises,
+  });
+}
+
 final class SupabaseRoutineCompositionGateway
-    implements RoutineCompositionGateway {
+    implements RoutineCompositionGateway, RoutineAggregateUpdateGateway {
   SupabaseRoutineCompositionGateway(this._client);
 
   final SupabaseClient _client;
@@ -43,7 +57,7 @@ final class SupabaseRoutineCompositionGateway
       await _client
           .from('user_workout_routines')
           .select(
-              'id,user_id,composition_revision,last_composition_mutation_id')
+              'id,user_id,name,composition_revision,last_composition_mutation_id')
           .eq('user_id', userId)
           .eq('id', routineId)
           .maybeSingle()
@@ -105,4 +119,29 @@ final class SupabaseRoutineCompositionGateway
         'p_client_mutation_id': mutationId,
         'p_exercises': exercises,
       }).retry(enabled: false);
+
+  @override
+  Future<Object?> updateAggregate({
+    required String routineId,
+    required String programId,
+    required int expectedRevision,
+    required String expectedName,
+    required String mutationId,
+    String? name,
+    List<Map<String, dynamic>>? exercises,
+  }) async =>
+      await _client.rpc<Object?>(
+        'update_user_workout_routine_with_composition',
+        params: {
+          'p_routine_id': routineId,
+          'p_program_id': programId,
+          'p_expected_revision': expectedRevision,
+          'p_expected_name': expectedName,
+          'p_client_mutation_id': mutationId,
+          'p_name': name,
+          'p_exercises': exercises,
+        },
+      ).retry(enabled: false);
 }
+
+
