@@ -115,13 +115,50 @@ Merged #551 already uses a **single `RoutineComposerScreen`,
 routes, including the title bar, ordered Exercises, column headings, Set rows,
 the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
 composition is configured in Create mode (`Create Routine`, empty draft,
-atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine, read-only
-PREVIOUS column and revision-guarded Update). Existing Create/Edit route
+atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine,
+revision-guarded Update). Both modes reserve the same read-only PREVIOUS
+header and 64dp Set-row slot in Draft #570, displaying an unavailable dash
+until genuine performed workout history exists. Existing Create/Edit route
 entrypoint state owners remain thin adapters for different auth/persistence,
 Custom preflight, unknown-write resolution and validation rules. This avoids
 duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
 is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge. In that Draft, Create/Edit app-bar title typography remains 18sp/w800 and Routine Detail app-bar remains 20sp/w800. All three surfaces display Exercise names at 16sp/w500, maximum two lines with ellipsis. Read-only Routine Detail reserves the same trailing 48dp space used by the Create/Edit Exercise-row 3-dot action, without displaying an inert options button; this keeps long-name wrapping consistent at equal viewport sizes.
+
+## Previous Workout values in Routine composer (Draft #570 layout, history deferred)
+
+The owner-approved shared Create/Edit Set grid is always laid out as
+`SET | PREVIOUS | KG/LB | REPS` for weight-and-reps exercises. The
+corresponding distance/time measurement profile keeps its existing units,
+but uses the same 64dp PREVIOUS placeholder slot. The header and row
+spacing are identical in Create and Edit. In Draft #570, these are
+**presentation-only placeholders**, shown as `–` with an accessible
+unavailable label; nothing is auto-filled. Template `SetPrescription` data
+must never be passed off as performed workout history.
+
+**Deferred performed-history interaction (not implemented):** When
+actual completed `WorkoutSession`/`PerformedSet` history exists for
+the authenticated owner and canonical Exercise identity, a matching
+previous performed set may display a compact truthful value such as
+`10kg x 10` (or correctly converted LB / a suitable typed profile).
+Selecting an available previous value copies its supported load/reps
+into that **one current draft Set** in Create or Edit without an automatic
+Save, Update, history mutation or new logged session. When no matching
+history exists, keep a dash; it is not tappable. Historical Set matching,
+set type/ordering, unit conversion, mixed measurement profiles, ambiguous
+sources, and edit-overwrite semantics need separately reviewed rules
+rather than inferred values.
+
+**Deferred preference:** Workout Runtime Settings (#48; W10/TNYX-87)
+will eventually offer `Show Previous Workout Values` (preserve the
+currently visible default unless the owner changes it). Its visibility
+setting must feed a single canonical Workout preference into **both**
+Create and Edit, hiding header and row cells together and returning that
+space to the input columns. Setting persistence/eligibility must follow
+the audited Workout Settings boundary; do not add local duplicate
+booleans or Profile/Targets storage now. True performed data requires
+W7/TNYX-84 and W8/TNYX-85; this Draft implements no schema,
+`PerformedSet` repository, session history read or tap-to-copy.
 
 ## Numeric Set field focus dismissal (merged #551; release/device QA unverified)
 
@@ -148,8 +185,10 @@ foreground stays on its existing theme role where readable (including the
 Edit primary/blue number), but falls back to black or white when necessary
 to achieve at least **4.5:1 contrast** against the filled background. This
 applies to normal and W/F/D Set types, standard light/dark/Tio Dark and OS
-high-contrast variants. Edit retains its read-only PREVIOUS column. Both
-modes use the same 38dp filled, 14dp rounded Set type control.
+high-contrast variants. Both modes reserve a read-only PREVIOUS
+column; empty cells display only a dash and do not represent historic
+WorkoutSession values. Both modes use the same 38dp filled, 14dp rounded
+Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
 
