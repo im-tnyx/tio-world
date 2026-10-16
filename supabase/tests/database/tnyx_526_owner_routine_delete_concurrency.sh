@@ -40,13 +40,16 @@ fi
 # Never read ~/.psqlrc (it can contain \\connect or other unsafe commands).
 psql() { command psql --no-psqlrc "$@"; }
 
-# Defense in depth: verify the actual connected server before creating an
-# auth.users fixture and before installing the destructive cleanup trap.
-server_address="$(psql "$database_url" --set=ON_ERROR_STOP=1 \
-  --tuples-only --no-align --command='select pg_catalog.inet_server_addr()::text' \
+# Docker port forwarding means inet_server_addr() may be a bridge address,
+# not 127.0.0.1. The exact literal loopback URI and refusal of libpq
+# overrides enforce the connection destination; this read-only preflight
+# additionally checks the identity of the disposable target before writes.
+database_identity="$(psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --tuples-only --no-align \
+  --command="select (current_database() = 'postgres' and current_user = 'postgres')::text" \
   | tr -d '[:space:]')"
-if [[ "$server_address" != "127.0.0.1" ]]; then
-  echo "Refusing Routine Delete fixture writes: connected DB is not IPv4 loopback" >&2
+if [[ "$database_identity" != "true" ]]; then
+  echo "Refusing Routine Delete fixture writes: unexpected database identity" >&2
   exit 1
 fi
 
