@@ -1,9 +1,9 @@
 # GitHub #538 — Routine Set Type bottom-sheet color parity
 
-**Status:** In progress, source implementation pending CI
+**Status:** In review — Draft PR #574; source CI/review validated, docs-only final HEAD pending
 **Primary owner:** Workout feature presentation (this branch only)
 **Affected platforms:** Flutter Android/iOS phone Routine Create/Edit
-**GitHub:** #538; follow-up to merged PR #570
+**GitHub:** #538; Draft PR #574; follow-up to merged PR #570
 **Linear:** TNYX-81 (parent W4 remains Backlog / blocked by TNYX-78 and TNYX-80)
 
 ## Owner Approval and Scope Boundary
@@ -16,7 +16,7 @@
 ## Active Handoff
 
 **Implementation owner:** This GitHub-connected session; only branch `tnyx/issue-538-set-type-sheet-color-parity`.
-**Review owner:** Independent GitHub/Codex review required after source, and owner device QA.
+**Review owner:** Independent Codex exact-source review completed without major issues at `18bc0ffa`; owner device QA remains required.
 **Base source:** `main@42af17a67e84f744ed07cfbc5e66d1fe19f67b41` (merged #570 at `7f05def9`, merged #573 at `42af17a6`).
 **Current observed state:** GitHub API source only; Windows worktree and local Flutter SDK unavailable in this session. No claim of local `git status`, `melos`, device rendering or hosted Supabase verification.
 **Tracked drift:** #538 text and old #538/#539 stacked PR handoff reflect 2026-10-13 pre-#551 state; present source on main already has durable `RoutineSetType` and sheets. `docs/screens/routine-library.md` still describes merged #570 as Draft. Reconcile only touched documentation relevant to this slice.
@@ -35,12 +35,20 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 
 **Rejected:** independently duplicating semantic switch/contrast logic in Create and Edit, introducing new Core color tokens, or consolidating entire bottom sheets while Edit's extra advanced action differs.
 
+## Verified source-review checkpoint (2026-10-16)
+
+- GitHub source HEAD `18bc0ffaca94f207c4bee534416f6fb0f32a92d2`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, covering analyze (Flutter/Dart), Dart tests, 3 Flutter test shards, and fail-closed `Analyze and test` aggregate.
+- Codex independent review receipt on exact `18bc0ffa`: **no major issues**, 0 open review threads; GitHub changed-file/ancestry audit: 10 intended files, 10 commits ahead / 0 behind at source checkpoint.
+- Post-source documentation-only status corrections must receive their **own** exact-head CI/review before release; preceding source CI is not claimed for a newer commit.
+- No Windows SDK/device tests or local git state verified. Owner device QA and explicit separate merge approval remain pending.
+
 ## Validation / Merge Gate
 
 - [ ] Test bottom-sheet label and indicator for all four types, both Create/Edit and selected-state check.
 - [ ] Confirm 38dp shape/color/contrast and contextual Normal number in compact light/dark/high-contrast, and no unwanted row visual diff.
 - [ ] Preserve Set identity and on-type change, Remove Set and Edit advanced-details paths.
-- [ ] GitHub exact-head Analyze Flutter/Dart and Flutter/Dart tests, CI failures investigated.
-- [ ] Independent review of exact final head and open threads, parent ancestry/changed-file audit, physical-device owner QA before explicit `Go merge`.
+- [x] Flutter/Dart Analyze + Flutter/Dart tests passed at source HEAD `18bc0ffa`; recheck exact final docs-only HEAD.
+- [x] Independent Codex source review at `18bc0ffa`: no major issues / 0 open threads.
+- [ ] Exact final HEAD review, parent ancestry/changed-file audit, physical-device owner QA before explicit `Go merge`.
 
 **No merge or deployment authorized by implementation Go.**
