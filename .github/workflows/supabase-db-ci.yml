@@ -273,6 +273,17 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_526_owner_routine_delete.test.sql
 
+      - name: Reject #526 retired Routine UUID replay across Create paths
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_526_routine_delete_anti_resurrection.test.sql
+
+      - name: Run #526 Create/Delete retirement order two-session races
+        shell: bash
+        run: bash supabase/tests/database/tnyx_526_routine_delete_anti_resurrection_concurrency.sh
+
       - name: Reject unsafe #526 Routine Delete fixture connection overrides
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_guard.test.sh
