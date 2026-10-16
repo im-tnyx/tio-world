@@ -200,11 +200,11 @@ Draft PR #574 (unmerged) proposes that Create and Edit Set Type selection
 sheets share the same Workout-owned 38dp filled Normal/W/F/D indicator and
 Core theme semantic foreground/contrast fallback as the existing Set row.
 Each option uses the reusable Core `TioCardVariant.outlined` surface with
-compact horizontal 12dp/vertical 8dp content padding: 54dp at standard text
-scale, expanding as needed for accessibility. The selection checkmark and
+compact horizontal 12dp/vertical 8dp content padding: 56dp at standard text
+scale, expanding as needed for accessibility (38dp badge + 8dp top/bottom\npadding + the outlined card's 1dp top/bottom border). The selection checkmark and
 accessible selected-state announcement are retained. Normal previews the
 selected Set's prospective Normal-only number, excluding special Set types.
-The matching 54dp outlined `Remove Set` row shows a semantic danger-colored
+The matching 56dp outlined `Remove Set` row shows a semantic danger-colored
 trash icon and preserves Create/Edit deletion, including last-Set removal.
 
 By explicit owner approval, Edit's obsolete `Rest & set details` selector
