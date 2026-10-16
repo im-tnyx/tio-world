@@ -158,7 +158,7 @@ final class SupabaseRoutineCompositionRepository
               entries: command.entries!,
               expectedCustomTypes: command.expectedCustomTypes,
             ));
-      result = await gateway.updateAggregate(
+      result = await (gateway as RoutineAggregateUpdateGateway).updateAggregate(
         routineId: command.routineId.value,
         programId: command.programId.value,
         expectedRevision: command.expectedRevision,
