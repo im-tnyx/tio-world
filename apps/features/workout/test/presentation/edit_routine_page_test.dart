@@ -161,7 +161,7 @@ void main() {
       expect(card, findsOneWidget);
       expect(tester.widget<TioCard>(card).variant,
           TioCardVariant.outlined);
-      expect(tester.getSize(card).height, TioSize.dp54);
+      expect(tester.getSize(card).height, TioSize.dp56);
 
       expect(badge.normalNumber, 1);
     }
