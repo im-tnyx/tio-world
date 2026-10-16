@@ -292,6 +292,7 @@ void main() {
             unit: WeightUnit.kg,
             enabled: true,
             showPrevious: true,
+            useEditSetNumberColor: true,
             isOpen: false,
             onOpenChanged: (_) {},
             onChanged: (_) {},
