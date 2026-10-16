@@ -715,44 +715,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('advanced Set details Reps survive rejected Update',
+  testWidgets('Set Type and inline Reps survive rejected Update',
       (tester) async {
     final f = _Fixtures();
     f.compositions.error = const RoutineCompositionException(
       RoutineCompositionFailureKind.invalidRequest,
     );
     await f.open(tester);
-    final add = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
-    await tester.ensureVisible(add);
-    await tester.tap(add);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
     await tester.pumpAndSettle();
 
-    const newSetId = '90000000-0000-4000-8000-000000000001';
-    final reps = find.byKey(const ValueKey('routine-set-reps-$newSetId'));
-    expect(reps, findsOneWidget);
-    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
-
-    await tester.tap(find.byKey(
-      const ValueKey('routine-set-type-$newSetId')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byType(RoutineSetEditorSheet), findsOneWidget);
-    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '12');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
-
-    expect(tester.widget<TioInput>(reps).controller!.text, '12');
+    final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    await tester.enterText(reps, '12');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
 
     expect(f.compositions.saveCount, 1);
     expect(f.editorResult, isNull);
-    expect(tester.widget<TioInput>(reps).controller!.text, '12',
-        reason: 'Accepted sheet Reps must not remount as blank on rejection');
-    final pending = f.compositions.lastSave!.entries.single.sets.last;
-    expect(pending.id, newSetId);
+    expect(tester.widget<TioInput>(reps).controller!.text, '12');
+    final pending = f.compositions.lastSave!.entries.single.sets.single;
+    expect(pending.id, _setId);
+    expect(pending.prescription.setType, RoutineSetType.drop);
     expect(pending.prescription.reps, 12);
+    expect(pending.prescription.restSeconds, 60);
     expect(tester.takeException(), isNull);
   });
 
