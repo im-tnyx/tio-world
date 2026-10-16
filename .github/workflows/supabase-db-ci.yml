@@ -273,6 +273,10 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_526_owner_routine_delete.test.sql
 
+      - name: Reject unsafe #526 Routine Delete fixture connection overrides
+        shell: bash
+        run: bash supabase/tests/database/tnyx_526_owner_routine_delete_guard.test.sh
+
       - name: Run #526 old Rename/new Delete two-session race
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_concurrency.sh
