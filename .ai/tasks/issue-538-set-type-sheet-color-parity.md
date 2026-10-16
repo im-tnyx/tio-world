@@ -35,6 +35,12 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 
 **Rejected:** independently duplicating semantic switch/contrast logic in Create and Edit, introducing new Core color tokens, or consolidating entire bottom sheets while Edit's extra advanced action differs.
 
+## Owner screenshot refinement (2026-10-16)
+
+**New explicit approval:** Screenshot shows outlined selectable Set Type rows and visible W/F/D colors. Keep the 38dp filled badge from the shared inline Set row inside each selection option, and use the existing Core `TioSelectableCard` for the outlined selected/unselected surface. Preserve the selection result/check, context-aware Normal numbering, focus, semantics and compact/large-text behavior. Do not clone the reference's pixel geometry, add a new selection color system, or introduce a `More` feature.
+
+**Additional owner decision:** Remove the existing `Rest & set details` action from Edit's `Select Set Type` sheet. The current Edit-only advanced editor is reached exclusively through this action; eliminate its dead entrypoint and rewrite affected integration regressions to exercise the existing inline Reps/Weight/Rep Range editor. Current persisted per-Set `restSeconds` must survive every type/inline edit and Update, but the old Rest editing entrypoint is intentionally no longer offered until the independently planned W4B2 Rest Timer/Notes slices (GitHub #532 / Linear TNYX-81) are approved and implemented. **Do not implement any Rest Timer or Notes UI/data here**. Keep `Remove Set` and existing selected Set actions.
+
 ## Verified source-review checkpoint (2026-10-16)
 
 - GitHub source HEAD `18bc0ffaca94f207c4bee534416f6fb0f32a92d2`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, covering analyze (Flutter/Dart), Dart tests, 3 Flutter test shards, and fail-closed `Analyze and test` aggregate.
