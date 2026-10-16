@@ -298,6 +298,7 @@ void main() {
     await tester.pumpAndSettle();
     final sheet = find.byKey(ValueKey('routine-actions-sheet-$id'));
     expect(sheet, findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     final outlined = find.descendant(
         of: sheet, matching: find.byType(TioCard));
     expect(outlined, findsOneWidget);
