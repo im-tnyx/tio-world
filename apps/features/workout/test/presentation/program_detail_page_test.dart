@@ -195,8 +195,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sheet, findsOneWidget);
-    expect(find.descendant(of: sheet, matching: find.byType(TioGroupCard)),
+    expect(find.descendant(of: sheet, matching: find.byType(TioCard)),
         findsOneWidget);
+    expect(
+      tester.widget<TioCard>(find.descendant(
+        of: sheet,
+        matching: find.byType(TioCard),
+      )).variant,
+      TioCardVariant.outlined,
+    );
     expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
         findsOneWidget);
     // Move and Delete must never appear without real owner-safe capabilities.
@@ -307,6 +314,86 @@ void main() {
     expect(editCalls, 1);
     expect(moveCalls, 1);
     expect(deleteCalls, 1);
+  });
+
+  testWidgets('Routine action sheet revokes stale Edit callback after rebuild',
+      (tester) async {
+    final actionVersion = ValueNotifier<int>(0);
+    addTearDown(actionVersion.dispose);
+    var oldCalls = 0;
+    var newCalls = 0;
+    final routine = Routine(
+      id: RoutineId(_routineId),
+      programId: _program.id,
+      name: 'Push',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: ValueListenableBuilder<int>(
+            valueListenable: actionVersion,
+            builder: (context, version, _) => RoutineMetadataCard(
+              routine: routine,
+              onEdit: version == 1
+                  ? null
+                  : version == 0
+                      ? () => oldCalls++
+                      : () => newCalls++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    final action = find.byKey(const ValueKey('routine-edit-$_routineId'));
+
+    // The old modal is still open, but the parent revoked the action.
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    actionVersion.value = 1;
+    await tester.pump();
+    expect(action, findsOneWidget);
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(oldCalls, 0);
+    expect(newCalls, 0);
+    expect(button, findsNothing);
+
+    // Parent now supplies a different current capability while modal is open.
+    actionVersion.value = 0;
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    actionVersion.value = 2;
+    await tester.pump();
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(oldCalls, 0);
+    expect(newCalls, 1);
+  });
+
+  testWidgets('Routine overflow has one accessible tap action and label',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    addTearDown(handle.dispose);
+    await _pump(
+      tester,
+      repository: _MemoryRoutines([
+        Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+      ]),
+      onEditRoutine: (_) async => false,
+    );
+    expect(find.bySemanticsLabel('Routine options'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Routine options'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Edit Routine'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
+        findsOneWidget);
   });
 
   testWidgets('failed atomic Create retains empty Program without legacy write',
