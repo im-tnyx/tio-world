@@ -196,6 +196,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sheet, findsOneWidget);
+    // The canonical Set Type editor sheet owns the interactive handle.
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     expect(find.descendant(of: sheet, matching: find.byType(TioCard)),
         findsOneWidget);
     expect(
@@ -207,6 +209,10 @@ void main() {
     );
     expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
         findsOneWidget);
+    final actionHeight = tester
+        .getSize(find.byKey(const ValueKey('routine-edit-$_routineId'))).height;
+    expect(actionHeight, greaterThanOrEqualTo(TioSize.dp48));
+    expect(actionHeight, lessThanOrEqualTo(TioSize.dp60));
     // Move and Delete must never appear without real owner-safe capabilities.
     expect(find.byKey(const ValueKey('routine-move-$_routineId')), findsNothing);
     expect(find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
