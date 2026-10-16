@@ -53,22 +53,22 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 
 **Validation needed:** exact-head Flutter CI, compact 320dp light/dark/Tio Dark/high-contrast and text-scale widget assertions, 56dp compact painted card geometry, Core variant usage, red trash icon, tap/action/selected semantics, remove-last-Set contract and no unrelated regressions. This screenshot is a design reference, not evidence of current PR code running on-device.
 
-**2026-10-16 actual CI evidence:** Flutter CI #38873916682 analyzed successfully, but Workout shard had eight failures all for the *test-only* wrong 54dp expected height (actual 56dp from Core's 1dp top/bottom outlines; 616 Workout tests passed). The production compact outlined control is correct. Correct the tests and task/docs to 56dp, rerun exact final-head CI; do not claim success until it finishes.
+## Verified exact-source CI and review (2026-10-16)
 
-## Verified source-review checkpoint (2026-10-16)
-
-- GitHub source HEAD `18bc0ffaca94f207c4bee534416f6fb0f32a92d2`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, covering analyze (Flutter/Dart), Dart tests, 3 Flutter test shards, and fail-closed `Analyze and test` aggregate.
-- Codex independent review receipt on exact `18bc0ffa`: **no major issues**, 0 open review threads; GitHub changed-file/ancestry audit: 10 intended files, 10 commits ahead / 0 behind at source checkpoint.
-- Post-source documentation-only status corrections must receive their **own** exact-head CI/review before release; preceding source CI is not claimed for a newer commit.
-- No Windows SDK/device tests or local git state verified. Owner device QA and explicit separate merge approval remain pending.
+- Initial UI-color-only source HEAD `18bc0ffa`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, with Codex no-major-issues review. **Historical only:** later owner-approved *production* code changes added the outlined options and removed the legacy Edit details action. The old CI must not be used to assert the new UI is validated.
+- Compact Core outlined-card production at `71c073c` (same production code as the latest tested source): Codex reviewed **no major issues**. Flutter CI [#38873916682](https://github.com/im-tnyx/tio-world/actions/runs/38873916682) analyzed successfully; 616 Workout tests passed and eight new widget assertions failed solely because tests expected a 54dp card while Core actually paints 56dp (38dp badge + 8dp top/bottom padding + 1dp top/bottom outline border).
+- Fully corrected *source and tests* at `c5e150f45423820c0e663c93db0ec171d6226c9d`: Flutter CI [#38874701233](https://github.com/im-tnyx/tio-world/actions/runs/38874701233) **SUCCESS**, including Flutter/Dart Analyze, Dart tests, three Flutter shards and fail-closed `Analyze and test` aggregate. The previously failing Workout tests passed. GitHub compare at checkpoint: 44 task-only commits ahead / 0 behind `main@42af17a6`, 12 changed files in scoped Workout presentation/tests and task/canonical docs.
+- Codex on exact `c5e150f` found two documentation-only findings: [P3 literal escaped newline in the canonical screen doc](https://github.com/im-tnyx/tio-world/pull/574) and [P2 misleading docs-only handoff checkpoint](https://github.com/im-tnyx/tio-world/pull/574). Both are valid; correct them without production/test changes, then revalidate final docs-only HEAD and resolve/review the threads before merge.
+- No local Windows git status/Flutter SDK tests, physical-device screenshot QA or deployed Supabase verification was available here. Owner device acceptance and explicit separate `Go merge` remain required.
 
 ## Validation / Merge Gate
 
-- [ ] Test bottom-sheet label and indicator for all four types, both Create/Edit and selected-state check.
-- [ ] Confirm 38dp shape/color/contrast and contextual Normal number in compact light/dark/high-contrast, and no unwanted row visual diff.
-- [ ] Preserve Set identity, on-type change and Remove Set; confirm the removed Edit-only advanced-details entrypoint is absent while existing `restSeconds` remains unchanged through inline editing and Update.
-- [x] Flutter/Dart Analyze + Flutter/Dart tests passed at source HEAD `18bc0ffa`; recheck exact final docs-only HEAD.
-- [x] Independent Codex source review at `18bc0ffa`: no major issues / 0 open threads.
-- [ ] Exact final HEAD review, parent ancestry/changed-file audit, physical-device owner QA before explicit `Go merge`.
+- [x] All four type option badges, both Create/Edit modes, selected check, normal-only numbering and 38dp foreground contrast tested; compact outlined 56dp cards, red trash icon and 320dp theme/high-contrast/text-scale covered by widget tests at `c5e150f`.
+- [x] Existing Set identity, Set Type change, Remove Set and last-Set contract remain; Edit old Rest details entrypoint absent and stored `restSeconds` preserved on inline input/Update/rejection, verified in Flutter widget tests at `c5e150f`.
+- [x] Flutter/Dart Analyze + all Flutter/Dart tests and aggregate CI **SUCCESS** at `c5e150f`, exact tested code.
+- [x] Independent Codex review of compact production changes at `71c073c` reported no major issues.
+- [ ] Validate the final documentation-only correction head, resolve P2/P3 review findings and inspect exact-head ancestry/paths.
+- [ ] Owner physical-device QA (light/dark, compact width, text scale, selected state and Remove Set) and separately explicit `Go merge`.
+
 
 **No merge or deployment authorized by implementation Go.**
