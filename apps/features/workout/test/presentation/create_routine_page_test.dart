@@ -52,10 +52,13 @@ void main() {
     expect(find.text('PREVIOUS'), findsOneWidget);
     // No performed-session repository exists yet. This visible dash is not
     // an invented history value and must not populate the editable Set.
-    expect(
-      find.descendant(of: createSet, matching: find.text('–')),
-      findsOneWidget,
+    final previousCell = find.descendant(
+      of: createSet,
+      matching: find.byKey(const ValueKey(
+        'routine-set-previous-55555555-5555-4555-8555-555555555555')),
     );
+    expect(previousCell, findsOneWidget);
+    expect(tester.widget<Text>(previousCell).data, '–');
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
     final reps = find.byKey(const ValueKey('routine-set-reps-55555555-5555-4555-8555-555555555555'));
