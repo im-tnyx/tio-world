@@ -67,7 +67,7 @@ class RoutineMetadataCard extends StatelessWidget {
                     TioSettingsNavigationRow(
                       key: ValueKey('routine-move-${routine.id.value}'),
                       leading: const TioSettingsLeadingIcon(
-                        icon: Icons.drive_file_move_outlined,
+                        icon: Icons.swap_horiz_rounded,
                       ),
                       title: 'Move Routine',
                       supportingText: 'Choose another Program',
