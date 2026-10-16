@@ -15,21 +15,21 @@
 **Planning owner:** Tio-world owner + GitHub #564 / Linear TNYX-81
 **Implementation owner:** Current GitHub-connected session; no parallel PR/open implementation branch found on fresh audit.
 **Review owner:** Independent Codex bot after CI.
-**Implementation ownership state:** Active
+**Implementation ownership state:** Active — Draft PR #570; no concurrent source owner.
 **Ownership transition:** New, independent first slice after merged #566; no existing open PR.
 **Repository state last verified:** `main@5aec6ef1a90c3cc6afefc66e71f70c54af1b5c1b` matches owner-provided local `main`; GitHub API audit.
 **Branch:** `tnyx/issue-564-routine-composer-header-parity`
-**HEAD SHA:** Initial parent `5aec6ef1`; refresh exact branch HEAD after commits.
+**HEAD SHA:** Source/test correction checkpoint `52b887ffa15d9d6e16b9d4a7ed28a63c136e3577`; doc correction checkpoint `82b2c117cfa7390e32d28b54f08fd1698362c830` prior to this handoff update. Re-read live PR head and rerun exact-head Flutter CI.
 **Observed working-tree state:** Owner reports local clean `main...origin/main`; connector cannot read their Windows worktree. Connected GitHub branch created at verified base.
 **Observed uncommitted/dirty files:** None observed in remote branch; local state not independently inspected by connector.
-**PR / tracker:** GitHub #564; Linear TNYX-81 (Backlog; blocked by TNYX-78/TNYX-80), GitHub #526 destructive action separate.
-**Current implementation state:** Scoped task brief; code changes and tests pending.
+**PR / tracker:** Draft [PR #570](https://github.com/im-tnyx/tio-world/pull/570); GitHub #564; Linear TNYX-81 (Backlog; blocked by TNYX-78/TNYX-80); GitHub #526 destructive action separate.
+**Current implementation state:** Shared composer Save/Update top action, Detail Exercises-row Edit including ready-empty, focused parity/compact tests, existing Edit-test type assertions and canonical Routine doc changes committed; no backend or Routine Name update. Review and tests pending latest-head verification.
 **Relevant execution surface:** `routine_composer_screen.dart`, `routine_detail_page.dart`, focused feature widget tests and canonical Routine screen doc.
-**Validation completed at SHA:** Baseline audit only; CI pending.
-**Validation remaining:** Source test audit, changed-file diff, Flutter Analyze/full Tests at exact SHA, independent Codex review, owner device light/dark and compact-width QA.
+**Validation completed at SHA:** Parent/current source/diff audit verified; three earlier Flutter Analyze attempts failed in newly authored test fixtures (missing required cancel, invalid const callback, fatal-info const hints), corrected at `ef667702`. Codex first review at `433587f7` raised 3 findings: P1 missed Edit TextButton assertion (fixed at `52b887ff`), P2 stale handoff (this update), P2 canonical Draft status (fixed at `82b2c117`). **No green exact-head CI yet claimed.**
+**Validation remaining:** New exact HEAD Flutter Analyze/full Tests and attribution checks; Codex re-review of corrected head + three thread dispositions; owner device light/dark and compact-width QA. No local SDK/worktree run in this GitHub connector session.
 **Current blocker:** Atomic name+composition Update requires independently approved owner-safe persistence contract; not part of this UI parity slice.
-**Open review finding IDs:** None at start.
-**Next exact action:** Implement top Save/Update parity and Detail Exercises-row Edit/empty-ready access; add focused widget assertions, update canonical status, open Draft PR and validate.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86tEEfy` (handoff P2), `PRRT_kwDOTOXwB86tEEgC` (canonical status P2), `PRRT_kwDOTOXwB86tEEgJ` (remaining cast P1). Changes landed, not yet re-reviewed or resolved.
+**Next exact action:** Verify changed-file and exact current PR head, Flutter Analyze/full Tests; fix concrete CI failures, request Codex re-review; reply/resolve findings after evidence. Keep Draft and do not merge without explicit owner `Go merge`. Atomic editable Name/3-dot Edit and Delete stay independent.
 
 ## Evidence and Architecture
 - Root `AGENTS.md`, `apps/features/AGENTS.md`, Core theme README, ADR-0015, canonical `docs/screens/routine-library.md`, W4 handoff, issue #564 and Linear TNYX-81 inspected.
