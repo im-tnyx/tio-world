@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
-/// One canonical Routine rendered as a standalone Core card.
-///
-/// The primary card tap and the Routine action sheet are independent.
-/// Expanded Library cards remain read-only unless real owner capabilities
-/// are supplied; there is no second Routine source of truth.
-class RoutineMetadataCard extends StatelessWidget {
+/// One canonical Program-owned Routine card, reused in Program Detail and
+/// expanded Library. The option sheet only dispatches real owner capabilities.
+class RoutineMetadataCard extends StatefulWidget {
   const RoutineMetadataCard({
     required this.routine,
     super.key,
@@ -22,93 +19,92 @@ class RoutineMetadataCard extends StatelessWidget {
   final String? supportingText;
   final VoidCallback? onTap;
 
-  /// Only supply actions backed by a real owner-verified capability.
+  /// The caller must supply only live, owner-verified capabilities.
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
 
-  Future<void> _openActions(BuildContext context) async {
-    final selected = await showModalBottomSheet<_RoutineAction>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: TioSheet(
-          key: ValueKey('routine-actions-sheet-${routine.id.value}'),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                routine.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      color: sheetContext.tioColors.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: TioSpacing.lg),
-              TioGroupCard(
-                children: [
-                  if (onEdit != null)
-                    TioSettingsNavigationRow(
-                      key: ValueKey('routine-edit-${routine.id.value}'),
-                      leading: const TioSettingsLeadingIcon(
-                        icon: Icons.edit_outlined,
-                      ),
-                      title: 'Edit Routine',
-                      supportingText: 'Edit name, exercises and sets',
-                      showChevron: false,
-                      onTap: () => Navigator.of(sheetContext)
-                          .pop(_RoutineAction.edit),
-                    ),
-                  if (onMove != null)
-                    TioSettingsNavigationRow(
-                      key: ValueKey('routine-move-${routine.id.value}'),
-                      leading: const TioSettingsLeadingIcon(
-                        icon: Icons.swap_horiz_rounded,
-                      ),
-                      title: 'Move Routine',
-                      supportingText: 'Choose another Program',
-                      showChevron: false,
-                      onTap: () => Navigator.of(sheetContext)
-                          .pop(_RoutineAction.move),
-                    ),
-                  if (onDelete != null)
-                    TioSettingsNavigationRow(
-                      key: ValueKey('routine-delete-${routine.id.value}'),
-                      leading: TioSettingsLeadingIcon(
-                        icon: Icons.delete_outline,
-                        color: sheetContext.tioColors.danger,
-                      ),
-                      title: 'Delete Routine',
-                      supportingText: 'Permanently remove this Routine',
-                      titleColor: sheetContext.tioColors.danger,
-                      showChevron: false,
-                      onTap: () => Navigator.of(sheetContext)
-                          .pop(_RoutineAction.delete),
-                    ),
+  @override
+  State<RoutineMetadataCard> createState() => _RoutineMetadataCardState();
+}
+
+class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
+  bool _openingActions = false;
+
+  Future<void> _openActions() async {
+    if (_openingActions) return;
+    final openingId = widget.routine.id;
+    final openingProgramId = widget.routine.programId;
+    _openingActions = true;
+    try {
+      final selected = await showModalBottomSheet<_RoutineAction>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: TioPalette.transparent,
+        builder: (sheetContext) => SafeArea(
+          top: false,
+          child: TioSheet(
+            key: ValueKey('routine-actions-sheet-${openingId.value}'),
+            title: widget.routine.name,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onEdit != null) ...[
+                  _RoutineActionOption(
+                    key: ValueKey('routine-edit-${openingId.value}'),
+                    label: 'Edit Routine',
+                    icon: Icons.edit_outlined,
+                    onTap: () => Navigator.of(sheetContext)
+                        .pop(_RoutineAction.edit),
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
                 ],
-              ),
-            ],
+                if (widget.onMove != null) ...[
+                  _RoutineActionOption(
+                    key: ValueKey('routine-move-${openingId.value}'),
+                    label: 'Move Routine',
+                    icon: Icons.swap_horiz_rounded,
+                    onTap: () => Navigator.of(sheetContext)
+                        .pop(_RoutineAction.move),
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                ],
+                if (widget.onDelete != null)
+                  _RoutineActionOption(
+                    key: ValueKey('routine-delete-${openingId.value}'),
+                    label: 'Delete Routine',
+                    icon: Icons.delete_outline,
+                    destructive: true,
+                    onTap: () => Navigator.of(sheetContext)
+                        .pop(_RoutineAction.delete),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Close the options route before entering the selected workflow.
-    // A dismissed sheet or removed owner card never dispatches an action.
-    if (!context.mounted) return;
-    switch (selected) {
-      case _RoutineAction.edit:
-        onEdit?.call();
-      case _RoutineAction.move:
-        onMove?.call();
-      case _RoutineAction.delete:
-        onDelete?.call();
-      case null:
-        break;
+      // The sheet can outlive a parent rebuild, session transition or a card
+      // reassignment. Dispatch through the CURRENT widget, not callbacks
+      // captured before the await. Keep this a presentation-only boundary:
+      // the app shell independently rechecks the owner and login cycle.
+      if (!mounted ||
+          widget.routine.id != openingId ||
+          widget.routine.programId != openingProgramId) {
+        return;
+      }
+      switch (selected) {
+        case _RoutineAction.edit:
+          widget.onEdit?.call();
+        case _RoutineAction.move:
+          widget.onMove?.call();
+        case _RoutineAction.delete:
+          widget.onDelete?.call();
+        case null:
+          break;
+      }
+    } finally {
+      _openingActions = false;
     }
   }
 
@@ -116,7 +112,7 @@ class RoutineMetadataCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return TioCard(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Row(
         children: [
           Icon(Icons.fitness_center_outlined, color: colors.textSecondary),
@@ -126,7 +122,7 @@ class RoutineMetadataCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  routine.name,
+                  widget.routine.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -135,9 +131,9 @@ class RoutineMetadataCard extends StatelessWidget {
                     fontWeight: TioFontWeight.w700,
                   ),
                 ),
-                if (supportingText != null)
+                if (widget.supportingText != null)
                   Text(
-                    supportingText!,
+                    widget.supportingText!,
                     style: TextStyle(
                       color: colors.textSecondary,
                       fontSize: TioFontSize.size12,
@@ -146,16 +142,18 @@ class RoutineMetadataCard extends StatelessWidget {
               ],
             ),
           ),
-          if (onEdit != null || onMove != null || onDelete != null)
+          if (widget.onEdit != null ||
+              widget.onMove != null ||
+              widget.onDelete != null)
             Semantics(
-              key: ValueKey('routine-menu-${routine.id.value}'),
+              key: ValueKey('routine-menu-${widget.routine.id.value}'),
               button: true,
               label: 'Routine options',
-              onTap: () => _openActions(context),
+              onTap: _openActions,
               child: ExcludeSemantics(
                 child: IconButton(
                   tooltip: 'Routine options',
-                  onPressed: () => _openActions(context),
+                  onPressed: _openActions,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints.tightFor(
                     width: TioSize.dp48,
@@ -170,6 +168,67 @@ class RoutineMetadataCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Matches the existing Set Type option treatment, without duplicating a
+/// sheet, theme token or navigation behavior in the two Routine locations.
+class _RoutineActionOption extends StatelessWidget {
+  const _RoutineActionOption({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.destructive = false,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = context.tioColors.danger;
+    return Semantics(
+      container: true,
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: TioCard(
+        variant: TioCardVariant.outlined,
+        outlinedBorderWidth: TioCardTokens.borderThin,
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.md,
+          vertical: TioSpacing.sm,
+        ),
+        onTap: onTap,
+        child: Row(
+          children: [
+            SizedBox(
+              width: TioSize.dp38,
+              height: TioSize.dp38,
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: destructive ? danger : context.tioColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: destructive ? danger : null,
+                    ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
