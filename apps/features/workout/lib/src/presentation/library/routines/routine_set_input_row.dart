@@ -42,6 +42,7 @@ class RoutineSetInputRow extends StatefulWidget {
     required this.onOpenChanged,
     this.startWithBlankReps = false,
     this.showPrevious = false,
+    this.useEditSetNumberColor = false,
     this.exerciseType,
     this.showRangeDraft = false,
     super.key,
@@ -65,6 +66,10 @@ class RoutineSetInputRow extends StatefulWidget {
   /// Previous workout history is a separate PerformedSet boundary.
   /// Its read-only placeholder is not derived from prescribed targets.
   final bool showPrevious;
+  /// Edit-specific normal Set color; independent of history visibility.
+  /// Create retains its current accessible theme foreground even when
+  /// the PREVIOUS column is visible in the same shared layout.
+  final bool useEditSetNumberColor;
   /// Canonical explicit measurement kind. Unclassified older catalog rows
   /// retain the existing weight/reps layout; never infer from category.
   final ExerciseType? exerciseType;
@@ -563,7 +568,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
     final setNumber = widget.index + 1;
     final preferredSetColor = switch (widget.set.prescription.setType) {
       RoutineSetType.normal =>
-        widget.showPrevious ? colors.primary : colors.textPrimary,
+        widget.useEditSetNumberColor ? colors.primary : colors.textPrimary,
       RoutineSetType.warmUp => colors.warning,
       RoutineSetType.failure => colors.danger,
       RoutineSetType.drop => colors.info,
