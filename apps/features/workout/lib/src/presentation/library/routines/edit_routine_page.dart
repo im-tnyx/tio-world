@@ -15,6 +15,7 @@ import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
+import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
 
 /// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
@@ -320,27 +321,18 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       builder: (sheetContext) => TioEditorSheet(
         title: 'Select Set Type',
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          for (final kind in RoutineSetType.values)
-            ListTile(
+          for (final kind in RoutineSetType.values) ...[
+            RoutineSetTypeOption(
               key: ValueKey('edit-routine-type-${kind.wireValue}'),
-              leading: ExcludeSemantics(
-                child: RoutineSetTypeBadge(
-                  setType: kind,
-                  normalNumber:
-                      routineNormalNumberForSelection(entry.sets, set.id),
-                  useEditSetNumberColor: true,
-                ),
-              ),
-              title: Text(switch (kind) {
-                RoutineSetType.normal => 'Normal Set',
-                RoutineSetType.warmUp => 'Warm Up Set',
-                RoutineSetType.failure => 'Failure Set',
-                RoutineSetType.drop => 'Drop Set',
-              }),
-              trailing: kind == set.prescription.setType
-                  ? const Icon(Icons.check) : null,
+              type: kind,
+              normalNumber:
+                  routineNormalNumberForSelection(entry.sets, set.id),
+              selected: kind == set.prescription.setType,
+              useEditSetNumberColor: true,
               onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
             ),
+            const SizedBox(height: TioSpacing.sm),
+          ],
           ListTile(
             key: const ValueKey('edit-routine-type-remove'),
             title: const Text('Remove Set'),
