@@ -172,7 +172,7 @@ void main() {
     }
   });
 
-  testWidgets('Create and Edit exercise names use 16sp w400 without resizing the app bar',
+  testWidgets('Create and Edit exercise names use 16sp w500 without resizing the app bar',
       (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -216,9 +216,16 @@ void main() {
         expect(exerciseName, findsOneWidget);
         final label = tester.widget<Text>(exerciseName);
         expect(label.style?.fontSize, TioFontSize.size16);
-        expect(label.style?.fontWeight, TioFontWeight.w400);
+        expect(label.style?.fontWeight, TioFontWeight.w500);
         expect(label.maxLines, 2);
         expect(label.overflow, TextOverflow.ellipsis);
+        final options = find.byTooltip('Exercise options');
+        expect(options, findsOneWidget);
+        expect(
+          tester.getTopRight(exerciseName).dx,
+          closeTo(tester.getTopLeft(options).dx, 0.01),
+          reason: 'Name width ends before the reserved 3-dot action slot',
+        );
         expect(tester.takeException(), isNull);
       }
     }
