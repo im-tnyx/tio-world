@@ -408,11 +408,15 @@ class _RoutineEntryPreview extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w400,
+                  fontWeight: TioFontWeight.w500,
                   fontSize: TioFontSize.size16,
                 ),
               ),
             ),
+            // Match the shared Create/Edit exercise-row title width. The
+            // editor owns a 48dp trailing options IconButton here, but Detail
+            // must reserve its space without exposing a fake action.
+            const SizedBox(width: kMinInteractiveDimension),
           ],
         ),
         if (item.exercise == null) ...[
