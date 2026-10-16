@@ -121,7 +121,7 @@ entrypoint state owners remain thin adapters for different auth/persistence,
 Custom preflight, unknown-write resolution and validation rules. This avoids
 duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
-is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge.
+is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge. In that Draft, Create/Edit app-bar title typography remains 18sp/w800 and Routine Detail app-bar remains 20sp/w800. All three surfaces display Exercise names at 16sp/w500, maximum two lines with ellipsis. Read-only Routine Detail reserves the same trailing 48dp space used by the Create/Edit Exercise-row 3-dot action, without displaying an inert options button; this keeps long-name wrapping consistent at equal viewport sizes.
 
 ## Numeric Set field focus dismissal (merged #551; release/device QA unverified)
 
@@ -142,10 +142,14 @@ shape follows that same radius. The previous Set number used
 `TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
 numeric outlines. On the merged #551 baseline, Edit/PREVIOUS kept an
 unboxed blue Set number, unlike Create's filled badge. The owner-approved
-#564 follow-up in Draft PR #570 changes **only the Edit Set badge background**
-to the same Core `surfaceVariant` as Create; Edit retains its blue number
-and read-only PREVIOUS column. Both modes therefore show the same
-38dp filled, 14dp rounded Set type control in that unmerged UI slice.
+#564 follow-up in Draft PR #570 uses the same Core `surfaceVariant`
+filled Set badge in **both Create and Edit**. The preferred number/type
+foreground stays on its existing theme role where readable (including the
+Edit primary/blue number), but falls back to black or white when necessary
+to achieve at least **4.5:1 contrast** against the filled background. This
+applies to normal and W/F/D Set types, standard light/dark/Tio Dark and OS
+high-contrast variants. Edit retains its read-only PREVIOUS column. Both
+modes use the same 38dp filled, 14dp rounded Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
 
