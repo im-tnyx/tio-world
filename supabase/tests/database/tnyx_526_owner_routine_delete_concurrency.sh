@@ -9,8 +9,30 @@ program_id="d5261000-0000-4000-8000-000000000002"
 routine_id="d5261000-0000-4000-8000-000000000003"
 
 # Fail closed if mistakenly pointed at a hosted database.
-if [[ "$database_url" != *127.0.0.1* && "$database_url" != *localhost* ]]; then
-  echo "Refusing destructive SQL tests against a non-local database" >&2
+# Parse the actual URI host, not substrings in userinfo, query or names
+# such as localhost.example.com. Also restrict this fixture-destructive race
+# harness to its disposable GitHub CI environment; no hosted DB writes.
+if [[ "${GITHUB_ACTIONS:-}" != "true" ]] || ! python3 - "$database_url" <<'PY'
+import ipaddress
+import sys
+from urllib.parse import urlsplit
+
+try:
+    parsed = urlsplit(sys.argv[1])
+    host = parsed.hostname
+    if parsed.scheme not in ("postgres", "postgresql") or not host:
+        raise ValueError("not a PostgreSQL URI")
+    try:
+        allowed = ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        allowed = host == "localhost"
+except (ValueError, AttributeError):
+    allowed = False
+
+sys.exit(0 if allowed else 1)
+PY
+then
+  echo "Refusing Routine Delete fixture writes outside disposable loopback CI" >&2
   exit 1
 fi
 
