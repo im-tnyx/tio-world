@@ -290,6 +290,35 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('Routine options Edit opens full Name editor directly, not Rename sheet',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+        'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    const rid = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-popup-card-$rid')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-edit-$rid')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-name')), findsOneWidget);
+    expect(tester.widget<TioInput>(
+        find.byKey(const ValueKey('edit-routine-name'))).controller!.text,
+        'Synthetic Route Routine');
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+  });
+
   testWidgets('Routine preview clears private content on session loss',
       (tester) async {
     final (container, router) = await _app(
