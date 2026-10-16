@@ -87,6 +87,9 @@ final class RoutineEditorController extends ChangeNotifier {
   bool get exceedsSetLimit => _draft.any((entry) =>
       entry.sets.length > RoutineCompositionLimits.maxSetsPerExercise);
 
+  /// Name-only updates never rewrite or validate historical Set rows.
+  bool get updateExceedsSetLimit => _compositionDirty && exceedsSetLimit;
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
   String _baselineName = '';
