@@ -287,7 +287,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: TioFontSize.size16,
-                              fontWeight: TioFontWeight.w400,
+                              fontWeight: TioFontWeight.w500,
                               color: colors.textPrimary,
                             ),
                           ),
