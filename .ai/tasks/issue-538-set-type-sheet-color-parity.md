@@ -1,6 +1,6 @@
 # GitHub #538 — Routine Set Type bottom-sheet color parity
 
-**Status:** In review — Draft PR #574; source CI/review validated, docs-only final HEAD pending
+**Status:** In progress — Draft PR #574; owner-approved Rest button removal and selectable-option follow-up now require new exact-head CI/review.
 **Primary owner:** Workout feature presentation (this branch only)
 **Affected platforms:** Flutter Android/iOS phone Routine Create/Edit
 **GitHub:** #538; Draft PR #574; follow-up to merged PR #570
@@ -10,8 +10,8 @@
 
 **Trigger:** Product-visible UI change already owner-approved in 2026-10-16 conversation, with explicit `Go` after read-only audit.
 **Approved outcome:** Set Type selection bottom sheets display the *same* Normal/Warm Up/Failure/Drop semantic badge colors as Set rows for both Create and Edit.
-**In scope:** feature-owned reusable Set badge presentation; replace plain/missing leading indicators in both selection sheets; preserve contextual Normal numbering, existing selection check and accessibility, and add focused widget regression tests.
-**Explicit non-changes:** Set data model, UUID, controller behavior, save/update/auth, rep-range/rest/delete semantics, Core token contracts, shared domain, Supabase SQL/RPC/RLS/deploy, app routing, Watch, AI, exercise cards, other bottom sheets.
+**In scope:** feature-owned reusable Set badge presentation; replace plain/missing leading indicators with existing Core `TioSelectableCard` option rows in both selection sheets; preserve contextual Normal numbering, selection check and accessibility; remove Edit-only `Rest & set details` by explicit follow-up owner decision; add focused widget/integrity regressions.
+**Explicit non-changes:** Set data model, UUID, save/update/auth, rep-range/Delete semantics, *persisted* per-Set Rest data or replay, Core token contracts, shared domain, Supabase SQL/RPC/RLS/deploy, app routing, Watch, AI, exercise cards, other bottom sheets. Only the deprecated Rest editing entrypoint is intentionally removed, not the saved Rest values.
 
 ## Active Handoff
 
@@ -33,7 +33,7 @@
 
 Extract the identical existing 38dp Set badge rendering and contrast computation into a small Workout presentation widget consumed by the inline Set row and both Set Type sheet option leading slots. Render leading badges as `ExcludeSemantics` so ListTile labels remain the accessible names. Keep existing option keys, checkmarks, guards and result handling. A candidate Normal badge uses the count of Normal Sets before the selected Set plus one, matching the on-row numbering that would result from conversion.
 
-**Rejected:** independently duplicating semantic switch/contrast logic in Create and Edit, introducing new Core color tokens, or consolidating entire bottom sheets while Edit's extra advanced action differs.
+**Rejected:** independently duplicating semantic switch/contrast logic in Create and Edit, introducing new Core color tokens, implementing premature Rest Timer/Notes behavior, or altering the Set persistence contract.
 
 ## Owner screenshot refinement (2026-10-16)
 
@@ -52,7 +52,7 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 
 - [ ] Test bottom-sheet label and indicator for all four types, both Create/Edit and selected-state check.
 - [ ] Confirm 38dp shape/color/contrast and contextual Normal number in compact light/dark/high-contrast, and no unwanted row visual diff.
-- [ ] Preserve Set identity and on-type change, Remove Set and Edit advanced-details paths.
+- [ ] Preserve Set identity, on-type change and Remove Set; confirm the removed Edit-only advanced-details entrypoint is absent while existing `restSeconds` remains unchanged through inline editing and Update.
 - [x] Flutter/Dart Analyze + Flutter/Dart tests passed at source HEAD `18bc0ffa`; recheck exact final docs-only HEAD.
 - [x] Independent Codex source review at `18bc0ffa`: no major issues / 0 open threads.
 - [ ] Exact final HEAD review, parent ancestry/changed-file audit, physical-device owner QA before explicit `Go merge`.
