@@ -619,9 +619,16 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
           ),
           const SizedBox(width: TioSpacing.sm),
           if (widget.showPrevious) ...[
-            const SizedBox(
+            SizedBox(
               width: TioSize.dp64,
-              child: Text('–', textAlign: TextAlign.center),
+              child: Semantics(
+                label: 'Previous performed Set unavailable',
+                child: Text(
+                  '–',
+                  key: ValueKey('routine-set-previous-${widget.set.id}'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
             const SizedBox(width: TioSpacing.sm),
           ],
