@@ -393,14 +393,14 @@ void main() {
     expect(overflow, findsOneWidget);
     final overflowSemantics = tester.getSemantics(overflow);
     expect(overflowSemantics.label, contains('Routine options'));
-    expect(overflowSemantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(overflowSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     await tester.tap(overflow);
     await tester.pumpAndSettle();
     final edit = find.byKey(const ValueKey('routine-edit-$_routineId'));
     expect(edit, findsOneWidget);
     final editSemantics = tester.getSemantics(edit);
     expect(editSemantics.label, contains('Edit Routine'));
-    expect(editSemantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(editSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
         findsOneWidget);
   });
