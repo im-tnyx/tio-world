@@ -107,7 +107,7 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
           style: TextStyle(
             color: colors.textPrimary,
             fontSize: TioFontSize.size18,
-            fontWeight: TioFontWeight.w800,
+            fontWeight: TioFontWeight.w600,
           ),
         ),
         actions: [
