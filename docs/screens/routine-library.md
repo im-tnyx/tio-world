@@ -1,7 +1,7 @@
 # Program-owned Routines
 
 Document Status: Canonical Live Doc (merged W4A metadata + owner-scoped read-only Routine Detail; builder future)
-Last Verified: 2026-10-12
+Last Verified: 2026-10-16 (bounded current-state reconciliation; older subsections retain historical dates)
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for canonical user-owned Routine scope, merged W4A metadata UI, and the distinction between separately reviewed read-only Detail and the unimplemented composition builder. Runtime on merged main plus live PR/CI status determines which presentation is actually shipped.
 
@@ -10,7 +10,7 @@ Truth Boundary: Authoritative for canonical user-owned Routine scope, merged W4A
 **Primary owner:** `apps/features/workout`
 **Status (verified on protected `main`, 2026-10-12):** W4A [#521](https://github.com/im-tnyx/tio-world/issues/521) (closed) / [PR #522](https://github.com/im-tnyx/tio-world/pull/522) (merged at `12999565`) implements Program-owned Routine metadata list/create/rename through durable persistence. The ordered Exercise/set database foundation and feature composition adapter were merged via PR #511/#513. [PR #530](https://github.com/im-tnyx/tio-world/pull/530) subsequently **squash-merged into `main` at `0c2a6cd0`**, adding owner-scoped **read-only Routine Detail** from saved Routine cards using the nullable composition provider and Workout-owned read controller. This is verified repository implementation, **not** confirmation of a published phone app release. A visible Exercise picker, Exercise/Set composition editor, Workout Start and broader W4B acceptance remain gated.
 
-**Unmerged W4B1 implementation (Draft [PR #533](https://github.com/im-tnyx/tio-world/pull/533), GitHub #532):** A separate `EditRoutinePage` is now wired from the existing owner-verified, read-only Routine Detail through an `Edit Routine` app-bar action. It consumes the canonical Exercise picker, ordered entry/Set drafts, fixed Reps plus optional canonical kg load and Rest seconds, and the already-deployed revision/mutation-guarded composition RPC. Cancel does not write; confirmed Update returns to Detail and re-reads persisted owner-scoped content. The app shell requires matching authenticated/bootstrap identity and resolved Profile weight unit; account revocation invalidates the editor and dismisses any nested private Exercise picker or Set-input overlay so the prior account's draft cannot linger. The Routine card overflow Edit is **still Rename**. This code remains **Draft/unmerged**, exact-head CI and independent review must pass before it is treated as a delivered app capability. No Workout Start, schema or watch work is included.
+**Current Flutter runtime (verified GitHub `main@5aec6ef1`, 2026-10-16):** Consolidated W4 [PR #551](https://github.com/im-tnyx/tio-world/pull/551) is **merged**, including the existing owner-verified Create/Edit state adapters, canonical shared `RoutineComposerScreen`, real Exercise picker, revision-guarded Set composition Update and safe unknown-outcome flow. [PR #566](https://github.com/im-tnyx/tio-world/pull/566) then merged the selected-Program Library Add Routine entry. On this main snapshot, Create has top-right **Save**, Edit has bottom **Update**, Routine Detail has top-bar **Edit Routine**, and the Routine-card overflow `Edit` still opens metadata **Rename**. These differences motivate [GitHub #564](https://github.com/im-tnyx/tio-world/issues/564). Prior #532/#533 text below is historical implementation/planning evidence, not a currently open Draft or a mandate to retain two user-facing editors. A GitHub merge does not establish a published mobile app release.
 
 ## Purpose
 
@@ -101,10 +101,16 @@ preflight, auth/session revocation, eight-Set cap, and nullable target
 contracts remain in force. Exact-head CI and physical visual QA are pending.
 This is unmerged client behavior, not a shipped app capability.
 
-## One Create/Edit Routine screen on Draft #551 (2026-10-14)
+## One canonical Create/Edit Routine composer — merged #551
+
+Owner-approved #564 follow-up (UI-only bounded branch, **not yet on main**):
+- Put Create **Save** and Edit **Update** in the same top-right composer action slot. Keep distinct guarded persistence adapters and their existing confirmation/cancel semantics; do not add a bottom duplicate action.
+- On owner-verified read-only Detail, move the existing **Edit Routine** action from the top bar to the right of **Exercises** in that heading row; counts stay below. Preserve it for a historical ready-but-empty Routine and preserve its owner/session/weight-unit guard.
+- Owner also requires the same top editable Routine Name input in Edit (prefilled saved name) instead of static name, plus Routine-card 3-dot **Edit Routine** into that full editor. **Those features are separately gated** until a reviewed atomic name+composition Update is available; current metadata rename and composition RPC are distinct. Do not expose a false combined Update or an enabled Delete without its independently authorized lifecycle.
+
 
 Owner explicitly rejected separately maintained Create and Edit screen UI.
-The existing Draft #551 uses a **single `RoutineComposerScreen`,
+Merged #551 already uses a **single `RoutineComposerScreen`,
 `RoutineComposerContent` and `RoutineComposerExerciseCard`** for both
 routes, including the title bar, ordered Exercises, column headings, Set rows,
 the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
@@ -115,8 +121,7 @@ entrypoint state owners remain thin adapters for different auth/persistence,
 Custom preflight, unknown-write resolution and validation rules. This avoids
 duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
-is authorized. The implementation is Draft until exact-head Flutter CI,
-review and device screenshot QA pass.
+is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge.
 
 ## Numeric Set field focus dismissal (Draft #551; device QA pending)
 
