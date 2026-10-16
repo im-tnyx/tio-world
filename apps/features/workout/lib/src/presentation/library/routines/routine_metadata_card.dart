@@ -37,49 +37,48 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
     final openingProgramId = widget.routine.programId;
     _openingActions = true;
     try {
-      final selected = await showModalBottomSheet<_RoutineAction>(
+      // Match the canonical Select Set Type picker: one Core editor sheet
+      // owns its accessible drag handle, header, viewport and insets.
+      // The outlined option surfaces retain the exact Set Type dimensions.
+      final selected = await showTioEditorSheet<_RoutineAction>(
         context: context,
-        isScrollControlled: true,
-        backgroundColor: TioPalette.transparent,
-        builder: (sheetContext) => SafeArea(
-          top: false,
-          child: TioSheet(
-            key: ValueKey('routine-actions-sheet-${openingId.value}'),
-            title: widget.routine.name,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.onEdit != null) ...[
-                  _RoutineActionOption(
-                    key: ValueKey('routine-edit-${openingId.value}'),
-                    label: 'Edit Routine',
-                    icon: Icons.edit_outlined,
-                    onTap: () => Navigator.of(sheetContext)
-                        .pop(_RoutineAction.edit),
-                  ),
-                  const SizedBox(height: TioSpacing.sm),
-                ],
-                if (widget.onMove != null) ...[
-                  _RoutineActionOption(
-                    key: ValueKey('routine-move-${openingId.value}'),
-                    label: 'Move Routine',
-                    icon: Icons.swap_horiz_rounded,
-                    onTap: () => Navigator.of(sheetContext)
-                        .pop(_RoutineAction.move),
-                  ),
-                  const SizedBox(height: TioSpacing.sm),
-                ],
-                if (widget.onDelete != null)
-                  _RoutineActionOption(
-                    key: ValueKey('routine-delete-${openingId.value}'),
-                    label: 'Delete Routine',
-                    icon: Icons.delete_outline,
-                    destructive: true,
-                    onTap: () => Navigator.of(sheetContext)
-                        .pop(_RoutineAction.delete),
-                  ),
+        useSafeArea: true,
+        builder: (sheetContext) => TioEditorSheet(
+          key: ValueKey('routine-actions-sheet-${openingId.value}'),
+          title: widget.routine.name,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.onEdit != null) ...[
+                _RoutineActionOption(
+                  key: ValueKey('routine-edit-${openingId.value}'),
+                  label: 'Edit Routine',
+                  icon: Icons.edit_outlined,
+                  onTap: () => Navigator.of(sheetContext)
+                      .pop(_RoutineAction.edit),
+                ),
+                const SizedBox(height: TioSpacing.sm),
               ],
-            ),
+              if (widget.onMove != null) ...[
+                _RoutineActionOption(
+                  key: ValueKey('routine-move-${openingId.value}'),
+                  label: 'Move Routine',
+                  icon: Icons.swap_horiz_rounded,
+                  onTap: () => Navigator.of(sheetContext)
+                      .pop(_RoutineAction.move),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+              ],
+              if (widget.onDelete != null)
+                _RoutineActionOption(
+                  key: ValueKey('routine-delete-${openingId.value}'),
+                  label: 'Delete Routine',
+                  icon: Icons.delete_outline,
+                  destructive: true,
+                  onTap: () => Navigator.of(sheetContext)
+                      .pop(_RoutineAction.delete),
+                ),
+            ],
           ),
         ),
       );
