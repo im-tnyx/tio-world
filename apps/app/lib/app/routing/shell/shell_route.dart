@@ -727,6 +727,11 @@ List<RouteBase> _shellBranchChildRoutes(
             onRoutinePressed: compositions == null || routineRepository == null
                 ? null
                 : openRoutine,
+            onEditRoutine: !bound || !canCreateForSession ||
+                    routineRepository == null || compositions == null ||
+                    userExerciseRepository == null
+                ? null
+                : editRoutine,
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>

@@ -6,14 +6,16 @@ import '../../../domain/repositories/routine_repository.dart';
 import 'program_routines_controller.dart';
 import 'routine_metadata_card.dart';
 
-/// Read-only, owner-filtered Routine children under an expanded Library Program.
-/// Program Detail owns create/rename; Library never owns another Routine truth.
+/// Owner-filtered Routine children under an expanded Library Program.
+/// Actions reuse the same Routine card/sheet; the app shell provides any
+/// current owner-verified editor capability. No second Routine truth exists.
 class InlineProgramRoutines extends StatefulWidget {
   const InlineProgramRoutines({
     required this.program,
     required this.repository,
     required this.refreshVersion,
     this.onRoutinePressed,
+    this.onEditRoutine,
     this.onAddRoutine,
     this.onOpenProgram,
     this.disableAddRoutine = false,
@@ -25,6 +27,8 @@ class InlineProgramRoutines extends StatefulWidget {
   final RoutineRepository? repository;
   final int refreshVersion;
   final Future<void> Function(Routine routine)? onRoutinePressed;
+  /// Real canonical full editor, guarded by app shell identity/login cycle.
+  final Future<bool> Function(Routine routine)? onEditRoutine;
   /// Opens canonical Create for this exact Program; injected by app shell.
   final Future<void> Function()? onAddRoutine;
   /// Existing Program Detail exposes owner-scoped unknown-save verification.
@@ -170,6 +174,9 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                     onTap: widget.onRoutinePressed == null
                         ? null
                         : () { widget.onRoutinePressed!(routine); },
+                    onEdit: widget.onEditRoutine == null
+                        ? null
+                        : () { widget.onEditRoutine!(routine); },
                   ),
                 ),
             ],

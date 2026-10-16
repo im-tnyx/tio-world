@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_metadata_card.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_option.dart';
 import 'package:tio_shared/shared.dart';
 
 const _programId = '10000000-0000-4000-8000-000000000001';
@@ -172,7 +175,7 @@ void main() {
         findsNothing, reason: 'No Edit capability means no inert 3-dot action');
   });
 
-  testWidgets('Routine 3-dot keeps popup and launches full Edit callback',
+  testWidgets('Routine 3-dot opens Core bottom sheet and launches full Edit',
       (tester) async {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
@@ -186,41 +189,118 @@ void main() {
       onEditRoutine: (routine) async { edited = routine; return true; },
     );
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
-    final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
+    final sheet = find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
     expect(options, findsOneWidget);
     expect(find.byType(PopupMenuButton<String>), findsNothing);
 
     await tester.tap(options);
     await tester.pumpAndSettle();
 
-    expect(popup, findsOneWidget);
-    expect(find.descendant(of: popup, matching: find.byType(TioCard)),
+    expect(sheet, findsOneWidget);
+    // The canonical Set Type editor sheet owns the interactive handle.
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.byType(TioCard)),
         findsOneWidget);
+    expect(
+      tester.widget<TioCard>(find.descendant(
+        of: sheet,
+        matching: find.byType(TioCard),
+      )).variant,
+      TioCardVariant.outlined,
+    );
     expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
         findsOneWidget);
-    expect(find.text('Edit Routine'), findsOneWidget);
+    final actionHeight = tester
+        .getSize(find.byKey(const ValueKey('routine-edit-$_routineId'))).height;
+    expect(actionHeight, greaterThanOrEqualTo(TioSize.dp48));
+    expect(actionHeight, lessThanOrEqualTo(TioSize.dp60));
+    // Move and Delete must never appear without real owner-safe capabilities.
+    expect(find.byKey(const ValueKey('routine-move-$_routineId')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
     expect(find.text('Change Picture'), findsNothing);
-    expect(find.text('Delete'), findsNothing);
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
 
-    // Tapping outside the anchored card dismisses it without changing Routine.
-    await tester.tapAt(const Offset(16, 500));
+    // Tapping the modal barrier dismisses without changing this Routine.
+    await tester.tapAt(const Offset(16, 50));
     await tester.pumpAndSettle();
-    expect(popup, findsNothing);
+    expect(sheet, findsNothing);
     expect(repository.rows.single.name, 'Push');
+    expect(edited, isNull);
 
     await tester.tap(options);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('routine-edit-$_routineId')));
     await tester.pumpAndSettle();
 
-    expect(popup, findsNothing);
+    expect(sheet, findsNothing);
     expect(navigated, isNull);
     expect(edited?.id.value, _routineId);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
-  testWidgets('Routine popup stays anchored within narrow dark viewport',
+  testWidgets('Routine action outline matches Set Type option height exactly',
+      (tester) async {
+    final routine = Routine(
+      id: RoutineId(_routineId),
+      programId: _program.id,
+      name: 'Push',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Column(
+            children: [
+              RoutineSetTypeOption(
+                key: const ValueKey('reference-set-type-outline'),
+                type: RoutineSetType.normal,
+                normalNumber: 1,
+                selected: false,
+                onTap: () {},
+              ),
+              RoutineMetadataCard(
+                routine: routine,
+                onEdit: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final setType = find.byKey(
+      const ValueKey('reference-set-type-outline'),
+    );
+    final referenceHeight = tester.getSize(setType).height;
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+
+    final routineOption = find.byKey(
+      const ValueKey('routine-edit-$_routineId'),
+    );
+    final routineHeight = tester.getSize(routineOption).height;
+    // Both options use the same governed 38dp badge/icon area, padding and
+    // outlined border. Container borders contribute to rendered dimensions,
+    // so compare actual widget heights rather than assuming 38 + 8 + 8.
+    expect(referenceHeight, greaterThanOrEqualTo(
+      TioSize.dp38 + TioSpacing.sm * 2,
+    ));
+    expect(routineHeight, closeTo(referenceHeight, 0.01));
+    final outlined = find.descendant(
+      of: routineOption,
+      matching: find.byType(TioCard),
+    );
+    expect(outlined, findsOneWidget);
+    final card = tester.widget<TioCard>(outlined);
+    expect(card.variant, TioCardVariant.outlined);
+    expect(card.outlinedBorderWidth, TioCardTokens.borderThin);
+  });
+
+  testWidgets('Routine bottom sheet fits narrow dark viewport',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
@@ -235,17 +315,167 @@ void main() {
       mode: TioThemeMode.dark,
       onEditRoutine: (_) async => false,
     );
-    final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
-    await tester.tap(options);
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
     await tester.pumpAndSettle();
 
-    final popup = find.byKey(const ValueKey('routine-popup-card-$_routineId'));
-    final anchorRect = tester.getRect(options);
-    final popupRect = tester.getRect(popup);
-    expect(popupRect.right, lessThanOrEqualTo(320));
-    expect(popupRect.left, greaterThanOrEqualTo(0));
-    expect(popupRect.top, greaterThanOrEqualTo(anchorRect.bottom));
+    final sheet = find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
+    final rect = tester.getRect(sheet);
+    expect(rect.right, lessThanOrEqualTo(320));
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(640));
+    expect(find.text('Edit Routine'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Routine sheet dispatches only supplied Move/Delete actions',
+      (tester) async {
+    var editCalls = 0;
+    var moveCalls = 0;
+    var deleteCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: RoutineMetadataCard(
+            routine: Routine(
+              id: RoutineId(_routineId),
+              programId: _program.id,
+              name: 'Push',
+            ),
+            onEdit: () => editCalls++,
+            onMove: () => moveCalls++,
+            onDelete: () => deleteCalls++,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
+
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-$_routineId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-delete-$_routineId')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(moveCalls, 1);
+    expect(editCalls, 0);
+    expect(deleteCalls, 0);
+
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-delete-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, 1);
+    expect(editCalls, 0);
+    expect(moveCalls, 1);
+
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-edit-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(editCalls, 1);
+    expect(moveCalls, 1);
+    expect(deleteCalls, 1);
+  });
+
+  testWidgets('Routine action sheet revokes stale Edit callback after rebuild',
+      (tester) async {
+    final actionVersion = ValueNotifier<int>(0);
+    addTearDown(actionVersion.dispose);
+    var oldCalls = 0;
+    var newCalls = 0;
+    final routine = Routine(
+      id: RoutineId(_routineId),
+      programId: _program.id,
+      name: 'Push',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: ValueListenableBuilder<int>(
+            valueListenable: actionVersion,
+            builder: (context, version, _) => RoutineMetadataCard(
+              routine: routine,
+              onEdit: version == 1
+                  ? null
+                  : version == 0
+                      ? () => oldCalls++
+                      : () => newCalls++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    final action = find.byKey(const ValueKey('routine-edit-$_routineId'));
+
+    // The old modal is still open, but the parent revoked the action.
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    actionVersion.value = 1;
+    await tester.pump();
+    expect(action, findsOneWidget);
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(oldCalls, 0);
+    expect(newCalls, 0);
+    expect(button, findsNothing);
+
+    // Parent now supplies a different current capability while modal is open.
+    actionVersion.value = 0;
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    actionVersion.value = 2;
+    await tester.pump();
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(oldCalls, 0);
+    expect(newCalls, 1);
+  });
+
+  testWidgets('Routine overflow has one accessible tap action and label',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    try {
+    await _pump(
+      tester,
+      repository: _MemoryRoutines([
+        Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+      ]),
+      onEditRoutine: (_) async => false,
+    );
+    final overflow = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    expect(overflow, findsOneWidget);
+    final overflowSemantics = tester.getSemantics(overflow);
+    expect(overflowSemantics.label, contains('Routine options'));
+    expect(overflowSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    final edit = find.byKey(const ValueKey('routine-edit-$_routineId'));
+    expect(edit, findsOneWidget);
+    final editSemantics = tester.getSemantics(edit);
+    expect(editSemantics.label, contains('Edit Routine'));
+    expect(editSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
+        findsOneWidget);
+    } finally {
+      // WidgetTester verifies disposal before addTearDown callbacks run.
+      handle.dispose();
+    }
   });
 
   testWidgets('failed atomic Create retains empty Program without legacy write',

@@ -24,6 +24,7 @@ class ProgramsSurface extends StatefulWidget {
         onManagePressed = null,
         onProgramPressed = null,
         onRoutinePressed = null,
+        onEditRoutine = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
         routineRepository = null;
@@ -33,6 +34,7 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.onProgramPressed,
     this.onRoutinePressed,
+    this.onEditRoutine,
     this.onAddRoutinePressed,
     this.hasUnconfirmedCreate,
     this.routineRepository,
@@ -49,6 +51,7 @@ class ProgramsSurface extends StatefulWidget {
   /// Program-scoped uncertain save flag scoped by caller auth/login-cycle.
   final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<bool> Function(Program, Routine)? onEditRoutine;
   final RoutineRepository? routineRepository;
 
   @override
@@ -113,6 +116,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     await open(program);
     if (!mounted) return;
     setState(() => _routineRefreshVersion++);
+  }
+
+  Future<bool> _editLibraryRoutine(Program program, Routine routine) async {
+    final edit = widget.onEditRoutine;
+    if (edit == null || routine.programId != program.id) return false;
+    final saved = await edit(program, routine);
+    if (mounted && saved) setState(() => _routineRefreshVersion++);
+    return saved;
   }
 
   Future<void> _openAddRoutine(Program program) async {
@@ -381,6 +392,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
+          onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
           isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
@@ -411,6 +423,7 @@ class _ProgramsList extends StatefulWidget {
     required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
+    required this.onEditRoutine,
     required this.hasUnconfirmedCreate,
     required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
@@ -422,6 +435,7 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<bool> Function(Program, Routine)? onEditRoutine;
   final RoutineRepository? routineRepository;
   final bool Function(Program)? hasUnconfirmedCreate;
   final bool isLaunchingRoutine;
@@ -495,6 +509,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
+            onEditRoutine: widget.onEditRoutine == null
+                ? null
+                : (routine) => widget.onEditRoutine!(program, routine),
             onAddRoutine: widget.onAddRoutinePressed == null
                 ? null
                 : () => widget.onAddRoutinePressed!(program),

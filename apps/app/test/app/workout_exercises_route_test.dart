@@ -303,7 +303,7 @@ void main() {
     const rid = '30000000-0000-4000-8000-000000000001';
     await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-popup-card-$rid')),
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
         findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('routine-edit-$rid')));
     await tester.pumpAndSettle();
@@ -650,6 +650,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(LibraryPage), findsOneWidget);
     expect(find.byType(RoutineDetailPage), findsNothing);
+  });
+
+  testWidgets('expanded Library Routine overflow Edit opens canonical editor',
+      (tester) async {
+    final (_, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    final options = find.byKey(const ValueKey('routine-menu-$routineId'));
+    expect(options, findsOneWidget);
+
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$routineId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-$routineId')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('routine-delete-$routineId')),
+        findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('routine-edit-$routineId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditRoutinePage), findsOneWidget);
+    expect(find.byType(RoutineDetailPage), findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-name')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
   });
 
   testWidgets('no composition source never opens a fake Routine Detail',

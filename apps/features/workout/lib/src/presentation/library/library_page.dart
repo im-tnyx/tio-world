@@ -30,6 +30,7 @@ class LibraryPage extends StatefulWidget {
     this.hasUnconfirmedCreate,
     this.pendingCreateChanges,
     this.onRoutinePressed,
+    this.onEditRoutine,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
     required this.canCreateExercise,
@@ -48,6 +49,7 @@ class LibraryPage extends StatefulWidget {
   /// Rebuilds pending Program actions as uncertain writes settle.
   final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<bool> Function(Program, Routine)? onEditRoutine;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -89,6 +91,7 @@ class _LibraryPageState extends State<LibraryPage> {
         onAddRoutinePressed: widget.onAddRoutinePressed,
         hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
         onRoutinePressed: widget.onRoutinePressed,
+        onEditRoutine: widget.onEditRoutine,
       );
 
   @override

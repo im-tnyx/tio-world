@@ -4,6 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [#526/#564/#569 — Routine actions bottom sheet](issue-526-routine-actions-bottom-sheet.md) | In progress — UI-only branch; Edit wired, Move/Delete separate secure slices | Workout feature presentation | Replace Routine anchored popup with Core sheet, capability-gated three-action target; no fake options or DB changes |
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [GitHub #571 — Parallel Flutter CI](issue-571-parallel-flutter-ci.md) | Merged PR #573 (`main@42af17a6`); remaining performance follow-up is separately gated | Repository CI / GitHub Actions | 3 independent Flutter test shards, fail-closed package inventory, unchanged trusted guard and stable Analyze and test aggregate |

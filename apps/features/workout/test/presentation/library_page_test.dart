@@ -13,6 +13,7 @@ Future<void> _pump(
   Future<void> Function(Program)? onAddRoutinePressed,
   bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
+  Future<bool> Function(Program, Routine)? onEditRoutine,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
@@ -45,6 +46,7 @@ Future<void> _pump(
         onAddRoutinePressed: onAddRoutinePressed,
         hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
+        onEditRoutine: onEditRoutine,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -272,6 +274,44 @@ void main() {
     expect(selectedRoutine?.programId, _id(1));
     expect(selectedRoutine?.name, 'Push');
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+  });
+
+  testWidgets('expanded Library Routine shows the shared outlined Edit sheet',
+      (tester) async {
+    final repository = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    Program? editedProgram;
+    Routine? editedRoutine;
+    await _pump(
+      tester,
+      routineRepository: repository,
+      onEditRoutine: (program, routine) async {
+        editedProgram = program;
+        editedRoutine = routine;
+        repository.rows[0] = _routine(1, 101, 'Push Updated');
+        return true;
+      },
+    );
+    final id = _routine(1, 101, 'Push').id.value;
+    final options = find.byKey(ValueKey('routine-menu-$id'));
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    final sheet = find.byKey(ValueKey('routine-actions-sheet-$id'));
+    expect(sheet, findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    final outlined = find.descendant(
+        of: sheet, matching: find.byType(TioCard));
+    expect(outlined, findsOneWidget);
+    expect(tester.widget<TioCard>(outlined).variant, TioCardVariant.outlined);
+    expect(find.byKey(ValueKey('routine-move-$id')), findsNothing);
+    expect(find.byKey(ValueKey('routine-delete-$id')), findsNothing);
+    await tester.tap(find.byKey(ValueKey('routine-edit-$id')));
+    await tester.pumpAndSettle();
+    expect(editedProgram?.id, _id(1));
+    expect(editedRoutine?.id.value, id);
+    expect(find.text('Push Updated'), findsOneWidget);
+    expect(repository.queries.where((program) => program == _id(1)).length,
+        greaterThanOrEqualTo(2));
   });
 
   testWidgets('Program Detail return refreshes saved Library Routines',
