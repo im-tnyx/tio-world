@@ -69,6 +69,7 @@ void main() {
         pageKey: ValueKey('shared-composer'),
         cancelKey: ValueKey('shared-cancel'),
         cancelEnabled: true,
+        cancel: () {},
         submitKey: null,
         content: SizedBox.expand(),
       ),
