@@ -46,10 +46,12 @@ RoutineCompositionSnapshot _snapshot({
   List<RoutineCompositionEntry>? entries,
   int revision = 4,
   String? mutation,
+  String name = 'Push Day',
 }) => RoutineCompositionSnapshot(
       routineId: RoutineId(_r),
       revision: revision,
       lastMutationId: mutation,
+      name: name,
       entries: entries ?? [_entry()],
     );
 
@@ -139,6 +141,27 @@ const _thinPickerCardHeight = TioSize.dp38 +
     2 * TioCardTokens.borderThin;
 
 void main() {
+  testWidgets('Edit prefills Create-style Name field and saves one Name-only RPC',
+      (tester) async {
+    final fixture = _Fixtures();
+    await fixture.open(tester);
+    final name = find.byKey(const ValueKey('edit-routine-name'));
+    expect(name, findsOneWidget);
+    final field = tester.widget<TioInput>(name);
+    expect(field.controller!.text, 'Push Day');
+    expect(field.hint, 'Routine name');
+    expect(find.text('Update'), findsOneWidget);
+    await tester.enterText(name, 'Strength Push');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(fixture.editorResult, isTrue);
+    expect(fixture.compositions.aggregateCalls, 1);
+    expect(fixture.compositions.saveCount, 0);
+    expect(fixture.compositions.lastAggregate!.name, 'Strength Push');
+    expect(fixture.compositions.lastAggregate!.entries, isNull);
+  });
+
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
       (tester) async {
     final f = _Fixtures();
@@ -1157,11 +1180,13 @@ final class _Routines implements RoutineRepository {
       throw UnimplementedError();
 }
 
-final class _Compositions implements RoutineCompositionRepository {
+final class _Compositions implements RoutineCompositionRepository, RoutineAggregateUpdateRepository {
   _Compositions(this.snapshot);
   RoutineCompositionSnapshot? snapshot;
   int readCount = 0;
   int saveCount = 0;
+  int aggregateCalls = 0;
+  RoutineAggregateUpdate? lastAggregate;
   RoutineCompositionSave? lastSave;
   Object? error;
   Completer<void>? saveGate;
@@ -1170,6 +1195,21 @@ final class _Compositions implements RoutineCompositionRepository {
   Future<RoutineCompositionSnapshot?> read(RoutineId id) async {
     readCount++;
     return snapshot;
+  }
+
+  @override
+  Future<int> updateAggregate(RoutineAggregateUpdate command) async {
+    aggregateCalls++;
+    lastAggregate = command;
+    if (saveGate != null) await saveGate!.future;
+    if (error != null) throw error!;
+    snapshot = _snapshot(
+      entries: command.entries ?? snapshot!.entries,
+      revision: command.expectedRevision + 1,
+      mutation: command.mutationId,
+      name: command.savedName,
+    );
+    return command.expectedRevision + 1;
   }
 
   @override
