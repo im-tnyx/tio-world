@@ -113,31 +113,20 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
                 ),
               ),
             ),
-            if (isEdit)
-              // Keep the existing Edit Update action in its bottom bar.
-              // The same screen chassis does not own persistence policy.
+            // One action slot for both modes; distinct controllers still own
+            // the guarded Save/Update command, but the screen stays identical.
+            if (isEdit && widget.submitKey == null)
               const SizedBox(width: TioSize.dp64)
             else
               TextButton(
                 key: widget.submitKey,
                 onPressed: widget.onSubmit,
-                child: const Text('Save'),
+                child: Text(isEdit ? 'Update' : 'Save'),
               ),
           ],
         ),
       ),
       body: SafeArea(child: widget.content),
-      bottomNavigationBar: isEdit && widget.submitKey != null
-          ? SafeArea(
-              minimum: const EdgeInsets.all(TioSpacing.lg),
-              child: TioButton.primary(
-                key: widget.submitKey,
-                label: 'Update',
-                expand: true,
-                onPressed: widget.onSubmit,
-              ),
-            )
-          : null,
     );
   }
 }
