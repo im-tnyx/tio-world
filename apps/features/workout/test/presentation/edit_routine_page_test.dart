@@ -160,7 +160,8 @@ void main() {
       of: find.byKey(const ValueKey('edit-routine-type-warm_up')),
       matching: find.byIcon(Icons.check),
     ), findsOneWidget);
-    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    expect(find.text('Rest & set details'), findsNothing);
     expect(find.byKey(const ValueKey('edit-routine-type-remove')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
     await tester.pumpAndSettle();
@@ -656,37 +657,33 @@ void main() {
     expect(f.compositions.saveCount, 0);
   });
 
-  testWidgets('Advanced Set save refreshes inline Reps and Weight',
+  testWidgets('Set Type picker omits advanced details; inline edits preserve rest',
       (tester) async {
     final f = _Fixtures();
     await f.open(tester);
-    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
-    await tester.tap(badge);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byType(RoutineSetEditorSheet), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const ValueKey('routine-set-reps')), '14');
-    await tester.enterText(
-      find.byKey(const ValueKey('routine-set-weight')), '32.75');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    expect(find.text('Select Set Type'), findsOneWidget);
+    expect(find.text('Rest & set details'), findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-warm_up')));
     await tester.pumpAndSettle();
 
     final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
     final weight = find.byKey(const ValueKey('routine-set-weight-$_setId'));
-    expect(tester.widget<TioInput>(reps).controller!.text, '14');
-    expect(tester.widget<TioInput>(weight).controller!.text, '32.75');
     await tester.enterText(reps, '15');
+    await tester.enterText(weight, '32.75');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
+
     final saved = f.compositions.lastSave!.entries.single.sets.single;
     expect(saved.id, _setId);
+    expect(saved.prescription.setType, RoutineSetType.warmUp);
     expect(saved.prescription.reps, 15);
     expect(saved.prescription.loadKg, 32.75);
-    expect(saved.prescription.restSeconds, 60);
+    expect(saved.prescription.restSeconds, 60,
+        reason: 'Removing the legacy Rest UI must never clear saved rest');
   });
 
   testWidgets('valid new Edit Set Reps remain visible after rejected Update',
