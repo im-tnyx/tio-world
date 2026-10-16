@@ -22,10 +22,12 @@ RoutineCompositionSnapshot _snapshot({
   List<RoutineCompositionEntry> entries = const [],
   int revision = 4,
   String? mutationId,
+  String? name,
 }) => RoutineCompositionSnapshot(
   routineId: RoutineId(_r),
   revision: revision,
   lastMutationId: mutationId,
+  name: name ?? 'Day 1',
   entries: entries,
 );
 
@@ -689,6 +691,48 @@ void main() {
     expect(comp.lastSave!.entries.single.sets.single.prescription.reps, 11);
   });
 
+  test('Name-only Update uses one aggregate RPC and never rewrites Sets', () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    expect(ctrl.state.name, 'Day 1');
+    ctrl.rename('Push Day');
+    expect(ctrl.state.dirty, isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.atomicCount, 1);
+    expect(comp.saveCount, 0);
+    expect(comp.lastAggregate!.expectedName, 'Day 1');
+    expect(comp.lastAggregate!.name, 'Push Day');
+    expect(comp.lastAggregate!.entries, isNull);
+  });
+
+  test('combined Name+Sets Update uses one atomic mutation', () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp,
+        ids: [_newE, _newS, _m]);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    ctrl.rename('Pull Day');
+    expect(ctrl.removeExercise(_e), isTrue);
+    expect(await ctrl.update(), isTrue);
+    expect(comp.atomicCount, 1);
+    expect(comp.saveCount, 0);
+    expect(comp.lastAggregate!.entries, isEmpty);
+    expect(comp.lastAggregate!.name, 'Pull Day');
+  });
+
+  test('blank Name blocks Update without a mutation UUID or RPC', () async {
+    final comp = _Compositions(_snapshot(entries: [_entry()]));
+    final ctrl = _make(_Routines([_routine()]), comp, ids: []);
+    addTearDown(ctrl.dispose);
+    await ctrl.load();
+    ctrl.rename('   ');
+    expect(await ctrl.update(), isFalse);
+    expect(comp.atomicCount, 0);
+    expect(comp.saveCount, 0);
+  });
+
   test('old pending save cannot submit twice even with repeated Update', () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
     comp.saveGate = Completer<void>();
@@ -724,10 +768,12 @@ final class _Routines implements RoutineRepository {
       throw UnimplementedError();
 }
 
-final class _Compositions implements RoutineCompositionRepository {
+final class _Compositions implements RoutineCompositionRepository, RoutineAggregateUpdateRepository {
   _Compositions(this.snapshot);
   RoutineCompositionSnapshot? snapshot;
   int saveCount = 0;
+  int atomicCount = 0;
+  RoutineAggregateUpdate? lastAggregate;
   int readCount = 0;
   RoutineCompositionSave? lastSave;
   Object? saveError;
@@ -737,6 +783,15 @@ final class _Compositions implements RoutineCompositionRepository {
   Future<RoutineCompositionSnapshot?> read(RoutineId id) async {
     readCount++;
     return snapshot;
+  }
+
+  @override
+  Future<int> updateAggregate(RoutineAggregateUpdate command) async {
+    atomicCount++;
+    lastAggregate = command;
+    if (saveGate != null) await saveGate!.future;
+    if (saveError case final error?) throw error;
+    return command.expectedRevision + 1;
   }
 
   @override

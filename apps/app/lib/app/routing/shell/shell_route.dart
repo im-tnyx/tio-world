@@ -82,86 +82,35 @@ List<RouteBase> _shellBranchChildRoutes(
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
-          Future<void> openRoutine(Program program, Routine routine) async {
-            if (routineRepository == null ||
-                compositions == null ||
-                routine.programId != program.id) {
-              return;
+          /// One session-guarded full Routine editor shared by Detail and the
+          /// existing Routine-card options popup. Never use metadata Rename.
+          Future<bool> editRoutine(Program program, Routine ownedRoutine) async {
+            if (routineRepository == null || compositions == null ||
+                userExerciseRepository == null ||
+                ownedRoutine.programId != program.id) {
+              return false;
             }
-            await Navigator.of(context).push<void>(
-              MaterialPageRoute(
-                builder: (_) => Consumer(
-                  builder: (context, ref, _) {
-                    // The Supabase client instance survives auth transitions.
-                    // Key the preview by the canonical session user so a
-                    // sign-out/account switch disposes its private read state
-                    // immediately, even while catalog resolution is in flight.
-                    final session = ref
-                        .watch(appSessionBootstrapControllerProvider)
-                        .state;
-                    final ownerId = session is AppSessionBootstrapReady
-                        ? session.userId
-                        : null;
-                    // Riverpod may retain account A's previous Profile DTO
-                    // while reloading account B. Require both session identity
-                    // and a completed, error-free Profile reload before using
-                    // any account-owned display unit.
-                    final authAsync = ref.watch(authSessionStateProvider);
-                    final auth = authAsync.isLoading || authAsync.hasError
-                        ? null
-                        : authAsync.valueOrNull;
-                    final authUserId = auth is AuthSessionAuthenticated
-                        ? auth.session.userId
-                        : null;
-                    // Unlike userId, a sign-in cycle changes when the same
-                    // account authenticates anew. Never carry previous-cycle
-                    // Routine content or edits into the new session.
-                    final authCycleId = auth is AuthSessionAuthenticated
-                        ? auth.session.loginCycleId
-                        : null;
-                    final profileAsync = ref.watch(profileDataProvider);
-                    final weightUnit = ownerId != null &&
-                            authUserId == ownerId &&
-                            !profileAsync.isLoading &&
-                            !profileAsync.hasError
-                        ? profileAsync.valueOrNull?.unitPreferences.weightUnit
-                        : null;
-                    // A bootstrap user alone is insufficient: Auth must
-                    // resolve to the same current user before exposing an
-                    // owner-scoped Detail repository or an Edit capability.
-                    final verifiedOwner =
-                        ownerId != null && ownerId == authUserId;
-                    final mayEdit = verifiedOwner &&
-                        weightUnit != null &&
-                        userExerciseRepository != null;
-                    return RoutineDetailPage(
-                      key: ValueKey(
-                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
-                      ),
-                      program: program,
-                      routine: routine,
-                      routineRepository:
-                          verifiedOwner ? routineRepository : null,
-                      compositionRepository:
-                          verifiedOwner ? compositions : null,
-                      catalogRepository: catalog,
-                      userExerciseRepository:
-                          verifiedOwner ? userExerciseRepository : null,
-                      viewerMediaGender: verifiedOwner && weightUnit != null
-                          ? ref.watch(exerciseViewerMediaGenderProvider)
-                          : null,
-                      weightUnit: weightUnit,
-                      onEditPressed: !mayEdit
-                          ? null
-                          : (ownedRoutine) async {
-                              if (ownedRoutine.id != routine.id ||
-                                  ownedRoutine.programId != program.id) {
-                                return false;
-                              }
-                              final startingOwner = ownerId;
-                              final startingCycleId = authCycleId;
+            final openingSession =
+                ref.read(appSessionBootstrapControllerProvider).state;
+            final startingOwner = openingSession is AppSessionBootstrapReady
+                ? openingSession.userId : null;
+            final openingAuthAsync = ref.read(authSessionStateProvider);
+            final openingAuth = openingAuthAsync.isLoading ||
+                    openingAuthAsync.hasError
+                ? null : openingAuthAsync.valueOrNull;
+            final startingAuth = openingAuth is AuthSessionAuthenticated
+                ? openingAuth.session.userId : null;
+            final startingCycleId = openingAuth is AuthSessionAuthenticated
+                ? openingAuth.session.loginCycleId : null;
+            final openingProfile = ref.read(profileDataProvider);
+            if (startingOwner == null || startingOwner != startingAuth ||
+                startingCycleId == null || openingProfile.isLoading ||
+                openingProfile.hasError ||
+                openingProfile.valueOrNull?.unitPreferences.weightUnit == null) {
+              return false;
+            }
                               var revoked = false;
-                              return Navigator.of(context).push<bool>(
+                              final confirmed = await Navigator.of(context).push<bool>(
                                 MaterialPageRoute(
                                   builder: (_) => Consumer(
                                     builder: (context, ref, _) {
@@ -302,6 +251,86 @@ List<RouteBase> _shellBranchChildRoutes(
                                   ),
                                 ),
                               );
+            return confirmed ?? false;
+          }
+
+          Future<void> openRoutine(Program program, Routine routine) async {
+            if (routineRepository == null ||
+                compositions == null ||
+                routine.programId != program.id) {
+              return;
+            }
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => Consumer(
+                  builder: (context, ref, _) {
+                    // The Supabase client instance survives auth transitions.
+                    // Key the preview by the canonical session user so a
+                    // sign-out/account switch disposes its private read state
+                    // immediately, even while catalog resolution is in flight.
+                    final session = ref
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
+                    final ownerId = session is AppSessionBootstrapReady
+                        ? session.userId
+                        : null;
+                    // Riverpod may retain account A's previous Profile DTO
+                    // while reloading account B. Require both session identity
+                    // and a completed, error-free Profile reload before using
+                    // any account-owned display unit.
+                    final authAsync = ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading || authAsync.hasError
+                        ? null
+                        : authAsync.valueOrNull;
+                    final authUserId = auth is AuthSessionAuthenticated
+                        ? auth.session.userId
+                        : null;
+                    // Unlike userId, a sign-in cycle changes when the same
+                    // account authenticates anew. Never carry previous-cycle
+                    // Routine content or edits into the new session.
+                    final authCycleId = auth is AuthSessionAuthenticated
+                        ? auth.session.loginCycleId
+                        : null;
+                    final profileAsync = ref.watch(profileDataProvider);
+                    final weightUnit = ownerId != null &&
+                            authUserId == ownerId &&
+                            !profileAsync.isLoading &&
+                            !profileAsync.hasError
+                        ? profileAsync.valueOrNull?.unitPreferences.weightUnit
+                        : null;
+                    // A bootstrap user alone is insufficient: Auth must
+                    // resolve to the same current user before exposing an
+                    // owner-scoped Detail repository or an Edit capability.
+                    final verifiedOwner =
+                        ownerId != null && ownerId == authUserId;
+                    final mayEdit = verifiedOwner &&
+                        weightUnit != null &&
+                        userExerciseRepository != null;
+                    return RoutineDetailPage(
+                      key: ValueKey(
+                        'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
+                      ),
+                      program: program,
+                      routine: routine,
+                      routineRepository:
+                          verifiedOwner ? routineRepository : null,
+                      compositionRepository:
+                          verifiedOwner ? compositions : null,
+                      catalogRepository: catalog,
+                      userExerciseRepository:
+                          verifiedOwner ? userExerciseRepository : null,
+                      viewerMediaGender: verifiedOwner && weightUnit != null
+                          ? ref.watch(exerciseViewerMediaGenderProvider)
+                          : null,
+                      weightUnit: weightUnit,
+                      onEditPressed: !mayEdit
+                          ? null
+                          : (ownedRoutine) async {
+                              if (ownedRoutine.id != routine.id ||
+                                  ownedRoutine.programId != program.id) {
+                                return false;
+                              }
+                              return editRoutine(program, ownedRoutine);
                             },
                     );
                   },
@@ -620,6 +649,10 @@ List<RouteBase> _shellBranchChildRoutes(
                   onRoutinePressed: compositions == null
                       ? null
                       : (routine) => openRoutine(program, routine),
+                  onEditRoutine: compositions == null ||
+                          userExerciseRepository == null
+                      ? null
+                      : (routine) => editRoutine(program, routine),
                   hasUnconfirmedCreate: () =>
                       openingOwner != null && openingCycle != null &&
                       pendingGate.hasPending(

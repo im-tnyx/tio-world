@@ -19,6 +19,7 @@ Map<String, dynamic> _header([int revision = 0, String? token]) => {
       'user_id': _owner,
       'composition_revision': revision,
       'last_composition_mutation_id': token,
+      'name': 'Old Name',
     };
 Map<String, dynamic> _entry(int id, int position, {String? custom}) => {
       'id': _id(id),
@@ -611,6 +612,68 @@ void main() {
     }
   });
 
+  test('atomic Name-only lost response confirms only matched Name/token/revision', () async {
+    final gw = _Gateway()..header = _header(1);
+    gw.onAggregate = () async {
+      gw.header = _header(2, _mutation)..['name'] = 'New Name';
+      throw TimeoutException('lost response');
+    };
+    final command = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 1,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'New Name',
+    );
+    expect(await gw.repository.updateAggregate(command), 2);
+    expect(gw.aggregateCalls, 1);
+    expect(gw.saveCalls, 0);
+    expect(gw.aggregateArgs!['name'], 'New Name');
+    expect(gw.aggregateArgs!['exercises'], isNull);
+  });
+
+  test('atomic same token but differing committed Name cannot confirm', () async {
+    final gw = _Gateway()..header = _header(1);
+    gw.onAggregate = () async {
+      gw.header = _header(2, _mutation)..['name'] = 'Different';
+      throw TimeoutException('lost response');
+    };
+    await expectLater(
+      gw.repository.updateAggregate(RoutineAggregateUpdate(
+        routineId: _routine,
+        programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+        expectedRevision: 1,
+        expectedName: 'Old Name',
+        mutationId: _mutation,
+        name: 'New Name',
+      )),
+      throwsA(_failure(RoutineCompositionFailureKind.mutationConflict)),
+    );
+    expect(gw.aggregateCalls, 1);
+  });
+
+  test('atomic login switch after dispatch fails closed and never retries', () async {
+    final gw = _Gateway()..header = _header(1);
+    gw.onAggregate = () async {
+      gw.owner = _otherOwner;
+      return 2;
+    };
+    await expectLater(
+      gw.repository.updateAggregate(RoutineAggregateUpdate(
+        routineId: _routine,
+        programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+        expectedRevision: 1,
+        expectedName: 'Old Name',
+        mutationId: _mutation,
+        name: 'New Name',
+      )),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>().having(
+          (e) => e.reason, 'reason', RoutineCompositionSaveUncertainty.authChanged)),
+    );
+    expect(gw.aggregateCalls, 1);
+  });
+
   test('real deadline is bounded and does not send a second mutation',
       () async {
     final gateway = _Gateway()..onSave = () => Completer<Object?>().future;
@@ -621,13 +684,16 @@ void main() {
   });
 }
 
-final class _Gateway implements RoutineCompositionGateway {
+final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdateGateway {
   String? owner = _owner;
   Map<String, dynamic>? header = _header();
   List<Map<String, dynamic>> entries = [];
   List<Map<String, dynamic>> sets = [];
   int cap = 500;
   int headerCalls = 0, entryCalls = 0, setCalls = 0, saveCalls = 0;
+  int aggregateCalls = 0;
+  Map<String, dynamic>? aggregateArgs;
+  Future<Object?> Function()? onAggregate;
   int entryEmptyPages = 0, setEmptyPages = 0;
   final scopes = <String>[];
   void Function(int)? onHeader;
@@ -707,4 +773,27 @@ final class _Gateway implements RoutineCompositionGateway {
     };
     return onSave == null ? saveResult : await onSave!();
   }
+  @override
+  Future<Object?> updateAggregate({
+    required String routineId,
+    required String programId,
+    required int expectedRevision,
+    required String expectedName,
+    required String mutationId,
+    String? name,
+    List<Map<String, dynamic>>? exercises,
+  }) async {
+    aggregateCalls++;
+    aggregateArgs = {
+      'routineId': routineId,
+      'programId': programId,
+      'expectedRevision': expectedRevision,
+      'expectedName': expectedName,
+      'mutationId': mutationId,
+      'name': name,
+      'exercises': exercises,
+    };
+    return onAggregate == null ? 2 : await onAggregate!();
+  }
+
 }

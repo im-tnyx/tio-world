@@ -46,10 +46,12 @@ RoutineCompositionSnapshot _snapshot({
   List<RoutineCompositionEntry>? entries,
   int revision = 4,
   String? mutation,
+  String name = 'Push Day',
 }) => RoutineCompositionSnapshot(
       routineId: RoutineId(_r),
       revision: revision,
       lastMutationId: mutation,
+      name: name,
       entries: entries ?? [_entry()],
     );
 
@@ -139,6 +141,49 @@ const _thinPickerCardHeight = TioSize.dp38 +
     2 * TioCardTokens.borderThin;
 
 void main() {
+  testWidgets('Edit prefills Create-style Name field and saves one Name-only RPC',
+      (tester) async {
+    final fixture = _Fixtures();
+    await fixture.open(tester);
+    final name = find.byKey(const ValueKey('edit-routine-name'));
+    expect(name, findsOneWidget);
+    final field = tester.widget<TioInput>(name);
+    expect(field.controller!.text, 'Push Day');
+    expect(field.hint, 'Routine name');
+    expect(find.text('Update'), findsOneWidget);
+    await tester.enterText(name, 'Strength Push');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(fixture.editorResult, isTrue);
+    expect(fixture.compositions.aggregateCalls, 1);
+    expect(fixture.compositions.saveCount, 0);
+    expect(fixture.compositions.lastAggregate!.name, 'Strength Push');
+    expect(fixture.compositions.lastAggregate!.entries, isNull);
+  });
+
+  testWidgets('name-only save works even when Exercise catalog load fails',
+      (tester) async {
+    final fixture = _Fixtures();
+    fixture.catalog.fail = true;
+    await fixture.open(tester);
+    expect(find.byKey(const ValueKey('edit-routine-source-unavailable')),
+        findsOneWidget);
+    final field = find.byKey(const ValueKey('edit-routine-name'));
+    expect(field, findsOneWidget);
+    expect(tester.widget<TioInput>(field).enabled, isTrue);
+    await tester.enterText(field, 'Renamed Offline Catalog');
+    await tester.pumpAndSettle();
+    final update = find.byKey(const ValueKey('edit-routine-update'));
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(fixture.editorResult, isTrue);
+    expect(fixture.compositions.aggregateCalls, 1);
+    expect(fixture.compositions.lastAggregate!.entries, isNull);
+    expect(fixture.compositions.saveCount, 0);
+  });
+
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
       (tester) async {
     final f = _Fixtures();
@@ -335,7 +380,7 @@ void main() {
     ]);
   });
 
-  testWidgets('legacy 9 Set Routine shows actionable cap warning, no Update',
+  testWidgets('legacy 9 Sets warn but allow Name-only without Set rewrite',
       (tester) async {
     final f = _Fixtures();
     final historical = RoutineCompositionEntry(
@@ -353,11 +398,18 @@ void main() {
     await f.open(tester);
     expect(find.byKey(const ValueKey('edit-routine-too-many-sets')),
         findsOneWidget);
-    expect(find.textContaining('Remove extra Sets before Update'),
+    expect(find.textContaining('renaming alone is still available'),
         findsOneWidget);
     final update = find.byKey(const ValueKey('edit-routine-update'));
     expect(update, findsOneWidget);
-    expect(tester.widget<TextButton>(update).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
+    await tester.enterText(find.byKey(const ValueKey('edit-routine-name')),
+        'Rename Historical');
+    await tester.pumpAndSettle();
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(f.compositions.aggregateCalls, 1);
+    expect(f.compositions.lastAggregate!.entries, isNull);
     expect(f.compositions.saveCount, 0);
     expect(tester.takeException(), isNull);
   });
@@ -1129,8 +1181,11 @@ void main() {
 }
 
 final class _Catalog implements ExerciseCatalogRepository {
+  bool fail = false;
   @override
-  Future<ExerciseCatalog> load() async => ExerciseCatalog([
+  Future<ExerciseCatalog> load() async {
+    if (fail) throw StateError('Catalog unavailable for test');
+    return ExerciseCatalog([
     Exercise(
       ref: ExerciseRef.catalog(_exerciseRef),
       displayName: 'Bench Press',
@@ -1143,6 +1198,7 @@ final class _Catalog implements ExerciseCatalogRepository {
       exerciseType: ExerciseType.distanceDuration,
     ),
   ]);
+  }
 }
 
 final class _Routines implements RoutineRepository {
@@ -1157,11 +1213,13 @@ final class _Routines implements RoutineRepository {
       throw UnimplementedError();
 }
 
-final class _Compositions implements RoutineCompositionRepository {
+final class _Compositions implements RoutineCompositionRepository, RoutineAggregateUpdateRepository {
   _Compositions(this.snapshot);
   RoutineCompositionSnapshot? snapshot;
   int readCount = 0;
   int saveCount = 0;
+  int aggregateCalls = 0;
+  RoutineAggregateUpdate? lastAggregate;
   RoutineCompositionSave? lastSave;
   Object? error;
   Completer<void>? saveGate;
@@ -1170,6 +1228,21 @@ final class _Compositions implements RoutineCompositionRepository {
   Future<RoutineCompositionSnapshot?> read(RoutineId id) async {
     readCount++;
     return snapshot;
+  }
+
+  @override
+  Future<int> updateAggregate(RoutineAggregateUpdate command) async {
+    aggregateCalls++;
+    lastAggregate = command;
+    if (saveGate != null) await saveGate!.future;
+    if (error != null) throw error!;
+    snapshot = _snapshot(
+      entries: command.entries ?? snapshot!.entries,
+      revision: command.expectedRevision + 1,
+      mutation: command.mutationId,
+      name: command.savedName,
+    );
+    return command.expectedRevision + 1;
   }
 
   @override

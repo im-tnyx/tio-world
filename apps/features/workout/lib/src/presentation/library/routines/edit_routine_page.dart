@@ -19,7 +19,7 @@ import 'routine_set_type_option.dart';
 import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 
-/// Separate Program-owned Routine editor; Detail and Rename stay unchanged.
+/// Existing shared Routine composer in Edit mode; Name and Sets share Update.
 /// Returns true only after a confirmed save or read-verified mutation.
 class EditRoutinePage extends StatefulWidget {
   const EditRoutinePage({
@@ -58,6 +58,8 @@ class EditRoutinePage extends StatefulWidget {
 class _EditRoutinePageState extends State<EditRoutinePage> {
   RoutineEditorController? _editor;
   RoutineExercisePickerController? _source;
+  final TextEditingController _name = TextEditingController();
+  bool _nameHydrated = false;
   final Set<String> _invalidSetIds = {};
   final Set<String> _draftRangeEntryIds = {};
   final Set<String> _blankSetIds = {};
@@ -85,6 +87,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _bind() {
+    _nameHydrated = false;
+    _name.clear();
     _draftRangeEntryIds.clear();
     _invalidSetIds.clear();
     _blankSetIds.clear();
@@ -125,6 +129,11 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _changed() {
+    final state = _editor?.state;
+    if (!_nameHydrated && state?.status == RoutineEditorStatus.ready) {
+      _name.text = state!.name;
+      _nameHydrated = true;
+    }
     if (mounted) setState(() {});
   }
 
@@ -136,6 +145,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     _source
       ?..removeListener(_changed)
       ..dispose();
+    _name.dispose();
     super.dispose();
   }
 
@@ -151,6 +161,19 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         !editor.state.entries.any(
           (entry) => entry.exercise is UserCreatedExerciseRef,
         );
+  }
+
+  /// Name-only Update does not need the Exercise catalog/picker to load.
+  /// Any composition change retains its strict source, target and Set gates.
+  bool get _canUpdate {
+    final editor = _editor;
+    if (editor == null || !editor.state.canEdit ||
+        widget.weightUnit == null || !_nameHydrated ||
+        _name.text.trim().isEmpty || editor.updateExceedsSetLimit) {
+      return false;
+    }
+    if (!editor.compositionDirty) return true;
+    return _canEdit && _invalidSetIds.isEmpty && _rangeCanSave;
   }
 
   Future<void> _addExercise({RoutineCompositionEntry? replacing}) async {
@@ -391,6 +414,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   void _reload() {
+    _nameHydrated = false;
     _draftRangeEntryIds.clear();
     _invalidSetIds.clear();
     _blankSetIds.clear();
@@ -417,9 +441,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Future<void> _save() async {
     final editor = _editor;
-    if (!_canEdit || editor == null ||
-        editor.exceedsSetLimit ||
-        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+    if (editor == null || !_canUpdate) {
       return;
     }
     final confirmed = await editor.update();
@@ -470,11 +492,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                 widget.weightUnit != null
             ? const ValueKey('edit-routine-update')
             : null,
-        onSubmit: _canEdit &&
-                !(_editor?.exceedsSetLimit ?? true) &&
-                _invalidSetIds.isEmpty && _rangeCanSave
-            ? _save
-            : null,
+        onSubmit: _canUpdate ? _save : null,
         content: _body(),
       ),
     );
@@ -568,9 +586,16 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.routine.name,
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: TioSpacing.md),
+          // Reuse the exact Create Routine input and its governed geometry.
+          TioInput(
+            key: const ValueKey('edit-routine-name'),
+            controller: _name,
+            enabled: state.canEdit && widget.weightUnit != null,
+            hint: 'Routine name',
+            textCapitalization: TextCapitalization.words,
+            onChanged: (value) => _editor?.rename(value),
+          ),
+          const SizedBox(height: TioSpacing.xl),
           if (sourceStatus != RoutineExercisePickerStatus.ready)
             _Message(
               key: const ValueKey('edit-routine-source-unavailable'),
@@ -595,7 +620,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             const _Message(
               key: ValueKey('edit-routine-too-many-sets'),
               message: 'This Routine has more than 8 Sets in an Exercise. '
-                  'Remove extra Sets before Update.',
+                  'Reduce Sets before changing the composition; '
+                  'renaming alone is still available.',
             ),
           if (state.message != null)
             Padding(

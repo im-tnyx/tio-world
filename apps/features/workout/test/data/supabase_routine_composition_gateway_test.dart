@@ -60,7 +60,7 @@ void main() {
     expect(requests[0].url.queryParameters['user_id'], 'eq.$_owner');
     expect(requests[0].url.queryParameters['id'], 'eq.$_routine');
     expect(requests[0].url.queryParameters['select'],
-        'id,user_id,composition_revision,last_composition_mutation_id');
+        'id,user_id,name,composition_revision,last_composition_mutation_id');
     for (final request in requests.skip(1)) {
       expect(request.url.queryParameters['order'], 'id.asc.nullslast');
       expect(request.url.queryParameters['limit'], '37');
@@ -75,6 +75,41 @@ void main() {
         requests[2].url.queryParameters['select'],
         contains(
             'entry:user_workout_routine_exercises!user_workout_routine_sets_exercise_owner_fkey!inner(id,user_id,routine_id)'));
+  });
+
+  test('name-only uses single versioned authenticated RPC with NULL Exercises',
+      () async {
+    final requests = <http.Request>[];
+    final client = _client((request) async {
+      requests.add(request);
+      return _json(2);
+    });
+    final repository = SupabaseRoutineCompositionRepository(
+      gateway: SupabaseRoutineCompositionGateway(client),
+      currentUserId: () => _owner,
+    );
+    final command = RoutineAggregateUpdate(
+      routineId: RoutineId(_routine),
+      programId: ProgramId('44444444-4444-4444-4444-444444444444'),
+      expectedRevision: 1,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Updated Name',
+    );
+    expect(await repository.updateAggregate(command), 2);
+    expect(requests.length, 1);
+    expect(requests.single.method, 'POST');
+    expect(requests.single.url.path,
+        '/rest/v1/rpc/update_user_workout_routine_with_composition');
+    expect(jsonDecode(requests.single.body), {
+      'p_routine_id': _routine,
+      'p_program_id': '44444444-4444-4444-4444-444444444444',
+      'p_expected_revision': 1,
+      'p_expected_name': 'Old Name',
+      'p_client_mutation_id': _mutation,
+      'p_name': 'Updated Name',
+      'p_exercises': null,
+    });
   });
 
   test(

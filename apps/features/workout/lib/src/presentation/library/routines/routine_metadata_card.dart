@@ -4,7 +4,7 @@ import 'package:tio_shared/shared.dart';
 
 /// One canonical Routine rendered as a standalone Core card.
 ///
-/// Primary card navigation and the secondary Edit/rename popup are distinct.
+/// Primary card navigation and the existing Routine options popup are distinct.
 /// An expanded Library card may navigate without exposing owner-only edits.
 /// No second Routine source of truth exists.
 class RoutineMetadataCard extends StatelessWidget {
@@ -121,7 +121,6 @@ class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
                 vertical: TioSpacing.sm,
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.edit_outlined,
@@ -129,11 +128,15 @@ class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
                     color: colors.textPrimary,
                   ),
                   const SizedBox(width: TioSpacing.md),
-                  Text(
-                    'Edit',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: colors.textPrimary,
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Edit Routine',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: colors.textPrimary,
+                          ),
+                    ),
                   ),
                 ],
               ),

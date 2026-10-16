@@ -25,6 +25,7 @@ final class RoutineEditorState {
     required this.status,
     required List<RoutineCompositionEntry> entries,
     this.revision,
+    this.name = '',
     this.dirty = false,
     this.message,
   }) : entries = List.unmodifiable(entries);
@@ -32,6 +33,7 @@ final class RoutineEditorState {
   final RoutineEditorStatus status;
   final List<RoutineCompositionEntry> entries;
   final int? revision;
+  final String name;
   final bool dirty;
   final String? message;
 
@@ -85,13 +87,19 @@ final class RoutineEditorController extends ChangeNotifier {
   bool get exceedsSetLimit => _draft.any((entry) =>
       entry.sets.length > RoutineCompositionLimits.maxSetsPerExercise);
 
+  /// Name-only updates never rewrite or validate historical Set rows.
+  bool get updateExceedsSetLimit => _compositionDirty && exceedsSetLimit;
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
+  String _baselineName = '';
+  String _draftName = '';
   // Selected Custom definition per newly added/replaced entry. Historical
   // entries have no such snapshot: validate their stored target shape.
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
   int _revision = 0;
   RoutineCompositionSave? _uncertainCommand;
+  RoutineAggregateUpdate? _uncertainAggregateCommand;
   int _epoch = 0;
   bool _disposed = false;
 
@@ -144,16 +152,24 @@ final class RoutineEditorController extends ChangeNotifier {
         throw const FormatException('Composition identity mismatch.');
       }
 
+      // The authenticated adapter brackets this Name with the aggregate
+      // revision. Historical test mocks can fall back to the owner listing.
+      final ownerRoutine = ownerRoutines.singleWhere((item) => item.id == routine.id);
+      _baselineName = current.name ?? ownerRoutine.name;
+      _draftName = _baselineName;
       _baseline = current.entries;
       _draft = current.entries;
       _pickedCustomTypes.clear();
       _revision = current.revision;
       _uncertainCommand = null;
+      _uncertainAggregateCommand = null;
       _publish(_ready());
     } catch (_) {
       if (_disposed || epoch != _epoch) return;
       _baseline = const [];
       _draft = const [];
+      _baselineName = '';
+      _draftName = '';
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.loadFailed,
         entries: const [],
@@ -349,11 +365,26 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Saved Routine Name lives in the same controller draft as its Sets.
+  void rename(String value) {
+    if (!_state.canEdit) return;
+    _draftName = value;
+    _publish(_ready());
+  }
+
+  bool get compositionDirty => !listEquals(_baseline, _draft);
+  bool get _compositionDirty => compositionDirty;
+  bool get _nameDirty => _draftName.trim() != _baselineName;
+
   /// Return true only if no write was needed or the RPC confirmed it.
   /// Do not re-send an unknown mutation with a freshly generated token.
   Future<bool> update() async {
     if (!_state.canEdit || !_authorized) return false;
-    if (exceedsSetLimit) {
+    if (_draftName.trim().isEmpty) {
+      _publish(_ready(message: 'Enter a Routine name before Update.'));
+      return false;
+    }
+    if (_compositionDirty && exceedsSetLimit) {
       _publish(_ready(message: 'Reduce each Exercise to at most 8 Sets before Update.'));
       return false;
     }
@@ -368,7 +399,7 @@ final class RoutineEditorController extends ChangeNotifier {
     // Revalidate Custom refs against the owner's current ACTIVE + ARCHIVED
     // definitions. This is still only a preflight; the #534 Save RPC locks
     // rows atomically against an archive racing after this read.
-    final customRefs = _draft
+    final customRefs = (_compositionDirty ? _draft : const <RoutineCompositionEntry>[])
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
         .toSet();
@@ -464,13 +495,30 @@ final class RoutineEditorController extends ChangeNotifier {
     // Auth may change while Custom source preflight awaits. Route removal
     // runs on a Flutter frame, so disposal alone is not a write capability.
     if (!_authorized) return false;
-    final command = RoutineCompositionSave(
-      routineId: routine.id,
-      expectedRevision: _revision,
-      mutationId: _newUuid(),
-      entries: _draft,
-      expectedCustomTypes: expectedCustomTypes,
-    );
+    final compositionDirty = _compositionDirty;
+    final nameDirty = _nameDirty;
+    final mutationId = _newUuid();
+    final command = nameDirty
+        ? RoutineAggregateUpdate(
+            routineId: routine.id,
+            programId: program.id,
+            expectedRevision: _revision,
+            expectedName: _baselineName,
+            mutationId: mutationId,
+            name: _draftName.trim(),
+            entries: compositionDirty ? _draft : null,
+            expectedCustomTypes: expectedCustomTypes,
+          )
+        : null;
+    final compositionCommand = nameDirty
+        ? null
+        : RoutineCompositionSave(
+            routineId: routine.id,
+            expectedRevision: _revision,
+            mutationId: mutationId,
+            entries: _draft,
+            expectedCustomTypes: expectedCustomTypes,
+          );
     _publish(RoutineEditorState(
       status: RoutineEditorStatus.saving,
       entries: _draft,
@@ -478,10 +526,20 @@ final class RoutineEditorController extends ChangeNotifier {
       dirty: true,
     ));
     try {
-      final revision = await compositions.save(command);
-      if (_disposed) return false;
+      final revision = command == null
+          ? await compositions.save(compositionCommand!)
+          : await (() async {
+              final adapter = compositions;
+              if (adapter is! RoutineAggregateUpdateRepository) {
+                throw const RoutineCompositionException(
+                    RoutineCompositionFailureKind.unavailable);
+              }
+              return (adapter as RoutineAggregateUpdateRepository).updateAggregate(command);
+            })();
+      if (_disposed || !_authorized) return false;
       _revision = revision;
       _baseline = _draft;
+      _baselineName = _draftName.trim();
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
         entries: _draft,
@@ -490,7 +548,8 @@ final class RoutineEditorController extends ChangeNotifier {
       return true;
     } on RoutineCompositionSaveOutcomeUnknown {
       if (_disposed) return false;
-      _uncertainCommand = command;
+      _uncertainCommand = compositionCommand;
+      _uncertainAggregateCommand = command;
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.outcomeUnknown,
         entries: _draft,
@@ -534,7 +593,8 @@ final class RoutineEditorController extends ChangeNotifier {
     } catch (_) {
       if (_disposed) return false;
       // Unknown unexpected failures are not permission to retry automatically.
-      _uncertainCommand = command;
+      _uncertainCommand = compositionCommand;
+      _uncertainAggregateCommand = command;
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.outcomeUnknown,
         entries: _draft,
@@ -549,8 +609,9 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Read-only reconciliation after an ambiguous RPC; does NOT issue a write.
   Future<bool> reconcileUnknown() async {
     final command = _uncertainCommand;
+    final aggregate = _uncertainAggregateCommand;
     if (_disposed ||
-        command == null ||
+        (command == null && aggregate == null) ||
         _state.status != RoutineEditorStatus.outcomeUnknown) {
       return false;
     }
@@ -572,8 +633,13 @@ final class RoutineEditorController extends ChangeNotifier {
         ));
         return false;
       }
-      if (current.lastMutationId == command.mutationId) {
-        if (!current.hasSameContent(command)) {
+      final mutationId = aggregate?.mutationId ?? command!.mutationId;
+      final expectedRevision = aggregate?.expectedRevision ?? command!.expectedRevision;
+      if (current.lastMutationId == mutationId) {
+        final matches = aggregate != null
+            ? aggregate.matches(current)
+            : current.hasSameContent(command!);
+        if (!matches || current.revision != expectedRevision + 1) {
           _publish(RoutineEditorState(
             status: RoutineEditorStatus.revisionConflict,
             entries: _draft,
@@ -587,6 +653,9 @@ final class RoutineEditorController extends ChangeNotifier {
         _baseline = current.entries;
         _draft = current.entries;
         _uncertainCommand = null;
+        _uncertainAggregateCommand = null;
+        _baselineName = current.name ?? _baselineName;
+        _draftName = _baselineName;
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.saved,
           entries: _draft,
@@ -594,7 +663,7 @@ final class RoutineEditorController extends ChangeNotifier {
         ));
         return true;
       }
-      if (current.revision > command.expectedRevision) {
+      if (current.revision > expectedRevision) {
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.revisionConflict,
           entries: _draft,
@@ -625,7 +694,8 @@ final class RoutineEditorController extends ChangeNotifier {
     status: RoutineEditorStatus.ready,
     entries: _draft,
     revision: _revision,
-    dirty: !listEquals(_baseline, _draft),
+    name: _draftName,
+    dirty: _compositionDirty || _nameDirty,
     message: message,
   );
 

@@ -6,10 +6,10 @@ import 'package:tio_shared/shared.dart';
 import '../../domain/repositories/routine_composition_repository.dart';
 import 'supabase_routine_composition_gateway.dart';
 
-typedef _Header = ({int revision, String? mutationId});
+typedef _Header = ({int revision, String? mutationId, String? name});
 
 final class SupabaseRoutineCompositionRepository
-    implements RoutineCompositionRepository {
+    implements RoutineCompositionRepository, RoutineAggregateUpdateRepository {
   SupabaseRoutineCompositionRepository({
     required RoutineCompositionGateway gateway,
     required String? Function() currentUserId,
@@ -136,6 +136,82 @@ final class SupabaseRoutineCompositionRepository
     return _reconcile(command, owner);
   }
 
+  /// One frozen versioned server-side transaction. Never fall back to
+  /// two separate Flutter writes (metadata Rename + composition Save).
+  @override
+  Future<int> updateAggregate(RoutineAggregateUpdate command) async {
+    final owner = _owner();
+    final gateway = _gateway;
+    if (gateway is! RoutineAggregateUpdateGateway) {
+      throw const RoutineCompositionException(
+          RoutineCompositionFailureKind.unavailable);
+    }
+    Object? result;
+    try {
+      _checkOwner(owner);
+      final exercises = command.entries == null
+          ? null
+          : payload(RoutineCompositionSave(
+              routineId: command.routineId,
+              expectedRevision: command.expectedRevision,
+              mutationId: command.mutationId,
+              entries: command.entries!,
+              expectedCustomTypes: command.expectedCustomTypes,
+            ));
+      result = await (gateway as RoutineAggregateUpdateGateway).updateAggregate(
+        routineId: command.routineId.value,
+        programId: command.programId.value,
+        expectedRevision: command.expectedRevision,
+        expectedName: command.expectedName,
+        mutationId: command.mutationId,
+        name: command.name,
+        exercises: exercises,
+      ).timeout(_requestTimeout);
+    } on PostgrestException catch (error) {
+      if (!_sameOwner(owner) || _ambiguous(error)) {
+        return _reconcileAggregate(command, owner);
+      }
+      throw _rpcFailure(error);
+    } on RoutineCompositionException {
+      rethrow;
+    } catch (_) {
+      return _reconcileAggregate(command, owner);
+    }
+    if (!_sameOwner(owner)) throw _authOutcomeUnknown;
+    if (result is int && result > 0) return result;
+    return _reconcileAggregate(command, owner);
+  }
+
+  Future<int> _reconcileAggregate(
+      RoutineAggregateUpdate command, String owner) async {
+    if (!_sameOwner(owner)) throw _authOutcomeUnknown;
+    RoutineCompositionSnapshot? current;
+    try {
+      current = await _read(command.routineId, owner);
+    } catch (_) {
+      if (!_sameOwner(owner)) throw _authOutcomeUnknown;
+      throw const RoutineCompositionSaveOutcomeUnknown();
+    }
+    if (!_sameOwner(owner)) throw _authOutcomeUnknown;
+    if (current?.lastMutationId == command.mutationId) {
+      if (!command.matches(current!)) {
+        throw const RoutineCompositionException(
+            RoutineCompositionFailureKind.mutationConflict);
+      }
+      if (current.revision == command.expectedRevision + 1) {
+        return current.revision;
+      }
+    }
+    throw RoutineCompositionSaveOutcomeUnknown(
+      observedRevision: current?.revision,
+      reason: current != null &&
+              current.revision > command.expectedRevision &&
+              current.lastMutationId != command.mutationId
+          ? RoutineCompositionSaveUncertainty.superseded
+          : RoutineCompositionSaveUncertainty.unconfirmed,
+    );
+  }
+
   Future<int> _reconcile(RoutineCompositionSave command, String owner) async {
     if (!_sameOwner(owner)) throw _authOutcomeUnknown;
     RoutineCompositionSnapshot? current;
@@ -225,7 +301,14 @@ final class SupabaseRoutineCompositionRepository
       revision: revision,
       mutationId: row['last_composition_mutation_id'] == null
           ? null
-          : _uuid(row['last_composition_mutation_id'])
+          : _uuid(row['last_composition_mutation_id']),
+      // Legacy test fakes may omit name; a new name-aware operation must
+      // require it for both exact post-write verification and CAS.
+      name: row['name'] == null
+          ? null
+          : row['name'] is String && (row['name'] as String).trim().isNotEmpty
+              ? row['name'] as String
+              : throw _malformed,
     );
   }
 
@@ -270,6 +353,7 @@ final class SupabaseRoutineCompositionRepository
         routineId: routine,
         revision: header.revision,
         lastMutationId: header.mutationId,
+        name: header.name,
         entries: entries.map((row) {
           if (!row.containsKey('catalog_exercise_id') ||
               !row.containsKey('user_exercise_id')) {
@@ -426,10 +510,16 @@ final class SupabaseRoutineCompositionRepository
       'PGRST303' =>
         RoutineCompositionFailureKind.unauthorized,
       '42501' || '403' => RoutineCompositionFailureKind.forbidden,
+      'P0002' when error.message == 'routine_update_not_found' =>
+        RoutineCompositionFailureKind.notFound,
       'P0002' when error.message == 'routine_composition_not_found' =>
         RoutineCompositionFailureKind.notFound,
       'P0002' when error.message == 'routine_composition_exercise_not_found' =>
         RoutineCompositionFailureKind.exerciseUnavailable,
+      'P0001' when error.message == 'routine_update_revision_conflict' =>
+        RoutineCompositionFailureKind.revisionConflict,
+      'P0001' when error.message == 'routine_update_mutation_conflict' =>
+        RoutineCompositionFailureKind.mutationConflict,
       'P0001' when error.message == 'routine_composition_revision_conflict' =>
         RoutineCompositionFailureKind.revisionConflict,
       'P0001' when error.message == 'routine_composition_mutation_conflict' =>
