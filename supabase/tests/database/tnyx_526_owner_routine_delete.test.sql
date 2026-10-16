@@ -169,6 +169,21 @@ select pg_temp.assert_true(
    where id='d5260000-0000-4000-8000-000000000051'),
   'confirmed permanent Delete atomically cascades only saved composition'
 );
+-- Account A's RLS must NOT reveal B's Program/Routine. Check the
+-- authenticated owner-visible subset first; inspect the B retention as the
+-- disposable database test administrator, not by widening product RLS.
+select pg_temp.assert_true(
+  (select count(*)=2 from public.user_workout_programs
+   where id in ('d5260000-0000-4000-8000-000000000011',
+                'd5260000-0000-4000-8000-000000000012',
+                'd5260000-0000-4000-8000-000000000013'))
+  and (select count(*)=2 from public.user_workout_routines
+   where id in ('d5260000-0000-4000-8000-000000000022',
+                'd5260000-0000-4000-8000-000000000023',
+                'd5260000-0000-4000-8000-000000000024')),
+  'RLS shows only the two own Programs and two preserved own Routines'
+);
+reset role;
 select pg_temp.assert_true(
   (select count(*)=3 from public.user_workout_programs
    where id in ('d5260000-0000-4000-8000-000000000011',
@@ -178,8 +193,9 @@ select pg_temp.assert_true(
    where id in ('d5260000-0000-4000-8000-000000000022',
                 'd5260000-0000-4000-8000-000000000023',
                 'd5260000-0000-4000-8000-000000000024')),
-  'delete preserves every Program and unrelated own/other-user Routines'
+  'disposable DB administrator verifies all Programs and other-user Routine retained'
 );
+set local role authenticated;
 select pg_temp.expect_state(
   $$select public.delete_user_workout_routine(
     'd5260000-0000-4000-8000-000000000021',
