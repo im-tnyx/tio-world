@@ -336,6 +336,77 @@ void main() {
     });
   }
 
+  for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+    testWidgets('PREVIOUS visibility does not recolor Create or Edit Set badge '
+        'in ${mode.name}', (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const id = '55555555-5555-4555-8555-555555555555';
+
+      Future<Color> pumpRow({
+        required bool showPrevious,
+        required bool editColor,
+      }) async {
+        await tester.pumpWidget(MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: TioThemeConfig(mode: mode),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: RoutineSetInputRow(
+              set: RoutineCompositionSet(
+                id: id,
+                prescription: SetPrescription(reps: 8),
+              ),
+              index: 0,
+              normalNumber: 1,
+              onTypePressed: () {},
+              unit: WeightUnit.kg,
+              enabled: true,
+              showPrevious: showPrevious,
+              useEditSetNumberColor: editColor,
+              isOpen: false,
+              onOpenChanged: (_) {},
+              onChanged: (_) {},
+              onValidityChanged: (_) {},
+              onRemove: () {},
+            ),
+          ),
+        ));
+        final box = find.byKey(const ValueKey('routine-set-type-box-$id'));
+        final number = find.descendant(of: box, matching: find.text('1'));
+        expect(number, findsOneWidget);
+        final previous = find.byKey(const ValueKey('routine-set-previous-$id'));
+        expect(previous, showPrevious ? findsOneWidget : findsNothing);
+        expect(tester.takeException(), isNull);
+        return tester.widget<Text>(number).style!.color!;
+      }
+
+      final originalCreate = await pumpRow(
+        showPrevious: false,
+        editColor: false,
+      );
+      final sharedCreate = await pumpRow(
+        showPrevious: true,
+        editColor: false,
+      );
+      expect(sharedCreate, originalCreate,
+          reason: 'Adding PREVIOUS must not silently recolor Create SET');
+      final editWithHistory = await pumpRow(
+        showPrevious: true,
+        editColor: true,
+      );
+      final editWithoutHistory = await pumpRow(
+        showPrevious: false,
+        editColor: true,
+      );
+      expect(editWithoutHistory, editWithHistory,
+          reason: 'Edit foreground must survive a future history toggle');
+    });
+  }
+
   // All Set types share this 38dp filled badge in Create and Edit.
   // High-contrast mode reverses surface brightness and cannot reuse a fixed
   // semantic foreground safely.
