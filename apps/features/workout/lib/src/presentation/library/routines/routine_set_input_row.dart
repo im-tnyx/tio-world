@@ -8,6 +8,20 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import 'routine_set_input_limits.dart';
 
+// Preserve the Set-type semantic color when readable. High-contrast theme
+// surfaces invert light/dark values, so a fixed foreground is not safe.
+Color _readableSetBadgeColor(Color preferred, Color background) {
+  final foregroundLuminance = preferred.computeLuminance();
+  final backgroundLuminance = background.computeLuminance();
+  final contrast = foregroundLuminance > backgroundLuminance
+      ? (foregroundLuminance + 0.05) / (backgroundLuminance + 0.05)
+      : (backgroundLuminance + 0.05) / (foregroundLuminance + 0.05);
+  if (contrast >= 4.5) return preferred;
+
+  // Black/white selection guarantees >=4.5:1 for opaque surfaces.
+  return backgroundLuminance > 0.179 ? TioPalette.black : TioPalette.white;
+}
+
 /// Compact inline prescription editor for one identified Routine Set.
 ///
 /// Reusable within the Workout feature's Create/Editor surfaces. It delegates
@@ -547,6 +561,13 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   Widget _fields(BuildContext context) {
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
+    final preferredSetColor = switch (widget.set.prescription.setType) {
+      RoutineSetType.normal =>
+        widget.showPrevious ? colors.primary : colors.textPrimary,
+      RoutineSetType.warmUp => colors.warning,
+      RoutineSetType.failure => colors.danger,
+      RoutineSetType.drop => colors.info,
+    };
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: Row(
@@ -573,7 +594,7 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                     decoration: BoxDecoration(
                       // Keep the same Core-themed 38dp filled Set badge
                       // in Create and Edit. PREVIOUS is a separate column;
-                      // Edit keeps its existing blue number styling.
+                      // Edit retains blue where its contrast is accessible.
                       color: colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(TioInputTokens.radius),
                     ),
@@ -585,14 +606,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                         RoutineSetType.drop => 'D',
                       },
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: switch (widget.set.prescription.setType) {
-                          RoutineSetType.normal => widget.showPrevious
-                              ? colors.primary
-                              : colors.textPrimary,
-                          RoutineSetType.warmUp => colors.warning,
-                          RoutineSetType.failure => colors.danger,
-                          RoutineSetType.drop => colors.info,
-                        },
+                        color: _readableSetBadgeColor(
+                          preferredSetColor,
+                          colors.surfaceVariant,
+                        ),
                       ),
                     ),
                   ),
