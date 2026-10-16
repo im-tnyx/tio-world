@@ -1,6 +1,6 @@
 # Pre-P9 — Workout canonical status reconciliation
 
-**Status:** In progress
+**Status:** In review — PR #582 opened; independent review and applicable checks pending
 **Primary owner:** Repository documentation governance / `docs/screens/`
 **Affected platforms:** Phone Workout canonical documentation only; no Flutter, watch or backend behavior change
 
@@ -15,14 +15,14 @@
 - **Planning owner:** Repository documentation governance, GitHub #250 / Linear TNYX-193.
 - **Implementation owner:** This GitHub-connected session on `docs/pre-p9-workout-canonical-status`; docs/AI handoff paths only. Workout runtime work has separate owners and is untouched.
 - **Review owner:** Independent exact-head docs/source review and Codex if available.
-- **Implementation ownership state:** Handoff pending — implementation changes prepared, awaiting independent exact-head review; do not merge.
+- **Implementation ownership state:** Handoff pending — docs-only implementation proposed in Draft PR #582; external exact-head review pending, do not merge.
 - **Repository state last verified:** GitHub remote `main@633dbf38bb12aeb4a0e2920a22d63c904e087576` after merged PR #581. No open PRs at the initial reconciliation checkpoint; branch created from this immutable base SHA.
 - **Observed uncommitted/dirty files:** Windows `G:\projects\Tio-World` worktree is unavailable to this GitHub connector; no local cleanliness or `git status` assertion. GitHub API changed only this isolated branch.
-- **Validation completed at SHA:** Preliminary docs patch through `fc55f97f28f9180619a391f8df4e521083790c88` was compared with base `633dbf38`: 8 expected files only, merge-base equals base, 0 behind; all eight fetched Markdown files had zero trailing-whitespace lines, zero conflict markers and terminal newline. The execution brief/index update itself still needs an exact-final-head recheck.
-- **Validation remaining:** Recompare after final task/index commits, inspect PR patch and changed-link integrity, obtain independent review/Codex if available and required GitHub checks. No local `git diff --check`, full Flutter suite, Supabase query or physical device QA was run in this connector session.
+- **Validation completed at SHA:** Draft PR #582 initial exact head `5f46ad4d26545398ce87f2d6c3f7674b4c31999d` was verified against `main@633dbf38`: 14 ahead / 0 behind; merge-base matches base; eight expected Markdown files. Full PR patches show zero trailing whitespace on added lines, no changed executable paths, all changed relative Markdown links resolve; all eight fetched files have terminal newline and zero conflict markers. The current handoff-only checkpoint commit must be rechecked as a new HEAD before review.
+- **Validation remaining:** Recompare and re-review exact final HEAD after this handoff, request independent reviewer and inspect applicable GitHub checks. At the initial Draft head, GitHub published zero workflow runs, commit statuses, reviews and inline threads; do not treat absence of checks as success. Local `git diff --check`, Flutter suite, Supabase query and device QA were not run in this connector session.
 - **Open review finding IDs:** None at branch creation.
 - **Current blocker:** None for narrowly scoped factual doc edits; PR review/required checks and owner merge authorization later.
-- **Next exact action:** Open Draft PR from this reviewed docs-only branch, re-verify final exact head, request independent review and stop before owner `Go merge`.
+- **Next exact action:** Advance open Draft PR #582 to review when final-head source/diff audit is clean; request qualified independent review, observe required checks and handle actionable findings. Stop before separate owner `Go merge`.
 
 ## 1. Discovery
 
@@ -54,12 +54,12 @@ Rejected alternative: create a new P9 routing map or flatten old W4 history into
 
 ## 6. Quality Review
 
-**Validation run:** GitHub API scope comparison before handoff update showed exactly six `docs/screens/` specs and two `.ai/tasks/` files (8 total), 0 behind and no changed runtime/SQL/CI/lockfile paths. Full-file Markdown hygiene scan of those eight files found no trailing whitespace, conflict markers or missing terminal newlines. Added relative task-index link targets the newly committed focused brief. Final-head patch/review/CI still pending. Flutter/Supabase runtime tests are not applicable to docs-only changes.
-**Review findings and resolution:** Pending.
+**Validation run:** GitHub API comparison and full PR patch audit at initial Draft head `5f46ad4d` showed exactly six `docs/screens/` docs and two `.ai/tasks/` files, 14 ahead / 0 behind, no runtime/SQL/CI/lockfile changes, zero added trailing whitespace and six changed relative links resolving to existing files. All eight fetched Markdown files had no conflict markers or missing terminal newlines. Self-check found no confirmed blocking defect in the bounded docs patch; this is **not an independent approval**. No workflow runs, statuses or reviewer responses had appeared when checked. Final-head review/CI still pending.
+**Review findings and resolution:** No definite content/scope blocker identified by implementation-owner manual inspection; independent review remains pending, with zero published threads at initial Draft head.
 
 ## 7. Final Handoff
 
-**Changed files:** Planned six `docs/screens/` specs plus this brief and `.ai/tasks/README.md`.
+**Changed files:** Six `docs/screens/` specs, this brief and `.ai/tasks/README.md` (eight Markdown paths total).
 **Actual behavior:** No application behavior changes; current-state documentation only.
 **Known limitations:** No local Windows checkout or device QA, no fresh live Supabase schema query; separate schema-inventory correction and P9 determination remain open.
-**Final status:** READY FOR DRAFT REVIEW, not validated or merged.
+**Final status:** REVIEW GATE — PR #582 opened, not independently approved, not merged.
