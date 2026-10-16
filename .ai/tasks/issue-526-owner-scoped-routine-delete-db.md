@@ -15,7 +15,8 @@
 ## Active Handoff
 
 - **Planning:** GitHub #526 + #564; Move explicitly #569; Linear TNYX-81 (Backlog/blocked by TNYX-78 and TNYX-80). Source-of-truth ADR-0015; canonical `docs/screens/routine-library.md` is partly stale (calls merged/deployed #577 Draft and atomic #576 pending).
-- **Implementation owner:** This GitHub-connected backend-only session; `security/issue-526-owner-scoped-routine-delete-db`.
+- **Implementation owner:** Receiving GitHub-connected implementation session for the same owner-approved #526 DB-only scope, 2026-10-16. Previous GitHub-connected implementation session → receiving session; remote branch `security/issue-526-owner-scoped-routine-delete-db` at `11d4a6a2a98c93d414f0cfa6696d50c38cb4c20a` verified before takeover. No observed new source commits after Codex P1 at this checkpoint. Source remains single-owner; do not run concurrent agents against this branch.
+- **Takeover caveat:** The remote branch contains committed work only, but the Windows `G:\projects\Tio-World` worktree and its local dirty/untracked state are inaccessible here; no local checkout, sync or cleanup is claimed. Remote branch/current PR review/source was re-audited. The latest P1 about effective libpq host override is OPEN; all subsequent edits are confined to the already approved destructive *test harness / CI safety* remediation. Merge and hosted deployment still forbidden.
 - **Parent:** `main@2fad164981ff4ab41cd3d493a5f3f2213d0c6af7`; zero open PRs verified at task start.
 - **Observed working tree:** GitHub remote branch. Windows `G:\projects\Tio-World` checkout **not inspected**, so cannot claim local clean or synced after #577.
 - **Review owner:** Independent review requested at exact source head after CI; Codex quota may be a blocker.
