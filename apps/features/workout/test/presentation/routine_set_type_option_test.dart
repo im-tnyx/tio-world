@@ -161,8 +161,6 @@ void main() {
         ),
       ),
     ));
-    expect(tester.getSize(find.byType(TioCard)),
-        greaterThanOrEqualTo(const Size(0, 0)));
     expect(tester.getSize(find.byType(TioCard)).height,
         greaterThanOrEqualTo(TioSize.dp54));
     expect(tester.takeException(), isNull);
