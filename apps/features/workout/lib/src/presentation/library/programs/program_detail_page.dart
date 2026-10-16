@@ -15,6 +15,7 @@ class ProgramDetailPage extends StatefulWidget {
     super.key,
     this.newRoutineUuid,
     this.onRoutinePressed,
+    this.onEditRoutine,
     this.onCreateRoutine,
     this.hasUnconfirmedCreate,
     this.onVerifyUnconfirmedCreate,
@@ -27,6 +28,8 @@ class ProgramDetailPage extends StatefulWidget {
   /// Injected only for deterministic tests; production uses a random UUID v4.
   final String Function()? newRoutineUuid;
   final Future<void> Function(Routine routine)? onRoutinePressed;
+  /// Opens the same verified owner Edit composer as Routine Detail.
+  final Future<bool> Function(Routine routine)? onEditRoutine;
 
   /// Atomic Create draft action supplied by the authenticated app shell.
   /// True means re-read the Program: either a confirmed Create or an explicit
@@ -141,22 +144,18 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     }
   }
 
-  Future<void> _openRename(Routine routine) async {
+  Future<void> _openEditor(Routine routine) async {
     final controller = _controller;
-    if (!_canEdit || controller == null ||
-        routine.programId != widget.program.id) {
+    final edit = widget.onEditRoutine;
+    if (!_canEdit || controller == null || edit == null ||
+        routine.programId != widget.program.id || !
+        controller.state.routines.any((item) => item.id == routine.id)) {
       return;
     }
-    await showTioEditorSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      useSafeArea: true,
-      builder: (_) => _RoutineNameSheet(
-        controller: controller,
-        initialName: routine.name,
-        routine: routine,
-      ),
-    );
+    final confirmed = await edit(routine);
+    if (mounted && identical(controller, _controller) && confirmed) {
+      await controller.load();
+    }
   }
 
   @override
@@ -278,7 +277,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                   onTap: _canEdit && widget.onRoutinePressed != null
                       ? () { widget.onRoutinePressed!(routine); }
                       : null,
-                  onEdit: _canEdit ? () => _openRename(routine) : null,
+                  onEdit: _canEdit && widget.onEditRoutine != null
+                      ? () => _openEditor(routine) : null,
                 ),
               ),
           ],
@@ -306,110 +306,3 @@ class _RoutineMessage extends StatelessWidget {
       );
 }
 
-/// One persisted-name editor shared by create and rename. No fake builder
-/// action appears while composition editing is still unimplemented.
-class _RoutineNameSheet extends StatefulWidget {
-  const _RoutineNameSheet({
-    required this.controller,
-    required this.initialName,
-    this.routine,
-  });
-
-  final ProgramRoutinesController controller;
-  final String initialName;
-  final Routine? routine;
-
-  @override
-  State<_RoutineNameSheet> createState() => _RoutineNameSheetState();
-}
-
-class _RoutineNameSheetState extends State<_RoutineNameSheet> {
-  late final TextEditingController _name;
-  bool _saving = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController(text: widget.initialName)
-      ..addListener(_clearError);
-  }
-
-  void _clearError() {
-    // Rebuild on *every* edit so the primary action tracks empty/non-empty
-    // names before and after a server validation error.
-    if (mounted) setState(() => _error = null);
-  }
-
-  @override
-  void dispose() {
-    _name
-      ..removeListener(_clearError)
-      ..dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_saving || _name.text.trim().isEmpty) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-
-    final routine = widget.routine;
-    String? error;
-    if (routine == null) {
-      if (!await widget.controller.create(_name.text)) {
-        error = widget.controller.state.error ??
-            'Could not create routine. Please try again.';
-      }
-    } else {
-      error = await widget.controller.rename(routine: routine, name: _name.text);
-    }
-    if (!mounted) return;
-    if (error == null) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() {
-        _saving = false;
-        _error = error;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final editing = widget.routine != null;
-    final canSubmit = !_saving && _name.text.trim().isNotEmpty;
-    return PopScope(
-      canPop: !_saving,
-      child: TioEditorSheet(
-        title: editing ? 'Edit Routine' : 'Create Routine',
-        canDismiss: !_saving,
-        content: TioInput(
-          key: const ValueKey('routine-name-field'),
-          controller: _name,
-          onChanged: (_) {},
-          hint: 'Routine name',
-          errorText: _error,
-          enabled: !_saving,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) {
-            if (canSubmit) _submit();
-          },
-        ),
-        actions: TioButton.primary(
-          key: const ValueKey('routine-name-submit'),
-          label: _saving
-              ? 'Saving...'
-              : editing
-                  ? 'Save'
-                  : 'Create',
-          onPressed: canSubmit ? _submit : null,
-        ),
-      ),
-    );
-  }
-}
