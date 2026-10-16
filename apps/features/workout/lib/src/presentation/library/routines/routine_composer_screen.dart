@@ -106,8 +106,8 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioFontSize.size16,
-            fontWeight: TioFontWeight.w400,
+            fontSize: TioFontSize.size18,
+            fontWeight: TioFontWeight.w800,
           ),
         ),
         actions: [
@@ -286,8 +286,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: TioFontSize.size20,
-                              fontWeight: TioFontWeight.w800,
+                              fontSize: TioFontSize.size16,
+                              fontWeight: TioFontWeight.w400,
                               color: colors.textPrimary,
                             ),
                           ),
