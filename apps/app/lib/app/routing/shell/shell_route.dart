@@ -87,7 +87,9 @@ List<RouteBase> _shellBranchChildRoutes(
           Future<bool> editRoutine(Program program, Routine ownedRoutine) async {
             if (routineRepository == null || compositions == null ||
                 userExerciseRepository == null ||
-                ownedRoutine.programId != program.id) return false;
+                ownedRoutine.programId != program.id) {
+              return false;
+            }
             final openingSession =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final startingOwner = openingSession is AppSessionBootstrapReady
@@ -108,7 +110,7 @@ List<RouteBase> _shellBranchChildRoutes(
               return false;
             }
                               var revoked = false;
-                              return Navigator.of(context).push<bool>(
+                              final confirmed = await Navigator.of(context).push<bool>(
                                 MaterialPageRoute(
                                   builder: (_) => Consumer(
                                     builder: (context, ref, _) {
@@ -249,6 +251,7 @@ List<RouteBase> _shellBranchChildRoutes(
                                   ),
                                 ),
                               );
+            return confirmed ?? false;
           }
 
           Future<void> openRoutine(Program program, Routine routine) async {
