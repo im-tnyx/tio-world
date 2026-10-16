@@ -17,6 +17,7 @@ import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
+import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
 
 /// Full-screen, Program-owned Create draft. Nothing persists until Save
@@ -305,26 +306,17 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final type in RoutineSetType.values)
-              ListTile(
+            for (final type in RoutineSetType.values) ...[
+              RoutineSetTypeOption(
                 key: ValueKey('routine-type-option-${type.wireValue}'),
-                leading: ExcludeSemantics(
-                  child: RoutineSetTypeBadge(
-                    setType: type,
-                    normalNumber:
-                        routineNormalNumberForSelection(entry.sets, set.id),
-                  ),
-                ),
-                title: Text(switch (type) {
-                  RoutineSetType.normal => 'Normal Set',
-                  RoutineSetType.warmUp => 'Warm Up Set',
-                  RoutineSetType.failure => 'Failure Set',
-                  RoutineSetType.drop => 'Drop Set',
-                }),
-                trailing: type == set.prescription.setType
-                    ? const Icon(Icons.check) : null,
+                type: type,
+                normalNumber:
+                    routineNormalNumberForSelection(entry.sets, set.id),
+                selected: type == set.prescription.setType,
                 onTap: () => Navigator.of(sheetContext).pop<Object>(type),
               ),
+              const SizedBox(height: TioSpacing.sm),
+            ],
             ListTile(
               key: const ValueKey('routine-type-remove-set'),
               leading: Icon(Icons.close, color: context.tioColors.danger),
