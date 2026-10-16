@@ -156,11 +156,12 @@ void main() {
       expect(badge.useEditSetNumberColor, isTrue);
       final card = find.descendant(
         of: option,
-        matching: find.byType(TioSelectableCard),
+        matching: find.byType(TioCard),
       );
       expect(card, findsOneWidget);
-      expect(tester.widget<TioSelectableCard>(card).selected,
-          kind == RoutineSetType.warmUp);
+      expect(tester.widget<TioCard>(card).variant,
+          TioCardVariant.outlined);
+      expect(tester.getSize(card).height, TioSize.dp54);
 
       expect(badge.normalNumber, 1);
     }
@@ -170,7 +171,13 @@ void main() {
     ), findsOneWidget);
     expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
     expect(find.text('Rest & set details'), findsNothing);
-    expect(find.byKey(const ValueKey('edit-routine-type-remove')), findsOneWidget);
+    final remove = find.byKey(const ValueKey('edit-routine-type-remove'));
+    expect(remove, findsOneWidget);
+    expect(find.descendant(
+      of: remove, matching: find.byType(TioCard)), findsOneWidget);
+    final trash = find.descendant(
+      of: remove, matching: find.byIcon(Icons.delete_outline));
+    expect(trash, findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
     await tester.pumpAndSettle();
     expect(find.descendant(
