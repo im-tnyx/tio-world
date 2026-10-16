@@ -199,13 +199,18 @@ contracts remain unchanged.
 Draft PR #574 (unmerged) proposes that Create and Edit Set Type selection
 sheets share the same Workout-owned 38dp filled Normal/W/F/D indicator and
 Core theme semantic foreground/contrast fallback as the existing Set row.
-Each option uses the reusable Core `TioCardVariant.outlined` surface with
-compact horizontal 12dp/vertical 8dp content padding: 56dp at standard text
-scale, expanding as needed for accessibility (38dp badge + 8dp padding on each vertical side + 1dp border on each vertical side). The selection checkmark and
-accessible selected-state announcement are retained. Normal previews the
-selected Set's prospective Normal-only number, excluding special Set types.
-The matching 56dp outlined `Remove Set` row shows a semantic danger-colored
-trash icon and preserves Create/Edit deletion, including last-Set removal.
+Both option rows and `Remove Set` use the reusable Core
+`TioCardVariant.outlined` surface with 12dp horizontal/8dp vertical content
+padding. An owner-approved, reversible **0.75dp outline trial** is isolated
+to these picker cards via the existing `TioCardTokens.borderThin` token and
+an outlined-only Core `outlinedBorderWidth` parameter; all other Core
+outlined cards retain their default 1dp stroke. The resulting expected
+standard-text height is 55.5dp (38dp badge + 8dp vertical padding per
+side + 0.75dp outline per side), pending exact-head widget CI and device QA.
+Large text may increase the height. The selection checkmark and accessible
+selected state remain; Normal previews the selected Set's prospective
+Normal-only number excluding special types. The outlined `Remove Set`
+row retains its danger-colored trash icon and Create/Edit deletion behavior.
 
 By explicit owner approval, Edit's obsolete `Rest & set details` selector
 action is removed; saved per-Set `restSeconds` values survive Set type,
