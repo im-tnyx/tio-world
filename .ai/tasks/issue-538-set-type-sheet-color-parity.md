@@ -1,6 +1,6 @@
 # GitHub #538 — Routine Set Type bottom-sheet color parity
 
-**Status:** In progress — Draft PR #574; owner-approved Rest button removal and selectable-option follow-up now require new exact-head CI/review.
+**Status:** In review — Draft PR #574; full exact-head Flutter CI #38875397438 passed at `b108ed48`; final Codex P2 documentation reconciliation and owner device QA remain gates.
 **Primary owner:** Workout feature presentation (this branch only)
 **Affected platforms:** Flutter Android/iOS phone Routine Create/Edit
 **GitHub:** #538; Draft PR #574; follow-up to merged PR #570
@@ -10,16 +10,16 @@
 
 **Trigger:** Product-visible UI change already owner-approved in 2026-10-16 conversation, with explicit `Go` after read-only audit.
 **Approved outcome:** Set Type selection bottom sheets display the *same* Normal/Warm Up/Failure/Drop semantic badge colors as Set rows for both Create and Edit.
-**In scope:** feature-owned reusable Set badge presentation; replace plain/missing leading indicators with existing Core `TioSelectableCard` option rows in both selection sheets; preserve contextual Normal numbering, selection check and accessibility; remove Edit-only `Rest & set details` by explicit follow-up owner decision; add focused widget/integrity regressions.
+**In scope:** feature-owned reusable 38dp Set badge; both Create/Edit pickers use existing Core `TioCard(variant: TioCardVariant.outlined)` with 12dp horizontal/8dp vertical content padding and validated 56dp rendered height (including border), accessible selected/check state, contextual Normal numbering, and matching outlined `Remove Set` action with danger-colored trash icon; remove the obsolete Edit-only `Rest & set details` entrypoint per owner approval; preserve stored Rest data, Set identity, and focused widget/integrity regressions. Do not revert to padding-fixed `TioSelectableCard` (its 70dp rows were owner-rejected).
 **Explicit non-changes:** Set data model, UUID, save/update/auth, rep-range/Delete semantics, *persisted* per-Set Rest data or replay, Core token contracts, shared domain, Supabase SQL/RPC/RLS/deploy, app routing, Watch, AI, exercise cards, other bottom sheets. Only the deprecated Rest editing entrypoint is intentionally removed, not the saved Rest values.
 
 ## Active Handoff
 
 **Implementation owner:** This GitHub-connected session; only branch `tnyx/issue-538-set-type-sheet-color-parity`.
-**Review owner:** Independent Codex exact-source review completed without major issues at `18bc0ffa`; owner device QA remains required.
+**Review owner:** Codex reviewed compact production at `71c073c` without major issues and latest docs-only HEAD `b108ed48` with two P2 handoff findings now being corrected. Final exact-head re-review and owner physical-device QA remain required.
 **Base source:** `main@42af17a67e84f744ed07cfbc5e66d1fe19f67b41` (merged #570 at `7f05def9`, merged #573 at `42af17a6`).
 **Current observed state:** GitHub API source only; Windows worktree and local Flutter SDK unavailable in this session. No claim of local `git status`, `melos`, device rendering or hosted Supabase verification.
-**Tracked drift:** #538 text and old #538/#539 stacked PR handoff reflect 2026-10-13 pre-#551 state; present source on main already has durable `RoutineSetType` and sheets. `docs/screens/routine-library.md` still describes merged #570 as Draft. Reconcile only touched documentation relevant to this slice.
+**Tracker reconciliation:** #538's original implementation/migration proposal and the older #538/#539 stacked handoff reflect the pre-#551 state. Current `main` already has durable `RoutineSetType` and Create/Edit selection behavior, and `docs/screens/routine-library.md` has been corrected to identify PR #570 as merged. This follow-up PR #574 only completes the documented picker visual parity and owner-approved obsolete Rest entrypoint removal; no database rollout or broader #538 acceptance is claimed.
 
 ## Discovery and Source Evidence
 
@@ -31,13 +31,13 @@
 
 ## Architecture Decision
 
-Extract the identical existing 38dp Set badge rendering and contrast computation into a small Workout presentation widget consumed by the inline Set row and both Set Type sheet option leading slots. Render leading badges as `ExcludeSemantics` so ListTile labels remain the accessible names. Keep existing option keys, checkmarks, guards and result handling. A candidate Normal badge uses the count of Normal Sets before the selected Set plus one, matching the on-row numbering that would result from conversion.
+Extract the existing 38dp Set badge rendering and contrast computation into one Workout-owned presentation widget reused in inline Set rows and both sheet options. Compose the picker and Remove Set actions with Core `TioCardVariant.outlined`, compact 56dp painted geometry, and explicit button/selected/label semantics, retaining existing option keys, selected checkmarks, guards and result handling. A candidate Normal badge uses the count of Normal Sets before the selected Set plus one, matching the on-row numbering that would result from conversion.
 
 **Rejected:** independently duplicating semantic switch/contrast logic in Create and Edit, introducing new Core color tokens, implementing premature Rest Timer/Notes behavior, or altering the Set persistence contract.
 
 ## Owner screenshot refinement (2026-10-16)
 
-**New explicit approval:** Screenshot shows outlined selectable Set Type rows and visible W/F/D colors. Keep the 38dp filled badge from the shared inline Set row inside each selection option, and use the existing Core `TioSelectableCard` for the outlined selected/unselected surface. Preserve the selection result/check, context-aware Normal numbering, focus, semantics and compact/large-text behavior. Do not clone the reference's pixel geometry, add a new selection color system, or introduce a `More` feature.
+**Initial visual direction (superseded by compact-card refinement below):** The screenshot called for outlined selectable rows and visible W/F/D colors, initially prototyped using Core `TioSelectableCard`. The owner then rejected its oversized ~70dp rows. The final approved UI uses the existing Core `TioCardVariant.outlined` with custom presentation composition and measured 56dp height; selection/check, context-aware numbering, semantics and larger-text growth remain intact. Do not clone the reference's other geometry, add a new selection color system, or introduce a `More` feature.
 
 **Additional owner decision:** Remove the existing `Rest & set details` action from Edit's `Select Set Type` sheet. The current Edit-only advanced editor is reached exclusively through this action; eliminate its dead entrypoint and rewrite affected integration regressions to exercise the existing inline Reps/Weight/Rep Range editor. Current persisted per-Set `restSeconds` must survive every type/inline edit and Update, but the old Rest editing entrypoint is intentionally no longer offered until the independently planned W4B2 Rest Timer/Notes slices (GitHub #532 / Linear TNYX-81) are approved and implemented. **Do not implement any Rest Timer or Notes UI/data here**. Keep `Remove Set` and existing selected Set actions.
 
@@ -67,7 +67,8 @@ Extract the identical existing 38dp Set badge rendering and contrast computation
 - [x] Existing Set identity, Set Type change, Remove Set and last-Set contract remain; Edit old Rest details entrypoint absent and stored `restSeconds` preserved on inline input/Update/rejection, verified in Flutter widget tests at `c5e150f`.
 - [x] Flutter/Dart Analyze + all Flutter/Dart tests and aggregate CI **SUCCESS** at `c5e150f`, exact tested code.
 - [x] Independent Codex review of compact production changes at `71c073c` reported no major issues.
-- [ ] Validate the final documentation-only correction head, resolve P2/P3 review findings and inspect exact-head ancestry/paths.
+- [x] Flutter CI #38875397438 passed at docs-only `b108ed48`; earlier P2/P3 findings replied to and resolved, with 46 ahead/0 behind and 12 scoped paths verified at that checkpoint.
+- [ ] Validate the new documentation-only P2 handoff remediation HEAD with exact-head CI, independent review, no unresolved findings and refreshed ancestry/paths.
 - [ ] Owner physical-device QA (light/dark, compact width, text scale, selected state and Remove Set) and separately explicit `Go merge`.
 
 
