@@ -200,9 +200,13 @@ Draft PR #574 (unmerged) proposes that Create and Edit Set Type selection
 sheets share the same Workout-owned 38dp filled W/Normal/F/D indicator and
 Core theme semantic foreground/contrast fallback as the existing Set row. The sheet's Normal label reflects the
 prospective Normal sequence position for the selected Set, excluding special
-Set types; labels, selected check, Remove Set and Edit's Rest & set details
-remain unchanged. This is a Flutter-only presentation follow-up to #538, not
-a persistence/schema or performed WorkoutSession behavior change.
+Set types and preserves the selected check and Remove Set behavior. By
+explicit owner approval, Edit's obsolete `Rest & set details` selector action
+is removed; existing stored per-Set `restSeconds` values are preserved by
+all Set type and inline input edits, but legacy Rest editing is no longer
+exposed until the separately planned W4B2 Rest Timer/Notes flow (#532).
+No Rest Timer, Notes, schema/RPC or performed WorkoutSession change is part of
+Draft PR #574.
 
 ## Swipe-to-delete Set action (merged #551; release/device QA unverified)
 
