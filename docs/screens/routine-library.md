@@ -106,7 +106,7 @@ contracts remain in force. Source code is merged on `main`; release/device verif
 
 **Merged Flutter [PR #577](https://github.com/im-tnyx/tio-world/pull/577)** integrates the saved Name input with the shared Edit composer and the single atomic Name+composition Update, including a real card **Edit Routine** action. The former Rename-only sheet is no longer the card action. Source merge and hosted RPC deployment do not prove a distributed phone-app release.
 
-**Routine 3-dot bottom sheet — owner revision 2026-10-16:** The owner explicitly **superseded** the former anchored `TioAnchoredPopup` design. Routine 3-dot must open a **Core bottom sheet** whose target entries are **Edit Routine, Move Routine and Delete Routine**. Reuse the Core sheet boundary without duplicating tokens: Routine actions use **`showTioEditorSheet` + `TioEditorSheet`**, matching the Select Set Type picker, including its own handle and compact header. Program's existing `TioSheet` / `TioGroupCard` rows remain distinct and unchanged. Show only real executable owner-verified capabilities, not inert placeholders. The bounded branch `tnyx/issue-526-routine-actions-bottom-sheet` introduces the UI surface and retains functional Edit; [#569](https://github.com/im-tnyx/tio-world/issues/569) still needs an atomic Move backend, destination selector and confirmation, while [#526](https://github.com/im-tnyx/tio-world/issues/526) still needs guarded Flutter Delete adapter/confirmation/unknown-outcome handling despite its deployed RPC. **The owner additionally approved matching outlined Set Type-style option cards and the same Routine sheet in both Program Detail and expanded Library Programs.** The action options keep the exact Set Type outlined-card border/padding/icon-area dimensions, instead of taller custom rows. Only the canonical shell-guarded full Edit action is wired there until independently delivered Move/Delete capabilities exist. PR #581 also addresses a P1 stale-callback review by rechecking current Routine/program identity and capability after sheet dismissal. **Merged source status (2026-10-17):** PR #581 is now on `main`, replacing the anchored popup in both Program Detail and expanded Library with the guarded Core sheet. Only callbacks for real owner-verified capabilities appear; Edit is wired, while Move/Delete remain independently gated. This does not ship all three capabilities.
+**Routine 3-dot bottom sheet — owner revision 2026-10-16:** The owner explicitly **superseded** the former anchored `TioAnchoredPopup` design. Routine 3-dot must open a **Core bottom sheet** whose target entries are **Edit Routine, Move Routine and Delete Routine**. Reuse the Core sheet boundary without duplicating tokens: Routine actions use **`showTioEditorSheet` + `TioEditorSheet`**, matching the Select Set Type picker, including its own handle and compact header. Program's existing `TioSheet` / `TioGroupCard` rows remain distinct and unchanged. Show only real executable owner-verified capabilities, not inert placeholders. The formerly in-review branch `tnyx/issue-526-routine-actions-bottom-sheet` introduced the UI surface and retains functional Edit; [#569](https://github.com/im-tnyx/tio-world/issues/569) still needs an atomic Move backend, destination selector and confirmation, while [#526](https://github.com/im-tnyx/tio-world/issues/526) still needs guarded Flutter Delete adapter/confirmation/unknown-outcome handling despite its deployed RPC. **The owner additionally approved matching outlined Set Type-style option cards and the same Routine sheet in both Program Detail and expanded Library Programs.** The action options keep the exact Set Type outlined-card border/padding/icon-area dimensions, instead of taller custom rows. Only the canonical shell-guarded full Edit action is wired there until independently delivered Move/Delete capabilities exist. PR #581 also addresses a P1 stale-callback review by rechecking current Routine/program identity and capability after sheet dismissal. **Merged source status (2026-10-17):** PR #581 is now on `main`, replacing the anchored popup in both Program Detail and expanded Library with the guarded Core sheet. Only callbacks for real owner-verified capabilities appear; Edit is wired, while Move/Delete remain independently gated. This does not ship all three capabilities.
 
 **Historical #564 pre-#577 parity checklist (now fulfilled for Name Edit and full Edit; Delete still gated):** Its UI-only Create/Edit/Detail parity sub-slice merged in PR #570. The following requirements describe the approved delivery sequence, not remaining unmerged Name/Edit work:
 - Put Create **Save** and Edit **Update** in the same top-right composer action slot. Keep distinct guarded persistence adapters and their existing confirmation/cancel semantics; do not add a bottom duplicate action.
@@ -202,7 +202,7 @@ Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
 
-Draft PR #574 (unmerged) proposes that Create and Edit Set Type selection
+**Merged PR #574 (2026-10-16, source-only status)** implements the proposed Create and Edit Set Type selection
 sheets share the same Workout-owned 38dp filled Normal/W/F/D indicator and
 Core theme semantic foreground/contrast fallback as the existing Set row.
 Both option rows and `Remove Set` use the reusable Core
@@ -212,7 +212,7 @@ to these picker cards via the existing `TioCardTokens.borderThin` token and
 an outlined-only Core `outlinedBorderWidth` parameter; all other Core
 outlined cards retain their default 1dp stroke. The resulting expected
 standard-text height is 55.5dp (38dp badge + 8dp vertical padding per
-side + 0.75dp outline per side), pending exact-head widget CI and device QA.
+side + 0.75dp outline per side); this specified geometry is not independently measured on a physical device here.
 Large text may increase the height. The selection checkmark and accessible
 selected state remain; Normal previews the selected Set's prospective
 Normal-only number excluding special types. The outlined `Remove Set`
@@ -223,7 +223,7 @@ action is removed; saved per-Set `restSeconds` values survive Set type,
 inline input and Update changes. Legacy Rest editing is no longer exposed
 until the separately planned W4B2 Rest Timer/Notes flow (#532). No new Rest
 Timer, Notes, schema/RPC or performed WorkoutSession behavior is part of
-Draft PR #574.
+merged PR #574.
 
 ## Swipe-to-delete Set action (merged #551; release/device QA unverified)
 
