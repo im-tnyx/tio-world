@@ -66,12 +66,12 @@ void main() {
           TioTheme(child: child ?? const SizedBox.shrink()),
       home: RoutineComposerScreen(
         mode: RoutineComposerMode.edit,
-        pageKey: ValueKey('shared-composer'),
-        cancelKey: ValueKey('shared-cancel'),
+        pageKey: const ValueKey('shared-composer'),
+        cancelKey: const ValueKey('shared-cancel'),
         cancelEnabled: true,
         cancel: () {},
         submitKey: null,
-        content: SizedBox.expand(),
+        content: const SizedBox.expand(),
       ),
     ));
     expect(find.text('Update'), findsNothing);
