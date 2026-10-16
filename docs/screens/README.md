@@ -87,7 +87,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 
 ## Screen References
 
-Repository-implemented status is not proof of a distributed app release. The 2026-10-15 focused status verification reconciled **Profile**, **Profile Photo**, **Nutrition Targets**, and **Settings** with their owning source/routes; other rows retain their separately documented evidence and should be rechecked before related work.
+Repository-implemented status is not proof of a distributed app release. The 2026-10-17 focused Workout-status verification covers **Workout**, **Library**, **Exercises/Exercise picker**, **Program-owned Routines**, and **Programs** against `main@633dbf38` and merged PR #551/#566/#570/#577/#581; it does not re-verify unrelated catalog rows or certify device QA. The earlier 2026-10-15 focused status verification reconciled **Profile**, **Profile Photo**, **Nutrition Targets**, and **Settings** with their owning source/routes; other rows retain separately documented evidence and should be rechecked before related work.
 
 | Surface | Screen | Current status |
 | :--- | :--- | :--- |
@@ -95,11 +95,11 @@ Repository-implemented status is not proof of a distributed app release. The 202
 | Entry | [Welcome](welcome.md) | Implemented UI and navigation. |
 | Entry | [Login](login.md) | Implemented Phone-first auth entry backed by real Supabase Auth use cases; Email and Google remain supported through the canonical auth composition. |
 | Phone | [Home](home.md) | Routed Home feature placeholder; current `HomePage` intentionally renders an empty surface while Home-owned content remains future work. |
-| Phone | [Workout](workout.md) | Implemented Workout Home date surface with Library entry; Library and Exercises nested routes are shipped while broader Workout capabilities remain later slices. |
-| Phone | [Library](library.md) | Implemented Workout Library root with Programs collection/create/rename, Program Detail + Routine metadata (PR #522) and read-only Routine Detail on saved Routine tap (PR #530), plus Exercises. Plans, direct Routine quick-create and composition builder remain gated. |
-| Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated Exercises screen is implemented and reachable via Workout Home → Library → Exercises; detail/picker and later catalog capabilities remain planned. |
-| Phone | [Program-owned Routines](routine-library.md) | W4A owner-scoped metadata list/create/rename merged via PR #522; Routine card primary tap opens persisted read-only Detail and overflow Edit retains Rename via merged PR #530. Exercise picker, Exercise/Set editor and Workout Start remain unimplemented. |
-| Phone | [Programs](programs.md) | Program collection/create/rename and selected Program Detail + owner-scoped Routine metadata UI shipped (W4A, PR #522). Full Routine/Program builder and TrainingPlan scheduling/following remain future. |
+| Phone | [Workout](workout.md) | Implemented Workout Home with Library entry; owner-verified nested Library/Programs/Exercises plus Program-scoped Routine Create/Edit flows are available behind runtime repository/auth gates. Active Workout, TrainingPlan execution and Insights remain gated. |
+| Phone | [Library](library.md) | Implemented Programs collection with Program Detail, owner-scoped Routine rows, Program-scoped Add Routine via expanded empty Program or Program overflow (PR #566), and Exercises entry. Routine card actions use a Core bottom sheet with real Edit only where verified (#581); direct Library-root `My Program` quick-create and Your Plan remain gated. |
+| Phone | [Exercises and Exercise Picker](exercise-search.md) | Dedicated unified Exercises browse/create/edit is reachable via Library; canonical Routine-context Exercise picker is implemented in merged Create/Edit (#551). Standalone Exercise Detail, Favorites and Folders remain gated. |
+| Phone | [Program-owned Routines](routine-library.md) | Program-owned persisted Routine metadata, read-only Detail, guarded Exercise/Set Create/Edit (#551), atomic Name+composition Update (#577) and Routine-card Core Edit bottom sheet (#581) are source-implemented. Move/Delete and Workout Start remain separate gated capabilities. |
+| Phone | [Programs](programs.md) | Persisted Program collection/create/rename, Program Detail and scoped Routine Create are source-implemented; Library dotted Add Routine and Program 3-dot Add New Routine merged in #566. Program Delete, TrainingPlan scheduling/following and direct Library-root default-Program quick-create remain gated. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine or scheduled PlannedWorkout execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
 | Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
