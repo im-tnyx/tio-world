@@ -140,9 +140,14 @@ outlined input fields use one matching **14dp** corner radius, governed
 by Core `TioInputTokens.radius`. The Set number's InkWell splash/tap
 shape follows that same radius. The previous Set number used
 `TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
-numeric outlines. Edit retains its approved unboxed blue Set number.
-38dp visible minimum heights and widths, 8-Set cap, input/focus
-behavior, button shapes, and all persistence contracts remain unchanged.
+numeric outlines. On the merged #551 baseline, Edit/PREVIOUS kept an
+unboxed blue Set number, unlike Create's filled badge. The owner-approved
+#564 follow-up in Draft PR #570 changes **only the Edit Set badge background**
+to the same Core `surfaceVariant` as Create; Edit retains its blue number
+and read-only PREVIOUS column. Both modes therefore show the same
+38dp filled, 14dp rounded Set type control in that unmerged UI slice.
+The 8-Set cap, input/focus behavior, button geometry and persistence
+contracts remain unchanged.
 
 ## Swipe-to-delete Set action (merged #551; release/device QA unverified)
 
