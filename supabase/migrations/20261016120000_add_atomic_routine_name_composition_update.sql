@@ -149,7 +149,7 @@ begin
   if v_last_mutation = p_client_mutation_id then
     if v_last_hash is distinct from v_hash
         or v_name is distinct from
-          pg_catalog.coalesce(p_name, p_expected_name) then
+          coalesce(p_name, p_expected_name) then
       raise exception 'routine_update_mutation_conflict' using errcode = 'P0001';
     end if;
 
@@ -182,7 +182,7 @@ begin
     -- The 4-arg writer has already advanced the revision exactly once.
     -- Distinct hash marks the authorized second parent update to the trigger.
     update public.user_workout_routines
-    set name = pg_catalog.coalesce(p_name, v_name),
+    set name = coalesce(p_name, v_name),
         last_routine_update_request_hash = v_hash
     where id = p_routine_id and user_id = v_user_id;
   else
