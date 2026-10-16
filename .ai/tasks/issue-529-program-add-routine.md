@@ -1,5 +1,12 @@
-## Codex Review Gate — 2026-10-15 exact reviewed HEAD
-The independent Codex review completed on `f13b3a3635870a782a81ba6d1728466ffe79ca16` after Flutter CI #38788227679 SUCCESS. Four **open P2** issues (do not claim APPROVE):
+## Current Review Checkpoint — 2026-10-16
+- **Implementation reviewed:** `0a42523d22be8545bdb428c1f11bd6c24e85d293`, Draft [PR #566](https://github.com/im-tnyx/tio-world/pull/566), base `main@4090e3a143fcfc309a3020e73823bc30ec40c282`. Exact-head GitHub Flutter Analyze **and full Tests PASS** in [workflow #38813982408](https://github.com/im-tnyx/tio-world/actions/runs/38813982408).
+- **Codex disposition:** First review `f13b3a36` raised four P2; subsequent review `9a8f6fa6` raised a fifth P2 (retained pending Create across same-owner reauth). Fixes for all five are on `0a42523d`, with regression tests, and latest Codex re-review at that same SHA returned **“Didn't find any major issues.”** This is not an explicit APPROVED review; the five historical inline threads have evidence replies and are being reconciled separately.
+- **Fixes:** One in-flight Add across all Programs/entry points, dismiss sheet before Create, prevent late Create after Library route change, visibly disable Add on owner-Program uncertain write with protected verification path, and rebind the pending gate to verified Library owner/login cycle before enabling Add (with stale post-frame checks).
+- **This handoff/document-index edit follows the code-reviewed CI-green SHA.** Recheck actual PR HEAD after documentation commits and require exact-new-head Flutter CI. Do not substitute earlier CI evidence for new commits.
+- **Remaining gates:** Resolve only verified historical threads, exact final HEAD CI, independent PR readiness/branch policy, Android compact/light/dark device QA, and explicit owner `Go merge` instruction. PR remains Draft/unmerged; no DB or hosted deploy. Delete Program (#567), Routine Edit/Delete (#564/#526), Move (#569), My Program (#568) are independent slices.
+
+## Historical Codex Review Gate — 2026-10-15 initial reviewed HEAD
+The independent Codex review completed on `f13b3a3635870a782a81ba6d1728466ffe79ca16` after Flutter CI #38788227679 SUCCESS. Four **then-open P2** issues (all remediated on `0a42523d`; historical findings, not new open defects):
 - PRRT_kwDOTOXwB86s7LRF: one-flight direct Create launch shared across Program dotted and bottom-sheet entry points, including distinct Programs.
 - PRRT_kwDOTOXwB86s7LRQ: remove stale handoff SHA and obsolete CI claims.
 - PRRT_kwDOTOXwB86s7LRb: reject delayed Create if the initiating Library route is no longer current.
@@ -22,22 +29,22 @@ Scope of remediation: existing Flutter Program/Library route and feature UI, plu
 ## Active Handoff
 **Planning owner:** Connected repository review
 **Implementation owner:** This GitHub-connected #529 implementation branch; one owner for this slice
-**Review owner:** Codex reviewed `f13b3a36` (4 P2); corrected HEAD awaits re-review.
+**Review owner:** Codex reviewed `0a42523d` after five P2 remediations and reported no new major issues; original threads have replies and require explicit disposition. Not an APPROVED review.
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable; no #529 active branch or PR found on preflight
 **Repository state last verified:** GitHub API main = `4090e3a143fcfc309a3020e73823bc30ec40c282`
 **Branch:** `tnyx/issue-529-inline-add-routine`
-**HEAD SHA:** P2 source/test checkpoint `73ce7ffb5809f6afef85a1f71b5f12a21e2eb3ab` with Flutter CI #38792692455 SUCCESS; latest docs checkpoint `d1c31117` immediately before this task handoff update. GitHub PR HEAD must be re-read after this commit.
+**Reviewed source/test HEAD SHA:** `0a42523d22be8545bdb428c1f11bd6c24e85d293` (Flutter CI #38813982408 SUCCESS and completed Codex re-review). This documentation commit advances PR HEAD; re-read exact SHA and CI before final gate.
 **Observed working-tree state:** GitHub API-only; no local checked-out working tree or `git status` available
 **Observed uncommitted/dirty files:** Unknown locally, isolated new remote branch
 **PR / tracker:** [Draft PR #566](https://github.com/im-tnyx/tio-world/pull/566), GitHub #529 / #475, Delete gate [#567](https://github.com/im-tnyx/tio-world/issues/567), Linear TNYX-267 and TNYX-81
-**Current implementation state:** Dotted empty Program and overflow actions open canonical Create directly. Codex P2 remediation now includes shared ProgramsSurface one-flight guard, modal dismissal before direct route, `ModalRoute.isCurrent` after owner read, disabled Add plus Program Detail verification affordance on uncertain Save, and reactive notifier-backed Library updates. Focused feature/route tests added; exact corrected-head CI pending.
+**Current implementation state:** Dotted empty Program and overflow actions open canonical Create directly. Codex P2 remediation now includes shared ProgramsSurface one-flight guard, modal dismissal before direct route, `ModalRoute.isCurrent` after owner read, disabled Add plus Program Detail verification affordance on uncertain Save, and reactive notifier-backed Library updates. Focused widget/app-route regressions pass in #38813982408 at `0a42523d`; documentation-only commits require a new exact-head check.
 **Relevant execution surface:** `InlineProgramRoutines` → `ProgramsSurface` → `LibraryPage` → app shell direct Create route; Program Detail's existing Create action shares the same guarded callback
-**Validation completed at SHA:** Flutter Analyze/Tests CI #38788227679 SUCCESS on original Codex-reviewed `f13b3a36`; Codex found 4 P2. Corrected source/test HEAD `73ce7ffb` Flutter Analyze + Tests CI **#38792692455 SUCCESS**. Docs-only commits followed; exact latest-doc-head CI and Codex re-review not yet complete.
-**Validation remaining:** New docs-head exact CI, Codex re-review and thread disposition for the four reported P2, Android device visual QA and explicit owner merge authorization. Source/test-head CI and read-only added-line whitespace check passed.
-**Current blocker:** Four original Codex P2 threads remain formally unresolved until re-review; new docs-head CI and owner device QA pending. Direct Program Delete belongs to separate #567.
-**Open review finding IDs:** Delete deferred to independent bounded lifecycle design; no false Delete UI.
-**Next exact action:** Verify new docs-head Flutter CI after this handoff commit, then request Codex re-review of exact head. Reply to each original P2 with evidence; resolve only on verified disposition, preserve Draft pending Android device QA and owner merge go.
+**Validation completed at SHA:** Flutter Analyze + full Tests SUCCESS at initial `f13b3a36` (#38788227679), first corrected `73ce7ffb` (#38792692455), second reviewed `9a8f6fa6` (#38793994102) and **latest implementation `0a42523d` (#38813982408)**. Codex reviewed `0a42523d`: no new major issues. Exact docs-only post-handoff HEAD CI remains to check.
+**Validation remaining:** CI on this final docs-only HEAD, disposition of five historical Codex threads, Android device visual QA and explicit owner merge authorization. No device/runtime install was verified through the GitHub connector.
+**Current blocker:** Five historical Codex threads are not yet marked resolved; post-doc exact-head CI and owner device QA pending. No new major issues in latest Codex review. Direct Program Delete belongs to separate #567.
+**Review finding IDs:** Initial `PRRT_kwDOTOXwB86s7LRF`, `PRRT_kwDOTOXwB86s7LRQ`, `PRRT_kwDOTOXwB86s7LRb`, `PRRT_kwDOTOXwB86s7LRf` and re-review `PRRT_kwDOTOXwB86s73jE`. All remedied by reviewed `0a42523d` with replies; latest Codex re-review no new major issues. Delete deferred separately, no false destructive UI.
+**Next exact action:** Reverify PR HEAD and CI after documentation commits; resolve all five historical threads only after inspecting review/evidence, confirm no new review findings, preserve Draft pending Android device QA and owner `Go merge`.
 
 ## 2026-10-15 Owner Alignment Refinement (active bounded slice)
 Owner reports continued visible side space on Program header and Routine card edges and an overly heavy dotted Create-card stroke. Fresh Draft PR #566 source audit confirms Library itself has governed 16dp side padding; saved Routine and dotted card wrappers now have no extra horizontal inset. Program header chevron and overflow `IconButton` have 48dp interactive regions but center their 24dp glyphs, adding apparent left/right space. **Approved UI correction:** align leading glyph to start and trailing glyph to end within their existing >=48dp action regions. Do not globally alter Library padding or Routine internal card content. The feature-owned `_DottedOutline` stroke is currently `TioStroke.width2`; switch only its paint stroke to `TioStroke.width1` and preserve the rounded/dashed shape/theme color. Add geometry/widget assertions for Program header icon edges and Program/Routine/dotted card shared outer bounds, and validate current PR head via CI after commits. Root + feature AGENTS and Core theme README checked. Pre-edit branch head `38c4df88`. Applied `AlignmentDirectional.centerStart`/`centerEnd`, zero internal IconButton padding and exact 48dp constraints to the Program header chevron and overflow, and changed only dotted painter stroke to `TioStroke.width1`. Added widget assertions for glyph edge coordinates, action dimensions, and unchanged Library-side routine rows. Follow-up source commit `f78a7355` before docs/handoff updates; verify new exact PR head and new-run Flutter CI. Prior Flutter CI #38783537219 was for a superseded head. GitHub API cannot verify local worktree/device rendering. No DB or security change.
@@ -45,7 +52,7 @@ Owner reports continued visible side space on Program header and Routine card ed
 ## 2026-10-15 P1 Review Finding NAV-01 — Direct Library Create Route
 **Owner-reported reproduced from source:** Both Library empty-card and Program 3-dot Add launch `openProgram(program, launchCreate: true)`, which pushes `ProgramDetailPage` before its post-frame auto-Create pushes `CreateRoutinePage`. This visibly flashes a wrong intermediate screen and places an unwanted Program Detail route in the stack. **Owner-approved correction:** Library must navigate directly to canonical Create Routine; Cancel/Back must return directly to Library. Preserve selected `ProgramId`, protected atomic Create callback, owner/login-cycle checks, pending-gate lifecycle and authoritative Library refresh, without a duplicate create/persistence path.
 **Source-verified minimal design:** Hoist the existing guarded `onCreateRoutine(suggestedName)` closure to one local `createRoutine` function in app shell, reused by Program Detail and the direct Library Create action. Resolve the suggested name via the already-exported `ProgramRoutinesController.load()` owner-scoped read, bail out on load failure/revoked session/unknown pending write; launch canonical `CreateRoutinePage` directly. Remove dead `ProgramDetailPage.launchCreateOnReady` trampoline and corresponding tests. Add app-level direct card/overflow Cancel + Save + preserved Program detail-path regression. No SQL/RLS/domain/Core/layout changes.
-**Validation gate:** Review at exact new head + GitHub Flutter Analyze/Tests + device QA; keep Draft. Independent reviewer is still unassigned.
+**Validation gate:** GitHub Flutter Analyze/Tests and independent Codex re-review completed on `0a42523d`; docs-only HEAD CI and Android device QA remain; keep Draft.
 
 ## 1. Discovery
 ### User Outcome
@@ -91,12 +98,12 @@ Hide Add when repository or callback absent; no creation during loading/error; r
 - [x] Add guarded Program 3-dot Add Routine; retain Edit Program rename
 - [x] Connect direct entry to existing Create route without new write path
 - [x] Add focused feature widget and app route tests
-- [x] Canonical Program doc updated; CI succeeded on pre-review `f13b3a36`; P2-corrected head requires new CI/re-review
+- [x] Canonical Program doc updated; five P2 remediations reviewed at `0a42523d`, Flutter CI #38813982408 SUCCESS; post-doc HEAD CI and owner device QA remain
 
 ## 6. Quality Review
 ### Validation Run
 Owner screenshot refinement: dotted card is a local Workout empty-state composition (single consumer), not a new generic Core component/token or physical copy of the screenshot. Focused light/dark/widget assertions added; verify again at new source HEAD. Earlier `cbc16bd5` Flutter CI #38779638889 SUCCESS before dotted visual change, **not evidence for current head**.
-No Flutter SDK/worktree accessible in connector-only runtime. Flutter CI #38788227679 succeeded on initial Codex-reviewed `f13b3a36` (four P2). Latest corrected *source/test* checkpoint `73ce7ffb` Flutter Analyze + Tests succeeded in CI #38792692455, including focused regression tests. Subsequent docs/handoff commits require a fresh exact-head CI. Independent Codex re-review and Android device QA pending.
+No Flutter SDK/worktree accessible in connector-only runtime. Source/test HEAD `0a42523d` Flutter Analyze + full Tests succeeded in CI #38813982408; Codex re-review at the same SHA found no new major issues. Original five threads await verified disposition; this documentation-only commit needs fresh exact-head CI. Android device QA remains unverified.
 ### Review Findings and Resolution
 | ID | Severity | Status | Finding | Observed at SHA | Evidence |
 |---|---|---|---|---|---|
@@ -106,7 +113,7 @@ No Flutter SDK/worktree accessible in connector-only runtime. Flutter CI #387882
 ### Changed Files
 App shell `shell_route.dart`; Workout `library_page.dart`, `programs_surface.dart`, `inline_program_routines.dart`, `program_detail_page.dart`; app and Workout tests; `docs/screens/programs.md`; task brief and index.
 ### Actual Behavior
-Branch-only implementation: capability-gated selected-Program Add Routine, one direct Create route, no intermediate Program Detail, shared launch serialization, route-current cancellation, uncertain-write disabled UI and verification path, plus Edit Program Rename. P2 corrected source/test head CI #38792692455 PASS; subsequent docs/handoff exact-head CI and Codex re-review pending. Not merged/released.
+Branch-only implementation: capability-gated selected-Program Add Routine, one direct Create route, no intermediate Program Detail, shared launch serialization, route-current cancellation, uncertain-write disabled UI and verification path including same-owner reauth, plus Edit Program Rename. Implementation exact-head `0a42523d` CI #38813982408 PASS and Codex no-new-major-issues; docs-only HEAD CI, thread disposition and Android QA remain. Not merged/released.
 ### Known Limitations
 Program Delete deliberately not part of this safe UI slice; dedicated security/lifecycle issue #567. Hosted atomic Create RPC availability and mobile release remain separate gates.
 ### Final Status
