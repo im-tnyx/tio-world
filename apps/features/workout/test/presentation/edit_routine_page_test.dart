@@ -797,7 +797,7 @@ void main() {
     expect(max, findsOneWidget);
     await tester.enterText(max, '7');
     await tester.pump();
-    expect(tester.widget<TioButton>(
+    expect(tester.widget<TextButton>(
       find.byKey(const ValueKey('edit-routine-update'))), isNotNull);
     await tester.enterText(min, '9');
     await tester.enterText(max, '13');
