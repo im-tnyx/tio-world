@@ -62,6 +62,7 @@ final class RoutineCompositionSnapshot {
     required this.routineId,
     required int revision,
     String? lastMutationId,
+    this.name,
     List<RoutineCompositionEntry> entries = const [],
   })  : revision = _revision(revision),
         lastMutationId = lastMutationId == null ? null : _uuid(lastMutationId),
@@ -70,6 +71,9 @@ final class RoutineCompositionSnapshot {
   final RoutineId routineId;
   final int revision;
   final String? lastMutationId;
+  /// Bracket-validated name when supported by the owner-scoped adapter.
+  /// Older in-memory mocks may omit it; name-aware Updates must fail closed.
+  final String? name;
   final List<RoutineCompositionEntry> entries;
 
   RoutineComposition get composition => RoutineComposition(
@@ -102,6 +106,56 @@ final class RoutineCompositionSave {
   /// Optional wire hints on Custom entry UUIDs; JSON null is an exact type.
   /// Snapshot equality/replay intentionally compares persisted Sets, not hints.
   final Map<String, ExerciseType?> expectedCustomTypes;
+}
+
+/// One frozen owner Routine aggregate change, using the new seven-argument
+/// RPC. NULL Name / NULL Exercises means that field is *unchanged*; [] means
+/// replace composition with an empty list. No second metadata write is allowed.
+final class RoutineAggregateUpdate {
+  RoutineAggregateUpdate({
+    required this.routineId,
+    required this.programId,
+    required int expectedRevision,
+    required this.expectedName,
+    required String mutationId,
+    this.name,
+    List<RoutineCompositionEntry>? entries,
+    Map<String, ExerciseType?> expectedCustomTypes = const {},
+  })  : expectedRevision = _revision(expectedRevision),
+        mutationId = _uuid(mutationId),
+        entries = entries == null ? null : _entries(entries),
+        expectedCustomTypes = Map.unmodifiable(expectedCustomTypes) {
+    if (expectedName.trim().isEmpty ||
+        (name != null && name!.trim().isEmpty) ||
+        (name == null && entries == null)) {
+      throw ArgumentError('Invalid Routine aggregate Update.');
+    }
+    if (entries == null && expectedCustomTypes.isNotEmpty) {
+      throw ArgumentError('Name-only Update cannot supply Set type hints.');
+    }
+  }
+
+  final RoutineId routineId;
+  final ProgramId programId;
+  final int expectedRevision;
+  final String expectedName;
+  final String mutationId;
+  final String? name;
+  final List<RoutineCompositionEntry>? entries;
+  final Map<String, ExerciseType?> expectedCustomTypes;
+
+  String get savedName => name ?? expectedName;
+
+  bool matches(RoutineCompositionSnapshot snapshot) =>
+      snapshot.routineId == routineId &&
+      snapshot.name == savedName &&
+      (entries == null || _equal(entries!, snapshot.entries));
+}
+
+/// Name-aware mutation is an optional verified capability; older composition
+/// mocks and the historical four-argument RPC keep their existing boundary.
+abstract interface class RoutineAggregateUpdateRepository {
+  Future<int> updateAggregate(RoutineAggregateUpdate command);
 }
 
 enum RoutineCompositionFailureKind {
