@@ -267,10 +267,15 @@ void main() {
         headerToSetSpacing = relativeGap;
         final options = find.byTooltip('Exercise options');
         expect(options, findsOneWidget);
+        // The IconButton's own bounds can start 4dp inside its reserved
+        // 48dp row slot. Compare against that slot, not its inset bounds.
         expect(
           tester.getTopRight(exerciseName).dx,
-          closeTo(tester.getTopLeft(options).dx, 0.01),
-          reason: 'Name width ends before the reserved 3-dot action slot',
+          closeTo(
+            tester.getTopRight(options).dx - kMinInteractiveDimension,
+            0.01,
+          ),
+          reason: 'Exercise name must reserve the full 48dp options slot',
         );
         expect(tester.takeException(), isNull);
       }
