@@ -40,6 +40,7 @@ class RoutineSetTypeOption extends StatelessWidget {
       excludeSemantics: true,
       child: TioCard(
         variant: TioCardVariant.outlined,
+        outlinedBorderWidth: TioCardTokens.borderThin,
         padding: const EdgeInsets.symmetric(
           horizontal: TioSpacing.md,
           vertical: TioSpacing.sm,
@@ -90,6 +91,7 @@ class RoutineRemoveSetOption extends StatelessWidget {
       excludeSemantics: true,
       child: TioCard(
         variant: TioCardVariant.outlined,
+        outlinedBorderWidth: TioCardTokens.borderThin,
         padding: const EdgeInsets.symmetric(
           horizontal: TioSpacing.md,
           vertical: TioSpacing.sm,
