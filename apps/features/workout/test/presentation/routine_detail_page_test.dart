@@ -73,7 +73,14 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('routine-detail-page')), findsOneWidget);
-    expect(find.text('Push Day'), findsOneWidget);
+    final routineTitle = find.descendant(
+      of: find.byType(TioAppBar),
+      matching: find.text('Push Day'),
+    );
+    expect(routineTitle, findsOneWidget);
+    final titleStyle = tester.widget<Text>(routineTitle).style;
+    expect(titleStyle?.fontSize, TioFontSize.size18);
+    expect(titleStyle?.fontWeight, TioFontWeight.w600);
     expect(find.text('Exercises'), findsOneWidget);
     expect(find.text('SET'), findsOneWidget);
     expect(find.text('KG'), findsOneWidget);
@@ -91,6 +98,39 @@ void main() {
         findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.text('5 min cardio'), findsNothing);
+  });
+
+  testWidgets('long Routine Detail title remains single-line at 320dp in both themes',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final longRoutine = Routine(
+      id: RoutineId(_r1),
+      programId: ProgramId(_p1),
+      name: 'A Very Long Routine Name That Must Ellipsize At Compact Width',
+    );
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([longRoutine]),
+        compositions: _Compositions(_snapshot()),
+        selected: longRoutine,
+        mode: mode,
+      );
+      final title = find.descendant(
+        of: find.byType(TioAppBar),
+        matching: find.text(longRoutine.name),
+      );
+      expect(title, findsOneWidget);
+      final label = tester.widget<Text>(title);
+      expect(label.style?.fontSize, TioFontSize.size18);
+      expect(label.style?.fontWeight, TioFontWeight.w600);
+      expect(label.maxLines, 1);
+      expect(label.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('load display follows kg/lb preference and avoids guesses',
