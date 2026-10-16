@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_metadata_card.dart';
 import 'package:tio_shared/shared.dart';
 
 const _programId = '10000000-0000-4000-8000-000000000001';
