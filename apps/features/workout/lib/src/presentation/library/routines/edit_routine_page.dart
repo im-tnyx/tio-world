@@ -13,8 +13,9 @@ import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
-import 'routine_set_editor_sheet.dart';
 import 'routine_set_input_row.dart';
+import 'routine_set_type_badge.dart';
+import 'routine_set_type_option.dart';
 import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 
@@ -224,54 +225,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     await _source?.load();
   }
 
-  Future<void> _setEditor(
-    RoutineCompositionEntry entry, {
-    RoutineCompositionSet? existing,
-  }) async {
-    final editor = _editor;
-    final unit = widget.weightUnit;
-    if (!_canEdit || editor == null || unit == null) return;
-    ExerciseType? profile;
-    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
-      if (item.exercise.ref == entry.exercise) {
-        profile = routineEntryMeasurementProfile(
-          item.exercise.exerciseType,
-          entry.sets,
-        );
-        break;
-      }
-    }
-    final result = await showTioEditorSheet<SetPrescription>(
-      context: context,
-      useSafeArea: true,
-      builder: (_) => RoutineSetEditorSheet(
-        unit: unit,
-        initial: existing?.prescription,
-        showRangeDraft: _draftRangeEntryIds.contains(entry.id),
-        exerciseType: profile,
-      ),
-    );
-    if (!mounted ||
-        !identical(editor, _editor) ||
-        !_canEdit ||
-        unit != widget.weightUnit ||
-        result == null) {
-      return;
-    }
-    if (existing == null) {
-      editor.addSet(entry.id, result);
-    } else {
-      if (_editSetPreservingRange(entry, existing, result) &&
-          result.reps != null) {
-        // An accepted advanced-sheet Reps value is no longer an untouched
-        // blank Set. Otherwise a rejected Update remounts a blank row while
-        // the real entered value remains hidden in the pending draft.
-        _blankSetIds.remove(existing.id);
-      }
-    }
-  }
-
-  /// Inline cells and the advanced sheet must preserve the same transient
+  /// Inline cells must preserve the same transient
   /// Range choice when its saved bounds become fully blank. Only the
   /// explicit Repetition Options action switches the Exercise to fixed.
   bool _editSetPreservingRange(
@@ -368,30 +322,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       builder: (sheetContext) => TioEditorSheet(
         title: 'Select Set Type',
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          for (final kind in RoutineSetType.values)
-            ListTile(
+          for (final kind in RoutineSetType.values) ...[
+            RoutineSetTypeOption(
               key: ValueKey('edit-routine-type-${kind.wireValue}'),
-              title: Text(switch (kind) {
-                RoutineSetType.normal => 'Normal Set',
-                RoutineSetType.warmUp => 'Warm Up Set',
-                RoutineSetType.failure => 'Failure Set',
-                RoutineSetType.drop => 'Drop Set',
-              }),
-              trailing: kind == set.prescription.setType
-                  ? const Icon(Icons.check) : null,
+              type: kind,
+              normalNumber:
+                  routineNormalNumberForSelection(entry.sets, set.id),
+              selected: kind == set.prescription.setType,
+              useEditSetNumberColor: true,
               onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
             ),
-          // Existing Edit functionality still needs a path to Rest and
-          // other advanced prescription attributes. Numeric Reps/Weight
-          // remain inline; this secondary action preserves Rest editing.
-          ListTile(
-            key: const ValueKey('edit-routine-set-details'),
-            title: const Text('Rest & set details'),
-            onTap: () => Navigator.of(sheetContext).pop<Object>('details'),
-          ),
-          ListTile(
+            const SizedBox(height: TioSpacing.sm),
+          ],
+          RoutineRemoveSetOption(
             key: const ValueKey('edit-routine-type-remove'),
-            title: const Text('Remove Set'),
             onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
           ),
         ]),
@@ -400,8 +344,6 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (!mounted || !_canEdit || type == null) return;
     if (type == 'remove') {
       _removeSet(entry, set);
-    } else if (type == 'details') {
-      await _setEditor(entry, existing: set);
     } else if (type is RoutineSetType) {
       final current = set.prescription;
       _editor?.editSet(entry.id, set.id, SetPrescription(

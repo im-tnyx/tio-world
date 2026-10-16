@@ -7,20 +7,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_composition_repository.dart';
 import 'routine_set_input_limits.dart';
-
-// Preserve the Set-type semantic color when readable. High-contrast theme
-// surfaces invert light/dark values, so a fixed foreground is not safe.
-Color _readableSetBadgeColor(Color preferred, Color background) {
-  final foregroundLuminance = preferred.computeLuminance();
-  final backgroundLuminance = background.computeLuminance();
-  final contrast = foregroundLuminance > backgroundLuminance
-      ? (foregroundLuminance + 0.05) / (backgroundLuminance + 0.05)
-      : (backgroundLuminance + 0.05) / (foregroundLuminance + 0.05);
-  if (contrast >= 4.5) return preferred;
-
-  // Black/white selection guarantees >=4.5:1 for opaque surfaces.
-  return backgroundLuminance > 0.179 ? TioPalette.black : TioPalette.white;
-}
+import 'routine_set_type_badge.dart';
 
 /// Compact inline prescription editor for one identified Routine Set.
 ///
@@ -566,13 +553,6 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
   Widget _fields(BuildContext context) {
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
-    final preferredSetColor = switch (widget.set.prescription.setType) {
-      RoutineSetType.normal =>
-        widget.useEditSetNumberColor ? colors.primary : colors.textPrimary,
-      RoutineSetType.warmUp => colors.warning,
-      RoutineSetType.failure => colors.danger,
-      RoutineSetType.drop => colors.info,
-    };
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: Row(
@@ -591,32 +571,12 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                 heightFactor: 1,
                 child: UnconstrainedBox(
                   constrainedAxis: Axis.horizontal,
-                  child: Container(
-                    key: ValueKey('routine-set-type-box-${widget.set.id}'),
-                    width: TioSize.dp38,
-                    constraints: const BoxConstraints(minHeight: TioSize.dp38),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      // Keep the same Core-themed 38dp filled Set badge
-                      // in Create and Edit. PREVIOUS is a separate column;
-                      // Edit retains blue where its contrast is accessible.
-                      color: colors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(TioInputTokens.radius),
-                    ),
-                    child: Text(
-                      switch (widget.set.prescription.setType) {
-                        RoutineSetType.normal => '${widget.normalNumber}',
-                        RoutineSetType.warmUp => 'W',
-                        RoutineSetType.failure => 'F',
-                        RoutineSetType.drop => 'D',
-                      },
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: _readableSetBadgeColor(
-                          preferredSetColor,
-                          colors.surfaceVariant,
-                        ),
-                      ),
-                    ),
+                  child: RoutineSetTypeBadge(
+                    containerKey:
+                        ValueKey('routine-set-type-box-${widget.set.id}'),
+                    setType: widget.set.prescription.setType,
+                    normalNumber: widget.normalNumber,
+                    useEditSetNumberColor: widget.useEditSetNumberColor,
                   ),
                 ),
               ),

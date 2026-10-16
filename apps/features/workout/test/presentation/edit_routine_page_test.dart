@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_badge.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -133,7 +134,65 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
   await tester.pumpAndSettle();
 }
 
+const _thinPickerCardHeight = TioSize.dp38 +
+    2 * TioSpacing.sm +
+    2 * TioCardTokens.borderThin;
+
 void main() {
+  testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(setType: RoutineSetType.warmUp),
+    ]);
+    await f.open(tester, mode: TioThemeMode.dark);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Select Set Type'), findsOneWidget);
+    for (final kind in RoutineSetType.values) {
+      final option = find.byKey(ValueKey('edit-routine-type-${kind.wireValue}'));
+      final finder = find.descendant(
+        of: option, matching: find.byType(RoutineSetTypeBadge),
+      );
+      expect(finder, findsOneWidget);
+      final badge = tester.widget<RoutineSetTypeBadge>(finder);
+      expect(badge.setType, kind);
+      expect(badge.useEditSetNumberColor, isTrue);
+      final card = find.descendant(
+        of: option,
+        matching: find.byType(TioCard),
+      );
+      expect(card, findsOneWidget);
+      expect(tester.widget<TioCard>(card).variant,
+          TioCardVariant.outlined);
+      expect(tester.widget<TioCard>(card).outlinedBorderWidth,
+          TioCardTokens.borderThin);
+      expect(tester.getSize(card).height, _thinPickerCardHeight);
+
+      expect(badge.normalNumber, 1);
+    }
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('edit-routine-type-warm_up')),
+      matching: find.byIcon(Icons.check),
+    ), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    expect(find.text('Rest & set details'), findsNothing);
+    final remove = find.byKey(const ValueKey('edit-routine-type-remove'));
+    expect(remove, findsOneWidget);
+    expect(find.descendant(
+      of: remove, matching: find.byType(TioCard)), findsOneWidget);
+    final trash = find.descendant(
+      of: remove, matching: find.byIcon(Icons.delete_outline));
+    expect(trash, findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-type-$_setId')),
+      matching: find.text('D'),
+    ), findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+  });
+
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
     testWidgets('Edit Set/boxed number/Add Set rendered surfaces equal 38dp '
         'at 320dp in ${mode.name}', (tester) async {
@@ -619,37 +678,33 @@ void main() {
     expect(f.compositions.saveCount, 0);
   });
 
-  testWidgets('Advanced Set save refreshes inline Reps and Weight',
+  testWidgets('Set Type picker omits advanced details; inline edits preserve rest',
       (tester) async {
     final f = _Fixtures();
     await f.open(tester);
-    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
-    await tester.tap(badge);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byType(RoutineSetEditorSheet), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const ValueKey('routine-set-reps')), '14');
-    await tester.enterText(
-      find.byKey(const ValueKey('routine-set-weight')), '32.75');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
+    expect(find.text('Select Set Type'), findsOneWidget);
+    expect(find.text('Rest & set details'), findsNothing);
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-warm_up')));
     await tester.pumpAndSettle();
 
     final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
     final weight = find.byKey(const ValueKey('routine-set-weight-$_setId'));
-    expect(tester.widget<TioInput>(reps).controller!.text, '14');
-    expect(tester.widget<TioInput>(weight).controller!.text, '32.75');
     await tester.enterText(reps, '15');
+    await tester.enterText(weight, '32.75');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
+
     final saved = f.compositions.lastSave!.entries.single.sets.single;
     expect(saved.id, _setId);
+    expect(saved.prescription.setType, RoutineSetType.warmUp);
     expect(saved.prescription.reps, 15);
     expect(saved.prescription.loadKg, 32.75);
-    expect(saved.prescription.restSeconds, 60);
+    expect(saved.prescription.restSeconds, 60,
+        reason: 'Removing the legacy Rest UI must never clear saved rest');
   });
 
   testWidgets('valid new Edit Set Reps remain visible after rejected Update',
@@ -681,44 +736,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('advanced Set details Reps survive rejected Update',
+  testWidgets('Set Type and inline Reps survive rejected Update',
       (tester) async {
     final f = _Fixtures();
     f.compositions.error = const RoutineCompositionException(
       RoutineCompositionFailureKind.invalidRequest,
     );
     await f.open(tester);
-    final add = find.byKey(const ValueKey('edit-routine-add-set-$_entryId'));
-    await tester.ensureVisible(add);
-    await tester.tap(add);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
     await tester.pumpAndSettle();
 
-    const newSetId = '90000000-0000-4000-8000-000000000001';
-    final reps = find.byKey(const ValueKey('routine-set-reps-$newSetId'));
-    expect(reps, findsOneWidget);
-    expect(tester.widget<TioInput>(reps).controller!.text, isEmpty);
-
-    await tester.tap(find.byKey(
-      const ValueKey('routine-set-type-$newSetId')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byType(RoutineSetEditorSheet), findsOneWidget);
-    await tester.enterText(find.byKey(const ValueKey('routine-set-reps')), '12');
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
-
-    expect(tester.widget<TioInput>(reps).controller!.text, '12');
+    final reps = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    await tester.enterText(reps, '12');
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
     await tester.pumpAndSettle();
 
     expect(f.compositions.saveCount, 1);
     expect(f.editorResult, isNull);
-    expect(tester.widget<TioInput>(reps).controller!.text, '12',
-        reason: 'Accepted sheet Reps must not remount as blank on rejection');
-    final pending = f.compositions.lastSave!.entries.single.sets.last;
-    expect(pending.id, newSetId);
+    expect(tester.widget<TioInput>(reps).controller!.text, '12');
+    final pending = f.compositions.lastSave!.entries.single.sets.single;
+    expect(pending.id, _setId);
+    expect(pending.prescription.setType, RoutineSetType.drop);
     expect(pending.prescription.reps, 12);
+    expect(pending.prescription.restSeconds, 60);
     expect(tester.takeException(), isNull);
   });
 
@@ -848,48 +892,23 @@ void main() {
     expect(saved.id, _setId);
   });
 
-  testWidgets('details sheet clearing both Range bounds retains Range mode',
+  testWidgets('clearing inline Range bounds retains nullable Set and rest',
       (tester) async {
     final f = _Fixtures();
     f.compositions.snapshot = _snapshot(entries: [
       _entry(reps: 8, repsMax: 12, rest: 60),
     ]);
     await f.open(tester);
-    final badge = find.byKey(const ValueKey('routine-set-type-$_setId'));
-    await tester.tap(badge);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    final reps = find.byKey(const ValueKey('routine-set-reps'));
-    final max = find.byKey(const ValueKey('routine-set-reps-max'));
-    expect(reps, findsOneWidget);
+    final min = find.byKey(const ValueKey('routine-set-reps-$_setId'));
+    final max = find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
+    expect(min, findsOneWidget);
     expect(max, findsOneWidget);
-    await tester.enterText(reps, '');
+    await tester.enterText(min, '');
     await tester.enterText(max, '');
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('routine-set-confirm')));
-    await tester.pumpAndSettle();
-
-    final inlineMin =
-        find.byKey(const ValueKey('routine-set-reps-$_setId'));
-    final inlineMax =
-        find.byKey(const ValueKey('routine-set-reps-max-$_setId'));
-    expect(inlineMin, findsOneWidget);
-    expect(inlineMax, findsOneWidget);
-    expect(tester.widget<TioInput>(inlineMin).controller!.text, isEmpty);
-    expect(tester.widget<TioInput>(inlineMax).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(min).controller!.text, isEmpty);
+    expect(tester.widget<TioInput>(max).controller!.text, isEmpty);
     expect(f.compositions.saveCount, 0);
-
-    // A second details-sheet visit must use the same transient Range mode;
-    // never infer a fixed-mode switch from empty nullable persisted values.
-    await tester.tap(badge);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-routine-set-details')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-set-reps-max')), findsOneWidget);
-    // The screen header and sheet both say Cancel. Tap only the sheet action.
-    await tester.tap(find.widgetWithText(TioButton, 'Cancel'));
-    await tester.pumpAndSettle();
 
     final update = find.byKey(const ValueKey('edit-routine-update'));
     expect(tester.widget<TextButton>(update).onPressed, isNotNull);

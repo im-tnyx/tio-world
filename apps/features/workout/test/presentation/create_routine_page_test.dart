@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_badge.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
+
+const _thinPickerCardHeight = TioSize.dp38 +
+    2 * TioSpacing.sm +
+    2 * TioCardTokens.borderThin;
 
 void main() {
   testWidgets('picker creates an identified Set; blank targets may Save',
@@ -845,6 +850,35 @@ void main() {
     await tester.tap(type);
     await tester.pumpAndSettle();
     expect(find.text('Select Set Type'), findsOneWidget);
+    for (final kind in RoutineSetType.values) {
+      final option = find.byKey(
+          ValueKey('routine-type-option-${kind.wireValue}'));
+      expect(find.descendant(
+        of: option, matching: find.byType(RoutineSetTypeBadge),
+      ), findsOneWidget);
+      final badge = tester.widget<RoutineSetTypeBadge>(
+        find.descendant(
+          of: option, matching: find.byType(RoutineSetTypeBadge),
+        ),
+      );
+      expect(badge.setType, kind);
+      expect(badge.useEditSetNumberColor, isFalse);
+      final card = find.descendant(
+        of: option,
+        matching: find.byType(TioCard),
+      );
+      expect(card, findsOneWidget);
+      expect(tester.widget<TioCard>(card).variant,
+          TioCardVariant.outlined);
+      expect(tester.widget<TioCard>(card).outlinedBorderWidth,
+          TioCardTokens.borderThin);
+      expect(tester.getSize(card).height, _thinPickerCardHeight);
+
+      expect(badge.normalNumber, 1);
+    }
+    final normal = find.byKey(const ValueKey('routine-type-option-normal'));
+    expect(find.descendant(of: normal, matching: find.byIcon(Icons.check)),
+        findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('routine-type-option-warm_up')));
     await tester.pumpAndSettle();
     expect(find.descendant(
@@ -970,7 +1004,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('routine-type-remove-set')));
+    final remove = find.byKey(const ValueKey('routine-type-remove-set'));
+    expect(find.descendant(
+      of: remove, matching: find.byType(TioCard)), findsOneWidget);
+    final trash = find.descendant(
+      of: remove, matching: find.byIcon(Icons.delete_outline));
+    expect(trash, findsOneWidget);
+    await tester.tap(remove);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('create-routine-empty')),
         findsOneWidget);
