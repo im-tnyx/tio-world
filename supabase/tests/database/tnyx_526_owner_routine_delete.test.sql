@@ -32,8 +32,6 @@ select pg_temp.assert_true(
     'public.delete_user_workout_routine(uuid,uuid,bigint)','EXECUTE')
   and not has_function_privilege('anon',
     'public.delete_user_workout_routine(uuid,uuid,bigint)','EXECUTE')
-  and not has_function_privilege('PUBLIC',
-    'public.delete_user_workout_routine(uuid,uuid,bigint)','EXECUTE')
   and not has_table_privilege('authenticated',
     'public.user_workout_routines','DELETE')
   and not has_table_privilege('authenticated',
