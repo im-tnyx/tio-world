@@ -202,8 +202,8 @@ Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
 
-**Merged PR #574 (2026-10-16, source-only status)** implements the proposed Create and Edit Set Type selection
-sheets share the same Workout-owned 38dp filled Normal/W/F/D indicator and
+**Merged PR #574 (2026-10-16, source-only status)** implements Create and Edit Set Type selection
+sheets that share the same Workout-owned 38dp filled Normal/W/F/D indicator and
 Core theme semantic foreground/contrast fallback as the existing Set row.
 Both option rows and `Remove Set` use the reusable Core
 `TioCardVariant.outlined` surface with 12dp horizontal/8dp vertical content
