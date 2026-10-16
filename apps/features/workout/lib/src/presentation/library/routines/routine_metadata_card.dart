@@ -147,6 +147,9 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
               widget.onDelete != null)
             Semantics(
               key: ValueKey('routine-menu-${widget.routine.id.value}'),
+              // Keep overflow independently focusable from the card's
+              // primary navigation tap, with one semantic tap target.
+              container: true,
               button: true,
               label: 'Routine options',
               onTap: _openActions,
