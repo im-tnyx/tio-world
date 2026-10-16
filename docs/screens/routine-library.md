@@ -196,9 +196,9 @@ Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
 
-The Set Type selection sheets for Create and Edit share the same Workout-owned
-38dp filled W/Normal/F/D indicator and Core theme semantic foreground with
-contrast fallback as the Set row. The sheet's Normal label reflects the
+Draft PR #574 (unmerged) proposes that Create and Edit Set Type selection
+sheets share the same Workout-owned 38dp filled W/Normal/F/D indicator and
+Core theme semantic foreground/contrast fallback as the existing Set row. The sheet's Normal label reflects the
 prospective Normal sequence position for the selected Set, excluding special
 Set types; labels, selected check, Remove Set and Edit's Rest & set details
 remain unchanged. This is a Flutter-only presentation follow-up to #538, not
