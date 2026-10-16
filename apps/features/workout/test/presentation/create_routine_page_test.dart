@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_badge.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -845,6 +846,24 @@ void main() {
     await tester.tap(type);
     await tester.pumpAndSettle();
     expect(find.text('Select Set Type'), findsOneWidget);
+    for (final kind in RoutineSetType.values) {
+      final option = find.byKey(
+          ValueKey('routine-type-option-${kind.wireValue}'));
+      expect(find.descendant(
+        of: option, matching: find.byType(RoutineSetTypeBadge),
+      ), findsOneWidget);
+      final badge = tester.widget<RoutineSetTypeBadge>(
+        find.descendant(
+          of: option, matching: find.byType(RoutineSetTypeBadge),
+        ),
+      );
+      expect(badge.setType, kind);
+      expect(badge.useEditSetNumberColor, isFalse);
+      expect(badge.normalNumber, 1);
+    }
+    final normal = find.byKey(const ValueKey('routine-type-option-normal'));
+    expect(find.descendant(of: normal, matching: find.byIcon(Icons.check)),
+        findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('routine-type-option-warm_up')));
     await tester.pumpAndSettle();
     expect(find.descendant(
