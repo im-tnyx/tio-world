@@ -98,7 +98,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_user_id uuid;
   v_total bigint;
@@ -128,7 +128,7 @@ begin
 
   return null;
 end;
-$;
+$$;
 
 revoke all on function private.enforce_user_workout_routine_identity_budget()
   from public, anon, authenticated, service_role;
