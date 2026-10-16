@@ -15,14 +15,14 @@
 - **Planning owner:** Repository documentation governance, GitHub #250 / Linear TNYX-193.
 - **Implementation owner:** This GitHub-connected session on `docs/pre-p9-workout-canonical-status`; docs/AI handoff paths only. Workout runtime work has separate owners and is untouched.
 - **Review owner:** Independent exact-head docs/source review and Codex if available.
-- **Implementation ownership state:** Handoff pending — docs-only implementation proposed in Draft PR #582; external exact-head review pending, do not merge.
+- **Implementation ownership state:** Handoff pending — docs-only PR #582 is Ready for review; external reviewer `im-tio` requested, response pending. Do not merge.
 - **Repository state last verified:** GitHub remote `main@633dbf38bb12aeb4a0e2920a22d63c904e087576` after merged PR #581. No open PRs at the initial reconciliation checkpoint; branch created from this immutable base SHA.
 - **Observed uncommitted/dirty files:** Windows `G:\projects\Tio-World` worktree is unavailable to this GitHub connector; no local cleanliness or `git status` assertion. GitHub API changed only this isolated branch.
 - **Validation completed at SHA:** Draft PR #582 initial exact head `5f46ad4d26545398ce87f2d6c3f7674b4c31999d` was verified against `main@633dbf38`: 14 ahead / 0 behind; merge-base matches base; eight expected Markdown files. Full PR patches show zero trailing whitespace on added lines, no changed executable paths, all changed relative Markdown links resolve; all eight fetched files have terminal newline and zero conflict markers. The current handoff-only checkpoint commit must be rechecked as a new HEAD before review.
-- **Validation remaining:** Recompare and re-review exact final HEAD after this handoff, request independent reviewer and inspect applicable GitHub checks. At the initial Draft head, GitHub published zero workflow runs, commit statuses, reviews and inline threads; do not treat absence of checks as success. Local `git diff --check`, Flutter suite, Supabase query and device QA were not run in this connector session.
+- **Validation remaining:** Recompare and re-review exact final HEAD after this handoff; requested `im-tio` review and applicable GitHub checks remain pending. At the initial Draft head, GitHub published zero workflow runs, commit statuses, reviews and inline threads; do not treat absence of checks as success. Local `git diff --check`, Flutter suite, Supabase query and device QA were not run in this connector session.
 - **Open review finding IDs:** None at branch creation.
 - **Current blocker:** None for narrowly scoped factual doc edits; PR review/required checks and owner merge authorization later.
-- **Next exact action:** Advance open Draft PR #582 to review when final-head source/diff audit is clean; request qualified independent review, observe required checks and handle actionable findings. Stop before separate owner `Go merge`.
+- **Next exact action:** Recheck final branch HEAD after this handoff update, receive independent review from requested `im-tio`, inspect applicable checks and address actionable findings. Stop before separate owner `Go merge`.
 
 ## 1. Discovery
 
@@ -62,4 +62,4 @@ Rejected alternative: create a new P9 routing map or flatten old W4 history into
 **Changed files:** Six `docs/screens/` specs, this brief and `.ai/tasks/README.md` (eight Markdown paths total).
 **Actual behavior:** No application behavior changes; current-state documentation only.
 **Known limitations:** No local Windows checkout or device QA, no fresh live Supabase schema query; separate schema-inventory correction and P9 determination remain open.
-**Final status:** REVIEW GATE — PR #582 opened, not independently approved, not merged.
+**Final status:** IN REVIEW — PR #582 Ready for review, independent reviewer requested; no approval or CI PASS established; not merged.
