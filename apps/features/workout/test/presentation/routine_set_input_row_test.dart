@@ -260,8 +260,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Edit PREVIOUS Set number is blue and unboxed without '
-        'shrinking its 38dp tap target in ${mode.name}', (tester) async {
+    testWidgets('Edit PREVIOUS Set number is blue on matching filled '
+        '38dp Create badge in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
       addTearDown(() {
@@ -278,7 +278,7 @@ void main() {
           child: child ?? const SizedBox.shrink(),
         ),
         home: Scaffold(
-          // Deliberately supply a tall bounded viewport: the filled/unboxed
+          // Deliberately supply a tall bounded viewport: the filled
           // SET surface must shrink-wrap to 38dp rather than fill 712dp.
           // Real Create/Edit page compositions are checked separately.
           body: RoutineSetInputRow(
@@ -303,8 +303,11 @@ void main() {
       final setBox = find.byKey(const ValueKey('routine-set-type-box-$id'));
       final decoration =
           tester.widget<Container>(setBox).decoration! as BoxDecoration;
-      expect(decoration.color, isNull,
-          reason: 'Edit SET is unboxed, unlike the Create filled badge');
+      expect(decoration.color, palette.surfaceVariant,
+          reason: 'Edit and Create must share the filled SET badge surface');
+      expect(decoration.color, isNot(palette.background));
+      expect(decoration.borderRadius,
+          BorderRadius.circular(TioInputTokens.radius));
       expect(tester.getSize(setBox).height, TioSize.dp38);
       expect(tester.getSize(setBox).width, TioSize.dp38);
       final number = find.descendant(of: setBox, matching: find.text('1'));
@@ -327,7 +330,7 @@ void main() {
       }
       await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
       expect(selections, 1,
-          reason: 'Edit blue number must still open Set Type selection');
+          reason: 'Edit blue number inside filled badge must open Set Type selection');
       expect(tester.takeException(), isNull);
     });
   }
