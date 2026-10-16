@@ -163,6 +163,19 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         );
   }
 
+  /// Name-only Update does not need the Exercise catalog/picker to load.
+  /// Any composition change retains its strict source, target and Set gates.
+  bool get _canUpdate {
+    final editor = _editor;
+    if (editor == null || !editor.state.canEdit ||
+        widget.weightUnit == null || !_nameHydrated ||
+        _name.text.trim().isEmpty || editor.updateExceedsSetLimit) {
+      return false;
+    }
+    if (!editor.compositionDirty) return true;
+    return _canEdit && _invalidSetIds.isEmpty && _rangeCanSave;
+  }
+
   Future<void> _addExercise({RoutineCompositionEntry? replacing}) async {
     final editor = _editor;
     if (!_canEdit || editor == null) return;
@@ -428,11 +441,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Future<void> _save() async {
     final editor = _editor;
-    if (!_canEdit || editor == null ||
-        editor.updateExceedsSetLimit ||
-        (_name.text.trim().isEmpty) ||
-        (editor.compositionDirty &&
-            (_invalidSetIds.isNotEmpty || !_rangeCanSave))) {
+    if (editor == null || !_canUpdate) {
       return;
     }
     final confirmed = await editor.update();
@@ -483,13 +492,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                 widget.weightUnit != null
             ? const ValueKey('edit-routine-update')
             : null,
-        onSubmit: _canEdit &&
-                !(_editor?.updateExceedsSetLimit ?? true) &&
-                _name.text.trim().isNotEmpty &&
-                (!(_editor?.compositionDirty ?? true) ||
-                    (_invalidSetIds.isEmpty && _rangeCanSave))
-            ? _save
-            : null,
+        onSubmit: _canUpdate ? _save : null,
         content: _body(),
       ),
     );
@@ -587,7 +590,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           TioInput(
             key: const ValueKey('edit-routine-name'),
             controller: _name,
-            enabled: _canEdit,
+            enabled: state.canEdit && widget.weightUnit != null,
             hint: 'Routine name',
             textCapitalization: TextCapitalization.words,
             onChanged: (value) => _editor?.rename(value),
