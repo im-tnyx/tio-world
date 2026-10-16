@@ -169,7 +169,7 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(repository.rows.single.name, 'Push');
     expect(find.byKey(const ValueKey('routine-menu-$_routineId')),
-        findsOneWidget);
+        findsNothing, reason: 'No Edit capability means no inert 3-dot action');
   });
 
   testWidgets('Routine 3-dot keeps popup and launches full Edit callback',
