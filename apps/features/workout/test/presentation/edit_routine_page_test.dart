@@ -134,6 +134,10 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
   await tester.pumpAndSettle();
 }
 
+const _thinPickerCardHeight = TioSize.dp38 +
+    2 * TioSpacing.sm +
+    2 * TioCardTokens.borderThin;
+
 void main() {
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
       (tester) async {
@@ -161,7 +165,9 @@ void main() {
       expect(card, findsOneWidget);
       expect(tester.widget<TioCard>(card).variant,
           TioCardVariant.outlined);
-      expect(tester.getSize(card).height, TioSize.dp56);
+      expect(tester.widget<TioCard>(card).outlinedBorderWidth,
+          TioCardTokens.borderThin);
+      expect(tester.getSize(card).height, _thinPickerCardHeight);
 
       expect(badge.normalNumber, 1);
     }
