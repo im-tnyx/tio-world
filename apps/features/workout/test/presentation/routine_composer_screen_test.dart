@@ -223,6 +223,7 @@ void main() {
                 unit: WeightUnit.kg,
                 enabled: false,
                 showPrevious: true,
+                useEditSetNumberColor: mode == RoutineComposerMode.edit,
                 isOpen: false,
                 onOpenChanged: (_) {},
                 onChanged: (_) {},
@@ -246,7 +247,7 @@ void main() {
             reason: 'Both composer modes reserve the same history header');
         final start = tester.getTopLeft(previous).dx;
         if (previousStart != null) {
-          expect(start, closeTo(previousStart!, 0.01));
+          expect(start, closeTo(previousStart, 0.01));
         }
         previousStart = start;
         // Both modes show only an unavailable placeholder until actual
@@ -261,7 +262,7 @@ void main() {
         final relativeGap =
             tester.getTopLeft(setBox).dy - tester.getBottomLeft(previous).dy;
         if (headerToSetSpacing != null) {
-          expect(relativeGap, closeTo(headerToSetSpacing!, 0.01));
+          expect(relativeGap, closeTo(headerToSetSpacing, 0.01));
         }
         headerToSetSpacing = relativeGap;
         final options = find.byTooltip('Exercise options');
