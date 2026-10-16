@@ -613,11 +613,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             const _Message(
               message: 'Custom Exercises are unavailable for this account.',
             ),
-          if (_editor?.updateExceedsSetLimit ?? false)
+          if (_editor?.exceedsSetLimit ?? false)
             const _Message(
               key: ValueKey('edit-routine-too-many-sets'),
               message: 'This Routine has more than 8 Sets in an Exercise. '
-                  'Remove extra Sets before Update.',
+                  'Reduce Sets before changing the composition; '
+                  'renaming alone is still available.',
             ),
           if (state.message != null)
             Padding(
