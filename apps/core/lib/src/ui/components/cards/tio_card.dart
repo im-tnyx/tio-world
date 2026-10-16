@@ -11,12 +11,19 @@ class TioCard extends StatelessWidget {
     this.variant = TioCardVariant.surface,
     this.padding,
     this.onTap,
-  });
+    this.outlinedBorderWidth,
+  })  : assert(outlinedBorderWidth == null || outlinedBorderWidth > 0),
+        assert(variant == TioCardVariant.outlined || outlinedBorderWidth == null);
 
   final Widget child;
   final TioCardVariant variant;
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
+
+  /// Optional physical width for the outlined variant only. Omitting it
+  /// retains the existing 1dp Core card outline on every current consumer.
+  /// Use a governed TioStroke/TioCardTokens value at call sites.
+  final double? outlinedBorderWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +40,10 @@ class TioCard extends StatelessWidget {
     };
 
     final border = switch (variant) {
-      TioCardVariant.outlined => Border.all(color: colors.outlineStrong),
+      TioCardVariant.outlined => Border.all(
+          color: colors.outlineStrong,
+          width: outlinedBorderWidth ?? TioStroke.width1,
+        ),
       TioCardVariant.glass => Border.all(
           color: colors.textPrimary.withValues(
             alpha: TioCardTokens.glassBorderOpacity,
