@@ -78,7 +78,7 @@ class RoutineMetadataCard extends StatelessWidget {
                   if (onDelete != null)
                     TioSettingsNavigationRow(
                       key: ValueKey('routine-delete-${routine.id.value}'),
-                      leading: const TioSettingsLeadingIcon(
+                      leading: TioSettingsLeadingIcon(
                         icon: Icons.delete_outline,
                         color: sheetContext.tioColors.danger,
                       ),
