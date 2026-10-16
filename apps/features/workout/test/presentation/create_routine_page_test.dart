@@ -859,6 +859,14 @@ void main() {
       );
       expect(badge.setType, kind);
       expect(badge.useEditSetNumberColor, isFalse);
+      final card = find.descendant(
+        of: option,
+        matching: find.byType(TioSelectableCard),
+      );
+      expect(card, findsOneWidget);
+      expect(tester.widget<TioSelectableCard>(card).selected,
+          kind == RoutineSetType.normal);
+
       expect(badge.normalNumber, 1);
     }
     final normal = find.byKey(const ValueKey('routine-type-option-normal'));
