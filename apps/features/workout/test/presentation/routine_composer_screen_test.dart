@@ -179,6 +179,7 @@ void main() {
     tester.view.physicalSize = const Size(320, 720);
     tester.view.devicePixelRatio = 1;
     const title = 'Barbell Standing Military Press (Without Rack)';
+    double? previousStart;
     final entry = RoutineCompositionEntry(
       id: '33333333-3333-4333-8333-333333333333',
       exercise: ExerciseRef.catalog('ex_bench_press'),
@@ -219,6 +220,15 @@ void main() {
         expect(label.style?.fontWeight, TioFontWeight.w500);
         expect(label.maxLines, 2);
         expect(label.overflow, TextOverflow.ellipsis);
+        expect(find.text('SET'), findsOneWidget);
+        final previous = find.text('PREVIOUS');
+        expect(previous, findsOneWidget,
+            reason: 'Both composer modes reserve the same history header');
+        final start = tester.getTopLeft(previous).dx;
+        if (previousStart != null) {
+          expect(start, closeTo(previousStart!, 0.01));
+        }
+        previousStart = start;
         final options = find.byTooltip('Exercise options');
         expect(options, findsOneWidget);
         expect(
