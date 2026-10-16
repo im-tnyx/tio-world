@@ -48,6 +48,11 @@ void main() {
         TioFontSize.size18,
         reason: 'Both shared composer titles use the compact Core text size',
       );
+      expect(
+        tester.widget<Text>(title).style?.fontWeight,
+        TioFontWeight.w600,
+        reason: 'Create and Edit titles use the same approved medium weight',
+      );
       expect(tester.getTopLeft(title).dx, greaterThan(tester.getCenter(close).dx));
       expect(tester.getTopLeft(title).dx, lessThan(tester.getCenter(submit).dx));
       titleStarts.add(tester.getTopLeft(title).dx);
@@ -152,6 +157,9 @@ void main() {
         expect(close, findsOneWidget);
         expect(title, findsOneWidget);
         expect(submit, findsOneWidget);
+        final titleStyle = tester.widget<Text>(title).style;
+        expect(titleStyle?.fontSize, TioFontSize.size18);
+        expect(titleStyle?.fontWeight, TioFontWeight.w600);
         expect(tester.getTopRight(close).dx,
             lessThan(tester.getTopRight(submit).dx));
         expect(tester.takeException(), isNull);
