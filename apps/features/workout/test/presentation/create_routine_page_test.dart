@@ -46,9 +46,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey(
-        'create-routine-set-55555555-5555-4555-8555-555555555555')),
-        findsOneWidget);
+    final createSet = find.byKey(const ValueKey(
+        'create-routine-set-55555555-5555-4555-8555-555555555555'));
+    expect(createSet, findsOneWidget);
+    expect(find.text('PREVIOUS'), findsOneWidget);
+    // No performed-session repository exists yet. This visible dash is not
+    // an invented history value and must not populate the editable Set.
+    expect(
+      find.descendant(of: createSet, matching: find.text('–')),
+      findsOneWidget,
+    );
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
     final reps = find.byKey(const ValueKey('routine-set-reps-55555555-5555-4555-8555-555555555555'));
