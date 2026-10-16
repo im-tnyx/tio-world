@@ -234,6 +234,74 @@ void main() {
     expect(find.text('Start Workout'), findsNothing);
   });
 
+  testWidgets('Exercises row owns the only Edit action on ready-empty Routine',
+      (tester) async {
+    var edits = 0;
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(_snapshot()),
+      onEditPressed: (_) async {
+        edits++;
+        return false;
+      },
+    );
+
+    final header = find.byKey(
+      const ValueKey('routine-detail-exercises-header'),
+    );
+    final edit = find.byKey(const ValueKey('routine-detail-edit'));
+    expect(header, findsOneWidget);
+    expect(edit, findsOneWidget);
+    final headerRow = find.ancestor(
+      of: header,
+      matching: find.byType(Row),
+    ).first;
+    expect(find.descendant(of: headerRow, matching: edit), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(TioAppBar),
+        matching: edit,
+      ),
+      findsNothing,
+      reason: 'Edit Routine must not appear in the top app bar',
+    );
+    expect(find.text('0 exercises · 0 sets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    expect(edits, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Exercises and Edit stay together at compact width in both themes',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+
+    for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([_routine]),
+        compositions: _Compositions(_snapshot()),
+        mode: theme,
+        onEditPressed: (_) async => false,
+      );
+
+      final header = find.byKey(
+        const ValueKey('routine-detail-exercises-header'),
+      );
+      final edit = find.byKey(const ValueKey('routine-detail-edit'));
+      expect(header, findsOneWidget);
+      expect(edit, findsOneWidget);
+      final row = find.ancestor(of: header, matching: find.byType(Row)).first;
+      expect(find.descendant(of: row, matching: edit), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('missing repository fails closed without fabricated content',
       (tester) async {
     await _pump(tester, routines: _Routines([_routine]), compositions: null);
