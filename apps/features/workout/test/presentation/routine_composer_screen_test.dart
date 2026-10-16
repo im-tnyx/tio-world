@@ -267,15 +267,17 @@ void main() {
         headerToSetSpacing = relativeGap;
         final options = find.byTooltip('Exercise options');
         expect(options, findsOneWidget);
-        // The IconButton's own bounds can start 4dp inside its reserved
-        // 48dp row slot. Compare against that slot, not its inset bounds.
+        // Material IconButton bounds are inset 4dp on *both* sides of
+        // its 48dp row slot. The full-width Scaffold is the stable edge;
+        // the label must end 48dp before that edge, not before IconButton.
         expect(
           tester.getTopRight(exerciseName).dx,
           closeTo(
-            tester.getTopRight(options).dx - kMinInteractiveDimension,
+            tester.getTopRight(find.byType(Scaffold)).dx -
+                kMinInteractiveDimension,
             0.01,
           ),
-          reason: 'Exercise name must reserve the full 48dp options slot',
+          reason: 'Exercise title reserves the full trailing 48dp slot',
         );
         expect(tester.takeException(), isNull);
       }
