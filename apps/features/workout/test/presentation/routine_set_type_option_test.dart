@@ -5,6 +5,10 @@ import 'package:tio_feature_workout/src/presentation/library/routines/routine_se
 import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_option.dart';
 import 'package:tio_shared/shared.dart';
 
+const _thinPickerCardHeight = TioSize.dp38 +
+    2 * TioSpacing.sm +
+    2 * TioCardTokens.borderThin;
+
 void main() {
   for (final mode in [
     TioThemeMode.light,
@@ -12,7 +16,7 @@ void main() {
     TioThemeMode.tioDark,
   ]) {
     for (final highContrast in [false, true]) {
-      testWidgets('56dp Core outlined Set Type and Remove cards at 320dp '
+      testWidgets('0.75dp Core outlined Set Type and Remove cards at 320dp '
           '${mode.name}, highContrast=$highContrast', (tester) async {
         tester.view.physicalSize = const Size(320, 720);
         tester.view.devicePixelRatio = 1;
@@ -62,11 +66,12 @@ void main() {
           expect(card, findsOneWidget);
           final rendered = tester.widget<TioCard>(card);
           expect(rendered.variant, TioCardVariant.outlined);
+          expect(rendered.outlinedBorderWidth, TioCardTokens.borderThin);
           expect(rendered.padding, const EdgeInsets.symmetric(
             horizontal: TioSpacing.md,
             vertical: TioSpacing.sm,
           ));
-          expect(tester.getSize(card).height, TioSize.dp56);
+          expect(tester.getSize(card).height, _thinPickerCardHeight);
 
           final semantics = tester.widget<Semantics>(find.descendant(
             of: option,
@@ -84,6 +89,8 @@ void main() {
           final outline = tester.widget<Container>(outlined).decoration!
               as BoxDecoration;
           expect((outline.border! as Border).top.color, colors.outlineStrong);
+          expect((outline.border! as Border).top.width,
+              TioCardTokens.borderThin);
 
           final badge = find.descendant(
             of: option,
@@ -112,7 +119,9 @@ void main() {
         expect(removeCard, findsOneWidget);
         expect(tester.widget<TioCard>(removeCard).variant,
             TioCardVariant.outlined);
-        expect(tester.getSize(removeCard).height, TioSize.dp56);
+        expect(tester.widget<TioCard>(removeCard).outlinedBorderWidth,
+            TioCardTokens.borderThin);
+        expect(tester.getSize(removeCard).height, _thinPickerCardHeight);
         final trash = find.descendant(
           of: remove, matching: find.byIcon(Icons.delete_outline));
         expect(trash, findsOneWidget);
@@ -162,7 +171,7 @@ void main() {
       ),
     ));
     expect(tester.getSize(find.byType(TioCard)).height,
-        greaterThanOrEqualTo(TioSize.dp56));
+        greaterThanOrEqualTo(_thinPickerCardHeight));
     expect(tester.takeException(), isNull);
   });
 }
