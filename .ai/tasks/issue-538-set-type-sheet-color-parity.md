@@ -53,6 +53,16 @@ Extract the existing 38dp Set badge rendering and contrast computation into one 
 
 **Validation needed:** exact-head Flutter CI, compact 320dp light/dark/Tio Dark/high-contrast and text-scale widget assertions, 56dp compact painted card geometry, Core variant usage, red trash icon, tap/action/selected semantics, remove-last-Set contract and no unrelated regressions. This screenshot is a design reference, not evidence of current PR code running on-device.
 
+## Owner thin-outline trial — 0.75dp (2026-10-16)
+
+**Approval evidence:** Owner explicitly requested to **try 0.75dp** on Set Type selection outlines after verifying that the current Core `TioCardVariant.outlined` is 1.0dp. This is a reversible presentation-only experiment **within Draft PR #574**; it is not device QA acceptance or a merge instruction.
+
+**Baseline:** Core `TioCardVariant.outlined` uses Flutter `Border.all(color: colors.outlineStrong)` with default 1.0dp; both Workout `RoutineSetTypeOption` and `RoutineRemoveSetOption` use that variant and are 56dp high at standard text scale.
+
+**Chosen bounded implementation:** Add optional, **outlined-only** `outlinedBorderWidth` parameter to Core `TioCard`, defaulting to the unchanged existing `TioStroke.width1`. Both Workout selector option and Remove Set compositions pass the **existing** `TioCardTokens.borderThin` (`TioStroke.width075`, 0.75dp). Preserve `TioCardVariant.outlined` reuse, `colors.outlineStrong`, radius, content padding, selected check/semantics, action behavior and 38dp type badge. Expected nominal visual height 55.5dp (38dp + 16dp padding + 1.5dp stroke) versus previous 56dp; widget/CI must verify actual measurements. No global change to other Core cards.
+
+**Ownership / tests:** Core owns the generic optional parameter and its default/override regression tests plus theme README contract; Workout owns both callers and 320dp light/dark/high-contrast widget tests. No new tokens, alternate card variants, Rest Timer/Notes, persistence/backend/router changes. Exact-head Flutter CI, independent review, owner device QA, and a separate final merge gate required. A prior `Go merge with gate` was held because physical-device acceptance remained unverified.
+
 ## Verified exact-source CI and review (2026-10-16)
 
 - Initial UI-color-only source HEAD `18bc0ffa`: Flutter CI [#38870234939](https://github.com/im-tnyx/tio-world/actions/runs/38870234939) **SUCCESS**, with Codex no-major-issues review. **Historical only:** later owner-approved *production* code changes added the outlined options and removed the legacy Edit details action. The old CI must not be used to assert the new UI is validated.
