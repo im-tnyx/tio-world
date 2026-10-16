@@ -93,38 +93,35 @@ class _RoutineComposerScreenState extends State<RoutineComposerScreen>
         elevation: TioElevation.none,
         scrolledUnderElevation: TioElevation.none,
         automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            TextButton(
-              key: widget.cancelKey,
-              onPressed: widget.cancelEnabled ? widget.cancel : null,
-              child: const Text('Cancel'),
-            ),
-            Expanded(
-              child: Text(
-                isEdit ? 'Edit Routine' : 'Create Routine',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: TioFontSize.size20,
-                  fontWeight: TioFontWeight.w800,
-                ),
-              ),
-            ),
-            // One action slot for both modes; distinct controllers still own
-            // the guarded Save/Update command, but the screen stays identical.
-            if (isEdit && widget.submitKey == null)
-              const SizedBox(width: TioSize.dp64)
-            else
-              TextButton(
-                key: widget.submitKey,
-                onPressed: widget.onSubmit,
-                child: Text(isEdit ? 'Update' : 'Save'),
-              ),
-          ],
+        leading: IconButton(
+          key: widget.cancelKey,
+          tooltip: 'Cancel',
+          onPressed: widget.cancelEnabled ? widget.cancel : null,
+          icon: const Icon(Icons.close_rounded),
         ),
+        title: Text(
+          isEdit ? 'Edit Routine' : 'Create Routine',
+          key: const ValueKey('routine-composer-title'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: TioFontSize.size20,
+            fontWeight: TioFontWeight.w800,
+          ),
+        ),
+        actions: [
+          // Identical submit position; Create/Edit adapters retain guarded
+          // persistence and submit availability.
+          if (isEdit && widget.submitKey == null)
+            const SizedBox(width: TioSize.dp64)
+          else
+            TextButton(
+              key: widget.submitKey,
+              onPressed: widget.onSubmit,
+              child: Text(isEdit ? 'Update' : 'Save'),
+            ),
+        ],
       ),
       body: SafeArea(child: widget.content),
     );
