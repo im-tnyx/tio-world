@@ -734,6 +734,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         exerciseType: exerciseType,
         showRangeDraft: _draftRangeEntryIds.contains(entry.id),
         showPrevious: true,
+        useEditSetNumberColor: true,
         startWithBlankReps: _blankSetIds.contains(set.id),
         isOpen: _openSetId == set.id,
         onOpenChanged: (open) => _setOpen(set.id, open),
