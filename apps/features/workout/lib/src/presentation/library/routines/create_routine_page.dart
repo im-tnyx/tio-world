@@ -16,6 +16,7 @@ import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_input_row.dart';
+import 'routine_set_type_badge.dart';
 import 'routine_composer_screen.dart';
 
 /// Full-screen, Program-owned Create draft. Nothing persists until Save
@@ -307,12 +308,13 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             for (final type in RoutineSetType.values)
               ListTile(
                 key: ValueKey('routine-type-option-${type.wireValue}'),
-                leading: Text(switch (type) {
-                  RoutineSetType.normal => '1',
-                  RoutineSetType.warmUp => 'W',
-                  RoutineSetType.failure => 'F',
-                  RoutineSetType.drop => 'D',
-                }),
+                leading: ExcludeSemantics(
+                  child: RoutineSetTypeBadge(
+                    setType: type,
+                    normalNumber:
+                        routineNormalNumberForSelection(entry.sets, set.id),
+                  ),
+                ),
                 title: Text(switch (type) {
                   RoutineSetType.normal => 'Normal Set',
                   RoutineSetType.warmUp => 'Warm Up Set',
