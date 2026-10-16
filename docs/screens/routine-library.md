@@ -117,21 +117,21 @@ the 38dp Set/Input/Add Set surfaces, and Exercise `⋮` options. The same
 composition is configured in Create mode (`Create Routine`, empty draft,
 atomic Save) or Edit mode (`Edit Routine`, loaded owner Routine,
 revision-guarded Update). Both modes reserve the same read-only PREVIOUS
-header and 64dp Set-row slot in Draft #570, displaying an unavailable dash
+header and 64dp Set-row slot from merged PR #570, displaying an unavailable dash
 until genuine performed workout history exists. Existing Create/Edit route
 entrypoint state owners remain thin adapters for different auth/persistence,
 Custom preflight, unknown-write resolution and validation rules. This avoids
 duplicated visual implementations without incorrectly unifying two distinct
 database commands. No new DB schema, service, route, watch UI or visual redesign
-is authorized. The later #564 UI-parity changes require their own exact-head Flutter CI, independent review and device QA before merge. In that Draft, Create/Edit app-bar title typography remains 18sp/w800 and Routine Detail app-bar remains 20sp/w800. All three surfaces display Exercise names at 16sp/w500, maximum two lines with ellipsis. Read-only Routine Detail reserves the same trailing 48dp space used by the Create/Edit Exercise-row 3-dot action, without displaying an inert options button; this keeps long-name wrapping consistent at equal viewport sizes.
+is authorized. The #564 UI-parity sub-slice merged in PR #570 after exact-head CI/review and owner device QA. In that implementation, Create/Edit app-bar title typography remains 18sp/w800 and Routine Detail app-bar remains 20sp/w800. All three surfaces display Exercise names at 16sp/w500, maximum two lines with ellipsis. Read-only Routine Detail reserves the same trailing 48dp space used by the Create/Edit Exercise-row 3-dot action, without displaying an inert options button; this keeps long-name wrapping consistent at equal viewport sizes.
 
-## Previous Workout values in Routine composer (Draft #570 layout, history deferred)
+## Previous Workout values in Routine composer (merged #570 layout, history deferred)
 
 The owner-approved shared Create/Edit Set grid is always laid out as
 `SET | PREVIOUS | KG/LB | REPS` for weight-and-reps exercises. The
 corresponding distance/time measurement profile keeps its existing units,
 but uses the same 64dp PREVIOUS placeholder slot. The header and row
-spacing are identical in Create and Edit. In Draft #570, these are
+spacing are identical in Create and Edit. As merged in PR #570, these are
 **presentation-only placeholders**, shown as `–` with an accessible
 unavailable label; nothing is auto-filled. Template `SetPrescription` data
 must never be passed off as performed workout history.
@@ -179,7 +179,7 @@ shape follows that same radius. The previous Set number used
 `TioRadius.md` (12dp), causing a visible mismatch against Core's 14dp
 numeric outlines. On the merged #551 baseline, Edit/PREVIOUS kept an
 unboxed blue Set number, unlike Create's filled badge. The owner-approved
-#564 follow-up in Draft PR #570 uses the same Core `surfaceVariant`
+#564 follow-up merged in PR #570 uses the same Core `surfaceVariant`
 filled Set badge in **both Create and Edit**. The preferred number/type
 foreground stays on its existing theme role where readable (including the
 Edit primary/blue number), but falls back to black or white when necessary
@@ -195,6 +195,14 @@ WorkoutSession values. Both modes use the same 38dp filled, 14dp rounded
 Set type control.
 The 8-Set cap, input/focus behavior, button geometry and persistence
 contracts remain unchanged.
+
+The Set Type selection sheets for Create and Edit share the same Workout-owned
+38dp filled W/Normal/F/D indicator and Core theme semantic foreground with
+contrast fallback as the Set row. The sheet's Normal label reflects the
+prospective Normal sequence position for the selected Set, excluding special
+Set types; labels, selected check, Remove Set and Edit's Rest & set details
+remain unchanged. This is a Flutter-only presentation follow-up to #538, not
+a persistence/schema or performed WorkoutSession behavior change.
 
 ## Swipe-to-delete Set action (merged #551; release/device QA unverified)
 
