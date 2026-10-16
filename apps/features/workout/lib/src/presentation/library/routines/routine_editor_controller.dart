@@ -372,7 +372,8 @@ final class RoutineEditorController extends ChangeNotifier {
     _publish(_ready());
   }
 
-  bool get _compositionDirty => !listEquals(_baseline, _draft);
+  bool get compositionDirty => !listEquals(_baseline, _draft);
+  bool get _compositionDirty => compositionDirty;
   bool get _nameDirty => _draftName.trim() != _baselineName;
 
   /// Return true only if no write was needed or the RPC confirmed it.
