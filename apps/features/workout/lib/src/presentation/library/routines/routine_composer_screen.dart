@@ -315,16 +315,16 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                 child: Text('SET', textAlign: TextAlign.center),
               ),
               const SizedBox(width: TioSpacing.sm),
-              if (isEdit) ...[
-                const SizedBox(
-                  width: TioSize.dp64,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text('PREVIOUS'),
-                  ),
+              // Reserve the same history column in Create and Edit. Until
+              // performed-workout history exists, Set rows show only a dash.
+              const SizedBox(
+                width: TioSize.dp64,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('PREVIOUS'),
                 ),
-                const SizedBox(width: TioSpacing.sm),
-              ],
+              ),
+              const SizedBox(width: TioSpacing.sm),
               if (exerciseType == ExerciseType.distanceDuration) ...[
                 const Expanded(
                   child: Text('KM', textAlign: TextAlign.center),
