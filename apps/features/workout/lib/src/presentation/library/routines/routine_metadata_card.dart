@@ -4,9 +4,9 @@ import 'package:tio_shared/shared.dart';
 
 /// One canonical Routine rendered as a standalone Core card.
 ///
-/// Primary card navigation and the existing Routine options popup are distinct.
-/// An expanded Library card may navigate without exposing owner-only edits.
-/// No second Routine source of truth exists.
+/// The primary card tap and the Routine action sheet are independent.
+/// Expanded Library cards remain read-only unless real owner capabilities
+/// are supplied; there is no second Routine source of truth.
 class RoutineMetadataCard extends StatelessWidget {
   const RoutineMetadataCard({
     required this.routine,
@@ -14,12 +14,99 @@ class RoutineMetadataCard extends StatelessWidget {
     this.supportingText,
     this.onTap,
     this.onEdit,
+    this.onMove,
+    this.onDelete,
   });
 
   final Routine routine;
   final String? supportingText;
   final VoidCallback? onTap;
+
+  /// Only supply actions backed by a real owner-verified capability.
   final VoidCallback? onEdit;
+  final VoidCallback? onMove;
+  final VoidCallback? onDelete;
+
+  Future<void> _openActions(BuildContext context) async {
+    final selected = await showModalBottomSheet<_RoutineAction>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TioPalette.transparent,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: TioSheet(
+          key: ValueKey('routine-actions-sheet-${routine.id.value}'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                routine.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      color: sheetContext.tioColors.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: TioSpacing.lg),
+              TioGroupCard(
+                children: [
+                  if (onEdit != null)
+                    TioSettingsNavigationRow(
+                      key: ValueKey('routine-edit-${routine.id.value}'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.edit_outlined,
+                      ),
+                      title: 'Edit Routine',
+                      showChevron: false,
+                      onTap: () => Navigator.of(sheetContext)
+                          .pop(_RoutineAction.edit),
+                    ),
+                  if (onMove != null)
+                    TioSettingsNavigationRow(
+                      key: ValueKey('routine-move-${routine.id.value}'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.drive_file_move_outlined,
+                      ),
+                      title: 'Move Routine',
+                      showChevron: false,
+                      onTap: () => Navigator.of(sheetContext)
+                          .pop(_RoutineAction.move),
+                    ),
+                  if (onDelete != null)
+                    TioSettingsNavigationRow(
+                      key: ValueKey('routine-delete-${routine.id.value}'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.delete_outline,
+                      ),
+                      title: 'Delete Routine',
+                      titleColor: sheetContext.tioColors.danger,
+                      showChevron: false,
+                      onTap: () => Navigator.of(sheetContext)
+                          .pop(_RoutineAction.delete),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Close the options route before entering the selected workflow.
+    // A dismissed sheet or removed owner card never dispatches an action.
+    if (!context.mounted) return;
+    switch (selected) {
+      case _RoutineAction.edit:
+        onEdit?.call();
+      case _RoutineAction.move:
+        onMove?.call();
+      case _RoutineAction.delete:
+        onDelete?.call();
+      case null:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +142,28 @@ class RoutineMetadataCard extends StatelessWidget {
               ],
             ),
           ),
-          if (onEdit != null)
-            _RoutineOptionsPopup(
-              routineId: routine.id.value,
-              onEdit: onEdit!,
+          if (onEdit != null || onMove != null || onDelete != null)
+            Semantics(
+              key: ValueKey('routine-menu-${routine.id.value}'),
+              button: true,
+              label: 'Routine options',
+              onTap: () => _openActions(context),
+              child: ExcludeSemantics(
+                child: IconButton(
+                  tooltip: 'Routine options',
+                  onPressed: () => _openActions(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: TioSize.dp48,
+                    height: TioSize.dp48,
+                  ),
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -66,108 +171,4 @@ class RoutineMetadataCard extends StatelessWidget {
   }
 }
 
-/// Anchors the real Edit action to the Routine's unchanged overflow trigger.
-/// Core owns the floating popup card, placement, and outside-tap dismissal.
-class _RoutineOptionsPopup extends StatefulWidget {
-  const _RoutineOptionsPopup({
-    required this.routineId,
-    required this.onEdit,
-  });
-
-  final String routineId;
-  final VoidCallback onEdit;
-
-  @override
-  State<_RoutineOptionsPopup> createState() => _RoutineOptionsPopupState();
-}
-
-class _RoutineOptionsPopupState extends State<_RoutineOptionsPopup> {
-  final _anchorKey = GlobalKey();
-  bool _isOpen = false;
-
-  void _toggle() => setState(() => _isOpen = !_isOpen);
-
-  void _dismiss() {
-    if (_isOpen) setState(() => _isOpen = false);
-  }
-
-  void _edit() {
-    _dismiss();
-    widget.onEdit();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return TioAnchoredPopup(
-      anchorKey: _anchorKey,
-      isOpen: _isOpen,
-      onDismiss: _dismiss,
-      dismissSemanticLabel: 'Dismiss Routine options',
-      popupKey: ValueKey('routine-popup-card-${widget.routineId}'),
-      maximumWidth: TioSize.dp200,
-      contentPadding: EdgeInsets.zero,
-      contentBuilder: (context, maximumHeight) => Material(
-        color: TioPalette.transparent,
-        child: InkWell(
-          key: ValueKey('routine-edit-${widget.routineId}'),
-          onTap: _edit,
-          borderRadius: BorderRadius.circular(TioRadius.md),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: TioSize.dp48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: TioSpacing.lg,
-                vertical: TioSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.edit_outlined,
-                    size: TioSize.dp20,
-                    color: colors.textPrimary,
-                  ),
-                  const SizedBox(width: TioSpacing.md),
-                  Expanded(
-                    child: Text(
-                      'Edit Routine',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: colors.textPrimary,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      child: Semantics(
-        key: ValueKey('routine-menu-${widget.routineId}'),
-        button: true,
-        expanded: _isOpen,
-        label: 'Routine options',
-        onTap: _toggle,
-        child: ExcludeSemantics(
-          child: IconButton(
-            key: _anchorKey,
-            tooltip: 'Routine options',
-            onPressed: _toggle,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp48,
-              height: TioSize.dp48,
-            ),
-            icon: Icon(
-              Icons.more_vert_rounded,
-              size: TioSize.dp24,
-              color: colors.textPrimary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+enum _RoutineAction { edit, move, delete }
