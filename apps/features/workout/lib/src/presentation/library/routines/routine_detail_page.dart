@@ -152,8 +152,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
           softWrap: false,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioFontSize.size20,
-            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size18,
+            fontWeight: TioFontWeight.w600,
           ),
         ),
       ),
