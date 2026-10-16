@@ -15,6 +15,7 @@ import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
 import 'routine_set_editor_sheet.dart';
 import 'routine_set_input_row.dart';
+import 'routine_set_type_badge.dart';
 import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 
@@ -371,6 +372,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           for (final kind in RoutineSetType.values)
             ListTile(
               key: ValueKey('edit-routine-type-${kind.wireValue}'),
+              leading: ExcludeSemantics(
+                child: RoutineSetTypeBadge(
+                  setType: kind,
+                  normalNumber:
+                      routineNormalNumberForSelection(entry.sets, set.id),
+                  useEditSetNumberColor: true,
+                ),
+              ),
               title: Text(switch (kind) {
                 RoutineSetType.normal => 'Normal Set',
                 RoutineSetType.warmUp => 'Warm Up Set',
