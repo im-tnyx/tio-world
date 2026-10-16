@@ -334,9 +334,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             ),
             const SizedBox(height: TioSpacing.sm),
           ],
-          ListTile(
+          RoutineRemoveSetOption(
             key: const ValueKey('edit-routine-type-remove'),
-            title: const Text('Remove Set'),
             onTap: () => Navigator.of(sheetContext).pop<Object>('remove'),
           ),
         ]),
