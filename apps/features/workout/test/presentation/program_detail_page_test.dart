@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
@@ -388,10 +389,18 @@ void main() {
       ]),
       onEditRoutine: (_) async => false,
     );
-    expect(find.bySemanticsLabel('Routine options'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('Routine options'));
+    final overflow = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    expect(overflow, findsOneWidget);
+    final overflowSemantics = tester.getSemantics(overflow);
+    expect(overflowSemantics.label, contains('Routine options'));
+    expect(overflowSemantics.hasAction(SemanticsAction.tap), isTrue);
+    await tester.tap(overflow);
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Edit Routine'), findsOneWidget);
+    final edit = find.byKey(const ValueKey('routine-edit-$_routineId'));
+    expect(edit, findsOneWidget);
+    final editSemantics = tester.getSemantics(edit);
+    expect(editSemantics.label, contains('Edit Routine'));
+    expect(editSemantics.hasAction(SemanticsAction.tap), isTrue);
     expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
         findsOneWidget);
   });
