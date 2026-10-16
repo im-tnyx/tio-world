@@ -380,7 +380,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ],
             ],
           ),
-          if (isEdit) const SizedBox(height: TioSpacing.sm),
+          // Match the header-to-Set spacing across Create and Edit.
+          const SizedBox(height: TioSpacing.sm),
           // Historical >40-Set rows remain readable, not truncated by the
           // current 8-Set creation guard.
           if (entry.sets.length > 40)
