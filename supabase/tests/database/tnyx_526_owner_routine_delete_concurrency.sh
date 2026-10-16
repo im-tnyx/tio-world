@@ -3,36 +3,50 @@ set -euo pipefail
 
 # #526: deterministic old Data API Rename vs new protected Delete RPC race.
 # Disposable Supabase CI Postgres ONLY; never run against hosted production.
-database_url="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+# This destructive fixture harness is exclusively for the repository's fixed,
+# disposable GitHub CI database. Do not accept alternative connection strings.
+# A URI hostname check alone is unsafe: libpq honors ?host/?hostaddr and PG*
+# overrides that can redirect psql to a remote/hosted server.
+database_url="${DATABASE_URL:-}"
+ci_database_url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 test_user="d5261000-0000-4000-8000-000000000001"
 program_id="d5261000-0000-4000-8000-000000000002"
 routine_id="d5261000-0000-4000-8000-000000000003"
 
-# Fail closed if mistakenly pointed at a hosted database.
-# Parse the actual URI host, not substrings in userinfo, query or names
-# such as localhost.example.com. Also restrict this fixture-destructive race
-# harness to its disposable GitHub CI environment; no hosted DB writes.
-if [[ "${GITHUB_ACTIONS:-}" != "true" ]] || ! python3 - "$database_url" <<'PY'
-import ipaddress
-import sys
-from urllib.parse import urlsplit
+if [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$ci_database_url" ]]; then
+  echo "Refusing Routine Delete fixture writes outside the exact disposable CI connection" >&2
+  exit 1
+fi
 
-try:
-    parsed = urlsplit(sys.argv[1])
-    host = parsed.hostname
-    if parsed.scheme not in ("postgres", "postgresql") or not host:
-        raise ValueError("not a PostgreSQL URI")
-    try:
-        allowed = ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        allowed = host == "localhost"
-except (ValueError, AttributeError):
-    allowed = False
+# These environment variables can change libpq's effective connection or
+# session behavior. PGPASSWORD is the workflow's only allowed PG* variable.
+for pg_variable in "${!PG@}"; do
+  if [[ "$pg_variable" != "PGPASSWORD" ]]; then
+    echo "Refusing Routine Delete fixture writes with libpq override: $pg_variable" >&2
+    exit 1
+  fi
+done
 
-sys.exit(0 if allowed else 1)
-PY
-then
-  echo "Refusing Routine Delete fixture writes outside disposable loopback CI" >&2
+# The guard-only mode is used by negative tests; absolutely no connection,
+# fixture creation, or cleanup occurs in this mode.
+if [[ "$#" -eq 1 && "$1" == "--guard-only" ]]; then
+  exit 0
+fi
+if [[ "$#" -ne 0 ]]; then
+  echo "Unsupported Routine Delete race harness argument" >&2
+  exit 1
+fi
+
+# Never read ~/.psqlrc (it can contain \\connect or other unsafe commands).
+psql() { command psql --no-psqlrc "$@"; }
+
+# Defense in depth: verify the actual connected server before creating an
+# auth.users fixture and before installing the destructive cleanup trap.
+server_address="$(psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --tuples-only --no-align --command='select pg_catalog.inet_server_addr()::text' \
+  | tr -d '[:space:]')"
+if [[ "$server_address" != "127.0.0.1" ]]; then
+  echo "Refusing Routine Delete fixture writes: connected DB is not IPv4 loopback" >&2
   exit 1
 fi
 
