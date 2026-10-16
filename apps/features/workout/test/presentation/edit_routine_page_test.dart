@@ -358,7 +358,7 @@ void main() {
     ]);
   });
 
-  testWidgets('legacy 9 Set Routine shows actionable cap warning, no Update',
+  testWidgets('legacy 9 Sets warn but allow Name-only without Set rewrite',
       (tester) async {
     final f = _Fixtures();
     final historical = RoutineCompositionEntry(
@@ -376,11 +376,18 @@ void main() {
     await f.open(tester);
     expect(find.byKey(const ValueKey('edit-routine-too-many-sets')),
         findsOneWidget);
-    expect(find.textContaining('Remove extra Sets before Update'),
+    expect(find.textContaining('renaming alone is still available'),
         findsOneWidget);
     final update = find.byKey(const ValueKey('edit-routine-update'));
     expect(update, findsOneWidget);
-    expect(tester.widget<TextButton>(update).onPressed, isNull);
+    expect(tester.widget<TextButton>(update).onPressed, isNotNull);
+    await tester.enterText(find.byKey(const ValueKey('edit-routine-name')),
+        'Rename Historical');
+    await tester.pumpAndSettle();
+    await tester.tap(update);
+    await tester.pumpAndSettle();
+    expect(f.compositions.aggregateCalls, 1);
+    expect(f.compositions.lastAggregate!.entries, isNull);
     expect(f.compositions.saveCount, 0);
     expect(tester.takeException(), isNull);
   });
