@@ -667,6 +667,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-actions-sheet-$routineId')),
         findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-move-$routineId')),
         findsNothing);
     expect(find.byKey(const ValueKey('routine-delete-$routineId')),
