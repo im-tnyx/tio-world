@@ -266,6 +266,39 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
 
+      - name: Run #526 owner-scoped Routine Delete SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_526_owner_routine_delete.test.sql
+
+      - name: Reject #526 retired Routine UUID replay across Create paths
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_526_routine_delete_anti_resurrection.test.sql
+
+      - name: Enforce #526 cumulative Routine identity storage budget
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_526_routine_identity_budget.test.sql
+
+      - name: Run #526 Create/Delete retirement order two-session races
+        shell: bash
+        run: bash supabase/tests/database/tnyx_526_routine_delete_anti_resurrection_concurrency.sh
+
+      - name: Reject unsafe #526 Routine Delete fixture connection overrides
+        shell: bash
+        run: bash supabase/tests/database/tnyx_526_owner_routine_delete_guard.test.sh
+
+      - name: Run #526 old Rename/new Delete two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_526_owner_routine_delete_concurrency.sh
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
