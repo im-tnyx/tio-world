@@ -571,10 +571,10 @@ class _RoutineSetInputRowState extends State<RoutineSetInputRow>
                     constraints: const BoxConstraints(minHeight: TioSize.dp38),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      // Create uses the neutral filled Set badge. The approved
-                      // Edit/PREVIOUS reference instead shows an unboxed blue
-                      // number; preserve the same 38dp visual footprint.
-                      color: widget.showPrevious ? null : colors.surfaceVariant,
+                      // Keep the same Core-themed 38dp filled Set badge
+                      // in Create and Edit. PREVIOUS is a separate column;
+                      // Edit keeps its existing blue number styling.
+                      color: colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(TioInputTokens.radius),
                     ),
                     child: Text(
