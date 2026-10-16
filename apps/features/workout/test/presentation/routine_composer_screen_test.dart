@@ -251,8 +251,11 @@ void main() {
         previousStart = start;
         // Both modes show only an unavailable placeholder until actual
         // performed Set history is available, never prescribed targets.
-        final previousCell = find.text('–');
+        final previousCell = find.byKey(
+          const ValueKey('routine-set-previous-$setId'),
+        );
         expect(previousCell, findsOneWidget);
+        expect(tester.widget<Text>(previousCell).data, '–');
         final setBox = find.byKey(const ValueKey('routine-set-type-box-$setId'));
         expect(setBox, findsOneWidget);
         final relativeGap =
