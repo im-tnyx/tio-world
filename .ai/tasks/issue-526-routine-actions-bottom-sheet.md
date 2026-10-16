@@ -2,13 +2,17 @@
 
 **Status:** In Review — Flutter exact-head CI PASS, independent review and owner device QA pending.
 **Primary owner:** Workout feature presentation.
-**Affected platforms:** Flutter Android/iOS phone, Program Detail Routine card. No Watch/Supabase changes.
+**Affected platforms:** Flutter Android/iOS phone, Program Detail Routine card **and expanded Library Program-owned Routine cards**. No Watch/Supabase changes.
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** Product-visible UI/UX change; owner explicitly approved on 2026-10-16: replace the Routine 3-dot anchored popup card with a bottom sheet whose intended options are **Edit Routine, Move Routine and Delete Routine**, while following AGENTS.md. This supersedes the older #524/#526/#564 instruction to preserve an anchored popup. The earlier *Program* 3-dot bottom sheet stays distinct.
 
 **This first bounded implementation:** Replace the Routine card's existing `TioAnchoredPopup` with feature-owned composition of the **existing Core TioSheet, TioGroupCard and TioSettingsNavigationRow**, matching the established Program action sheet pattern. Keep Edit Routine fully functional via its current callback. Add optional Move/Delete **callback slots** to this Routine action surface; show a row only when the owning feature supplies a real callable capability. Do not insert enabled or disabled placeholder rows. Users will see only Edit until the separately gated secure Move and Delete integration is completed.
+
+**Owner UI revision — 2026-10-16 follow-up:** The same Routine 3-dot sheet must also appear for Routine cards under **expanded Library Programs**, and each available option should look like the existing **Select Set Type outlined option**. Reuse `TioSheet` for the modal and Core `TioCard(variant: TioCardVariant.outlined, outlinedBorderWidth: TioCardTokens.borderThin)` for each option. Avoid separate duplicated action implementations or style tokens. The actual Set Type picker is unchanged. Route real Library Edit through the existing session-guarded shell editor; Move/Delete stay capability-gated until their true clients are reviewed.
+
+**Independent review at PR #581 head `8f45b0bc`:** A [P1 stale-capability after await](https://github.com/im-tnyx/tio-world/pull/581#discussion_r4297944962) was reported. Converting `RoutineMetadataCard` into a stateful capability consumer must re-check the **current** Routine ID, owner Program ID, mounted state and callback after modal returns. Regression tests must revoke/replace the callback while sheet is open, and test semantics/keyboard activation without double tap nodes. Do not resolve review thread before exact-head evidence and reviewer reconciliation.
 
 **Out of scope for this PR:** Actual Move RPC/destination picker and authenticated Move service (#569; still missing), owner-scoped Delete Flutter RPC + auth-cycle/unknown-outcome controller and confirmation (#526; deployed DB contract exists but mobile adapter does not), Create lifetime-limit error (#554), Routine Detail and composer visuals, Library row rights, Program overflow, Workout Start, Notes/Rest, Storage and any DB migration. These will require separate bounded follow-up. No fake buttons.
 
@@ -17,12 +21,12 @@
 **Planning owner:** GitHub #526/#564/#569; Linear TNYX-81.
 **Implementation owner:** This GitHub-connected assistant session, one owner for this UI-only branch.
 **Review owner:** Unassigned; independent review requested at PR handoff, not yet received.
-**Implementation ownership state:** Handoff pending — implementation owner has supplied the reviewed source/test scope; separate reviewer must inspect before merge.
+**Implementation ownership state:** Active again — owner explicitly approved expanded Library + outlined styling; review P1 remediation included in same UI scope. Review owner records findings, implementation owner fixes only this branch.
 **Repository state last verified:** Remote GitHub `main@b6f8c6359beca26e6199d2b55c9ae108bc91720d`, no open PRs before branching, backend SQL #578 merged and two migrations owner-deployed/hosted-verified. Windows `G:\\projects\\Tio-World` cannot be inspected or changed by this cloud session (owner last showed clean synced main after db push).
 **Branch:** `tnyx/issue-526-routine-actions-bottom-sheet` created from exact verified main.
 **Observed working-tree state:** GitHub remote API only; no local working-tree claim.
 **PR / tracker:** [Draft PR #581](https://github.com/im-tnyx/tio-world/pull/581), GitHub #526/#564/#569; Linear TNYX-81 remains Backlog with TNYX-78/TNYX-80 blockers.
-**Current blocker:** Independent PR review, owner device QA and later real Move/Delete capabilities before showing all three live. Initial head `26360070` Flutter Analyze found invalid const runtime color; implementation commit `9163a521` fixed it. Exact-head `8f45b0bc` CI all PASS: Analyze/Dart, app-workout, nutrition-onboarding, core-wear, aggregated check and both attribution checks.
+**Current blocker:** Reviewer P1 stale callback after modal, new Library/outlined-style tests and exact-head CI, owner device QA and separate Move/Delete capabilities. Initial head `26360070` Flutter Analyze found invalid const runtime color; implementation commit `9163a521` fixed it. Exact-head `8f45b0bc` CI all PASS: Analyze/Dart, app-workout, nutrition-onboarding, core-wear, aggregated check and both attribution checks.
 **Next exact action:** Review current PR #581 exact-head diff as a separate reviewer; resolve concrete findings under implementation-owner handoff; confirm Android light/dark and 320dp physical UI before owner `Go merge`. Do not merge or mark broad #526/#569 complete.
 
 ## Discovery / Runtime Evidence
