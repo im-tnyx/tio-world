@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -8,6 +10,8 @@ Future<void> _pump(
   WidgetTester tester, {
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
+  Future<void> Function(Program)? onAddRoutinePressed,
+  bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
@@ -38,6 +42,8 @@ Future<void> _pump(
         programIdGenerator: programIdGenerator,
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
+        onAddRoutinePressed: onAddRoutinePressed,
+        hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
@@ -129,6 +135,28 @@ void main() {
       tester.widget<IconButton>(toggle).tooltip,
       'Collapse Strength',
     );
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final leftGlyph = find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    final rightGlyph = find.descendant(
+      of: overflow,
+      matching: find.byIcon(Icons.more_horiz_rounded),
+    );
+    final sectionRect = tester.getRect(programs);
+    final leftAction = tester.widget<IconButton>(toggle);
+    final rightAction = tester.widget<IconButton>(overflow);
+    expect(leftAction.padding, EdgeInsets.zero);
+    expect(rightAction.padding, EdgeInsets.zero);
+    expect(leftAction.alignment, AlignmentDirectional.centerStart);
+    expect(rightAction.alignment, AlignmentDirectional.centerEnd);
+    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
+    // The glyphs meet the same outer bounds as the Routine and dotted cards.
+    // Do not shrink accessible hit targets just to remove visible side gaps.
+    expect(tester.getRect(leftGlyph).left, closeTo(sectionRect.left, 0.1));
+    expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
 
     await tester.tap(toggle);
     await tester.pump();
@@ -189,6 +217,26 @@ void main() {
     expect(find.descendant(of: two, matching: find.text('Legs')), findsOneWidget);
     expect(find.descendant(of: one, matching: find.byType(TioCard)),
         findsNWidgets(2));
+
+    // No extra left inset for any persisted Program-owned Routine, including
+    // both Programs, matching the Library's existing outer horizontal margin.
+    final section = find.byKey(const ValueKey('library-programs-content'));
+    final left = tester.getTopLeft(section).dx;
+    final right = tester.getTopRight(section).dx;
+    final firstCard = find.byKey(
+        ValueKey('library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    final secondCard = find.byKey(
+        ValueKey('library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+    for (final card in [firstCard, secondCard]) {
+      expect(tester.getTopLeft(card).dx, closeTo(left, 0.1));
+      expect(tester.getTopRight(card).dx, closeTo(right, 0.1));
+    }
+    for (final container in [one, two]) {
+      expect(
+        tester.widget<Padding>(container).padding,
+        const EdgeInsets.only(bottom: TioSpacing.sm),
+      );
+    }
     expect(repository.queries, containsAll([_id(1), _id(2)]));
 
     await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
@@ -242,6 +290,206 @@ void main() {
     expect(find.text('New Routine'), findsOneWidget);
     expect(repository.queries.where((p) => p == _id(1)).length,
         greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('empty Program Add Routine uses its identity and refreshes',
+      (tester) async {
+    final routines = _FakeRoutineRepository([]);
+    ProgramId? target;
+    await _pump(
+      tester,
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {
+        target = program.id;
+        routines.rows.add(_routine(1, 103, 'New Routine'));
+      },
+    );
+
+    final add = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    expect(add, findsOneWidget);
+    expect(find.text('No routines yet'), findsNothing);
+    expect(
+      find.descendant(of: add, matching: find.text('Add new routine')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: add, matching: find.byIcon(Icons.add_rounded)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: add, matching: find.byType(CustomPaint)),
+      findsOneWidget,
+    );
+    // The dotted card and persisted Routine cards share Library margins.
+    final programSection =
+        find.byKey(const ValueKey('library-programs-content'));
+    final routineContainer =
+        find.byKey(ValueKey('library-routines-${_id(1).value}'));
+    expect(tester.getTopLeft(add).dx,
+        closeTo(tester.getTopLeft(programSection).dx, 0.1));
+    expect(tester.getTopLeft(add).dx,
+        closeTo(tester.getTopLeft(routineContainer).dx, 0.1));
+    expect(tester.getTopRight(add).dx,
+        closeTo(tester.getTopRight(routineContainer).dx, 0.1));
+    expect(tester.getSize(add).height, lessThanOrEqualTo(TioSize.dp64));
+    expect(tester.getSize(add).height, greaterThanOrEqualTo(TioSize.dp48));
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+
+    expect(target, _id(1));
+    expect(find.text('New Routine'), findsOneWidget);
+    expect(add, findsNothing, reason: 'Populated Program has no empty Add CTA');
+    expect(routines.queries.where((id) => id == _id(1)).length,
+        greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('one flight guards different Programs and overflow Add',
+      (tester) async {
+    final hold = Completer<void>();
+    var calls = 0;
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: _FakeRoutineRepository([]),
+      onAddRoutinePressed: (program) async {
+        calls++;
+        await hold.future;
+      },
+    );
+    final first = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    final second = find.byKey(ValueKey('library-add-routine-${_id(2).value}'));
+    await tester.tap(first);
+    await tester.pump();
+    expect(calls, 1);
+    expect(second, findsOneWidget);
+    // The next Program remains visible but cannot open another draft.
+    final secondCard = second;
+    expect(
+      tester.widget<InkWell>(
+        find.descendant(of: secondCard, matching: find.byType(InkWell)),
+      ).onTap,
+      isNull,
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(2).value}')));
+    await tester.pumpAndSettle();
+    final action = find.byKey(const ValueKey('program-action-add-routine'));
+    expect(action, findsOneWidget);
+    expect(
+      tester.widget<TioSettingsNavigationRow>(action).onTap,
+      isNull,
+    );
+    hold.complete();
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+  });
+
+  testWidgets('pending save disables both Add entries and explains verification',
+      (tester) async {
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: _FakeRoutineRepository([]),
+      hasUnconfirmedCreate: (program) => program.id == _id(1),
+      onProgramPressed: (_) async {},
+      onAddRoutinePressed: (_) async {
+        fail('Unconfirmed Program must never launch another Create');
+      },
+    );
+    final blocked = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    final other = find.byKey(ValueKey('library-add-routine-${_id(2).value}'));
+    expect(blocked, findsOneWidget);
+    expect(other, findsOneWidget);
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-verify-routine-${_id(1).value}')),
+        findsOneWidget);
+    expect(
+      tester.widget<InkWell>(
+        find.descendant(of: blocked, matching: find.byType(InkWell)),
+      ).onTap,
+      isNull,
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioSettingsNavigationRow>(
+        find.byKey(const ValueKey('program-action-add-routine')),
+      ).onTap,
+      isNull,
+    );
+  });
+
+  testWidgets('empty Add Routine is Program-scoped, hidden when unavailable',
+      (tester) async {
+    final routines = _FakeRoutineRepository([_routine(2, 201, 'Legs')]);
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {},
+    );
+    expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-add-routine-${_id(2).value}')),
+        findsNothing);
+    expect(find.text('Legs'), findsOneWidget);
+
+    await _pump(tester, routineRepository: routines);
+    expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
+        findsNothing);
+    expect(find.text('No routines yet'), findsOneWidget);
+  });
+
+  testWidgets('dotted Add new routine keeps Core dark theme and remains tappable',
+      (tester) async {
+    ProgramId? target;
+    await _pump(
+      tester,
+      mode: TioThemeMode.dark,
+      routineRepository: _FakeRoutineRepository([]),
+      onAddRoutinePressed: (program) async { target = program.id; },
+    );
+    final action =
+        find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    expect(action, findsOneWidget);
+    expect(
+      find.descendant(of: action, matching: find.text('Add new routine')),
+      findsOneWidget,
+    );
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(target, _id(1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Program bottom sheet Add Routine reuses selected Program',
+      (tester) async {
+    final routines = _FakeRoutineRepository([]);
+    ProgramId? target;
+    await _pump(
+      tester,
+      routineRepository: routines,
+      onAddRoutinePressed: (program) async {
+        target = program.id;
+      },
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    expect(find.text('Edit Program'), findsOneWidget);
+    expect(find.text('Add New Routine'), findsOneWidget);
+    expect(find.text('Delete Program'), findsNothing,
+        reason: 'No Program Delete lifecycle or permission yet');
+    await tester.tap(find.byKey(const ValueKey('program-action-add-routine')));
+    await tester.pumpAndSettle();
+    expect(target, _id(1));
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
   });
 
   testWidgets('Routine child load error retries without leaking another Program',

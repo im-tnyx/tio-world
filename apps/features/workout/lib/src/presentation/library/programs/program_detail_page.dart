@@ -47,7 +47,6 @@ class ProgramDetailPage extends StatefulWidget {
 class _ProgramDetailPageState extends State<ProgramDetailPage> {
   ProgramRoutinesController? _controller;
   bool _verifyingUnconfirmed = false;
-
   bool get _hasUnconfirmed => widget.hasUnconfirmedCreate?.call() ?? false;
 
   Future<void> _verifyUnconfirmed() async {
@@ -70,7 +69,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   }
 
   void _pendingChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -106,7 +106,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   }
 
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override

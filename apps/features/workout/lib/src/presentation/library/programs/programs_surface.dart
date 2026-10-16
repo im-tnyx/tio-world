@@ -24,6 +24,8 @@ class ProgramsSurface extends StatefulWidget {
         onManagePressed = null,
         onProgramPressed = null,
         onRoutinePressed = null,
+        onAddRoutinePressed = null,
+        hasUnconfirmedCreate = null,
         routineRepository = null;
 
   const ProgramsSurface.library({
@@ -31,6 +33,8 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.onProgramPressed,
     this.onRoutinePressed,
+    this.onAddRoutinePressed,
+    this.hasUnconfirmedCreate,
     this.routineRepository,
     this.idGenerator,
     super.key,
@@ -41,6 +45,9 @@ class ProgramsSurface extends StatefulWidget {
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
+  /// Program-scoped uncertain save flag scoped by caller auth/login-cycle.
+  final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
 
@@ -51,6 +58,7 @@ class ProgramsSurface extends StatefulWidget {
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
   int _routineRefreshVersion = 0;
+  bool _openingAddRoutine = false;
 
   @override
   void initState() {
@@ -107,6 +115,26 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     setState(() => _routineRefreshVersion++);
   }
 
+  Future<void> _openAddRoutine(Program program) async {
+    final open = widget.onAddRoutinePressed;
+    if (_openingAddRoutine || open == null ||
+        (widget.hasUnconfirmedCreate?.call(program) ?? false)) {
+      return;
+    }
+    // Shared single flight across every Program card and overflow action.
+    setState(() => _openingAddRoutine = true);
+    try {
+      await open(program);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _openingAddRoutine = false;
+          _routineRefreshVersion++;
+        });
+      }
+    }
+  }
+
   Future<void> _openManage() async {
     final onManagePressed = widget.onManagePressed;
     if (onManagePressed == null) return;
@@ -141,6 +169,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   Future<void> _openProgramActions(Program program) async {
+    final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
+    var addRequested = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -178,6 +208,27 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                       await _openRename(program);
                     },
                   ),
+                  if (widget.onAddRoutinePressed != null)
+                    TioSettingsNavigationRow(
+                      key: const ValueKey('program-action-add-routine'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.add_rounded,
+                      ),
+                      title: 'Add New Routine',
+                      titleColor: pendingSave || _openingAddRoutine
+                          ? sheetContext.tioColors.textMuted
+                          : null,
+                      supportingText: pendingSave
+                          ? 'Check the previous save in Program'
+                          : _openingAddRoutine
+                              ? 'Another Routine is opening'
+                              : 'Create in this Program',
+                      showChevron: false,
+                      onTap: _openingAddRoutine || pendingSave ? null : () {
+                        addRequested = true;
+                        Navigator.of(sheetContext).pop();
+                      },
+                    ),
                 ],
               ),
             ],
@@ -185,6 +236,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         ),
       ),
     );
+    // The bottom-sheet transition must finish before the shell tests whether
+    // Library is still the current route and launches canonical Create.
+    if (addRequested && mounted) await _openAddRoutine(program);
   }
 
   Future<void> _openCreate() async {
@@ -322,8 +376,13 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           onProgramPressed: widget.onProgramPressed == null
               ? null
               : _openProgram,
+          onAddRoutinePressed: widget.onAddRoutinePressed == null
+              ? null
+              : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
+          hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
+          isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
         );
     }
@@ -349,8 +408,11 @@ class _ProgramsList extends StatefulWidget {
     required this.embedded,
     required this.onProgramActions,
     required this.onProgramPressed,
+    required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
+    required this.hasUnconfirmedCreate,
+    required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
   });
 
@@ -358,8 +420,11 @@ class _ProgramsList extends StatefulWidget {
   final bool embedded;
   final Future<void> Function(Program program) onProgramActions;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final RoutineRepository? routineRepository;
+  final bool Function(Program)? hasUnconfirmedCreate;
+  final bool isLaunchingRoutine;
   final int routineRefreshVersion;
 
   @override
@@ -430,6 +495,16 @@ class _ProgramsListState extends State<_ProgramsList> {
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
+            onAddRoutine: widget.onAddRoutinePressed == null
+                ? null
+                : () => widget.onAddRoutinePressed!(program),
+            disableAddRoutine: widget.isLaunchingRoutine ||
+                (widget.hasUnconfirmedCreate?.call(program) ?? false),
+            hasUnconfirmedCreate:
+                widget.hasUnconfirmedCreate?.call(program) ?? false,
+            onOpenProgram: widget.onProgramPressed == null
+                ? null
+                : () => widget.onProgramPressed!(program),
           ),
         );
       }
@@ -505,6 +580,12 @@ class _LibraryProgramRow extends StatelessWidget {
                 expanded ? 'Collapse ${program.name}' : 'Expand ${program.name}',
             onPressed: onToggleExpanded,
             color: colors.textSecondary,
+            padding: EdgeInsets.zero,
+            alignment: AlignmentDirectional.centerStart,
+            constraints: const BoxConstraints.tightFor(
+              width: TioSize.dp48,
+              height: TioSize.dp48,
+            ),
             icon: Icon(
               expanded
                   ? Icons.keyboard_arrow_down_rounded
@@ -549,6 +630,12 @@ class _LibraryProgramRow extends StatelessWidget {
             tooltip: 'Program actions',
             onPressed: onOverflowPressed,
             color: colors.textSecondary,
+            padding: EdgeInsets.zero,
+            alignment: AlignmentDirectional.centerEnd,
+            constraints: const BoxConstraints.tightFor(
+              width: TioSize.dp48,
+              height: TioSize.dp48,
+            ),
             icon: const Icon(Icons.more_horiz_rounded),
           ),
         ],

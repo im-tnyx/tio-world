@@ -26,6 +26,9 @@ class LibraryPage extends StatefulWidget {
     this.routineRepository,
     required this.onProgramsManagePressed,
     this.onProgramPressed,
+    this.onAddRoutinePressed,
+    this.hasUnconfirmedCreate,
+    this.pendingCreateChanges,
     this.onRoutinePressed,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
@@ -40,6 +43,10 @@ class LibraryPage extends StatefulWidget {
   final ProgramIdGenerator? programIdGenerator;
   final Future<void> Function() onProgramsManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
+  final Future<void> Function(Program)? onAddRoutinePressed;
+  final bool Function(Program)? hasUnconfirmedCreate;
+  /// Rebuilds pending Program actions as uncertain writes settle.
+  final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
@@ -71,6 +78,18 @@ class _LibraryPageState extends State<LibraryPage> {
     if (_selectedCategory == null) return;
     setState(() => _selectedCategory = null);
   }
+
+  Widget _programsContent() => ProgramsSurface.library(
+        key: const ValueKey('library-programs-content'),
+        repository: widget.programRepository,
+        routineRepository: widget.routineRepository,
+        idGenerator: widget.programIdGenerator,
+        onManagePressed: widget.onProgramsManagePressed,
+        onProgramPressed: widget.onProgramPressed,
+        onAddRoutinePressed: widget.onAddRoutinePressed,
+        hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
+        onRoutinePressed: widget.onRoutinePressed,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -116,15 +135,13 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
             const SizedBox(height: TioSpacing.lg),
             switch (_contentCategory) {
-              _LibraryCategory.programs => ProgramsSurface.library(
-                  key: const ValueKey('library-programs-content'),
-                  repository: widget.programRepository,
-                  routineRepository: widget.routineRepository,
-                  idGenerator: widget.programIdGenerator,
-                  onManagePressed: widget.onProgramsManagePressed,
-                  onProgramPressed: widget.onProgramPressed,
-                  onRoutinePressed: widget.onRoutinePressed,
-                ),
+              _LibraryCategory.programs =>
+                widget.pendingCreateChanges == null
+                    ? _programsContent()
+                    : ListenableBuilder(
+                        listenable: widget.pendingCreateChanges!,
+                        builder: (_, __) => _programsContent(),
+                      ),
               _LibraryCategory.exercises => _ExercisesContent(
                   canCreateExercise: widget.canCreateExercise,
                   onCreateExercisePressed: widget.onCreateExercisePressed,

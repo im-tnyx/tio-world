@@ -702,6 +702,331 @@ void main() {
     );
   });
 
+  testWidgets('Library Program overflow Add Routine opens canonical Create',
+      (tester) async {
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+
+    await tester.tap(find.byKey(const ValueKey('program-overflow-$programId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-add-routine')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byKey(const ValueKey('create-routine-name')), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing,
+        reason: 'Program Detail must not be pushed behind direct Create');
+    expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+    expect(
+      tester.widget<TioInput>(
+        find.byKey(const ValueKey('create-routine-name')),
+      ).controller!.text,
+      'Routine 1',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+  });
+
+  testWidgets('Library dotted Add Routine opens Create directly and returns on Cancel',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    const action = ValueKey('library-add-routine-$programId');
+    expect(find.byKey(action), findsOneWidget);
+    await tester.tap(find.byKey(action));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byKey(action), findsOneWidget);
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      0,
+    );
+  });
+
+  testWidgets('Library dotted Add Routine Save refreshes its owning Program directly',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-add-routine-$programId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('create-routine-name')),
+      'Saved Directly',
+    );
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    // Use a valid exercise prescription, as in the established atomic Create
+    // route test. The Save assertion must test routing, not invalid-set UI.
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    expect(reps, findsOneWidget);
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    final scoped = find.byKey(const ValueKey('library-routines-$programId'));
+    expect(
+      find.descendant(of: scoped, matching: find.text('Saved Directly')),
+      findsOneWidget,
+    );
+    final created = (container.read(routineCreateRepositoryProvider)
+        as _RouteCreate);
+    expect(created.createCalls, 1);
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse);
+  });
+
+  testWidgets('unconfirmed direct Create exits to Library, not Program Detail',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('library-add-routine-$programId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    expect(find.text('Exit to Library'), findsOneWidget);
+    expect(find.text('Exit to Program'), findsNothing);
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('library-routines-$programId')),
+        matching: find.text('Routine 1'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      1,
+    );
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isTrue, reason: 'Lost ACK must never be treated as success');
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('library-verify-routine-$programId'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProgramDetailPage), findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('program-routines-verify-create'),
+    ));
+    await tester.pumpAndSettle();
+    expect(container.read(routinePendingCreateGateProvider).hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: ProgramId(programId),
+    ), isFalse);
+    await tester.tap(find.byType(BackButton).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsNothing);
+  });
+
+  testWidgets('relogin binds pending Library save before Add is enabled',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+      loseCreateAcknowledgment: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+      const ValueKey('library-add-routine-$programId'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('exercise-row-ex_synthetic_route_curl'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not confirm Create'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+
+    final gate = container.read(routinePendingCreateGateProvider);
+    final program = ProgramId(programId);
+    expect(gate.hasPending(
+      owner: 'test-user',
+      loginCycle: 'test-cycle',
+      programId: program,
+    ), isTrue);
+    // Same owner reauth changes the login-cycle while Library remains
+    // mounted. It must bind the gate WITHOUT requiring an Add tap.
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(gate.hasPending(
+      owner: 'test-user',
+      loginCycle: 'next-cycle',
+      programId: program,
+    ), isTrue);
+    expect(find.textContaining('Previous Routine save is not confirmed'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('library-verify-routine-$programId')),
+        findsOneWidget);
+    // The fake RPC commits before losing its ACK, so this Program is no
+    // longer empty: no dotted card exists. Verify the real overflow Add path.
+    await tester.tap(find.byKey(
+      const ValueKey('program-overflow-$programId'),
+    ));
+    await tester.pumpAndSettle();
+    final blocked = find.byKey(
+      const ValueKey('program-action-add-routine'),
+    );
+    expect(
+      tester.widget<TioSettingsNavigationRow>(blocked).onTap,
+      isNull,
+      reason: 'Reauth must not expose a silent stale overflow Add action',
+    );
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      1,
+      reason: 'No new Create UUID may be issued for a retained write',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pending Library read cannot launch Create over another route',
+      (tester) async {
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      emptyProgramRoutines: true,
+      withRoutineComposition: true,
+      withRoutineCreate: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    final routines = container.read(routineRepositoryProvider)
+        as _RouteRoutines;
+    final hold = Completer<void>();
+    routines.holdNextRead = hold;
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(
+      const ValueKey('library-add-routine-$programId'),
+    ));
+    await tester.pump();
+    router.go(_exercisesPath);
+    await tester.pumpAndSettle();
+    hold.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(
+      (container.read(routineCreateRepositoryProvider) as _RouteCreate)
+          .createCalls,
+      0,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('same-owner Profile failure preserves Create draft and unit',
       (tester) async {
     final profileEvents = StreamController<ProfileSetupData?>.broadcast();
@@ -1539,6 +1864,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   AppMode mode, {
   bool withProgramRepository = true,
   bool withRoutineRepository = true,
+  bool emptyProgramRoutines = false,
   bool withRoutineComposition = false,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
@@ -1562,7 +1888,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   final calendarController =
       CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
   await calendarController.load();
-  final routeRoutines = _RouteRoutines();
+  final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
 
   final container = ProviderContainer(
@@ -1663,6 +1989,12 @@ final class _RoutePrograms implements ProgramRepository {
 }
 
 final class _RouteRoutines implements RoutineRepository {
+  Completer<void>? holdNextRead;
+
+  _RouteRoutines({bool empty = false}) {
+    if (empty) rows.clear();
+  }
+
   final List<Routine> rows = [
     Routine(
       id: RoutineId('30000000-0000-4000-8000-000000000001'),
@@ -1672,8 +2004,12 @@ final class _RouteRoutines implements RoutineRepository {
   ];
 
   @override
-  Future<List<Routine>> list(ProgramId programId) async =>
-      List.unmodifiable(rows.where((item) => item.programId == programId));
+  Future<List<Routine>> list(ProgramId programId) async {
+    final hold = holdNextRead;
+    holdNextRead = null;
+    if (hold != null) await hold.future;
+    return List.unmodifiable(rows.where((item) => item.programId == programId));
+  }
 
   @override
   Future<void> create(Routine routine) async => rows.add(routine);
