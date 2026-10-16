@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_badge.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -134,6 +135,42 @@ Future<void> _removeExerciseMenu(WidgetTester tester, String id) async {
 }
 
 void main() {
+  testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
+      (tester) async {
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(entries: [
+      _entry(setType: RoutineSetType.warmUp),
+    ]);
+    await f.open(tester, mode: TioThemeMode.dark);
+    await tester.tap(find.byKey(const ValueKey('routine-set-type-$_setId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Select Set Type'), findsOneWidget);
+    for (final kind in RoutineSetType.values) {
+      final option = find.byKey(ValueKey('edit-routine-type-${kind.wireValue}'));
+      final finder = find.descendant(
+        of: option, matching: find.byType(RoutineSetTypeBadge),
+      );
+      expect(finder, findsOneWidget);
+      final badge = tester.widget<RoutineSetTypeBadge>(finder);
+      expect(badge.setType, kind);
+      expect(badge.useEditSetNumberColor, isTrue);
+      expect(badge.normalNumber, 1);
+    }
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('edit-routine-type-warm_up')),
+      matching: find.byIcon(Icons.check),
+    ), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-set-details')), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-routine-type-remove')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-type-drop')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-type-$_setId')),
+      matching: find.text('D'),
+    ), findsOneWidget);
+    expect(f.compositions.saveCount, 0);
+  });
+
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
     testWidgets('Edit Set/boxed number/Add Set rendered surfaces equal 38dp '
         'at 320dp in ${mode.name}', (tester) async {
