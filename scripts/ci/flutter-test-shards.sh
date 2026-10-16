@@ -41,15 +41,15 @@ verify_inventory() {
     [[ -f "$package/pubspec.yaml" && -d "$package/test" ]] || fail "Missing Flutter test package: $package"
   done
 
-  shopt -s nullglob
-  # Every supported workspace path, including future apps/* and feature packages.
-  for package in apps/* apps/features/*; do
+  shopt -s nullglob globstar
+  # Cover every Melos features/** nesting depth, not only one feature level.
+  for package in apps/* apps/features/**; do
     if [[ -f "$package/pubspec.yaml" && -d "$package/test" ]] &&
        grep -Eq '^  flutter:[[:space:]]*$' "$package/pubspec.yaml"; then
       actual+=("$package")
     fi
   done
-  shopt -u nullglob
+  shopt -u nullglob globstar
 
   ((${#actual[@]} > 0)) || fail 'No Flutter test-bearing packages were discovered'
   local expected_sorted actual_sorted

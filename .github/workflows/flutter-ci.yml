@@ -66,6 +66,7 @@ jobs:
         run: melos exec -c 1 --flutter -- "flutter analyze --no-pub"
 
       - name: Analyze Dart packages
+        if: success() || failure()
         run: melos exec -c 1 --no-flutter -- "dart analyze ."
 
       - name: Test Dart packages

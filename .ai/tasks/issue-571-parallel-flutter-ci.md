@@ -21,7 +21,7 @@
 ## Design and implementation
 - Analyze job performs the unchanged Flutter and pure Dart analyzers and runs pure Dart tests.
 - Three independent matrix test shards (fail-fast false) execute every existing Flutter test-bearing package exactly once: app-workout=4; nutrition-onboarding=4; core-wear=5. Groups are preliminary, to be rebalanced only after observed timings.
-- scripts/ci/flutter-test-shards.sh is the single package assignment registry: it verifies real Flutter package test/ directories against assigned paths before running any test and fails on missing, newly added or duplicate assignments.
+- scripts/ci/flutter-test-shards.sh is the single package assignment registry: it verifies real Flutter package test/ directories (including nested apps/features/** packages) against assigned paths before tests and fails on missing, newly added or duplicate assignments.
 - Each test-bearing package uses the existing flutter pub get followed by flutter test --no-pub. An individual package failure does not mask skipped siblings; the shard fails after attempting all packages.
 - Final job keeps exact former display name Analyze and test; needs both analysis job and complete matrix; if always(); only success/success passes. Failure, skipped or cancelled dependency cannot produce a green final gate.
 - Keep current stable git-clone setup, Melos 2.9.0, read-only permissions, concurrency semantics and path filters (with shard-script trigger added). Do not touch the trusted App attribution workflow.
@@ -42,7 +42,7 @@
 **Branch:** ci/issue-571-parallel-flutter.
 **Local working-tree state:** No checked-out repository; GitHub API edits. A standalone sandbox fixture was used to check shell behavior.
 **Current blockers:** Exact-head hosted CI, review, and three comparable timing runs required before claiming speed target.
-**Next exact action:** Open Draft PR targeting main, inspect changed-file list and exact-head status, review outcomes; do not merge without owner instruction.
+**Next exact action:** Check Draft PR #573 exact-head GitHub CI and independent review; record three comparable timing runs when available; do not merge without owner instruction.
 
 ## Final handoff
 **Changed paths:** .github/workflows/flutter-ci.yml; scripts/ci/flutter-test-shards.sh; this task and .ai/tasks/README.md.
