@@ -102,7 +102,7 @@ contracts remain in force. Source code is merged on `main`; release/device verif
 
 ## One canonical Create/Edit Routine composer — merged #551
 
-Owner-approved #564 follow-up (UI-only bounded branch, **not yet on main**):
+Owner-approved #564 follow-up: its **UI-only Create/Edit/Detail parity sub-slice merged in PR #570**; editable saved Routine Name and Routine-card overflow Edit/Delete remain independently gated:
 - Put Create **Save** and Edit **Update** in the same top-right composer action slot. Keep distinct guarded persistence adapters and their existing confirmation/cancel semantics; do not add a bottom duplicate action.
 - Use an accessible leading **X** close action instead of the visible **Cancel** text in both modes; place the mode title start-aligned after X using existing Core `TioAppBar` placement. X still invokes the existing guarded Cancel callback and is disabled while writing; no new draft-discard/persistence behavior.
 - On owner-verified read-only Detail, move the existing **Edit Routine** action from the top bar to the right of **Exercises** in that heading row; counts stay below. Preserve it for a historical ready-but-empty Routine and preserve its owner/session/weight-unit guard.
