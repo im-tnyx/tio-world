@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_feature_workout/src/presentation/library/routines/routine_metadata_card.dart';
+import 'package:tio_feature_workout/src/presentation/library/routines/routine_set_type_option.dart';
 import 'package:tio_shared/shared.dart';
 
 const _programId = '10000000-0000-4000-8000-000000000001';
@@ -235,6 +236,65 @@ void main() {
     expect(navigated, isNull);
     expect(edited?.id.value, _routineId);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
+  });
+
+  testWidgets('Routine action outline matches Set Type option height exactly',
+      (tester) async {
+    final routine = Routine(
+      id: RoutineId(_routineId),
+      programId: _program.id,
+      name: 'Push',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Column(
+            children: [
+              RoutineSetTypeOption(
+                key: const ValueKey('reference-set-type-outline'),
+                type: RoutineSetType.normal,
+                normalNumber: 1,
+                selected: false,
+                onTap: () {},
+              ),
+              RoutineMetadataCard(
+                routine: routine,
+                onEdit: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final setType = find.byKey(
+      const ValueKey('reference-set-type-outline'),
+    );
+    final referenceHeight = tester.getSize(setType).height;
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+
+    final routineOption = find.byKey(
+      const ValueKey('routine-edit-$_routineId'),
+    );
+    final routineHeight = tester.getSize(routineOption).height;
+    // Both options use the same 38dp badge/icon area and 8dp top/bottom
+    // padding; this detects future visual drift between the two sheets.
+    expect(referenceHeight, TioSize.dp38 + TioSpacing.sm * 2);
+    expect(routineHeight, referenceHeight);
+    final outlined = find.descendant(
+      of: routineOption,
+      matching: find.byType(TioCard),
+    );
+    expect(outlined, findsOneWidget);
+    final card = tester.widget<TioCard>(outlined);
+    expect(card.variant, TioCardVariant.outlined);
+    expect(card.outlinedBorderWidth, TioCardTokens.borderThin);
   });
 
   testWidgets('Routine bottom sheet fits narrow dark viewport',
