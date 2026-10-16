@@ -12,7 +12,7 @@ void main() {
     TioThemeMode.tioDark,
   ]) {
     for (final highContrast in [false, true]) {
-      testWidgets('54dp Core outlined Set Type and Remove cards at 320dp '
+      testWidgets('56dp Core outlined Set Type and Remove cards at 320dp '
           '${mode.name}, highContrast=$highContrast', (tester) async {
         tester.view.physicalSize = const Size(320, 720);
         tester.view.devicePixelRatio = 1;
@@ -66,7 +66,7 @@ void main() {
             horizontal: TioSpacing.md,
             vertical: TioSpacing.sm,
           ));
-          expect(tester.getSize(card).height, TioSize.dp54);
+          expect(tester.getSize(card).height, TioSize.dp56);
 
           final semantics = tester.widget<Semantics>(find.descendant(
             of: option,
@@ -112,7 +112,7 @@ void main() {
         expect(removeCard, findsOneWidget);
         expect(tester.widget<TioCard>(removeCard).variant,
             TioCardVariant.outlined);
-        expect(tester.getSize(removeCard).height, TioSize.dp54);
+        expect(tester.getSize(removeCard).height, TioSize.dp56);
         final trash = find.descendant(
           of: remove, matching: find.byIcon(Icons.delete_outline));
         expect(trash, findsOneWidget);
@@ -162,7 +162,7 @@ void main() {
       ),
     ));
     expect(tester.getSize(find.byType(TioCard)).height,
-        greaterThanOrEqualTo(TioSize.dp54));
+        greaterThanOrEqualTo(TioSize.dp56));
     expect(tester.takeException(), isNull);
   });
 }
