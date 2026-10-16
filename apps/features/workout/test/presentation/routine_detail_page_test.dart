@@ -90,7 +90,7 @@ void main() {
     expect(exerciseName, findsOneWidget);
     final exerciseStyle = tester.widget<Text>(exerciseName).style;
     expect(exerciseStyle?.fontSize, TioFontSize.size16);
-    expect(exerciseStyle?.fontWeight, TioFontWeight.w400);
+    expect(exerciseStyle?.fontWeight, TioFontWeight.w500);
     expect(find.text('0'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-detail-entry-$_e1')),
@@ -102,6 +102,45 @@ void main() {
         findsNothing);
     expect(find.text('Start Workout'), findsNothing);
     expect(find.text('5 min cardio'), findsNothing);
+  });
+
+  testWidgets('Detail exercise name matches composer trailing slot at 320dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const name = 'Barbell Standing Military Press (Without Rack)';
+    final snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_long_title'),
+      ),
+    ]);
+
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      await _pump(
+        tester,
+        routines: _Routines([_routine]),
+        compositions: _Compositions(snapshot),
+        mode: mode,
+      );
+      final labelFinder = find.text(name);
+      expect(labelFinder, findsOneWidget);
+      final label = tester.widget<Text>(labelFinder);
+      expect(label.style?.fontSize, TioFontSize.size16);
+      expect(label.style?.fontWeight, TioFontWeight.w500);
+      expect(label.maxLines, 2);
+      expect(label.overflow, TextOverflow.ellipsis);
+      expect(
+        tester.getTopRight(labelFinder).dx,
+        closeTo(320 - TioSpacing.lg - kMinInteractiveDimension, 0.01),
+        reason: 'Detail reserves the same 48dp trailing IconButton slot '
+            'without adding an action',
+      );
+      expect(find.byTooltip('Exercise options'), findsNothing);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('long Routine Detail title remains single-line at 320dp in both themes',
@@ -730,6 +769,11 @@ final class _Catalog implements ExerciseCatalogRepository {
         Exercise(
           ref: ExerciseRef.catalog('ex_bench_press'),
           displayName: 'Bench Press',
+          status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_long_title'),
+          displayName: 'Barbell Standing Military Press (Without Rack)',
           status: ExerciseStatus.active,
         ),
         Exercise(
