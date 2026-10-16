@@ -4,6 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+| [GitHub #571 — Parallel Flutter CI](issue-571-parallel-flutter-ci.md) | In review — Draft PR #573; exact-head CI pending | Repository CI / GitHub Actions | 3 independent Flutter test shards, fail-closed package inventory, unchanged trusted guard and stable Analyze and test aggregate |
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [GitHub #564 — Routine composer/Detail UI parity](issue-564-routine-ui-parity.md) | In progress — bounded Flutter UI-only slice; name+composition atomic Update and 3-dot full Edit separately gated | Workout feature presentation | Top Save/Update parity; Detail Exercises-row Edit including ready-empty; focused tests, review and CI |

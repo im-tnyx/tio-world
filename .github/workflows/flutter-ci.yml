@@ -10,6 +10,7 @@ on:
       - 'pubspec.yaml'
       - 'melos.yaml'
       - 'analysis_options.yaml'
+      - 'scripts/ci/flutter-test-shards.sh'
       - '.github/workflows/flutter-ci.yml'
   pull_request:
     branches:
@@ -19,6 +20,7 @@ on:
       - 'pubspec.yaml'
       - 'melos.yaml'
       - 'analysis_options.yaml'
+      - 'scripts/ci/flutter-test-shards.sh'
       - '.github/workflows/flutter-ci.yml'
   workflow_dispatch:
 
@@ -30,8 +32,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Analyze and test
+  analyze:
+    name: Analyze Flutter and Dart / test Dart
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -54,17 +56,80 @@ jobs:
           dart pub global activate melos 2.9.0
           echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
 
+      - name: Verify Flutter test inventory
+        run: bash scripts/ci/flutter-test-shards.sh verify
+
       - name: Bootstrap workspace
         run: melos bootstrap
 
       - name: Analyze Flutter packages
-        run: melos exec -c 1 --flutter --fail-fast -- "flutter analyze --no-pub"
+        run: melos exec -c 1 --flutter -- "flutter analyze --no-pub"
 
       - name: Analyze Dart packages
-        run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
-
-      - name: Test Flutter packages
-        run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
+        if: success() || failure()
+        run: melos exec -c 1 --no-flutter -- "dart analyze ."
 
       - name: Test Dart packages
-        run: melos exec -c 1 --no-flutter --dir-exists=test --fail-fast -- "dart test"
+        if: success() || failure()
+        run: melos exec -c 1 --no-flutter --dir-exists=test -- "dart test"
+
+  flutter_tests:
+    name: Test Flutter (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [app-workout, nutrition-onboarding, core-wear]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Flutter stable
+        shell: bash
+        run: |
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain info
+        run: flutter --version
+
+      - name: Install Melos
+        shell: bash
+        run: |
+          dart pub global activate melos 2.9.0
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Flutter test inventory
+        run: bash scripts/ci/flutter-test-shards.sh verify
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      - name: Test Flutter shard
+        env:
+          CI_TEST_SHARD: ${{ matrix.shard }}
+        run: bash scripts/ci/flutter-test-shards.sh run "$CI_TEST_SHARD"
+
+  quality:
+    # Preserve the existing job/check name for dashboards and potential rules.
+    name: Analyze and test
+    needs: [analyze, flutter_tests]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every analysis and test shard to succeed
+        env:
+          ANALYZE_RESULT: ${{ needs.analyze.result }}
+          FLUTTER_TESTS_RESULT: ${{ needs.flutter_tests.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Analysis / Dart tests: ${ANALYZE_RESULT}"
+          echo "All Flutter test shards: ${FLUTTER_TESTS_RESULT}"
+          if [[ "$ANALYZE_RESULT" != success || "$FLUTTER_TESTS_RESULT" != success ]]; then
+            echo 'Flutter CI failed: no failed, skipped or cancelled dependency is accepted.' >&2
+            exit 1
+          fi
