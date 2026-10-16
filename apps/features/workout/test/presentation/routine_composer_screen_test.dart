@@ -43,6 +43,11 @@ void main() {
         tester.widget<Text>(title).data,
         mode == RoutineComposerMode.create ? 'Create Routine' : 'Edit Routine',
       );
+      expect(
+        tester.widget<Text>(title).style?.fontSize,
+        TioFontSize.size18,
+        reason: 'Both shared composer titles use the compact Core text size',
+      );
       expect(tester.getTopLeft(title).dx, greaterThan(tester.getCenter(close).dx));
       expect(tester.getTopLeft(title).dx, lessThan(tester.getCenter(submit).dx));
       titleStarts.add(tester.getTopLeft(title).dx);
