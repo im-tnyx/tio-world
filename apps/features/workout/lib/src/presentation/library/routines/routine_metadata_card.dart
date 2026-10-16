@@ -58,6 +58,7 @@ class RoutineMetadataCard extends StatelessWidget {
                         icon: Icons.edit_outlined,
                       ),
                       title: 'Edit Routine',
+                      supportingText: 'Edit name, exercises and sets',
                       showChevron: false,
                       onTap: () => Navigator.of(sheetContext)
                           .pop(_RoutineAction.edit),
@@ -69,6 +70,7 @@ class RoutineMetadataCard extends StatelessWidget {
                         icon: Icons.drive_file_move_outlined,
                       ),
                       title: 'Move Routine',
+                      supportingText: 'Choose another Program',
                       showChevron: false,
                       onTap: () => Navigator.of(sheetContext)
                           .pop(_RoutineAction.move),
@@ -78,8 +80,10 @@ class RoutineMetadataCard extends StatelessWidget {
                       key: ValueKey('routine-delete-${routine.id.value}'),
                       leading: const TioSettingsLeadingIcon(
                         icon: Icons.delete_outline,
+                        color: sheetContext.tioColors.danger,
                       ),
                       title: 'Delete Routine',
+                      supportingText: 'Permanently remove this Routine',
                       titleColor: sheetContext.tioColors.danger,
                       showChevron: false,
                       onTap: () => Navigator.of(sheetContext)
