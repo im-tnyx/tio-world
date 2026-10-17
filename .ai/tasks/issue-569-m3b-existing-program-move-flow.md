@@ -1,6 +1,6 @@
 # #569 M3B1 — Owner Program Move destination controller
 
-**Status:** In progress — feature-owned dormant destination controller and tests; CI not yet verified.
+**Status:** In progress / Draft PR #597 — dormant destination controller source validated at `3e5fb7cdbe0493885dada93d08ee7f2c88aa3010`; manual review and follow-on selector UI remain gated.
 **Primary owner:** Workout presentation implementation, single remote branch.
 **Affected platforms:** Flutter Workout feature only; no user-visible route.
 
@@ -19,9 +19,9 @@
 - Ownership state: Active.
 - Repository baseline: protected main 59a21ba305b3265aa8d903dc3f46ee397b39219f after squash-merged PR #595.
 - Owner Windows tree: not inspected or altered by remote connector; no assumption of clean local checkout.
-- Current source state: M3B1 dormant destination inspection/confirmed dispatch controller with focused tests; no app wiring.
-- Validation completed at SHA: none for this new source. Post-merge M3A Flutter CI #39055475888 5/5 PASS on main.
-- Validation required: new exact-head Flutter CI, targeted unit tests, manual review; M3B2 UI/route/auth-cycle integration requires separate review.
+- Current source state: M3B1 dormant destination inspection/confirmed dispatch controller with 12 focused tests; generation guard prevents canceled/overlapping late owner reads from resurrecting stale selections. No app wiring.
+- Validation completed at SHA: [Flutter CI #39056881534](https://github.com/im-tnyx/tio-world/actions/runs/39056881534) **SUCCESS** at `3e5fb7cdbe0493885dada93d08ee7f2c88aa3010`, all five Flutter/Dart jobs plus both attribution checks (7/7). Workout job logs show 726 tests passed including all 12 M3B1 tests. Previous source-only SHA `bf185971` also passed full Flutter CI #39056436950. Post-merge M3A run #39055475888 passed 5/5 on main.
+- Validation remaining: current docs-only handoff SHA attribution/CI, independent/manual review, and M3B2 selector/confirmation/app-shell/auth-cycle wiring. No device QA or production Move grant.
 
 ## Discovery / Architecture
 
@@ -33,4 +33,4 @@
 
 ## Quality Review and Handoff
 
-Not validated; do not merge or activate on this brief alone. Record exact-head CI and review evidence before next gate.
+Source and tests validated at `3e5fb7cd` (not this docs-only follow-up SHA). PR #597 remains Draft and not reviewed for merge. No Move UI, EXECUTE grant, or release; M3B2 must receive its own review and owner rollout gate.
