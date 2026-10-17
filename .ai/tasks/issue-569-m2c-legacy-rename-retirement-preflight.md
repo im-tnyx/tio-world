@@ -1,6 +1,6 @@
 # GitHub #569 — M2C Legacy Rename Retirement Preflight
 
-**Status:** **Source preflight validated**, [PR #593](https://github.com/im-tnyx/tio-world/pull/593) Open/Ready for Review; exact changed-source `e197d7080a7e94a42f9f9a82229a56931279bdf6` [Supabase Database CI #39043723837](https://github.com/im-tnyx/tio-world/actions/runs/39043723837) **SUCCESS**. No hosted deployment or migration.
+**Status:** **Validated and merged** as [PR #593](https://github.com/im-tnyx/tio-world/pull/593), protected `main@1188346d90fd8e1a15b77d00eae48d369bd4d817`. CI-only historical preflight; current permanent cutoff work lives in [the M2C cutoff task](issue-569-m2c-legacy-rename-cutoff.md). No hosted deployment.
 **Primary owner:** Supabase/Postgres security; linked to Workout identity.
 **Affected platforms:** Supabase test harness and GitHub CI only.
 
@@ -21,7 +21,7 @@
 - **Windows local repo:** `G:\projects\Tio-World` inaccessible via GitHub connector; no local git/CLI/device tests claimed.
 - **Current host:** Supabase project `oykupyiitspujzpwwvuj` 62 applied migrations, M1 RPC absent; authenticated direct `UPDATE(name)` allowed, direct `UPDATE(program_id)` denied; protected 7-arg Rename RPC available.
 - **Review owner:** Independent SQL/security review / owner-directed manual gate after CI.
-- **Next exact step:** Finish preflight CI, then **generate** the actual follow-on versioned migration using `supabase migration new retire_legacy_routine_name_update` on a supported Supabase CLI, without inventing a timestamp filename. Refactor old compatibility-dependent tests and legacy two-session fixtures in that **separate** cutover PR; do not deploy or enable Move until full CI and explicit reviewed gate.
+- **Next exact step:** Preflight merge complete. Owner generated and pushed `supabase/migrations/20261017154241_retire_legacy_routine_name_update.sql` with pinned Windows Supabase CLI; now review actual cutoff in `tnyx/issue-569-m2c-legacy-rename-cutoff`, full disposable CI and separate deployment gate. Refactor old compatibility-dependent tests and legacy two-session fixtures in that **separate** cutover PR; do not deploy or enable Move until full CI and explicit reviewed gate.
 
 ## Verified Architecture and Risk
 
