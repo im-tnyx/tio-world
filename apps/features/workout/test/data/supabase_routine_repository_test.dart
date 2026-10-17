@@ -31,11 +31,12 @@ void main() {
           },
         ];
       final repository = SupabaseRoutineRepository(
-        gateway: gateway, currentUserId: () => userId);
+        gateway: gateway, currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a');
       final snapshots = await repository.listVersioned(programId);
       expect(snapshots.single.routine,
         Routine(id: routineId, programId: programId, name: 'Routine 1'));
       expect(snapshots.single.revision, 7);
+      expect(snapshots.single.loginCycleId, 'cycle-a');
       expect(gateway.lastUserId, userId);
       expect(gateway.lastProgramId, programId.value);
       expect(await repository.list(programId), [snapshots.single.routine]);
@@ -44,7 +45,7 @@ void main() {
     test('missing or invalid revision and foreign Program fail closed', () async {
       final gateway = _FakeRoutineGateway();
       final repository = SupabaseRoutineRepository(
-        gateway: gateway, currentUserId: () => userId);
+        gateway: gateway, currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a');
       for (final row in [
         {'id': routineId.value, 'program_id': 42, 'name': 'One',
          'composition_revision': 0},
@@ -67,14 +68,35 @@ void main() {
       final gateway = _FakeRoutineGateway()
         ..onList = () => user = '55555555-5555-4555-8555-555555555555';
       final repository = SupabaseRoutineRepository(
-        gateway: gateway, currentUserId: () => user);
+        gateway: gateway, currentUserId: () => user, currentLoginCycleId: () => 'cycle-a');
       await expectLater(repository.listVersioned(programId), throwsStateError);
+    });
+
+    test('login cycle swap after list rejects stale snapshot', () async {
+      String cycle = 'cycle-a';
+      final gateway = _FakeRoutineGateway()
+        ..onList = () => cycle = 'cycle-b';
+      final repository = SupabaseRoutineRepository(
+        gateway: gateway, currentUserId: () => userId,
+        currentLoginCycleId: () => cycle);
+      await expectLater(repository.listVersioned(programId), throwsStateError);
+    });
+
+    test('stale login cycle cannot dispatch protected Rename', () async {
+      final updates = _FakeAggregateUpdates();
+      final repository = SupabaseRoutineRepository(
+        gateway: _FakeRoutineGateway(), currentUserId: () => userId,
+        currentLoginCycleId: () => 'cycle-b', aggregateUpdates: updates);
+      await expectLater(repository.renameVersioned(
+        _rename(routineId, programId, 'Strength'),
+        expectedLoginCycleId: 'cycle-a'), throwsStateError);
+      expect(updates.command, isNull);
     });
 
     test('create still writes only approved fields', () async {
       final gateway = _FakeRoutineGateway();
       final repository = SupabaseRoutineRepository(
-        gateway: gateway, currentUserId: () => userId);
+        gateway: gateway, currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a');
       final routine = Routine(id: routineId, programId: programId,
         name: ' Routine 1 ');
       await repository.create(routine);
@@ -97,7 +119,7 @@ void main() {
       await expectLater(repository.rename(id: routineId, name: 'Strength'),
         throwsStateError);
       await expectLater(repository.renameVersioned(_rename(routineId,
-        programId, 'Strength')), throwsStateError);
+        programId, 'Strength'), expectedLoginCycleId: 'cycle-a'), throwsStateError);
       expect(gateway.inserted, isNull);
       expect(updates.command, isNull);
     });
@@ -106,7 +128,7 @@ void main() {
       final gateway = _FakeRoutineGateway();
       final updates = _FakeAggregateUpdates();
       final repository = SupabaseRoutineRepository(
-        gateway: gateway, currentUserId: () => userId,
+        gateway: gateway, currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a',
         aggregateUpdates: updates);
       await expectLater(repository.rename(id: routineId, name: '   '),
         throwsArgumentError);
@@ -118,10 +140,10 @@ void main() {
     test('versioned Rename delegates only frozen name-only RPC', () async {
       final updates = _FakeAggregateUpdates();
       final repository = SupabaseRoutineRepository(
-        gateway: _FakeRoutineGateway(), currentUserId: () => userId,
+        gateway: _FakeRoutineGateway(), currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a',
         aggregateUpdates: updates);
       final command = _rename(routineId, programId, 'Strength');
-      expect(await repository.renameVersioned(command), 5);
+      expect(await repository.renameVersioned(command, expectedLoginCycleId: 'cycle-a'), 5);
       expect(identical(updates.command, command), isTrue);
       expect(command.programId, programId);
       expect(command.expectedRevision, 4);
@@ -132,14 +154,14 @@ void main() {
     test('versioned Rename cannot supply composition replacement', () async {
       final updates = _FakeAggregateUpdates();
       final repository = SupabaseRoutineRepository(
-        gateway: _FakeRoutineGateway(), currentUserId: () => userId,
+        gateway: _FakeRoutineGateway(), currentUserId: () => userId, currentLoginCycleId: () => 'cycle-a',
         aggregateUpdates: updates);
       final invalid = RoutineAggregateUpdate(
         routineId: routineId, programId: programId, expectedRevision: 4,
         expectedName: 'Morning', mutationId:
         '66666666-6666-4666-8666-666666666666',
         name: 'Strength', entries: const []);
-      await expectLater(repository.renameVersioned(invalid), throwsArgumentError);
+      await expectLater(repository.renameVersioned(invalid, expectedLoginCycleId: 'cycle-a'), throwsArgumentError);
       expect(updates.command, isNull);
     });
   });

@@ -271,6 +271,18 @@ void main() {
     expect(controller.abandonCreateAttempt(), isTrue);
   });
 
+  test('same user relogin cannot use old metadata snapshot', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.currentCycle = 'cycle-b';
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Unsafe');
+    expect(error, 'Please sign in to save Routines.');
+    expect(repository.rows.single.name, 'Morning');
+  });
+
   test('zero-row rename does not falsely report success', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
       ..ignoreRename = true;
@@ -334,13 +346,15 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   bool throwUnconfirmedRename = false;
   bool switchAccountOnRename = false;
   bool switchedAccount = false;
+  String currentCycle = 'cycle-a';
 
   @override
   Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId) async {
     final result = await list(programId);
     return [
       for (final row in result)
-        RoutineMetadataRevision(routine: row, revision: revisions[row.id] ?? 0),
+        RoutineMetadataRevision(routine: row, revision: revisions[row.id] ?? 0,
+          loginCycleId: currentCycle),
     ];
   }
 
@@ -381,8 +395,13 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   }
 
   @override
-  Future<int> renameVersioned(RoutineAggregateUpdate command) async {
+  Future<int> renameVersioned(RoutineAggregateUpdate command, {
+    required String expectedLoginCycleId,
+  }) async {
     renameCount++;
+    if (expectedLoginCycleId != currentCycle) {
+      throw StateError('Please sign in to save Routines.');
+    }
     if (switchAccountOnRename) {
       switchedAccount = true;
       throw StateError('Please sign in to save Routines.');
