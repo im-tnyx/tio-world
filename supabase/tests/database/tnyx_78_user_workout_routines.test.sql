@@ -76,13 +76,13 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-  has_column_privilege(
+  not has_column_privilege(
     'authenticated',
     'public.user_workout_routines',
     'name',
     'UPDATE'
   ),
-  'authenticated must be able to update Routine name'
+  'authenticated cannot update Routine name directly after M2C'
 );
 
 select pg_temp.assert_true(
@@ -151,15 +151,32 @@ select pg_temp.assert_true(
   'owner RLS must expose only the authenticated user Routine rows'
 );
 
-update public.user_workout_routines
-set name = 'Renamed Routine A'
-where id = 'a3010000-0000-4000-8000-000000003001';
-
+select pg_temp.assert_raises(
+  $$update public.user_workout_routines
+    set name = 'Unsafe direct Rename'
+    where id = 'a3010000-0000-4000-8000-000000003001'$$,
+  '42501', 'old direct Rename denied'
+);
 select pg_temp.assert_true(
-  (select name = 'Renamed Routine A'
+  (select name = 'Routine A' and composition_revision = 0
    from public.user_workout_routines
    where id = 'a3010000-0000-4000-8000-000000003001'),
-  'authenticated owner must be able to rename their Routine'
+  'denied direct Rename preserves Name and revision'
+);
+select pg_temp.assert_true(
+  public.update_user_workout_routine_with_composition(
+    'a3010000-0000-4000-8000-000000003001',
+    'a3010000-0000-4000-8000-000000002001',
+    0, 'Routine A', 'a3010000-0000-4000-8000-000000003091',
+    'Renamed Routine A', null
+  ) = 1,
+  'protected owner Program + revision Rename succeeds'
+);
+select pg_temp.assert_true(
+  (select name = 'Renamed Routine A' and composition_revision = 1
+   from public.user_workout_routines
+   where id = 'a3010000-0000-4000-8000-000000003001'),
+  'protected Rename persists without reparent or copy'
 );
 
 select pg_temp.assert_raises(
@@ -194,9 +211,20 @@ select set_config(
   true
 );
 
-update public.user_workout_routines
-set name = 'Should not change'
-where id = 'a3010000-0000-4000-8000-000000003003';
+select pg_temp.assert_raises(
+  $$update public.user_workout_routines
+    set name = 'Should not change'
+    where id = 'a3010000-0000-4000-8000-000000003003'$$,
+  '42501', 'direct Name UPDATE is denied even for foreign Routine'
+);
+select pg_temp.assert_raises(
+  $$select public.update_user_workout_routine_with_composition(
+    'a3010000-0000-4000-8000-000000003003',
+    'a3010000-0000-4000-8000-000000002002',
+    0, 'Routine B', 'a3010000-0000-4000-8000-000000003092',
+    'Should not change', null)$$,
+  'P0002', 'protected Rename rejects a foreign Routine'
+);
 
 reset role;
 
