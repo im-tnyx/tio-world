@@ -88,8 +88,10 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   // A timed-out RPC may remain active on the server after the local timeout.
   // Only a strictly newer owner-read revision proves its old revision-CAS
   // cannot later delete the same Routine. Same-revision reads never unblock.
+  // The unknown-write guard spans login cycles for the SAME owner/Routine;
+  // authorization and one-use inspect capabilities remain cycle-specific.
   final Map<String, int> _unconfirmedRevisions = {};
-  final Map<String, int> _inspectedRevisions = {};
+  final Map<String, RoutineDeleteTarget> _preparedTargets = {};
   final Set<String> _inFlight = {};
 
   @override
@@ -100,14 +102,13 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     final session = _session();
     final row = await _read(session, routineId);
     if (row == null || row.program != programId) return null;
-    final key = _key(session, routineId);
-    final unresolvedRevision = _unconfirmedRevisions[key];
+    final ownerKey = _ownerKey(session, routineId);
+    final unresolvedRevision = _unconfirmedRevisions[ownerKey];
     if (unresolvedRevision != null && row.revision > unresolvedRevision) {
       // The old CAS cannot commit at the newly observed revision.
-      _unconfirmedRevisions.remove(key);
+      _unconfirmedRevisions.remove(ownerKey);
     }
-    _inspectedRevisions[key] = row.revision;
-    return RoutineDeleteTarget(
+    final target = RoutineDeleteTarget(
       routineId: row.id,
       programId: row.program,
       name: row.name,
@@ -115,6 +116,8 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       ownerId: session.owner,
       loginCycleId: session.cycle,
     );
+    _preparedTargets[_cycleKey(session, routineId)] = target;
+    return target;
   }
 
   @override
@@ -124,18 +127,22 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
         session.cycle != target.loginCycleId) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.unauthorized);
     }
-    final key = _key(session, target.routineId);
-    if (_unconfirmedRevisions.containsKey(key)) {
+    final ownerKey = _ownerKey(session, target.routineId);
+    final cycleKey = _cycleKey(session, target.routineId);
+    if (_unconfirmedRevisions.containsKey(ownerKey)) {
       throw const RoutineDeleteOutcomeUnknown();
     }
-    if (_inspectedRevisions[key] != target.expectedRevision) {
-      throw const RoutineDeleteException(
-        RoutineDeleteFailureKind.revisionConflict,
-      );
-    }
-    if (!_inFlight.add(key)) {
+    if (_inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
+    // A target is a ONE-USE capability, not merely a matching revision.
+    // A definite server rejection also consumes it: a new attempt requires
+    // another owner-scoped inspect/confirmation rather than replaying it.
+    if (!identical(_preparedTargets[cycleKey], target)) {
+      throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
+    }
+    _inFlight.add(ownerKey);
+    _preparedTargets.remove(cycleKey);
 
     try {
       Object? response;
@@ -159,17 +166,14 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
           reason: RoutineDeleteUncertainty.sessionChanged,
         );
       }
-      if (response == true) {
-        _inspectedRevisions.remove(key);
-        return RoutineDeleteResult.confirmed;
-      }
+      if (response == true) return RoutineDeleteResult.confirmed;
       // Malformed/false 2xx is NOT a confirmed deletion.
       return await _reconcile(target, session);
     } on RoutineDeleteOutcomeUnknown {
-      _unconfirmedRevisions[key] = target.expectedRevision;
+      _unconfirmedRevisions[ownerKey] = target.expectedRevision;
       rethrow;
     } finally {
-      _inFlight.remove(key);
+      _inFlight.remove(ownerKey);
     }
   }
 
@@ -273,7 +277,10 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     }
   }
 
-  static String _key(_Session session, RoutineId id) =>
+  static String _ownerKey(_Session session, RoutineId id) =>
+      '${session.owner}/${id.value}';
+
+  static String _cycleKey(_Session session, RoutineId id) =>
       '${session.owner}/${session.cycle}/${id.value}';
 
   static RoutineDeleteFailureKind? _definite(PostgrestException e) {
