@@ -121,11 +121,11 @@ Future<bool?> _showRoutineDeleteDialog({
 
     return Dialog(
       key: ValueKey('confirm-delete-routine-${routineId.value}'),
-      backgroundColor: Colors.transparent,
+      backgroundColor: TioPalette.transparent,
       elevation: TioElevation.none,
       insetPadding: const EdgeInsets.all(TioSpacing.lg),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: TioSize.dp480),
+        constraints: const BoxConstraints(maxWidth: TioSize.dp320),
         child: SingleChildScrollView(
           child: TioCard(
             variant: TioCardVariant.elevated,
