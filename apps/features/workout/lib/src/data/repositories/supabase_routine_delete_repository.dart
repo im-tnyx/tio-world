@@ -92,6 +92,9 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   // authorization and one-use inspect capabilities remain cycle-specific.
   final Map<String, int> _unconfirmedRevisions = {};
   final Map<String, RoutineDeleteTarget> _preparedTargets = {};
+  // Reject reads that overlap any dispatch, even if the request completes
+  // before the read returns a stale pre-Delete snapshot.
+  final Map<String, int> _dispatchGeneration = {};
   final Set<String> _inFlight = {};
 
   @override
@@ -100,9 +103,22 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     required RoutineId routineId,
   }) async {
     final session = _session();
-    final row = await _read(session, routineId);
-    if (row == null || row.program != programId) return null;
     final ownerKey = _ownerKey(session, routineId);
+    if (_inFlight.contains(ownerKey)) {
+      throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
+    }
+    final startGeneration = _dispatchGeneration[ownerKey] ?? 0;
+    final row = await _read(session, routineId);
+    // A Delete could have started while this read awaited the server, then
+    // already committed by the time its old header arrived. Such a read is
+    // never valid evidence for a new destructive confirmation.
+    if (_inFlight.contains(ownerKey)) {
+      throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
+    }
+    if ((_dispatchGeneration[ownerKey] ?? 0) != startGeneration) {
+      throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
+    }
+    if (row == null || row.program != programId) return null;
     final unresolvedRevision = _unconfirmedRevisions[ownerKey];
     if (unresolvedRevision != null && row.revision > unresolvedRevision) {
       // The old CAS cannot commit at the newly observed revision.
@@ -142,6 +158,7 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
     }
     _inFlight.add(ownerKey);
+    _dispatchGeneration[ownerKey] = (_dispatchGeneration[ownerKey] ?? 0) + 1;
     _preparedTargets.remove(cycleKey);
 
     try {
