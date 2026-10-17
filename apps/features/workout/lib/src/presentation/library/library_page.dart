@@ -32,6 +32,7 @@ class LibraryPage extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onDeleteRoutine,
+    this.actionSheetGuard,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
     required this.canCreateExercise,
@@ -52,6 +53,7 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -95,6 +97,7 @@ class _LibraryPageState extends State<LibraryPage> {
         onRoutinePressed: widget.onRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
         onDeleteRoutine: widget.onDeleteRoutine,
+        actionSheetGuard: widget.actionSheetGuard,
       );
 
   @override
