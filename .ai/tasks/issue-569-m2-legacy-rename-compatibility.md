@@ -1,6 +1,6 @@
 # GitHub #569 — M2 Legacy Rename Compatibility and Safe Move Preparation
 
-**Status:** PR #591 M2B current-client compatibility source validated at `1dba0e5131e4b81a1bcea3105663eae1de513b7e` by exact-head Flutter CI #39035723754 **SUCCESS** (all five jobs). Four prior native review threads resolved (0 unresolved at latest check); additional owner-boundary hardening on successful metadata reload committed/tested. PR is Ready for Review, Open/unmerged; no APPROVED reviewer, Codex review on older SHA usage-limited, branch protection permissions return 403. Production old-client cutoff/Move deployment/activation remain blocked.
+**Status:** **M2B MERGED** via [PR #591](https://github.com/im-tnyx/tio-world/pull/591), squash `main@c12ea127e4cc74ebdde08b559bef04216b9b9f6b` (2026-10-17); exact-merge [Flutter CI #39038295713](https://github.com/im-tnyx/tio-world/actions/runs/39038295713) **SUCCESS** (all five jobs). Four inline threads resolved; owner-directed manual review recorded, **no independent GitHub `APPROVED` review**. This is a source merge, not a mobile release or hosted Supabase deployment. M2C older-client cutoff, M1 hosted deployment and Move activation remain separately gated.
 **Primary owner:** GitHub-connected M2 implementation session (single implementation owner).
 **Affected platforms:** Workout metadata repository/controller, app Auth boundary, and future Supabase authorization gate. No UI or hosted database changes in this checkpoint.
 
@@ -15,14 +15,22 @@
 
 - **Planning:** GitHub #569 Open; Linear TNYX-81 Backlog and TNYX-267 Backlog. These are broader trackers, not completed W4/W6B acceptance.
 - **Implementation owner:** GitHub-connected M2 session; no simultaneous source owner is known.
-- **Review owner:** Independent reviewer required before merge; no approval inferred.
-- **Repository:** GitHub main verified `5a9e9f46d2d114ff6eefac7aeb9b5341f24e6a65` (merged PR #588). Branch: `tnyx/issue-569-m2-rename-compatibility` from this SHA.
-- **Working tree / PR:** Local Windows `G:\projects\Tio-World` cannot be inspected from this connector-only session; do not claim a clean local tree. GitHub #591 is OPEN/Draft on the M2 branch and awaits independently verified review; earlier no-open-PR observation is historical.
+- **Review owner:** M2B completed after documented owner-directed manual security/code review, not independent GitHub `APPROVED` review. Codex usage-limit failure remains a historical limitation.
+- **Repository:** Squash `main@c12ea127e4cc74ebdde08b559bef04216b9b9f6b` (parent M1 merge `5a9e9f46`). Historical source branch `tnyx/issue-569-m2-rename-compatibility` remains on remote; cleanup not performed.
+- **Working tree / PR:** PR #591 **closed/merged**; local Windows `G:\projects\Tio-World` is not accessible here, so no local status/pull/prune verification. Original remote source branch remains.
 - **Hosted runtime:** Tio-world Supabase project `oykupyiitspujzpwwvuj` has 62 migrations through `20261016220000`; source contains 63 including M1 `20261017100000`. Hosted Move RPC count zero. Authenticated direct `UPDATE(name)` allowed; direct `UPDATE(program_id)` and revision UPDATE denied.
 - **M1 permission:** Merged function revokes EXECUTE from `PUBLIC`, `anon`, `authenticated`, `service_role`. It remains dormant even if that reviewed migration is separately deployed.
-- **Validation:** Latest source HEAD `1dba0e51` Flutter CI #39035723754 **SUCCESS** (Analyze/Dart, app-workout, core-wear, nutrition-onboarding, aggregate gate), attribution checks verified. Earlier `0c698068` CI #39034578663 succeeded; intermediate `cad7c0aa` Analyzer failed and `c1a06627` CI was cancelled by a subsequent push. Do not count either failed/cancelled run as PASS. A later docs-only handoff commit requires separate exact-HEAD checks. Live Supabase read-only permissions/migrations checked; no migration replay/device tests.
+- **Validation:** Post-merge Flutter CI #39038295713 **SUCCESS** at `main@c12ea127` (all five jobs); final pre-merge #39036088215 SUCCESS, including required attribution guard. Older intermediate failed/cancelled runs remain historical. Supabase read-only: 62 applied vs 63 checked-in migrations, old authenticated direct `UPDATE(name)` still granted, no deployed Move RPC. No deployment or device QA.
 - **Current blocker:** A server-enforced old-client retirement/compatibility decision is required before any Move activation. No minimum-supported-version enforcement deployed.
-- **Next exact step:** Obtain eligible independent APPROVED review if branch policy requires it (current reviews COMMENTED only; Codex review on `f17fd73` failed with usage-limit response, not a pass). Reconcile authoritative required checks with GitHub maintainer because protection REST returned 403; only then await explicit owner `Go merge`. Keep Move activation and legacy client cutoff as separate owner-approved slices.
+- **Next exact step:** M2C planning/owner decision on supported deployed versions, adoption evidence, server-enforced old-client Rename cutoff, user impact/forced-update and rollback plan. No cutoff threshold or server enforcement approved. Do not revoke `UPDATE(name)` until safety validation, explicit approval and independently gated deployment. M1 migration, Move EXECUTE and Flutter UI activation remain separately gated.
+
+## Post-merge source / hosted release boundary (2026-10-17 — current)
+
+- GitHub PR #591 is **merged** at `main@c12ea127e4cc74ebdde08b559bef04216b9b9f6b`; all 10 scoped files landed, with [post-merge Flutter CI #39038295713](https://github.com/im-tnyx/tio-world/actions/runs/39038295713) **SUCCESS**.
+- Four native review threads resolved; the owner requested manual security/code review and guarded merge. **No GitHub independent `APPROVED` review** occurred. The previous Codex usage-limit failure is neither a clean review nor a finding. GitHub accepted normal expected-head squash without force.
+- Hosted Tio-world Supabase remains at 62 migrations vs 63 repository SQL; M1 Move RPC is absent live; older clients still have authenticated direct `UPDATE(name)` and cannot directly `UPDATE(program_id)`. App distribution, minimum-client cutoff and Move activation were not performed.
+- **M2C decision required:** establish supported client versions, rollout/adoption evidence, server-enforced restriction of legacy Rename before Move, forced-upgrade user impact, rollback and negative/security tests. Do not base security authorization on an untrusted client-declared version header. M1 deploy, Move EXECUTE grant and Flutter Move UI are separate gates.
+- Older sections mentioning PR #591 Draft/Ready for Review, pending CI or merge NO-GO are **historical pre-merge checkpoints** and superseded by this section. No local Windows sync, remote branch deletion or product runtime change was made.
 
 ## Independent inline review follow-up (2026-10-17, validated source `f17fd73`)
 
@@ -96,7 +104,7 @@
 ## 3. Sequencing
 
 - [x] **M2A:** fresh `main`/PR/Linear/source/live permissions inspection; post-M1 merge-truth handoff.
-- [x] **M2B (source validated; merge approval pending):** minimal protected metadata Rename read/write integration, no capability activation, updated fakes and focused Flutter tests. Audit/record whether metadata Create reconciliation is still runtime reachable; do not discard its correctness without evidence.
+- [x] **M2B (source merged; not deployed):** protected current-client Rename, Create identity guards and tests merged in PR #591, post-merge CI #39038295713 PASS; no Move activation.
 - [ ] **M2C (separately owner-gated):** supported deployed old-client cutoff and compatibility policy; reviewed server enforcement removing old direct `UPDATE(name)` when safe.
 - [ ] **M2D (separately authorized):** apply/verify dormant M1 migration then review conditional Move EXECUTE activation, negative/race SQL and exact-head CI. Existing Program Flutter selector is a later bounded slice.
 - [ ] **Later:** #568 canonical My Program, atomic `+ New Program → Create & Move`, #567 Delete Program.
@@ -106,17 +114,17 @@
 | ID | Severity | Status | Finding / disposition |
 |---|---|---|---|
 | M2-P2-01 | P2 activation blocker | Open | Legacy authenticated UPDATE(name) can mutate a Routine moved from stale Program context. Server grant unchanged until compatible retirement is expressly approved. |
-| M2-COMP-01 | Contract gate | Resolved in code + CI; merge review pending | Versioned metadata list now binds original owner-scoped Program, revision, expected name and app login-cycle to the protected RPC. A→B→A stale revision and cycle-change tests included. |
+| M2-COMP-01 | Contract gate | Merged / post-merge CI PASS | Versioned metadata list now binds original owner-scoped Program, revision, expected name and app login-cycle to the protected RPC. A→B→A stale revision and cycle-change tests included. |
 | M2-OPS-01 | Process | Open | Main has 63 SQL files while live has 62; M1 source is merged but un-deployed. Do not mix up code merge, hosted deployment and client activation. |
 | M2-OPS-02 | Process | Open | Local Windows git status, device/client adoption and supported-version evidence not available through connector-only audit. |
 | M2-P2-02 | P2 client retry/uncertainty | Resolved in source + exact-head CI | Previous controller allowed a fresh mutation token after ambiguous Rename; current controller stores Routine-scoped in-process uncertainty gate and focused regression prohibits subsequent rename even after refresh. |
-| M2-P2-03 | P2 stale owner metadata exposure | Resolved in source + prior CI, merge review pending | Post-Rename auth/account switch plus failed verification read previously republished stale Routine rows. Explicit live owner+login-cycle guard now fail-closes with empty `loadFailed` state; post-dispatch and Create regression tests passed on older HEAD. |
-| M2-P2-04 | P2 pending Create UUID loss after network list failure | Resolved in code/CI; merger review pending | On unchanged owner+login cycle, list errors now hide rows without clearing uncertain Create UUID. Account/cycle mismatch still invalidates the identity. Tests cover both committed and uncommitted Create outcomes through failed and recovered list reads. |
+| M2-P2-03 | P2 stale owner metadata exposure | Merged / post-merge CI PASS | Post-Rename auth/account switch plus failed verification read previously republished stale Routine rows. Explicit live owner+login-cycle guard now fail-closes with empty `loadFailed` state; post-dispatch and Create regression tests passed on older HEAD. |
+| M2-P2-04 | P2 pending Create UUID loss after network list failure | Merged / post-merge CI PASS | On unchanged owner+login cycle, list errors now hide rows without clearing uncertain Create UUID. Account/cycle mismatch still invalidates the identity. Tests cover both committed and uncommitted Create outcomes through failed and recovered list reads. |
 
-**Readiness:** PR #591 **Ready for Review**, changed source SHA `1dba0e51` CI GREEN (#39035723754), all four native threads resolved as of latest check, no APPROVED review, Codex usage-limited. **NO-GO merge until eligible reviewer/maintainer branch-policy disposition and explicit owner `Go merge`**. **NO-GO** for old-client grant retirement, hosted M1 deploy and Move activation.
+**Readiness:** M2B **merged and CI-validated** on `main@c12ea127` with four inline threads resolved. Move activation **NO-GO**: old-client direct `UPDATE(name)` remains enabled, M1 Move RPC not deployed, server-supported-version cutoff not approved. Historical pre-merge review statements below do not describe current PR state.
 
 ## 5. Handoff
 
 **Changed files at this checkpoint:** `.ai/tasks/README.md`, `.ai/tasks/issue-569-routine-move-existing-program-db.md`, this M2 brief; Workout domain metadata interface, Supabase metadata repository, Program Routines controller, focused repo/controller tests, and app Workout provider. No schema, grants, visual UI, deployment or Linear status modified.
-**Validation:** Exact source HEAD `1dba0e51` GitHub Flutter CI #39035723754 PASS (5/5), attribution checks PASS. All four review threads replied/resolved, including same-session unknown Create P2 #4302707588. Earlier intermediate failed and cancelled runs are historical. Hosted Supabase read-only permissions checked; no APPROVED review or authority to assert branch protection policy (API 403); Codex usage limits; Windows local git/device tests unavailable.
-**Next owner:** Independent qualified GitHub reviewer for PR #591; owner for explicit merge instruction after required checks verified. GitHub #569 stays Open and old-client compatibility/Move activation is a later approved slice.
+**Validation:** GitHub final pre-merge Flutter CI #39036088215 and post-merge `main@c12ea127` CI #39038295713 both SUCCESS (five Flutter/Dart jobs); no independent GitHub `APPROVED` review, owner-directed manual audit documented, no policy bypass. Hosted Supabase queried read-only. No local Windows/device/app-release QA, Supabase deploy or grant change.
+**Next owner:** #569 M2C decision/planning owner for a separately approved server-enforced legacy-client cutoff. GitHub #569 stays Open and broad W4/W6B Linear acceptance remains Backlog; M1 deploy and Move grant/UI activation are independent.
