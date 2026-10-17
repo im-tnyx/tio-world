@@ -1,6 +1,6 @@
 # GitHub #569 — M1 Existing-Program Routine Move (DB)
 
-**Status:** M1 backend validated in disposable GitHub CI, release BLOCKED by one unresolved P2 legacy Rename compatibility decision; Draft PR #588, not deployed.
+**Status:** M1 dormant-stage merge-gate preparation; latest permission-gated disposable CI pending. Legacy Rename P2 remains activation-blocking, PR #588 Draft/unmerged, hosted Supabase unchanged.
 **Primary owner:** GitHub-connected implementation session (single implementation owner).
 **Affected platforms:** Supabase Postgres/RLS. No Flutter, Watch, service/API, UI, or deployed database changes.
 
@@ -8,7 +8,7 @@
 
 **Trigger:** New independently scoped product feature slice.
 **Approval status:** Approved by owner in GitHub #569 and 2026-10-17 conversation: “Go start @Supabase @Linear @GitHub Follow agent.md” after fresh audit.
-**Approved scope:** M1 only: atomic owner-checked move of one persisted Routine between two already persisted owner-owned Programs, preserving its UUID, Exercise/Set child IDs and order. Add one least-privilege RPC, SQL negative tests, review handoff.
+**Approved scope:** M1 only: atomic owner-checked move of one persisted Routine between two already persisted owner-owned Programs, preserving its UUID, Exercise/Set child IDs and order. Add one least-privilege RPC, SQL negative tests, review handoff. **Merge-stage security amendment:** keep new Move RPC installed but EXECUTE denied to `PUBLIC`, `anon`, `authenticated` and `service_role` until the unsafe legacy name-writing path is retired. Activation requires a separate reviewed grant migration; CI temporarily grants only in disposable database.
 **Explicit non-changes:** No Supabase table/column/constraint shape change, no direct client UPDATE(program_id) grant; no canonical My Program resolution (#568), quota numeric ceilings (#554), Create & Move, Program Delete (#567), Flutter provider/3-dot UI activation, UI redesign, production deployment or new services/api.
 
 ## Active Handoff
@@ -27,6 +27,15 @@
 **Validation remaining:** Owner-approved minimum-supported-client / legacy Rename write-contract decision before any rollout, final independent latest-head review and branch/ruleset required-check verification at merge gate, hosted post-deployment advisor check only after authorized deployment. SQL migration filename generator was not available in connector-only runtime. CI verification includes the new known-unsafe legacy Rename reproduction on **HEAD 7caf7de5**, prior to this task-status documentation update.
 **Current blocker:** PR #588 review **P2 #1 resolved** by corrected exact Move retry after source cleanup, validated in CI #39022276556. **P2 #2 remains release blocking**: legacy authenticated Data API `UPDATE(name)` uses only `user_id + id`, not source/revision CAS; after Move a stale original-Program UI can rename the Routine at destination. Server cannot distinguish stale vs fresh legacy Rename without new request context. Silently removing/breaking legacy grants is not approved. Owner must decide minimum-version/compatibility sunset; do not resolve thread or activate Move until a safe rollout is reviewed.
 **Next exact action:** Obtain explicit owner compatibility direction for legacy `UPDATE(name)`, implement only its bounded approved remediation, independently review exact diff, then evaluate merge/deployment. Keep PR Draft and hosted production unchanged.
+
+## Merge-Gate Safety Disposition: Dormant RPC
+
+After fresh owner-directed merge-gate audit, active legacy Data API `UPDATE(name)` for authenticated clients remained confirmed in read-only live Tio-world. `public.move_user_workout_routine` is now **staged dormant**: the SQL function is defined but its migration explicitly REVOKEs EXECUTE from all client roles (PUBLIC/anon/authenticated/service_role), **without a replacement grant**. The current metadata-only Rename and post-unknown-Create fallback continue to work because their existing `UPDATE(name)` grant is left untouched; no UI action or protected Move capability is enabled.
+
+- **Why this unlocks safe code-only review:** production clients cannot perform any Move through the new RPC even after a future *separately authorized* migration deployment. Thus stale legacy Rename cannot operate on a Routine *moved through this disabled capability* yet. This is a mitigation by non-activation, **not** a fix to the legacy Rename P2. Other movement mechanisms remain out of scope.
+- **CI contract:** full migration replay asserts Move is denied to all API client roles. SQL matrix grants authenticated EXECUTE inside a `BEGIN…ROLLBACK` fixture only. Existing two-session race scripts receive a guarded temporary `GRANT` on exact disposable GitHub CI Postgres and `REVOKE` afterward, with negative permission assertion; no hosted writes. Core cross-owner, idempotency, concurrency and existing unsafe-legacy-Rename repro stay covered.
+- **Activation/release gate:** before any `GRANT EXECUTE` for `authenticated`, migrate current Flutter `ProgramRoutinesController.rename()` and `_reconcileCreate()` to safe owner+Program+revision-checked paths, determine supported old-app deprecation/upgrade contract (docs are policy-only, no deployed min-version gate), and server-enforce closing the old `UPDATE(name)` bypass. Reviewer and owner must expressly approve that separate compatibility/activation step.
+- **Merge authority:** code-only PR #588 may progress to **merge-gate review** if latest exact-head CI is green, scope and governance gates verified and P2's disposition as activation-only accepted by reviewer. No automatic merge, prod DB apply, client rollout, or activation is authorized by reaching this gate. Keep P2 native review thread open until latest branch's reviewer disposition is recorded.
 
 ## Verified Discovery
 
