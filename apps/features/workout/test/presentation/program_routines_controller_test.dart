@@ -357,6 +357,35 @@ void main() {
     expect(repository.rows.single.name, 'Morning');
   });
 
+  test('pending Create UUID cannot cross owner on matching cycle marker', () async {
+    final repository = _FakeRoutines()..throwBeforeCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('First owner attempt'), isFalse);
+    expect(repository.attempted.map((r) => r.id), [_rid(41)]);
+    expect(generated, 1);
+
+    // Same marker is deliberately retained to test the independent owner
+    // boundary. A real Supabase owner-scoped list would now be empty.
+    repository
+      ..currentOwner = 'owner-b'
+      ..throwBeforeCreate = false;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines, isEmpty);
+
+    expect(await controller.create('Second owner routine'), isTrue);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(repository.rows.map((r) => r.id), [_rid(42)]);
+    expect(generated, 2);
+  });
+
   test('P2 same-session read outage preserves committed uncertain Create ID', () async {
     final repository = _FakeRoutines()..throwAfterCreate = true;
     var generated = 0;

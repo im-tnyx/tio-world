@@ -128,7 +128,10 @@ final class ProgramRoutinesController extends ChangeNotifier {
       }
       if (_pendingCreateId != null &&
           (_pendingCreateCycleId != cycle ||
+              _loadedOwnerId != owner ||
               read.routines.any((r) => r.id.value == _pendingCreateId))) {
+        // A successful owner-scoped reload can represent a *different*
+        // account even if its SDK login-cycle marker happens to match.
         _clearPendingCreate();
       }
       _loadedSessionCycleId = cycle;
