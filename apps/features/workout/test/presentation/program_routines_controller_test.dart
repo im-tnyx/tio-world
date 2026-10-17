@@ -245,6 +245,31 @@ void main() {
     expect(controller.state.routines.single.name, 'Evening');
   });
 
+  test('unconfirmed Rename blocks new mutation tokens even after refresh', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single,
+      name: 'Evening',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+
+    await controller.load();
+    expect(controller.state.routines.single.name, 'Evening');
+    // The first RPC may still finish or be superseded; a successful read
+    // of the desired Name is not a proof of this frozen mutation token.
+    expect(await controller.rename(
+      routine: controller.state.routines.single,
+      name: 'Night',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+    expect(repository.rows.single.name, 'Evening');
+  });
+
   test('auth-cycle switch during protected rename never reports success', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
       ..switchAccountOnRename = true;
