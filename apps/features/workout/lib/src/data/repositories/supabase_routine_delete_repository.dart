@@ -182,7 +182,12 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       );
     }
     if (observed == null) {
-      return RoutineDeleteResult.absentAfterUncertain;
+      // The owner-filtered Data API read can return no rows due to RLS,
+      // and a timed-out RPC may still commit AFTER this observation.
+      // No ACK means no claimed success, even if currently invisible.
+      throw const RoutineDeleteOutcomeUnknown(
+        reason: RoutineDeleteUncertainty.absentOnRead,
+      );
     }
     // Reads by Routine ID, NOT old Program: a concurrent move is not Delete.
     throw RoutineDeleteOutcomeUnknown(
