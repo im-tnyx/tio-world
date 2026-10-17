@@ -1,6 +1,6 @@
 # #569 M3B1 — Feature-owned Move selector and confirmation
 
-**Status:** Active Draft PR [#598](https://github.com/im-tnyx/tio-world/pull/598), safely reconciled with protected `main@f58fbc34` after squash-merged controller #597. Fresh exact-head CI and owner merge gate pending. Not app-wired, not shipped.
+**Status:** Active Draft PR [#598](https://github.com/im-tnyx/tio-world/pull/598), safely reconciled with protected `main@f58fbc34` after squash-merged controller #597. Reconciled source/test HEAD `6391776670e68f5bf539944d1754b8d5a6a554ac` verified by [Flutter CI #39062399593](https://github.com/im-tnyx/tio-world/actions/runs/39062399593) **7/7 PASS**; any later docs-only HEAD requires its own checks. No owner merge gate completed. Not app-wired, not shipped.
 **Implementation owner:** Workout feature presentation UI/confirmation branch `tnyx/issue-569-m3b1-existing-program-move-flow`. Owner of validation/dispatch: merged `RoutineMoveDestinationController`; no competing Move authority.
 **Planning:** GitHub #569 owner-approved Move lifecycle; Linear TNYX-81 remains broad Backlog and TNYX-267 tracks W6B; dependency status unchanged.
 **Affected scope:** Workout Flutter feature UI/test, public feature export and this active task/index. No app shell, Wear OS, watchOS, backend, SQL, RLS, deployment or visible runtime activation.
@@ -15,10 +15,11 @@
 ## Verified repository and review checkpoints
 
 - Protected `main@f58fbc34e28110ef8bddfbce14756430b19ada4e` contains **squash-merged PR #597**; [post-merge Flutter CI #39060837742](https://github.com/im-tnyx/tio-world/actions/runs/39060837742) **SUCCESS**, 5/5 jobs. Parent controller itself passed pre-merge 7/7 checks and both P2 comments are resolved.
-- Historical source baseline: #598 isolated `62900703` passed Flutter CI #39057336768 (5 Flutter jobs, 2 attribution). After integration into parent controller, child `2667ea26d00fdfbb831a7e745de1ca472d8c6798` passed [Flutter CI #39059602212](https://github.com/im-tnyx/tio-world/actions/runs/39059602212) **7/7**, Workout shard **737 PASS**, **10/10 Move selector widget cases** including deleted-destination-before-confirmation zero-RPC regression. These are genuine historical checks on their recorded SHAs, not new post-squash validation.
+- Historical source baseline: #598 isolated `62900703` passed Flutter CI #39057336768 (5 Flutter jobs, 2 attribution); combined child before parent squash `2667ea26` passed Flutter CI #39059602212 (7/7, Workout 737 PASS and 10/10 Move widget cases).
+- **Post-squash reconciled code+test HEAD `6391776670e68f5bf539944d1754b8d5a6a554ac`**: [Flutter CI #39062399593](https://github.com/im-tnyx/tio-world/actions/runs/39062399593) **COMPLETED SUCCESS, 7/7 exact-head checks** (5 Flutter jobs and both attribution checks). Workout shard **737 tests passed**, including **10/10 focused Move UI widgets** with deleted-destination zero-RPC regression. This is the current source validation checkpoint; a docs-only follow-up commit must be separately checked.
 - Root `AGENTS.md`, `apps/features/AGENTS.md`, `.github/PUSH_TEMPLATE.md`, ADR-0015, canonical Routine Library contract and source reviewed. No physical device or user-data Move RPC exercised.
 - Supabase hosted read-only: 64 migrations applied, `authenticated` and `anon` cannot EXECUTE `move_user_workout_routine`; authenticated direct UPDATE of Routine `program_id` denied. No GRANT or schema modification permitted in this UI slice.
-- #598 prior P2 stale destination / duplicated dispatch issue fixed by delegating to the same controller merged by #597; P2 review thread resolved. Open P3s: mandatory `+ New Program` capability as a future activation gate, and outdated task handoff corrected here and in the task index.
+- #598 previous P2 stale destination/duplicated dispatch resolved using the merged controller. The P3 outdated handoff finding was corrected and review thread resolved. Remaining **open** P3 is the owner-approved `+ New Program` first-row / atomic Create & Move *activation* gate; the live Move callback stays disabled until fulfilled.
 
 ## Post-squash branch reconciliation and quality gate
 
@@ -29,4 +30,4 @@
 
 ## Handoff
 
-**Current next task:** revalidate post-squash #598 exact-head CI on this reconciled branch, resolve only review findings with verified evidence, and prepare separate owner-directed merge gate. Do not merge PR #598 or enable production Move from this handoff. Future #569 M3B2 and #568/atomic Create & Move require separate execution and release gates.
+**Current next task:** validate this docs-only handoff update's exact head, review the five-file PR against protected main, prepare Ready-for-Review and separate owner-directed `Go merge` gate. No production Move, client grant, device QA or PR merge authorized by this brief. Future #569 M3B2 and #568/atomic Create & Move require separate execution and release gates.
