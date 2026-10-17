@@ -108,10 +108,12 @@ writer_open=1
 
 cat >&3 <<'SQL'
 begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', :'test_user', true);
+-- Only the disposable test administrator acquires FOR UPDATE; the real
+-- protected winner RPC below runs as authenticated without direct UPDATE.
 select composition_revision from public.user_workout_routines
 where id=:'routine_id'::uuid for update;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'test_user', true);
 \echo SESSION_A_LOCKED
 SQL
 wait_log "SESSION_A_LOCKED" "$log_a" "$pid_a"

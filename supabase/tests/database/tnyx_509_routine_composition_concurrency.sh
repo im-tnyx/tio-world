@@ -3,10 +3,51 @@ set -euo pipefail
 
 # GitHub #509: deterministic two-session Routine composition revision race.
 # Runs only against CI's disposable local Supabase database.
-database_url="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+database_url="${DATABASE_URL:-}"
+ci_database_url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 test_user="a5091000-0000-4000-8000-000000000001"
 program_id="a5091000-0000-4000-8000-000000000002"
 routine_id="a5091000-0000-4000-8000-000000000003"
+
+if [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$ci_database_url" ]]; then
+  echo "Refusing Routine Delete fixture writes outside the exact disposable CI connection" >&2
+  exit 1
+fi
+
+# These environment variables can change libpq's effective connection or
+# session behavior. PGPASSWORD is the workflow's only allowed PG* variable.
+for pg_variable in "${!PG@}"; do
+  if [[ "$pg_variable" != "PGPASSWORD" ]]; then
+    echo "Refusing Routine Delete fixture writes with libpq override: $pg_variable" >&2
+    exit 1
+  fi
+done
+
+# The guard-only mode is used by negative tests; absolutely no connection,
+# fixture creation, or cleanup occurs in this mode.
+if [[ "$#" -eq 1 && "$1" == "--guard-only" ]]; then
+  exit 0
+fi
+if [[ "$#" -ne 0 ]]; then
+  echo "Unsupported Routine Delete race harness argument" >&2
+  exit 1
+fi
+
+# Never read ~/.psqlrc (it can contain \\connect or other unsafe commands).
+psql() { command psql --no-psqlrc "$@"; }
+
+# Docker port forwarding means inet_server_addr() may be a bridge address,
+# not 127.0.0.1. The exact literal loopback URI and refusal of libpq
+# overrides enforce the connection destination; this read-only preflight
+# additionally checks the identity of the disposable target before writes.
+database_identity="$(psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --tuples-only --no-align \
+  --command="select (current_database() = 'postgres' and current_user = 'postgres')::text" \
+  | tr -d '[:space:]')"
+if [[ "$database_identity" != "true" ]]; then
+  echo "Refusing Routine Delete fixture writes: unexpected database identity" >&2
+  exit 1
+fi
 
 sync_dir="$(mktemp -d)"
 fifo="$sync_dir/session-a.stdin"
@@ -69,10 +110,12 @@ writer_open=1
 
 cat >&3 <<'SQL'
 begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', :'test_user', true);
+-- The fixture's parent-row lock is test-harness infrastructure, not an API call.
+-- Old authenticated column UPDATE grant is intentionally gone after M2C.
 select composition_revision from public.user_workout_routines
 where id = :'routine_id'::uuid for update;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'test_user', true);
 \echo SESSION_A_LOCK_HELD
 SQL
 wait_for_log "SESSION_A_LOCK_HELD" "$log_a" "$pid_a"
