@@ -136,7 +136,16 @@ final class ProgramRoutinesController extends ChangeNotifier {
       _acceptRead(read);
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
-      _invalidateSessionContext();
+      if (_sameOwnerCycle(versioned, _loadedOwnerId, _loadedSessionCycleId)) {
+        // Network/list failure did not revoke this owner and login cycle.
+        // Hide unavailable rows, but keep an uncertain Create's frozen UUID
+        // until a successful owner read or explicit editor abandonment.
+        _loadedRevisions.clear();
+        _loadedCycles.clear();
+        _publish(const ProgramRoutinesState.loadFailed());
+      } else {
+        _invalidateSessionContext();
+      }
     }
   }
 

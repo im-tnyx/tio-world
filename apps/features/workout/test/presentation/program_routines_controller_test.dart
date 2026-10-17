@@ -357,6 +357,73 @@ void main() {
     expect(repository.rows.single.name, 'Morning');
   });
 
+  test('P2 same-session read outage preserves committed uncertain Create ID', () async {
+    final repository = _FakeRoutines()..throwAfterCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    // The INSERT committed. Neither the response nor initial reconciliation
+    // reached the client, so the one in-flight UUID is still uncertain.
+    repository.loadFailures = 1;
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.rows.single.id, _rid(41));
+    expect(repository.attempted, hasLength(1));
+    expect(generated, 1);
+
+    // A second transient owner list read failure is NOT a logout.
+    repository.loadFailures = 1;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.attempted, hasLength(1));
+
+    // The authoritative recovered read proves the original committed row.
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines.single.id, _rid(41));
+    expect(controller.state.routines.single.name, 'Strength');
+    expect(repository.rows, hasLength(1));
+    expect(repository.attempted, hasLength(1));
+    expect(generated, 1);
+    expect(controller.abandonCreateAttempt(), isFalse);
+  });
+
+  test('P2 same-session read outage preserves uncommitted Create retry ID', () async {
+    final repository = _FakeRoutines()..throwBeforeCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.rows, isEmpty);
+    expect(generated, 1);
+
+    repository.loadFailures = 1;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+
+    // Recovery proves the UUID was not persisted, so the logical retry
+    // must use that SAME UUID rather than silently allocating another.
+    repository.throwBeforeCreate = false;
+    await controller.load();
+    expect(await controller.create('Strength'), isTrue);
+    expect(generated, 1);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(41)]);
+    expect(repository.rows.map((r) => r.id), [_rid(41)]);
+  });
+
   test('P2 auth-cycle switch plus Rename read failure hides stale rows', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
     final controller = _controller(repository);
