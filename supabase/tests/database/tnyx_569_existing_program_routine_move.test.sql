@@ -290,7 +290,7 @@ select pg_temp.expect_state(
    'a5690000-0000-4000-8000-000000000011',
    'a5690000-0000-4000-8000-000000000012',3,
    'a5690000-0000-4000-8000-000000000105')$$,
- 'P0001','legacy name write makes old Move token no longer replayable'
+ 'P0002','legacy stale Name write invalidates Move replay and absent source cannot authorize a fresh request'
 );
 
 rollback;
