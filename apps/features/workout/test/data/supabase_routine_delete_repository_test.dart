@@ -473,7 +473,7 @@ void main() {
     expect(gateway.writes, 1);
   });
 
-  test('inspect cannot mint a target during or across a Delete dispatch',
+  test('new inspection invalidates the old target and blocks in-flight reads',
       () async {
     final deleteServer = Completer<Object?>();
     final slowRead = Completer<Map<String, dynamic>?>();
@@ -486,14 +486,20 @@ void main() {
     final repository = gateway.repo();
     final original = await _target(repository);
 
-    // Start an owner read BEFORE the Delete; its stale result returns after
-    // the Delete succeeds and must not create a new confirmation capability.
-    final overlappingRead = repository.inspect(
+    // A NEW inspection supersedes the old confirmation immediately,
+    // even before its owner-scoped read returns.
+    final refreshing = repository.inspect(
         programId: _program, routineId: _routine);
-    final pendingDelete = repository.delete(original);
+    await expectLater(repository.delete(original),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 0);
+
+    slowRead.complete(_header());
+    final replacementTarget = (await refreshing)!;
+    final pendingDelete = repository.delete(replacementTarget);
     expect(gateway.writes, 1);
 
-    // An inspect begun DURING the RPC is rejected without even reading.
+    // A read requested DURING the active RPC must fail before network I/O.
     await expectLater(repository.inspect(
         programId: _program, routineId: _routine),
         throwsA(_failure(RoutineDeleteFailureKind.inProgress)));
@@ -501,10 +507,7 @@ void main() {
 
     deleteServer.complete(true);
     expect(await pendingDelete, RoutineDeleteResult.confirmed);
-    slowRead.complete(_header());
-    await expectLater(overlappingRead,
-        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
-    await expectLater(repository.delete(original),
+    await expectLater(repository.delete(replacementTarget),
         throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
     expect(gateway.writes, 1);
   });
