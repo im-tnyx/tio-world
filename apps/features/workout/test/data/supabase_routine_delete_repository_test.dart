@@ -61,6 +61,7 @@ void main() {
     addTearDown(client.dispose);
     final repository = SupabaseRoutineDeleteRepository(
       gateway: SupabaseRoutineDeleteGateway(client),
+      attemptGate: RoutineDeleteAttemptGate(),
       currentUserId: () => _owner,
       currentLoginCycleId: () => _cycle,
     );
@@ -191,6 +192,7 @@ void main() {
       addTearDown(client.dispose);
       final repository = SupabaseRoutineDeleteRepository(
         gateway: SupabaseRoutineDeleteGateway(client),
+        attemptGate: RoutineDeleteAttemptGate(),
         currentUserId: () => _owner,
         currentLoginCycleId: () => _cycle,
       );
@@ -507,6 +509,60 @@ void main() {
     expect(gateway.writes, 1);
   });
 
+  test('ambiguous owner Delete remains blocked after repository recreation',
+      () async {
+    final server = Completer<Object?>();
+    final gateway = _Gateway()..onDelete = () => server.future;
+    final firstRepository = gateway.repo(
+      timeout: const Duration(milliseconds: 25),
+    );
+    final original = await _target(firstRepository);
+    await expectLater(firstRepository.delete(original),
+        throwsA(_unknown(RoutineDeleteUncertainty.stillPresent)));
+    expect(server.isCompleted, false);
+    expect(gateway.writes, 1);
+
+    // New adapter, SAME composition-owned guard: no implicit network replay.
+    final secondRepository = gateway.repo();
+    final sameRevision = await _target(secondRepository);
+    await expectLater(secondRepository.delete(sameRevision),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+    server.complete(true);
+    await expectLater(secondRepository.delete(sameRevision),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+
+    gateway.row = _header(revision: 5);
+    final newer = await _target(secondRepository);
+    gateway.onDelete = () async => true;
+    expect(await secondRepository.delete(newer), RoutineDeleteResult.confirmed);
+    expect(gateway.writes, 2);
+  });
+
+  test('failed or wrong-Program reinspection invalidates older Delete target',
+      () async {
+    final gateway = _Gateway();
+    final repository = gateway.repo();
+    final original = await _target(repository);
+
+    gateway.row = null;
+    expect(await repository.inspect(
+        programId: _program, routineId: _routine), isNull);
+    await expectLater(repository.delete(original),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 0);
+
+    gateway.row = _header();
+    final second = await _target(repository);
+    gateway.row = _header(program: _otherProgram);
+    expect(await repository.inspect(
+        programId: _program, routineId: _routine), isNull);
+    await expectLater(repository.delete(second),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 0);
+  });
+
   test('concurrent Delete for same Routine makes only one RPC', () async {
     final completer = Completer<Object?>();
     final gateway = _Gateway()
@@ -524,6 +580,7 @@ void main() {
 }
 
 final class _Gateway implements RoutineDeleteGateway {
+  final RoutineDeleteAttemptGate attemptGate = RoutineDeleteAttemptGate();
   Map<String, dynamic>? row = _header();
   Future<Object?> Function()? onDelete;
   Future<Map<String, dynamic>?> Function()? onRead;
@@ -539,6 +596,7 @@ final class _Gateway implements RoutineDeleteGateway {
     Duration timeout = const Duration(seconds: 15),
   }) => SupabaseRoutineDeleteRepository(
     gateway: this,
+    attemptGate: attemptGate,
     currentUserId: owner ?? () => _owner,
     currentLoginCycleId: cycle ?? () => _cycle,
     timeout: timeout,
