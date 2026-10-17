@@ -306,13 +306,38 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql
 
-      - name: Run #569 Move versus Delete two-session race
+      - name: Run #569 two-session races with CI-only temporary Move EXECUTE
         shell: bash
-        run: bash supabase/tests/database/tnyx_569_existing_program_routine_move_concurrency.sh
-
-      - name: Run #569 Edit and Move and deleting-target two-session races
-        shell: bash
-        run: bash supabase/tests/database/tnyx_569_routine_move_cross_races.sh
+        run: |
+          set -euo pipefail
+          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
+            echo 'Move test grant must not be issued outside disposable CI database.' >&2
+            exit 1
+          fi
+          sql_grant='grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) to authenticated'
+          sql_revoke='revoke all on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) from public,anon,authenticated,service_role'
+          cleanup_move_grant() {
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_revoke"
+          }
+          trap cleanup_move_grant EXIT
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
+          bash supabase/tests/database/tnyx_569_existing_program_routine_move_concurrency.sh
+          bash supabase/tests/database/tnyx_569_routine_move_cross_races.sh
+          cleanup_move_grant
+          trap - EXIT
+          grant_visible="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select has_function_privilege('authenticated',
+              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
+              or has_function_privilege('anon',
+              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
+              or has_function_privilege('service_role',
+              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')" |
+            tr -d '[:space:]')"
+          if [[ "$grant_visible" != f ]]; then
+            echo 'M1 Move RPC must remain dormant after disposable race tests' >&2
+            exit 1
+          fi
 
       - name: Run real two-session concurrency test
         shell: bash
