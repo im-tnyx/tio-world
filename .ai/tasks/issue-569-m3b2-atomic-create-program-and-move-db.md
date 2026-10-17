@@ -15,13 +15,13 @@
 
 ## Chosen architecture
 
-Add **one dormant SECDEF RPC** `public.create_program_and_move_user_workout_routine(uuid,uuid,uuid,text,bigint,uuid) returns bigint`.
+Add **one dormant SECDEF RPC** `public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid) returns bigint`.
 
 - Client supplies **stable** new ProgramId and mutation UUID, source Routine/Program identity, owner-edited Program name and frozen expected revision. The later Flutter adapter must hold these across uncertain outcomes, never allocate a second Program ID/token automatically, and verify current login-cycle before dispatch.
 - Server validates `auth.uid()`, non-null UUIDs, nonblank Unicode-trimmed name, different source/new Program IDs, supported READ COMMITTED isolation, owner account/source Program/Routine locks (consistent account → source Program → UUID → Routine lock order).
 - On fresh attempt, rejects wrong owner, foreign IDs, stale revision and reused Program UUID before a single transaction inserts `user_workout_programs` and updates **the same Routine row** with protected revision+mutation hash. Existing Exercise/Set IDs/prescriptions are unchanged. Any rejection rolls back Program INSERT.
 - Exact same-request replay is accepted only while the Routine's latest mutation hash, revision and destination identity still prove the original atomic commit. Later Routine Edit/Move invalidates the replay. Destination's later display-name rename does not revoke a genuine immutable request proof.
-- Canonical migration: `20261018100000_atomic_create_program_and_move_owned_routine.sql`. A parallel duplicate SQL function/migration was detected on the same branch and is removed before PR to preserve one backend authority. No new table, column, Program identity model, separate service, direct client `UPDATE(program_id)`, or schema-wide grant. The function explicitly revokes `EXECUTE` from PUBLIC/anon/authenticated/service_role and remains **dormant** after merge.
+- Canonical migration: `20261018100000_atomic_create_program_and_move_routine.sql`. A parallel duplicate SQL function/migration was detected on the same branch and is removed before PR to preserve one backend authority. No new table, column, Program identity model, separate service, direct client `UPDATE(program_id)`, or schema-wide grant. The function explicitly revokes `EXECUTE` from PUBLIC/anon/authenticated/service_role and remains **dormant** after merge.
 - **Rejected:** create Program via `ProgramRepository.create()` and call the existing Move RPC in a second network transaction; this cannot guarantee no empty Program/unknown-result duplication.
 
 ## Validation / review gates
