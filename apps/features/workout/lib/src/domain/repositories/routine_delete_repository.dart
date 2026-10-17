@@ -45,7 +45,7 @@ final class RoutineDeleteException implements Exception {
   String toString() => 'RoutineDeleteException(${kind.name})';
 }
 
-enum RoutineDeleteUncertainty { unconfirmed, stillPresent, sessionChanged }
+enum RoutineDeleteUncertainty { unconfirmed, absentOnRead, stillPresent, sessionChanged }
 
 /// The request might have committed. Never blindly retry this write.
 final class RoutineDeleteOutcomeUnknown implements Exception {
@@ -63,9 +63,10 @@ final class RoutineDeleteOutcomeUnknown implements Exception {
   String toString() => 'RoutineDeleteOutcomeUnknown(${reason.name})';
 }
 
-/// `absentAfterUncertain` proves the Routine is no longer owner-readable,
-/// NOT that this specific RPC caused its absence.
-enum RoutineDeleteResult { confirmed, absentAfterUncertain }
+/// Only the RPC's explicit boolean true is confirmed. An absent row after
+/// an ambiguous request can also mean RLS invisibility or an in-flight write;
+/// it must remain an uncertain outcome, never reported as success.
+enum RoutineDeleteResult { confirmed }
 
 /// Separate capability; legacy metadata RoutineRepository is unchanged.
 abstract interface class RoutineDeleteRepository {
