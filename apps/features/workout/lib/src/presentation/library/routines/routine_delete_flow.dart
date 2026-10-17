@@ -124,8 +124,10 @@ Future<bool?> _showRoutineDeleteDialog({
       backgroundColor: TioPalette.transparent,
       elevation: TioElevation.none,
       insetPadding: const EdgeInsets.all(TioSpacing.lg),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: TioSize.dp320),
+      // Tight visual width rather than an internal max-width only: Dialog's
+      // own measured surface must be compact, not the entire viewport.
+      child: SizedBox(
+        width: TioSize.dp320,
         child: SingleChildScrollView(
           child: TioCard(
             variant: TioCardVariant.elevated,
