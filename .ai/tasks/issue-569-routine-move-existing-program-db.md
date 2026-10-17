@@ -50,6 +50,20 @@
 - No numeric quota invented; #554 policy must be reconciled before full UX release.
 - Rejected design: copy Routine into target then delete source; violates stable identity/child reference preservation. Rejected: broad authenticated UPDATE(program_id) permission; bypasses authorization/CAS/atomic retry.
 
+## Legacy Rename P2: Release Compatibility Gate (2026-10-17)
+
+**Current behavior proven:** the signed-in legacy Data API UPDATE(name) accepts owner+Routine UUID only. A stale Program A screen can therefore rename Routine R after the M1 RPC moves R from A to B. The added disposable M1 SQL regression records this **known exposure** (post-Move stale Rename still succeeds, aggregate revision increments, latest Move retry proof is invalidated) rather than treating the test as a safety PASS. This regression is expected to pass until a separately approved write-contract change replaces the unsafe behavior. NEVER treat a green CI result as resolution of this P2.
+
+**Additional current-app compatibility impact:** `SupabaseRoutineRepository.rename(id, name)` and `SupabaseRoutineTableGateway.renameRow(userId, routineId, name)` still issue that direct Data API UPDATE. `ProgramRoutinesController.rename()` uses it for legacy metadata rename, and `_reconcileCreate()` uses it when a metadata Create may have committed before the response was lost. The newer Edit Routine composer uses the protected 7-arg RPC, but that alone does not retire all callers of the old privilege. Unconditional REVOKE UPDATE(name) today would also break still-connected source and any installed older clients.
+
+**Required gate (no owner-approved cutoff yet):**
+1. Choose and explicitly approve a compatibility cutoff for supported phone/watch/client builds and old direct Rename clients; record deprecation, adoption evidence and a safe upgrade path. Existing `docs/backend/API_LIFECYCLE.md` and `docs/planning/FEATURE_ROLLOUT.md` define policy only; **no runtime minimum-client/capability enforcement is deployed**.
+2. Move supported current-client metadata Rename and post-unknown Create reconciliation to owner+Program+revision-checked protected server contracts without creating duplicate Routine IDs or silently retrying unknown mutations. Reuse existing Workout repositories/RPC semantics and separately review any newly required behavior.
+3. At the separately authorized enforcement point, close the authenticated direct UPDATE(name) bypass server-side and demonstrate it is denied for stale/outdated callers while current supported Edit/Create paths still succeed. Do NOT trust a client-sent app-version header, visible Move button, or solely an in-app feature flag as authority.
+4. Re-run the disposable SQL regression with **expected denial**, cross-owner, concurrent Move/Edit/Delete, old-token replay and supported-client tests; only then resolve P2 #2, consider PR merge/deployment and later Flutter Move activation.
+
+**Decision status:** Awaiting product-owner authorization for a potentially breaking client compatibility change. The M1 PR remains Draft; do not add an unapproved grant revocation, new table/column, service or UI flow. Preserving the old unrestricted Rename grant and shipping Move together is **not** the safe default.
+
 ## Implemented Branch Files
 
 - `supabase/migrations/20261017100000_move_user_workout_routine_between_owned_programs.sql`
