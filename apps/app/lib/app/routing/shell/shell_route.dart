@@ -712,7 +712,11 @@ List<RouteBase> _shellBranchChildRoutes(
                     final revoked = openingCycle != null && !authorized;
                     return ProgramDetailPage(
                       key: ValueKey('program-detail-$openingOwner-$openingCycle'),
-                      program: program,
+                      // A mounted old owner route must not retain its
+                      // private Program title when its auth cycle is revoked.
+                      program: revoked
+                          ? Program(id: program.id, name: 'Routines unavailable')
+                          : program,
                       routineRepository: revoked ? null : routineRepository,
                   pendingCreateChanges: pendingGate,
                   onRoutinePressed: revoked || compositions == null
