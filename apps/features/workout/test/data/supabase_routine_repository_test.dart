@@ -37,6 +37,7 @@ void main() {
         Routine(id: routineId, programId: programId, name: 'Routine 1'));
       expect(snapshots.single.revision, 7);
       expect(snapshots.single.loginCycleId, 'cycle-a');
+      expect(repository.activeOwnerId, userId);
       expect(gateway.lastUserId, userId);
       expect(gateway.lastProgramId, programId.value);
       expect(await repository.list(programId), [snapshots.single.routine]);

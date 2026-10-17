@@ -56,6 +56,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
   String? _pendingCreateCycleId;
   // Even an empty owner-scoped list has a session binding.
   String? _loadedSessionCycleId;
+  String? _loadedOwnerId;
   var _loadVersion = 0;
   var _disposed = false;
   final Map<RoutineId, int> _loadedRevisions = {};
@@ -115,12 +116,14 @@ final class ProgramRoutinesController extends ChangeNotifier {
           ? repository as RoutineVersionedRenameRepository
           : null;
       final cycle = versioned?.activeLoginCycleId;
-      if (versioned != null && (cycle == null || cycle.isEmpty)) {
+      final owner = versioned?.activeOwnerId;
+      if (versioned != null &&
+          (cycle == null || cycle.isEmpty || owner == null || owner.isEmpty)) {
         throw StateError('Please sign in to save Routines.');
       }
       final read = await _readOwnedRoutines();
       if (_disposed || version != _loadVersion) return;
-      if (versioned != null && versioned.activeLoginCycleId != cycle) {
+      if (!_sameOwnerCycle(versioned, owner, cycle)) {
         throw StateError('Please sign in to save Routines.');
       }
       if (_pendingCreateId != null &&
@@ -129,13 +132,11 @@ final class ProgramRoutinesController extends ChangeNotifier {
         _clearPendingCreate();
       }
       _loadedSessionCycleId = cycle;
+      _loadedOwnerId = owner;
       _acceptRead(read);
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
-      _loadedSessionCycleId = null;
-      _loadedRevisions.clear();
-      _loadedCycles.clear();
-      _publish(const ProgramRoutinesState.loadFailed());
+      _invalidateSessionContext();
     }
   }
 
@@ -155,6 +156,30 @@ final class ProgramRoutinesController extends ChangeNotifier {
     _pendingCreateCycleId = null;
   }
 
+  bool _sameOwnerCycle(
+    RoutineVersionedRenameRepository? versioned,
+    String? owner,
+    String? cycle,
+  ) =>
+      versioned == null ||
+      (owner != null &&
+          owner.isNotEmpty &&
+          cycle != null &&
+          cycle.isNotEmpty &&
+          versioned.activeOwnerId == owner &&
+          versioned.activeLoginCycleId == cycle);
+
+  /// Do not re-publish a previous user's Routines after auth is revoked or
+  /// replaced. This also invalidates any frozen metadata Create identity.
+  void _invalidateSessionContext() {
+    _clearPendingCreate();
+    _loadedOwnerId = null;
+    _loadedSessionCycleId = null;
+    _loadedRevisions.clear();
+    _loadedCycles.clear();
+    _publish(const ProgramRoutinesState.loadFailed());
+  }
+
   String suggestedName() {
     final existing = _state.routines
         .map((routine) => routine.name.trim().toLowerCase())
@@ -172,22 +197,18 @@ final class ProgramRoutinesController extends ChangeNotifier {
         ? repository as RoutineVersionedRenameRepository
         : null;
     final startCycle = versioned?.activeLoginCycleId;
+    final startOwner = versioned?.activeOwnerId;
     if (current.status != ProgramRoutinesStatus.ready || current.saving) {
       return false;
     }
     // An old login cycle must not provide either the pending UUID or the
     // owner-list context for a new Create; require a fresh owner read.
     if (versioned != null &&
-        (startCycle == null ||
-            startCycle.isEmpty ||
-            _loadedSessionCycleId != startCycle ||
+        (!_sameOwnerCycle(versioned, _loadedOwnerId, _loadedSessionCycleId) ||
+            !_sameOwnerCycle(versioned, startOwner, startCycle) ||
             (_pendingCreateId != null &&
                 _pendingCreateCycleId != startCycle))) {
-      _clearPendingCreate();
-      _loadedSessionCycleId = null;
-      _loadedRevisions.clear();
-      _loadedCycles.clear();
-      _publish(const ProgramRoutinesState.loadFailed());
+      _invalidateSessionContext();
       return false;
     }
     if (name.trim().isEmpty) {
@@ -222,13 +243,8 @@ final class ProgramRoutinesController extends ChangeNotifier {
     try {
       await repository.create(attempted);
       if (_disposed) return false;
-      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
-        _clearPendingCreate();
-        _loadedSessionCycleId = null;
-        _publish(ProgramRoutinesState.ready(
-          routines: current.routines,
-          error: 'Please sign in to save Routines.',
-        ));
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        _invalidateSessionContext();
         return false;
       }
       _clearPendingCreate();
@@ -237,26 +253,14 @@ final class ProgramRoutinesController extends ChangeNotifier {
       ));
       return true;
     } catch (error) {
-      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
-        _clearPendingCreate();
-        _loadedSessionCycleId = null;
-        if (!_disposed) {
-          _publish(ProgramRoutinesState.ready(
-            routines: current.routines,
-            error: 'Please sign in to save Routines.',
-          ));
-        }
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        if (!_disposed) _invalidateSessionContext();
         return false;
       }
       final reconciled = await _reconcileCreate(attempted);
       if (_disposed) return false;
-      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
-        _clearPendingCreate();
-        _loadedSessionCycleId = null;
-        _publish(ProgramRoutinesState.ready(
-          routines: current.routines,
-          error: 'Please sign in to save Routines.',
-        ));
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        _invalidateSessionContext();
         return false;
       }
       if (reconciled != null) {
@@ -282,14 +286,20 @@ final class ProgramRoutinesController extends ChangeNotifier {
         : null;
     final expectedRevision = _loadedRevisions[routine.id];
     final expectedCycle = _loadedCycles[routine.id];
+    final expectedOwner = _loadedOwnerId;
     if (current.status != ProgramRoutinesStatus.ready ||
         current.saving ||
         guarded == null ||
         expectedRevision == null ||
         expectedCycle == null ||
+        expectedOwner == null ||
         routine.programId != program.id ||
         !current.routines.any((item) => item == routine)) {
       return 'Could not edit routine. Please try again.';
+    }
+    if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+      _invalidateSessionContext();
+      return 'Please sign in to save Routines.';
     }
     if (_unconfirmedRenameIds.contains(routine.id)) {
       return 'Could not confirm the routine name. Please try again.';
@@ -325,6 +335,10 @@ final class ProgramRoutinesController extends ChangeNotifier {
     try {
       final read = await _readOwnedRoutines();
       if (_disposed) return 'Could not edit routine. Please try again.';
+      if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+        _invalidateSessionContext();
+        return 'Please sign in to save Routines.';
+      }
       _acceptRead(read);
       if (confirmedRevision == expectedRevision + 1 &&
           read.revisions[routine.id] == confirmedRevision &&
@@ -341,6 +355,12 @@ final class ProgramRoutinesController extends ChangeNotifier {
       // Unknown outcome: do not retry with a fresh token or claim success.
       if (error == null) _unconfirmedRenameIds.add(routine.id);
       if (_disposed) return 'Could not edit routine. Please try again.';
+      if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+        _invalidateSessionContext();
+        return 'Please sign in to save Routines.';
+      }
+      // Same session and uncertain network outcome: preserve the visible
+      // snapshot but never authorize a fresh Rename token without verification.
       _loadedRevisions.clear();
       _loadedCycles.clear();
       _publish(ProgramRoutinesState.ready(routines: current.routines));

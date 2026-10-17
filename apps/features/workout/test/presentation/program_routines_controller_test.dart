@@ -291,7 +291,8 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
     expect(await controller.create('Original'), isFalse);
-    expect(controller.state.error, 'Please sign in to save Routines.');
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
     expect(repository.rows.single.name, 'Original');
     expect(repository.renameCount, 0);
   });
@@ -354,6 +355,72 @@ void main() {
       routine: controller.state.routines.single, name: 'Unsafe');
     expect(error, 'Please sign in to save Routines.');
     expect(repository.rows.single.name, 'Morning');
+  });
+
+  test('P2 auth-cycle switch plus Rename read failure hides stale rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository
+      ..currentCycle = 'cycle-b'
+      ..loadFailures = 1;
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), 'Please sign in to save Routines.');
+    expect(repository.renameCount, 0);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(repository.rows.single.name, 'Morning');
+  });
+
+  test('P2 account switch plus Rename read failure hides stale rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository
+      ..currentOwner = 'owner-b'
+      ..loadFailures = 1;
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), 'Please sign in to save Routines.');
+    expect(repository.renameCount, 0);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('same-cycle uncertain Rename read failure preserves retry barrier', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.loadFailures = 1;
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), contains('Could not confirm'));
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines.single.name, 'Morning');
+    await controller.load();
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Night',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+  });
+
+  test('P2 metadata Create account switch clears previous owner rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..switchOwnerAfterCreate = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('New'), isFalse);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(repository.rows.map((r) => r.name), ['Morning', 'New']);
   });
 
   test('zero-row rename does not falsely report success', () async {
@@ -421,6 +488,11 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   bool switchAccountOnRename = false;
   bool switchedAccount = false;
   String currentCycle = 'cycle-a';
+  String currentOwner = 'owner-a';
+  bool switchOwnerAfterCreate = false;
+
+  @override
+  String? get activeOwnerId => switchedAccount ? 'owner-b' : currentOwner;
 
   @override
   String? get activeLoginCycleId => currentCycle;
@@ -464,6 +536,7 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
         : routine);
     revisions[routine.id] = 0;
     if (switchCycleAfterCreate) currentCycle = 'cycle-b';
+    if (switchOwnerAfterCreate) currentOwner = 'owner-b';
     if (throwAfterCreate) throw Exception('lost response');
   }
 

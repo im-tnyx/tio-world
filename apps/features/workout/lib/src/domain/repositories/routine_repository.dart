@@ -39,6 +39,9 @@ abstract interface class RoutineVersionedRenameRepository {
   /// Current app-owned session marker; null revokes create reconciliation.
   String? get activeLoginCycleId;
 
+  /// Trusted active owner identity, independent of the current login cycle.
+  String? get activeOwnerId;
+
   Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId);
   Future<int> renameVersioned(RoutineAggregateUpdate command, {
     required String expectedLoginCycleId,
