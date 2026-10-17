@@ -1,8 +1,16 @@
 # GitHub #569 — M1 Existing-Program Routine Move (DB)
 
-**Status:** Dormant M1 code at merge-gate review: exact-head CI PASS, PR #588 READY FOR REVIEW (non-Draft), zero unresolved native review threads; independent reviewer / branch-policy and explicit owner merge instruction outstanding. Legacy Rename still blocks client activation. Hosted Supabase unchanged.
+**Status (2026-10-17 post-merge verification):** PR #588 **MERGED**, commit `5a9e9f46d2d114ff6eefac7aeb9b5341f24e6a65` is current `main`; its dormant M1 migration is **not deployed** (63 checked-in SQL migrations vs 62 live), and Move EXECUTE stays revoked in the merged migration. Legacy Rename remains a **P2 activation blocker**. The historical pre-merge review/validation checkpoints below are preserved as history, not current merge-state claims.
 **Primary owner:** GitHub-connected implementation session (single implementation owner).
 **Affected platforms:** Supabase Postgres/RLS. No Flutter, Watch, service/API, UI, or deployed database changes.
+
+## Post-merge reconciliation (2026-10-17, read-only)
+
+- Verified GitHub PR #588 `merged=true`, merge SHA `5a9e9f46d2d114ff6eefac7aeb9b5341f24e6a65`; main branch is at that commit. The two native P2 review threads are marked resolved for dormant-code merge context. Resolution does **not** mean legacy Rename is activation-safe.
+- Hosted Tio-world project `oykupyiitspujzpwwvuj` still ends at applied migration `20261016220000` (62 total), with **no live Move function** and no client UPDATE(program_id). Authenticated UPDATE(name) remains permitted. This is an API/source/live read, not a migration or permission change.
+- The older "PR #588 Draft / Ready for Review / unmerged / pending merge" statements below describe their original dated checkpoint and are superseded as current status by this section.
+- Next implementation handoff is [M2 Legacy Rename Compatibility](issue-569-m2-legacy-rename-compatibility.md), not an immediate Move activation or Flutter UI rollout. Production compatibility sunset and grant changes require separately reviewed owner approval.
+- The historical M1 branch still exists in GitHub. This session cannot inspect Windows `git status -sb` and has not deleted that branch, fast-forwarded a local checkout, or modified Supabase.
 
 ## Owner Approval and Scope Boundary
 
