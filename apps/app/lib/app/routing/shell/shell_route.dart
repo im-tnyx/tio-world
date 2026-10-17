@@ -734,7 +734,7 @@ List<RouteBase> _shellBranchChildRoutes(
                         programId: program.id,
                       ),
                   onVerifyUnconfirmedCreate: revoked || compositions == null ||
-                          openingCycle == null
+                          openingOwner == null || openingCycle == null
                       ? null
                       : () => pendingGate.verify(
                         owner: openingOwner,
