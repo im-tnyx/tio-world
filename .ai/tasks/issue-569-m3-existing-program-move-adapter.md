@@ -1,6 +1,6 @@
 # #569 M3A — Existing-Owned-Program Move Repository Adapter
 
-**Status:** In progress — bounded Flutter repository and test slice.
+**Status:** Ready for Review — bounded Flutter Move repository and test slice; full source CI PASS at `b56f389b6d3aed7875adf943776a9901a98068e9`.
 **Primary owner:** Workout domain/data implementation (one remote branch).
 **Affected platforms:** Flutter Workout feature package; no UI/runtime activation.
 
@@ -20,14 +20,14 @@
 - **Implementation ownership state:** Active
 - **Repository state last verified:** GitHub `main@20c1d21efe1760109b28daffa8990a9e77b4aca0`; 0 open PR at start.
 - **Branch:** `tnyx/issue-569-m3-existing-program-move-adapter`
-- **HEAD SHA:** Initial `20c1d21efe1760109b28daffa8990a9e77b4aca0`
+- **HEAD SHA:** Source/test `b56f389b6d3aed7875adf943776a9901a98068e9`; this docs-only handoff commit requires fresh exact-head checks.
 - **Observed working-tree state:** Local Windows `G:\projects\Tio-World` unavailable to this GitHub connector; owner previously posted clean `main` sync but cannot infer current local edits.
 - **PR / tracker:** #569, TNYX-81.
-- **Current implementation state:** New optional feature-owned Move repository capability under development, not wired to app.
-- **Validation completed at SHA:** None yet.
-- **Validation remaining:** Exact-head Flutter workout CI/analyzer and focused tests, PR review.
+- **Current implementation state:** Feature-owned optional Move RPC repository/gateway and process-shared attempt gate implemented with 16 focused security/SDK tests. No app Move callback; hosted EXECUTE still revoked.
+- **Validation completed at SHA:** Flutter CI #39052169662 **COMPLETED SUCCESS** on `b56f389b6d3aed7875adf943776a9901a98068e9`, including Analyze Flutter/Dart, Workout test shard, Core/Wear, Nutrition/Onboarding and aggregate (5/5). Mock SDK Move transport exact 5-arg RPC and owner/login-cycle/timeout/unknown tests all passed.
+- **Validation remaining:** Latest docs-only HEAD checks; independent/manual PR review and explicit owner merge authorization. No physical-device or live authenticated Move test: hosted EXECUTE remains denied.
 - **Current blocker:** Hosted `authenticated` Move EXECUTE intentionally revoked; UI adapter+controller/selector must be reviewed before distinct activation.
-- **Next exact action:** Implement narrow owner/session/revision-frozen Move repository+RPC gateway and regression tests without enabling UI.
+- **Next exact action:** Review/merge PR #595 under normal owner/branch gates, then separate M3B app-owned Move flow, destination selector, confirmation and Program lists refresh. Coordinate #568 identity / Create & Move separately; only later review explicit Move EXECUTE activation.
 
 ## Discovery, Evidence and Design
 
@@ -39,8 +39,8 @@ GitHub source at the verified SHA: M1 Move RPC `move_user_workout_routine(uuid,u
 
 ## Quality Review
 
-To be updated with exact source head, CI jobs and tests. No validation has been claimed yet.
+Verified source `b56f389b`: GitHub Flutter CI #39052169662 SUCCESS all five jobs. No new P1/P2 from author review; extra independent review remains pending. An earlier `f58ec01c` analyzer found a missing named-parameter `)` and braces lint, corrected; intermediate runs were superseded, not counted as passes. No production SQL/Flutter runtime activation. The docs-only handoff update is not the CI-validated source SHA.
 
 ## Handoff
 
-**Current:** Repository-only adapter slice. Do not merge on start or grant Move EXECUTE. Continue with app-shell/feature selector as a separate bounded slice after review.
+**Current:** Source+tests validated, PR #595 open/Ready for Review; no merge or Move EXECUTE. Next owner: M3B app-shell guarded callback and feature-owned Program selector/confirmation after approval/review. This handoff's own exact-head CI should be confirmed before merge.
