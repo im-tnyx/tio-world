@@ -40,7 +40,7 @@
 - [ ] Protected name-only RPC and identical token replay work, stale/new token and wrong Program fail.
 - [ ] Old composition RPC, Routine metadata INSERT/SELECT remain usable.
 - [ ] Cross-user protected Update fails without exposing another user.
-- [ ] Move EXECUTE stays revoked.
+- [ ] Move EXECUTE is revoked outside a transaction; test-only temporary EXECUTE allows A→B and proves stale A-screen Name UPDATE is denied, while destination-scoped protected Rename still works.
 - [ ] ROLLBACK restores original grants, data and current CI baseline.
 - [ ] Entire existing Supabase Database CI remains green.
 
