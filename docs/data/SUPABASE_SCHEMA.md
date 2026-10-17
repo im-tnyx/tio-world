@@ -519,7 +519,7 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 | `description` | `text` | Yes | — |
 | `exercise_type` | `text` | Yes | — |
 | `primary_muscle` | `text` | Yes | — |
-| `secondary_muscles` | `ARRAY` (`text[]`) | No | `'{}'::text[]` |
+| `secondary_muscles` | `text[]` | No | `'{}'::text[]` |
 | `primary_equipment` | `text` | Yes | — |
 
 #### Constraints
