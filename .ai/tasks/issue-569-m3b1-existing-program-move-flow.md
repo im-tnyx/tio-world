@@ -41,4 +41,4 @@
 
 ## Final Handoff
 
-**Status:** PARTIAL — stacked integrated code prepared, but exact combined source tests/review still pending. No app activation, merge, client GRANT or deployment.
+**Status:** PARTIAL — merged-parent+UI Git tree assembled at `38c180f`, with controller and selector in one executable source tree. Temporarily target `main` for an exact combined CI run, then restore the Draft stacked target #597; changing the base alone does not prove CI. No app activation, merge, client GRANT or deployment.
