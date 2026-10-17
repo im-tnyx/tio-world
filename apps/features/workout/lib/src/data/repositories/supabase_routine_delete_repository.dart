@@ -54,15 +54,29 @@ typedef RoutineDeleteCurrentValue = String? Function();
 typedef _Session = ({String owner, String cycle});
 typedef _Header = ({RoutineId id, ProgramId program, int revision, String name});
 
+/// The app composition owner must retain ONE instance across Delete repository
+/// recreations, login cycles and UI surfaces for its authenticated runtime.
+/// This is deliberately injected rather than silently reinitialized per repo.
+/// It is an in-process guard, NOT durable across an OS process restart.
+final class RoutineDeleteAttemptGate {
+  final Map<String, int> _unconfirmedRevisions = {};
+  final Map<String, RoutineDeleteTarget> _preparedTargets = {};
+  final Map<String, int> _dispatchGeneration = {};
+  final Map<String, int> _inspectionGeneration = {};
+  final Set<String> _inFlight = {};
+}
+
 /// Authenticated owner/cycle-bound adapter for the deployed #526 boolean RPC.
 /// Does not assume a successful client-side HTTP call proves authorization.
 final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   SupabaseRoutineDeleteRepository({
     required RoutineDeleteGateway gateway,
+    required RoutineDeleteAttemptGate attemptGate,
     required RoutineDeleteCurrentValue currentUserId,
     required RoutineDeleteCurrentValue currentLoginCycleId,
     Duration timeout = const Duration(seconds: 15),
   })  : _gateway = gateway,
+        _gate = attemptGate,
         _currentUserId = currentUserId,
         _currentLoginCycleId = currentLoginCycleId,
         _timeout = timeout {
@@ -73,29 +87,20 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
 
   factory SupabaseRoutineDeleteRepository.fromClient({
     required SupabaseClient client,
+    required RoutineDeleteAttemptGate attemptGate,
     required RoutineDeleteCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineDeleteRepository(
     gateway: SupabaseRoutineDeleteGateway(client),
+    attemptGate: attemptGate,
     currentUserId: () => client.auth.currentUser?.id,
     currentLoginCycleId: currentLoginCycleId,
   );
 
   final RoutineDeleteGateway _gateway;
+  final RoutineDeleteAttemptGate _gate;
   final RoutineDeleteCurrentValue _currentUserId;
   final RoutineDeleteCurrentValue _currentLoginCycleId;
   final Duration _timeout;
-
-  // A timed-out RPC may remain active on the server after the local timeout.
-  // Only a strictly newer owner-read revision proves its old revision-CAS
-  // cannot later delete the same Routine. Same-revision reads never unblock.
-  // The unknown-write guard spans login cycles for the SAME owner/Routine;
-  // authorization and one-use inspect capabilities remain cycle-specific.
-  final Map<String, int> _unconfirmedRevisions = {};
-  final Map<String, RoutineDeleteTarget> _preparedTargets = {};
-  // Reject reads that overlap any dispatch, even if the request completes
-  // before the read returns a stale pre-Delete snapshot.
-  final Map<String, int> _dispatchGeneration = {};
-  final Set<String> _inFlight = {};
 
   @override
   Future<RoutineDeleteTarget?> inspect({
@@ -104,25 +109,32 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   }) async {
     final session = _session();
     final ownerKey = _ownerKey(session, routineId);
-    if (_inFlight.contains(ownerKey)) {
+    final cycleKey = _cycleKey(session, routineId);
+    if (_gate._inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
-    final startGeneration = _dispatchGeneration[ownerKey] ?? 0;
+    // Each inspection supersedes the prior destructive capability even if
+    // this read fails or discovers a moved/missing Routine.
+    final inspection = (_gate._inspectionGeneration[cycleKey] ?? 0) + 1;
+    _gate._inspectionGeneration[cycleKey] = inspection;
+    _gate._preparedTargets.remove(cycleKey);
+    final startGeneration = _gate._dispatchGeneration[ownerKey] ?? 0;
     final row = await _read(session, routineId);
     // A Delete could have started while this read awaited the server, then
     // already committed by the time its old header arrived. Such a read is
     // never valid evidence for a new destructive confirmation.
-    if (_inFlight.contains(ownerKey)) {
+    if (_gate._inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
-    if ((_dispatchGeneration[ownerKey] ?? 0) != startGeneration) {
+    if ((_gate._dispatchGeneration[ownerKey] ?? 0) != startGeneration ||
+        _gate._inspectionGeneration[cycleKey] != inspection) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
     }
     if (row == null || row.program != programId) return null;
-    final unresolvedRevision = _unconfirmedRevisions[ownerKey];
+    final unresolvedRevision = _gate._unconfirmedRevisions[ownerKey];
     if (unresolvedRevision != null && row.revision > unresolvedRevision) {
       // The old CAS cannot commit at the newly observed revision.
-      _unconfirmedRevisions.remove(ownerKey);
+      _gate._unconfirmedRevisions.remove(ownerKey);
     }
     final target = RoutineDeleteTarget(
       routineId: row.id,
@@ -132,7 +144,7 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       ownerId: session.owner,
       loginCycleId: session.cycle,
     );
-    _preparedTargets[_cycleKey(session, routineId)] = target;
+    _gate._preparedTargets[cycleKey] = target;
     return target;
   }
 
@@ -145,21 +157,21 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     }
     final ownerKey = _ownerKey(session, target.routineId);
     final cycleKey = _cycleKey(session, target.routineId);
-    if (_unconfirmedRevisions.containsKey(ownerKey)) {
+    if (_gate._unconfirmedRevisions.containsKey(ownerKey)) {
       throw const RoutineDeleteOutcomeUnknown();
     }
-    if (_inFlight.contains(ownerKey)) {
+    if (_gate._inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
     // A target is a ONE-USE capability, not merely a matching revision.
     // A definite server rejection also consumes it: a new attempt requires
     // another owner-scoped inspect/confirmation rather than replaying it.
-    if (!identical(_preparedTargets[cycleKey], target)) {
+    if (!identical(_gate._preparedTargets[cycleKey], target)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
     }
-    _inFlight.add(ownerKey);
-    _dispatchGeneration[ownerKey] = (_dispatchGeneration[ownerKey] ?? 0) + 1;
-    _preparedTargets.remove(cycleKey);
+    _gate._inFlight.add(ownerKey);
+    _gate._dispatchGeneration[ownerKey] = (_gate._dispatchGeneration[ownerKey] ?? 0) + 1;
+    _gate._preparedTargets.remove(cycleKey);
 
     try {
       Object? response;
@@ -187,10 +199,10 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       // Malformed/false 2xx is NOT a confirmed deletion.
       return await _reconcile(target, session);
     } on RoutineDeleteOutcomeUnknown {
-      _unconfirmedRevisions[ownerKey] = target.expectedRevision;
+      _gate._unconfirmedRevisions[ownerKey] = target.expectedRevision;
       rethrow;
     } finally {
-      _inFlight.remove(ownerKey);
+      _gate._inFlight.remove(ownerKey);
     }
   }
 
