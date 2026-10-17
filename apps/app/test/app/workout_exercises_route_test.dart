@@ -1426,11 +1426,16 @@ void main() {
 
     // Same owner signed in again. A still-mounted Program Detail must not
     // inherit permission to create for a different login-cycle capability.
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
     container.read(_routineTestAuthStateProvider.notifier).state =
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
         );
     await tester.pumpAndSettle();
+    expect(find.text('Synthetic Route Program'), findsNothing,
+        reason: 'Revoked Program title is private owner data');
+    expect(find.text('Routines unavailable'), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);
