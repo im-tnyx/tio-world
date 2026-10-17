@@ -30,6 +30,7 @@ enum RoutineDeleteFailureKind {
   forbidden,
   notFound,
   revisionConflict,
+  transactionAborted,
   invalidRequest,
   malformedData,
   inProgress,
