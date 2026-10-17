@@ -103,6 +103,7 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing);
     final dialog = find.byKey(ValueKey('confirm-delete-routine-${_routine.id.value}'));
     expect(dialog, findsOneWidget);
+    expect(tester.getSize(dialog).width, lessThanOrEqualTo(TioSize.dp320));
     final dialogCenter = tester.getCenter(dialog);
     final logicalScreen = tester.view.physicalSize / tester.view.devicePixelRatio;
     expect((dialogCenter.dx - logicalScreen.width / 2).abs(), lessThan(1));
