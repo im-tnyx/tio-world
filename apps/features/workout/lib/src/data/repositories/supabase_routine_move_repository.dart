@@ -279,7 +279,9 @@ final class SupabaseRoutineMoveRepository implements RoutineMoveRepository {
     final status = n != null && n >= 100 && n <= 599 ? n : null;
     if (code == null || code.isEmpty || code.startsWith('08') ||
         status == 408 || status == 499 ||
-        (status != null && status >= 500)) return null;
+        (status != null && status >= 500)) {
+      return null;
+    }
     if (RegExp(r'^40[0-9A-Z]{3}$').hasMatch(code)) {
       return RoutineMoveFailureKind.transactionAborted;
     }
