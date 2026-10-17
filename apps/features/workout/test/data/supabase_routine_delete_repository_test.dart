@@ -471,6 +471,42 @@ void main() {
     expect(gateway.writes, 1);
   });
 
+  test('inspect cannot mint a target during or across a Delete dispatch',
+      () async {
+    final deleteServer = Completer<Object?>();
+    final slowRead = Completer<Map<String, dynamic>?>();
+    final gateway = _Gateway()
+      ..onDelete = () => deleteServer.future;
+    gateway.onRead = () {
+      if (gateway.reads == 2) return slowRead.future;
+      return Future<Map<String, dynamic>?>.value(_header());
+    };
+    final repository = gateway.repo();
+    final original = await _target(repository);
+
+    // Start an owner read BEFORE the Delete; its stale result returns after
+    // the Delete succeeds and must not create a new confirmation capability.
+    final overlappingRead = repository.inspect(
+        programId: _program, routineId: _routine);
+    final pendingDelete = repository.delete(original);
+    expect(gateway.writes, 1);
+
+    // An inspect begun DURING the RPC is rejected without even reading.
+    await expectLater(repository.inspect(
+        programId: _program, routineId: _routine),
+        throwsA(_failure(RoutineDeleteFailureKind.inProgress)));
+    expect(gateway.reads, 2);
+
+    deleteServer.complete(true);
+    expect(await pendingDelete, RoutineDeleteResult.confirmed);
+    slowRead.complete(_header());
+    await expectLater(overlappingRead,
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    await expectLater(repository.delete(original),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 1);
+  });
+
   test('concurrent Delete for same Routine makes only one RPC', () async {
     final completer = Completer<Object?>();
     final gateway = _Gateway()
