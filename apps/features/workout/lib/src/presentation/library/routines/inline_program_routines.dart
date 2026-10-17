@@ -17,6 +17,7 @@ class InlineProgramRoutines extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onDeleteRoutine,
+    this.actionSheetGuard,
     this.onAddRoutine,
     this.onOpenProgram,
     this.disableAddRoutine = false,
@@ -32,6 +33,7 @@ class InlineProgramRoutines extends StatefulWidget {
   final Future<bool> Function(Routine routine)? onEditRoutine;
   /// Owner-checked and confirmed Delete (or uncertain write) requests a read.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
   /// Opens canonical Create for this exact Program; injected by app shell.
   final Future<void> Function()? onAddRoutine;
   /// Existing Program Detail exposes owner-scoped unknown-save verification.
@@ -195,6 +197,7 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                     onEdit: widget.onEditRoutine == null
                         ? null
                         : () { widget.onEditRoutine!(routine); },
+                    actionSheetGuard: widget.actionSheetGuard,
                     onDelete: widget.onDeleteRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
