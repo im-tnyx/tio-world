@@ -200,4 +200,58 @@ select pg_temp.assert_true(
  'failed requests preserve owner Routine and children'
 );
 
+
+-- P2 review regression: an exact previously committed Move remains idempotent
+-- after the now-empty source Program is removed by a privileged lifecycle.
+select pg_temp.assert_true(
+ public.move_user_workout_routine(
+   'a5690000-0000-4000-8000-000000000021',
+   'a5690000-0000-4000-8000-000000000011',
+   'a5690000-0000-4000-8000-000000000012',3,
+   'a5690000-0000-4000-8000-000000000105')=4,
+ 'precondition: A to B committed again at revision 4'
+);
+
+-- Normal authenticated Program DELETE remains denied. This fixture uses the
+-- CI-only privileged connection role to simulate later #567 source cleanup.
+reset role;
+delete from public.user_workout_programs
+where id='a5690000-0000-4000-8000-000000000011';
+set local role authenticated;
+
+select pg_temp.assert_true(
+ public.move_user_workout_routine(
+   'a5690000-0000-4000-8000-000000000021',
+   'a5690000-0000-4000-8000-000000000011',
+   'a5690000-0000-4000-8000-000000000012',3,
+   'a5690000-0000-4000-8000-000000000105')=4,
+ 'same token replay succeeds even after source Program cleanup'
+);
+select pg_temp.assert_true(
+ (select program_id='a5690000-0000-4000-8000-000000000012'
+    and composition_revision=4
+    and last_composition_mutation_id='a5690000-0000-4000-8000-000000000105'
+  from public.user_workout_routines
+  where id='a5690000-0000-4000-8000-000000000021')
+ and (select count(*)=1 from public.user_workout_routine_sets
+      where id='a5690000-0000-4000-8000-000000000051'),
+ 'replay does not bump revision or modify child composition'
+);
+select pg_temp.expect_state(
+ $select public.move_user_workout_routine(
+   'a5690000-0000-4000-8000-000000000021',
+   'a5690000-0000-4000-8000-000000000011',
+   'a5690000-0000-4000-8000-000000000012',3,
+   'a5690000-0000-4000-8000-000000000106')$,
+ 'P0002','new request cannot use a deleted source Program'
+);
+select pg_temp.expect_state(
+ $select public.move_user_workout_routine(
+   'a5690000-0000-4000-8000-000000000021',
+   'a5690000-0000-4000-8000-000000000011',
+   'a5690000-0000-4000-8000-000000000012',2,
+   'a5690000-0000-4000-8000-000000000105')$,
+ 'P0001','same token with altered CAS remains a mutation conflict'
+);
+
 rollback;
