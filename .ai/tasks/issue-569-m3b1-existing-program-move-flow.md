@@ -1,6 +1,6 @@
 # #569 M3B1 — Feature-owned Move selector and confirmation
 
-**Status:** Active Draft PR [#598](https://github.com/im-tnyx/tio-world/pull/598), reconciliation with protected `main` following squash-merged controller PR #597. Not app-wired, not shipped.
+**Status:** Active Draft PR [#598](https://github.com/im-tnyx/tio-world/pull/598), safely reconciled with protected `main@f58fbc34` after squash-merged controller #597. Fresh exact-head CI and owner merge gate pending. Not app-wired, not shipped.
 **Implementation owner:** Workout feature presentation UI/confirmation branch `tnyx/issue-569-m3b1-existing-program-move-flow`. Owner of validation/dispatch: merged `RoutineMoveDestinationController`; no competing Move authority.
 **Planning:** GitHub #569 owner-approved Move lifecycle; Linear TNYX-81 remains broad Backlog and TNYX-267 tracks W6B; dependency status unchanged.
 **Affected scope:** Workout Flutter feature UI/test, public feature export and this active task/index. No app shell, Wear OS, watchOS, backend, SQL, RLS, deployment or visible runtime activation.
@@ -23,10 +23,10 @@
 ## Post-squash branch reconciliation and quality gate
 
 - Original stacked parent `tnyx/issue-569-m3b-existing-program-move-flow@741bd429` was squash-merged as `main@f58fbc34`. GitHub confirmed the previous child-to-main comparison was **diverged** (20 ahead / 1 behind), even though old parent-to-child delta was exactly five owned UI/test/task paths.
-- Reconcile current child without force-pushing, rewriting history, deleting refs or silently widening the five-file change set. Validate current main is an ancestor and the final PR comparison only contains the same five intended files. Do not treat a pre-squash green CI as proof for the reconciled HEAD.
+- Reconciliation now completed through an explicit **non-force two-parent merge commit** `73459be4c9038c69bcd108edd6ed18c511c14733`, with the five child-owned file blobs applied to the exact squash-merged `main` tree. Child PR #598 was retargeted to protected `main`. GitHub verifies **main is an ancestor** (0 behind) and the compared diff is **exactly five intended UI/test/handoff files**. Historical stacked commits remain in the DAG (23 ahead), but no duplicate parent controller source delta exists versus `main`; do not claim this is a history rewrite or clean linear ancestry. Fresh exact-head CI is still required.
 - Recheck exact final HEAD Flutter tests/analysis and attribution, inspect review threads and repeat owner merge gate independently. No independent GitHub APPROVED reviewer is claimed; earlier COMMENTED reviews are source audits only.
 - Repository accessed through remote GitHub integration. The owner's Windows checkout, `git status`, local Flutter execution, `git pull --ff-only`, branch pruning and local device checks were not run or assumed.
 
 ## Handoff
 
-**Current next task:** finish safe post-squash #598 branch reconciliation, validate actual five-file final diff and exact GitHub CI; then request review/owner merge gate. Do not merge PR #598 or enable production Move from this handoff. Future #569 M3B2 and #568/atomic Create & Move require separate execution and release gates.
+**Current next task:** revalidate post-squash #598 exact-head CI on this reconciled branch, resolve only review findings with verified evidence, and prepare separate owner-directed merge gate. Do not merge PR #598 or enable production Move from this handoff. Future #569 M3B2 and #568/atomic Create & Move require separate execution and release gates.
