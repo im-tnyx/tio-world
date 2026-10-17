@@ -13,9 +13,10 @@
 
 ## Owner-approved confirmation UI refinement (2026-10-17)
 - Approval: "go next yes sahi h botton ka height chhota rakhe", following the explicit request for a screen-centered popup card in place of the Delete confirmation bottom sheet.
-- **Only Routine Delete** uses a compact center Dialog with the existing Core TioCard elevated surface, Core semantic destructive/secondary buttons and theme typography. Set scoped action visual minimum to the existing TioSize.dp38 while keeping Material's padded accessible hit target and large-text growth.
+- **Only Routine Delete** uses a compact center Dialog with existing `TioCard.elevated`, `TioButton.destructive`/`TioButton.secondary` and theme typography. The owner subsequently requested a narrower card: max width changed from `TioSize.dp480` to new governed `TioSize.dp320` (320dp); it still shrinks for narrow mobile viewports. Scoped action visual minimum remains `TioSize.dp38`, preserving Material's accessible padded tap target and text growth.
 - Do NOT change showTioConfirmationBottomSheet globally, other confirmations, global button height, Delete RPC/security/session checks, backend, and existing Routine options bottom sheet.
 - Validation: visible Dialog (not BottomSheet), compact button theme/tap targets, cancellation and confirm results, dark + narrow + large text, identical one-write/no-retry semantics.
+- GitHub CI `39012457115` initially failed **only** the Core visual-ownership guard because the new Dialog used raw `Colors.transparent`; Flutter Analyze and app-workout tests passed. Corrected to `TioPalette.transparent` and added explicit width assertion and governed primitive; subsequent exact-head CI is the authoritative gate. Preserve and disposition the four existing PR review findings independently (including prior owner title and stale modal privacy risks); successful CI alone is not sufficient merge evidence.
 
 ## Approved behavior
 - Fresh owner/Program/Routine revision inspect BEFORE showing confirmation; cancel sends no RPC.
