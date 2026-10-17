@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete RPC adapter (Slice A)
 
-**Status:** Implementation in progress; first exact-head Flutter CI failed 3 adapter SQLSTATE classification tests; correction committed and current exact-head CI/review pending.
+**Status:** In Review — exact source-head `9840aca6` Flutter CI 7/7 PASS; independent review requested and pending. This documentation-only handoff update will require a fresh exact-HEAD check before merge.
 **Implementation owner:** This GitHub-connected implementation session.
 **Branch:** `tnyx/issue-526-routine-delete-flutter-adapter` from live `main@6cb353eaf492f178c707a94178e5d34f19c8ea04` (2026-10-17).
 **Scope approval:** Owner's `Go` following the read-only #526 audit and explicit proposal to start **Slice A** only. No authority to deploy, merge, activate UI Delete, or modify Supabase schema.
@@ -33,9 +33,9 @@ Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures a
 
 ## Review gates / next steps
 
-- [ ] Focused Flutter/Dart analysis and adapter tests at exact PR HEAD (GitHub CI).
+- [x] Source-head `9840aca6` Flutter CI run `39003322361` all 7 checks PASS, including full app-workout shard (new adapter tests), Analyze/Dart, core-wear, nutrition-onboarding, aggregate and attribution. Initial source head `e534de94` exposed 3 numeric SQLSTATE-vs-HTTP status regressions; fixed on `bf9288bb`. Later pure handoff commit requires its own exact-head recheck.
 - [ ] Independent code/security review of owner and auth-cycle switch, SQL error classification and outcome reconciliation.
-- [ ] Source/no-secret diff audit; PR remains Draft before explicit future merge gate.
+- [x] Source/no-secret diff scope audited: 7 paths in Workout domain/data/tests and `.ai` task/index, no app shell, UI, RLS or migration change. PR #586 is Ready for independent review but still unmerged.
 - [ ] After Slice A reviewed/merged, separately approve/implement Slice B confirmation and app wiring; emulator/physical QA before enabling Delete.
 
-**Handoff:** Work in progress. Do not represent backend deployment evidence as Flutter client completion or mark GitHub #526 / Linear TNYX-81 Done.
+**Handoff:** Data-only implementation compiled and tested successfully at `9840aca6`; independent reviewer `im-tio` requested. Await current-head CI after handoff change, review disposition and explicit owner `Go merge`. There is no Flutter Delete UI and no local Windows/device validation claim. Do not mark GitHub #526 or Linear TNYX-81 Done.
