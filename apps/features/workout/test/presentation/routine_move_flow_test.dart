@@ -164,7 +164,9 @@ void main() {
     );
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    Navigator.of(tester.element(find.byKey(
+      ValueKey('routine-move-destinations-${routine.id.value}'),
+    ))).pop();
     await tester.pumpAndSettle();
     expect(result, false);
     expect(g.writes, 0);
