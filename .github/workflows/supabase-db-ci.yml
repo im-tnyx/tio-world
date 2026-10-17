@@ -299,6 +299,15 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_concurrency.sh
 
+      - name: Run #569 M2C temporary legacy Rename retirement preflight
+        shell: bash
+        run: |
+          # This test REVOKEs within a transaction on disposable CI database.
+          # ROLLBACK restores pre-M2C grants; no hosted permissions change.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_m2c_legacy_rename_retirement_preflight.test.sql
+
       - name: Run #569 owner-scoped existing-Program Routine Move SQL matrix
         shell: bash
         run: |
