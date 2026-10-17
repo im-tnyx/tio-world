@@ -79,13 +79,14 @@ final class RoutineMoveDestinationController {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
     }
     _prepared = null;
-    _inspectionGeneration++;
+    final generation = ++_inspectionGeneration;
     if (destinationProgramId == selection.target.sourceProgramId ||
         !selection.destinations.any((p) => p.id == destinationProgramId)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
     }
     final current = await programs.list();
     _requireSession();
+    _requireGeneration(generation);
     _validatePrograms(current);
     if (!current.any((p) => p.id == destinationProgramId)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
