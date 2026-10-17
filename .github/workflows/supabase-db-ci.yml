@@ -299,6 +299,17 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_concurrency.sh
 
+      - name: Run #569 owner-scoped existing-Program Routine Move SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql
+
+      - name: Run #569 Move versus Delete two-session race
+        shell: bash
+        run: bash supabase/tests/database/tnyx_569_existing_program_routine_move_concurrency.sh
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
