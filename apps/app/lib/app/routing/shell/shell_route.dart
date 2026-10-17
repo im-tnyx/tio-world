@@ -27,13 +27,11 @@ Widget _guardRoutineOptionsSheet({
     final authValue = sheetRef.watch(authSessionStateProvider);
     final auth = authValue.isLoading || authValue.hasError
         ? null : authValue.valueOrNull;
-    final client = sheetRef.watch(supabaseClientProvider);
     final valid = ownerId != null && loginCycleId != null &&
         boot is AppSessionBootstrapReady && boot.userId == ownerId &&
         auth is AuthSessionAuthenticated &&
         auth.session.userId == ownerId &&
-        auth.session.loginCycleId == loginCycleId &&
-        client?.auth.currentUser?.id == ownerId;
+        auth.session.loginCycleId == loginCycleId;
     if (valid) return content;
 
     // Do not render the former account's name/actions for one more frame.
