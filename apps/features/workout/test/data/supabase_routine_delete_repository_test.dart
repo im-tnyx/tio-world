@@ -156,6 +156,54 @@ void main() {
     });
   }
 
+  for (final entry in <(String, int, RoutineDeleteFailureKind)>[
+    ('23502', 400, RoutineDeleteFailureKind.invalidRequest),
+    ('40P01', 500, RoutineDeleteFailureKind.transactionAborted),
+    ('40001', 409, RoutineDeleteFailureKind.transactionAborted),
+  ]) {
+    test('real SDK PostgREST SQLSTATE ${entry.$1} is definite, not uncertain',
+        () async {
+      final requests = <http.Request>[];
+      final client = SupabaseClient(
+        'https://example.test',
+        'synthetic-publishable-key',
+        httpClient: MockClient((request) async {
+          requests.add(request);
+          if (request.method == 'GET') {
+            return http.Response(jsonEncode(_header()), 200,
+                headers: {'content-type': 'application/json'},
+                request: request);
+          }
+          return http.Response(
+            jsonEncode({
+              'code': entry.$1,
+              'message': 'definite postgres rollback',
+              'details': null,
+              'hint': null,
+            }),
+            entry.$2,
+            headers: {'content-type': 'application/json'},
+            request: request,
+          );
+        }),
+        authOptions: const AuthClientOptions(autoRefreshToken: false),
+      );
+      addTearDown(client.dispose);
+      final repository = SupabaseRoutineDeleteRepository(
+        gateway: SupabaseRoutineDeleteGateway(client),
+        currentUserId: () => _owner,
+        currentLoginCycleId: () => _cycle,
+      );
+      final target = await _target(repository);
+      await expectLater(repository.delete(target),
+          throwsA(_failure(entry.$3)));
+      expect(requests, hasLength(2),
+          reason: 'no readback or automatic repeated DELETE after SQL abort');
+      expect(requests.last.url.path,
+          '/rest/v1/rpc/delete_user_workout_routine');
+    });
+  }
+
   test('definite rejection wins when login cycle changed mid-flight',
       () async {
     var cycle = _cycle;
@@ -251,6 +299,63 @@ void main() {
     expect(moved.programId, _otherProgram);
   });
 
+  test('timed-out server call stays blocked on same-revision read',
+      () async {
+    // Dart's timeout does NOT cancel the underlying database request.
+    final server = Completer<Object?>();
+    final gateway = _Gateway()..onDelete = () => server.future;
+    final repository = gateway.repo(
+      timeout: const Duration(milliseconds: 25),
+    );
+    final original = await _target(repository);
+    await expectLater(repository.delete(original),
+        throwsA(_unknown(RoutineDeleteUncertainty.stillPresent)));
+    expect(server.isCompleted, false);
+    expect(gateway.writes, 1);
+
+    // This read can race the still-running server Delete. It must NOT
+    // unlock a second irreversible RPC at the original CAS revision.
+    final sameRevision = await _target(repository);
+    expect(sameRevision.expectedRevision, original.expectedRevision);
+    await expectLater(repository.delete(sameRevision),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+
+    // Late server completion does not retroactively resolve the client ACK.
+    server.complete(true);
+    await expectLater(repository.delete(sameRevision),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+
+    // A strictly newer committed revision proves the old CAS cannot delete.
+    gateway.row = _header(revision: 5);
+    final changed = await _target(repository);
+    expect(changed.expectedRevision, 5);
+    gateway.onDelete = () async => true;
+    await expectLater(repository.delete(original),
+        throwsA(_failure(RoutineDeleteFailureKind.revisionConflict)));
+    expect(gateway.writes, 1);
+    expect(await repository.delete(changed), RoutineDeleteResult.confirmed);
+    expect(gateway.writes, 2);
+  });
+
+  test('absent or older owner read never clears uncertain Delete guard',
+      () async {
+    final gateway = _Gateway()
+      ..onDelete = () async => throw TimeoutException('lost ack');
+    final repository = gateway.repo();
+    await expectLater(repository.delete(await _target(repository)),
+        throwsA(_unknown(RoutineDeleteUncertainty.stillPresent)));
+    gateway.row = null;
+    expect(await repository.inspect(
+        programId: _program, routineId: _routine), isNull);
+    gateway.row = _header(revision: 3);
+    final old = await _target(repository);
+    await expectLater(repository.delete(old),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+  });
+
   test('reconciliation read failure remains unknown; never fake absence',
       () async {
     final gateway = _Gateway()
@@ -330,10 +435,12 @@ final class _Gateway implements RoutineDeleteGateway {
   SupabaseRoutineDeleteRepository repo({
     String? Function()? owner,
     String? Function()? cycle,
+    Duration timeout = const Duration(seconds: 15),
   }) => SupabaseRoutineDeleteRepository(
     gateway: this,
     currentUserId: owner ?? () => _owner,
     currentLoginCycleId: cycle ?? () => _cycle,
+    timeout: timeout,
   );
 
   @override
