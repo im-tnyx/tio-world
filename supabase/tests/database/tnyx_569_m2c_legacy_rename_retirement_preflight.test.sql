@@ -65,7 +65,9 @@ insert into public.user_workout_programs (id,user_id,name) values
  ('b5690000-0000-4000-8000-000000000011',
   'b5690000-0000-4000-8000-000000000001','M2C Program A'),
  ('b5690000-0000-4000-8000-000000000012',
-  'b5690000-0000-4000-8000-000000000002','M2C Program B');
+  'b5690000-0000-4000-8000-000000000002','M2C Program B'),
+ ('b5690000-0000-4000-8000-000000000013',
+  'b5690000-0000-4000-8000-000000000001','M2C Destination A');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub',
@@ -170,6 +172,62 @@ select pg_temp.assert_true(
   from public.user_workout_routines
   where id='b5690000-0000-4000-8000-000000000021'),
  'composition Save does not rename and does not need direct Name GRANT'
+);
+
+-- Exercise the actual unsafe A->B move scenario only with a short-lived
+-- EXECUTE grant inside this transaction. The final ROLLBACK removes the grant
+-- and undoes the Move: production activation is NOT performed here.
+reset role;
+grant execute on function public.move_user_workout_routine(
+  uuid,uuid,uuid,bigint,uuid) to authenticated;
+set local role authenticated;
+
+select pg_temp.assert_true(
+ public.move_user_workout_routine(
+   'b5690000-0000-4000-8000-000000000021',
+   'b5690000-0000-4000-8000-000000000011',
+   'b5690000-0000-4000-8000-000000000013',
+   2,'b5690000-0000-4000-8000-000000000106'
+ ) = 3,
+ 'test-only Move re-parents Routine with revision CAS'
+);
+select pg_temp.assert_true(
+ (select name='M2C Protected A'
+         and program_id='b5690000-0000-4000-8000-000000000013'
+         and composition_revision=3
+  from public.user_workout_routines
+  where id='b5690000-0000-4000-8000-000000000021'),
+ 'Move retains name and stable Routine ID while incrementing revision'
+);
+select pg_temp.expect_state(
+ $update public.user_workout_routines set name='Unsafe stale A screen'
+   where id='b5690000-0000-4000-8000-000000000021'
+     and user_id=auth.uid()$,
+ '42501','stale old-client Rename cannot mutate already moved Routine'
+);
+select pg_temp.expect_state(
+ $select public.update_user_workout_routine_with_composition(
+  'b5690000-0000-4000-8000-000000000021',
+  'b5690000-0000-4000-8000-000000000011',
+  3,'M2C Protected A','b5690000-0000-4000-8000-000000000107',
+  'Wrong Source A',null)$,
+ 'P0002','protected Rename with old source Program cannot rename moved Routine'
+);
+select pg_temp.assert_true(
+ public.update_user_workout_routine_with_composition(
+  'b5690000-0000-4000-8000-000000000021',
+  'b5690000-0000-4000-8000-000000000013',
+  3,'M2C Protected A','b5690000-0000-4000-8000-000000000108',
+  'M2C New Owner Program B',null
+ ) = 4,
+ 'correct destination Program and revision still allow protected Rename'
+);
+select pg_temp.assert_true(
+ (select program_id='b5690000-0000-4000-8000-000000000013'
+         and name='M2C New Owner Program B' and composition_revision=4
+  from public.user_workout_routines
+  where id='b5690000-0000-4000-8000-000000000021'),
+ 'post-Move protected Rename does not reparent Routine or alter revision unexpectedly'
 );
 
 -- Cross-user protected Rename must not disclose or mutate another user.
