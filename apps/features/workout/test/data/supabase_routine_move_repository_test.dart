@@ -246,6 +246,8 @@ void main() {
     // confirmation can then move BACK, never replay the old A->B token.
     final newTarget = (await second.inspect(
       sourceProgramId: destination, routineId: routine))!;
+    // This is a NEW logical Move with a new server result; not the lost ACK.
+    g.onMove = () async => 6;
     expect(await move(second, newTarget, to: source),
       RoutineMoveResult.confirmed);
     expect(g.writes, 2);
