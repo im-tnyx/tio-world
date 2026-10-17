@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_move_repository.dart';
+import 'routine_move_destination_controller.dart';
 
 /// Feature-owned Move workflow shared by the two Routine card surfaces.
 ///
@@ -33,31 +34,26 @@ final class RoutineMoveFlow {
       return false;
     }
 
+    final controller = RoutineMoveDestinationController(
+      moves: repository, programs: programs, canWrite: canWrite,
+    );
     var attempted = false;
     try {
-      final target = await repository.inspect(
+      final selection = await controller.inspect(
         sourceProgramId: sourceProgram.id,
         routineId: routine.id,
       );
       if (!context.mounted || !canWrite()) return false;
-      if (target == null || target.routineId != routine.id ||
-          target.sourceProgramId != sourceProgram.id) {
+      if (selection == null ||
+          selection.target.routineId != routine.id ||
+          selection.target.sourceProgramId != sourceProgram.id) {
         _show(context, 'This Routine changed. Refresh the list.');
         return true;
       }
-
-      // Only persisted Programs returned by the existing owner-scoped
-      // repository can be selected. Do not infer My Program by display name.
-      final owned = await programs.list();
-      if (!context.mounted || !canWrite()) return false;
-      if (owned.map((p) => p.id).toSet().length != owned.length) {
-        _show(context, 'Could not verify Programs. Refresh and try again.');
-        return false;
-      }
-      final destinations = [
-        for (final program in owned)
-          if (program.id != target.sourceProgramId) program,
-      ];
+      // Controller owns the one-use, owner-scoped destination eligibility.
+      // Do not infer My Program by its mutable display name.
+      final target = selection.target;
+      final destinations = selection.destinations;
       if (destinations.isEmpty) {
         _show(context, 'Create another Program before moving this Routine.');
         return false;
@@ -113,8 +109,8 @@ final class RoutineMoveFlow {
       if (confirmed != true || !context.mounted || !canWrite()) return false;
       attempted = true;
 
-      final result = await repository.move(
-        target: target,
+      final result = await controller.dispatchConfirmed(
+        selection: selection,
         destinationProgramId: destination.id,
         mutationId: _newMutationId(),
       );
@@ -144,6 +140,8 @@ final class RoutineMoveFlow {
         case RoutineMoveFailureKind.mutationConflict:
         case RoutineMoveFailureKind.staleTarget:
           _show(context, 'This Routine changed. Refresh Programs and try again.');
+        case RoutineMoveFailureKind.malformedData:
+          _show(context, 'Could not verify Programs. Refresh and try again.');
         default:
           _show(context, 'Could not move this Routine. Try again later.');
       }
@@ -154,6 +152,7 @@ final class RoutineMoveFlow {
       }
       return attempted && context.mounted && canWrite();
     } finally {
+      controller.abandon();
       _opening.remove(routine.id);
     }
   }
