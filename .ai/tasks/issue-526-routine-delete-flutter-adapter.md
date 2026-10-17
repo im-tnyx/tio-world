@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete RPC adapter (Slice A)
 
-**Status:** In Review — owner-approved security corrective slice. Source `ef632b3b` passed 7/7 CI; cross-login-cycle and one-use fixes subsequently passed app-workout and Analyze at `909bfd9d`. A new review finding exposed stale inspect/dispatch overlap; source/test correction added. **Fresh exact-head CI and independent review remain pending.**
+**Status:** In Review — 2026-10-17 `im-tio` formal CHANGES_REQUESTED on two P2 lifecycle findings (instance recreation + failed/negative inspect leaving target armed). Targeted shared-gate/data-only corrections and focused regressions committed; new exact-head CI and independent approval remain pending. Previous head `9bc7b5d1` had 7/7 checks PASS.
 **Implementation owner:** This GitHub-connected implementation session.
 **Branch:** `tnyx/issue-526-routine-delete-flutter-adapter` from live `main@6cb353eaf492f178c707a94178e5d34f19c8ea04` (2026-10-17).
 **Scope approval:** Owner's `Go` following the read-only #526 audit and explicit proposal to start **Slice A** only. No authority to deploy, merge, activate UI Delete, or modify Supabase schema.
@@ -27,6 +27,9 @@ Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures a
 
 
 - A further manual P2 finding exposed an inspection race: an owner read started before an RPC could return a stale header after successful Delete, or inspection could begin while a Delete was in-flight. The repository now checks owner+Routine in-flight before and after read and verifies no RPC dispatch generation changed during the read. A Completer regression asserts an overlapped read cannot mint a new Delete target; this change also awaits exact-head CI.
+
+- PR reviewer `im-tio` requires the unresolved-RPC safety guard to survive repository recreation. Slice A now exposes a REQUIRED caller-owned `RoutineDeleteAttemptGate` injectable into `SupabaseRoutineDeleteRepository` and `fromClient()`; it carries owner/Routine unresolved revision, in-flight and inspection/dispatch generation state across instances. No implicit gate fallback may be created inside the repository. Future Slice B app composition MUST retain one gate across route/provider/re-login recreation and both UI surfaces. This is an **in-process lifecycle guarantee only**; OS process restart clears in-memory state and no stronger durability claim is made without a separately approved persistent operation contract.
+- Every `inspect()` invalidates a prior one-use target at its start, including absent/wrong-Program/read failure; a generation check prevents a slow earlier inspection from rearming an older target after a newer inspection. Tests now cover adapter recreation following an unresolved Delete and negative/moved reinspection, as well as RPC overlap.
 
 ### Explicit non-goals
 
