@@ -688,7 +688,32 @@ List<RouteBase> _shellBranchChildRoutes(
             // only account-owned Create requires this capability.
             await Navigator.of(context).push<void>(
               MaterialPageRoute(
-                builder: (_) => ProgramDetailPage(
+                builder: (_) => Consumer(
+                  builder: (routeContext, routeRef, _) {
+                    // A program route can outlive the session that opened it.
+                    // Revoke its loaded owner data and destructive callbacks
+                    // on bootstrap or Auth-cycle change, even mid-dialog.
+                    final bootState = routeRef
+                        .watch(appSessionBootstrapControllerProvider).state;
+                    final authAsync = routeRef.watch(authSessionStateProvider);
+                    final authState = authAsync.isLoading || authAsync.hasError
+                        ? null : authAsync.valueOrNull;
+                    final authorized = openingOwner != null &&
+                        openingCycle != null &&
+                        bootState is AppSessionBootstrapReady &&
+                        bootState.userId == openingOwner &&
+                        authState is AuthSessionAuthenticated &&
+                        authState.session.userId == openingOwner &&
+                        authState.session.loginCycleId == openingCycle;
+                    if (!authorized) {
+                      return const Scaffold(
+                        body: Center(child: Text('Routines are unavailable.')),
+                      );
+                    }
+                    return ProgramDetailPage(
+                      key: ValueKey(
+                        'program-detail-${openingOwner}-${openingCycle}',
+                      ),
                   program: program,
                   routineRepository: routineRepository,
                   pendingCreateChanges: pendingGate,
@@ -725,6 +750,8 @@ List<RouteBase> _shellBranchChildRoutes(
                   // the legacy metadata-only sheet unreachable in
                   // production, including if RPC dependencies fail.
                   onCreateRoutine: createRoutine,
+                    );
+                  },
                 ),
               ),
             );
