@@ -74,6 +74,9 @@ final class SupabaseRoutineRepository
   final RoutineAggregateUpdateRepository? _aggregateUpdates;
 
   @override
+  String? get activeLoginCycleId => _currentLoginCycleId()?.trim();
+
+  @override
   Future<List<Routine>> list(ProgramId programId) async =>
       [for (final snapshot in await listVersioned(programId)) snapshot.routine];
 

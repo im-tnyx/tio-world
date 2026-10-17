@@ -36,6 +36,9 @@ final class RoutineMetadataRevision {
 /// Optional protected metadata capability. Legacy RoutineRepository consumers
 /// may still list/create, but cannot perform an unversioned rename.
 abstract interface class RoutineVersionedRenameRepository {
+  /// Current app-owned session marker; null revokes create reconciliation.
+  String? get activeLoginCycleId;
+
   Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId);
   Future<int> renameVersioned(RoutineAggregateUpdate command, {
     required String expectedLoginCycleId,

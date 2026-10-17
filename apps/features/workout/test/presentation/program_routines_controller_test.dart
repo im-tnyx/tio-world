@@ -258,6 +258,19 @@ void main() {
     expect(controller.state.routines, isEmpty);
   });
 
+  test('unknown Create after same-user relogin never confirms prior cycle', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..switchCycleAfterCreate = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Original'), isFalse);
+    expect(controller.state.error, 'Please sign in to save Routines.');
+    expect(repository.rows.single.name, 'Original');
+    expect(repository.renameCount, 0);
+  });
+
   test('unknown metadata Create must not overwrite later changed name', () async {
     final repository = _FakeRoutines()
       ..throwAfterCreate = true
@@ -343,10 +356,14 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   String? externalRename;
   bool unauthenticated = false;
   bool changeCreatedNameAfterCommit = false;
+  bool switchCycleAfterCreate = false;
   bool throwUnconfirmedRename = false;
   bool switchAccountOnRename = false;
   bool switchedAccount = false;
   String currentCycle = 'cycle-a';
+
+  @override
+  String? get activeLoginCycleId => currentCycle;
 
   @override
   Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId) async {
@@ -386,6 +403,7 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
             name: 'Concurrent name')
         : routine);
     revisions[routine.id] = 0;
+    if (switchCycleAfterCreate) currentCycle = 'cycle-b';
     if (throwAfterCreate) throw Exception('lost response');
   }
 

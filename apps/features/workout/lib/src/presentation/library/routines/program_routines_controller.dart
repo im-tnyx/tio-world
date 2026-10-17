@@ -141,7 +141,18 @@ final class ProgramRoutinesController extends ChangeNotifier {
 
   Future<bool> create(String name) async {
     final current = _state;
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
+    final startCycle = versioned?.activeLoginCycleId;
     if (current.status != ProgramRoutinesStatus.ready || current.saving) {
+      return false;
+    }
+    if (versioned != null && (startCycle == null || startCycle.isEmpty)) {
+      _publish(ProgramRoutinesState.ready(
+        routines: current.routines,
+        error: 'Please sign in to save Routines.',
+      ));
       return false;
     }
     if (name.trim().isEmpty) {
@@ -175,14 +186,37 @@ final class ProgramRoutinesController extends ChangeNotifier {
     try {
       await repository.create(attempted);
       if (_disposed) return false;
+      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        _publish(ProgramRoutinesState.ready(
+          routines: current.routines,
+          error: 'Please sign in to save Routines.',
+        ));
+        return false;
+      }
       _pendingCreateId = null;
       _publish(ProgramRoutinesState.ready(
         routines: [...current.routines, attempted],
       ));
       return true;
     } catch (error) {
+      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        if (!_disposed) {
+          _publish(ProgramRoutinesState.ready(
+            routines: current.routines,
+            error: 'Please sign in to save Routines.',
+          ));
+        }
+        return false;
+      }
       final reconciled = await _reconcileCreate(attempted);
       if (_disposed) return false;
+      if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        _publish(ProgramRoutinesState.ready(
+          routines: current.routines,
+          error: 'Please sign in to save Routines.',
+        ));
+        return false;
+      }
       if (reconciled != null) {
         _pendingCreateId = null;
         _acceptRead(reconciled);
