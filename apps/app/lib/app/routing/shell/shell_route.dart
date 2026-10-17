@@ -14,6 +14,40 @@ import '../../meal_diary_today_glyph.dart';
 import '../../network_providers.dart';
 import '../../session/session.dart';
 
+/// Keep the pre-confirmation Routine 3-dot modal bound to its opening owner.
+/// The later Delete confirmation has a separate per-attempt guard.
+/// This wrapper is app-owned: Workout never imports Auth or Supabase.
+Widget _guardRoutineOptionsSheet({
+  required Widget content,
+  required String? ownerId,
+  required String? loginCycleId,
+}) => Consumer(
+  builder: (sheetContext, sheetRef, _) {
+    final boot = sheetRef.watch(appSessionBootstrapControllerProvider).state;
+    final authValue = sheetRef.watch(authSessionStateProvider);
+    final auth = authValue.isLoading || authValue.hasError
+        ? null : authValue.valueOrNull;
+    final client = sheetRef.watch(supabaseClientProvider);
+    final valid = ownerId != null && loginCycleId != null &&
+        boot is AppSessionBootstrapReady && boot.userId == ownerId &&
+        auth is AuthSessionAuthenticated &&
+        auth.session.userId == ownerId &&
+        auth.session.loginCycleId == loginCycleId &&
+        client?.auth.currentUser?.id == ownerId;
+    if (valid) return content;
+
+    // Do not render the former account's name/actions for one more frame.
+    // Dismiss exactly this sheet's route, never a newer owner route.
+    final route = ModalRoute.of(sheetContext);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!sheetContext.mounted || route == null || !route.isActive) {
+        return;
+      }
+      Navigator.of(sheetContext).removeRoute(route);
+    });
+    return const SizedBox.shrink();
+  },
+);
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
       title: route.title, description: route.description);
@@ -748,6 +782,11 @@ List<RouteBase> _shellBranchChildRoutes(
                           ? Program(id: program.id, name: 'Routines unavailable')
                           : program,
                       routineRepository: revoked ? null : routineRepository,
+                      actionSheetGuard: (sheetContext, sheet) =>
+                          _guardRoutineOptionsSheet(
+                            content: sheet, ownerId: openingOwner,
+                            loginCycleId: openingCycle,
+                          ),
                   pendingCreateChanges: pendingGate,
                   onRoutinePressed: revoked || compositions == null
                       ? null
@@ -841,6 +880,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     userExerciseRepository == null
                 ? null
                 : editRoutine,
+            actionSheetGuard: (sheetContext, sheet) =>
+                _guardRoutineOptionsSheet(
+                  content: sheet,
+                  ownerId: bound ? currentOwner : null,
+                  loginCycleId: bound ? currentCycle : null,
+                ),
             onDeleteRoutine: !bound || !canCreateForSession ||
                     routineRepository == null || deleteRepository == null
                 ? null
