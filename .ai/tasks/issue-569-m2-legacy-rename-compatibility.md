@@ -1,6 +1,6 @@
 # GitHub #569 — M2 Legacy Rename Compatibility and Safe Move Preparation
 
-**Status:** M2B implementation and regression coverage committed in Draft PR #591; CI PASS on previous code HEAD `a5c0507e` (run #39029400984), latest-head tests and independent review pending. Old-client compatibility retirement and Move activation remain blocked and NOT implemented.
+**Status:** M2B protected current-client Rename compatibility source validated at `f17fd73f60b1d0cb88ca559b06f56942148a2bc0` by full Flutter CI #39031276265 (SUCCESS); PR #591 is **Ready for Review**, Open/unmerged, two inline findings fixed/resolved (0 unresolved). Only COMMENTED reviews are recorded; no independent APPROVED review. Old-client compatibility retirement, hosted Move deployment and Move activation remain blocked.
 **Primary owner:** GitHub-connected M2 implementation session (single implementation owner).
 **Affected platforms:** Workout metadata repository/controller, app Auth boundary, and future Supabase authorization gate. No UI or hosted database changes in this checkpoint.
 
@@ -20,9 +20,17 @@
 - **Working tree / PR:** Local Windows `G:\projects\Tio-World` cannot be inspected from this connector-only session; do not claim a clean local tree. GitHub #591 is OPEN/Draft on the M2 branch and awaits independently verified review; earlier no-open-PR observation is historical.
 - **Hosted runtime:** Tio-world Supabase project `oykupyiitspujzpwwvuj` has 62 migrations through `20261016220000`; source contains 63 including M1 `20261017100000`. Hosted Move RPC count zero. Authenticated direct `UPDATE(name)` allowed; direct `UPDATE(program_id)` and revision UPDATE denied.
 - **M1 permission:** Merged function revokes EXECUTE from `PUBLIC`, `anon`, `authenticated`, `service_role`. It remains dormant even if that reviewed migration is separately deployed.
-- **Validation:** GitHub Flutter CI run #39029400984 **SUCCESS on code SHA `a5c0507e`** (Analyze/Dart, app-workout, nutrition-onboarding, core-wear, aggregate gate). Later mutation-barrier regression commits have their own newer CI; exact latest-head PASS must be verified separately. Live Supabase read-only permission/advisor inspection performed; no Supabase migration replay or device tests.
+- **Validation:** **Exact source HEAD `f17fd73`** Flutter CI #39031276265 SUCCESS (Analyze/Dart, app-workout, nutrition-onboarding, core-wear, aggregate gate); commit attribution and runner checks SUCCESS. The earlier `a5c0507e` CI #39029400984 is historical. Any later docs-only handoff commit does not imply a new source validation. Live Supabase read-only grants/Advisor checked; no migration replay or device tests.
 - **Current blocker:** A server-enforced old-client retirement/compatibility decision is required before any Move activation. No minimum-supported-version enforcement deployed.
-- **Next exact step:** Verify exact-head Flutter CI after recent unconfirmed-Rename guard and handoff corrections; independently review PR #591 and resolve any in-scope findings before Ready for Review. Do not merge without explicit owner instruction; do not add activation GRANT or revoke legacy UPDATE(name).
+- **Next exact step:** Obtain a truly independent latest-head reviewer disposition/APPROVE where required; verify branch/ruleset required checks with authorized GitHub access (protection endpoint 403; empty ruleset listing does not prove no policy). PR #591 is Ready for Review but **not merge-authorized**. Explicit owner `Go merge` is required. Move client permission cutoff and activation remain separate approved work.
+
+## Independent inline review follow-up (2026-10-17, validated source `f17fd73`)
+
+- **P2 #4302590466** (resolved): the metadata Create pending UUID was incorrectly reusable after logout/relogin by the same owner. The controller now freezes pending UUID to the originating login cycle and binds even an empty listed Program snapshot to that cycle. A stale cycle clears pending identity and requires another owner-scoped load before any new Create; same-name immediate retry issues no second old-UUID INSERT. Added the P2 targeted same-name retry/relogin regression. This is legacy metadata Create compatibility, not a change to current canonical Create composer.
+- **P3 #4302590472** (resolved): corrected canonical `docs/screens/routine-library.md` to describe the new-client versioned protected Rename while distinguishing the **still-present hosted old-client direct `UPDATE(name)` GRANT** and the un-deployed Move RPC. No false distributed-release claim.
+- Both [PR #591](https://github.com/im-tnyx/tio-world/pull/591) native threads received replies with commit/test evidence; **0 unresolved** verified after exact-head [Flutter CI #39031276265](https://github.com/im-tnyx/tio-world/actions/runs/39031276265) SUCCESS and attribution guard PASS. GitHub PR transitioned Draft → Ready for Review, **not merged**. Reviewer submissions are COMMENTED only, not APPROVED.
+- Supabase hosted grants, applied migration count and security Advisor rechecked read-only; no new migration/GRANT/deploy. GitHub `main@5a9e9f46` unchanged; compare `ahead 17, behind 0` before this **docs-only** handoff update; branch-protection API returned 403 and visible rulesets list empty (not proof of no required policy).
+- Linear TNYX-81 received a scoped progress comment; broad W4/W6B statuses remain Backlog. A separate owner-approved server-side old-client cutoff is mandatory before Move activation.
 
 ## M2B implementation checkpoint (2026-10-17)
 
@@ -33,7 +41,7 @@
 - Existing app auth provider supplies the **live** `AuthSessionAuthenticated.session.loginCycleId`; list and dispatch reject stale/changed cycles, including logout/relogin by the same owner. No app visual/layout change.
 - Uncertain legacy metadata Create reconciliation now only accepts the original stable UUID with the **same** persisted Name; it never blindly calls Rename to overwrite a concurrently edited name. A mismatch stays unconfirmed and requires explicit editor lifecycle handling.
 - Focused tests added/updated: no direct metadata Rename, malformed revision/foreign Program, auth-owner and login-cycle change, freeze and delegate name-only RPC, stale source Program, A→B→A, unknown write confirmation, post-Create changed Name, zero-row and owner read-back.
-- **Validation status:** GitHub Flutter CI #39029400984 **PASS on `a5c0507e`**. Current head moves for uncertainty gating and handoff updates require a fresh full CI result; no latest-head PASS claim. Independent reviewer approval outstanding.
+- **Validation status:** GitHub Flutter CI #39031276265 **SUCCESS at exact changed-source HEAD `f17fd73`** (all five jobs), plus attribution checks. The earlier `a5c0507e` result is historical. PR has no unresolved native review threads after reviewer replies but **no APPROVED review**; local device QA and authoritative branch protection status unavailable.
 - **M2B audit fix:** An ambiguous metadata Rename response now records a Routine-scoped in-process uncertainty barrier. A refreshed Program list is *not* proof the prior token committed or did not commit; the controller will not mint a second token for that Routine during its lifetime. Focused test covers refresh + attempted second Rename. Existing live old-client Data API permission is untouched; this is not a cross-process or old-app security guarantee.
 - **Review/security evidence:** Hosted Tio-world still permits old authenticated `UPDATE(name)` and denies direct `UPDATE(program_id)`; protected seven-argument RPC is available, Move RPC absent. Supabase Advisor retains nine existing intentional/reviewable authenticated SECURITY DEFINER warnings and one INFO on private retired-Routine-ID table (see [official Supabase warning guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)). No new hosted security finding or changed authorization by this PR.
 - **Documentation-only correction:** Fixed literal escaped newline that accidentally joined two rows of the `.ai/tasks/README.md` task index. Canonical `docs/data/SUPABASE_STRATEGY.md` currently claims 62/62 migration alignment although code M1 is 63 checked-in / 62 live; existing Pre-P9 reconciliation owns that wider canonical docs drift, not this M2 client-code review.
@@ -64,7 +72,7 @@
 ## 3. Sequencing
 
 - [x] **M2A:** fresh `main`/PR/Linear/source/live permissions inspection; post-M1 merge-truth handoff.
-- [x] **M2B (source authored; latest-head CI/review gate pending):** minimal protected metadata Rename read/write integration, no capability activation, updated fakes and focused Flutter tests. Audit/record whether metadata Create reconciliation is still runtime reachable; do not discard its correctness without evidence.
+- [x] **M2B (source validated; merge approval pending):** minimal protected metadata Rename read/write integration, no capability activation, updated fakes and focused Flutter tests. Audit/record whether metadata Create reconciliation is still runtime reachable; do not discard its correctness without evidence.
 - [ ] **M2C (separately owner-gated):** supported deployed old-client cutoff and compatibility policy; reviewed server enforcement removing old direct `UPDATE(name)` when safe.
 - [ ] **M2D (separately authorized):** apply/verify dormant M1 migration then review conditional Move EXECUTE activation, negative/race SQL and exact-head CI. Existing Program Flutter selector is a later bounded slice.
 - [ ] **Later:** #568 canonical My Program, atomic `+ New Program → Create & Move`, #567 Delete Program.
@@ -74,15 +82,15 @@
 | ID | Severity | Status | Finding / disposition |
 |---|---|---|---|
 | M2-P2-01 | P2 activation blocker | Open | Legacy authenticated UPDATE(name) can mutate a Routine moved from stale Program context. Server grant unchanged until compatible retirement is expressly approved. |
-| M2-COMP-01 | Contract gate | Resolved in PR, pending exact-head validation | Versioned metadata list now binds original owner-scoped Program, revision, expected name and app login-cycle to the protected RPC. A→B→A stale revision and cycle-change tests included. |
+| M2-COMP-01 | Contract gate | Resolved in code + CI; merge review pending | Versioned metadata list now binds original owner-scoped Program, revision, expected name and app login-cycle to the protected RPC. A→B→A stale revision and cycle-change tests included. |
 | M2-OPS-01 | Process | Open | Main has 63 SQL files while live has 62; M1 source is merged but un-deployed. Do not mix up code merge, hosted deployment and client activation. |
 | M2-OPS-02 | Process | Open | Local Windows git status, device/client adoption and supported-version evidence not available through connector-only audit. |
-| M2-P2-02 | P2 client retry/uncertainty | Resolved in source, CI/review pending | Previous controller allowed a fresh mutation token after ambiguous Rename; current controller stores Routine-scoped in-process uncertainty gate and focused regression prohibits subsequent rename even after refresh. |
+| M2-P2-02 | P2 client retry/uncertainty | Resolved in source + exact-head CI | Previous controller allowed a fresh mutation token after ambiguous Rename; current controller stores Routine-scoped in-process uncertainty gate and focused regression prohibits subsequent rename even after refresh. |
 
-**Readiness:** M2B review gate in progress; **NO-GO** for merging PR #591 until exact-head CI and independent review; **NO-GO** for old-client grant retirement, hosted M1 deployment and Move activation in this slice.
+**Readiness:** PR #591 **Ready for Review**, source CI GREEN at `f17fd73`, no unresolved threads. **NO-GO for merge until an independent approval and authorized required-check/branch-policy disposition plus explicit owner `Go merge`**. **NO-GO** for old-client grant retirement, hosted M1 deployment and Move activation.
 
 ## 5. Handoff
 
 **Changed files at this checkpoint:** `.ai/tasks/README.md`, `.ai/tasks/issue-569-routine-move-existing-program-db.md`, this M2 brief; Workout domain metadata interface, Supabase metadata repository, Program Routines controller, focused repo/controller tests, and app Workout provider. No schema, grants, visual UI, deployment or Linear status modified.
-**Validation:** GitHub full Flutter CI PASS at older source SHA `a5c0507e`, current exact-head pending; Supabase live read-only grants/advisors verified. Windows local git/device tests unavailable.
-**Next owner:** Same M2 implementation owner through final CI; then independent GitHub reviewer for PR #591; GitHub #569 stays Open and old-client/Move activation remains a later approved slice.
+**Validation:** GitHub Flutter CI #39031276265 PASS at source SHA `f17fd73` (all five jobs), attribution SUCCESS, 2 inline threads replied/resolved. Supabase read-only grants/advisors verified. No APPROVED review, no authority to assert branch-policy status (API 403); Windows local git/device tests unavailable.
+**Next owner:** Independent qualified GitHub reviewer for PR #591; owner for explicit merge instruction after required checks verified. GitHub #569 stays Open and old-client compatibility/Move activation is a later approved slice.
