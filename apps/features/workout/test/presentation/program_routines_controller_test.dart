@@ -205,6 +205,320 @@ void main() {
     expect(repository.rows.single.name, 'Changed on another device');
   });
 
+  test('stale Program A metadata cannot rename after A to B', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final stale = controller.state.routines.single;
+    repository.rows[0] = _routine(2, 11, 'Morning');
+    repository.revisions[stale.id] = 1;
+    final error = await controller.rename(routine: stale, name: 'Unsafe');
+    expect(error, isNotNull);
+    expect(repository.rows.single.name, 'Morning');
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('A to B to A cannot revive an old revision snapshot', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.revisions[_rid(11)] = 2;
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Unsafe');
+    expect(error, isNotNull);
+    expect(repository.rows.single.name, 'Morning');
+    expect(repository.renameCount, 1);
+  });
+
+  test('matching post-write name alone cannot prove unknown mutation', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening');
+    expect(error, contains('Could not confirm'));
+    expect(repository.rows.single.name, 'Evening');
+    expect(controller.state.routines.single.name, 'Evening');
+  });
+
+  test('unconfirmed Rename blocks new mutation tokens even after refresh', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single,
+      name: 'Evening',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+
+    await controller.load();
+    expect(controller.state.routines.single.name, 'Evening');
+    // The first RPC may still finish or be superseded; a successful read
+    // of the desired Name is not a proof of this frozen mutation token.
+    expect(await controller.rename(
+      routine: controller.state.routines.single,
+      name: 'Night',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+    expect(repository.rows.single.name, 'Evening');
+  });
+
+  test('auth-cycle switch during protected rename never reports success', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..switchAccountOnRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening');
+    expect(error, 'Please sign in to save Routines.');
+    expect(repository.rows.single.name, 'Morning');
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('unknown Create after same-user relogin never confirms prior cycle', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..switchCycleAfterCreate = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Original'), isFalse);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(repository.rows.single.name, 'Original');
+    expect(repository.renameCount, 0);
+  });
+
+  test('P2 same-name retry after relogin never reuses prior cycle UUID', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..switchCycleAfterCreate = true;
+    var created = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++created + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.attempted.single.id, _rid(41));
+    expect(repository.rows.single.id, _rid(41));
+
+    // A same-name retry without a fresh owner/cycle read cannot turn
+    // the old committed UUID into a new-cycle successful Create.
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.attempted, hasLength(1));
+    expect(created, 1);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+
+    repository
+      ..throwAfterCreate = false
+      ..switchCycleAfterCreate = false;
+    await controller.load();
+    expect(await controller.create('Original'), isTrue);
+    expect(created, 2);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(repository.rows.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(controller.abandonCreateAttempt(), isFalse);
+  });
+
+  test('unknown metadata Create must not overwrite later changed name', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..changeCreatedNameAfterCommit = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.rows.single.name, 'Concurrent name');
+    expect(repository.renameCount, 0);
+    expect(controller.abandonCreateAttempt(), isTrue);
+  });
+
+  test('same user relogin cannot use old metadata snapshot', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.currentCycle = 'cycle-b';
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Unsafe');
+    expect(error, 'Please sign in to save Routines.');
+    expect(repository.rows.single.name, 'Morning');
+  });
+
+  test('pending Create UUID cannot cross owner on matching cycle marker', () async {
+    final repository = _FakeRoutines()..throwBeforeCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('First owner attempt'), isFalse);
+    expect(repository.attempted.map((r) => r.id), [_rid(41)]);
+    expect(generated, 1);
+
+    // Same marker is deliberately retained to test the independent owner
+    // boundary. A real Supabase owner-scoped list would now be empty.
+    repository
+      ..currentOwner = 'owner-b'
+      ..throwBeforeCreate = false;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines, isEmpty);
+
+    expect(await controller.create('Second owner routine'), isTrue);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(repository.rows.map((r) => r.id), [_rid(42)]);
+    expect(generated, 2);
+  });
+
+  test('P2 same-session read outage preserves committed uncertain Create ID', () async {
+    final repository = _FakeRoutines()..throwAfterCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    // The INSERT committed. Neither the response nor initial reconciliation
+    // reached the client, so the one in-flight UUID is still uncertain.
+    repository.loadFailures = 1;
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.rows.single.id, _rid(41));
+    expect(repository.attempted, hasLength(1));
+    expect(generated, 1);
+
+    // A second transient owner list read failure is NOT a logout.
+    repository.loadFailures = 1;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.attempted, hasLength(1));
+
+    // The authoritative recovered read proves the original committed row.
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines.single.id, _rid(41));
+    expect(controller.state.routines.single.name, 'Strength');
+    expect(repository.rows, hasLength(1));
+    expect(repository.attempted, hasLength(1));
+    expect(generated, 1);
+    expect(controller.abandonCreateAttempt(), isFalse);
+  });
+
+  test('P2 same-session read outage preserves uncommitted Create retry ID', () async {
+    final repository = _FakeRoutines()..throwBeforeCreate = true;
+    var generated = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++generated + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Strength'), isFalse);
+    expect(repository.rows, isEmpty);
+    expect(generated, 1);
+
+    repository.loadFailures = 1;
+    await controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+
+    // Recovery proves the UUID was not persisted, so the logical retry
+    // must use that SAME UUID rather than silently allocating another.
+    repository.throwBeforeCreate = false;
+    await controller.load();
+    expect(await controller.create('Strength'), isTrue);
+    expect(generated, 1);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(41)]);
+    expect(repository.rows.map((r) => r.id), [_rid(41)]);
+  });
+
+  test('P2 auth-cycle switch plus Rename read failure hides stale rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository
+      ..switchCycleOnRename = true
+      ..loadFailures = 1;
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), 'Please sign in to save Routines.');
+    expect(repository.renameCount, 1);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(repository.rows.single.name, 'Morning');
+  });
+
+  test('P2 account switch plus Rename read failure hides stale rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository
+      ..switchAccountOnRename = true
+      ..loadFailures = 1;
+
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), 'Please sign in to save Routines.');
+    expect(repository.renameCount, 1);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('same-cycle uncertain Rename read failure preserves retry barrier', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.loadFailures = 1;
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening',
+    ), contains('Could not confirm'));
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines.single.name, 'Morning');
+    await controller.load();
+    expect(await controller.rename(
+      routine: controller.state.routines.single, name: 'Night',
+    ), contains('Could not confirm'));
+    expect(repository.renameCount, 1);
+  });
+
+  test('P2 metadata Create account switch clears previous owner rows', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..switchOwnerAfterCreate = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('New'), isFalse);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+    expect(controller.state.routines, isEmpty);
+    expect(repository.rows.map((r) => r.name), ['Morning', 'New']);
+  });
+
   test('zero-row rename does not falsely report success', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
       ..ignoreRename = true;
@@ -243,8 +557,14 @@ ProgramRoutinesController _controller(_FakeRoutines repository) =>
       newRoutineUuid: () => _rid(41).value,
     );
 
-final class _FakeRoutines implements RoutineRepository {
-  _FakeRoutines([List<Routine> initial = const []]) : rows = [...initial];
+final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRepository {
+  _FakeRoutines([List<Routine> initial = const []]) : rows = [...initial] {
+    for (final row in rows) {
+      revisions[row.id] = 0;
+    }
+  }
+
+  final Map<RoutineId, int> revisions = {};
 
   final List<Routine> rows;
   final List<Routine> attempted = [];
@@ -258,6 +578,31 @@ final class _FakeRoutines implements RoutineRepository {
   bool ignoreRename = false;
   String? externalRename;
   bool unauthenticated = false;
+  bool changeCreatedNameAfterCommit = false;
+  bool switchCycleAfterCreate = false;
+  bool throwUnconfirmedRename = false;
+  bool switchAccountOnRename = false;
+  bool switchCycleOnRename = false;
+  bool switchedAccount = false;
+  String currentCycle = 'cycle-a';
+  String currentOwner = 'owner-a';
+  bool switchOwnerAfterCreate = false;
+
+  @override
+  String? get activeOwnerId => switchedAccount ? 'owner-b' : currentOwner;
+
+  @override
+  String? get activeLoginCycleId => currentCycle;
+
+  @override
+  Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId) async {
+    final result = await list(programId);
+    return [
+      for (final row in result)
+        RoutineMetadataRevision(routine: row, revision: revisions[row.id] ?? 0,
+          loginCycleId: currentCycle),
+    ];
+  }
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
@@ -266,6 +611,7 @@ final class _FakeRoutines implements RoutineRepository {
       loadFailures--;
       throw Exception('network');
     }
+    if (switchedAccount) return const [];
     return List.unmodifiable(returnForeign
         ? rows
         : rows.where((routine) => routine.programId == programId));
@@ -281,22 +627,58 @@ final class _FakeRoutines implements RoutineRepository {
     if (rows.any((existing) => existing.id == routine.id)) {
       throw StateError('duplicate');
     }
-    rows.add(routine);
+    rows.add(changeCreatedNameAfterCommit
+        ? Routine(id: routine.id, programId: routine.programId,
+            name: 'Concurrent name')
+        : routine);
+    revisions[routine.id] = 0;
+    if (switchCycleAfterCreate) currentCycle = 'cycle-b';
+    if (switchOwnerAfterCreate) currentOwner = 'owner-b';
     if (throwAfterCreate) throw Exception('lost response');
   }
 
   @override
   Future<void> rename({required RoutineId id, required String name}) async {
+    throw StateError('Unversioned Rename is unsafe.');
+  }
+
+  @override
+  Future<int> renameVersioned(RoutineAggregateUpdate command, {
+    required String expectedLoginCycleId,
+  }) async {
     renameCount++;
-    if (ignoreRename) return;
-    final idx = rows.indexWhere((r) => r.id == id);
-    if (idx == -1) throw StateError('missing');
+    if (switchCycleOnRename) {
+      currentCycle = 'cycle-b';
+      throw StateError('Please sign in to save Routines.');
+    }
+    if (expectedLoginCycleId != currentCycle) {
+      throw StateError('Please sign in to save Routines.');
+    }
+    if (switchAccountOnRename) {
+      switchedAccount = true;
+      throw StateError('Please sign in to save Routines.');
+    }
+    if (unauthenticated) throw StateError('Please sign in to save Routines.');
+    if (ignoreRename) return command.expectedRevision + 1;
+    final idx = rows.indexWhere((r) => r.id == command.routineId &&
+        r.programId == command.programId);
+    if (idx == -1) throw StateError('not found');
     final old = rows[idx];
+    if (revisions[old.id] != command.expectedRevision ||
+        old.name != command.expectedName) {
+      throw StateError('revision conflict');
+    }
     rows[idx] = Routine(
       id: old.id,
       programId: old.programId,
-      name: externalRename ?? name,
+      name: externalRename ?? command.name!,
     );
-    if (throwAfterRename) throw Exception('lost response');
+    final revision = command.expectedRevision + 1;
+    revisions[old.id] = revision;
+    // The real aggregate adapter returns a verified revision after an
+    // ambiguous response. This fake models both verified and unknown cases.
+    if (throwAfterRename) return revision;
+    if (throwUnconfirmedRename) throw Exception('response unknown');
+    return revision;
   }
 }

@@ -41,8 +41,30 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
 /// Null disables the Program Detail entry; never fall back to fake local saves.
 final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  if (client == null) return null;
-  return SupabaseRoutineRepository.fromClient(client);
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null : sessionAsync.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id) {
+    return null;
+  }
+  return SupabaseRoutineRepository.fromClient(
+    client,
+    currentLoginCycleId: () {
+      try {
+        final current = ref.read(authSessionStateProvider);
+        final auth = current.isLoading || current.hasError
+            ? null : current.valueOrNull;
+        if (auth is AuthSessionAuthenticated &&
+            auth.session.userId == client.auth.currentUser?.id) {
+          return auth.session.loginCycleId;
+        }
+      } catch (_) {
+        // Revoked auth/disposed provider must invalidate stale metadata.
+      }
+      return null;
+    },
+  );
 });
 
 /// Read-only Routine composition persistence (W4A owner-bound Detail).

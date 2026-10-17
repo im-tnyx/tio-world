@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
 enum ProgramRoutinesStatus { loading, ready, loadFailed }
@@ -51,11 +52,30 @@ final class ProgramRoutinesController extends ChangeNotifier {
   ProgramRoutinesState _state = const ProgramRoutinesState.loading();
   ProgramRoutinesState get state => _state;
   String? _pendingCreateId;
+  // The pending UUID must never cross an authenticated login-cycle boundary.
+  String? _pendingCreateCycleId;
+  // Even an empty owner-scoped list has a session binding.
+  String? _loadedSessionCycleId;
+  String? _loadedOwnerId;
   var _loadVersion = 0;
   var _disposed = false;
+  final Map<RoutineId, int> _loadedRevisions = {};
+  final Map<RoutineId, String> _loadedCycles = {};
+  // An ambiguous RPC may commit after a read. Never issue another token from
+  // this controller until its lifetime ends; the original token is frozen.
+  final Set<RoutineId> _unconfirmedRenameIds = {};
 
-  Future<List<Routine>> _readOwnedRoutines() async {
-    final routines = await repository.list(program.id);
+  /// A revision must come from the same owner-scoped list as the Routine.
+  /// Plain metadata-only fakes may list, but cannot authorize Rename.
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles})> _readOwnedRoutines() async {
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? await (repository as RoutineVersionedRenameRepository)
+            .listVersioned(program.id)
+        : null;
+    final routines = versioned == null
+        ? await repository.list(program.id)
+        : [for (final item in versioned) item.routine];
     if (routines.any((routine) => routine.programId != program.id)) {
       throw const FormatException('Routine ownership mismatch.');
     }
@@ -63,24 +83,72 @@ final class ProgramRoutinesController extends ChangeNotifier {
         routines.length) {
       throw const FormatException('Duplicate Routine identity.');
     }
-    return routines;
+    return (
+      routines: routines,
+      revisions: {
+        if (versioned != null)
+          for (final item in versioned) item.routine.id: item.revision,
+      },
+      cycles: {
+        if (versioned != null)
+          for (final item in versioned) item.routine.id: item.loginCycleId,
+      },
+    );
+  }
+
+  void _acceptRead(({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles}) read) {
+    _loadedRevisions
+      ..clear()
+      ..addAll(read.revisions);
+    _loadedCycles
+      ..clear()
+      ..addAll(read.cycles);
+    _publish(ProgramRoutinesState.ready(routines: read.routines));
   }
 
   Future<void> load() async {
     if (_state.saving) return;
     final version = ++_loadVersion;
     _publish(const ProgramRoutinesState.loading());
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
     try {
-      final rows = await _readOwnedRoutines();
-      if (_disposed || version != _loadVersion) return;
-      if (_pendingCreateId != null &&
-          rows.any((r) => r.id.value == _pendingCreateId)) {
-        _pendingCreateId = null;
+      final cycle = versioned?.activeLoginCycleId;
+      final owner = versioned?.activeOwnerId;
+      if (versioned != null &&
+          (cycle == null || cycle.isEmpty || owner == null || owner.isEmpty)) {
+        throw StateError('Please sign in to save Routines.');
       }
-      _publish(ProgramRoutinesState.ready(routines: rows));
+      final read = await _readOwnedRoutines();
+      if (_disposed || version != _loadVersion) return;
+      if (!_sameOwnerCycle(versioned, owner, cycle)) {
+        throw StateError('Please sign in to save Routines.');
+      }
+      if (_pendingCreateId != null &&
+          (_pendingCreateCycleId != cycle ||
+              _loadedOwnerId != owner ||
+              read.routines.any((r) => r.id.value == _pendingCreateId))) {
+        // A successful owner-scoped reload can represent a *different*
+        // account even if its SDK login-cycle marker happens to match.
+        _clearPendingCreate();
+      }
+      _loadedSessionCycleId = cycle;
+      _loadedOwnerId = owner;
+      _acceptRead(read);
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
-      _publish(const ProgramRoutinesState.loadFailed());
+      if (_sameOwnerCycle(versioned, _loadedOwnerId, _loadedSessionCycleId)) {
+        // Network/list failure did not revoke this owner and login cycle.
+        // Hide unavailable rows, but keep an uncertain Create's frozen UUID
+        // until a successful owner read or explicit editor abandonment.
+        _loadedRevisions.clear();
+        _loadedCycles.clear();
+        _publish(const ProgramRoutinesState.loadFailed());
+      } else {
+        _invalidateSessionContext();
+      }
     }
   }
 
@@ -91,8 +159,37 @@ final class ProgramRoutinesController extends ChangeNotifier {
   /// Returns whether a pending uncertain insert needs a fresh owner read.
   bool abandonCreateAttempt() {
     final hadPending = _pendingCreateId != null;
-    _pendingCreateId = null;
+    _clearPendingCreate();
     return hadPending;
+  }
+
+  void _clearPendingCreate() {
+    _pendingCreateId = null;
+    _pendingCreateCycleId = null;
+  }
+
+  bool _sameOwnerCycle(
+    RoutineVersionedRenameRepository? versioned,
+    String? owner,
+    String? cycle,
+  ) =>
+      versioned == null ||
+      (owner != null &&
+          owner.isNotEmpty &&
+          cycle != null &&
+          cycle.isNotEmpty &&
+          versioned.activeOwnerId == owner &&
+          versioned.activeLoginCycleId == cycle);
+
+  /// Do not re-publish a previous user's Routines after auth is revoked or
+  /// replaced. This also invalidates any frozen metadata Create identity.
+  void _invalidateSessionContext() {
+    _clearPendingCreate();
+    _loadedOwnerId = null;
+    _loadedSessionCycleId = null;
+    _loadedRevisions.clear();
+    _loadedCycles.clear();
+    _publish(const ProgramRoutinesState.loadFailed());
   }
 
   String suggestedName() {
@@ -108,7 +205,22 @@ final class ProgramRoutinesController extends ChangeNotifier {
 
   Future<bool> create(String name) async {
     final current = _state;
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
+    final startCycle = versioned?.activeLoginCycleId;
+    final startOwner = versioned?.activeOwnerId;
     if (current.status != ProgramRoutinesStatus.ready || current.saving) {
+      return false;
+    }
+    // An old login cycle must not provide either the pending UUID or the
+    // owner-list context for a new Create; require a fresh owner read.
+    if (versioned != null &&
+        (!_sameOwnerCycle(versioned, _loadedOwnerId, _loadedSessionCycleId) ||
+            !_sameOwnerCycle(versioned, startOwner, startCycle) ||
+            (_pendingCreateId != null &&
+                _pendingCreateCycleId != startCycle))) {
+      _invalidateSessionContext();
       return false;
     }
     if (name.trim().isEmpty) {
@@ -127,6 +239,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
         name: name,
       );
       _pendingCreateId ??= attempted.id.value;
+      _pendingCreateCycleId ??= startCycle;
     } catch (_) {
       _publish(ProgramRoutinesState.ready(
         routines: current.routines,
@@ -142,17 +255,29 @@ final class ProgramRoutinesController extends ChangeNotifier {
     try {
       await repository.create(attempted);
       if (_disposed) return false;
-      _pendingCreateId = null;
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        _invalidateSessionContext();
+        return false;
+      }
+      _clearPendingCreate();
       _publish(ProgramRoutinesState.ready(
         routines: [...current.routines, attempted],
       ));
       return true;
     } catch (error) {
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        if (!_disposed) _invalidateSessionContext();
+        return false;
+      }
       final reconciled = await _reconcileCreate(attempted);
       if (_disposed) return false;
+      if (!_sameOwnerCycle(versioned, startOwner, startCycle)) {
+        _invalidateSessionContext();
+        return false;
+      }
       if (reconciled != null) {
-        _pendingCreateId = null;
-        _publish(ProgramRoutinesState.ready(routines: reconciled));
+        _clearPendingCreate();
+        _acceptRead(reconciled);
         return true;
       }
       _publish(ProgramRoutinesState.ready(
@@ -163,74 +288,112 @@ final class ProgramRoutinesController extends ChangeNotifier {
     }
   }
 
-  /// A rename result is confirmed by an owner-filtered read, even when the
-  /// Data API returns success with zero affected rows.
+  /// Only list-time owner/Program/revision context may authorize a rename.
+  /// The composed RPC validates one frozen CAS token; read-back without an
+  /// RPC-confirmed revision is NOT evidence of this client's write.
   Future<String?> rename({required Routine routine, required String name}) async {
     final current = _state;
+    final guarded = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
+    final expectedRevision = _loadedRevisions[routine.id];
+    final expectedCycle = _loadedCycles[routine.id];
+    final expectedOwner = _loadedOwnerId;
     if (current.status != ProgramRoutinesStatus.ready ||
         current.saving ||
+        guarded == null ||
+        expectedRevision == null ||
+        expectedCycle == null ||
+        expectedOwner == null ||
         routine.programId != program.id ||
-        !current.routines.any((item) => item.id == routine.id)) {
+        !current.routines.any((item) => item == routine)) {
       return 'Could not edit routine. Please try again.';
+    }
+    if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+      _invalidateSessionContext();
+      return 'Please sign in to save Routines.';
+    }
+    if (_unconfirmedRenameIds.contains(routine.id)) {
+      return 'Could not confirm the routine name. Please try again.';
     }
     if (name.trim().isEmpty) return 'Enter a routine name.';
     if (name == routine.name) return null;
 
+    final command = RoutineAggregateUpdate(
+      routineId: routine.id,
+      programId: program.id,
+      expectedRevision: expectedRevision,
+      expectedName: routine.name,
+      mutationId: _uuidV4(),
+      name: name,
+    );
     _publish(ProgramRoutinesState.ready(
       routines: current.routines,
       saving: true,
     ));
+    int? confirmedRevision;
     Object? error;
     try {
-      await repository.rename(id: routine.id, name: name);
+      confirmedRevision = await guarded.renameVersioned(
+        command, expectedLoginCycleId: expectedCycle);
     } catch (caught) {
       error = caught;
+      // A definite RPC rejection cannot have committed. Everything else,
+      // including auth-cycle changes after dispatch, stays uncertain.
+      if (caught is! RoutineCompositionException) {
+        _unconfirmedRenameIds.add(routine.id);
+      }
     }
-    List<Routine>? authoritativeRows;
     try {
-      final rows = await _readOwnedRoutines();
+      final read = await _readOwnedRoutines();
       if (_disposed) return 'Could not edit routine. Please try again.';
-      authoritativeRows = rows;
-      if (rows.any((r) => r.id == routine.id && r.name == name)) {
-        _publish(ProgramRoutinesState.ready(routines: rows));
+      if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+        _invalidateSessionContext();
+        return 'Please sign in to save Routines.';
+      }
+      _acceptRead(read);
+      if (confirmedRevision == expectedRevision + 1 &&
+          read.revisions[routine.id] == confirmedRevision &&
+          read.cycles[routine.id] == expectedCycle &&
+          read.routines.any((item) =>
+              item.id == routine.id &&
+              item.programId == program.id &&
+              item.name == name)) {
         return null;
       }
+      // An ACK without the matching owner read cannot complete verification.
+      if (error == null) _unconfirmedRenameIds.add(routine.id);
     } catch (_) {
-      // The durable write result is unknown; never advertise a false success.
+      // Unknown outcome: do not retry with a fresh token or claim success.
+      if (error == null) _unconfirmedRenameIds.add(routine.id);
+      if (_disposed) return 'Could not edit routine. Please try again.';
+      if (!_sameOwnerCycle(guarded, expectedOwner, expectedCycle)) {
+        _invalidateSessionContext();
+        return 'Please sign in to save Routines.';
+      }
+      // Same session and uncertain network outcome: preserve the visible
+      // snapshot but never authorize a fresh Rename token without verification.
+      _loadedRevisions.clear();
+      _loadedCycles.clear();
+      _publish(ProgramRoutinesState.ready(routines: current.routines));
     }
-    if (!_disposed) {
-      // Do not keep stale or concurrently deleted rows when the owner read
-      // succeeded, even if this particular rename was not confirmed.
-      _publish(ProgramRoutinesState.ready(
-        routines: authoritativeRows ?? current.routines,
-      ));
-    }
-    return error == null
-        ? 'Could not confirm the routine name. Please try again.'
-        : _errorMessage(error, creating: false);
+    return error is StateError &&
+            error.message.toString() == 'Please sign in to save Routines.'
+        ? 'Please sign in to save Routines.'
+        : 'Could not confirm the routine name. Please try again.';
   }
 
-  Future<List<Routine>?> _reconcileCreate(Routine attempted) async {
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles})?> _reconcileCreate(Routine attempted) async {
     try {
-      var rows = await _readOwnedRoutines();
-      Routine? existing;
-      for (final row in rows) {
-        if (row.id == attempted.id) {
-          existing = row;
-          break;
-        }
-      }
-      if (existing == null) return null;
-      if (existing.name == attempted.name) return rows;
-      // The original POST may have committed before its response was lost;
-      // keep its UUID and reconcile the user's latest edited name.
-      await repository.rename(id: attempted.id, name: attempted.name);
-      rows = await _readOwnedRoutines();
-      if (rows.any((r) => r.id == attempted.id && r.name == attempted.name)) {
-        return rows;
-      }
+      final read = await _readOwnedRoutines();
+      final matches = read.routines.where((r) => r.id == attempted.id);
+      if (matches.length != 1) return null;
+      if (matches.single.name == attempted.name) return read;
+      // A committed Create with a different current name may have a later
+      // owner edit. Never blindly Rename or reuse its UUID as a new identity.
     } catch (_) {
-      // Retain pending UUID across retries; never create a second identity.
+      // Preserve the frozen pending UUID until explicit editor abandonment.
     }
     return null;
   }
