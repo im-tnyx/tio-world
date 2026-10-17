@@ -142,11 +142,11 @@ select pg_temp.expect_state(
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0001','owned Program UUID collision cannot be claimed as fresh create');
 select pg_temp.assert_true(
-  (select count(*)=3 from public.user_workout_programs)
+  (select count(*)=2 from public.user_workout_programs where user_id=auth.uid())
    and (select program_id='b5690000-0000-4000-8000-000000000011'
       and composition_revision=1 from public.user_workout_routines
        where id='b5690000-0000-4000-8000-000000000021'),
-  'all failed requests keep only three fixture Programs and source Routine');
+  'all failed requests preserve exactly two owner-visible Programs and source Routine');
 
 -- Late atomicity regression: force the Routine UPDATE to fail AFTER the
 -- server has INSERTed the proposed Program in the same statement.
@@ -232,8 +232,8 @@ select pg_temp.assert_true(
     'Program 1',1,'b5690000-0000-4000-8000-000000000101')=2,
  'exact identical retry confirms revision without creating another Program');
 select pg_temp.assert_true(
- (select count(*)=4 from public.user_workout_programs),
- 'identical replay created exactly one new Program');
+ (select count(*)=3 from public.user_workout_programs where user_id=auth.uid()),
+ 'identical replay leaves exactly three owner-visible Programs, one new');
 
 select pg_temp.expect_state(
   $$select public.create_user_workout_program_and_move_routine(
@@ -277,7 +277,7 @@ select pg_temp.expect_state(
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0002','old Create+Move token cannot claim success after later Move');
 select pg_temp.assert_true(
-  (select count(*)=4 from public.user_workout_programs)
+  (select count(*)=3 from public.user_workout_programs where user_id=auth.uid())
   and (select program_id='b5690000-0000-4000-8000-000000000013'
        and composition_revision=3
       from public.user_workout_routines
