@@ -257,7 +257,12 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
 
   static RoutineDeleteFailureKind? _definite(PostgrestException e) {
     final code = e.code;
-    final status = int.tryParse(code ?? '');
+    // Five-digit numeric SQLSTATEs (28000, 42501, 22023) are NOT HTTP
+    // statuses. Only a real three-digit HTTP status may be treated as 5xx.
+    final parsed = int.tryParse(code ?? '');
+    final status = parsed != null && parsed >= 100 && parsed <= 599
+        ? parsed
+        : null;
     if (code == null || code.isEmpty || code.startsWith('08') ||
         status == 408 || status == 499 ||
         (status != null && ((status >= 200 && status < 300) ||
