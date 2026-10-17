@@ -32,7 +32,7 @@ select pg_temp.assert_true(
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('anon',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
-  and not has_function_privilege('public',
+  and not has_function_privilege('service_role',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_column_privilege('authenticated',
     'public.user_workout_routines', 'program_id', 'UPDATE')
