@@ -17,6 +17,7 @@ class ProgramDetailPage extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onDeleteRoutine,
+    this.actionSheetGuard,
     this.onCreateRoutine,
     this.hasUnconfirmedCreate,
     this.onVerifyUnconfirmedCreate,
@@ -33,6 +34,7 @@ class ProgramDetailPage extends StatefulWidget {
   final Future<bool> Function(Routine routine)? onEditRoutine;
   /// Verified Delete returns true only when the owner-scoped list must refresh.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
 
   /// Atomic Create draft action supplied by the authenticated app shell.
   /// True means re-read the Program: either a confirmed Create or an explicit
@@ -296,6 +298,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                       : null,
                   onEdit: _canEdit && widget.onEditRoutine != null
                       ? () => _openEditor(routine) : null,
+                  actionSheetGuard: widget.actionSheetGuard,
                   onDelete: _canEdit && !_hasUnconfirmed &&
                           widget.onDeleteRoutine != null
                       ? () => _deleteRoutine(routine) : null,
