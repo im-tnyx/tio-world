@@ -18,6 +18,7 @@ final class _DeleteRepo implements RoutineDeleteRepository {
   int reads = 0;
   int writes = 0;
   bool absent = false;
+  String targetName = 'Push';
   Future<RoutineDeleteTarget?> Function()? onInspect;
   RoutineDeleteOutcomeUnknown? uncertainty;
   @override
@@ -28,7 +29,7 @@ final class _DeleteRepo implements RoutineDeleteRepository {
     if (onInspect != null) return onInspect!();
     if (absent) return null;
     return RoutineDeleteTarget(
-      routineId: routineId, programId: programId, name: 'Push',
+      routineId: routineId, programId: programId, name: targetName,
       expectedRevision: 2, ownerId: 'owner-a', loginCycleId: 'cycle-a',
     );
   }
@@ -44,11 +45,19 @@ final class _DeleteRepo implements RoutineDeleteRepository {
 void main() {
   Future<void> pumpFlow(WidgetTester tester, _DeleteRepo repository,
       RoutineDeleteFlow flow, bool Function() canWrite,
-      void Function(bool) onResult) async {
+      void Function(bool) onResult, {
+        TioThemeMode mode = TioThemeMode.light,
+        double textScale = 1,
+      }) async {
     await tester.pumpWidget(MaterialApp(
-      builder: (_, child) => TioTheme(
-        config: const TioThemeConfig(mode: TioThemeMode.light),
-        child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+        ),
+        child: TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       home: Scaffold(body: Builder(builder: (context) => Center(
         child: TextButton(
@@ -90,6 +99,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Delete Routine?'), findsOneWidget);
     expect(find.textContaining('Push'), findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+    final dialog = find.byKey(ValueKey('confirm-delete-routine-${_routine.id.value}'));
+    expect(dialog, findsOneWidget);
+    final dialogCenter = tester.getCenter(dialog);
+    final logicalScreen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect((dialogCenter.dx - logicalScreen.width / 2).abs(), lessThan(1));
+    expect((dialogCenter.dy - logicalScreen.height / 2).abs(), lessThan(1));
+    final buttonTheme = Theme.of(tester.element(find.text('Cancel')));
+    expect(
+      buttonTheme.filledButtonTheme.style?.minimumSize?.resolve({})?.height,
+      TioSize.dp38,
+    );
+    expect(
+      buttonTheme.outlinedButtonTheme.style?.minimumSize?.resolve({})?.height,
+      TioSize.dp38,
+    );
     expect(repository.reads, 1);
     expect(repository.writes, 0);
     await tester.tap(find.text('Cancel'));
@@ -107,7 +133,7 @@ void main() {
     await tester.tap(find.text('Open Delete'));
     await tester.pumpAndSettle();
     expect(repository.writes, 0);
-    await tester.tap(find.text('Delete Routine', skipOffstage: false));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(repository.reads, 1);
     expect(repository.writes, 1);
@@ -126,7 +152,7 @@ void main() {
         (result) => returned = result);
     await tester.tap(find.text('Open Delete'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete Routine', skipOffstage: false));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(repository.writes, 1);
     expect(returned, true);
@@ -134,6 +160,31 @@ void main() {
     expect(find.text('Routine deleted.'), findsNothing);
   });
 
+  testWidgets('centered dialog stays usable on narrow dark large-text screen',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _DeleteRepo()
+      ..targetName = 'Very long full-body strength training routine';
+    bool? returned;
+    await pumpFlow(tester, repository, RoutineDeleteFlow(), () => true,
+      (result) => returned = result,
+      mode: TioThemeMode.dark, textScale: 1.6,
+    );
+    await tester.tap(find.text('Open Delete'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.textContaining(repository.targetName), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(repository.writes, 0);
+    expect(returned, false);
+  });
   testWidgets('login-cycle revocation before confirm sends zero RPCs',
       (tester) async {
     final repository = _DeleteRepo();
@@ -144,7 +195,7 @@ void main() {
     await tester.tap(find.text('Open Delete'));
     await tester.pumpAndSettle();
     valid = false;
-    await tester.tap(find.text('Delete Routine', skipOffstage: false));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(repository.writes, 0);
     expect(returned, false);
