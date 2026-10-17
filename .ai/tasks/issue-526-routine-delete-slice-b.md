@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete Slice B
 
-**Status:** In review — scoped Flutter implementation; exact source-head CI success before this handoff update (2026-10-17)
+**Status:** Merge gate — owner UI accepted; source and exact-head CI validated; merge not yet authorized (2026-10-17)
 **Implementation owner:** GitHub-connected implementation session (single owner).
 **Scope approval:** User: “go next slice b @GitHub @Linear @Supabase” after Slice A merge.
 
@@ -27,6 +27,16 @@
 - Fresh exact HEAD as of source changes: `1b01fa39ac426aebff85bf39bab0f064f24ae02b` before this docs commit; exact-head Flutter CI of the final commit is pending and remains a required merge gate. Do NOT claim these fixes tested green based on the older successful `39011031540` run.
 - No Supabase code, RLS, RPC, grants, migration, deployment or real device acceptance added in this correction. In-process Delete attempt gate remains process-restart volatile. GitHub #526 and Linear W4 remain open.
 
+## Merge-gate verification after owner UI acceptance (2026-10-17)
+- Owner personally approved UI and directed the PR to the **merge gate**; this is not an explicit command to execute the merge. No GitHub merge or release performed.
+- During a fresh merge-gate re-review, another P2 was found: the **pre-confirmation Routine 3-dot action sheet** retained the old owner's Routine title/actions after account switch. The prior guard protected only the subsequent centered Delete dialog.
+- Correction: feature-owned `RoutineMetadataCard.actionSheetGuard` is plumbed through Program Detail and expanded Library. App-owned `_guardRoutineOptionsSheet` watches active bootstrap/Auth owner and login cycle **inside the sheet Navigator route**; on revocation it renders an empty surface immediately and removes exactly the stale sheet post-frame. Core `TioEditorSheet`, Edit/Delete RPC, global UI and server boundaries remain unchanged.
+- App-router regressions: stale Program Detail action sheet on same-user new login cycle; expanded Library action sheet on A→B switch. Both assert the stale action sheet/entries no longer exist, and no editor is opened by the revocation. Previous modal/Program-title privacy tests remain intact.
+- Verified implementation HEAD `45726d5216facb756a6f7b760aa3d7dcd434dbe1`, [Flutter CI #39016018752](https://github.com/im-tnyx/tio-world/actions/runs/39016018752) **COMPLETED SUCCESS 5/5**: app-workout, Dart/analyzer, core-wear, nutrition-onboarding and aggregate. A subsequent **docs-only handoff/index commit** must be checked on its own exact HEAD before merge.
+- Six total PR #587 review threads now resolved (five original P1/P2 and newly surfaced pre-confirmation action-sheet P2), with historical comments and owner-directed review record preserved. Manual disposition is NOT an independent outside-reviewer approval.
+- Scope: no Supabase migrations, RLS, SQL, RPC, storage, grants or deployment. Known process-restart uncertain-attempt durability limitation remains unchanged; do not claim durable exactly-once. No app-store release. UI owner acceptance is documented, but no independently verified physical-device QA telemetry is claimed.
+- After final docs-head CI succeeds and the merge rule/check state is rechecked, hand off at merge gate and await an explicit `Go merge`; do not infer acceptance of merge merely from UI approval.
+
 ## Approved behavior
 - Fresh owner/Program/Routine revision inspect BEFORE showing confirmation; cancel sends no RPC.
 - App container owns one in-process RoutineDeleteAttemptGate across repository recreation and login cycles. Fail closed on missing Supabase/auth/bootstrap or changing owner/cycle.
@@ -44,8 +54,11 @@
 - [x] Feature-owned confirmation and typed result/unknown workflow.
 - [x] Both Routine surfaces and refresh bridge.
 - [x] Focused Flutter tests and exact-source-head CI at `aa22d47682ac3483995f8bed551984313b154ef7`: [Flutter CI #39010679343](https://github.com/im-tnyx/tio-world/actions/runs/39010679343), all 5 jobs SUCCESS. This handoff docs commit requires its own exact-head check.
-- [ ] Manual security/code review disposition, owner merge gate and device QA. No autonomous merge.
+- [x] Manual P1/P2 source/security review disposition and original review thread resolution (6/6 at implementation HEAD).
+- [x] Owner UI acceptance and handoff to merge gate.
+- [ ] Final docs-head exact-SHA CI and protected-branch policy gate.
+- [ ] Explicit owner merge authorization. Physical-device/release QA remains separate.
 
 **Validation:** GitHub Flutter CI run `39010679343` at implementation commit `aa22d47682ac3483995f8bed551984313b154ef7` completed SUCCESS: Analyze Flutter and Dart / test Dart, Test Flutter (core-wear), Test Flutter (app-workout), Test Flutter (nutrition-onboarding), aggregate Analyze and test. Prior failed runs were caused by the new Program Detail wrapper removing the existing read-only route and by Dart nullability/analyzer errors; both were corrected without weakening destructive authorization. No local Windows Flutter execution/device QA verified.
 **Review focus:** stale on-screen confirmation after account switch, safe snackbar placement under nested Navigator, partial auth revocation and app restart semantics; do not treat process-local single-flight as durable persistence.
-**Final status:** REVIEW; branch unmerged. Keep GitHub #526 and Linear W4 open.
+**Final status:** READY-FOR-MERGE-GATE pending exact docs HEAD CI, not merged. Keep GitHub #526 and broad Linear W4 open.
