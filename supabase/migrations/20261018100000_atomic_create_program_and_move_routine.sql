@@ -61,11 +61,10 @@ begin
     raise exception 'routine_create_move_not_found' using errcode = 'P0002';
   end if;
 
-  select exists(
-    select 1 from public.user_workout_programs as program
+  perform 1 from public.user_workout_programs as program
     where program.id = p_source_program_id and program.user_id = v_user_id
-    for key share
-  ) into v_source_exists;
+    for key share;
+  v_source_exists := found;
 
   perform private.lock_user_workout_routine_identity(p_routine_id);
   select routine.program_id, routine.composition_revision,
