@@ -30,6 +30,7 @@ enum RoutineDeleteFailureKind {
   forbidden,
   notFound,
   revisionConflict,
+  staleTarget,
   transactionAborted,
   invalidRequest,
   malformedData,
@@ -78,8 +79,9 @@ abstract interface class RoutineDeleteRepository {
     required RoutineId routineId,
   });
 
-  /// One revision-CAS RPC. No implicit write retry or new revision adoption.
-  /// A future UI must obtain a fresh target for EACH confirmation, and block
-  /// duplicate writes when the outcome cannot be verified.
+  /// One revision-CAS RPC per freshly inspected target. Even definite failure
+  /// consumes that target; another confirmation requires another inspect().
+  /// No implicit write retry or new revision adoption. Ambiguous outcomes
+  /// remain guarded across login cycles for the same owner and Routine.
   Future<RoutineDeleteResult> delete(RoutineDeleteTarget target);
 }
