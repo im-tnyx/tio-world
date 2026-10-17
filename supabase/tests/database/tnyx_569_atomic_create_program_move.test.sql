@@ -31,11 +31,11 @@ $$;
 
 select pg_temp.assert_true(
   not has_function_privilege('authenticated',
-    'public.create_program_and_move_user_workout_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
+    'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('anon',
-    'public.create_program_and_move_user_workout_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
+    'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('service_role',
-    'public.create_program_and_move_user_workout_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
+    'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
   and not has_column_privilege('authenticated',
     'public.user_workout_routines','program_id','UPDATE')
   and not has_table_privilege('authenticated',
@@ -51,7 +51,7 @@ select pg_temp.assert_true(
   'no Program schema shape changes');
 
 -- CI-only transactional grants. No production client capability is published.
-grant execute on function public.create_program_and_move_user_workout_routine(
+grant execute on function public.create_user_workout_program_and_move_routine(
  uuid,uuid,uuid,text,bigint,uuid) to authenticated;
 grant execute on function public.move_user_workout_routine(
  uuid,uuid,uuid,bigint,uuid) to authenticated;
@@ -87,55 +87,55 @@ select pg_temp.assert_true(
 
 -- Negative matrix before any Program INSERT.
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      null,'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','Program 1',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   '22023','null Routine rejected');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','   ',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   '22023','blank name rejected');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000011','Program 1',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   '22023','same source and new ID forbidden');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','Program 1',0,
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0001','stale revision cannot strand Program');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000012',
      'b5690000-0000-4000-8000-000000000031','Program 1',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0002','foreign source Program not visible');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000022',
      'b5690000-0000-4000-8000-000000000012',
      'b5690000-0000-4000-8000-000000000031','Program 1',0,
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0002','foreign Routine cannot be moved');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000012','Collision',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0001','foreign Program UUID collision cannot overwrite');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000013','Collision',1,
@@ -150,7 +150,7 @@ select pg_temp.assert_true(
 
 -- Success is atomic and preserves all Routine child identities/prescriptions.
 select pg_temp.assert_true(
-  public.create_program_and_move_user_workout_routine(
+  public.create_user_workout_program_and_move_routine(
     'b5690000-0000-4000-8000-000000000021',
     'b5690000-0000-4000-8000-000000000011',
     'b5690000-0000-4000-8000-000000000031',
@@ -178,7 +178,7 @@ select pg_temp.assert_true(
   'atomic success preserves original Routine, Exercise and Set IDs and prescription');
 
 select pg_temp.assert_true(
- public.create_program_and_move_user_workout_routine(
+ public.create_user_workout_program_and_move_routine(
     'b5690000-0000-4000-8000-000000000021',
     'b5690000-0000-4000-8000-000000000011',
     'b5690000-0000-4000-8000-000000000031',
@@ -189,14 +189,14 @@ select pg_temp.assert_true(
  'identical replay created exactly one new Program');
 
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','Changed name',1,
      'b5690000-0000-4000-8000-000000000101')$$,
   'P0001','same mutation UUID cannot change original name');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','Program 1',1,
@@ -207,7 +207,7 @@ select pg_temp.expect_state(
 update public.user_workout_programs
 set name='My Edited Program' where id='b5690000-0000-4000-8000-000000000031';
 select pg_temp.assert_true(
- public.create_program_and_move_user_workout_routine(
+ public.create_user_workout_program_and_move_routine(
     'b5690000-0000-4000-8000-000000000021',
     'b5690000-0000-4000-8000-000000000011',
     'b5690000-0000-4000-8000-000000000031',
@@ -223,7 +223,7 @@ select pg_temp.assert_true(
      2,'b5690000-0000-4000-8000-000000000103')=3,
  'subsequent ordinary Move advances aggregate revision');
 select pg_temp.expect_state(
-  $$select public.create_program_and_move_user_workout_routine(
+  $$select public.create_user_workout_program_and_move_routine(
      'b5690000-0000-4000-8000-000000000021',
      'b5690000-0000-4000-8000-000000000011',
      'b5690000-0000-4000-8000-000000000031','Program 1',1,
