@@ -56,6 +56,9 @@ final class ProgramRoutinesController extends ChangeNotifier {
   var _disposed = false;
   final Map<RoutineId, int> _loadedRevisions = {};
   final Map<RoutineId, String> _loadedCycles = {};
+  // An ambiguous RPC may commit after a read. Never issue another token from
+  // this controller until its lifetime ends; the original token is frozen.
+  final Set<RoutineId> _unconfirmedRenameIds = {};
 
   /// A revision must come from the same owner-scoped list as the Routine.
   /// Plain metadata-only fakes may list, but cannot authorize Rename.
@@ -249,6 +252,9 @@ final class ProgramRoutinesController extends ChangeNotifier {
         !current.routines.any((item) => item == routine)) {
       return 'Could not edit routine. Please try again.';
     }
+    if (_unconfirmedRenameIds.contains(routine.id)) {
+      return 'Could not confirm the routine name. Please try again.';
+    }
     if (name.trim().isEmpty) return 'Enter a routine name.';
     if (name == routine.name) return null;
 
@@ -271,6 +277,11 @@ final class ProgramRoutinesController extends ChangeNotifier {
         command, expectedLoginCycleId: expectedCycle);
     } catch (caught) {
       error = caught;
+      // A definite RPC rejection cannot have committed. Everything else,
+      // including auth-cycle changes after dispatch, stays uncertain.
+      if (caught is! RoutineCompositionException) {
+        _unconfirmedRenameIds.add(routine.id);
+      }
     }
     try {
       final read = await _readOwnedRoutines();
@@ -285,8 +296,11 @@ final class ProgramRoutinesController extends ChangeNotifier {
               item.name == name)) {
         return null;
       }
+      // An ACK without the matching owner read cannot complete verification.
+      if (error == null) _unconfirmedRenameIds.add(routine.id);
     } catch (_) {
       // Unknown outcome: do not retry with a fresh token or claim success.
+      if (error == null) _unconfirmedRenameIds.add(routine.id);
       if (_disposed) return 'Could not edit routine. Please try again.';
       _loadedRevisions.clear();
       _loadedCycles.clear();
