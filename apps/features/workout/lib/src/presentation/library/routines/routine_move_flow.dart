@@ -11,6 +11,8 @@ import 'routine_move_destination_controller.dart';
 ///
 /// Returning true requests an owner-scoped list refresh, including an UNKNOWN
 /// RPC outcome; it is not proof that the Move committed.
+/// Destination eligibility, cancellation and the sole confirmed RPC dispatch
+/// stay in [RoutineMoveDestinationController], not in this modal flow.
 final class RoutineMoveFlow {
   RoutineMoveFlow({String Function()? newMutationId})
       : _newMutationId = newMutationId ?? _uuidV4;
