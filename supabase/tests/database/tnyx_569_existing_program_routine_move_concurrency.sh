@@ -79,7 +79,7 @@ insert into public.user_workout_programs(id,user_id,name) values
  ('$source_id'::uuid,'$test_user'::uuid,'Move Race Source'),
  ('$destination_id'::uuid,'$test_user'::uuid,'Move Race Destination');
 insert into public.user_workout_routines(id,user_id,program_id,name) values
- ('$routine_id'::uuid,'$test_user'::uuid,'Move Race Routine');
+ ('$routine_id'::uuid,'$test_user'::uuid,'$source_id'::uuid,'Move Race Routine');
 SQL
 
 mkfifo "$in_a"
