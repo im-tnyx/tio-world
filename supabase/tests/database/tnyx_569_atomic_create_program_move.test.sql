@@ -148,6 +148,53 @@ select pg_temp.assert_true(
        where id='b5690000-0000-4000-8000-000000000021'),
   'all failed requests keep only three fixture Programs and source Routine');
 
+-- Late atomicity regression: force the Routine UPDATE to fail AFTER the
+-- server has INSERTed the proposed Program in the same statement.
+-- The exception caught by pg_temp.expect_state must roll both writes back.
+reset role;
+create function pg_temp.reject_atomic_move_after_insert()
+returns trigger language plpgsql as $
+begin
+  if new.program_id='b5690000-0000-4000-8000-000000000032'::uuid then
+    raise exception 'synthetic move rejects after Program INSERT'
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$;
+create trigger tnyx_569_atomic_late_failure_fixture
+before update on public.user_workout_routines
+for each row execute function pg_temp.reject_atomic_move_after_insert();
+set local role authenticated;
+
+select pg_temp.expect_state(
+  $select public.create_user_workout_program_and_move_routine(
+    'b5690000-0000-4000-8000-000000000021',
+    'b5690000-0000-4000-8000-000000000011',
+    'b5690000-0000-4000-8000-000000000032',
+    'Must Not Persist',1,'b5690000-0000-4000-8000-000000000109')$,
+  '23514','Routine UPDATE failure aborts Program INSERT as one transaction');
+
+select pg_temp.assert_true(
+  (select count(*)=0 from public.user_workout_programs
+     where id='b5690000-0000-4000-8000-000000000032')
+  and (select program_id='b5690000-0000-4000-8000-000000000011'
+     and composition_revision=1
+     from public.user_workout_routines
+     where id='b5690000-0000-4000-8000-000000000021')
+  and (select count(*)=1 from public.user_workout_routine_exercises
+     where routine_id='b5690000-0000-4000-8000-000000000021'
+       and id='b5690000-0000-4000-8000-000000000041')
+  and (select count(*)=1 from public.user_workout_routine_sets
+     where routine_exercise_id='b5690000-0000-4000-8000-000000000041'
+       and id='b5690000-0000-4000-8000-000000000051'),
+  'late rejected Move leaves no empty Program and preserves child identities');
+
+reset role;
+drop trigger tnyx_569_atomic_late_failure_fixture
+  on public.user_workout_routines;
+set local role authenticated;
+
 -- Success is atomic and preserves all Routine child identities/prescriptions.
 select pg_temp.assert_true(
   public.create_user_workout_program_and_move_routine(
