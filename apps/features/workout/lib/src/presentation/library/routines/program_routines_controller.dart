@@ -235,12 +235,14 @@ final class ProgramRoutinesController extends ChangeNotifier {
   /// RPC-confirmed revision is NOT evidence of this client's write.
   Future<String?> rename({required Routine routine, required String name}) async {
     final current = _state;
-    final guarded = repository;
+    final guarded = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
     final expectedRevision = _loadedRevisions[routine.id];
     final expectedCycle = _loadedCycles[routine.id];
     if (current.status != ProgramRoutinesStatus.ready ||
         current.saving ||
-        guarded is! RoutineVersionedRenameRepository ||
+        guarded == null ||
         expectedRevision == null ||
         expectedCycle == null ||
         routine.programId != program.id ||
