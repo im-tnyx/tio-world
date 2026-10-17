@@ -1,12 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# #564 / TNYX-81: deterministic old Data API Rename vs new atomic RPC race.
+# #564 / TNYX-81: deterministic protected Rename versus stale atomic Update race.
 # Disposable Supabase CI Postgres ONLY; never run against hosted production.
-database_url="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+database_url="${DATABASE_URL:-}"
+ci_database_url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 test_user="a5751000-0000-4000-8000-000000000001"
 program_id="a5751000-0000-4000-8000-000000000002"
 routine_id="a5751000-0000-4000-8000-000000000003"
+
+if [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$ci_database_url" ]]; then
+  echo "Refusing Routine Delete fixture writes outside the exact disposable CI connection" >&2
+  exit 1
+fi
+
+# These environment variables can change libpq's effective connection or
+# session behavior. PGPASSWORD is the workflow's only allowed PG* variable.
+for pg_variable in "${!PG@}"; do
+  if [[ "$pg_variable" != "PGPASSWORD" ]]; then
+    echo "Refusing Routine Delete fixture writes with libpq override: $pg_variable" >&2
+    exit 1
+  fi
+done
+
+# The guard-only mode is used by negative tests; absolutely no connection,
+# fixture creation, or cleanup occurs in this mode.
+if [[ "$#" -eq 1 && "$1" == "--guard-only" ]]; then
+  exit 0
+fi
+if [[ "$#" -ne 0 ]]; then
+  echo "Unsupported Routine Delete race harness argument" >&2
+  exit 1
+fi
+
+# Never read ~/.psqlrc (it can contain \\connect or other unsafe commands).
+psql() { command psql --no-psqlrc "$@"; }
+
+# Docker port forwarding means inet_server_addr() may be a bridge address,
+# not 127.0.0.1. The exact literal loopback URI and refusal of libpq
+# overrides enforce the connection destination; this read-only preflight
+# additionally checks the identity of the disposable target before writes.
+database_identity="$(psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --tuples-only --no-align \
+  --command="select (current_database() = 'postgres' and current_user = 'postgres')::text" \
+  | tr -d '[:space:]')"
+if [[ "$database_identity" != "true" ]]; then
+  echo "Refusing Routine Delete fixture writes: unexpected database identity" >&2
+  exit 1
+fi
 
 sync_dir="$(mktemp -d)"
 fifo="$sync_dir/a.in"
@@ -59,7 +100,7 @@ SQL
 
 mkfifo "$fifo"
 psql "$database_url" --set=ON_ERROR_STOP=1 \
-  --set=test_user="$test_user" --set=routine_id="$routine_id" \
+  --set=test_user="$test_user" --set=program_id="$program_id" --set=routine_id="$routine_id" \
   <"$fifo" >"$log_a" 2>&1 &
 pid_a=$!
 exec 3>"$fifo"
@@ -103,7 +144,7 @@ for _ in $(seq 1 100); do
     )" | tr -d '[:space:]')"
   if [[ "$waiting" == t ]]; then blocked=1; break; fi
   if ! kill -0 "$pid_b" 2>/dev/null; then
-    echo "New RPC finished without waiting for old Rename lock"; exit 1
+    echo "Stale Update finished without waiting for protected Rename lock"; exit 1
   fi
   sleep 0.1
 done
@@ -112,18 +153,20 @@ if [[ "$blocked" != 1 ]]; then
 fi
 
 cat >&3 <<'SQL'
-update public.user_workout_routines
-set name='Legacy Wins'
-where id=:'routine_id'::uuid;
+select public.update_user_workout_routine_with_composition(
+  :'routine_id'::uuid, :'program_id'::uuid, 0, 'Race Routine',
+  'a5751000-0000-4000-8000-000000000092'::uuid,
+  'Protected Wins', null
+);
 commit;
-\echo SESSION_A_LEGACY_COMMITTED
+\echo SESSION_A_PROTECTED_COMMITTED
 \quit
 SQL
 exec 3>&-
 writer_open=0
 wait "$pid_a"
 pid_a=""
-grep -Fq "SESSION_A_LEGACY_COMMITTED" "$log_a"
+grep -Fq "SESSION_A_PROTECTED_COMMITTED" "$log_a"
 
 if wait "$pid_b"; then
   echo "New stale Name+Sets RPC incorrectly committed"; exit 1
@@ -132,13 +175,13 @@ pid_b=""
 grep -Fq "routine_update_revision_conflict" "$log_b"
 
 result="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --command="select name='Legacy Wins'
+  --command="select name='Protected Wins'
     and composition_revision=1
-    and last_composition_mutation_id is null
-    and last_routine_update_request_hash is null
+    and last_composition_mutation_id='a5751000-0000-4000-8000-000000000092'
+    and pg_catalog.octet_length(last_routine_update_request_hash)=32
   from public.user_workout_routines where id='$routine_id'::uuid" \
   | tr -d '[:space:]')"
 if [[ "$result" != t ]]; then
-  echo "The stale new RPC changed the legacy Rename winner"; exit 1
+  echo "The stale Update changed the protected Rename winner"; exit 1
 fi
-echo "TNYX-81 old Rename/new atomic RPC two-session parent-lock race passed."
+echo "TNYX-81 protected Rename/stale Update two-session parent-lock race passed."
