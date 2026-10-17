@@ -145,10 +145,15 @@ begin
 end;
 $$;
 
+-- REVIEW / MERGE-STAGE SAFETY: the function is deliberately dormant.
+-- The legacy authenticated UPDATE(name) contract is still callable by older
+-- clients and can rename a Routine from a stale pre-Move Program screen.
+-- Granting EXECUTE now would expose Move while that bypass still exists.
+-- A separate reviewed activation migration may grant authenticated EXECUTE
+-- ONLY after the legacy write contract is retired safely. The function is
+-- tested with a short-lived grant inside disposable CI, never in production.
 revoke all on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)
   from public, anon, authenticated, service_role;
-grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)
-  to authenticated;
 
 comment on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)
-  is 'M1: owner-scoped atomic Routine reparent between persisted Programs, stable Routine/child IDs, aggregate revision CAS and last-request retry; no direct client program_id UPDATE.';
+  is 'M1 staged dormant: owner-scoped atomic reparent with stable Routine/child IDs and CAS; EXECUTE intentionally withheld until legacy Rename compatibility is retired.';
