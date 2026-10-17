@@ -1,6 +1,6 @@
 # GitHub #569 — M2C Legacy Rename Retirement Preflight
 
-**Status:** In progress — source PR preflight, no hosted deployment or migration.
+**Status:** **Source preflight validated**, [PR #593](https://github.com/im-tnyx/tio-world/pull/593) Open/Ready for Review; exact changed-source `e197d7080a7e94a42f9f9a82229a56931279bdf6` [Supabase Database CI #39043723837](https://github.com/im-tnyx/tio-world/actions/runs/39043723837) **SUCCESS**. No hosted deployment or migration.
 **Primary owner:** Supabase/Postgres security; linked to Workout identity.
 **Affected platforms:** Supabase test harness and GitHub CI only.
 
@@ -17,7 +17,7 @@
 - **Repository:** `main@3f118d2ac4c3ec31796e4389c3797548ba5d9472` (PR #588 M1 dormant, PR #591 M2B and #592 docs merged).
 - **Source branch:** `tnyx/issue-569-m2c-legacy-rename-preflight`, created from verified main.
 - **Implementation:** New transactional SQL negative matrix in `supabase/tests/database/`; added CI job step to existing Supabase DB workflow. No migration or runtime code change.
-- **Validation:** Await exact-head Supabase Database CI disposable migration replay, SQL matrix, race tests, lint baseline, required commit attribution guard.
+- **Validation:** Exact changed-source SHA `e197d708` CI #39043723837 **SUCCESS** (full disposable migration replay, all SQL matrices, old and M1 Move races, lint baseline). Required `Commit attribution guard` and runner SUCCESS at same SHA. Intermediate #39043406384 failed due lost SQL dollar-quoting in two newly added negative queries, fixed in `e197d708`; earlier #39043190522 canceled on later push. Any later docs-only handoff commit requires fresh exact-head checks.
 - **Windows local repo:** `G:\projects\Tio-World` inaccessible via GitHub connector; no local git/CLI/device tests claimed.
 - **Current host:** Supabase project `oykupyiitspujzpwwvuj` 62 applied migrations, M1 RPC absent; authenticated direct `UPDATE(name)` allowed, direct `UPDATE(program_id)` denied; protected 7-arg Rename RPC available.
 - **Review owner:** Independent SQL/security review / owner-directed manual gate after CI.
@@ -35,14 +35,14 @@
 
 ## Security Acceptance (for CI preflight)
 
-- [ ] No authenticated table-wide or column-level direct UPDATE privileges survive temporary revoke.
-- [ ] Direct old Rename fails 42501 and leaves Name/revision intact.
-- [ ] Protected name-only RPC and identical token replay work, stale/new token and wrong Program fail.
-- [ ] Old composition RPC, Routine metadata INSERT/SELECT remain usable.
-- [ ] Cross-user protected Update fails without exposing another user.
-- [ ] Move EXECUTE is revoked outside a transaction; test-only temporary EXECUTE allows A→B and proves stale A-screen Name UPDATE is denied, while destination-scoped protected Rename still works.
-- [ ] ROLLBACK restores original grants, data and current CI baseline.
-- [ ] Entire existing Supabase Database CI remains green.
+- [x] No authenticated table-wide or column-level direct UPDATE privileges survive temporary revoke; CI #39043723837 PASS.
+- [x] Direct old Rename fails 42501 and leaves Name/revision intact; CI PASS.
+- [x] Protected name-only RPC and identical token replay work, stale/new token and wrong Program fail; CI PASS.
+- [x] Old composition RPC, Routine metadata INSERT/SELECT remain usable; CI PASS.
+- [x] Cross-user protected Update fails without exposing another user; CI PASS.
+- [x] Move EXECUTE is revoked outside a transaction; test-only temporary EXECUTE allows A→B and proves stale A-screen Name UPDATE is denied, while destination-scoped protected Rename still works; CI PASS.
+- [x] ROLLBACK restores original grants, data and current CI baseline; subsequent prior tests/lint PASS.
+- [x] Entire existing Supabase Database CI remains green at source SHA `e197d708`, run #39043723837.
 
 ## Handoff
 
