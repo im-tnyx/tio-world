@@ -136,7 +136,7 @@ select pg_temp.assert_true(
  and (select count(*)=1 from public.user_workout_routine_exercises
       where routine_id='a5690000-0000-4000-8000-000000000021'
         and id='a5690000-0000-4000-8000-000000000041'
-        and position=1)
+        and position=0)
  and (select count(*)=1 from public.user_workout_routine_sets
       where routine_exercise_id='a5690000-0000-4000-8000-000000000041'
         and id='a5690000-0000-4000-8000-000000000051'
