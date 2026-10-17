@@ -356,6 +356,34 @@ jobs:
             exit 1
           fi
 
+      - name: Run #569 atomic new-Program Move two-session no-orphan race
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
+            echo 'Atomic Move grant must not run outside disposable CI database.' >&2
+            exit 1
+          fi
+          sql_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          cleanup_atomic_move_grant() {
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
+          }
+          trap cleanup_atomic_move_grant EXIT
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
+          bash supabase/tests/database/tnyx_569_atomic_create_program_move_concurrency.sh
+          cleanup_atomic_move_grant
+          trap - EXIT
+          can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
+              or has_function_privilege('anon','$sql_signature','EXECUTE')
+              or has_function_privilege('service_role','$sql_signature','EXECUTE')
+          " | tr -d '[:space:]')"
+          if [[ "$can_execute" != f ]]; then
+            echo 'Atomic Create+Move must remain dormant after race fixture.' >&2
+            exit 1
+          fi
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
