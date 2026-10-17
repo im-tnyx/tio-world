@@ -40,9 +40,9 @@ select pg_temp.assert_true(
     'last_routine_update_request_hash', 'INSERT')
   and not has_column_privilege('authenticated',
     'public.user_workout_routines', 'composition_revision', 'UPDATE')
-  and has_column_privilege('authenticated',
+  and not has_column_privilege('authenticated',
     'public.user_workout_routines', 'name', 'UPDATE'),
-  'new hash and revision are RPC-owned while legacy Rename remains allowed'
+  'Name, revision and hash are protected-RPC owned after M2C'
 );
 
 select pg_temp.assert_true(
@@ -124,35 +124,46 @@ select pg_temp.assert_raises(
  'P0001','identical token with different requested name fails'
 );
 
--- Older phone UPDATE(name) advances the aggregate revision, clears token/hash
--- and cannot leave a retry from before the rename falsely confirmed.
-update public.user_workout_routines set name='Legacy Rename A'
-where id='a5750000-0000-4000-8000-000000000021';
+-- Old installed clients must fail closed without changing revision/replay markers.
+select pg_temp.assert_raises(
+  $$update public.user_workout_routines set name='Unsafe Direct Rename'
+    where id='a5750000-0000-4000-8000-000000000021'$$,
+  '42501','legacy Data API Rename denied after M2C'
+);
 select pg_temp.assert_true(
-  (select composition_revision=3 and name='Legacy Rename A'
-       and last_composition_mutation_id is null
-       and last_routine_update_request_hash is null
+  (select composition_revision=2 and name='Renamed A'
+       and last_composition_mutation_id='a5750000-0000-4000-8000-000000000101'
+       and pg_catalog.octet_length(last_routine_update_request_hash)=32
    from public.user_workout_routines
    where id='a5750000-0000-4000-8000-000000000021'),
-  'legacy name write increments revision, invalidates both replay markers'
+  'denied direct Rename cannot invalidate protected CAS replay'
 );
-update public.user_workout_routines set name='Legacy Rename A'
-where id='a5750000-0000-4000-8000-000000000021';
 select pg_temp.assert_true(
-  (select composition_revision=3 from public.user_workout_routines
-   where id='a5750000-0000-4000-8000-000000000021'),
-  'legacy same-value Name update does not double-increment'
-);
-select pg_temp.assert_raises(
- $$select public.update_user_workout_routine_with_composition(
+ public.update_user_workout_routine_with_composition(
   'a5750000-0000-4000-8000-000000000021',
   'a5750000-0000-4000-8000-000000000011',
-  1,'Routine A','a5750000-0000-4000-8000-000000000101',
-  'Renamed A',null)$$,
- 'P0001','superseded unknown Name update is not falsely confirmed'
+  2,'Renamed A','a5750000-0000-4000-8000-000000000199',
+  'Legacy Rename A',null)=3,
+ 'protected Name change supersedes prior token'
+);
+select pg_temp.assert_true(
+  (select composition_revision=3 and name='Legacy Rename A'
+       and last_composition_mutation_id='a5750000-0000-4000-8000-000000000199'
+       and pg_catalog.octet_length(last_routine_update_request_hash)=32
+   from public.user_workout_routines
+   where id='a5750000-0000-4000-8000-000000000021'),
+  'new protected Name token/hash persist after revision bump'
+);
+select pg_temp.assert_raises(
+  $$select public.update_user_workout_routine_with_composition(
+   'a5750000-0000-4000-8000-000000000021',
+   'a5750000-0000-4000-8000-000000000011',
+   1,'Routine A','a5750000-0000-4000-8000-000000000101',
+   'Renamed A',null)$$,
+ 'P0001','superseded protected Name update is not falsely confirmed'
 );
 
--- Old composition RPC remains usable after direct Name changes.
+-- Old composition RPC remains usable after protected Name changes.
 select pg_temp.assert_true(
   public.save_user_workout_routine_composition(
     'a5750000-0000-4000-8000-000000000021',3,
@@ -163,7 +174,7 @@ select pg_temp.assert_true(
          "reps":10,"set_type":"normal","reps_max":null,
          "load_kg":20,"distance_meters":null,
          "duration_seconds":null,"rest_seconds":60}]}]'::jsonb)=4,
-  'legacy 4-argument RPC still writes after a legacy Name update'
+  'legacy 4-argument RPC still writes after protected Name update'
 );
 
 select pg_temp.assert_true(

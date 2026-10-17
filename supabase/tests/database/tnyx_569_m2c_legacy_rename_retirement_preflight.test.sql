@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
--- #569 / TNYX-81 M2C: simulate legacy direct Rename retirement.
--- DISPOSABLE CI ONLY. The outer transaction ROLLBACK restores the exact
--- previous grants; this file is NOT a migration or a hosted cutover.
+-- #569 / TNYX-81 M2C: verify actual permanent direct Rename retirement.
+-- DISPOSABLE CI ONLY. ROLLBACK discards test fixtures and temporary Move grant.
+-- The column-level cutoff itself is already committed by a versioned migration.
 begin;
 
 create function pg_temp.assert_true(p_ok boolean, p_message text)
@@ -30,10 +30,8 @@ begin
 end;
 $$;
 
--- Simulate the future owner-approved GRANT retirement, without committing.
--- This MUST NOT enable public Move EXECUTE or remove server-side RPC grants.
-revoke update (name) on table public.user_workout_routines
-  from authenticated;
+-- Post-migration baseline must already deny direct Rename.
+-- Do not REVOKE temporarily here: assert the actual durable privilege state.
 
 select pg_temp.assert_true(
   not has_table_privilege('authenticated',
@@ -254,6 +252,6 @@ select pg_temp.assert_true(
  'RLS never reveals another owner Routine'
 );
 
--- This ROLLBACK restores the old live grant state of CI baseline: no migration
--- has been generated/applied, and no installed-client behavior is changed.
+-- ROLLBACK discards fixtures and the temporary Move EXECUTE only.
+-- The durable post-cutoff Name privilege stays revoked.
 rollback;

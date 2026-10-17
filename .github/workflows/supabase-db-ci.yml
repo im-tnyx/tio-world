@@ -262,7 +262,7 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_81_atomic_routine_update.test.sql
 
-      - name: Run TNYX-81 old Rename/new Update two-session race
+      - name: Run TNYX-81 protected Rename/stale Update two-session race
         shell: bash
         run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
 
@@ -295,15 +295,15 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_guard.test.sh
 
-      - name: Run #526 old Rename/new Delete two-session race
+      - name: Run #526 protected Rename/stale Delete two-session race
         shell: bash
         run: bash supabase/tests/database/tnyx_526_owner_routine_delete_concurrency.sh
 
-      - name: Run #569 M2C temporary legacy Rename retirement preflight
+      - name: Run #569 M2C permanent legacy Rename cutoff security matrix
         shell: bash
         run: |
-          # This test REVOKEs within a transaction on disposable CI database.
-          # ROLLBACK restores pre-M2C grants; no hosted permissions change.
+          # The migration already revoked direct Name UPDATE in disposable CI.
+          # The fixture rolls back only data and temporary Move EXECUTE.
           psql "$DATABASE_URL" \
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_m2c_legacy_rename_retirement_preflight.test.sql

@@ -85,8 +85,8 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   not has_column_privilege('authenticated','public.user_workout_routines','composition_revision','UPDATE')
   and not has_column_privilege('authenticated','public.user_workout_routines','last_composition_mutation_id','UPDATE')
-  and has_column_privilege('authenticated','public.user_workout_routines','name','UPDATE'),
-  'revision and token are RPC-only; rename remains available'
+  and not has_column_privilege('authenticated','public.user_workout_routines','name','UPDATE'),
+  'revision, token and Name are protected RPC-only after M2C'
 );
 
 select pg_temp.assert_true(

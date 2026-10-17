@@ -131,20 +131,33 @@ select pg_temp.expect_state(
   '42501','authenticated direct Routine table DELETE remains denied'
 );
 
--- Existing legacy authenticated Data API UPDATE(name) advances the routine
--- aggregate revision. A stale Delete from an earlier UI snapshot must fail.
-update public.user_workout_routines set name='Updated Before Delete'
-where id='d5260000-0000-4000-8000-000000000021';
+-- Old-client Rename is rejected; protected Name edit still invalidates stale Delete.
+select pg_temp.expect_state(
+  $$update public.user_workout_routines set name='Unsafe Old Client'
+    where id='d5260000-0000-4000-8000-000000000021'$$,
+  '42501','old direct Rename denied after M2C'
+);
 select pg_temp.assert_true(
-  (select composition_revision=2 from public.user_workout_routines
+  public.update_user_workout_routine_with_composition(
+    'd5260000-0000-4000-8000-000000000021',
+    'd5260000-0000-4000-8000-000000000011',
+    1,'To Delete','d5260000-0000-4000-8000-000000000099',
+    'Updated Before Delete',null
+  )=2,
+  'protected Rename advances revision before competing Delete'
+);
+select pg_temp.assert_true(
+  (select composition_revision=2 and name='Updated Before Delete'
+       and last_composition_mutation_id='d5260000-0000-4000-8000-000000000099'
+   from public.user_workout_routines
    where id='d5260000-0000-4000-8000-000000000021'),
-  'concurrent legacy Rename invalidates earlier Delete revision'
+  'protected Rename invalidates earlier Delete revision'
 );
 select pg_temp.expect_state(
   $$select public.delete_user_workout_routine(
     'd5260000-0000-4000-8000-000000000021',
     'd5260000-0000-4000-8000-000000000011',1)$$,
-  'P0001','stale after legacy name revision conflict'
+  'P0001','stale after protected Name revision conflict'
 );
 select pg_temp.assert_true(
   (select count(*)=1 from public.user_workout_routines
