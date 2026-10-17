@@ -1,6 +1,6 @@
 # #569 M3B1 — Owner Program Move destination controller
 
-**Status:** In progress / Draft PR #597 — dormant destination controller source validated at `3e5fb7cdbe0493885dada93d08ee7f2c88aa3010`; manual review and follow-on selector UI remain gated.
+**Status:** Draft PR #597 — dormant destination controller validated at exact source+test HEAD `056b0b56d8dfdcb97976dbe3ab7e873005e8c8ae`; cross-PR integration/owner merge gate remains open.
 **Primary owner:** Workout presentation implementation, single remote branch.
 **Affected platforms:** Flutter Workout feature only; no user-visible route.
 
@@ -20,8 +20,8 @@
 - Repository baseline: protected main 59a21ba305b3265aa8d903dc3f46ee397b39219f after squash-merged PR #595.
 - Owner Windows tree: not inspected or altered by remote connector; no assumption of clean local checkout.
 - Current source state: M3B1 dormant destination inspection/confirmed dispatch controller with 12 focused tests; generation guard prevents canceled/overlapping late owner reads from resurrecting stale selections. No app wiring.
-- Validation completed at SHA: [Flutter CI #39056881534](https://github.com/im-tnyx/tio-world/actions/runs/39056881534) **SUCCESS** at `3e5fb7cdbe0493885dada93d08ee7f2c88aa3010`, all five Flutter/Dart jobs plus both attribution checks (7/7). Workout job logs show 726 tests passed including all 12 M3B1 tests. Previous source-only SHA `bf185971` also passed full Flutter CI #39056436950. Post-merge M3A run #39055475888 passed 5/5 on main.
-- Validation remaining: current docs-only handoff SHA attribution/CI, independent/manual review, and M3B2 selector/confirmation/app-shell/auth-cycle wiring. No device QA or production Move grant.
+- Validation completed at source+test HEAD: [Flutter CI #39058582339](https://github.com/im-tnyx/tio-world/actions/runs/39058582339) **SUCCESS** at `056b0b56d8dfdcb97976dbe3ab7e873005e8c8ae`, all five Flutter jobs, Workout shard 727 PASS, including the new pending-confirmed-destination-read abandonment regression. Prior `3e5fb7cd` CI #39056881534 passed its 12 focused cases; no device QA claimed.
+- Validation remaining: this docs-only handoff SHA exact checks, cross-PR combined source validation and owner merge gate. Manual COMMENTED review #597 raised two P2 threads: abandonment race fixed and thread resolved; one controller/UI duplication thread stays open pending integrated #598 review. No device QA or production Move grant.
 
 ## Discovery / Architecture
 
@@ -33,4 +33,4 @@
 
 ## Quality Review and Handoff
 
-Source and tests validated at `3e5fb7cd` (not this docs-only follow-up SHA). PR #597 remains Draft and not reviewed for merge. No Move UI, EXECUTE grant, or release; M3B2 must receive its own review and owner rollout gate.
+Source and regression tests validated at `056b0b56` (before this docs-only update). PR #597 remains Draft and unmerged. Stacked Draft PR #598 now targets this controller branch and must consume `RoutineMoveDestinationController` rather than duplicate dispatch logic; current Flutter CI runs only for PRs targeting `main`, so stacked integration is NOT yet CI-certified. Keep second P2 ownership thread unresolved until composite CI/review after approved sequencing. No Move UI activation, EXECUTE grant or release.
