@@ -262,7 +262,9 @@ List<RouteBase> _shellBranchChildRoutes(
           Future<bool> deleteRoutine(Program program, Routine routine) async {
             final repository = deleteRepository;
             if (repository == null || routineRepository == null ||
-                routine.programId != program.id) return false;
+                routine.programId != program.id) {
+              return false;
+            }
             final openingBoot =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final owner = openingBoot is AppSessionBootstrapReady
