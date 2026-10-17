@@ -85,9 +85,11 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   final RoutineDeleteCurrentValue _currentLoginCycleId;
   final Duration _timeout;
 
-  // A failed/unknown write must not be started again against the same frozen
-  // target until an explicit fresh, successful owner read via inspect().
-  final Set<String> _unconfirmed = {};
+  // A timed-out RPC may remain active on the server after the local timeout.
+  // Only a strictly newer owner-read revision proves its old revision-CAS
+  // cannot later delete the same Routine. Same-revision reads never unblock.
+  final Map<String, int> _unconfirmedRevisions = {};
+  final Map<String, int> _inspectedRevisions = {};
   final Set<String> _inFlight = {};
 
   @override
@@ -98,7 +100,13 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     final session = _session();
     final row = await _read(session, routineId);
     if (row == null || row.program != programId) return null;
-    _unconfirmed.remove(_key(session, routineId));
+    final key = _key(session, routineId);
+    final unresolvedRevision = _unconfirmedRevisions[key];
+    if (unresolvedRevision != null && row.revision > unresolvedRevision) {
+      // The old CAS cannot commit at the newly observed revision.
+      _unconfirmedRevisions.remove(key);
+    }
+    _inspectedRevisions[key] = row.revision;
     return RoutineDeleteTarget(
       routineId: row.id,
       programId: row.program,
@@ -117,8 +125,13 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.unauthorized);
     }
     final key = _key(session, target.routineId);
-    if (_unconfirmed.contains(key)) {
+    if (_unconfirmedRevisions.containsKey(key)) {
       throw const RoutineDeleteOutcomeUnknown();
+    }
+    if (_inspectedRevisions[key] != target.expectedRevision) {
+      throw const RoutineDeleteException(
+        RoutineDeleteFailureKind.revisionConflict,
+      );
     }
     if (!_inFlight.add(key)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
@@ -146,11 +159,14 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
           reason: RoutineDeleteUncertainty.sessionChanged,
         );
       }
-      if (response == true) return RoutineDeleteResult.confirmed;
+      if (response == true) {
+        _inspectedRevisions.remove(key);
+        return RoutineDeleteResult.confirmed;
+      }
       // Malformed/false 2xx is NOT a confirmed deletion.
       return await _reconcile(target, session);
     } on RoutineDeleteOutcomeUnknown {
-      _unconfirmed.add(key);
+      _unconfirmedRevisions[key] = target.expectedRevision;
       rethrow;
     } finally {
       _inFlight.remove(key);
@@ -283,9 +299,31 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
         RoutineDeleteFailureKind.notFound,
       'P0001' when e.message == 'routine_delete_revision_conflict' =>
         RoutineDeleteFailureKind.revisionConflict,
-      '22023' || '22P02' || '22003' || '23514' ||
-      '23503' || '23505' || 'P0001' || 'P0002' =>
+      'P0001' || 'P0002' => RoutineDeleteFailureKind.invalidRequest,
+      // PostgreSQL's explicit SQLSTATE 22 (data exception) and 23
+      // (integrity constraint) mean this statement was rejected.
+      _ when RegExp(r'^(22|23)[0-9A-Z]{3}
+      'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
+      _ when status != null && status >= 400 && status < 500 =>
         RoutineDeleteFailureKind.invalidRequest,
+      _ => null,
+    };
+  }
+}
+).hasMatch(code) =>
+        RoutineDeleteFailureKind.invalidRequest,
+      // Class 40 is transaction rollback: serialization/deadlock aborts
+      // are definitive failures, NOT pending network outcomes.
+      _ when RegExp(r'^40[0-9A-Z]{3}
+      'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
+      _ when status != null && status >= 400 && status < 500 =>
+        RoutineDeleteFailureKind.invalidRequest,
+      _ => null,
+    };
+  }
+}
+).hasMatch(code) =>
+        RoutineDeleteFailureKind.transactionAborted,
       'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
       _ when status != null && status >= 400 && status < 500 =>
         RoutineDeleteFailureKind.invalidRequest,
