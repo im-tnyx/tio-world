@@ -203,7 +203,7 @@ void main() {
     expect(gateway.reads, 1);
   });
 
-  test('ambiguous timeout and authoritative absence are not RPC success',
+  test('ambiguous timeout plus absent read never claims successful Delete',
       () async {
     final gateway = _Gateway()
       ..onDelete = () async {
@@ -213,8 +213,12 @@ void main() {
     final repo = gateway.repo();
     final target = await _target(repo);
     gateway.row = null;
-    expect(await repo.delete(target), RoutineDeleteResult.absentAfterUncertain);
+    await expectLater(repo.delete(target),
+        throwsA(_unknown(RoutineDeleteUncertainty.absentOnRead)));
     expect(gateway.reads, 2);
+    expect(gateway.writes, 1);
+    await expectLater(repo.delete(target),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
     expect(gateway.writes, 1);
   });
 
