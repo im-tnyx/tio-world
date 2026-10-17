@@ -127,6 +127,26 @@ void main() {
     expect(moves.dispatches, 0);
   });
 
+  test('abandon during confirmed destination revalidation denies Move',
+      () async {
+    final pending = Completer<List<Program>>();
+    final programs = FakePrograms();
+    programs.onList = () => programs.reads == 2
+        ? pending.future
+        : Future.value(programs.rows);
+    final moves = FakeMoves();
+    final c = controller(programs, moves, () => true);
+    final selection = await inspect(c);
+    final dispatch = confirmed(c, selection, target.id);
+    expect(programs.reads, 2);
+    c.abandon();
+    pending.complete([source, target]);
+    await expectLater(dispatch,
+        throwsA(isA<RoutineMoveException>()
+            .having((e) => e.kind, 'kind', RoutineMoveFailureKind.staleTarget)));
+    expect(moves.dispatches, 0);
+  });
+
   test('login-cycle lost during owner Program listing blocks inspect', () async {
     var valid = true;
     final moves = FakeMoves();
