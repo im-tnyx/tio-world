@@ -111,7 +111,7 @@ run_race() {
   wait_marker 'ACTOR_A_MUTATED_NOT_COMMITTED' "$log_a" "$pid_a"
 
   {
-    printf 'begin;\nset local application_name = '\''tnyx_569_race_b'\'';\n'
+    printf "begin;\\nset local application_name = 'tnyx_569_race_b';\\n"
     printf "set local role authenticated;\nselect set_config('request.jwt.claim.sub','%s',true);\n" "$test_user"
     printf '\\echo ACTOR_B_ATTEMPT\n'
     printf '%s\ncommit;\n' "$b_sql"
