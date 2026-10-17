@@ -1,6 +1,6 @@
 # #569 M3B1 — Feature-Owned Existing-Program Move Selection and Confirmation
 
-**Status:** In progress — feature-owned presentation slice, no app activation.
+**Status:** Ready for Review — dormant feature-owned selector/confirmation; exact code HEAD `1d1898ef2fb3a5c9a8e9ece082164711489321a9` Flutter CI [#39056929582](https://github.com/im-tnyx/tio-world/actions/runs/39056929582) **SUCCESS 5/5 jobs** and attribution 2/2 PASS. This later docs-only handoff commit requires fresh exact-HEAD checks.
 **Primary owner:** Workout feature implementation on `tnyx/issue-569-m3b1-existing-program-move-flow`.
 **Affected platforms:** Flutter Workout feature presentation/tests and compact execution handoff only.
 
@@ -23,9 +23,9 @@
 - **Repository state:** Fresh remote protected `main@59a21ba305b3265aa8d903dc3f46ee397b39219f` after squash PR #595. GitHub had zero open PRs after merge. No local Windows checkout/dirty-state claims; source edits performed on remote new branch only.
 - **M3A verification:** Pre-merge Flutter CI #39054363779 5/5 PASS plus attribution 2/2; post-merge main Flutter CI #39055475888 5/5 PASS, verified.
 - **Supabase read-only state:** Hosted 64 migrations M1+M2C, Move RPC present but authenticated EXECUTE revoked, direct `UPDATE(name/program_id)` denied. No deployment or write planned.
-- **Validated at current SHA:** No M3B1 source validation yet.
+- **Source validation completed at SHA:** `1d1898ef2fb3a5c9a8e9ece082164711489321a9`; Flutter CI #39056929582 5/5 SUCCESS, both attribution checks SUCCESS; Workout test log 9/9 new Move flow widget cases PASS. The earlier CI #39056635968 failed one selector-dismiss test using `tester.pageBack()` against a modal with no back button; corrected test uses the modal Navigator, rerun passed. This handoff-only commit does not change tested runtime source.
 - **Blocking dependency:** #568 canonical My Program stable identity is not implemented; never use name matching or invent default. This slice limits destination selection to persisted owner Programs. Activation remains NO-GO.
-- **Next action:** Implement feature-owned selector, explicit confirmation and mock/widget tests; verify PR CI at exact head, review, no merge until owner gate.
+- **Next action:** Verify docs-only HEAD checks, independently review PR #598 and address any findings; owner-directed merge gate remains separate. M3B2 app-shell callback/refresh and future client EXECUTE activation stay off.
 
 ## Discovery → Exploration → Design
 
@@ -37,8 +37,8 @@
 
 ## Quality Review
 
-**Pending.** GitHub CI and widget tests on exact M3B1 HEAD are required. No physical-device test/hosted Move execution can be claimed while EXECUTE remains revoked.
+**Flutter source CI completed SUCCESS at `1d1898ef`**: 5/5 jobs and two attribution guards PASS; all 9 new widget tests passed (selection/confirm, cancel, denied/stale source, no/duplicate destination, revoked owner, unknown, conflict, simultaneous opens). This subsequent docs-only commit must receive separate exact-head validation. Independent code/security review pending; no live Move or physical-device test is possible while EXECUTE remains revoked.
 
 ## Final Handoff
 
-**Status:** PARTIAL until exact-head CI and review.
+**Status:** REVIEW — source tests and CI passed at recorded code SHA; PR #598 stays Draft until exact docs-only HEAD CI/review. No app activation, merge, grant or deployment.
