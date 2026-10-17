@@ -31,6 +31,7 @@ class LibraryPage extends StatefulWidget {
     this.pendingCreateChanges,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onDeleteRoutine,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
     required this.canCreateExercise,
@@ -50,6 +51,7 @@ class LibraryPage extends StatefulWidget {
   final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
 
@@ -92,6 +94,7 @@ class _LibraryPageState extends State<LibraryPage> {
         hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
         onRoutinePressed: widget.onRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
+        onDeleteRoutine: widget.onDeleteRoutine,
       );
 
   @override
