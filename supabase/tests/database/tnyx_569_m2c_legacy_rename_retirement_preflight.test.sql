@@ -200,17 +200,17 @@ select pg_temp.assert_true(
  'Move retains name and stable Routine ID while incrementing revision'
 );
 select pg_temp.expect_state(
- $update public.user_workout_routines set name='Unsafe stale A screen'
+ $$update public.user_workout_routines set name='Unsafe stale A screen'
    where id='b5690000-0000-4000-8000-000000000021'
-     and user_id=auth.uid()$,
+     and user_id=auth.uid()$$,
  '42501','stale old-client Rename cannot mutate already moved Routine'
 );
 select pg_temp.expect_state(
- $select public.update_user_workout_routine_with_composition(
+ $$select public.update_user_workout_routine_with_composition(
   'b5690000-0000-4000-8000-000000000021',
   'b5690000-0000-4000-8000-000000000011',
   3,'M2C Protected A','b5690000-0000-4000-8000-000000000107',
-  'Wrong Source A',null)$,
+  'Wrong Source A',null)$$,
  'P0002','protected Rename with old source Program cannot rename moved Routine'
 );
 select pg_temp.assert_true(
