@@ -297,6 +297,36 @@ List<RouteBase> _shellBranchChildRoutes(
             return deleteFlow.run(
               context: context, program: program, routine: routine,
               repository: repository, canWrite: sameSession,
+              confirmationGuard: (dialogContext, content) => Consumer(
+                builder: (guardContext, guardRef, _) {
+                  final currentBoot = guardRef
+                      .watch(appSessionBootstrapControllerProvider).state;
+                  final currentAuth = guardRef.watch(authSessionStateProvider);
+                  final currentState = currentAuth.isLoading || currentAuth.hasError
+                      ? null : currentAuth.valueOrNull;
+                  final stillOwner = currentBoot is AppSessionBootstrapReady &&
+                      currentBoot.userId == owner &&
+                      currentState is AuthSessionAuthenticated &&
+                      currentState.session.userId == owner &&
+                      currentState.session.loginCycleId == cycle &&
+                      sameSession();
+                  if (!stillOwner) {
+                    // Remove the exact stale confirmation route, not an
+                    // unrelated/new-owner route, after its private name is
+                    // synchronously removed from the rendered widget tree.
+                    final staleRoute = ModalRoute.of(guardContext);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!guardContext.mounted || staleRoute == null ||
+                          !staleRoute.isActive) {
+                        return;
+                      }
+                      Navigator.of(guardContext).removeRoute(staleRoute);
+                    });
+                    return const SizedBox.shrink();
+                  }
+                  return content;
+                },
+              ),
             );
           }
 
