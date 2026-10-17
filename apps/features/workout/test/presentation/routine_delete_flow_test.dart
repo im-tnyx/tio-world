@@ -48,6 +48,7 @@ void main() {
       void Function(bool) onResult, {
         TioThemeMode mode = TioThemeMode.light,
         double textScale = 1,
+        Widget Function(BuildContext, Widget)? confirmationGuard,
       }) async {
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => MediaQuery(
@@ -64,6 +65,7 @@ void main() {
           onPressed: () async => onResult(await flow.run(
             context: context, program: _program, routine: _routine,
             repository: repository, canWrite: canWrite,
+            confirmationGuard: confirmationGuard,
           )),
           child: const Text('Open Delete'),
         ),
@@ -183,6 +185,38 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
+    expect(repository.writes, 0);
+    expect(returned, false);
+  });
+  testWidgets('revoked owner dismisses open Delete dialog without exposing name or RPC',
+      (tester) async {
+    final live = ValueNotifier<bool>(true);
+    addTearDown(live.dispose);
+    final repository = _DeleteRepo();
+    bool? returned;
+    await pumpFlow(tester, repository, RoutineDeleteFlow(), () => live.value,
+      (result) => returned = result,
+      confirmationGuard: (dialogContext, content) => ValueListenableBuilder<bool>(
+        valueListenable: live,
+        builder: (context, authorized, _) {
+          if (authorized) return content;
+          final route = ModalRoute.of(context);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted && route != null && route.isActive) {
+              Navigator.of(context).removeRoute(route);
+            }
+          });
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+    await tester.tap(find.text('Open Delete'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Push'), findsOneWidget);
+    live.value = false;
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Push'), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
     expect(repository.writes, 0);
     expect(returned, false);
   });
