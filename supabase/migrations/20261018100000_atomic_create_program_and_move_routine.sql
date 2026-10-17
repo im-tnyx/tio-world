@@ -23,7 +23,9 @@ declare
   v_last_mutation uuid;
   v_last_hash bytea;
   v_request_hash bytea;
-  v_source_exists boolean;
+  v_source_exists boolean := false;
+  v_destination_exists boolean := false;
+  v_program uuid;
   v_inserted bigint;
   v_updated bigint;
 begin
@@ -61,10 +63,27 @@ begin
     raise exception 'routine_create_move_not_found' using errcode = 'P0002';
   end if;
 
-  perform 1 from public.user_workout_programs as program
-    where program.id = p_source_program_id and program.user_id = v_user_id
+  -- Lock the existing owner Program rows in stable UUID order BEFORE the
+  -- shared Routine UUID/row lock. This applies to both first writes and
+  -- exact replays; the source may be missing only after a committed Move.
+  -- A genuinely new destination has no Program row to lock yet.
+  for v_program in
+    select ids.program_id
+    from (values (p_source_program_id), (p_new_program_id))
+      as ids(program_id)
+    order by ids.program_id
+  loop
+    perform 1 from public.user_workout_programs as program
+    where program.id = v_program and program.user_id = v_user_id
     for key share;
-  v_source_exists := found;
+    if found then
+      if v_program = p_source_program_id then
+        v_source_exists := true;
+      else
+        v_destination_exists := true;
+      end if;
+    end if;
+  end loop;
 
   perform private.lock_user_workout_routine_identity(p_routine_id);
   select routine.program_id, routine.composition_revision,
@@ -101,10 +120,7 @@ begin
     end if;
     -- Do not require a name match here: the destination may subsequently
     -- be renamed without changing the Routine's latest aggregate mutation.
-    perform 1 from public.user_workout_programs as program
-      where program.id = p_new_program_id and program.user_id = v_user_id
-      for key share;
-    if not found then
+    if not v_destination_exists then
       raise exception 'routine_create_move_not_found' using errcode = 'P0002';
     end if;
     return v_current_revision;
@@ -121,6 +137,11 @@ begin
   -- The new Program UUID is client-generated and stable across uncertain
   -- results. Never reuse an existing Program ID, even if owner/name match:
   -- only the exact already-committed aggregate token is an idempotent replay.
+  if v_destination_exists then
+    raise exception 'routine_create_move_program_conflict'
+      using errcode = 'P0001';
+  end if;
+
   insert into public.user_workout_programs (id, user_id, name)
   values (p_new_program_id, v_user_id, p_new_program_name)
   on conflict (id) do nothing;
