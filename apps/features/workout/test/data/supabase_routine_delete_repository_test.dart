@@ -356,6 +356,71 @@ void main() {
     expect(gateway.writes, 1);
   });
 
+  test('definite rejected Delete consumes target until a fresh inspect',
+      () async {
+    final gateway = _Gateway()
+      ..onDelete = () async => throw const PostgrestException(
+            message: 'permission denied', code: '42501');
+    final repository = gateway.repo();
+    final first = await _target(repository);
+    await expectLater(repository.delete(first),
+        throwsA(_failure(RoutineDeleteFailureKind.forbidden)));
+    expect(gateway.writes, 1);
+
+    // Same frozen object can never dispatch a second RPC, even though
+    // the read revision and authentication are unchanged.
+    await expectLater(repository.delete(first),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 1);
+
+    final second = await _target(repository);
+    expect(second.expectedRevision, first.expectedRevision);
+    gateway.onDelete = () async => true;
+    expect(await repository.delete(second), RoutineDeleteResult.confirmed);
+    expect(gateway.writes, 2);
+    await expectLater(repository.delete(second),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 2);
+  });
+
+  test('ambiguous Delete stays guarded across same-owner relogin',
+      () async {
+    var cycle = _cycle;
+    final pendingServer = Completer<Object?>();
+    final gateway = _Gateway()..onDelete = () => pendingServer.future;
+    final repository = gateway.repo(
+      cycle: () => cycle,
+      timeout: const Duration(milliseconds: 25),
+    );
+    final cycleA = await _target(repository);
+    await expectLater(repository.delete(cycleA),
+        throwsA(_unknown(RoutineDeleteUncertainty.stillPresent)));
+    expect(pendingServer.isCompleted, false);
+    expect(gateway.writes, 1);
+
+    // The SDK's timed-out request may remain active with the old JWT.
+    cycle = 'cycle-two';
+    final cycleB = await _target(repository);
+    expect(cycleB.expectedRevision, cycleA.expectedRevision);
+    await expectLater(repository.delete(cycleB),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+    pendingServer.complete(true);
+    await expectLater(repository.delete(cycleB),
+        throwsA(_unknown(RoutineDeleteUncertainty.unconfirmed)));
+    expect(gateway.writes, 1);
+
+    gateway.row = _header(revision: 5);
+    final newer = await _target(repository);
+    expect(newer.expectedRevision, 5);
+    gateway.onDelete = () async => true;
+    await expectLater(repository.delete(cycleB),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 1);
+    expect(await repository.delete(newer), RoutineDeleteResult.confirmed);
+    expect(gateway.writes, 2);
+  });
+
   test('reconciliation read failure remains unknown; never fake absence',
       () async {
     final gateway = _Gateway()
