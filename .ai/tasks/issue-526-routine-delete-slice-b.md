@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete Slice B
 
-**Status:** In progress (owner approved 2026-10-17)
+**Status:** In review — scoped Flutter implementation; exact source-head CI success before this handoff update (2026-10-17)
 **Implementation owner:** GitHub-connected implementation session (single owner).
 **Scope approval:** User: “go next slice b @GitHub @Linear @Supabase” after Slice A merge.
 
@@ -24,11 +24,12 @@
 - No app-store release or device QA claim in this repository slice.
 
 ## Execution
-- [ ] Provider/gate with auth/login cycle scope; no fake fallback.
-- [ ] Feature-owned confirmation and typed result/unknown workflow.
-- [ ] Both Routine surfaces and refresh bridge.
-- [ ] Focused Flutter tests and exact-head CI.
-- [ ] Security/code review, handoff, owner merge gate.
+- [x] Provider/gate with auth/login cycle scope; no fake fallback.
+- [x] Feature-owned confirmation and typed result/unknown workflow.
+- [x] Both Routine surfaces and refresh bridge.
+- [x] Focused Flutter tests and exact-source-head CI at `aa22d47682ac3483995f8bed551984313b154ef7`: [Flutter CI #39010679343](https://github.com/im-tnyx/tio-world/actions/runs/39010679343), all 5 jobs SUCCESS. This handoff docs commit requires its own exact-head check.
+- [ ] Manual security/code review disposition, owner merge gate and device QA. No autonomous merge.
 
-**Validation:** No Slice B CI yet; GitHub connector cannot inspect Windows working tree or run the owner's SDK.
-**Final status:** In progress; keep GitHub #526 and Linear W4 open.
+**Validation:** GitHub Flutter CI run `39010679343` at implementation commit `aa22d47682ac3483995f8bed551984313b154ef7` completed SUCCESS: Analyze Flutter and Dart / test Dart, Test Flutter (core-wear), Test Flutter (app-workout), Test Flutter (nutrition-onboarding), aggregate Analyze and test. Prior failed runs were caused by the new Program Detail wrapper removing the existing read-only route and by Dart nullability/analyzer errors; both were corrected without weakening destructive authorization. No local Windows Flutter execution/device QA verified.
+**Review focus:** stale on-screen confirmation after account switch, safe snackbar placement under nested Navigator, partial auth revocation and app restart semantics; do not treat process-local single-flight as durable persistence.
+**Final status:** REVIEW; branch unmerged. Keep GitHub #526 and Linear W4 open.
