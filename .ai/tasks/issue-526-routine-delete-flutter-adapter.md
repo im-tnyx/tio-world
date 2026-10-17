@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete RPC adapter (Slice A)
 
-**Status:** In Review — exact source-head `9840aca6` Flutter CI 7/7 PASS; independent review requested and pending. This documentation-only handoff update will require a fresh exact-HEAD check before merge.
+**Status:** In Review — owner-approved manual findings corrective slice. Prior exact-head `578f66c5` 7/7 CI PASS; new corrective code/test HEAD requires its own exact-head CI and independent reviewer decision before merge.
 **Implementation owner:** This GitHub-connected implementation session.
 **Branch:** `tnyx/issue-526-routine-delete-flutter-adapter` from live `main@6cb353eaf492f178c707a94178e5d34f19c8ea04` (2026-10-17).
 **Scope approval:** Owner's `Go` following the read-only #526 audit and explicit proposal to start **Slice A** only. No authority to deploy, merge, activate UI Delete, or modify Supabase schema.
@@ -17,7 +17,7 @@
 
 Slice A is an **inert capability provider** behind Workout's domain/data boundary: a narrow owner-scoped Delete RPC transport, frozen Routine+Program+expectedRevision target and sanitized outcome classes, explicit owner/login-cycle binding, and focused mocked-SDK tests. Confirm a fresh owner-readable target before the future Flutter confirmation; Delete itself sends one CAS RPC with its frozen revision. No broad `RoutineRepository` interface mutation or direct table DELETE.
 
-Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures are typed failures (not masked by auth changes). Transport/timeout/5xx/malformed success may have committed: do **not** retry a write; re-read by Routine UUID under the same owner to distinguish a still-existing or moved Routine from absence. Read failures or account/login-cycle changes remain unconfirmed. An absent row after uncertainty is only an observation of owner-filtered Data API invisibility (which can also reflect RLS or a still-in-flight RPC); it is **always an unknown outcome**, never a confirmed Delete. The future UI must refresh its owner-scoped list while communicating the uncertainty. Never reveal raw Postgres diagnostics.
+Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures are typed failures (not masked by auth changes). Transport/timeout/5xx/malformed success may have committed: do **not** retry a write; re-read by Routine UUID under the same owner to distinguish a still-existing or moved Routine from absence. Read failures or account/login-cycle changes remain unconfirmed. A successful owner read at the SAME (or older) revision cannot clear an unresolved timed-out Delete, since the underlying server request can still commit later. The repository only releases the same-owner/current-login-cycle guard after an owner read proves a strictly NEWER composition revision (old revision-CAS can no longer succeed). New Delete requires a newly inspected revision; previously inspected stale revisions are rejected locally. An absent row after uncertainty is only an observation of owner-filtered Data API invisibility (which can also reflect RLS or a still-in-flight RPC); it is **always an unknown outcome**, never a confirmed Delete. The future UI must refresh its owner-scoped list while communicating the uncertainty. Never reveal raw Postgres diagnostics.
 
 ### In scope
 
@@ -34,8 +34,8 @@ Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures a
 ## Review gates / next steps
 
 - [x] Source-head `9840aca6` Flutter CI run `39003322361` all 7 checks PASS, including full app-workout shard (new adapter tests), Analyze/Dart, core-wear, nutrition-onboarding, aggregate and attribution. Initial source head `e534de94` exposed 3 numeric SQLSTATE-vs-HTTP status regressions; fixed on `bf9288bb`. Later pure handoff commit requires its own exact-head recheck.
-- [ ] Independent code/security review of owner and auth-cycle switch, SQL error classification and outcome reconciliation.
+- [ ] Independent code/security review of owner and auth-cycle switch, SQL error classification and outcome reconciliation. The 2026-10-17 manual implementation-owner COMMENTED review (ID `5556312364`) opened two active threads: unresolved-write reinspection/guard lifecycle and SQLSTATE rollback classification. Corrective source/test commits were created; thread responses, independent approval and the *new* exact-head CI are pending.
 - [x] Source/no-secret diff scope audited: 7 paths in Workout domain/data/tests and `.ai` task/index, no app shell, UI, RLS or migration change. PR #586 is Ready for independent review but still unmerged.
 - [ ] After Slice A reviewed/merged, separately approve/implement Slice B confirmation and app wiring; emulator/physical QA before enabling Delete.
 
-**Handoff:** Data-only implementation compiled and tested successfully at `9840aca6`; independent reviewer `im-tio` requested. Await current-head CI after handoff change, review disposition and explicit owner `Go merge`. There is no Flutter Delete UI and no local Windows/device validation claim. Do not mark GitHub #526 or Linear TNYX-81 Done.
+**Handoff:** Earlier data-only implementation passed 7/7 at `578f66c5`, but reviewer findings required corrections; new code adds delayed-ACK/same-revision guard tests and SDK `23502`/`40P01`/`40001` decoding. Independent reviewer `im-tio` still requested; await fresh exact-head CI and review disposition and explicit owner `Go merge`. There is no Flutter Delete UI and no local Windows/device validation claim. Do not mark GitHub #526 or Linear TNYX-81 Done.
