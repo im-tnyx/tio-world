@@ -41,7 +41,13 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
 /// Null disables the Program Detail entry; never fall back to fake local saves.
 final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  if (client == null) return null;
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null : sessionAsync.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id) {
+    return null;
+  }
   return SupabaseRoutineRepository.fromClient(
     client,
     currentLoginCycleId: () {
