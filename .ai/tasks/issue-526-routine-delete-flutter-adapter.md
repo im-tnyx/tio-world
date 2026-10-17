@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete RPC adapter (Slice A)
 
-**Status:** Implementation in progress; CI/review not yet run.
+**Status:** Implementation in progress; first exact-head Flutter CI failed 3 adapter SQLSTATE classification tests; correction committed and current exact-head CI/review pending.
 **Implementation owner:** This GitHub-connected implementation session.
 **Branch:** `tnyx/issue-526-routine-delete-flutter-adapter` from live `main@6cb353eaf492f178c707a94178e5d34f19c8ea04` (2026-10-17).
 **Scope approval:** Owner's `Go` following the read-only #526 audit and explicit proposal to start **Slice A** only. No authority to deploy, merge, activate UI Delete, or modify Supabase schema.
@@ -17,7 +17,7 @@
 
 Slice A is an **inert capability provider** behind Workout's domain/data boundary: a narrow owner-scoped Delete RPC transport, frozen Routine+Program+expectedRevision target and sanitized outcome classes, explicit owner/login-cycle binding, and focused mocked-SDK tests. Confirm a fresh owner-readable target before the future Flutter confirmation; Delete itself sends one CAS RPC with its frozen revision. No broad `RoutineRepository` interface mutation or direct table DELETE.
 
-Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures are typed failures (not masked by auth changes). Transport/timeout/5xx/malformed success may have committed: do **not** retry a write; re-read by Routine UUID under the same owner to distinguish a still-existing or moved Routine from absence. Read failures or account/login-cycle changes remain unconfirmed. An absent row after uncertainty is only authoritative absence, **not** evidence this exact request caused it. Never reveal raw Postgres diagnostics.
+Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures are typed failures (not masked by auth changes). Transport/timeout/5xx/malformed success may have committed: do **not** retry a write; re-read by Routine UUID under the same owner to distinguish a still-existing or moved Routine from absence. Read failures or account/login-cycle changes remain unconfirmed. An absent row after uncertainty is only an observation of owner-filtered Data API invisibility (which can also reflect RLS or a still-in-flight RPC); it is **always an unknown outcome**, never a confirmed Delete. The future UI must refresh its owner-scoped list while communicating the uncertainty. Never reveal raw Postgres diagnostics.
 
 ### In scope
 
