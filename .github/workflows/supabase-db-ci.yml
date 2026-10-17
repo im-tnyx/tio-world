@@ -315,6 +315,14 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql
 
+      - name: Run #569 atomic new Program Create & Move SQL matrix
+        shell: bash
+        run: |
+          # Fixture grants are transaction-local and rolled back.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql
+
       - name: Run #569 two-session races with CI-only temporary Move EXECUTE
         shell: bash
         run: |
