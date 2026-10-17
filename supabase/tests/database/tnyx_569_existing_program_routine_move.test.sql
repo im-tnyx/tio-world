@@ -238,7 +238,7 @@ select pg_temp.assert_true(
  'replay does not bump revision or modify child composition'
 );
 select pg_temp.expect_state(
- $select public.move_user_workout_routine(
+ $$select public.move_user_workout_routine(
    'a5690000-0000-4000-8000-000000000021',
    'a5690000-0000-4000-8000-000000000011',
    'a5690000-0000-4000-8000-000000000012',3,
@@ -246,7 +246,7 @@ select pg_temp.expect_state(
  'P0002','new request cannot use a deleted source Program'
 );
 select pg_temp.expect_state(
- $select public.move_user_workout_routine(
+ $$select public.move_user_workout_routine(
    'a5690000-0000-4000-8000-000000000021',
    'a5690000-0000-4000-8000-000000000011',
    'a5690000-0000-4000-8000-000000000012',2,
