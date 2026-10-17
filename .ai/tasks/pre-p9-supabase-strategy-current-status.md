@@ -26,7 +26,7 @@
 **Review owner:** Source-backed exact-head manual/independent PR review
 **Implementation ownership state:** Active (documentation only)
 **Ownership transition:** Not applicable
-**Repository state last verified:** Remote protected `main@7f5f49ebdd7c699fc1977931e15fad65ee427324`; local `G:\projects\Tio-World` unavailable and untouched
+**Repository state last verified:** Remote protected `main@7f5f49ebdd7c699fc1977931e15fad65ee427324`; owner-local Windows checkout unavailable to the connected GitHub tools and untouched
 **Branch:** `docs/pre-p9-supabase-strategy-current-status`
 **Observed working-tree state:** Not accessible; GitHub repository API read/write only
 **Observed uncommitted/dirty files:** Not assertable without local Windows `git status`
