@@ -24,7 +24,7 @@
 **PR / tracker:** GitHub #569; TNYX-81 remains Backlog; draft review PR pending.
 **Relevant execution surface:** `supabase/migrations/` and `supabase/tests/database/`.
 **Validation completed:** Live read-only check confirmed 62 migrations, absent Move RPC, protected Routine revision/hash fields, existing atomic Edit/Delete EXECUTE and no authenticated direct UPDATE(program_id). SQL security/advisor baseline inspected. No local SQL execution/psql or CI PASS claimed.
-**Validation remaining:** Local/disposable Supabase CLI `supabase migration new` filename/workflow check, full migration replay and SQL test, two-session concurrency (Edit/Move, Move/Move, Delete/Move, Program deletion), security advisor after test deployment, GitHub exact-head review/CI.
+**Validation remaining:** GitHub disposable Supabase Database CI (full replay, new SQL matrix and Move/Delete race), two-session Edit/Move and Move/Move additional coverage, reviewer disposition, security advisor after test deployment and exact-head CI. CLI generation of migration filename could not be executed from this connector-only runtime.
 **Current blocker:** No local Supabase CLI/psql or hosted disposable database is available inside this connected session; never test destructive fixtures on production.
 **Next exact action:** Independent SQL/security review, migration replay + race suite in disposable database, amend findings, and reconcile PR gate before any merge/deploy.
 
@@ -54,8 +54,10 @@
 
 - `supabase/migrations/20261017100000_move_user_workout_routine_between_owned_programs.sql`
 - `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`
+- `supabase/tests/database/tnyx_569_existing_program_routine_move_concurrency.sh`
+- `.github/workflows/supabase-db-ci.yml` registers both new SQL checks in disposable GitHub CI.
 - This task brief. No live migration, direct client grants or Flutter Move capability changes.
 
 ## Quality and Handoff Status
 
-**Partial / REVIEW:** Source work is committed but not locally executed, not independently reviewed, and not production deployed. Do not claim the Move UX is enabled. The preexisting task-index #526 Slice B status is stale versus verified merged PR #587; that unrelated documentation reconciliation remains its own task.
+**Partial / REVIEW:** Source work is committed with disposable GitHub CI checks wired but not yet verified passed; not independently reviewed and not production deployed. Do not claim the Move UX is enabled. The preexisting task-index #526 Slice B status is stale versus verified merged PR #587; that unrelated documentation reconciliation remains its own task.
