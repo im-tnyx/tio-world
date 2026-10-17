@@ -254,4 +254,43 @@ select pg_temp.expect_state(
  'P0001','same token with altered CAS remains a mutation conflict'
 );
 
+
+-- P2 #2 compatibility BLOCKER / observable insecure baseline.
+-- The supported legacy Data API UPDATE(name) client has only user_id + id.
+-- After a Move and even after its source Program is deleted, a stale A UI
+-- STILL renames the same Routine under B. Record the exact regression
+-- (do not mistake this passing assertion for a Move release-security PASS).
+-- No authenticated program_id UPDATE grant or legacy permission change here.
+with legacy_rename as (
+  update public.user_workout_routines
+  set name = 'Old A Screen Stale Rename'
+  where id = 'a5690000-0000-4000-8000-000000000021'
+    and user_id = auth.uid()
+  returning id
+)
+select pg_temp.assert_true(
+  (select count(*) = 1 from legacy_rename),
+  'KNOWN P2 exposure: legacy userId + routineId name UPDATE still writes after Move'
+);
+select pg_temp.assert_true(
+  (select name = 'Old A Screen Stale Rename'
+          and program_id = 'a5690000-0000-4000-8000-000000000012'
+          and composition_revision = 5
+          and last_composition_mutation_id is null
+          and last_routine_update_request_hash is null
+   from public.user_workout_routines
+   where id = 'a5690000-0000-4000-8000-000000000021')
+  and (select count(*) = 1 from public.user_workout_routine_sets
+       where id = 'a5690000-0000-4000-8000-000000000051'),
+  'KNOWN P2 exposure: legacy stale Rename modifies moved Routine and invalidates replay proof without altering child IDs'
+);
+select pg_temp.expect_state(
+ $$select public.move_user_workout_routine(
+   'a5690000-0000-4000-8000-000000000021',
+   'a5690000-0000-4000-8000-000000000011',
+   'a5690000-0000-4000-8000-000000000012',3,
+   'a5690000-0000-4000-8000-000000000105')$$,
+ 'P0001','legacy name write makes old Move token no longer replayable'
+);
+
 rollback;
