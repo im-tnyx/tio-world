@@ -19,6 +19,7 @@ Future<void> _pump(
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
   Future<bool> Function(Routine)? onEditRoutine,
+  Future<bool> Function(Routine)? onDeleteRoutine,
   Future<bool> Function(String suggestedName)? onCreateRoutine,
   double textScale = 1,
 }) async {
@@ -39,6 +40,7 @@ Future<void> _pump(
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
+        onDeleteRoutine: onDeleteRoutine,
         onCreateRoutine: onCreateRoutine,
       ),
     ),
@@ -47,6 +49,49 @@ Future<void> _pump(
 }
 
 void main() {
+
+  testWidgets('Delete callback alone opens action and refreshes owner Routines',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    Routine? selected;
+    await _pump(tester, repository: repository, onDeleteRoutine: (routine) async {
+      selected = routine;
+      repository.rows.removeWhere((row) => row.id == routine.id);
+      return true;
+    });
+    final menu = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    expect(menu, findsOneWidget);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Routine'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-delete-$_routineId')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-delete-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(selected?.id, RoutineId(_routineId));
+    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+  });
+  testWidgets('confirmed Delete followed by failed refresh shows read error',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    await _pump(tester, repository: repository, onDeleteRoutine: (routine) async {
+      repository.rows.removeWhere((item) => item.id == routine.id);
+      repository.loadFailures = 1;
+      return true; // A confirmed RPC does not promise a successful reread.
+    });
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-delete-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Push'), findsNothing);
+    expect(find.text('Could not load routines. Please try again.'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('program-routines-retry')), findsOneWidget);
+  });
   testWidgets('atomic Create callback bypasses legacy name-only INSERT',
       (tester) async {
     final repository = _MemoryRoutines();

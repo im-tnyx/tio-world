@@ -13,6 +13,7 @@ class RoutineMetadataCard extends StatefulWidget {
     this.onEdit,
     this.onMove,
     this.onDelete,
+    this.actionSheetGuard,
   });
 
   final Routine routine;
@@ -23,6 +24,9 @@ class RoutineMetadataCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
+  /// Optional app-owned auth-cycle guard for the separate options modal.
+  /// Sheet ownership remains here; account identity never enters Workout.
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
 
   @override
   State<RoutineMetadataCard> createState() => _RoutineMetadataCardState();
@@ -43,7 +47,8 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
       final selected = await showTioEditorSheet<_RoutineAction>(
         context: context,
         useSafeArea: true,
-        builder: (sheetContext) => TioEditorSheet(
+        builder: (sheetContext) {
+          final sheet = TioEditorSheet(
           key: ValueKey('routine-actions-sheet-${openingId.value}'),
           title: widget.routine.name,
           content: Column(
@@ -80,7 +85,9 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                 ),
             ],
           ),
-        ),
+          );
+          return widget.actionSheetGuard?.call(sheetContext, sheet) ?? sheet;
+        },
       );
 
       // The sheet can outlive a parent rebuild, session transition or a card

@@ -635,3 +635,4 @@ theme/
 ```
 
 Keep this map and the rules above current whenever the theme system evolves.
+The owner-approved Workout Routine Delete centered confirmation caps its reusable `TioCard.elevated` surface at `TioSize.dp320` (320dp) rather than the former 480dp. The physical value belongs to the common `TioSize` registry; it does not introduce a Routine-specific Core token or change Core Card, generic confirmation presenters or global button geometry. The scoped actions use the existing 38dp visual minimum and retain padded accessible Material touch targets.

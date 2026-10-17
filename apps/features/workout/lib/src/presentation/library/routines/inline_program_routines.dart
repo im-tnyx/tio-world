@@ -16,6 +16,8 @@ class InlineProgramRoutines extends StatefulWidget {
     required this.refreshVersion,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onDeleteRoutine,
+    this.actionSheetGuard,
     this.onAddRoutine,
     this.onOpenProgram,
     this.disableAddRoutine = false,
@@ -29,6 +31,9 @@ class InlineProgramRoutines extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
   /// Real canonical full editor, guarded by app shell identity/login cycle.
   final Future<bool> Function(Routine routine)? onEditRoutine;
+  /// Owner-checked and confirmed Delete (or uncertain write) requests a read.
+  final Future<bool> Function(Routine routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
   /// Opens canonical Create for this exact Program; injected by app shell.
   final Future<void> Function()? onAddRoutine;
   /// Existing Program Detail exposes owner-scoped unknown-save verification.
@@ -57,6 +62,21 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
       await add();
     } finally {
       if (mounted) setState(() => _openingCreate = false);
+    }
+  }
+
+  Future<void> _deleteRoutine(Routine routine) async {
+    final controller = _controller;
+    final delete = widget.onDeleteRoutine;
+    if (controller == null || delete == null ||
+        controller.state.status != ProgramRoutinesStatus.ready ||
+        controller.state.saving || routine.programId != widget.program.id ||
+        !controller.state.routines.any((item) => item.id == routine.id)) {
+      return;
+    }
+    final refresh = await delete(routine);
+    if (mounted && identical(controller, _controller) && refresh) {
+      await controller.load();
     }
   }
 
@@ -177,6 +197,11 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                     onEdit: widget.onEditRoutine == null
                         ? null
                         : () { widget.onEditRoutine!(routine); },
+                    actionSheetGuard: widget.actionSheetGuard,
+                    onDelete: widget.onDeleteRoutine == null ||
+                            widget.hasUnconfirmedCreate
+                        ? null
+                        : () => _deleteRoutine(routine),
                   ),
                 ),
             ],

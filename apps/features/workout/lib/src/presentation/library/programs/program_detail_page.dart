@@ -16,6 +16,8 @@ class ProgramDetailPage extends StatefulWidget {
     this.newRoutineUuid,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onDeleteRoutine,
+    this.actionSheetGuard,
     this.onCreateRoutine,
     this.hasUnconfirmedCreate,
     this.onVerifyUnconfirmedCreate,
@@ -30,6 +32,9 @@ class ProgramDetailPage extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
   /// Opens the same verified owner Edit composer as Routine Detail.
   final Future<bool> Function(Routine routine)? onEditRoutine;
+  /// Verified Delete returns true only when the owner-scoped list must refresh.
+  final Future<bool> Function(Routine routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
 
   /// Atomic Create draft action supplied by the authenticated app shell.
   /// True means re-read the Program: either a confirmed Create or an explicit
@@ -158,6 +163,20 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     }
   }
 
+  Future<void> _deleteRoutine(Routine routine) async {
+    final controller = _controller;
+    final delete = widget.onDeleteRoutine;
+    if (!_canEdit || _hasUnconfirmed || controller == null || delete == null ||
+        routine.programId != widget.program.id ||
+        !controller.state.routines.any((item) => item.id == routine.id)) {
+      return;
+    }
+    final shouldRefresh = await delete(routine);
+    if (mounted && identical(controller, _controller) && shouldRefresh) {
+      await controller.load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -279,6 +298,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                       : null,
                   onEdit: _canEdit && widget.onEditRoutine != null
                       ? () => _openEditor(routine) : null,
+                  actionSheetGuard: widget.actionSheetGuard,
+                  onDelete: _canEdit && !_hasUnconfirmed &&
+                          widget.onDeleteRoutine != null
+                      ? () => _deleteRoutine(routine) : null,
                 ),
               ),
           ],

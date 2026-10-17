@@ -290,6 +290,62 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('Program Detail options sheet redacts A on login-cycle switch',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey(
+      'program-open-20000000-0000-4000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    const rid = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
+        findsOneWidget);
+    expect(find.text('Edit Routine'), findsOneWidget);
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
+        );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
+        findsNothing);
+    expect(find.text('Edit Routine'), findsNothing);
+    expect(find.text('Synthetic Route Routine'), findsNothing);
+    expect(find.text('Synthetic Route Program'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('expanded Library options sheet closes on A-to-B Auth switch',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const rid = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
+        findsOneWidget);
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'),
+        );
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-actions-sheet-$rid')),
+        findsNothing);
+    expect(find.text('Edit Routine'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-edit-$rid')), findsNothing);
+    expect(find.byType(EditRoutinePage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('Routine options Edit opens full Name editor directly, not Rename sheet',
       (tester) async {
     final (_, router) = await _app(
@@ -1426,11 +1482,16 @@ void main() {
 
     // Same owner signed in again. A still-mounted Program Detail must not
     // inherit permission to create for a different login-cycle capability.
+    expect(find.text('Synthetic Route Program'), findsOneWidget);
     container.read(_routineTestAuthStateProvider.notifier).state =
         const AuthSessionAuthenticated(
           AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'),
         );
     await tester.pumpAndSettle();
+    expect(find.text('Synthetic Route Program'), findsNothing,
+        reason: 'Revoked Program title is private owner data');
+    expect(find.text('Routines unavailable'), findsOneWidget);
+    expect(find.text('Synthetic Route Routine'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);

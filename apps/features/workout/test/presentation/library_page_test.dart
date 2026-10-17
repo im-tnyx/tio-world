@@ -14,6 +14,7 @@ Future<void> _pump(
   bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   Future<bool> Function(Program, Routine)? onEditRoutine,
+  Future<bool> Function(Program, Routine)? onDeleteRoutine,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
   ProgramIdGenerator? programIdGenerator,
@@ -47,6 +48,7 @@ Future<void> _pump(
         hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
+        onDeleteRoutine: onDeleteRoutine,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
@@ -58,6 +60,32 @@ Future<void> _pump(
 }
 
 void main() {
+
+  testWidgets('expanded Library Delete refreshes only owner Routine cards',
+      (tester) async {
+    final routine = _routine(1, 101, 'Push');
+    final repository = _FakeRoutineRepository([routine]);
+    Routine? deleted;
+    await _pump(tester, routineRepository: repository,
+      onDeleteRoutine: (program, candidate) async {
+        expect(program.id, _id(1));
+        deleted = candidate;
+        repository.rows.removeWhere((item) => item.id == candidate.id);
+        return true;
+      },
+    );
+    final menu = find.byKey(ValueKey('routine-menu-${routine.id.value}'));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('routine-delete-${routine.id.value}')),
+        findsOneWidget);
+    await tester.tap(find.byKey(ValueKey('routine-delete-${routine.id.value}')));
+    await tester.pumpAndSettle();
+    expect(deleted?.id, routine.id);
+    expect(find.text('Push'), findsNothing);
+    expect(find.byKey(ValueKey('library-add-routine-${_id(1).value}')),
+        findsNothing);
+  });
   testWidgets(
       'shows Library chrome, full category strip and Programs directly by default',
       (tester) async {
