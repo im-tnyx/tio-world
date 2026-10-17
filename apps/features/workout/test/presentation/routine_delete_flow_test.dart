@@ -105,11 +105,15 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing);
     final dialog = find.byKey(ValueKey('confirm-delete-routine-${_routine.id.value}'));
     expect(dialog, findsOneWidget);
-    expect(tester.getSize(dialog).width, lessThanOrEqualTo(TioSize.dp320));
-    final dialogCenter = tester.getCenter(dialog);
+    // Flutter's Dialog route may fill the viewport for barrier/insets.
+    // Measure the actual TioCard, not the outer Dialog render bounds.
+    final card = find.descendant(of: dialog, matching: find.byType(TioCard));
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).width, lessThanOrEqualTo(TioSize.dp320));
+    final cardCenter = tester.getCenter(card);
     final logicalScreen = tester.view.physicalSize / tester.view.devicePixelRatio;
-    expect((dialogCenter.dx - logicalScreen.width / 2).abs(), lessThan(1));
-    expect((dialogCenter.dy - logicalScreen.height / 2).abs(), lessThan(1));
+    expect((cardCenter.dx - logicalScreen.width / 2).abs(), lessThan(1));
+    expect((cardCenter.dy - logicalScreen.height / 2).abs(), lessThan(1));
     final buttonTheme = Theme.of(tester.element(find.text('Cancel')));
     expect(
       buttonTheme.filledButtonTheme.style?.minimumSize?.resolve({})?.height,
@@ -188,6 +192,10 @@ void main() {
     await tester.tap(find.text('Open Delete'));
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
+    final card = find.descendant(
+      of: find.byType(Dialog), matching: find.byType(TioCard),
+    );
+    expect(tester.getSize(card).width, lessThanOrEqualTo(TioSize.dp320));
     expect(find.textContaining(repository.targetName), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
