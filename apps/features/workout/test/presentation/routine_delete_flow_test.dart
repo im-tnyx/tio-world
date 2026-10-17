@@ -142,6 +142,13 @@ void main() {
     expect(repository.writes, 1);
     expect(returned, true);
     expect(find.text('Routine deleted.'), findsOneWidget);
+    final feedback = tester.widget<SnackBar>(
+      find.byKey(const ValueKey('routine-delete-confirmed-feedback')),
+    );
+    expect(feedback.duration, const Duration(seconds: 5));
+    expect(feedback.behavior, SnackBarBehavior.floating);
+    expect(feedback.shape, isA<StadiumBorder>());
+    expect(find.byIcon(Icons.delete_outline_rounded), findsWidgets);
   });
 
   testWidgets('unknown result asks for refresh without claiming deletion',
@@ -161,6 +168,8 @@ void main() {
     expect(returned, true);
     expect(find.textContaining('unconfirmed'), findsOneWidget);
     expect(find.text('Routine deleted.'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-delete-confirmed-feedback')),
+        findsNothing);
   });
 
   testWidgets('centered dialog stays usable on narrow dark large-text screen',
