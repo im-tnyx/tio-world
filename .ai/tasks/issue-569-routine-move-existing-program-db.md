@@ -1,6 +1,6 @@
 # GitHub #569 — M1 Existing-Program Routine Move (DB)
 
-**Status:** M1 dormant-stage exact-code CI PASS; independent review / merge-gate checks pending. Legacy Rename P2 remains activation-blocking; Draft PR #588 unmerged, hosted Supabase unchanged.
+**Status:** Dormant M1 code at merge-gate review: exact-head CI PASS, PR #588 READY FOR REVIEW (non-Draft), zero unresolved native review threads; independent reviewer / branch-policy and explicit owner merge instruction outstanding. Legacy Rename still blocks client activation. Hosted Supabase unchanged.
 **Primary owner:** GitHub-connected implementation session (single implementation owner).
 **Affected platforms:** Supabase Postgres/RLS. No Flutter, Watch, service/API, UI, or deployed database changes.
 
@@ -16,17 +16,17 @@
 **Planning owner:** GitHub #569; Linear TNYX-81 broader W4 and TNYX-267 W6B.
 **Implementation owner:** GitHub-connected implementation session.
 **Review owner:** Independent reviewer pending.
-**Implementation ownership state:** Active; isolated branch, not deployed.
+**Implementation ownership state:** M1 source frozen for independent review; isolated branch, not merged/deployed.
 **Repository state last verified:** 2026-10-17 via GitHub API.
 **Branch:** `tnyx/issue-569-m1-existing-program-move-db`
 **Base/main HEAD SHA:** `acd74a618234127e675cdedef8f9a0c2d2201ea5`
 **Observed working-tree state:** GitHub repository API branch only. Local Windows working tree and `git status -sb` not accessible from this session. No local files modified.
-**PR / tracker:** Draft PR #588; GitHub #569; TNYX-81 remains Backlog.
+**PR / tracker:** GitHub PR #588 now Ready for Review, NOT merged; GitHub #569 Open; broad Linear TNYX-81 Backlog.
 **Relevant execution surface:** `supabase/migrations/` and `supabase/tests/database/`.
 **Validation completed:** Read-only hosted Supabase unchanged at 62 migrations with Move RPC absent and authenticated direct program_id UPDATE denied/legacy name UPDATE granted. **Exact dormant code HEAD `0887bdad1dc21e30e8199fd02fa54ec4bb000e48`: Supabase Database CI #39024657322 SUCCESS, all 45 steps**: replay full migrations, assert Move EXECUTE initially denied to client roles, temporary GRANT only inside rolled-back SQL transaction/CI disposable race fixture followed by REVOKE and denied-grant assertion, all prior SQL suites, source-cleanup retry, Move/Delete, 4 cross-operation two-session races and database lint. Known unsafe-legacy-Rename regression intentionally demonstrates exposure only with CI test-grant. Native P2 #1 resolved; P2 #2 awaiting reviewer dormant-stage disposition and separately required activation remediation.
-**Validation remaining:** Independent exact-head security review, native P2 dormant-stage review disposition, branch protection / required-check evidence (branch-protection API currently HTTP 403 and visible rulesets list empty), and explicit user instruction before merging. Hosted advisor is baseline-only until a separately authorized deploy. Before any Move activation, owner approval for legacy Rename/client-version sunset, protected current-client Rename/Create reconciliation and server-side grant retirement is mandatory. Supabase CLI migration-name generator unavailable in connector-only runtime; CI verification applies to **code HEAD 0887bdad**, before docs-only handoff updates.
+**Validation remaining:** Independent exact-head reviewer/approval and branch protection / required-check evidence (branch-protection API currently HTTP 403 and visible rulesets list empty; not proof of no protection), plus explicit user instruction before merging. Hosted advisor is baseline-only until a separately authorized deploy. Before any Move activation, owner approval for legacy Rename/client-version sunset, protected current-client Rename/Create reconciliation and server-side grant retirement is mandatory. Supabase CLI migration-name generator unavailable in connector-only runtime; CI verification applies to **code HEAD 0887bdad**, before docs-only handoff updates.
 **Current blocker:** PR #588 P2 #1 resolved. P2 #2 remains **activation-blocking**, not bypassable by Flutter capability flags: old Data API `UPDATE(name)` lacks source/revision. New M1 function EXECUTE is denied to every client role, so a code-only merge cannot invoke Move through the new RPC. Reviewer must acknowledge this dormant merge-stage mitigation before P2 thread closure. Any future grant requires approved compatibility cutoff and old-Rename retirement. Independently verified review and merge instruction remain outstanding.
-**Next exact action:** Complete exact-head independent dormant-stage SQL/security review and ruleset/required-check visibility, reconcile PR native thread and Linear issue, then STOP at merge gate for explicit owner merge instruction. Legacy Rename activation work requires separate owner compatibility approval; never deploy/grant as part of a code-only merge.
+**Next exact action:** Hold at merge gate. PR marked Ready for Review on validated doc HEAD `c7272a00` (Database CI #39024952940 PASS 45/45, commit attribution and runner checks PASS), 0 unresolved native review threads. Obtain independent reviewer/approval and authorized ruleset evidence before any explicit owner merge; activation remains a separate owner-approved future change. Legacy Rename activation work requires separate owner compatibility approval; never deploy/grant as part of a code-only merge.
 
 ## Merge-Gate Safety Disposition: Dormant RPC
 
