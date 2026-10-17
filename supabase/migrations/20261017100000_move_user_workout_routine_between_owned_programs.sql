@@ -23,6 +23,7 @@ declare
   v_request_hash bytea;
   v_updated bigint;
   v_program uuid;
+  v_source_exists boolean := false;
 begin
   if v_user_id is null then
     raise exception 'routine_move_not_authenticated' using errcode = '28000';
@@ -48,8 +49,11 @@ begin
     raise exception 'routine_move_not_found' using errcode = 'P0002';
   end if;
 
-  -- Both Programs must be owned by this account. Acquire parent locks in
-  -- stable UUID order so concurrent A->B / B->A cannot invert lock order.
+  -- Acquire available owner Program locks in stable UUID order, preserving
+  -- the existing account -> Programs -> UUID -> Routine lock contract.
+  -- The destination must exist. A source removed AFTER a successful Move
+  -- may be absent only for a verifiable same-request replay, checked below.
+  -- A new Move still requires its source to exist and be owner-matched.
   for v_program in
     select ids.program_id
     from (values (p_source_program_id), (p_destination_program_id))
@@ -59,7 +63,11 @@ begin
     perform 1 from public.user_workout_programs as program
     where program.id = v_program and program.user_id = v_user_id
     for key share;
-    if not found then
+    if found then
+      if v_program = p_source_program_id then
+        v_source_exists := true;
+      end if;
+    elsif v_program = p_destination_program_id then
       raise exception 'routine_move_not_found' using errcode = 'P0002';
     end if;
   end loop;
@@ -101,6 +109,12 @@ begin
       raise exception 'routine_move_mutation_conflict' using errcode = 'P0001';
     end if;
     return v_revision;
+  end if;
+
+  -- Never interpret an absent/foreign source as permission for a new Move.
+  -- Only a latest exact committed retry can skip that stale source lookup.
+  if not v_source_exists then
+    raise exception 'routine_move_not_found' using errcode = 'P0002';
   end if;
 
   if v_program_id <> p_source_program_id then
