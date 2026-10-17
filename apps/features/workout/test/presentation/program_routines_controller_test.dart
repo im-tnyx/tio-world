@@ -363,13 +363,13 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
     repository
-      ..currentCycle = 'cycle-b'
+      ..switchCycleOnRename = true
       ..loadFailures = 1;
 
     expect(await controller.rename(
       routine: controller.state.routines.single, name: 'Evening',
     ), 'Please sign in to save Routines.');
-    expect(repository.renameCount, 0);
+    expect(repository.renameCount, 1);
     expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
     expect(controller.state.routines, isEmpty);
     expect(repository.rows.single.name, 'Morning');
@@ -381,13 +381,13 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
     repository
-      ..currentOwner = 'owner-b'
+      ..switchAccountOnRename = true
       ..loadFailures = 1;
 
     expect(await controller.rename(
       routine: controller.state.routines.single, name: 'Evening',
     ), 'Please sign in to save Routines.');
-    expect(repository.renameCount, 0);
+    expect(repository.renameCount, 1);
     expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
     expect(controller.state.routines, isEmpty);
   });
@@ -486,6 +486,7 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   bool switchCycleAfterCreate = false;
   bool throwUnconfirmedRename = false;
   bool switchAccountOnRename = false;
+  bool switchCycleOnRename = false;
   bool switchedAccount = false;
   String currentCycle = 'cycle-a';
   String currentOwner = 'owner-a';
@@ -550,6 +551,10 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
     required String expectedLoginCycleId,
   }) async {
     renameCount++;
+    if (switchCycleOnRename) {
+      currentCycle = 'cycle-b';
+      throw StateError('Please sign in to save Routines.');
+    }
     if (expectedLoginCycleId != currentCycle) {
       throw StateError('Please sign in to save Routines.');
     }
