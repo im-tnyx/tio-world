@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
 enum ProgramRoutinesStatus { loading, ready, loadFailed }
@@ -53,9 +54,19 @@ final class ProgramRoutinesController extends ChangeNotifier {
   String? _pendingCreateId;
   var _loadVersion = 0;
   var _disposed = false;
+  final Map<RoutineId, int> _loadedRevisions = {};
 
-  Future<List<Routine>> _readOwnedRoutines() async {
-    final routines = await repository.list(program.id);
+  /// A revision must come from the same owner-scoped list as the Routine.
+  /// Plain metadata-only fakes may list, but cannot authorize Rename.
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions})>
+      _readOwnedRoutines() async {
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? await (repository as RoutineVersionedRenameRepository)
+            .listVersioned(program.id)
+        : null;
+    final routines = versioned == null
+        ? await repository.list(program.id)
+        : [for (final item in versioned) item.routine];
     if (routines.any((routine) => routine.programId != program.id)) {
       throw const FormatException('Routine ownership mismatch.');
     }
@@ -63,7 +74,21 @@ final class ProgramRoutinesController extends ChangeNotifier {
         routines.length) {
       throw const FormatException('Duplicate Routine identity.');
     }
-    return routines;
+    return (
+      routines: routines,
+      revisions: {
+        if (versioned != null)
+          for (final item in versioned) item.routine.id: item.revision,
+      },
+    );
+  }
+
+  void _acceptRead(
+      ({List<Routine> routines, Map<RoutineId, int> revisions}) read) {
+    _loadedRevisions
+      ..clear()
+      ..addAll(read.revisions);
+    _publish(ProgramRoutinesState.ready(routines: read.routines));
   }
 
   Future<void> load() async {
@@ -71,13 +96,13 @@ final class ProgramRoutinesController extends ChangeNotifier {
     final version = ++_loadVersion;
     _publish(const ProgramRoutinesState.loading());
     try {
-      final rows = await _readOwnedRoutines();
+      final read = await _readOwnedRoutines();
       if (_disposed || version != _loadVersion) return;
       if (_pendingCreateId != null &&
-          rows.any((r) => r.id.value == _pendingCreateId)) {
+          read.routines.any((r) => r.id.value == _pendingCreateId)) {
         _pendingCreateId = null;
       }
-      _publish(ProgramRoutinesState.ready(routines: rows));
+      _acceptRead(read);
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
       _publish(const ProgramRoutinesState.loadFailed());
@@ -152,7 +177,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
       if (_disposed) return false;
       if (reconciled != null) {
         _pendingCreateId = null;
-        _publish(ProgramRoutinesState.ready(routines: reconciled));
+        _acceptRead(reconciled);
         return true;
       }
       _publish(ProgramRoutinesState.ready(
@@ -163,74 +188,78 @@ final class ProgramRoutinesController extends ChangeNotifier {
     }
   }
 
-  /// A rename result is confirmed by an owner-filtered read, even when the
-  /// Data API returns success with zero affected rows.
+  /// Only list-time owner/Program/revision context may authorize a rename.
+  /// The composed RPC validates one frozen CAS token; read-back without an
+  /// RPC-confirmed revision is NOT evidence of this client's write.
   Future<String?> rename({required Routine routine, required String name}) async {
     final current = _state;
+    final guarded = repository;
+    final expectedRevision = _loadedRevisions[routine.id];
     if (current.status != ProgramRoutinesStatus.ready ||
         current.saving ||
+        guarded is! RoutineVersionedRenameRepository ||
+        expectedRevision == null ||
         routine.programId != program.id ||
-        !current.routines.any((item) => item.id == routine.id)) {
+        !current.routines.any((item) => item == routine)) {
       return 'Could not edit routine. Please try again.';
     }
     if (name.trim().isEmpty) return 'Enter a routine name.';
     if (name == routine.name) return null;
 
+    final command = RoutineAggregateUpdate(
+      routineId: routine.id,
+      programId: program.id,
+      expectedRevision: expectedRevision,
+      expectedName: routine.name,
+      mutationId: _uuidV4(),
+      name: name,
+    );
     _publish(ProgramRoutinesState.ready(
       routines: current.routines,
       saving: true,
     ));
+    int? confirmedRevision;
     Object? error;
     try {
-      await repository.rename(id: routine.id, name: name);
+      confirmedRevision = await guarded.renameVersioned(command);
     } catch (caught) {
       error = caught;
     }
-    List<Routine>? authoritativeRows;
     try {
-      final rows = await _readOwnedRoutines();
+      final read = await _readOwnedRoutines();
       if (_disposed) return 'Could not edit routine. Please try again.';
-      authoritativeRows = rows;
-      if (rows.any((r) => r.id == routine.id && r.name == name)) {
-        _publish(ProgramRoutinesState.ready(routines: rows));
+      _acceptRead(read);
+      if (confirmedRevision == expectedRevision + 1 &&
+          read.revisions[routine.id] == confirmedRevision &&
+          read.routines.any((item) =>
+              item.id == routine.id &&
+              item.programId == program.id &&
+              item.name == name)) {
         return null;
       }
     } catch (_) {
-      // The durable write result is unknown; never advertise a false success.
+      // Unknown outcome: do not retry with a fresh token or claim success.
+      if (_disposed) return 'Could not edit routine. Please try again.';
+      _loadedRevisions.clear();
+      _publish(ProgramRoutinesState.ready(routines: current.routines));
     }
-    if (!_disposed) {
-      // Do not keep stale or concurrently deleted rows when the owner read
-      // succeeded, even if this particular rename was not confirmed.
-      _publish(ProgramRoutinesState.ready(
-        routines: authoritativeRows ?? current.routines,
-      ));
-    }
-    return error == null
-        ? 'Could not confirm the routine name. Please try again.'
-        : _errorMessage(error, creating: false);
+    return error is StateError &&
+            error.message.toString() == 'Please sign in to save Routines.'
+        ? 'Please sign in to save Routines.'
+        : 'Could not confirm the routine name. Please try again.';
   }
 
-  Future<List<Routine>?> _reconcileCreate(Routine attempted) async {
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions})?>
+      _reconcileCreate(Routine attempted) async {
     try {
-      var rows = await _readOwnedRoutines();
-      Routine? existing;
-      for (final row in rows) {
-        if (row.id == attempted.id) {
-          existing = row;
-          break;
-        }
-      }
-      if (existing == null) return null;
-      if (existing.name == attempted.name) return rows;
-      // The original POST may have committed before its response was lost;
-      // keep its UUID and reconcile the user's latest edited name.
-      await repository.rename(id: attempted.id, name: attempted.name);
-      rows = await _readOwnedRoutines();
-      if (rows.any((r) => r.id == attempted.id && r.name == attempted.name)) {
-        return rows;
-      }
+      final read = await _readOwnedRoutines();
+      final matches = read.routines.where((r) => r.id == attempted.id);
+      if (matches.length != 1) return null;
+      if (matches.single.name == attempted.name) return read;
+      // A committed Create with a different current name may have a later
+      // owner edit. Never blindly Rename or reuse its UUID as a new identity.
     } catch (_) {
-      // Retain pending UUID across retries; never create a second identity.
+      // Preserve the frozen pending UUID until explicit editor abandonment.
     }
     return null;
   }
