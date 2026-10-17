@@ -290,6 +290,14 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
             status >= 500))) {
       return null;
     }
+    // A real PostgreSQL SQLSTATE from a completed error response means the
+    // database transaction failed, even if PostgREST encoded it as HTTP 500.
+    if (RegExp(r'^40[0-9A-Z]{3}$').hasMatch(code)) {
+      return RoutineDeleteFailureKind.transactionAborted;
+    }
+    if (RegExp(r'^(22|23)[0-9A-Z]{3}$').hasMatch(code)) {
+      return RoutineDeleteFailureKind.invalidRequest;
+    }
     return switch (code) {
       '28000' || '28P01' || '401' ||
       'PGRST301' || 'PGRST302' || 'PGRST303' =>
@@ -300,30 +308,6 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       'P0001' when e.message == 'routine_delete_revision_conflict' =>
         RoutineDeleteFailureKind.revisionConflict,
       'P0001' || 'P0002' => RoutineDeleteFailureKind.invalidRequest,
-      // PostgreSQL's explicit SQLSTATE 22 (data exception) and 23
-      // (integrity constraint) mean this statement was rejected.
-      _ when RegExp(r'^(22|23)[0-9A-Z]{3}
-      'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
-      _ when status != null && status >= 400 && status < 500 =>
-        RoutineDeleteFailureKind.invalidRequest,
-      _ => null,
-    };
-  }
-}
-).hasMatch(code) =>
-        RoutineDeleteFailureKind.invalidRequest,
-      // Class 40 is transaction rollback: serialization/deadlock aborts
-      // are definitive failures, NOT pending network outcomes.
-      _ when RegExp(r'^40[0-9A-Z]{3}
-      'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
-      _ when status != null && status >= 400 && status < 500 =>
-        RoutineDeleteFailureKind.invalidRequest,
-      _ => null,
-    };
-  }
-}
-).hasMatch(code) =>
-        RoutineDeleteFailureKind.transactionAborted,
       'PGRST202' || 'PGRST203' => RoutineDeleteFailureKind.unavailable,
       _ when status != null && status >= 400 && status < 500 =>
         RoutineDeleteFailureKind.invalidRequest,
