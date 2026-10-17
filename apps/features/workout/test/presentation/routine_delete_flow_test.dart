@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -16,12 +18,14 @@ final class _DeleteRepo implements RoutineDeleteRepository {
   int reads = 0;
   int writes = 0;
   bool absent = false;
+  Future<RoutineDeleteTarget?> Function()? onInspect;
   RoutineDeleteOutcomeUnknown? uncertainty;
   @override
   Future<RoutineDeleteTarget?> inspect({
     required ProgramId programId, required RoutineId routineId,
   }) async {
     reads++;
+    if (onInspect != null) return onInspect!();
     if (absent) return null;
     return RoutineDeleteTarget(
       routineId: routineId, programId: programId, name: 'Push',
@@ -59,6 +63,23 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('concurrent Delete taps cannot issue a second inspection',
+      (tester) async {
+    final pendingRead = Completer<RoutineDeleteTarget?>();
+    final repository = _DeleteRepo()
+      ..onInspect = () => pendingRead.future;
+    final flow = RoutineDeleteFlow();
+    await pumpFlow(tester, repository, flow, () => true, (_) {});
+    await tester.tap(find.text('Open Delete'));
+    await tester.pump();
+    await tester.tap(find.text('Open Delete'));
+    await tester.pump();
+    expect(repository.reads, 1);
+    expect(repository.writes, 0);
+    pendingRead.complete(null);
+    await tester.pumpAndSettle();
+    expect(repository.writes, 0);
+  });
   testWidgets('cancel after fresh inspection never dispatches Delete',
       (tester) async {
     final repository = _DeleteRepo();
