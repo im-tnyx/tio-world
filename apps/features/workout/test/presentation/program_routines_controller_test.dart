@@ -296,6 +296,41 @@ void main() {
     expect(repository.renameCount, 0);
   });
 
+  test('P2 same-name retry after relogin never reuses prior cycle UUID', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..switchCycleAfterCreate = true;
+    var created = 0;
+    final controller = ProgramRoutinesController(
+      program: _program(1),
+      repository: repository,
+      newRoutineUuid: () => _rid(++created + 40).value,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.attempted.single.id, _rid(41));
+    expect(repository.rows.single.id, _rid(41));
+
+    // A same-name retry without a fresh owner/cycle read cannot turn
+    // the old committed UUID into a new-cycle successful Create.
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.attempted, hasLength(1));
+    expect(created, 1);
+    expect(controller.state.status, ProgramRoutinesStatus.loadFailed);
+
+    repository
+      ..throwAfterCreate = false
+      ..switchCycleAfterCreate = false;
+    await controller.load();
+    expect(await controller.create('Original'), isTrue);
+    expect(created, 2);
+    expect(repository.attempted.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(repository.rows.map((r) => r.id), [_rid(41), _rid(42)]);
+    expect(controller.abandonCreateAttempt(), isFalse);
+  });
+
   test('unknown metadata Create must not overwrite later changed name', () async {
     final repository = _FakeRoutines()
       ..throwAfterCreate = true

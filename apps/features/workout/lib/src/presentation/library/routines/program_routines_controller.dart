@@ -52,6 +52,10 @@ final class ProgramRoutinesController extends ChangeNotifier {
   ProgramRoutinesState _state = const ProgramRoutinesState.loading();
   ProgramRoutinesState get state => _state;
   String? _pendingCreateId;
+  // The pending UUID must never cross an authenticated login-cycle boundary.
+  String? _pendingCreateCycleId;
+  // Even an empty owner-scoped list has a session binding.
+  String? _loadedSessionCycleId;
   var _loadVersion = 0;
   var _disposed = false;
   final Map<RoutineId, int> _loadedRevisions = {};
@@ -107,15 +111,30 @@ final class ProgramRoutinesController extends ChangeNotifier {
     final version = ++_loadVersion;
     _publish(const ProgramRoutinesState.loading());
     try {
+      final versioned = repository is RoutineVersionedRenameRepository
+          ? repository as RoutineVersionedRenameRepository
+          : null;
+      final cycle = versioned?.activeLoginCycleId;
+      if (versioned != null && (cycle == null || cycle.isEmpty)) {
+        throw StateError('Please sign in to save Routines.');
+      }
       final read = await _readOwnedRoutines();
       if (_disposed || version != _loadVersion) return;
-      if (_pendingCreateId != null &&
-          read.routines.any((r) => r.id.value == _pendingCreateId)) {
-        _pendingCreateId = null;
+      if (versioned != null && versioned.activeLoginCycleId != cycle) {
+        throw StateError('Please sign in to save Routines.');
       }
+      if (_pendingCreateId != null &&
+          (_pendingCreateCycleId != cycle ||
+              read.routines.any((r) => r.id.value == _pendingCreateId))) {
+        _clearPendingCreate();
+      }
+      _loadedSessionCycleId = cycle;
       _acceptRead(read);
     } catch (_) {
       if (_disposed || version != _loadVersion) return;
+      _loadedSessionCycleId = null;
+      _loadedRevisions.clear();
+      _loadedCycles.clear();
       _publish(const ProgramRoutinesState.loadFailed());
     }
   }
@@ -127,8 +146,13 @@ final class ProgramRoutinesController extends ChangeNotifier {
   /// Returns whether a pending uncertain insert needs a fresh owner read.
   bool abandonCreateAttempt() {
     final hadPending = _pendingCreateId != null;
-    _pendingCreateId = null;
+    _clearPendingCreate();
     return hadPending;
+  }
+
+  void _clearPendingCreate() {
+    _pendingCreateId = null;
+    _pendingCreateCycleId = null;
   }
 
   String suggestedName() {
@@ -151,11 +175,19 @@ final class ProgramRoutinesController extends ChangeNotifier {
     if (current.status != ProgramRoutinesStatus.ready || current.saving) {
       return false;
     }
-    if (versioned != null && (startCycle == null || startCycle.isEmpty)) {
-      _publish(ProgramRoutinesState.ready(
-        routines: current.routines,
-        error: 'Please sign in to save Routines.',
-      ));
+    // An old login cycle must not provide either the pending UUID or the
+    // owner-list context for a new Create; require a fresh owner read.
+    if (versioned != null &&
+        (startCycle == null ||
+            startCycle.isEmpty ||
+            _loadedSessionCycleId != startCycle ||
+            (_pendingCreateId != null &&
+                _pendingCreateCycleId != startCycle))) {
+      _clearPendingCreate();
+      _loadedSessionCycleId = null;
+      _loadedRevisions.clear();
+      _loadedCycles.clear();
+      _publish(const ProgramRoutinesState.loadFailed());
       return false;
     }
     if (name.trim().isEmpty) {
@@ -174,6 +206,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
         name: name,
       );
       _pendingCreateId ??= attempted.id.value;
+      _pendingCreateCycleId ??= startCycle;
     } catch (_) {
       _publish(ProgramRoutinesState.ready(
         routines: current.routines,
@@ -190,19 +223,23 @@ final class ProgramRoutinesController extends ChangeNotifier {
       await repository.create(attempted);
       if (_disposed) return false;
       if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        _clearPendingCreate();
+        _loadedSessionCycleId = null;
         _publish(ProgramRoutinesState.ready(
           routines: current.routines,
           error: 'Please sign in to save Routines.',
         ));
         return false;
       }
-      _pendingCreateId = null;
+      _clearPendingCreate();
       _publish(ProgramRoutinesState.ready(
         routines: [...current.routines, attempted],
       ));
       return true;
     } catch (error) {
       if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        _clearPendingCreate();
+        _loadedSessionCycleId = null;
         if (!_disposed) {
           _publish(ProgramRoutinesState.ready(
             routines: current.routines,
@@ -214,6 +251,8 @@ final class ProgramRoutinesController extends ChangeNotifier {
       final reconciled = await _reconcileCreate(attempted);
       if (_disposed) return false;
       if (versioned != null && versioned.activeLoginCycleId != startCycle) {
+        _clearPendingCreate();
+        _loadedSessionCycleId = null;
         _publish(ProgramRoutinesState.ready(
           routines: current.routines,
           error: 'Please sign in to save Routines.',
@@ -221,7 +260,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
         return false;
       }
       if (reconciled != null) {
-        _pendingCreateId = null;
+        _clearPendingCreate();
         _acceptRead(reconciled);
         return true;
       }
