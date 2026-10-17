@@ -372,6 +372,7 @@ jobs:
           trap cleanup_atomic_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
           bash supabase/tests/database/tnyx_569_atomic_create_program_move_concurrency.sh
+          bash supabase/tests/database/tnyx_569_atomic_create_program_id_collision.sh
           cleanup_atomic_move_grant
           trap - EXIT
           can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
