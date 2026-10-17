@@ -1,7 +1,7 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-11
+Last Verified: 2026-10-17
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
@@ -9,11 +9,13 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**
 
-Verified on **2026-10-11** against:
+Verified on **2026-10-17** against:
 
-- repository migration history through `20261010061809_create_user_workout_routine_composition.sql`;
-- checked-in `supabase/migrations/` history;
-- live Supabase project `tio-world` (`oykupyiitspujzpwwvuj`) structural metadata after the owner-authorized single-migration deployment.
+- all 62 checked-in `supabase/migrations/` files, through `20261016220000_prevent_deleted_routine_resurrection.sql`;
+- the connected `tio-world` project's read-only applied migration ledger (62/62 exact version + name matches);
+- read-only live `pg_catalog` metadata for `public` tables, columns, keys/constraints, indexes, RLS, and the current Routine RPC signatures and grants.
+
+The previous 2026-10-11 **55/55** snapshot ending at `20261010061809_create_user_workout_routine_composition` remains historical. This update only documents the subsequently deployed seven migrations; it did **not** apply or rerun a migration or mutate any schema/data. The anti-resurrection migration adds a private tombstone table, which is intentionally excluded from this `public`-only inventory.
 
 ## Truth Boundary
 
@@ -41,22 +43,22 @@ This inventory intentionally excludes:
 | Measure | Verified value |
 | :--- | ---: |
 | Active ordinary `public` tables | 19 |
-| Columns | 185 |
+| Columns | 190 |
 | Primary-key constraints | 19 |
 | Foreign-key constraints | 21 |
 | Unique constraints | 10 |
-| Check constraints | 71 |
+| Check constraints | 77 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 123 |
+| Total catalog constraint records | 129 |
 | Indexes | 54 |
 | Tables with RLS enabled | 19 / 19 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 55 / 55 |
+| Applied live migrations matched to repository | 62 / 62 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration history ends at `20261010061809_create_user_workout_routine_composition`. Repository and live history are aligned 55 / 55 by version + name, with no pending or live-only migrations. Post-apply CLI dry-run reports the remote database up to date.
+The verified live migration ledger ends at `20261016220000_prevent_deleted_routine_resurrection`; all 62 checked-in and 62 applied migration versions **and names** match exactly, with no repo-only or live-only migrations observed. Verification used read-only metadata, **not** a fresh CLI dry-run or production write.
 
 ## Table Overview
 
@@ -75,9 +77,9 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | `public.user_wellness_targets` | 8 | Enabled |
 | `public.user_workout_exercises` | 12 | Enabled |
 | `public.user_workout_programs` | 5 | Enabled |
-| `public.user_workout_routines` | 8 | Enabled |
+| `public.user_workout_routines` | 9 | Enabled |
 | `public.user_workout_routine_exercises` | 6 | Enabled |
-| `public.user_workout_routine_sets` | 7 | Enabled |
+| `public.user_workout_routine_sets` | 11 | Enabled |
 | `public.user_workout_profiles` | 7 | Enabled |
 | `public.user_workout_targets` | 12 | Enabled |
 | `public.users` | 21 | Enabled |
@@ -517,7 +519,7 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | `description` | `text` | Yes | — |
 | `exercise_type` | `text` | Yes | — |
 | `primary_muscle` | `text` | Yes | — |
-| `secondary_muscles` | `ARRAY` (`text[]`) | No | `'{}'::text[]` |
+| `secondary_muscles` | `text[]` | No | `'{}'::text[]` |
 | `primary_equipment` | `text` | Yes | — |
 
 #### Constraints
@@ -580,7 +582,7 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 
 **RLS:** Enabled
 
-**Verified Data API access:** `authenticated` has SELECT, column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`), and UPDATE(name) only. Owner SELECT/INSERT/UPDATE RLS remains. Direct INSERT/UPDATE of `composition_revision` or `last_composition_mutation_id`, DELETE, ownership changes and moves are denied; composition writes use the narrow RPC below.
+**Verified Data API access (2026-10-17):** `authenticated` has SELECT, column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`), and UPDATE(name) only. Owner SELECT/INSERT/UPDATE RLS remains; authenticated table-wide INSERT/UPDATE/DELETE are not granted. Direct client revision, mutation-token and `last_routine_update_request_hash` writes, Routine DELETE, ownership changes and moves are denied. Atomic composition/Create/Name+composition Update/Delete uses the explicitly granted owner-scoped RPCs listed below; their existence is not Workout UI or device-release acceptance.
 
 #### Columns
 
@@ -594,6 +596,7 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
 | `composition_revision` | `bigint` | No | `0` |
 | `last_composition_mutation_id` | `uuid` | Yes | — |
+| `last_routine_update_request_hash` | `bytea` | Yes | — |
 
 #### Constraints
 
@@ -604,6 +607,7 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | `user_workout_routines_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 | `user_workout_routines_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_routines_program_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (program_id, user_id) REFERENCES user_workout_programs(id, user_id) ON DELETE CASCADE` |
+| `user_workout_routines_update_hash_length` | `CHECK` | `CHECK (last_routine_update_request_hash IS NULL OR octet_length(last_routine_update_request_hash) = 32)` |
 | `user_workout_routines_user_id_fkey` | `FOREIGN KEY` | `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE` |
 
 #### Indexes
@@ -667,21 +671,30 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | `user_id` | `uuid` | No | — |
 | `routine_exercise_id` | `uuid` | No | — |
 | `position` | `integer` | No | — |
-| `reps` | `integer` | No | — |
+| `reps` | `integer` | Yes | — |
 | `load_kg` | `double precision` | Yes | — |
 | `rest_seconds` | `integer` | Yes | — |
+| `set_type` | `text` | No | `'normal'::text` |
+| `reps_max` | `integer` | Yes | — |
+| `distance_meters` | `double precision` | Yes | — |
+| `duration_seconds` | `integer` | Yes | — |
 
 #### Constraints
 
 | Name | Type | Definition |
 | :--- | :--- | :--- |
+| `user_workout_routine_sets_distance_nonnegative_finite` | `CHECK` | `CHECK (distance_meters IS NULL OR distance_meters >= 0::double precision AND distance_meters < 'Infinity'::double precision AND distance_meters <> 'NaN'::double precision)` |
+| `user_workout_routine_sets_duration_nonnegative` | `CHECK` | `CHECK (duration_seconds IS NULL OR duration_seconds >= 0)` |
 | `user_workout_routine_sets_exercise_owner_fkey` | `FOREIGN KEY` | `FOREIGN KEY (routine_exercise_id, user_id) REFERENCES user_workout_routine_exercises(id, user_id) ON DELETE CASCADE` |
 | `user_workout_routine_sets_load_nonnegative_finite` | `CHECK` | `CHECK (((load_kg IS NULL) OR ((load_kg >= (0)::double precision) AND (load_kg < 'Infinity'::double precision) AND (load_kg <> 'NaN'::double precision))))` |
+| `user_workout_routine_sets_max_eight_position` | `CHECK` | `CHECK ("position" < 8) NOT VALID` |
 | `user_workout_routine_sets_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
 | `user_workout_routine_sets_position_key` | `UNIQUE` | `UNIQUE (routine_exercise_id, user_id, "position")` |
 | `user_workout_routine_sets_position_nonnegative` | `CHECK` | `CHECK (("position" >= 0))` |
+| `user_workout_routine_sets_reps_max_valid` | `CHECK` | `CHECK (reps_max IS NULL OR reps IS NOT NULL AND reps_max >= reps AND reps_max > 0)` |
 | `user_workout_routine_sets_reps_positive` | `CHECK` | `CHECK ((reps > 0))` |
 | `user_workout_routine_sets_rest_nonnegative` | `CHECK` | `CHECK (((rest_seconds IS NULL) OR (rest_seconds >= 0)))` |
+| `user_workout_routine_sets_set_type_allowed` | `CHECK` | `CHECK (set_type = ANY (ARRAY['normal'::text, 'warm_up'::text, 'failure'::text, 'drop'::text]))` |
 
 #### Indexes
 
@@ -689,6 +702,8 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 | :--- | :--- |
 | `user_workout_routine_sets_pkey` | `CREATE UNIQUE INDEX user_workout_routine_sets_pkey ON public.user_workout_routine_sets USING btree (id)` |
 | `user_workout_routine_sets_position_key` | `CREATE UNIQUE INDEX user_workout_routine_sets_position_key ON public.user_workout_routine_sets USING btree (routine_exercise_id, user_id, "position")` |
+
+**Constraint-validation boundary:** `user_workout_routine_sets_max_eight_position` was installed `NOT VALID` and remains `convalidated = false` in the verified live catalog. It is not evidence that historical rows have been validated. The other five new CHECK constraints are validated. Nullable `reps` is intentional; the retained `CHECK (reps > 0)` does not prohibit SQL NULL.
 
 ### `public.user_workout_profiles`
 
@@ -821,9 +836,18 @@ The verified live migration history ends at `20261010061809_create_user_workout_
 
 ## Routine Composition RPC
 
-Verified `public.save_user_workout_routine_composition(uuid, bigint, uuid, jsonb)` returns bigint. It is owned by postgres, uses SECURITY DEFINER with empty `search_path`, and grants EXECUTE only to postgres/authenticated; anon/PUBLIC have no EXECUTE.
+Verified **2026-10-17 live `public` Routine RPC metadata** (argument types and return types):
 
-The hosted function body matches the reviewed migration source after line-ending normalization: server-side `auth.uid()` owner verification, Routine row lock, expected revision comparison, mutation-token/payload equality on retry, and atomic child replacement/revision advance. Behavior under writes and concurrency is covered by the existing disposable database CI, not production data mutations. The Workout-owned Flutter composition adapter is implemented and merged via PR #513 (`dfe9cee7389165f0a485623a1e3e69477eb1dc37`). App provider/controller integration and the visible Routine builder remain pending; the adapter has not been activated as a user-facing editor.
+| Function | Argument types (in order) | Returns |
+| :--- | :--- | :--- |
+| `save_user_workout_routine_composition` | `uuid, bigint, uuid, jsonb` | `bigint` |
+| `create_user_workout_routine_with_composition` | `uuid, uuid, text, uuid, jsonb` | `bigint` |
+| `update_user_workout_routine_with_composition` | `uuid, uuid, bigint, text, uuid, text, jsonb` | `bigint` |
+| `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` |
+
+The read-only live catalog confirms **SECURITY DEFINER** and an empty `search_path` for all four RPCs, `authenticated` EXECUTE permitted and `anon`/`PUBLIC` EXECUTE denied. Repository migrations through `20261016220000` define their owner, revision, idempotency, Custom Exercise guard and anti-resurrection behavior. The final Delete implementation atomically retires deleted Routine IDs in a private `private.deleted_user_workout_routine_ids` table with RLS enabled, which is **not** an ordinary `public` table and is omitted from counts above. No authenticated direct table DELETE privilege was introduced.
+
+**Evidence boundary:** Live metadata verification establishes schema, grants and signatures; this inventory update did not execute mutating RPCs, retest concurrency, validate existing rows against the `NOT VALID` constraint or establish a distributed phone-app release. The Workout feature's merged composition builder/editor and independently gated Workout Start, Routine Move/Delete product flows are tracked by live GitHub/Linear and source, not by this catalog.
 
 ## Maintenance Rule
 
