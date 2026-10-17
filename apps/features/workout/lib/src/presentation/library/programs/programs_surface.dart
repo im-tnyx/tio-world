@@ -25,6 +25,7 @@ class ProgramsSurface extends StatefulWidget {
         onProgramPressed = null,
         onRoutinePressed = null,
         onEditRoutine = null,
+        onDeleteRoutine = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
         routineRepository = null;
@@ -35,6 +36,7 @@ class ProgramsSurface extends StatefulWidget {
     this.onProgramPressed,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onDeleteRoutine,
     this.onAddRoutinePressed,
     this.hasUnconfirmedCreate,
     this.routineRepository,
@@ -52,6 +54,7 @@ class ProgramsSurface extends StatefulWidget {
   final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final RoutineRepository? routineRepository;
 
   @override
@@ -393,6 +396,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
           onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
+          onDeleteRoutine: widget.onDeleteRoutine,
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
           isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
@@ -424,6 +428,7 @@ class _ProgramsList extends StatefulWidget {
     required this.routineRepository,
     required this.onRoutinePressed,
     required this.onEditRoutine,
+    required this.onDeleteRoutine,
     required this.hasUnconfirmedCreate,
     required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
@@ -436,6 +441,7 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final RoutineRepository? routineRepository;
   final bool Function(Program)? hasUnconfirmedCreate;
   final bool isLaunchingRoutine;
@@ -512,6 +518,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             onEditRoutine: widget.onEditRoutine == null
                 ? null
                 : (routine) => widget.onEditRoutine!(program, routine),
+            onDeleteRoutine: widget.onDeleteRoutine == null
+                ? null
+                : (routine) => widget.onDeleteRoutine!(program, routine),
             onAddRoutine: widget.onAddRoutinePressed == null
                 ? null
                 : () => widget.onAddRoutinePressed!(program),
