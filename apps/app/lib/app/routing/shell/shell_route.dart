@@ -79,6 +79,8 @@ List<RouteBase> _shellBranchChildRoutes(
           final routineRepository = ref.watch(routineRepositoryProvider);
           final compositions = ref.watch(routineCompositionRepositoryProvider);
           final createRepository = ref.watch(routineCreateRepositoryProvider);
+          final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
+          final deleteFlow = ref.read(routineDeleteFlowProvider);
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
@@ -252,6 +254,48 @@ List<RouteBase> _shellBranchChildRoutes(
                                 ),
                               );
             return confirmed ?? false;
+          }
+
+          /// One guarded Delete entry shared by expanded Library and Detail.
+          /// The feature workflow owns confirmation and outcomes; shell only
+          /// supplies a live bootstrap/Auth-cycle capability check.
+          Future<bool> deleteRoutine(Program program, Routine routine) async {
+            final repository = deleteRepository;
+            if (repository == null || routineRepository == null ||
+                routine.programId != program.id) return false;
+            final openingBoot =
+                ref.read(appSessionBootstrapControllerProvider).state;
+            final owner = openingBoot is AppSessionBootstrapReady
+                ? openingBoot.userId : null;
+            final openingValue = ref.read(authSessionStateProvider);
+            final openingAuth = openingValue.isLoading || openingValue.hasError
+                ? null : openingValue.valueOrNull;
+            final cycle = openingAuth is AuthSessionAuthenticated &&
+                    openingAuth.session.userId == owner
+                ? openingAuth.session.loginCycleId : null;
+            if (owner == null || cycle == null) return false;
+
+            bool sameSession() {
+              try {
+                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final value = ref.read(authSessionStateProvider);
+                final auth = value.isLoading || value.hasError
+                    ? null : value.valueOrNull;
+                return boot is AppSessionBootstrapReady &&
+                    boot.userId == owner &&
+                    auth is AuthSessionAuthenticated &&
+                    auth.session.userId == owner &&
+                    auth.session.loginCycleId == cycle &&
+                    ref.read(supabaseClientProvider)?.auth.currentUser?.id == owner;
+              } catch (_) {
+                return false;
+              }
+            }
+            if (!sameSession()) return false;
+            return deleteFlow.run(
+              context: context, program: program, routine: routine,
+              repository: repository, canWrite: sameSession,
+            );
           }
 
           Future<void> openRoutine(Program program, Routine routine) async {
@@ -653,6 +697,10 @@ List<RouteBase> _shellBranchChildRoutes(
                           userExerciseRepository == null
                       ? null
                       : (routine) => editRoutine(program, routine),
+                  onDeleteRoutine: deleteRepository == null ||
+                          !openingSessionValid()
+                      ? null
+                      : (routine) => deleteRoutine(program, routine),
                   hasUnconfirmedCreate: () =>
                       openingOwner != null && openingCycle != null &&
                       pendingGate.hasPending(
@@ -732,6 +780,10 @@ List<RouteBase> _shellBranchChildRoutes(
                     userExerciseRepository == null
                 ? null
                 : editRoutine,
+            onDeleteRoutine: !bound || !canCreateForSession ||
+                    routineRepository == null || deleteRepository == null
+                ? null
+                : deleteRoutine,
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>
