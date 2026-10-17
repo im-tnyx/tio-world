@@ -1,6 +1,6 @@
 # GitHub #526 — Flutter Routine Delete RPC adapter (Slice A)
 
-**Status:** In Review — manual security corrections ongoing. Source HEAD `ef632b3b` passed all 7 Flutter/attribution CI checks; two further review findings about cross-login-cycle pending guards and single-use targets are now being fixed/tested; new exact-head CI and independent review decision pending.
+**Status:** In Review — owner-approved security corrective slice. Source `ef632b3b` passed 7/7 CI; cross-login-cycle and one-use fixes subsequently passed app-workout and Analyze at `909bfd9d`. A new review finding exposed stale inspect/dispatch overlap; source/test correction added. **Fresh exact-head CI and independent review remain pending.**
 **Implementation owner:** This GitHub-connected implementation session.
 **Branch:** `tnyx/issue-526-routine-delete-flutter-adapter` from live `main@6cb353eaf492f178c707a94178e5d34f19c8ea04` (2026-10-17).
 **Scope approval:** Owner's `Go` following the read-only #526 audit and explicit proposal to start **Slice A** only. No authority to deploy, merge, activate UI Delete, or modify Supabase schema.
@@ -24,6 +24,9 @@ Delete RPC success boolean `true` is confirmed. Definite SQL/Auth/CAS failures a
 1. New narrow Workout domain Delete contract and Supabase adapter/gateway with dependency-injected current user ID **and** login-cycle marker for exact session binding; no fallback to an in-memory implementation.
 2. Owner-filtered lightweight Routine snapshot read (name, Program, revision), used for explicit target preparation and unknown-outcome reconciliation; distinguish wrong Program/move.
 3. Tests for exact RPC parameters, cancel/preparation no write, definite typed rejections, cross-account and same-owner relogin, concurrent requests/unknown outcomes, 2xx malformed, read failure and no automatic retries. Add narrower tests where justified.
+
+
+- A further manual P2 finding exposed an inspection race: an owner read started before an RPC could return a stale header after successful Delete, or inspection could begin while a Delete was in-flight. The repository now checks owner+Routine in-flight before and after read and verifies no RPC dispatch generation changed during the read. A Completer regression asserts an overlapped read cannot mint a new Delete target; this change also awaits exact-head CI.
 
 ### Explicit non-goals
 
