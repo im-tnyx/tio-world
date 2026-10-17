@@ -33,15 +33,10 @@ final class RoutineDeleteFlow {
         _show(context, 'This Routine is no longer available. Refresh the list.');
         return true;
       }
-      final confirmed = await showTioConfirmationBottomSheet(
+      final confirmed = await _showRoutineDeleteDialog(
         context: context,
-        title: 'Delete Routine?',
-        message: 'Delete "${target.name}" and its saved Exercises and Sets? '
-            'This cannot be undone.',
-        confirmLabel: 'Delete Routine',
-        cancelLabel: 'Cancel',
-        intent: TioConfirmationIntent.destructive,
-        cardKey: ValueKey('confirm-delete-routine-${routine.id.value}'),
+        routineId: routine.id,
+        routineName: target.name,
       );
       // The owner/login cycle may change while inspection or the sheet awaits.
       if (confirmed != true || !context.mounted || !canWrite()) return false;
@@ -93,3 +88,103 @@ final class RoutineDeleteFlow {
     );
   }
 }
+
+/// A one-off Routine Delete confirmation surface: only the placement and
+/// compact visual geometry differ from the shared Core bottom-sheet presenter.
+/// All colours, card styling and button intent remain Core-owned.
+Future<bool?> _showRoutineDeleteDialog({
+  required BuildContext context,
+  required RoutineId routineId,
+  required String routineName,
+}) => showDialog<bool>(
+  context: context,
+  builder: (dialogContext) {
+    final theme = Theme.of(dialogContext);
+    final colors = dialogContext.tioColors;
+    // Locally reduce ONLY this confirmation's visual button minimum.
+    // The themed padded Material tap target and text scaling are retained.
+    const compactMinSize = WidgetStatePropertyAll<Size>(
+      Size(TioButtonTokens.minimumWidth, TioSize.dp38),
+    );
+    final compactTheme = theme.copyWith(
+      filledButtonTheme: FilledButtonThemeData(
+        style: (theme.filledButtonTheme.style ?? const ButtonStyle()).copyWith(
+          minimumSize: compactMinSize,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: (theme.outlinedButtonTheme.style ?? const ButtonStyle()).copyWith(
+          minimumSize: compactMinSize,
+        ),
+      ),
+    );
+
+    return Dialog(
+      key: ValueKey('confirm-delete-routine-${routineId.value}'),
+      backgroundColor: Colors.transparent,
+      elevation: TioElevation.none,
+      insetPadding: const EdgeInsets.all(TioSpacing.lg),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: TioSize.dp480),
+        child: SingleChildScrollView(
+          child: TioCard(
+            variant: TioCardVariant.elevated,
+            padding: const EdgeInsets.all(TioSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.delete_outline_rounded,
+                  size: TioSize.dp24,
+                  color: colors.danger,
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  'Delete Routine?',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  'Delete "$routineName" and its saved Exercises and Sets? '
+                      'This cannot be undone.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.textSecondary,
+                    height: TioLineHeight.height140,
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.lg),
+                Theme(
+                  data: compactTheme,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TioButton.secondary(
+                          label: 'Cancel',
+                          onPressed: () => Navigator.of(dialogContext).pop(false),
+                          expand: true,
+                        ),
+                      ),
+                      const SizedBox(width: TioSpacing.sm),
+                      Expanded(
+                        child: TioButton.destructive(
+                          label: 'Delete',
+                          onPressed: () => Navigator.of(dialogContext).pop(true),
+                          expand: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+);
