@@ -1,8 +1,15 @@
 # Pre-P9 — Screen Catalog Current-State Row Reconciliation
 
-**Status:** In progress
+**Status:** Validated — 2026-10-17 archival; bounded catalog correction merged in PR #563
 **Primary owner:** Repository documentation governance / `docs/screens/`
 **Affected platforms:** Canonical phone screen catalog documentation only; no product behavior change
+
+## Validated Outcome And Archive Decision — 2026-10-17
+
+- **Final GitHub evidence:** [PR #563](https://github.com/im-tnyx/tio-world/pull/563) is **merged**, exact last PR head `a1b1203952c7862d765303f97fadbef0f053cb41`, squash merge `4090e3a143fcfc309a3020e73823bc30ec40c282`. Both prior P2 review threads (`4285947882`, `4285947897`) are confirmed resolved; the bounded catalog Profile, Profile Photo, Nutrition Targets and Settings rows are present in current canonical [screen catalog](../../docs/screens/README.md). GitHub #250's **whole-catalog** contradiction acceptance remains unchecked.
+- **Scope:** Prior three-file, docs-only delivery. This archive is an execution record, **not** current application, review, CI, or workflow state. No new Flutter/route/health data/Supabase/schema change is made by archival.
+- **Archive approval:** User `Go next` on 2026-10-17 after fresh `main@28fe5cc5` audit; same governance effort under GitHub #250 / Linear TNYX-193. The stale review instructions below are **historical snapshots**, not work still pending on PR #563.
+- **Remaining work is separate:** current Supabase schema inventory drift, other stale handoffs, complete current-canonical contradiction re-audit and conditional P9 necessity decision. Do not infer broader #250 completion from this validated slice.
 
 ## Owner Approval and Scope Boundary
 
@@ -23,7 +30,7 @@
 - Updated current-state rows will be scoped **repository-implemented functionality**, not published mobile-app release evidence.
 - Remaining screen statuses and W4 in-flight slices are outside this correction; do not use a four-row fix to mark the full GitHub #250 contradiction criterion passed.
 
-## Implementation and Review Checkpoint — 2026-10-15
+## Historical Implementation and Review Checkpoint — 2026-10-15 (pre-merge)
 
 1. **Completed:** Corrected the four stale screen-status rows (Profile, Profile Photo, Nutrition Targets, Settings) and indexed the handoff; other catalog rows, including merged W4A, remain unchanged.
 2. **Completed on original PR head `d1b247ba4e409f3313190648e93095474ac220cb`:** GitHub compare checked 3 expected docs/AI paths, 3 ahead / 0 behind; 44 catalog Markdown links resolved with 0 broken; required attribution checks PASS; 0 inline review threads at that point. The repository owner provided a successful `git diff --check origin/main...origin/docs/pre-p9-screen-catalog-current-state` run for that original head.
@@ -31,7 +38,7 @@
 4. **In progress:** Restored document-wide `Last Verified: 2026-09-28` while retaining the explicit **2026-10-15 four-row-only verification note**, then reconciled this active handoff and index. The header correction committed at `7763bf7bad5f2f5476aac5a02d1f665490ed2a02`; editing this handoff creates another commit, so the live PR #563 head is authoritative for the latest SHA.
 5. **Pending:** Refresh exact final-head branch comparison, links, patch hygiene, required checks and Codex review; respond to the two P2 threads and resolve only when accepted. Local `git diff --check` on the new head must be rerun by the owner. **STOP before merge** without separate owner authorization.
 
-## Active Handoff
+## Historical Active Handoff (pre-merge snapshot)
 
 **Planning owner:** GitHub #250 / Linear TNYX-193 governance
 **Implementation owner:** Documentation governance (this bounded docs-only slice)
@@ -49,7 +56,7 @@
 **Open review finding IDs:** `4285947882` — P2 handoff state corrected here, review/disposition pending; `4285947897` — P2 full-doc verified date corrected in `docs/screens/README.md`, review/disposition pending.
 **Next exact action:** Review corrected three-file diff on current PR #563 head, verify new attribution CI/link hygiene, request Codex re-review on new head, respond to P2 threads and await owner local `git diff --check` on final head; STOP before merge.
 
-## Final Handoff
+## Historical Final Handoff (pre-merge snapshot)
 
 **Changed files:** `docs/screens/README.md`, `.ai/tasks/pre-p9-screen-catalog-current-state.md`, `.ai/tasks/README.md` (same three-path bounded docs/AI scope).
 **Actual behavior:** No executable behavior or user-facing UI change.
