@@ -333,7 +333,7 @@ void main() {
     expect(changed.expectedRevision, 5);
     gateway.onDelete = () async => true;
     await expectLater(repository.delete(original),
-        throwsA(_failure(RoutineDeleteFailureKind.revisionConflict)));
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
     expect(gateway.writes, 1);
     expect(await repository.delete(changed), RoutineDeleteResult.confirmed);
     expect(gateway.writes, 2);
