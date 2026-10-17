@@ -83,7 +83,7 @@ Future<RoutineMoveTarget> inspect(SupabaseRoutineMoveRepository r) async =>
 
 Future<RoutineMoveResult> move(
   SupabaseRoutineMoveRepository r, RoutineMoveTarget target,
-  {ProgramId? to, String token = mutation},
+  {ProgramId? to, String token = mutation}
 ) => r.move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
