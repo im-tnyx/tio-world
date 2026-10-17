@@ -46,7 +46,7 @@ final class RoutineDeleteFlow {
       final result = await repository.delete(target);
       if (!context.mounted || !canWrite()) return false;
       if (result == RoutineDeleteResult.confirmed) {
-        _show(context, 'Routine deleted.');
+        _show(context, 'Routine deleted.', confirmed: true);
         return true;
       }
       return false;
@@ -84,9 +84,32 @@ final class RoutineDeleteFlow {
     }
   }
 
-  void _show(BuildContext context, String message) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(message)),
+  void _show(BuildContext context, String message, {bool confirmed = false}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(
+        key: confirmed ? const ValueKey('routine-delete-confirmed-feedback') : null,
+        // The pill denotes an ACK from the owner-scoped RPC, NOT that the
+        // subsequent owner-scoped list refresh has already completed.
+        duration: confirmed ? const Duration(seconds: 5)
+            : const Duration(seconds: 4),
+        behavior: confirmed ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
+        shape: confirmed ? const StadiumBorder() : null,
+        content: confirmed
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete_outline_rounded,
+                    color: Theme.of(context).colorScheme.onInverseSurface,
+                  ),
+                  const SizedBox(width: TioSpacing.sm),
+                  Flexible(child: Text(message)),
+                ],
+              )
+            : Text(message),
+      ),
     );
   }
 }
