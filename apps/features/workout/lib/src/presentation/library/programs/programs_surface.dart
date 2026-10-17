@@ -26,6 +26,7 @@ class ProgramsSurface extends StatefulWidget {
         onRoutinePressed = null,
         onEditRoutine = null,
         onDeleteRoutine = null,
+        actionSheetGuard = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
         routineRepository = null;
@@ -37,6 +38,7 @@ class ProgramsSurface extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onDeleteRoutine,
+    this.actionSheetGuard,
     this.onAddRoutinePressed,
     this.hasUnconfirmedCreate,
     this.routineRepository,
@@ -55,6 +57,7 @@ class ProgramsSurface extends StatefulWidget {
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
 
   @override
@@ -397,6 +400,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           onRoutinePressed: widget.onRoutinePressed,
           onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
           onDeleteRoutine: widget.onDeleteRoutine,
+          actionSheetGuard: widget.actionSheetGuard,
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
           isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
@@ -429,6 +433,7 @@ class _ProgramsList extends StatefulWidget {
     required this.onRoutinePressed,
     required this.onEditRoutine,
     required this.onDeleteRoutine,
+    required this.actionSheetGuard,
     required this.hasUnconfirmedCreate,
     required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
@@ -442,6 +447,7 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
   final bool Function(Program)? hasUnconfirmedCreate;
   final bool isLaunchingRoutine;
@@ -518,6 +524,7 @@ class _ProgramsListState extends State<_ProgramsList> {
             onEditRoutine: widget.onEditRoutine == null
                 ? null
                 : (routine) => widget.onEditRoutine!(program, routine),
+            actionSheetGuard: widget.actionSheetGuard,
             onDeleteRoutine: widget.onDeleteRoutine == null
                 ? null
                 : (routine) => widget.onDeleteRoutine!(program, routine),
