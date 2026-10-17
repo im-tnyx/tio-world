@@ -42,7 +42,23 @@ final programRepositoryProvider = Provider<ProgramRepository?>((ref) {
 final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
-  return SupabaseRoutineRepository.fromClient(client);
+  return SupabaseRoutineRepository.fromClient(
+    client,
+    currentLoginCycleId: () {
+      try {
+        final current = ref.read(authSessionStateProvider);
+        final auth = current.isLoading || current.hasError
+            ? null : current.valueOrNull;
+        if (auth is AuthSessionAuthenticated &&
+            auth.session.userId == client.auth.currentUser?.id) {
+          return auth.session.loginCycleId;
+        }
+      } catch (_) {
+        // Revoked auth/disposed provider must invalidate stale metadata.
+      }
+      return null;
+    },
+  );
 });
 
 /// Read-only Routine composition persistence (W4A owner-bound Detail).

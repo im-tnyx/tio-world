@@ -49,19 +49,28 @@ final class SupabaseRoutineRepository
     required RoutineTableGateway gateway,
     required String? Function() currentUserId,
     RoutineAggregateUpdateRepository? aggregateUpdates,
+    String? Function()? currentLoginCycleId,
   }) : _gateway = gateway,
        _currentUserId = currentUserId,
+       _currentLoginCycleId = currentLoginCycleId ?? _noCycle,
        _aggregateUpdates = aggregateUpdates;
 
-  factory SupabaseRoutineRepository.fromClient(SupabaseClient client) =>
+  static String? _noCycle() => null;
+
+  factory SupabaseRoutineRepository.fromClient(
+    SupabaseClient client, {
+    required String? Function() currentLoginCycleId,
+  }) =>
       SupabaseRoutineRepository(
         gateway: SupabaseRoutineTableGateway(client),
         currentUserId: () => client.auth.currentUser?.id,
+        currentLoginCycleId: currentLoginCycleId,
         aggregateUpdates: SupabaseRoutineCompositionRepository.fromClient(client),
       );
 
   final RoutineTableGateway _gateway;
   final String? Function() _currentUserId;
+  final String? Function() _currentLoginCycleId;
   final RoutineAggregateUpdateRepository? _aggregateUpdates;
 
   @override
@@ -73,24 +82,28 @@ final class SupabaseRoutineRepository
       ProgramId programId) async {
     final userId = _currentUserId()?.trim();
     if (userId == null || userId.isEmpty) return const [];
+    final cycle = _requireCycle();
     final rows = await _gateway.listRows(
       userId: userId,
       programId: programId.value,
     );
     _checkUser(userId);
+    _checkCycle(cycle);
     return List.unmodifiable(rows.map((row) {
       final routine = _mapRow(row);
       final revision = row['composition_revision'];
       if (routine.programId != programId || revision is! int || revision < 0) {
         throw const FormatException('Malformed Routine versioned row.');
       }
-      return RoutineMetadataRevision(routine: routine, revision: revision);
+      return RoutineMetadataRevision(routine: routine,
+        revision: revision, loginCycleId: cycle);
     }));
   }
 
   @override
   Future<void> create(Routine routine) async {
     final userId = _requireUserId();
+    final cycle = _requireCycle();
     await _gateway.insertRow({
       'id': routine.id.value,
       'user_id': userId,
@@ -98,6 +111,7 @@ final class SupabaseRoutineRepository
       'name': routine.name,
     });
     _checkUser(userId);
+    _checkCycle(cycle);
   }
 
   /// Historical unversioned API cannot prove the original Program/revision.
@@ -119,8 +133,11 @@ final class SupabaseRoutineRepository
   }
 
   @override
-  Future<int> renameVersioned(RoutineAggregateUpdate command) async {
+  Future<int> renameVersioned(RoutineAggregateUpdate command, {
+    required String expectedLoginCycleId,
+  }) async {
     final userId = _requireUserId();
+    _checkCycle(expectedLoginCycleId);
     if (command.name == null || command.entries != null) {
       throw ArgumentError('Protected metadata Rename must be name-only.');
     }
@@ -130,6 +147,7 @@ final class SupabaseRoutineRepository
     }
     final revision = await updates.updateAggregate(command);
     _checkUser(userId);
+    _checkCycle(expectedLoginCycleId);
     return revision;
   }
 
@@ -139,6 +157,20 @@ final class SupabaseRoutineRepository
       throw StateError('Please sign in to save Routines.');
     }
     return userId;
+  }
+
+  String _requireCycle() {
+    final cycle = _currentLoginCycleId()?.trim();
+    if (cycle == null || cycle.isEmpty) {
+      throw StateError('Please sign in to save Routines.');
+    }
+    return cycle;
+  }
+
+  void _checkCycle(String expected) {
+    if (expected.isEmpty || _currentLoginCycleId()?.trim() != expected) {
+      throw StateError('Please sign in to save Routines.');
+    }
   }
 
   void _checkUser(String userId) {

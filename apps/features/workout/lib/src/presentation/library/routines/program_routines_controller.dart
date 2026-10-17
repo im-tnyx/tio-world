@@ -55,11 +55,12 @@ final class ProgramRoutinesController extends ChangeNotifier {
   var _loadVersion = 0;
   var _disposed = false;
   final Map<RoutineId, int> _loadedRevisions = {};
+  final Map<RoutineId, String> _loadedCycles = {};
 
   /// A revision must come from the same owner-scoped list as the Routine.
   /// Plain metadata-only fakes may list, but cannot authorize Rename.
-  Future<({List<Routine> routines, Map<RoutineId, int> revisions})>
-      _readOwnedRoutines() async {
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles})> _readOwnedRoutines() async {
     final versioned = repository is RoutineVersionedRenameRepository
         ? await (repository as RoutineVersionedRenameRepository)
             .listVersioned(program.id)
@@ -80,14 +81,21 @@ final class ProgramRoutinesController extends ChangeNotifier {
         if (versioned != null)
           for (final item in versioned) item.routine.id: item.revision,
       },
+      cycles: {
+        if (versioned != null)
+          for (final item in versioned) item.routine.id: item.loginCycleId,
+      },
     );
   }
 
-  void _acceptRead(
-      ({List<Routine> routines, Map<RoutineId, int> revisions}) read) {
+  void _acceptRead(({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles}) read) {
     _loadedRevisions
       ..clear()
       ..addAll(read.revisions);
+    _loadedCycles
+      ..clear()
+      ..addAll(read.cycles);
     _publish(ProgramRoutinesState.ready(routines: read.routines));
   }
 
@@ -195,10 +203,12 @@ final class ProgramRoutinesController extends ChangeNotifier {
     final current = _state;
     final guarded = repository;
     final expectedRevision = _loadedRevisions[routine.id];
+    final expectedCycle = _loadedCycles[routine.id];
     if (current.status != ProgramRoutinesStatus.ready ||
         current.saving ||
         guarded is! RoutineVersionedRenameRepository ||
         expectedRevision == null ||
+        expectedCycle == null ||
         routine.programId != program.id ||
         !current.routines.any((item) => item == routine)) {
       return 'Could not edit routine. Please try again.';
@@ -221,7 +231,8 @@ final class ProgramRoutinesController extends ChangeNotifier {
     int? confirmedRevision;
     Object? error;
     try {
-      confirmedRevision = await guarded.renameVersioned(command);
+      confirmedRevision = await guarded.renameVersioned(
+        command, expectedLoginCycleId: expectedCycle);
     } catch (caught) {
       error = caught;
     }
@@ -231,6 +242,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
       _acceptRead(read);
       if (confirmedRevision == expectedRevision + 1 &&
           read.revisions[routine.id] == confirmedRevision &&
+          read.cycles[routine.id] == expectedCycle &&
           read.routines.any((item) =>
               item.id == routine.id &&
               item.programId == program.id &&
@@ -241,6 +253,7 @@ final class ProgramRoutinesController extends ChangeNotifier {
       // Unknown outcome: do not retry with a fresh token or claim success.
       if (_disposed) return 'Could not edit routine. Please try again.';
       _loadedRevisions.clear();
+      _loadedCycles.clear();
       _publish(ProgramRoutinesState.ready(routines: current.routines));
     }
     return error is StateError &&
@@ -249,8 +262,8 @@ final class ProgramRoutinesController extends ChangeNotifier {
         : 'Could not confirm the routine name. Please try again.';
   }
 
-  Future<({List<Routine> routines, Map<RoutineId, int> revisions})?>
-      _reconcileCreate(Routine attempted) async {
+  Future<({List<Routine> routines, Map<RoutineId, int> revisions,
+    Map<RoutineId, String> cycles})?> _reconcileCreate(Routine attempted) async {
     try {
       final read = await _readOwnedRoutines();
       final matches = read.routines.where((r) => r.id == attempted.id);
