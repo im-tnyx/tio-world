@@ -11,6 +11,12 @@
 - apps/app composition/workout_providers.dart has no Delete wiring; apps/app/routing/shell/shell_route.dart owns owner/session gated entry; apps/features/workout owns feature workflows and screens.
 - Read repository AGENTS.md, apps/features/AGENTS.md, .ai/workflow.md and feature approval, Core theme README, ADR-0015 and canonical Routine contract.
 
+## Owner-approved confirmation UI refinement (2026-10-17)
+- Approval: "go next yes sahi h botton ka height chhota rakhe", following the explicit request for a screen-centered popup card in place of the Delete confirmation bottom sheet.
+- **Only Routine Delete** uses a compact center Dialog with the existing Core TioCard elevated surface, Core semantic destructive/secondary buttons and theme typography. Set scoped action visual minimum to the existing TioSize.dp38 while keeping Material's padded accessible hit target and large-text growth.
+- Do NOT change showTioConfirmationBottomSheet globally, other confirmations, global button height, Delete RPC/security/session checks, backend, and existing Routine options bottom sheet.
+- Validation: visible Dialog (not BottomSheet), compact button theme/tap targets, cancellation and confirm results, dark + narrow + large text, identical one-write/no-retry semantics.
+
 ## Approved behavior
 - Fresh owner/Program/Routine revision inspect BEFORE showing confirmation; cancel sends no RPC.
 - App container owns one in-process RoutineDeleteAttemptGate across repository recreation and login cycles. Fail closed on missing Supabase/auth/bootstrap or changing owner/cycle.
