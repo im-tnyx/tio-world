@@ -11,6 +11,21 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
+  test('Routine Delete fails closed without Supabase and retains shared gate', () {
+    final container = ProviderContainer(overrides: [
+      supabaseClientProvider.overrideWithValue(null),
+    ]);
+    addTearDown(container.dispose);
+    final gate = container.read(routineDeleteAttemptGateProvider);
+    final flow = container.read(routineDeleteFlowProvider);
+    expect(container.read(routineDeleteRepositoryProvider), isNull);
+    container.invalidate(routineDeleteRepositoryProvider);
+    expect(container.read(routineDeleteRepositoryProvider), isNull);
+    expect(identical(container.read(routineDeleteAttemptGateProvider), gate),
+        isTrue, reason: 'attempt state must outlive repository recreation');
+    expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
+        reason: 'Program and Library must share one action single-flight');
+  });
   group('Network & Auth Providers', () {
     test('providers instantiate with safe unavailable defaults in container',
         () {
