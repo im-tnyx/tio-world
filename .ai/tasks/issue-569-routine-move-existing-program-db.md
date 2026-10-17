@@ -1,6 +1,6 @@
 # GitHub #569 — M1 Existing-Program Routine Move (DB)
 
-**Status:** In progress — committed to isolated branch; SQL/runtime validation and independent review pending.
+**Status:** In progress — disposable migration/SQL/Move-vs-Delete CI passed at `42671f2` (45/45); additional exact-head Edit/Move/Move/target-delete race CI and independent review pending.
 **Primary owner:** GitHub-connected implementation session (single implementation owner).
 **Affected platforms:** Supabase Postgres/RLS. No Flutter, Watch, service/API, UI, or deployed database changes.
 
@@ -21,12 +21,12 @@
 **Branch:** `tnyx/issue-569-m1-existing-program-move-db`
 **Base/main HEAD SHA:** `acd74a618234127e675cdedef8f9a0c2d2201ea5`
 **Observed working-tree state:** GitHub repository API branch only. Local Windows working tree and `git status -sb` not accessible from this session. No local files modified.
-**PR / tracker:** GitHub #569; TNYX-81 remains Backlog; draft review PR pending.
+**PR / tracker:** Draft PR #588; GitHub #569; TNYX-81 remains Backlog.
 **Relevant execution surface:** `supabase/migrations/` and `supabase/tests/database/`.
-**Validation completed:** Live read-only check confirmed 62 migrations, absent Move RPC, protected Routine revision/hash fields, existing atomic Edit/Delete EXECUTE and no authenticated direct UPDATE(program_id). SQL security/advisor baseline inspected. No local SQL execution/psql or CI PASS claimed.
-**Validation remaining:** GitHub disposable Supabase Database CI (full replay, new SQL matrix and Move/Delete race), two-session Edit/Move and Move/Move additional coverage, reviewer disposition, security advisor after test deployment and exact-head CI. CLI generation of migration filename could not be executed from this connector-only runtime.
+**Validation completed:** Live read-only check confirmed 62 migrations, absent Move RPC, revision/hash fields, existing protected Edit/Delete RPCs and denied authenticated UPDATE(program_id). Supabase Database CI #39019934626 SUCCESS 45/45 on `42671f2`: full disposable migration replay, new Move ownership/replay/ABA SQL matrix, Move vs Delete two-session race and post-move source Program deletion. This is NOT yet validation of the newly added cross-operation race script.
+**Validation remaining:** Exact-head disposable Supabase CI with `tnyx_569_routine_move_cross_races.sh`: Edit wins vs stale Move, Move wins vs stale Edit, competing Move, target Program deleted before pending Move completes. Independent SQL/security review and post-test-deployment advisor disposition remain. CLI migration-name generation not executed in this connector-only runtime.
 **Current blocker:** No local Supabase CLI/psql or hosted disposable database is available inside this connected session; never test destructive fixtures on production.
-**Next exact action:** Independent SQL/security review, migration replay + race suite in disposable database, amend findings, and reconcile PR gate before any merge/deploy.
+**Next exact action:** Inspect newest CI logs and resolve failures; review locks/replay/security and tracked blockers, then hand off Draft PR for independent review before any merge/deploy.
 
 ## Verified Discovery
 
@@ -55,9 +55,10 @@
 - `supabase/migrations/20261017100000_move_user_workout_routine_between_owned_programs.sql`
 - `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`
 - `supabase/tests/database/tnyx_569_existing_program_routine_move_concurrency.sh`
-- `.github/workflows/supabase-db-ci.yml` registers both new SQL checks in disposable GitHub CI.
+- `supabase/tests/database/tnyx_569_routine_move_cross_races.sh` (four additional real two-session interleavings)
+- `.github/workflows/supabase-db-ci.yml` registers the new SQL matrix and both two-session race harnesses in disposable GitHub CI.
 - This task brief. No live migration, direct client grants or Flutter Move capability changes.
 
 ## Quality and Handoff Status
 
-**Partial / REVIEW:** Source work is committed with disposable GitHub CI checks wired but not yet verified passed; not independently reviewed and not production deployed. Do not claim the Move UX is enabled. The preexisting task-index #526 Slice B status is stale versus verified merged PR #587; that unrelated documentation reconciliation remains its own task.
+**Partial / REVIEW:** M1 replay/SQL/Move-Delete CI passed on previous head. Added cross-operation race CI is not yet confirmed PASS on exact latest head. Not independently reviewed and not production deployed. Do not claim the Move UX is enabled. The preexisting task-index #526 Slice B status is stale versus verified merged PR #587; that unrelated documentation reconciliation remains its own task.
