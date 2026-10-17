@@ -17,6 +17,7 @@ final class RoutineDeleteFlow {
     required Routine routine,
     required RoutineDeleteRepository repository,
     required bool Function() canWrite,
+    Widget Function(BuildContext dialogContext, Widget content)? confirmationGuard,
   }) async {
     if (routine.programId != program.id || !canWrite() ||
         !_opening.add(routine.id)) {
@@ -37,6 +38,7 @@ final class RoutineDeleteFlow {
         context: context,
         routineId: routine.id,
         routineName: target.name,
+        confirmationGuard: confirmationGuard,
       );
       // The owner/login cycle may change while inspection or the sheet awaits.
       if (confirmed != true || !context.mounted || !canWrite()) return false;
@@ -96,6 +98,7 @@ Future<bool?> _showRoutineDeleteDialog({
   required BuildContext context,
   required RoutineId routineId,
   required String routineName,
+  Widget Function(BuildContext dialogContext, Widget content)? confirmationGuard,
 }) => showDialog<bool>(
   context: context,
   builder: (dialogContext) {
@@ -119,7 +122,7 @@ Future<bool?> _showRoutineDeleteDialog({
       ),
     );
 
-    return Dialog(
+    final dialog = Dialog(
       key: ValueKey('confirm-delete-routine-${routineId.value}'),
       backgroundColor: TioPalette.transparent,
       elevation: TioElevation.none,
@@ -188,5 +191,8 @@ Future<bool?> _showRoutineDeleteDialog({
         ),
       ),
     );
+    // The app composition may watch the live owner/login cycle around this
+    // modal and synchronously redact its private content on revocation.
+    return confirmationGuard?.call(dialogContext, dialog) ?? dialog;
   },
 );
