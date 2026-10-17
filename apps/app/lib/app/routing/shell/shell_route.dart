@@ -705,37 +705,35 @@ List<RouteBase> _shellBranchChildRoutes(
                         authState is AuthSessionAuthenticated &&
                         authState.session.userId == openingOwner &&
                         authState.session.loginCycleId == openingCycle;
-                    if (!authorized) {
-                      return const Scaffold(
-                        body: Center(child: Text('Routines are unavailable.')),
-                      );
-                    }
+                    // Unauthenticated routes were already permitted to show
+                    // read-only public context without offering a write.
+                    // If an initially authenticated route is revoked, keep
+                    // the page/nav alive but dispose its owner-bound reader.
+                    final revoked = openingCycle != null && !authorized;
                     return ProgramDetailPage(
-                      key: ValueKey(
-                        'program-detail-${openingOwner}-${openingCycle}',
-                      ),
-                  program: program,
-                  routineRepository: routineRepository,
+                      key: ValueKey('program-detail-$openingOwner-$openingCycle'),
+                      program: program,
+                      routineRepository: revoked ? null : routineRepository,
                   pendingCreateChanges: pendingGate,
-                  onRoutinePressed: compositions == null
+                  onRoutinePressed: revoked || compositions == null
                       ? null
                       : (routine) => openRoutine(program, routine),
-                  onEditRoutine: compositions == null ||
+                  onEditRoutine: revoked || compositions == null ||
                           userExerciseRepository == null
                       ? null
                       : (routine) => editRoutine(program, routine),
-                  onDeleteRoutine: deleteRepository == null ||
+                  onDeleteRoutine: revoked || deleteRepository == null ||
                           !openingSessionValid()
                       ? null
                       : (routine) => deleteRoutine(program, routine),
                   hasUnconfirmedCreate: () =>
-                      openingOwner != null && openingCycle != null &&
+                      !revoked && openingOwner != null && openingCycle != null &&
                       pendingGate.hasPending(
                         owner: openingOwner,
                         loginCycle: openingCycle,
                         programId: program.id,
                       ),
-                  onVerifyUnconfirmedCreate: compositions == null || openingOwner == null ||
+                  onVerifyUnconfirmedCreate: revoked || compositions == null ||
                           openingCycle == null
                       ? null
                       : () => pendingGate.verify(
