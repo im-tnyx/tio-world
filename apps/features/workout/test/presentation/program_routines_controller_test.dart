@@ -205,6 +205,72 @@ void main() {
     expect(repository.rows.single.name, 'Changed on another device');
   });
 
+  test('stale Program A metadata cannot rename after A to B', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final stale = controller.state.routines.single;
+    repository.rows[0] = _routine(2, 11, 'Morning');
+    repository.revisions[stale.id] = 1;
+    final error = await controller.rename(routine: stale, name: 'Unsafe');
+    expect(error, isNotNull);
+    expect(repository.rows.single.name, 'Morning');
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('A to B to A cannot revive an old revision snapshot', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    repository.revisions[_rid(11)] = 2;
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Unsafe');
+    expect(error, isNotNull);
+    expect(repository.rows.single.name, 'Morning');
+    expect(repository.renameCount, 1);
+  });
+
+  test('matching post-write name alone cannot prove unknown mutation', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..throwUnconfirmedRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening');
+    expect(error, contains('Could not confirm'));
+    expect(repository.rows.single.name, 'Evening');
+    expect(controller.state.routines.single.name, 'Evening');
+  });
+
+  test('auth-cycle switch during protected rename never reports success', () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
+      ..switchAccountOnRename = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final error = await controller.rename(
+      routine: controller.state.routines.single, name: 'Evening');
+    expect(error, 'Please sign in to save Routines.');
+    expect(repository.rows.single.name, 'Morning');
+    expect(controller.state.routines, isEmpty);
+  });
+
+  test('unknown metadata Create must not overwrite later changed name', () async {
+    final repository = _FakeRoutines()
+      ..throwAfterCreate = true
+      ..changeCreatedNameAfterCommit = true;
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    expect(await controller.create('Original'), isFalse);
+    expect(repository.rows.single.name, 'Concurrent name');
+    expect(repository.renameCount, 0);
+    expect(controller.abandonCreateAttempt(), isTrue);
+  });
+
   test('zero-row rename does not falsely report success', () async {
     final repository = _FakeRoutines([_routine(1, 11, 'Morning')])
       ..ignoreRename = true;
@@ -243,8 +309,14 @@ ProgramRoutinesController _controller(_FakeRoutines repository) =>
       newRoutineUuid: () => _rid(41).value,
     );
 
-final class _FakeRoutines implements RoutineRepository {
-  _FakeRoutines([List<Routine> initial = const []]) : rows = [...initial];
+final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRepository {
+  _FakeRoutines([List<Routine> initial = const []]) : rows = [...initial] {
+    for (final row in rows) {
+      revisions[row.id] = 0;
+    }
+  }
+
+  final Map<RoutineId, int> revisions = {};
 
   final List<Routine> rows;
   final List<Routine> attempted = [];
@@ -258,6 +330,19 @@ final class _FakeRoutines implements RoutineRepository {
   bool ignoreRename = false;
   String? externalRename;
   bool unauthenticated = false;
+  bool changeCreatedNameAfterCommit = false;
+  bool throwUnconfirmedRename = false;
+  bool switchAccountOnRename = false;
+  bool switchedAccount = false;
+
+  @override
+  Future<List<RoutineMetadataRevision>> listVersioned(ProgramId programId) async {
+    final result = await list(programId);
+    return [
+      for (final row in result)
+        RoutineMetadataRevision(routine: row, revision: revisions[row.id] ?? 0),
+    ];
+  }
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
@@ -266,6 +351,7 @@ final class _FakeRoutines implements RoutineRepository {
       loadFailures--;
       throw Exception('network');
     }
+    if (switchedAccount) return const [];
     return List.unmodifiable(returnForeign
         ? rows
         : rows.where((routine) => routine.programId == programId));
@@ -281,22 +367,47 @@ final class _FakeRoutines implements RoutineRepository {
     if (rows.any((existing) => existing.id == routine.id)) {
       throw StateError('duplicate');
     }
-    rows.add(routine);
+    rows.add(changeCreatedNameAfterCommit
+        ? Routine(id: routine.id, programId: routine.programId,
+            name: 'Concurrent name')
+        : routine);
+    revisions[routine.id] = 0;
     if (throwAfterCreate) throw Exception('lost response');
   }
 
   @override
   Future<void> rename({required RoutineId id, required String name}) async {
+    throw StateError('Unversioned Rename is unsafe.');
+  }
+
+  @override
+  Future<int> renameVersioned(RoutineAggregateUpdate command) async {
     renameCount++;
-    if (ignoreRename) return;
-    final idx = rows.indexWhere((r) => r.id == id);
-    if (idx == -1) throw StateError('missing');
+    if (switchAccountOnRename) {
+      switchedAccount = true;
+      throw StateError('Please sign in to save Routines.');
+    }
+    if (unauthenticated) throw StateError('Please sign in to save Routines.');
+    if (ignoreRename) return command.expectedRevision + 1;
+    final idx = rows.indexWhere((r) => r.id == command.routineId &&
+        r.programId == command.programId);
+    if (idx == -1) throw StateError('not found');
     final old = rows[idx];
+    if (revisions[old.id] != command.expectedRevision ||
+        old.name != command.expectedName) {
+      throw StateError('revision conflict');
+    }
     rows[idx] = Routine(
       id: old.id,
       programId: old.programId,
-      name: externalRename ?? name,
+      name: externalRename ?? command.name!,
     );
-    if (throwAfterRename) throw Exception('lost response');
+    final revision = command.expectedRevision + 1;
+    revisions[old.id] = revision;
+    // The real aggregate adapter returns a verified revision after an
+    // ambiguous response. This fake models both verified and unknown cases.
+    if (throwAfterRename) return revision;
+    if (throwUnconfirmedRename) throw Exception('response unknown');
+    return revision;
   }
 }
