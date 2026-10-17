@@ -1,6 +1,6 @@
 # GitHub #569 — M2C Permanent Legacy Rename Cutoff
 
-**Status:** In progress — remote code awaits full disposable CI and review; hosted deployment NOT approved.
+**Status:** Ready for Review — exact-head code/database CI PASSED at `8ea0be95107d2712716d7c15624393045e6eb1fc`; P3 canonical Workout status drift addressed in subsequent docs-only review correction; merge review and hosted deployment NOT approved.
 **Primary owner:** Supabase/Postgres implementation on the single remote branch `tnyx/issue-569-m2c-legacy-rename-cutoff`.
 **Affected platforms:** Supabase versioned migration, SQL/security tests, GitHub CI.
 
@@ -23,11 +23,11 @@
 - **Observed working-tree state:** Owner posted clean tracking `git status -sb` immediately after scaffold push. Cannot inspect their Windows checkout from remote connector.
 - **Current implementation state:** `e317f563` supplies versioned cutoff and 3 SQL matrices; `dd9323dd` reconciles 2 concurrency harnesses and permanent-grant preflight.
 - **Relevant execution surface:** GitHub workflow disposable local Supabase Postgres only. CI automatically replays all migrations.
-- **Validation completed at SHA:** None for this new cutoff. PR #593 preflight validated only its own prior SHA.
-- **Validation remaining:** Full 64-migration replay/ledger, 2 protected Rename races, Rename/Delete/Move SQL, lint and exact-head required checks; review then deployment decision.
-- **Current blocker:** Pending CI and review, later explicit hosted-dev-client rollout gate.
-- **Open review finding IDs:** Not evaluated yet.
-- **Next exact action:** Run/inspect Draft PR CI at current head, correct any concrete defects without applying hosted migration.
+- **Validation completed at SHA:** Supabase Database CI #39047957996 SUCCESS (46/46) and both attribution checks SUCCESS at `8ea0be95107d2712716d7c15624393045e6eb1fc`. This is the code-changing source SHA; docs-only follow-up does not alter SQL, workflows or scripts.
+- **Validation remaining:** Verify required attribution/checks on the new docs-only HEAD; complete independent/owner manual merge gate and resolve P3 review thread. Hosted rollout, installed-client compatibility, and separate deploy/rollback remain gated. Full 64-migration replay/ledger, protected Rename/Update/Delete/Move races, matrices and lint PASSED at the recorded code SHA.
+- **Current blocker:** Final review/merge gate and separate explicit hosted-dev-client rollout gate (no production writes performed).
+- **Open review finding IDs:** P3 docs-status drift, PR #594 review thread `PRRT_kwDOTOXwB86th7JR` (addressed in this docs-only commit; verify and resolve after push). No new P1/P2 substantiated on prior code HEAD.
+- **Next exact action:** Verify review correction and exact-head check status, reply/resolve P3 thread, then await explicit owner merge approval. Never deploy hosted SQL as part of this review.
 
 ## Discovery / Codebase Exploration
 
@@ -43,4 +43,4 @@
 
 ## Quality Review / Final Handoff
 
-**Not validated yet.** Record full database CI, required check outcome and review findings before ready-for-review/merge. No hosted migration, Android/iOS release or Move EXECUTE authorization implied by this task.
+**Source DB checks validated at `8ea0be95` only.** Documentation-only P3 correction does not change runtime SQL/tests. Record post-doc-check HEAD and final review outcome separately. No hosted migration, Android/iOS release or Move EXECUTE authorization implied.
