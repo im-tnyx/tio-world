@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -12,10 +14,12 @@ final class FakePrograms implements ProgramRepository {
   List<Program> rows = [source, target, alternate];
   int reads = 0;
   void Function()? onRead;
+  Future<List<Program>> Function()? onList;
   @override
   Future<List<Program>> list() async {
     reads++;
     onRead?.call();
+    if (onList != null) return onList!();
     return rows;
   }
   @override
@@ -186,6 +190,52 @@ void main() {
     final prepared = await inspect(c);
     await expectLater(confirmed(c, prepared, target.id),
         throwsA(isA<RoutineMoveOutcomeUnknown>()));
+    expect(moves.dispatches, 1);
+  });
+
+  test('abandon during a pending owner read invalidates its late response',
+      () async {
+    final pending = Completer<List<Program>>();
+    final programs = FakePrograms()..onList = () => pending.future;
+    final moves = FakeMoves();
+    final c = controller(programs, moves, () => true);
+    final inspecting = inspect(c);
+    await Future<void>.delayed(Duration.zero);
+    expect(programs.reads, 1);
+    c.abandon();
+    pending.complete([source, target]);
+    await expectLater(inspecting,
+        throwsA(isA<RoutineMoveException>()
+            .having((e) => e.kind, 'kind', RoutineMoveFailureKind.staleTarget)));
+    expect(moves.dispatches, 0);
+  });
+
+  test('older parallel inspection cannot replace newer destination context',
+      () async {
+    final pending = Completer<List<Program>>();
+    final programs = FakePrograms();
+    var calls = 0;
+    programs.onList = () {
+      calls++;
+      if (calls == 1) return pending.future;
+      return Future.value([source, target]);
+    };
+    final moves = FakeMoves();
+    final c = controller(programs, moves, () => true);
+    final oldInspection = c.inspect(
+      sourceProgramId: source.id, routineId: routineId);
+    await Future<void>.delayed(Duration.zero);
+    expect(programs.reads, 1);
+    final secondRoutine = RoutineId('20000000-0000-4000-8000-000000000002');
+    final newSelection = (await c.inspect(
+      sourceProgramId: source.id, routineId: secondRoutine))!;
+    pending.complete([source, target]);
+    await expectLater(oldInspection,
+        throwsA(isA<RoutineMoveException>()
+            .having((e) => e.kind, 'kind', RoutineMoveFailureKind.staleTarget)));
+    expect(newSelection.target.routineId, secondRoutine);
+    expect(await confirmed(c, newSelection, target.id),
+        RoutineMoveResult.confirmed);
     expect(moves.dispatches, 1);
   });
 }

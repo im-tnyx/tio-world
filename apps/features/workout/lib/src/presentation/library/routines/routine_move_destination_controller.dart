@@ -28,6 +28,8 @@ final class RoutineMoveDestinationController {
   final ProgramRepository programs;
   final bool Function() canWrite;
   RoutineMoveSelection? _prepared;
+  // A late owner read can never resurrect a canceled or superseded selector.
+  int _inspectionGeneration = 0;
 
   /// Do not trust an unversioned Routine card or a guessed My Program name.
   /// MoveRepository.inspect takes a fresh owner-scoped revision snapshot.
@@ -35,6 +37,7 @@ final class RoutineMoveDestinationController {
     required ProgramId sourceProgramId,
     required RoutineId routineId,
   }) async {
+    final generation = ++_inspectionGeneration;
     _prepared = null;
     _requireSession();
     final target = await moves.inspect(
@@ -42,6 +45,7 @@ final class RoutineMoveDestinationController {
       routineId: routineId,
     );
     _requireSession();
+    _requireGeneration(generation);
     if (target == null ||
         target.routineId != routineId ||
         target.sourceProgramId != sourceProgramId) {
@@ -49,6 +53,7 @@ final class RoutineMoveDestinationController {
     }
     final rows = await programs.list();
     _requireSession();
+    _requireGeneration(generation);
     _validatePrograms(rows);
     final selection = RoutineMoveSelection(
       target: target,
@@ -74,6 +79,7 @@ final class RoutineMoveDestinationController {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
     }
     _prepared = null;
+    _inspectionGeneration++;
     if (destinationProgramId == selection.target.sourceProgramId ||
         !selection.destinations.any((p) => p.id == destinationProgramId)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
@@ -98,7 +104,16 @@ final class RoutineMoveDestinationController {
     return result;
   }
 
-  void abandon() => _prepared = null;
+  void abandon() {
+    ++_inspectionGeneration;
+    _prepared = null;
+  }
+
+  void _requireGeneration(int generation) {
+    if (_inspectionGeneration != generation) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+  }
 
   void _requireSession() {
     if (!canWrite()) {
