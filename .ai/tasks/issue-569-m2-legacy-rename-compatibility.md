@@ -1,6 +1,6 @@
 # GitHub #569 — M2 Legacy Rename Compatibility and Safe Move Preparation
 
-**Status:** In progress, bounded audit/contract handoff only. Current-client implementation, permission retirement and Move activation are NOT complete.
+**Status:** M2B current-client code and focused tests implemented on Draft PR #591; exact-head Flutter CI / independent review pending. Old-client compatibility retirement and Move activation remain blocked and NOT implemented.
 **Primary owner:** GitHub-connected M2 implementation session (single implementation owner).
 **Affected platforms:** Workout metadata repository/controller, app Auth boundary, and future Supabase authorization gate. No UI or hosted database changes in this checkpoint.
 
@@ -23,6 +23,18 @@
 - **Validation:** Read-only API/source/database introspection only. No Flutter/Dart, GitHub CI, migration replay or device tests run during this M2 checkpoint.
 - **Current blocker:** A server-enforced old-client retirement/compatibility decision is required before any Move activation. No minimum-supported-version enforcement deployed.
 - **Next exact step:** Prepare a separate minimal current-client protected metadata Rename code/test diff, then exact-head Flutter CI and independent review. Do not add activation GRANT or revoke legacy UPDATE(name).
+
+## M2B implementation checkpoint (2026-10-17)
+
+- Source added to the same previously approved M2 Draft PR #591 (not a separate PR, single implementation owner): `apps/features/workout/lib/src/domain/repositories/routine_repository.dart`, `apps/features/workout/lib/src/data/repositories/supabase_routine_repository.dart`, `apps/features/workout/lib/src/presentation/library/routines/program_routines_controller.dart`, `apps/app/lib/app/composition/workout_providers.dart`, and two focused Workout tests.
+- `RoutineMetadataRevision` keeps the list-time version and opaque app-owned `loginCycleId` separate from canonical shared `Routine`. `RoutineVersionedRenameRepository` is an opt-in capability for legacy metadata controllers; unsupported fakes can list but do not authorize Rename.
+- New-client Supabase metadata transport now only **SELECTs** owner Program Routines with revision and supports INSERT. The old unversioned `SupabaseRoutineRepository.rename(id,name)` **fails closed**; no Flutter Data API direct UPDATE(name) is issued from it.
+- Protected metadata Rename delegates the frozen `RoutineAggregateUpdate` name-only command to the **existing** `SupabaseRoutineCompositionRepository.updateAggregate` and server seven-argument name-aware RPC. The controller freezes list-time Program, revision, expected Name and login cycle; a confirmed result must match the RPC-confirmed revision and an owner-scoped read-back. Reading the desired Name after an unknown write is **not sufficient** success proof.
+- Existing app auth provider supplies the **live** `AuthSessionAuthenticated.session.loginCycleId`; list and dispatch reject stale/changed cycles, including logout/relogin by the same owner. No app visual/layout change.
+- Uncertain legacy metadata Create reconciliation now only accepts the original stable UUID with the **same** persisted Name; it never blindly calls Rename to overwrite a concurrently edited name. A mismatch stays unconfirmed and requires explicit editor lifecycle handling.
+- Focused tests added/updated: no direct metadata Rename, malformed revision/foreign Program, auth-owner and login-cycle change, freeze and delegate name-only RPC, stale source Program, A→B→A, unknown write confirmation, post-Create changed Name, zero-row and owner read-back.
+- **Validation status:** GitHub Flutter CI was triggered by the source/test commits; exact-head passing Analyze/test results are **not yet verified** here. Do not merge until latest head is green and independent review clears safety findings.
+- **Still NOT done:** client-version retirement, server-side direct UPDATE(name) denial, hosted M1 deploy, Move EXECUTE, Move UI, new/default Program actions, old-client on-device adoption tests.
 
 ## 1. Current Source and Failure Reproduction
 
@@ -49,7 +61,7 @@
 ## 3. Sequencing
 
 - [x] **M2A:** fresh `main`/PR/Linear/source/live permissions inspection; post-M1 merge-truth handoff.
-- [ ] **M2B (next source slice):** minimal protected metadata Rename read/write integration, no capability activation, updated fakes and focused Flutter tests. Audit/record whether metadata Create reconciliation is still runtime reachable; do not discard its correctness without evidence.
+- [x] **M2B (source authored, CI/review pending):** minimal protected metadata Rename read/write integration, no capability activation, updated fakes and focused Flutter tests. Audit/record whether metadata Create reconciliation is still runtime reachable; do not discard its correctness without evidence.
 - [ ] **M2C (separately owner-gated):** supported deployed old-client cutoff and compatibility policy; reviewed server enforcement removing old direct `UPDATE(name)` when safe.
 - [ ] **M2D (separately authorized):** apply/verify dormant M1 migration then review conditional Move EXECUTE activation, negative/race SQL and exact-head CI. Existing Program Flutter selector is a later bounded slice.
 - [ ] **Later:** #568 canonical My Program, atomic `+ New Program → Create & Move`, #567 Delete Program.
