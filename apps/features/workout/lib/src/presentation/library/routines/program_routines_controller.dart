@@ -111,10 +111,10 @@ final class ProgramRoutinesController extends ChangeNotifier {
     if (_state.saving) return;
     final version = ++_loadVersion;
     _publish(const ProgramRoutinesState.loading());
+    final versioned = repository is RoutineVersionedRenameRepository
+        ? repository as RoutineVersionedRenameRepository
+        : null;
     try {
-      final versioned = repository is RoutineVersionedRenameRepository
-          ? repository as RoutineVersionedRenameRepository
-          : null;
       final cycle = versioned?.activeLoginCycleId;
       final owner = versioned?.activeOwnerId;
       if (versioned != null &&
