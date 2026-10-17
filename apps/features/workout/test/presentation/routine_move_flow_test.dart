@@ -245,6 +245,28 @@ void main() {
     expect(g.writes, 0);
   });
 
+  testWidgets('destination removed during confirmation dispatches no RPC',
+      (tester) async {
+    final moves = _Move();
+    final programs = _Programs();
+    bool? result;
+    await _pump(tester, flow: RoutineMoveFlow(newMutationId: () => token),
+      move: moves, programs: programs, canWrite: () => true,
+      onResult: (v) => result = v);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    programs.items = [source];
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(programs.reads, 2,
+        reason: 'Owner destinations must be re-read after confirmation');
+    expect(moves.writes, 0);
+    expect(result, true, reason: 'A stale selection requests refresh');
+    expect(find.textContaining('changed'), findsOneWidget);
+    expect(find.text('Routine moved.'), findsNothing);
+  });
+
   testWidgets('unknown result requests refresh without claiming success',
       (tester) async {
     final g = _Move()
