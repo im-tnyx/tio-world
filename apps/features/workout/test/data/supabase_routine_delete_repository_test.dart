@@ -266,6 +266,29 @@ void main() {
     expect(gateway.writes, 1);
   });
 
+  test('login cycle switch during readback never confirms old-owner outcome',
+      () async {
+    var cycle = _cycle;
+    final gateway = _Gateway()
+      ..onDelete = () async => throw TimeoutException('lost Delete ACK');
+    gateway.onRead = () async {
+      // The first owner read prepares the target; the second is readback
+      // while the user's login cycle is revoked.
+      if (gateway.reads == 2) cycle = 'replacement-cycle';
+      return _header();
+    };
+    final repository = gateway.repo(cycle: () => cycle);
+    final target = await _target(repository);
+    await expectLater(repository.delete(target),
+        throwsA(_unknown(RoutineDeleteUncertainty.sessionChanged)));
+    expect(gateway.reads, 2);
+    expect(gateway.writes, 1);
+    // A frozen target from the old login cycle cannot be dispatched again.
+    await expectLater(repository.delete(target),
+        throwsA(_failure(RoutineDeleteFailureKind.unauthorized)));
+    expect(gateway.writes, 1);
+  });
+
   test('malformed successful response readback still-present is unknown',
       () async {
     final gateway = _Gateway()
@@ -297,6 +320,7 @@ void main() {
 final class _Gateway implements RoutineDeleteGateway {
   Map<String, dynamic>? row = _header();
   Future<Object?> Function()? onDelete;
+  Future<Map<String, dynamic>?> Function()? onRead;
   Object? readError;
   int reads = 0;
   int writes = 0;
@@ -321,6 +345,7 @@ final class _Gateway implements RoutineDeleteGateway {
     lastOwner = userId;
     lastRoutine = routineId;
     if (readError != null) throw readError!;
+    if (onRead != null) return await onRead!();
     return row;
   }
 
