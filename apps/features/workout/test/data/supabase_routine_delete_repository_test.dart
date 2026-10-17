@@ -512,6 +512,48 @@ void main() {
     expect(gateway.writes, 1);
   });
 
+  test('older pending inspect cannot rearm after a newer Delete commits',
+      () async {
+    final deleteServer = Completer<Object?>();
+    final olderRead = Completer<Map<String, dynamic>?>();
+    final gateway = _Gateway()
+      ..onDelete = () => deleteServer.future;
+    gateway.onRead = () {
+      if (gateway.reads == 2) return olderRead.future;
+      return Future<Map<String, dynamic>?>.value(_header());
+    };
+    final repository = gateway.repo();
+    final original = await _target(repository);
+
+    // The first refresh starts before Delete and remains blocked on a
+    // server read. A newer, completed inspect owns the only valid target.
+    final staleRead = repository.inspect(
+        programId: _program, routineId: _routine);
+    final freshTarget = await _target(repository);
+    expect(gateway.reads, 3);
+    await expectLater(repository.delete(original),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 0);
+
+    final pendingDelete = repository.delete(freshTarget);
+    expect(gateway.writes, 1);
+    await expectLater(repository.inspect(
+        programId: _program, routineId: _routine),
+        throwsA(_failure(RoutineDeleteFailureKind.inProgress)));
+    expect(gateway.reads, 3, reason: 'in-flight inspect must not read');
+
+    // The older read returns a stale pre-Delete snapshot AFTER success.
+    deleteServer.complete(true);
+    expect(await pendingDelete, RoutineDeleteResult.confirmed);
+    olderRead.complete(_header());
+    await expectLater(staleRead,
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    await expectLater(repository.delete(freshTarget),
+        throwsA(_failure(RoutineDeleteFailureKind.staleTarget)));
+    expect(gateway.writes, 1,
+        reason: 'late snapshot must never mint a second Delete request');
+  });
+
   test('ambiguous owner Delete remains blocked after repository recreation',
       () async {
     final server = Completer<Object?>();
