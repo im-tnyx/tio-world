@@ -73,6 +73,25 @@ void main() {
     expect(selected?.id, RoutineId(_routineId));
     expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
   });
+  testWidgets('confirmed Delete followed by failed refresh shows read error',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    await _pump(tester, repository: repository, onDeleteRoutine: (routine) async {
+      repository.rows.removeWhere((item) => item.id == routine.id);
+      repository.loadFailures = 1;
+      return true; // A confirmed RPC does not promise a successful reread.
+    });
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-delete-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(find.text('Push'), findsNothing);
+    expect(find.text('Could not load routines. Please try again.'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('program-routines-retry')), findsOneWidget);
+  });
   testWidgets('atomic Create callback bypasses legacy name-only INSERT',
       (tester) async {
     final repository = _MemoryRoutines();
