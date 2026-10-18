@@ -15,13 +15,13 @@
 
 - **Planning/Implementation owner:** This bounded `apps/app` test-only slice; no concurrent implementation owner identified from remote GitHub open PRs.
 - **Review owner:** Independent review pending; Draft PR #606 will be handed to reviewers after exact-head checks. No `APPROVED` review claimed.
-- **Implementation ownership state:** Test implementation committed; waiting on exact-head analyzer and CI before Ready for Review handoff. No production change.
+- **Implementation ownership state:** Test implementation complete; handed to independent review. Only task/index handoff updates after source/test verification; no production code change.
 - **Repository state last verified:** Protected `main@bd55f80eb0171590544205fc41a36451ab550a65`; parent #605 squash merged and post-merge Flutter CI eventually SUCCESS 5/5; no other open PR at task creation.
 - **Branch:** `tnyx/issue-569-m3d3b1-move-auth-revocation`, created from exact `main@bd55f80e`.
 - **Observed working tree:** GitHub API remote-only; Windows local `git status -sb`, dirt and local Flutter runner cannot be inspected. No force update, reset, stash, branch deletion or local sync.
 - **PR/tracker:** [Draft PR #606](https://github.com/im-tnyx/tio-world/pull/606) open, GitHub #569 and #568 Open; Linear TNYX-81 broad Backlog with TNYX-78/80 blockers.
-- **Validation:** Initial implementation/index `aa3e004c` [Flutter CI #39147094260](https://github.com/im-tnyx/tio-world/actions/runs/39147094260) app-workout PASS; analyzer FAILED on a single `curly_braces_in_flow_control_structures` lint in test gateway at line 2242. Lint fixed test-only in `1b4990d1`; its [Flutter CI #39147363480](https://github.com/im-tnyx/tio-world/actions/runs/39147363480) is pending at this checkpoint. Earlier HEAD attribution guard PASS; exact-new-HEAD checks still required. Local Flutter runner and working tree not observed.
-- **Next exact action:** Verify analyzer and Flutter CI at source/test fix `1b4990d1`, then run latest-head docs-inclusive checks and transfer PR #606 from Draft to Ready for Review only if green. Do not merge or activate.
+- **Validation:** Source/test + task handoff HEAD `70dfc1c126bd548a3f670831e738da7d1a5543c7` [Flutter CI #39147438818](https://github.com/im-tnyx/tio-world/actions/runs/39147438818) **SUCCESS 5/5** (Analyze, app-workout, nutrition-onboarding, core-wear, aggregate), plus Commit attribution guard and runner **2/2 SUCCESS**. Historical `aa3e004c` analyzer failed on one missing-braces lint and was corrected at `1b4990d1`; earlier superseded CI attempts do not count as current-pass evidence. Latest docs-only handoff HEAD after this update needs its own CI. No local Flutter runner or Windows working tree inspection.
+- **Next exact action:** Verify latest docs-only PR-head checks, mark PR #606 Ready for Review, process any independent/Codex P1/P2 inline findings before separate owner `Go merge`. Keep Move release OFF.
 
 ## Discovery / Architecture
 
@@ -36,7 +36,7 @@
 
 - [x] Test-local UUID matching Auth/bootstrap/SDK + inert owner-scoped inspect response; reject/count all Move writes.
 - [x] Two-surface widget regression on Program Detail and expanded Library: real 3-dot > Move > selector, same-account fresh login cycle dismisses private sheet and issues zero writes; first app-workout CI shard passed.
-- [ ] Exact-head analyzer + Flutter shard CI after test lint fix; branch ancestry and three scoped paths audited (`ahead=4`, `behind=0` at `1b4990d1`).
+- [x] Exact source/test analyzer + Flutter CI [#39147438818](https://github.com/im-tnyx/tio-world/actions/runs/39147438818) 5/5 and required attribution 2/2; complete diff audited three scoped files, `ahead=5`, `behind=0` at source/test + prior task handoff `70dfc1c1`. Later handoff-only commits need separate checks.
 - [ ] Review P1/P2 findings; keep M3D3B2 Create/Edit/Delete/Move arbitration and M3D3B3 owner-safe list refresh/UNKNOWN reconciliation as separate future slices.
 
 ## Release / security hold
@@ -45,4 +45,4 @@ No authenticated hosted Move client EXECUTE, atomic Create+Move RPC deployment, 
 
 ## Final handoff
 
-**Status:** IN PROGRESS, initial app-workout CI passed at `aa3e004c`, analyzer lint fixed at `1b4990d1`; latest exact-head CI and independent review still pending. PR #606 is Draft, unmerged; no release activation.
+**Status:** REVIEW handoff for completed test-only behavior. Validated source/test HEAD `70dfc1c1` CI 7/7 PASS. Latest docs-only SHA, independent review and separate `Go merge` still pending; PR #606 unmerged, no feature activation.
