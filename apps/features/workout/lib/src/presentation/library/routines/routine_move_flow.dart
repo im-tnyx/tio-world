@@ -45,6 +45,8 @@ final class RoutineMoveFlow {
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
     RoutineCreateMoveCallback? createAndMove,
+    /// Development-only visual preview: never dispatch either Move RPC.
+    bool previewOnly = false,
     Widget Function(BuildContext dialogContext, Widget content)? modalGuard,
   }) async {
     if (routine.programId != sourceProgram.id || !canWrite() ||
@@ -144,6 +146,12 @@ final class RoutineMoveFlow {
           createProgram: true,
         );
         if (confirmed != true || !context.mounted || !canWrite()) return false;
+        // Preview is a real owner-scoped, read-only UI flow. Never create a
+        // Program or send the atomic Create+Move command even after confirm.
+        if (previewOnly) {
+          _show(context, 'Preview only. No Program or Routine was changed.');
+          return false;
+        }
 
         // Re-check the owner-scoped source after the confirmation; server CAS
         // is still the final ownership, revision and atomicity authority.
@@ -190,6 +198,12 @@ final class RoutineMoveFlow {
         modalGuard: modalGuard,
       );
       if (confirmed != true || !context.mounted || !canWrite()) return false;
+      // Preview must not reach the existing Program Move RPC either. False
+      // means no write occurred and no success/refresh may be reported.
+      if (previewOnly) {
+        _show(context, 'Preview only. No Program or Routine was changed.');
+        return false;
+      }
       attempted = true;
 
       final result = await controller.dispatchConfirmed(
