@@ -1,0 +1,56 @@
+# #569 M3D3C — Explicit debug-only Move Routine UI preview
+
+**Status:** In progress
+**Primary owner:** One cross-package implementation owner for Workout feature presentation and phone app-shell composition/tests
+**Affected platforms:** Flutter Android/iOS debug-only opt-in; all release/profile builds unchanged
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product slice and bounded dev-only visible interaction.
+**Approval status:** Approved by owner on 2026-10-18: after prior explicit discussion of an internal Move UI preview on physical dev app, owner requested "next slice audit ke baad ... agent.md ... workflow.md ... start".
+**Approved outcome:** On a debug build built with an explicit build-time opt-in, signed-in owner of an existing persisted Routine may inspect the current shared action sheet, top-row `+ New Program`, owner-scoped eligible existing destinations, editable generated Program name, and confirmation dialogs. After confirmation the preview reports **no data saved**. This allows phone UI visual/interaction QA before protected backend capability release.
+**Explicit non-changes:** Never make an ordinary release/profile app show Move from this preview flag; never grant hosted Move EXECUTE, deploy an atomic Create+Move RPC, change Supabase shape/RLS, create a new persisted Program, perform Move/create writes, or fabricate a successful move. No UI redesign, unrelated feature, iOS/watch work, or merge without separate owner instruction.
+
+## Active Handoff
+
+- **Planning and Implementation owner:** One bounded Workout feature + apps/app composition owner.
+- **Review owner:** Independent/Codex pending after exact-head CI.
+- **Implementation ownership state:** Active; predecessor #606 merged and no open PRs at planning audit.
+- **Repository state last verified:** Protected `main@e08d547b6cfe3c99096029f2df9c5196b6aad006` (squash merge #606), GitHub API confirms no open PRs. Post-merge Flutter CI at planning start still in progress.
+- **Branch:** `tnyx/issue-569-m3d3c-debug-move-ui-preview`, created from exact `main` head. Working tree cannot be observed via remote GitHub connector; no local Windows reset, stash, prune or sync.
+- **Trackers:** GitHub #569 open, related #568 open, Linear TNYX-81 broad Backlog and blocked by TNYX-78/80.
+- **Validation:** Not run on new slice yet; do not infer CI from prior PR.
+- **Next exact action:** Implement preview-only gate, enforce write interception in Workout flow, add both branch-specific and real app-router tests, open Draft PR, validate and hand off.
+
+## Seven-phase workflow
+
+### 1. Discovery
+The user needs to visually test the actual Move Routine bottom sheet on their dev phone, including source-only `+ New Program` and existing destination options, without releasing unsupported database mutations. Existing Routine and Program data remains real owner-scoped read-only.
+
+### 2. Codebase Exploration
+Read root `AGENTS.md`, nested `apps/features/AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, task template, Core theme/visual rules, current Workout Move flow/controller/repos/tests, `apps/app` provider and shell wiring, canonical module ownership and Routine docs, GitHub #569/#568 and Linear TNYX-81. PR #606 merged with test-only Riverpod override; production `routineMoveReleaseEnabledProvider` is hard `false`. Hosted `move_user_workout_routine` grant revoked and atomic Create+Move absent. Do not mistake those gates for a safe actual write.
+
+### 3. Clarification / decisions
+No new schema, network capability, feature design, or app-store release. Opt-in must require **both** Flutter `kDebugMode` and compile-time `--dart-define=TIO_MOVE_ROUTINE_UI_PREVIEW=true`; unset defaults `false`. Tests can explicitly override provider, but tests cannot establish APK installation or QA. Debug-only preview must not piggyback on `routineMoveReleaseEnabledProvider`.
+
+### 4. Architecture Design
+- App shell owns compiled debug-preview capability and live Auth/bootstrap/SDK checks, existing nullable action callback, and passes `previewOnly` to feature-owned `RoutineMoveFlow`.
+- Workout owns UI flow, uses existing editor sheets and destination controller (owner-safe read), but preview branches intercept both existing Move and atomic Create+Move **before any write dispatcher**. Return `false` to never indicate success/refresh; present explicit no-change feedback. Cancels remain zero write.
+- Existing actual-write release gate remains hard OFF independently; preview cannot be enabled in release/profile binaries even with injected dart-define. No new fake local Program list or mock data in deployed app.
+- Rejected alternatives: set existing release flag true, enable Supabase grants, create fake successful records, create a duplicate modal UI, use environment flag alone in profile/release.
+
+### 5. Implementation Plan
+- [ ] Scoped debug/define provider, no production release flag changes.
+- [ ] Feature Move flow preview intercept both writes at final confirmation, no false success.
+- [ ] Feature widget tests for existing target and New Program confirmation: 0 Move/atomic/create, false refresh, visible no-save feedback; cancel and owner-session safety.
+- [ ] Real app-router widget regression for both Program Detail and expanded Library debug preview, with auth/SDK owner and zero gateway writes.
+- [ ] CI, exact changed-file/ancestry diff audit, Codex review, handoff.
+
+### 6. Quality Review
+**Validation run:** Not yet on this branch.
+**Security/privacy:** All Program lists remain read-only authenticated owner scoped. Preview is not an authorization bypass for database writes.
+**Visual safety:** Reuse existing Core Modal and confirmation; no changed fixed spacing/geometry.
+**Open findings:** Await validation/review.
+
+### 7. Final Handoff
+**Status:** IN PROGRESS. No build/device QA, RPC, grant, feature activation or merge claimed.
