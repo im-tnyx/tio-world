@@ -69,8 +69,18 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                   key: ValueKey('routine-move-${openingId.value}'),
                   label: 'Move Routine',
                   icon: Icons.swap_horiz_rounded,
-                  onTap: () => Navigator.of(sheetContext)
-                      .pop(_RoutineAction.move),
+                  onTap: () {
+                    // Begin the owner-guarded destination read while this
+                    // sheet animates out, rather than waiting for its reverse
+                    // transition and then starting network I/O. The app
+                    // callback still rechecks live Auth and Routine ownership.
+                    Navigator.of(sheetContext).pop(_RoutineAction.move);
+                    if (mounted &&
+                        widget.routine.id == openingId &&
+                        widget.routine.programId == openingProgramId) {
+                      widget.onMove?.call();
+                    }
+                  },
                 ),
                 const SizedBox(height: TioSpacing.sm),
               ],
@@ -103,7 +113,9 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
         case _RoutineAction.edit:
           widget.onEdit?.call();
         case _RoutineAction.move:
-          widget.onMove?.call();
+          // Already begun at the user's tap, during sheet dismissal.
+          // Do not dispatch a second Move after the reverse animation.
+          break;
         case _RoutineAction.delete:
           widget.onDelete?.call();
         case null:
