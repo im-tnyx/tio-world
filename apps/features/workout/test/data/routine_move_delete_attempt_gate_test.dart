@@ -115,7 +115,7 @@ Future<RoutineMoveTarget> _inspectMove(
 ))!;
 
 Future<RoutineDeleteTarget> _inspectDelete(
-  SupabaseRoutineDeleteRepository repository, {ProgramId? program},
+  SupabaseRoutineDeleteRepository repository, {ProgramId? program}
 ) async => (await repository.inspect(
   programId: program ?? _source, routineId: _routine,
 ))!;
