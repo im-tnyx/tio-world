@@ -193,6 +193,13 @@ final class SupabaseRoutineMoveRepository
           mutationId: mutationId.toLowerCase(),
         ).timeout(_timeout);
       } on PostgrestException catch (e) {
+        // A definitive database rejection still belongs to the frozen owner
+        // session. Never surface stale-cycle results after an awaited RPC.
+        if (!_sameSession(session)) {
+          throw const RoutineMoveOutcomeUnknown(
+            reason: RoutineMoveUncertainty.sessionChanged,
+          );
+        }
         final known = _definite(e);
         if (known != null) throw RoutineMoveException(known);
         return await _unknown(target, session);
@@ -261,6 +268,13 @@ final class SupabaseRoutineMoveRepository
           mutationId: mutationId.toLowerCase(),
         ).timeout(_timeout);
       } on PostgrestException catch (e) {
+        // A definitive database rejection still belongs to the frozen owner
+        // session. Never surface stale-cycle results after an awaited RPC.
+        if (!_sameSession(session)) {
+          throw const RoutineMoveOutcomeUnknown(
+            reason: RoutineMoveUncertainty.sessionChanged,
+          );
+        }
         final known = _definite(e);
         if (known != null) throw RoutineMoveException(known);
         return await _unknown(target, session);
@@ -398,7 +412,9 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
       '25001' => RoutineMoveFailureKind.invalidRequest,
-      'PGRST202' => RoutineMoveFailureKind.unavailable,
+      // Both PostgREST routing/overload errors reject before executing SQL.
+      // They cannot commit a Move, so never poison the shared unknown gate.
+      'PGRST202' || 'PGRST203' => RoutineMoveFailureKind.unavailable,
       _ => null,
     };
   }
