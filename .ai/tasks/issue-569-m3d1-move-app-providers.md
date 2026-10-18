@@ -1,6 +1,6 @@
 # #569 M3D1 — Dormant Move app providers
 
-**Status:** In Review — Draft PR #602; Auth lifecycle tests PASS at source/test HEAD 58aea265; independent review and merge gate pending.
+**Status:** In Review — [PR #602](https://github.com/im-tnyx/tio-world/pull/602) Open / Ready for Review / unmerged. Exact preceding HEAD `70291762c6cdf1bb9234c09026630a39a62de926` [Flutter CI #39128199802](https://github.com/im-tnyx/tio-world/actions/runs/39128199802) 5/5 SUCCESS plus 2/2 attribution = **7/7 PASS**. Separate independent APPROVED review and owner merge gate pending.
 **Primary owner:** apps/app composition
 **Affected platforms:** Flutter phone internal providers; no visible UI
 
@@ -18,7 +18,7 @@
 - **Environment:** GitHub connector only; Windows local git status unavailable. No destructive sync or physical test claimed.
 - **Current scope:** app/composition/workout_providers.dart and app-focused provider tests. Only one active implementation slice.
 - **Live DB last verified:** 64 migrations, new atomic RPC absent, Move client grant denied. All client Move actions stay dormant.
-- **Remaining validation:** This documentation-only subsequent HEAD exact CI, independent review and owner merge gate. Source/test HEAD 58aea265 Flutter CI #39127809266 completed 7/7 SUCCESS.
+- **Remaining validation:** This follow-up documentation-only HEAD CI after commit; independent APPROVED security/code review and explicit owner Go merge. Previously validated exact head `70291762` CI 7/7 PASS; source/test head `58aea265` also 7/7 PASS.
 
 ## Discovery and Architecture
 Use the existing Workout Delete provider pattern: match authoritative Auth user with Supabase client user; fail closed for unavailable/loading/error or missing login cycle. Preserve a shared gate and flow across repository refresh; injected live callback must re-read session each operation. Workout owns RPC and business logic; app owns injection. No new data model, no fake success or two-RPC move. Reuse existing Core UI in later separately reviewed M3D2 only.
@@ -27,10 +27,11 @@ Use the existing Workout Delete provider pattern: match authoritative Auth user 
 - [x] Add Move gate, flow, and session-bound Move repository with atomic alias.
 - [x] Add tests for missing/mismatched session, same-owner relogin, stale captured repository, A→logout→B and shared alias identity; source/test CI 7/7 PASS.
 - [x] Validate source/test HEAD 58aea265 with Flutter CI #39127809266 and attribution (7/7 SUCCESS), and reply/resolve all three reviewed P2/P3 threads.
-- [ ] Latest docs-only HEAD CI, independent review/owner merge authorization. No merge/deploy.
+- [x] Previous documentation-only HEAD `70291762` [Flutter CI #39128199802](https://github.com/im-tnyx/tio-world/actions/runs/39128199802) 5/5 PASS + attribution 2/2 PASS; all three earlier inline findings resolved.
+- [ ] Exact later governance-only HEAD CI, independent APPROVED security/code review and explicit owner Go merge. No merge/deploy.
 
 ## Quality Review
-Original provider/test commit cd56223a: Flutter CI #39126515604 5/5 SUCCESS plus attribution 2/2 SUCCESS. Auth-transition test and handoff HEAD 58aea265: Flutter CI #39127809266 completed 5/5 SUCCESS plus attribution 2/2 SUCCESS. All 3 PR #602 inline P2/P3 review threads replied and RESOLVED. Independent APPROVED review still pending; source is not app-shell release ready.
+Original provider/test commit cd56223a: Flutter CI #39126515604 5/5 SUCCESS plus attribution 2/2 SUCCESS. Auth-transition test and handoff HEAD 58aea265: Flutter CI #39127809266 completed 5/5 SUCCESS plus attribution 2/2 SUCCESS. All original 3 PR #602 inline P2/P3 threads replied and RESOLVED. Fresh manual re-review at exact `70291762` found no confirmed new P1/P2; the newer P3 handoff-status finding remained open until this correction. Codex review failed before analysis due usage quota, which is not a security PASS. Independent APPROVED review still pending; source is not app-shell release ready.
 
 ## Final Handoff
-Provider composition and focused test updates committed. No app-shell routing or UI activation; no Supabase schema/grants. Changed-area tests passed at 58aea265; docs-only latest HEAD CI and independent review outstanding. **Status REVIEW**, no merge or activation.
+Provider composition and focused test updates committed. No app-shell routing or UI activation; no Supabase schema/grants. Changed-area tests passed at `58aea265`, prior exact latest HEAD `70291762` 7/7 PASS; this governance-only follow-up HEAD will need its own checks. No app-shell callback, hosted grants or user-visible activation. **Status REVIEW / MERGE HOLD** until independent review and explicit owner Go merge.
