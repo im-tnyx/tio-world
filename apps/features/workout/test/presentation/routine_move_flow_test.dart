@@ -92,6 +92,7 @@ Future<void> _pump(
   required void Function(bool) onResult,
   Routine? selectedRoutine,
   RoutineCreateMoveCallback? createAndMove,
+  bool previewOnly = false,
 }) async {
   await tester.pumpWidget(MaterialApp(
     builder: (context, child) => TioTheme(
@@ -109,6 +110,7 @@ Future<void> _pump(
             repository: move,
             canWrite: canWrite,
             createAndMove: createAndMove,
+            previewOnly: previewOnly,
           )),
           child: const Text('Open Move'),
         ),
@@ -129,6 +131,72 @@ Future<void> _choose(WidgetTester tester) async {
 }
 
 void main() {
+
+
+  testWidgets('debug preview existing destination confirms with zero Move writes',
+      (tester) async {
+    final move = _Move();
+    final programs = _Programs();
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, previewOnly: true,
+      onResult: (value) => needsRefresh = value,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
+    expect(needsRefresh, false,
+        reason: 'Preview must never report a committed Move or request refresh');
+    expect(find.text('Preview only. No Program or Routine was changed.'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+  });
+
+  testWidgets('debug preview Create & Move confirms without either write',
+      (tester) async {
+    final move = _Move();
+    final programs = _Programs()..items = [source];
+    var atomicCalls = 0;
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, previewOnly: true,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        throw StateError('Preview must never dispatch Create & Move');
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.text('Select an existing destination Program'), findsNothing,
+        reason: 'One source Program has no eligible existing destinations');
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(atomicCalls, 0);
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
+    expect(needsRefresh, false);
+    expect(find.text('Preview only. No Program or Routine was changed.'),
+        findsOneWidget);
+  });
 
   testWidgets('atomic Create & Move retains refresh after auth switch',
       (tester) async {
