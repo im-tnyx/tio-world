@@ -10,7 +10,48 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+final _moveSessionProvider = StateProvider<AuthSessionState>(
+  (ref) => const AuthSessionUnauthenticated(),
+);
+
+ProviderContainer _moveContainer(
+  _MoveAuth auth, AuthSessionState initial,
+) => ProviderContainer(overrides: [
+  supabaseClientProvider.overrideWithValue(_MoveClient(auth)),
+  _moveSessionProvider.overrideWith((ref) => initial),
+  authSessionStateProvider.overrideWith(
+    (ref) => Stream.value(ref.watch(_moveSessionProvider)),
+  ),
+]);
+
 void main() {
+  test('Move denies missing, mismatched or incomplete authenticated sessions',
+      () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    const other = '22222222-2222-4222-8222-222222222222';
+    for (final state in <AuthSessionState>[
+      const AuthSessionUnauthenticated(),
+      const AuthSessionUnknown(),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: other, loginCycleId: 'cycle-a')),
+      const AuthSessionAuthenticated(AuthSession(userId: owner)),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: '')),
+    ]) {
+      final c = _moveContainer(_MoveAuth(_moveUser(owner)), state);
+      await c.read(authSessionStateProvider.future);
+      expect(c.read(routineMoveRepositoryProvider), isNull);
+      expect(c.read(routineCreateMoveRepositoryProvider), isNull);
+      c.dispose();
+    }
+    final c = _moveContainer(_MoveAuth(null),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    expect(c.read(routineMoveRepositoryProvider), isNull);
+  });
+
   test('Routine Delete fails closed without Supabase and retains shared gate', () {
     final container = ProviderContainer(overrides: [
       supabaseClientProvider.overrideWithValue(null),
