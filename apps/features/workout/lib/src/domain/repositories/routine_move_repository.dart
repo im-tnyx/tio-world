@@ -61,3 +61,15 @@ abstract interface class RoutineMoveRepository {
     required String mutationId,
   });
 }
+
+/// Optional, single-RPC Create Program + Move Routine capability.
+/// Implementations must share the existing Move attempt/unknown gate so
+/// new-Program and existing-Program moves cannot dispatch concurrently.
+abstract interface class RoutineCreateMoveRepository {
+  Future<RoutineMoveResult> createAndMove({
+    required RoutineMoveTarget target,
+    required ProgramId newProgramId,
+    required String newProgramName,
+    required String mutationId,
+  });
+}
