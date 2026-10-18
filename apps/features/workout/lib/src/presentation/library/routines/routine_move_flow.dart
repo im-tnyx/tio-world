@@ -19,6 +19,17 @@ typedef RoutineCreateMoveCallback = Future<RoutineMoveResult> Function({
 });
 
 enum _MoveDestinationChoice { newProgram }
+enum _MoveSheetAbort { stale, noDestinations }
+
+typedef _MoveSheetChoice = ({
+  RoutineMoveSelection selection,
+  Object choice,
+});
+
+final class _MoveSheetError {
+  const _MoveSheetError(this.error);
+  final Object error;
+}
 
 /// Feature-owned Move workflow shared by the two Routine card surfaces.
 ///
@@ -45,6 +56,8 @@ final class RoutineMoveFlow {
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
     RoutineCreateMoveCallback? createAndMove,
+    /// Development-only visual preview: never dispatch either Move RPC.
+    bool previewOnly = false,
     Widget Function(BuildContext dialogContext, Widget content)? modalGuard,
   }) async {
     if (routine.programId != sourceProgram.id || !canWrite() ||
@@ -57,68 +70,136 @@ final class RoutineMoveFlow {
     );
     var attempted = false;
     try {
-      final selection = await controller.inspect(
-        sourceProgramId: sourceProgram.id,
-        routineId: routine.id,
-      );
-      if (!context.mounted || !canWrite()) return false;
-      if (selection == null ||
-          selection.target.routineId != routine.id ||
-          selection.target.sourceProgramId != sourceProgram.id) {
-        _show(context, 'This Routine changed. Refresh the list.');
-        return true;
-      }
-      // Controller owns the one-use, owner-scoped destination eligibility.
-      // Do not infer My Program by its mutable display name.
-      final target = selection.target;
-      final destinations = selection.destinations;
-      if (destinations.isEmpty && createAndMove == null) {
-        _show(context, 'Create another Program before moving this Routine.');
-        return false;
+      // Push the sheet immediately. The authenticated owner-scoped reads
+      // continue inside its content; no destination is shown/selectable until
+      // BOTH the Routine header and Program list pass controller validation.
+      Future<({RoutineMoveSelection? selection, Object? error})>
+          readSelection() async {
+        try {
+          return (
+            selection: await controller.inspect(
+              sourceProgramId: sourceProgram.id,
+              routineId: routine.id,
+            ),
+            error: null,
+          );
+        } catch (error) {
+          // A canceled sheet must never leave an unhandled read failure.
+          return (selection: null, error: error);
+        }
       }
 
-      final chosen = await showTioEditorSheet<Object>(
+      final inspection = readSelection();
+      var dismissalScheduled = false;
+      final picked = await showTioEditorSheet<Object>(
         context: context,
         useSafeArea: true,
         builder: (sheetContext) {
+          // Match the previous fail-closed snackbar/refetch semantics after
+          // an invalid/failed read, without leaving a stuck empty picker.
+          void dismissAfterFrame(Object reason) {
+            if (dismissalScheduled) return;
+            dismissalScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // A stale async read must never pop the screen *under* an
+              // already-dismissed selector or a newly opened modal.
+              if (sheetContext.mounted &&
+                  ModalRoute.of(sheetContext)?.isCurrent == true) {
+                Navigator.of(sheetContext).pop(reason);
+              }
+            });
+          }
+
           final sheet = TioEditorSheet(
             key: ValueKey('routine-move-destinations-${routine.id.value}'),
-            title: 'Move Routine',
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (createAndMove != null) ...[
-                  ListTile(
-                    key: const ValueKey('routine-move-new-program'),
-                    title: const Text('+ New Program'),
-                    leading: const Icon(Icons.add_rounded),
-                    onTap: () => Navigator.of(sheetContext)
-                        .pop(_MoveDestinationChoice.newProgram),
-                  ),
-                  if (destinations.isNotEmpty)
-                    const SizedBox(height: TioSpacing.sm),
-                ],
-                if (destinations.isNotEmpty) ...[
-                  const Text('Select an existing destination Program'),
-                  const SizedBox(height: TioSpacing.sm),
-                ],
-                for (final program in destinations)
-                  ListTile(
-                    key: ValueKey('routine-move-destination-${program.id.value}'),
-                    title: Text(program.name, maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () =>
-                        Navigator.of(sheetContext).pop(program.id),
-                  ),
-              ],
+            title: 'Select Program',
+            content: FutureBuilder<
+                ({RoutineMoveSelection? selection, Object? error})>(
+              future: inspection,
+              builder: (bodyContext, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const SizedBox(
+                    key: ValueKey('routine-move-destinations-loading'),
+                    height: TioSize.dp48,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final error = snapshot.data?.error;
+                if (error != null) {
+                  dismissAfterFrame(_MoveSheetError(error));
+                  return const SizedBox.shrink();
+                }
+                if (!canWrite()) return const SizedBox.shrink();
+                final selection = snapshot.data?.selection;
+                if (selection == null ||
+                    selection.target.routineId != routine.id ||
+                    selection.target.sourceProgramId != sourceProgram.id) {
+                  dismissAfterFrame(_MoveSheetAbort.stale);
+                  return const SizedBox.shrink();
+                }
+
+                // Keep all eligibility and owner validation in the
+                // controller: the UI only renders its verified snapshot.
+                final destinations = selection.destinations;
+                if (destinations.isEmpty && createAndMove == null) {
+                  dismissAfterFrame(_MoveSheetAbort.noDestinations);
+                  return const SizedBox.shrink();
+                }
+
+                void choose(Object choice) {
+                  if (!canWrite()) return;
+                  final _MoveSheetChoice result =
+                      (selection: selection, choice: choice);
+                  Navigator.of(sheetContext).pop(result);
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (createAndMove != null)
+                      ListTile(
+                        key: const ValueKey('routine-move-new-program'),
+                        title: const Text('New Program'),
+                        leading: const Icon(Icons.add_rounded),
+                        onTap: () => choose(_MoveDestinationChoice.newProgram),
+                      ),
+                    if (createAndMove != null && destinations.isNotEmpty)
+                      const Divider(
+                        key: ValueKey('routine-move-program-divider'),
+                      ),
+                    for (final program in destinations)
+                      ListTile(
+                        key: ValueKey(
+                            'routine-move-destination-${program.id.value}'),
+                        title: Text(program.name, maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => choose(program.id),
+                      ),
+                  ],
+                );
+              },
             ),
           );
           return modalGuard?.call(sheetContext, sheet) ?? sheet;
         },
       );
 
-      if (!context.mounted || !canWrite() || chosen == null) return false;
+      if (!context.mounted || !canWrite()) return false;
+      if (picked is _MoveSheetError) throw picked.error;
+      if (picked == _MoveSheetAbort.stale) {
+        _show(context, 'This Routine changed. Refresh the list.');
+        return true;
+      }
+      if (picked == _MoveSheetAbort.noDestinations) {
+        _show(context, 'Create another Program before moving this Routine.');
+        return false;
+      }
+      if (picked is! _MoveSheetChoice) return false;
+      final selection = picked.selection;
+      final chosen = picked.choice;
+      final target = selection.target;
+      final destinations = selection.destinations;
       if (chosen == _MoveDestinationChoice.newProgram) {
         if (createAndMove == null) return false;
         final proposedName = await promptCreateProgramName(
@@ -144,6 +225,12 @@ final class RoutineMoveFlow {
           createProgram: true,
         );
         if (confirmed != true || !context.mounted || !canWrite()) return false;
+        // Preview is a real owner-scoped, read-only UI flow. Never create a
+        // Program or send the atomic Create+Move command even after confirm.
+        if (previewOnly) {
+          _show(context, 'Preview only · No changes', preview: true);
+          return false;
+        }
 
         // Re-check the owner-scoped source after the confirmation; server CAS
         // is still the final ownership, revision and atomicity authority.
@@ -190,6 +277,12 @@ final class RoutineMoveFlow {
         modalGuard: modalGuard,
       );
       if (confirmed != true || !context.mounted || !canWrite()) return false;
+      // Preview must not reach the existing Program Move RPC either. False
+      // means no write occurred and no success/refresh may be reported.
+      if (previewOnly) {
+        _show(context, 'Preview only · No changes', preview: true);
+        return false;
+      }
       attempted = true;
 
       final result = await controller.dispatchConfirmed(
@@ -249,6 +342,25 @@ final class RoutineMoveFlow {
   }) => showDialog<bool>(
     context: context,
     builder: (dialogContext) {
+      final theme = Theme.of(dialogContext);
+      // Only this confirmation card uses the owner-approved compact visual
+      // button height. Preserve Core button intent, colours, radius and padded
+      // accessible tap target; global TioButtonTokens.height stays 46dp.
+      const compactMinimum = WidgetStatePropertyAll<Size>(
+        Size(TioButtonTokens.minimumWidth, TioSize.dp42),
+      );
+      final compactButtonsTheme = theme.copyWith(
+        filledButtonTheme: FilledButtonThemeData(
+          style: theme.filledButtonTheme.style?.copyWith(
+            minimumSize: compactMinimum,
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: theme.outlinedButtonTheme.style?.copyWith(
+            minimumSize: compactMinimum,
+          ),
+        ),
+      );
       final card = Dialog(
         key: const ValueKey('routine-move-confirmation'),
         backgroundColor: TioPalette.transparent,
@@ -278,22 +390,25 @@ final class RoutineMoveFlow {
                       textAlign: TextAlign.center,
                       style: Theme.of(dialogContext).textTheme.bodyMedium),
                   const SizedBox(height: TioSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(child: TioButton.secondary(
-                        label: 'Cancel',
-                        expand: true,
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
-                      )),
-                      const SizedBox(width: TioSpacing.sm),
-                      Expanded(child: TioButton.primary(
-                        label: createProgram ? 'Create & Move' : 'Move',
-                        expand: true,
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
-                      )),
-                    ],
+                  Theme(
+                    data: compactButtonsTheme,
+                    child: Row(
+                      children: [
+                        Expanded(child: TioButton.secondary(
+                          label: 'Cancel',
+                          expand: true,
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
+                        )),
+                        const SizedBox(width: TioSpacing.sm),
+                        Expanded(child: TioButton.primary(
+                          label: createProgram ? 'Create & Move' : 'Move',
+                          expand: true,
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(true),
+                        )),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -305,14 +420,53 @@ final class RoutineMoveFlow {
     },
   );
 
-  void _show(BuildContext context, String message, {bool confirmed = false}) {
+  void _show(BuildContext context, String message, {
+    bool confirmed = false,
+    bool preview = false,
+  }) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.hideCurrentSnackBar();
+    // Match the existing Delete feedback pill. Preview is an explicit
+    // no-write state; its Undo action only dismisses the visual preview.
+    // A real reverse Move needs its own protected server-side contract.
+    final pill = confirmed || preview;
     messenger?.showSnackBar(SnackBar(
-      key: confirmed ? const ValueKey('routine-move-confirmed-feedback') : null,
-      duration: Duration(seconds: confirmed ? 5 : 4),
-      behavior: confirmed ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
-      content: Text(message),
+      key: confirmed
+          ? const ValueKey('routine-move-confirmed-feedback')
+          : preview
+              ? const ValueKey('routine-move-preview-feedback')
+              : null,
+      duration: Duration(seconds: pill ? 5 : 4),
+      // Snackbar actions persist by default on current Flutter. Preview must
+      // still close after five seconds even when Undo is not pressed.
+      persist: preview ? false : null,
+      behavior: pill ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
+      shape: pill ? const StadiumBorder() : null,
+      content: pill
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  confirmed
+                      ? Icons.swap_horiz_rounded
+                      : Icons.visibility_outlined,
+                  color: Theme.of(context).colorScheme.onInverseSurface,
+                ),
+                const SizedBox(width: TioSpacing.sm),
+                Flexible(child: Text(message)),
+              ],
+            )
+          : Text(message),
+      action: preview
+          ? SnackBarAction(
+              label: 'Undo',
+              // A filled contrasting action capsule inside the dark floating
+              // pill; all colours are from the active Material colour scheme.
+              backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
+              textColor: Theme.of(context).colorScheme.inverseSurface,
+              onPressed: () => messenger.hideCurrentSnackBar(),
+            )
+          : null,
     ));
   }
 }

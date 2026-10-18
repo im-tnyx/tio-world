@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
@@ -110,6 +111,15 @@ final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
 /// The app shell may prepare Move closures, but it must not expose a 3-dot
 /// capability while any one of those release gates is incomplete.
 final routineMoveReleaseEnabledProvider = Provider<bool>((ref) => false);
+
+/// Opt-in visual QA of the existing Move selector on an Android/iOS DEBUG APK.
+/// Neither profile/release builds nor ordinary debug builds expose it.
+/// This is intentionally independent of the actual-write release capability;
+/// RoutineMoveFlow must intercept both Move dispatch paths in preview mode.
+final routineMoveUiPreviewEnabledProvider = Provider<bool>((ref) =>
+    kDebugMode &&
+    const bool.fromEnvironment('TIO_MOVE_ROUTINE_UI_PREVIEW',
+        defaultValue: false));
 
 /// Shared across all Routine Move routes, owners and login cycles.
 final routineMoveAttemptGateProvider = Provider<RoutineMoveAttemptGate>(

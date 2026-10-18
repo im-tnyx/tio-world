@@ -70,6 +70,31 @@ flutter run
 
 A healthy dependency check can still show older transitive packages when they are pinned by Flutter SDK or test package constraints. Focus on direct and dev dependencies first.
 
+## Move Routine debug UI preview (opt-in)
+
+The #569 Move Routine flow is intentionally release-OFF until protected backend
+capabilities and full mutation/refresh gates have passed. For **visual QA only**,
+the phone app can opt into the existing Routine action/Program destination
+sheets on a **debug build**. This debug-only option is disabled by default and
+cannot be enabled in profile/release builds, even if a define is supplied.
+
+```bash
+cd apps/app
+flutter build apk --debug --dart-define=TIO_MOVE_ROUTINE_UI_PREVIEW=true
+```
+
+Use your existing approved local Supabase runtime configuration when building.
+**Do not check credentials or APK outputs into the repository.** Install the
+resulting debug APK on the test device using your normal Android tooling.
+
+Only signed-in, verified owners of persisted Routines can open the existing
+selector; it uses owner-scoped Program reads. The existing/new Program
+confirmation UI is preview-only: **neither Move nor Create+Move writes run,
+no new Program is saved, and the Routine stays in its original Program**.
+The UI reports that no change was made. Clearing the define restores the
+default hidden action. This opt-in does not turn on
+`routineMoveReleaseEnabledProvider`, Supabase RPC grants, or production Move.
+
 ## Flutter Feature Packages
 
 Feature packages live in:

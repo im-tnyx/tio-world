@@ -92,6 +92,7 @@ Future<void> _pump(
   required void Function(bool) onResult,
   Routine? selectedRoutine,
   RoutineCreateMoveCallback? createAndMove,
+  bool previewOnly = false,
 }) async {
   await tester.pumpWidget(MaterialApp(
     builder: (context, child) => TioTheme(
@@ -109,6 +110,7 @@ Future<void> _pump(
             repository: move,
             canWrite: canWrite,
             createAndMove: createAndMove,
+            previewOnly: previewOnly,
           )),
           child: const Text('Open Move'),
         ),
@@ -119,7 +121,7 @@ Future<void> _pump(
 }
 
 Future<void> _choose(WidgetTester tester) async {
-  expect(find.text('Move Routine'), findsOneWidget);
+  expect(find.text('Select Program'), findsOneWidget);
   await tester.tap(find.byKey(
       ValueKey('routine-move-destination-${destination.id.value}')));
   await tester.pumpAndSettle();
@@ -128,7 +130,222 @@ Future<void> _choose(WidgetTester tester) async {
   expect(find.textContaining('Mobility'), findsOneWidget);
 }
 
+void _expectCompactConfirmationButtons(WidgetTester tester, {
+  required String primaryLabel,
+}) {
+  // Only this dialog gets the 42dp visual minimum; other Core buttons
+  // retain 46dp, and Material's padded touch target remains enabled.
+  final cancelTheme = Theme.of(tester.element(find.text('Cancel')));
+  final primaryTheme = Theme.of(tester.element(find.text(primaryLabel)));
+  const emptyStates = <WidgetState>{};
+  expect(cancelTheme.outlinedButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioSize.dp42);
+  expect(primaryTheme.filledButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioSize.dp42);
+  expect(primaryTheme.materialTapTargetSize, MaterialTapTargetSize.padded);
+  final globalTheme = Theme.of(tester.element(find.text('Open Move')));
+  expect(globalTheme.filledButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
+  expect(globalTheme.outlinedButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
+}
+
 void main() {
+
+  testWidgets('Select Program opens while verified destination reads are pending',
+      (tester) async {
+    final header = Completer<RoutineMoveTarget?>();
+    final rows = Completer<List<Program>>();
+    final move = _Move()..onInspect = () => header.future;
+    final programs = _Programs()..onList = () => rows.future;
+    var atomicCalls = 0;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        throw StateError('A selector tap must not dispatch a write');
+      },
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Select Program'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget,
+        reason: 'The sheet should open before the Routine header is fetched');
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsNothing);
+    expect(programs.reads, 0);
+    expect(move.writes, 0);
+
+    header.complete(move.target);
+    await tester.pump();
+    expect(programs.reads, 1);
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget,
+        reason: 'Owner Program list must also verify before options appear');
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsNothing);
+    rows.complete([source, destination]);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey(
+        'routine-move-destination-${destination.id.value}')), findsOneWidget);
+    expect(move.writes, 0);
+    expect(atomicCalls, 0);
+    Navigator.of(tester.element(find.byKey(
+        ValueKey('routine-move-destinations-${routine.id.value}')))).pop();
+    await tester.pumpAndSettle();
+    expect(move.writes, 0);
+  });
+
+  testWidgets('dismissal during slow owner read never revives a stale selector',
+      (tester) async {
+    final header = Completer<RoutineMoveTarget?>();
+    final move = _Move()..onInspect = () => header.future;
+    final programs = _Programs();
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true,
+      onResult: (v) => needsRefresh = v);
+    await tester.tap(find.text('Open Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+        ValueKey('routine-move-destinations-${routine.id.value}')))).pop();
+    await tester.pump();
+    header.complete(move.target);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey(
+        'routine-move-destination-${destination.id.value}')), findsNothing);
+    expect(move.writes, 0);
+    expect(needsRefresh, false);
+  });
+
+
+
+
+  testWidgets('debug preview existing destination confirms with zero Move writes',
+      (tester) async {
+    final move = _Move();
+    final programs = _Programs();
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, previewOnly: true,
+      onResult: (value) => needsRefresh = value,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    _expectCompactConfirmationButtons(tester, primaryLabel: 'Move');
+    await tester.tap(find.text('Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
+    expect(needsRefresh, false,
+        reason: 'Preview must never report a committed Move or request refresh');
+    expect(find.text('Preview only · No changes'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+    final preview = tester.widget<SnackBar>(
+        find.byKey(const ValueKey('routine-move-preview-feedback')));
+    expect(preview.behavior, SnackBarBehavior.floating);
+    expect(preview.shape, isA<StadiumBorder>());
+    expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.persist, isFalse,
+        reason: 'Undo must not prevent five-second automatic dismissal');
+    expect(preview.action?.label, 'Undo');
+    final colors = Theme.of(tester.element(
+        find.byKey(const ValueKey('routine-move-preview-feedback'))))
+        .colorScheme;
+    expect(preview.action?.backgroundColor, colors.onInverseSurface);
+    expect(preview.action?.textColor, colors.inverseSurface);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+        findsNothing, reason: 'Preview Undo only dismisses its feedback');
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
+  });
+
+  testWidgets('debug preview Create & Move confirms without either write',
+      (tester) async {
+    final move = _Move();
+    final programs = _Programs()..items = [source];
+    var atomicCalls = 0;
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, previewOnly: true,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        throw StateError('Preview must never dispatch Create & Move');
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsNothing,
+        reason: 'One source Program has no eligible existing destinations');
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    _expectCompactConfirmationButtons(tester, primaryLabel: 'Create & Move');
+    await tester.tap(find.text('Create & Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(atomicCalls, 0);
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
+    expect(needsRefresh, false);
+    expect(find.text('Preview only · No changes'),
+        findsOneWidget);
+    final preview = tester.widget<SnackBar>(
+        find.byKey(const ValueKey('routine-move-preview-feedback')));
+    expect(preview.behavior, SnackBarBehavior.floating);
+    expect(preview.shape, isA<StadiumBorder>());
+    expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.persist, isFalse);
+    expect(preview.action?.label, 'Undo');
+    final colors = Theme.of(tester.element(
+        find.byKey(const ValueKey('routine-move-preview-feedback'))))
+        .colorScheme;
+    expect(preview.action?.backgroundColor, colors.onInverseSurface);
+    expect(preview.action?.textColor, colors.inverseSurface);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+        findsNothing, reason: 'Preview pill must auto-dismiss after five seconds');
+    expect(atomicCalls, 0);
+    expect(move.writes, 0);
+  });
 
   testWidgets('atomic Create & Move retains refresh after auth switch',
       (tester) async {
@@ -265,6 +482,14 @@ void main() {
         findsOneWidget);
     expect(find.byKey(ValueKey('routine-move-destination-${destination.id.value}')),
         findsOneWidget);
+    expect(find.text('New Program'), findsOneWidget);
+    expect(find.text('+ New Program'), findsNothing,
+        reason: 'The leading add icon must be the only plus');
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsOneWidget);
+    final newOption = tester.widget<ListTile>(
+        find.byKey(const ValueKey('routine-move-new-program')));
+    expect(newOption.leading, isA<Icon>());
     final newTop = tester.getTopLeft(
       find.byKey(const ValueKey('routine-move-new-program')));
     final oldTop = tester.getTopLeft(
@@ -324,7 +549,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-move-new-program')),
         findsOneWidget);
-    expect(find.text('Select an existing destination Program'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsNothing);
     expect(find.textContaining('Create another Program'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
@@ -575,16 +801,27 @@ void main() {
     expect(find.text('Routine moved.'), findsNothing);
   });
 
-  testWidgets('simultaneous taps cannot reopen one Routine inspection',
+  testWidgets('simultaneous requests cannot reopen one Routine inspection',
       (tester) async {
     final inspect = Completer<RoutineMoveTarget?>();
     final g = _Move()..onInspect = () => inspect.future;
-    await _pump(tester, flow: RoutineMoveFlow(), move: g,
-      programs: _Programs(), canWrite: () => true, onResult: (_) {});
+    final flow = RoutineMoveFlow();
+    final programs = _Programs();
+    await _pump(tester, flow: flow, move: g,
+      programs: programs, canWrite: () => true, onResult: (_) {});
     await tester.tap(find.text('Open Move'));
     await tester.pump();
-    await tester.tap(find.text('Open Move'));
-    await tester.pump();
+    // The first request has already opened a blocking modal. Invoke another
+    // request directly, rather than tapping through that modal's barrier.
+    final rejected = await flow.run(
+      context: tester.element(find.text('Open Move')),
+      sourceProgram: source,
+      routine: routine,
+      programs: programs,
+      repository: g,
+      canWrite: () => true,
+    );
+    expect(rejected, false);
     expect(g.reads, 1);
     inspect.complete(null);
     await tester.pumpAndSettle();

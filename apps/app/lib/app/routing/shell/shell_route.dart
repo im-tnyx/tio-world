@@ -117,6 +117,9 @@ List<RouteBase> _shellBranchChildRoutes(
           // adapter instance. The release capability remains OFF until M3D3
           // coordination, hosted RPC/grants and device QA are approved.
           final moveReleaseEnabled = ref.watch(routineMoveReleaseEnabledProvider);
+          final movePreviewEnabled =
+              ref.watch(routineMoveUiPreviewEnabledProvider);
+          final moveActionEnabled = moveReleaseEnabled || movePreviewEnabled;
           final moveRepository = ref.watch(routineMoveRepositoryProvider);
           final createMoveRepository =
               ref.watch(routineCreateMoveRepositoryProvider);
@@ -378,7 +381,7 @@ List<RouteBase> _shellBranchChildRoutes(
             final programs = programRepository;
             final moves = moveRepository;
             final atomicMoves = createMoveRepository;
-            if (!moveReleaseEnabled || programs == null || moves == null ||
+            if (!moveActionEnabled || programs == null || moves == null ||
                 atomicMoves == null || !identical(moves, atomicMoves) ||
                 routineRepository == null || routine.programId != program.id) {
               return false;
@@ -407,7 +410,8 @@ List<RouteBase> _shellBranchChildRoutes(
                 final live = value.isLoading || value.hasError
                     ? null : value.valueOrNull;
                 final pending = ref.read(routinePendingCreateGateProvider);
-                return ref.read(routineMoveReleaseEnabledProvider) &&
+                return (ref.read(routineMoveReleaseEnabledProvider) ||
+                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
                     boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     live is AuthSessionAuthenticated &&
@@ -431,6 +435,9 @@ List<RouteBase> _shellBranchChildRoutes(
               programs: programs,
               repository: moves,
               canWrite: sameSession,
+              // Debug-only preview still uses live owner-scoped reads but
+              // never reaches either protected write RPC after confirmation.
+              previewOnly: movePreviewEnabled,
               createAndMove: ({
                 required RoutineMoveTarget target,
                 required ProgramId newProgramId,
@@ -880,7 +887,7 @@ List<RouteBase> _shellBranchChildRoutes(
                           userExerciseRepository == null
                       ? null
                       : (routine) => editRoutine(program, routine),
-                  onMoveRoutine: !moveReleaseEnabled || revoked ||
+                  onMoveRoutine: !moveActionEnabled || revoked ||
                           moveRepository == null ||
                           createMoveRepository == null ||
                           programRepository == null ||
@@ -972,7 +979,7 @@ List<RouteBase> _shellBranchChildRoutes(
                     userExerciseRepository == null
                 ? null
                 : editRoutine,
-            onMoveRoutine: !moveReleaseEnabled || !bound ||
+            onMoveRoutine: !moveActionEnabled || !bound ||
                     !canCreateForSession || programRepository == null ||
                     routineRepository == null || moveRepository == null ||
                     createMoveRepository == null
