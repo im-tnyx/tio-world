@@ -385,7 +385,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Create Program & Move Routine?'), findsOneWidget);
       await tester.tap(find.text('Create & Move'));
-      await tester.pumpAndSettle();
+      // Don't let pumpAndSettle jump past the five-second auto-dismissal.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Preview only · No changes'),
           findsOneWidget);
       expect(gateway.reads, 1);
@@ -397,7 +399,13 @@ void main() {
       expect(preview.behavior, SnackBarBehavior.floating);
       expect(preview.shape, isA<StadiumBorder>());
       expect(preview.duration, const Duration(seconds: 5));
+      expect(preview.persist, isFalse);
       expect(preview.action?.label, 'Undo');
+      final colors = Theme.of(tester.element(
+          find.byKey(const ValueKey('routine-move-preview-feedback'))))
+          .colorScheme;
+      expect(preview.action?.backgroundColor, colors.onInverseSurface);
+      expect(preview.action?.textColor, colors.inverseSurface);
       expect(tester.takeException(), isNull);
     });
   }
