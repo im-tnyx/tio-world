@@ -195,6 +195,31 @@ void main() {
     expect(g.writes, 1);
   });
 
+  for (final code in <String>[
+    'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003',
+  ]) {
+    test('$code is pre-execution: no unknown gate poison after outage',
+        () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+          message: 'Cannot acquire database connection', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final r = repo(g, gate: gate);
+      final target = await inspect(r);
+      await expectLater(r.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1, reason: 'No uncertain-result reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Outage repair permits new inspected existing Move');
+      expect(g.writes, 1);
+    });
+  }
+
   test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
       () async {
     final g = FakeMoveGateway()
@@ -377,6 +402,14 @@ void main() {
         RoutineMoveFailureKind.unauthorized),
     ('PGRST300', 'No active JWT secret configured',
         RoutineMoveFailureKind.unavailable),
+    ('PGRST000', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST001', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST002', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST003', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -505,6 +538,14 @@ void main() {
     ('PGRST303', 'JWT claims validation or parsing failed',
         RoutineMoveFailureKind.unauthorized),
     ('PGRST300', 'No active JWT secret configured',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST000', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST001', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST002', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST003', 'Cannot acquire database connection',
         RoutineMoveFailureKind.unavailable),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
