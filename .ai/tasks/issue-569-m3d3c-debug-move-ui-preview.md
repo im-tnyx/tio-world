@@ -80,3 +80,11 @@ No new schema, network capability, feature design, or app-store release. Opt-in 
 - No existing Program row icon in this slice. Preserve Core TioEditorSheet, spacing roles, and both Program Detail and expanded Library routes.
 
 **Implementation checkpoint:** Source and widget regressions committed on the existing Draft PR #607 branch. Feature test asserts header/one leading icon/conditional divider and one immediate Move callback before completion of the reverse animation. App-router preview tests keep zero-write and both-surface checks. **CI and independent review of the latest commit not yet verified; no device retest of new refinements claimed.** Release gate remains default OFF; dev preview remains opt-in/debug-only.
+
+## 2026-10-18 Owner screenshot feedback — Move preview confirmation pill
+
+**Owner-visible scope approval:** Owner supplied screenshot as a feedback reference and specified a **floating pill**, right-aligned **Undo**, and **5-second display**, with existing Delete Routine feedback as a visual pattern. This is a bounded UI refinement of the debug-only preview, not approval to activate a real Move or add a reversal API.
+
+**Decision:** The preview confirmation shows a Delete-pattern Material floating Snackbar pill with `StadiumBorder`, an informational icon, short **“Preview only · No changes”** copy and right `Undo` `SnackBarAction`, duration **5 seconds**. During debug preview there is **no persisted mutation**, so tapping Undo **only dismisses that preview pill**; it must never fake restoration, send a Move/Create+Move RPC, or claim a successfully undone Move. Genuine post-commit Undo requires a separately reviewed, authenticated, revision-safe server reversal and list refresh, outside this slice. Non-preview error feedback remains unchanged. Real confirmed Move currently has no Undo action.
+
+**Validation:** Changed only Workout presentation flow and feature/app widget regressions, plus task/PR handoff. Both existing-destination and atomic New-Program preview paths still assert zero writes; feature widget tests additionally assert 5-second floating shape, Undo and dismissal. Source/test HEAD `5db5e4d0` Flutter CI #39152699480 was IN PROGRESS at this checkpoint; do not mark as passed until exact SHA completes. Owner verified the earlier preview on a physical device, not this latest pill.
