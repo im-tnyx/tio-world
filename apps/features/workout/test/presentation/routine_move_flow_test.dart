@@ -121,7 +121,7 @@ Future<void> _pump(
 }
 
 Future<void> _choose(WidgetTester tester) async {
-  expect(find.text('Move Routine'), findsOneWidget);
+  expect(find.text('Select Program'), findsOneWidget);
   await tester.tap(find.byKey(
       ValueKey('routine-move-destination-${destination.id.value}')));
   await tester.pumpAndSettle();
@@ -180,7 +180,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-move-new-program')),
         findsOneWidget);
-    expect(find.text('Select an existing destination Program'), findsNothing,
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsNothing,
         reason: 'One source Program has no eligible existing destinations');
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
@@ -333,6 +334,14 @@ void main() {
         findsOneWidget);
     expect(find.byKey(ValueKey('routine-move-destination-${destination.id.value}')),
         findsOneWidget);
+    expect(find.text('New Program'), findsOneWidget);
+    expect(find.text('+ New Program'), findsNothing,
+        reason: 'The leading add icon must be the only plus');
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsOneWidget);
+    final newOption = tester.widget<ListTile>(
+        find.byKey(const ValueKey('routine-move-new-program')));
+    expect(newOption.leading, isA<Icon>());
     final newTop = tester.getTopLeft(
       find.byKey(const ValueKey('routine-move-new-program')));
     final oldTop = tester.getTopLeft(
@@ -392,7 +401,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-move-new-program')),
         findsOneWidget);
-    expect(find.text('Select an existing destination Program'), findsNothing);
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsNothing);
     expect(find.textContaining('Create another Program'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
