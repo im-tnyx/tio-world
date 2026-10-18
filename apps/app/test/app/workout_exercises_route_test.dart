@@ -340,6 +340,62 @@ void main() {
     });
   }
 
+
+  // M3D3C: an opted-in debug preview shows the real Move flow but MUST not
+  // call either write API, even after final Create & Move confirmation.
+  for (final onProgramDetail in <bool>[false, true]) {
+    testWidgets(
+        'dev-only Move preview shows New Program and blocks all writes on ${onProgramDetail ? 'Program Detail' : 'expanded Library'}',
+        (tester) async {
+      final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
+      final (container, router) = await _app(
+        tester, AppMode.hybrid,
+        withRoutineComposition: true,
+        withDormantMoveAdapters: true,
+        withMovePreviewForTest: true,
+        moveGateway: gateway,
+      );
+      expect(container.read(routineMoveReleaseEnabledProvider), isFalse,
+          reason: 'Debug preview must not enable actual Move release');
+      expect(container.read(routineMoveUiPreviewEnabledProvider), isTrue);
+      router.go(_libraryPath);
+      await tester.pumpAndSettle();
+      if (onProgramDetail) {
+        await tester.tap(find.byKey(const ValueKey(
+            'program-open-20000000-0000-4000-8000-000000000001')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramDetailPage), findsOneWidget);
+      } else {
+        expect(find.byType(LibraryPage), findsOneWidget);
+      }
+      const rid = '30000000-0000-4000-8000-000000000001';
+      await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('routine-move-$rid')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('routine-move-$rid')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('routine-move-destinations-$rid')),
+          findsOneWidget);
+      expect(find.text('+ New Program'), findsOneWidget);
+      expect(find.text('Select an existing destination Program'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+      await tester.pumpAndSettle();
+      expect(find.text('Create Program'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+      await tester.tap(find.text('Create & Move'));
+      await tester.pumpAndSettle();
+      expect(find.text('Preview only. No Program or Routine was changed.'),
+          findsOneWidget);
+      expect(gateway.reads, 1);
+      expect(gateway.writes, 0);
+      expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -2101,6 +2157,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineComposition = false,
   bool withDormantMoveAdapters = false,
   bool withEnabledMoveForTest = false,
+  bool withMovePreviewForTest = false,
   RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
@@ -2127,7 +2184,9 @@ Future<(ProviderContainer, GoRouter)> _app(
   final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
   assert(!withEnabledMoveForTest || withDormantMoveAdapters);
-  final moveOwner = withEnabledMoveForTest ? _moveTestOwner : 'test-user';
+  assert(!withMovePreviewForTest || withDormantMoveAdapters);
+  final moveOwner = withEnabledMoveForTest || withMovePreviewForTest
+      ? _moveTestOwner : 'test-user';
   final dormantMoveAdapter = withDormantMoveAdapters
       ? SupabaseRoutineMoveRepository(
           gateway: moveGateway ?? _DormantRouteMoveGateway(owner: moveOwner),
@@ -2146,6 +2205,11 @@ Future<(ProviderContainer, GoRouter)> _app(
       ],
       if (withEnabledMoveForTest) ...[
         routineMoveReleaseEnabledProvider.overrideWithValue(true),
+      ],
+      if (withMovePreviewForTest) ...[
+        routineMoveUiPreviewEnabledProvider.overrideWithValue(true),
+      ],
+      if (withEnabledMoveForTest || withMovePreviewForTest) ...[
         _routineTestAuthStateProvider.overrideWith((ref) =>
             const AuthSessionAuthenticated(
               AuthSession(userId: _moveTestOwner, loginCycleId: 'test-cycle'),
@@ -2210,7 +2274,7 @@ Future<(ProviderContainer, GoRouter)> _app(
     ],
   );
   addTearDown(container.dispose);
-  if (withEnabledMoveForTest) {
+  if (withEnabledMoveForTest || withMovePreviewForTest) {
     (container.read(appSessionBootstrapControllerProvider)
             as _ReadyAppSessionBootstrapController)
         .transitionTo(_moveTestOwner);
