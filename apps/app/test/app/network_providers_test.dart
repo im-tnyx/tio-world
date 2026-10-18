@@ -322,6 +322,27 @@ void main() {
   });
 }
 
+class _MoveClient extends Fake implements SupabaseClient {
+  _MoveClient(this.fakeAuth);
+  final _MoveAuth fakeAuth;
+  @override
+  GoTrueClient get auth => fakeAuth;
+}
+
+class _MoveAuth extends Fake implements GoTrueClient {
+  _MoveAuth(this.currentUser);
+  @override
+  User? currentUser;
+}
+
+User _moveUser(String id) => User(
+  id: id,
+  appMetadata: const {},
+  userMetadata: const {},
+  aud: 'authenticated',
+  createdAt: '2026-10-18T00:00:00Z',
+);
+
 class _FakeSupabaseClient extends Fake implements SupabaseClient {}
 
 class _CustomTokenProvider implements AuthTokenProvider {
