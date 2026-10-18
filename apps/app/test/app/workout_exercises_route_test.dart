@@ -386,12 +386,18 @@ void main() {
       expect(find.text('Create Program & Move Routine?'), findsOneWidget);
       await tester.tap(find.text('Create & Move'));
       await tester.pumpAndSettle();
-      expect(find.text('Preview only. No Program or Routine was changed.'),
+      expect(find.text('Preview only · No changes'),
           findsOneWidget);
       expect(gateway.reads, 1);
       expect(gateway.writes, 0);
       expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
           findsNothing);
+      final preview = tester.widget<SnackBar>(
+          find.byKey(const ValueKey('routine-move-preview-feedback')));
+      expect(preview.behavior, SnackBarBehavior.floating);
+      expect(preview.shape, isA<StadiumBorder>());
+      expect(preview.duration, const Duration(seconds: 5));
+      expect(preview.action?.label, 'Undo');
       expect(tester.takeException(), isNull);
     });
   }
