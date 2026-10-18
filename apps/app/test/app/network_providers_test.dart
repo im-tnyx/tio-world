@@ -82,6 +82,38 @@ void main() {
     expect(identical(container.read(routineMoveFlowProvider), flow), isTrue);
   });
 
+  test('Move repository shares both capabilities, not the login-cycle state',
+      () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    final auth = _MoveAuth(_moveUser(owner));
+    final c = _moveContainer(auth, const AuthSessionAuthenticated(
+        AuthSession(userId: owner, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final gate = c.read(routineMoveAttemptGateProvider);
+    final flow = c.read(routineMoveFlowProvider);
+    final original = c.read(routineMoveRepositoryProvider)!;
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), original),
+        isTrue);
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: owner, loginCycleId: 'cycle-b'));
+    await c.read(authSessionStateProvider.future);
+    c.invalidate(routineMoveRepositoryProvider);
+    final replacement = c.read(routineMoveRepositoryProvider);
+    expect(replacement, isA<SupabaseRoutineMoveRepository>());
+    expect(identical(replacement, original), isFalse);
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), replacement),
+        isTrue);
+    expect(identical(c.read(routineMoveAttemptGateProvider), gate), isTrue);
+    expect(identical(c.read(routineMoveFlowProvider), flow), isTrue);
+    await expectLater(original.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+  });
+
   group('Network & Auth Providers', () {
     test('providers instantiate with safe unavailable defaults in container',
         () {
