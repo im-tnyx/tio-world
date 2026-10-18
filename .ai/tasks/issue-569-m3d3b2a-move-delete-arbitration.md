@@ -1,6 +1,6 @@
 # #569 M3D3B2a — Routine Move/Delete cross-operation arbitration
 
-**Status:** In progress (new owner-approved implementation subtask, not released)
+**Status:** Review handoff (scoped source + tests green; reviewer gate separate from merge)
 **Primary owner:** Workout feature repository/data adapters; app-shell dependency composition only
 **Affected platforms:** Flutter Android/iOS shared Workout; no visual/UI changes
 
@@ -23,8 +23,19 @@
 3. **Decision:** introduce one narrowly scoped, owner/Routine-keyed *cross-operation* process guard in Workout data, injected into both adapters from the app composition; keep individual one-use and auth-cycle protections.
 4. **Architecture:** reserve synchronously immediately before either RPC; invalidate already-inspected opposite-action tokens via shared dispatch generation; block UNKNOWN until positive later-revision owner read. No implicit rollback, optimistic success or new server source of truth.
 5. **Implementation:** gate + adapter injection and checks + provider wiring + race tests. Use no UI changes. Cross-op Edit/Create remains a separately scoped slice.
-6. **Quality:** focused Flutter tests/analyzer, full exact-head CI, required attribution, manual review, Codex threads. Never claim results until complete.
+6. **Quality:** source/test HEAD `495b7c01b4353b36767020a20efeadf9c0d7b602` [Flutter CI #39174717198](https://github.com/im-tnyx/tio-world/actions/runs/39174717198) **5/5 SUCCESS** and [Commit attribution #39174715719](https://github.com/im-tnyx/tio-world/actions/runs/39174715719) **2/2 SUCCESS**. Earlier CI #39174417169 failed due a test fixture optional-parameter syntax error at line 118; fixed by `495b7c01`, latest source/test HEAD green. Manual diff/security audit saw no confirmed blocking source finding; Codex review and independent `APPROVED` require separate verification.
 7. **Handoff:** PR review gate; separate owner `Go merge` required. Preserve production Move OFF and hosted grants revoked.
 
 **Branch:** `tnyx/issue-569-m3d3b2a-move-delete-arbitration` from `main@4dba419f`.
-**Next:** complete implementation, run exact-head validation and independent review. No merge authorization.
+**Next:** Verify any later handoff-only HEAD checks before Ready for Review. Inspect Codex/independent inline review and resolve P1/P2; separate owner `Go merge` mandatory. No merge authorization.
+
+## Review gate checklist (source/test checkpoint)
+- [x] Base `main@4dba419f8181cf739832ae556472f91fe87a92a4` and 9 scoped files; 0 behind parent at review start.
+- [x] Feature-owned gate preserves single operation per owner/Routine, UNKNOWN revision evidence, stale token invalidation; app shares one provider lifetime; no auth/RLS/RPC or live flag changes.
+- [x] Tests for Move→Delete, Delete→Move, atomic Create+Move→Delete, in-flight read race, UNKNOWN from both sides, same vs later revision, owner isolation and provider lifetime.
+- [x] Source/test HEAD `495b7c01` Flutter CI 5/5, attribution 2/2.
+- [ ] Any later docs-only HEAD: exact-head CI + required attribution.
+- [ ] Codex reviewer/final result, disposition of any P1/P2 inline findings and repository merge policy (formal approval not implied).
+- [ ] Owner's separate `Go merge`.
+
+**Truth boundary:** no hosted Move grant, no atomic Create+Move SQL deployment, no production Move enablement, no local Windows checkout/Flutter runner. Older task index #607 'review pending' state was reconciled separately against GitHub merge and owner device QA, not treated as live source.
