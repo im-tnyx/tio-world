@@ -1,6 +1,7 @@
 # #569 M3D3A — App-router Move release-OFF regression
 
-**Status:** In Review (PR #605 ready-for-review gate)
+**Status:** In progress
+**PR review state:** Ready for Review; Codex review findings under correction, independent approval pending.
 **Primary owner:** `apps/app` authenticated shell/widget tests
 **Affected platforms:** Flutter Android/iOS tests only
 
@@ -14,14 +15,14 @@
 ## Active Handoff
 
 - **Planning / Implementation owner:** current `apps/app` test slice; one active implementation owner for this branch
-- **Review owner:** independent PR review pending; no approval implied
-- **Implementation ownership state:** Test implementation complete; handed to review (no production changes)
+- **Review owner:** Codex automated review submitted two documentation P1 findings on PR #605; both are addressed in this governance-only follow-up. Independent approval remains pending.
+- **Implementation ownership state:** Test implementation complete; governance-only Codex findings being corrected inside the same bounded slice; no production changes or ownership transfer of source files.
 - **Repository state last verified:** protected `main@d3753bcda7cc0dae6a61d0c3914d78e6500fc3ea`, PR #604 squash merged, post-merge Flutter CI #39141831465 SUCCESS, zero open PRs before branch creation
 - **Branch:** `tnyx/issue-569-m3d3a-move-release-off-route-tests`
 - **Observed working tree:** remote GitHub connector branch from exact main commit; Windows local checkout and `git status -sb` **not observable**, no local file operations, force updates, or cleanup
 - **PR/tracker:** GitHub #569 remains Open; Linear TNYX-81 broad Backlog blocked by TNYX-78/80
-- **Validation:** source/test HEAD `974e8e1a5cc826cbfa1a3bf50d591bbe3d148793` [Flutter CI #39143637835](https://github.com/im-tnyx/tio-world/actions/runs/39143637835) SUCCESS (5/5 jobs); independent review pending. GitHub API inspection only, no local Flutter runner or Windows `git status` verification. Any later handoff-only commit requires its own checks.
-- **Next exact action:** complete PR #605 Ready for Review transition after latest-head checks; request/await independent reviewer. Keep Move OFF; do not merge without separate `Go merge`.
+- **Validation:** source/test HEAD `974e8e1a5cc826cbfa1a3bf50d591bbe3d148793` [Flutter CI #39143637835](https://github.com/im-tnyx/tio-world/actions/runs/39143637835) SUCCESS (5/5 jobs); later handoff-only HEAD `ebd01c6bd93347d7c4483c179087ad648e5c0442` [Flutter CI #39144387950](https://github.com/im-tnyx/tio-world/actions/runs/39144387950) also SUCCESS (5/5 jobs). Any new Codex-disposition docs-only HEAD requires its own checks. No local Flutter runner or Windows `git status` verification; independent approval pending.
+- **Next exact action:** verify CI for Codex finding corrections on latest HEAD, reply to both [Codex inline findings](https://github.com/im-tnyx/tio-world/pull/605/files), resolve threads only after verified fix, then hand off for independent review. Keep Move OFF; no merge without separate `Go merge`.
 
 ## Discovery / verified evidence
 
@@ -41,12 +42,17 @@
 ## Implementation / quality
 
 - [x] Added an inert Move gateway and matching Auth/SDK user fixture only in existing app test.
-- [x] Added two real router tests: Program Detail and expanded Library with non-null adapter/alias, matching owner and release OFF; runtime execution/CI validation still pending.
+- [x] Added two real router tests: Program Detail and expanded Library with non-null adapter/alias, matching owner and release OFF; Flutter CI SUCCESS on source/test `974e8e1a` and follow-up handoff-only `ebd01c6b`, each 5/5 jobs.
 - [x] Scoped remote source write touched only the existing app widget test and task/index; no production code or hosted Supabase change.
-- [x] Inspected the complete 3-file PR diff and app-route tests; no production source changes. `974e8e1a` Flutter CI SUCCESS (5/5, including app-workout and Analyze); pre-final handoff commit attribution was reported passing in prior task work. New handoff commit checks must be verified separately.
+- [x] Inspected complete 3-file PR diff and app-route tests; no production source changes. `974e8e1a` [Flutter CI #39143637835](https://github.com/im-tnyx/tio-world/actions/runs/39143637835) SUCCESS 5/5 and `ebd01c6b` [Flutter CI #39144387950](https://github.com/im-tnyx/tio-world/actions/runs/39144387950) SUCCESS 5/5; current corrections require new HEAD validation.
 - [ ] Leave separate M3D3 enabled-path auth-cycle revocation, cross-operation arbitration, verified refresh/reconciliation and hosted RPC security rollout unclaimed.
+
+## Codex Review Finding Continuity
+
+- **P1 / 4307769061:** [Task status contract](https://github.com/im-tnyx/tio-world/pull/605#discussion_r4307769061), observed `ebd01c6b`. Corrected the top-level task status to allowed `In progress`; PR review phase is recorded separately. Fix pending exact-new-HEAD validation/review-thread disposition.
+- **P1 / 4307769064:** [Stale validation claims](https://github.com/im-tnyx/tio-world/pull/605#discussion_r4307769064), observed `ebd01c6b`. Updated checked item and final handoff to distinguish verified successful source/test and handoff CI from subsequent pending docs CI. Fix pending exact-new-HEAD validation/review-thread disposition.
 
 ## Final handoff
 
-**Actual behavior:** Test-only app-router coverage added on isolated branch. It injects an inert Move gateway, a consistent SDK/authenticated owner and asserts both real action sheets keep Edit but omit Move while release is OFF. Test execution and CI are pending; no runtime release.
-**Final status:** REVIEW for test scope only. Latest validated source/test SHA `974e8e1a` succeeded; independent approval and merge remain pending, as does any CI created by this handoff-only commit.
+**Actual behavior:** Test-only app-router coverage added on isolated branch. It injects an inert Move gateway, a consistent SDK/authenticated owner and asserts both real action sheets keep Edit but omit Move while release is OFF. Test execution and Flutter CI succeeded on source/test `974e8e1a` (5/5) and handoff `ebd01c6b` (5/5); no runtime release.
+**Final status:** REVIEW for test scope only. Flutter CI verified successful through `ebd01c6b`; Codex disposition docs changes require exact-new-HEAD validation, then independent approval. PR #605 remains unmerged.
