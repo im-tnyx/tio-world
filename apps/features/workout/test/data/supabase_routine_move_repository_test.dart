@@ -30,8 +30,11 @@ Matcher unknown(RoutineMoveUncertainty reason) =>
 
 final class FakeMoveGateway implements RoutineMoveGateway {
   Map<String, dynamic>? row = header();
-  int reads = 0, writes = 0;
+  int reads = 0, writes = 0, atomicWrites = 0;
   Future<Object?> Function()? onMove;
+  Future<Object?> Function()? onCreateAndMove;
+  String? createdName;
+  String? createdProgramId;
   void Function()? onRead;
   String? readOwner;
   String? readRoutine;
@@ -63,6 +66,23 @@ final class FakeMoveGateway implements RoutineMoveGateway {
     this.mutationId = mutationId;
     return await (onMove?.call() ?? Future<Object?>.value(expectedRevision + 1));
   }
+
+  @override
+  Future<Object?> createAndMove({
+    required String routineId, required String sourceProgramId,
+    required String newProgramId, required String newProgramName,
+    required int expectedRevision, required String mutationId,
+  }) async {
+    atomicWrites++;
+    this.routineId = routineId;
+    sourceId = sourceProgramId;
+    createdProgramId = newProgramId;
+    createdName = newProgramName;
+    this.expectedRevision = expectedRevision;
+    this.mutationId = mutationId;
+    return await (onCreateAndMove?.call() ??
+        Future<Object?>.value(expectedRevision + 1));
+  }
 }
 
 SupabaseRoutineMoveRepository repo(
@@ -88,6 +108,511 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  test('atomic known SQL rejection after login-cycle change is UNKNOWN', () async {
+    var loginCycle = cycle;
+    final gate = RoutineMoveAttemptGate();
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async {
+        loginCycle = 'cycle-b';
+        throw const PostgrestException(
+          message: 'routine_create_move_revision_conflict', code: 'P0001');
+      };
+    final r = repo(g, gate: gate, loginCycle: () => loginCycle);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1, reason: 'No stale-cycle reconciliation read');
+    final next = repo(g, gate: gate, loginCycle: () => loginCycle);
+    final fresh = await inspect(next);
+    await expectLater(move(next, fresh),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.writes, 0,
+        reason: 'Old-owner response must freeze both Move paths');
+  });
+
+  test('existing Move known SQL rejection after login switch is UNKNOWN',
+      () async {
+    var loginCycle = cycle;
+    final g = FakeMoveGateway()
+      ..onMove = () async {
+        loginCycle = 'cycle-b';
+        throw const PostgrestException(
+          message: 'routine_move_revision_conflict', code: 'P0001');
+      };
+    final r = repo(g, loginCycle: () => loginCycle);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.writes, 1);
+    expect(g.reads, 1);
+  });
+
+  test('PGRST303 bad JWT is definitive and leaves shared gate reusable',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'JWT claims validation or parsing failed',
+          code: 'PGRST303');
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'JWT validation failed before any RPC execution');
+    final second = repo(g, gate: gate);
+    final fresh = await inspect(second);
+    expect(await move(second, fresh), RoutineMoveResult.confirmed,
+        reason: 'A corrected JWT and fresh inspect must not be blocked');
+    expect(g.writes, 1);
+  });
+
+  test('atomic SQLSTATE 40003 stays UNKNOWN and freezes both Move paths',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'statement completion unknown', code: '40003');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 2,
+        reason: 'Unknown completion must attempt owner-scoped reconciliation');
+    final next = repo(g, gate: gate);
+    final fresh = await inspect(next);
+    await expectLater(move(next, fresh),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(next.createAndMove(
+      target: fresh, newProgramId: destination,
+      newProgramName: 'Program 2', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 1,
+        reason: 'No new Program ID/token replay of uncertain commit');
+  });
+
+  test('existing Move SQLSTATE 40003 likewise remains UNKNOWN', () async {
+    final g = FakeMoveGateway()
+      ..onMove = () async => throw const PostgrestException(
+          message: 'statement completion unknown', code: '40003');
+    final r = repo(g);
+    final target = await inspect(r);
+    await expectLater(move(r, target),
+        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    expect(g.writes, 1);
+    expect(g.reads, 2);
+  });
+
+  test('SQLSTATE 57014 server cancellation is definite and gate reusable',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'canceling statement due to statement timeout',
+          code: '57014');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.transactionAborted)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'Server query_canceled proves rolled-back statement');
+    final next = repo(g, gate: gate);
+    final fresh = await inspect(next);
+    expect(await move(next, fresh), RoutineMoveResult.confirmed,
+        reason: 'A new confirmed Move can proceed after server timeout');
+    expect(g.writes, 1);
+  });
+
+  for (final (code, kind) in
+      <(String, RoutineMoveFailureKind)>[
+        ('55P03', RoutineMoveFailureKind.transactionAborted),
+        ('429', RoutineMoveFailureKind.unavailable),
+        ('422', RoutineMoveFailureKind.invalidRequest),
+      ]) {
+    test('$code definitive rejection preserves shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'pre-execution rejection', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(kind)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1,
+          reason: 'Definite rejection must not trigger unknown reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh owner-scoped attempt is permitted after rejection');
+      expect(g.writes, 1);
+    });
+  }
+
+  for (final code in <String>['408', '499']) {
+    test('HTTP $code is ambiguous and freezes shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'request timed out', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect(g.reads, 2,
+          reason: 'Ambiguous transport status must trigger reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      await expectLater(move(next, fresh),
+          throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+      expect(g.writes, 0);
+      expect(g.atomicWrites, 1);
+    });
+  }
+
+  for (final (code, kind) in <(String, RoutineMoveFailureKind)>[
+    ('53000', RoutineMoveFailureKind.transactionAborted),
+    ('53100', RoutineMoveFailureKind.transactionAborted),
+    ('53200', RoutineMoveFailureKind.transactionAborted),
+    ('53300', RoutineMoveFailureKind.unavailable),
+    ('53400', RoutineMoveFailureKind.transactionAborted),
+    ('57P03', RoutineMoveFailureKind.unavailable),
+  ]) {
+    test('$code infrastructure rejection is definite and reusable', () async {
+      final gateway = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'server unavailable before commit', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(gateway, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(kind)));
+      expect(gateway.atomicWrites, 1);
+      expect(gateway.reads, 1,
+          reason: 'Definite server rejection must not reconcile UNKNOWN');
+      final second = repo(gateway, gate: gate);
+      final fresh = await inspect(second);
+      expect(await move(second, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh owner-scoped Move works after infrastructure repair');
+      expect(gateway.writes, 1);
+    });
+  }
+
+  test('PGRST300 missing JWT secret is definite; new Move cannot poison gate',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'No active JWT secret configured', code: 'PGRST300');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'Missing JWT secret rejects before the RPC executes');
+    final second = repo(g, gate: gate);
+    final fresh = await inspect(second);
+    expect(await move(second, fresh), RoutineMoveResult.confirmed,
+        reason: 'After backend repair a new inspected Move is not frozen');
+    expect(g.writes, 1);
+  });
+
+  for (final code in <String>[
+    'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003',
+  ]) {
+    test('$code is pre-execution: no unknown gate poison after outage',
+        () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+          message: 'Cannot acquire database connection', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final r = repo(g, gate: gate);
+      final target = await inspect(r);
+      await expectLater(r.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1, reason: 'No uncertain-result reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Outage repair permits new inspected existing Move');
+      expect(g.writes, 1);
+    });
+  }
+
+  for (final (code, message) in <(String, String)>[
+    ('25006', 'cannot execute INSERT in a read-only transaction'),
+    ('PGRST106', 'schema public is not an exposed schema'),
+  ]) {
+    test('$code rejects without poisoning the shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+          message: message, code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1, reason: 'Known rejection must not reconcile');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh inspect recovers after known rejection');
+      expect(g.writes, 1);
+    });
+  }
+
+  test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'RPC overload is ambiguous', code: 'PGRST203');
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'A rejected route cannot have executed SQL');
+    final second = repo(g, gate: gate);
+    final retryTarget = await inspect(second);
+    expect(await move(second, retryTarget), RoutineMoveResult.confirmed,
+        reason: 'A fresh inspected Move is permitted after definite rejection');
+    expect(g.writes, 1);
+  });
+
+
+  test('atomic SDK sends exactly one protected RPC, no standalone Program INSERT',
+      () async {
+    final requests = <http.Request>[];
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'GET') {
+          return http.Response(jsonEncode(header()), 200,
+              headers: {'content-type': 'application/json'}, request: request);
+        }
+        return http.Response('5', 200,
+            headers: {'content-type': 'application/json'}, request: request);
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final r = SupabaseRoutineMoveRepository(
+      gateway: SupabaseRoutineMoveGateway(client),
+      attemptGate: RoutineMoveAttemptGate(),
+      currentUserId: () => owner,
+      currentLoginCycleId: () => cycle,
+    );
+    final t = await inspect(r);
+    final atomic = r as RoutineCreateMoveRepository;
+    expect(await atomic.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio Focus', mutationId: mutation,
+    ), RoutineMoveResult.confirmed);
+    expect(requests, hasLength(2));
+    expect(requests.first.method, 'GET');
+    expect(requests.last.method, 'POST');
+    expect(requests.last.url.path,
+        '/rest/v1/rpc/create_user_workout_program_and_move_routine');
+    expect(jsonDecode(requests.last.body), {
+      'p_routine_id': routine.value,
+      'p_source_program_id': source.value,
+      'p_new_program_id': destination.value,
+      'p_new_program_name': 'Cardio Focus',
+      'p_expected_revision': 4,
+      'p_client_mutation_id': mutation,
+    });
+  });
+
+  test('atomic invalid inputs and stale owner/cycle never dispatch', () async {
+    final g = FakeMoveGateway();
+    var activeCycle = cycle;
+    final r = repo(g, loginCycle: () => activeCycle);
+    final t = await inspect(r);
+    Future<void> bad(ProgramId id, String name, String token) async {
+      await expectLater(r.createAndMove(
+        target: t, newProgramId: id,
+        newProgramName: name, mutationId: token,
+      ), throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
+    }
+    await bad(source, 'Cardio', mutation);
+    await bad(destination, '   ', mutation);
+    await bad(destination, 'Cardio', 'bad-token');
+    expect(g.atomicWrites, 0);
+    activeCycle = 'cycle-b';
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    expect(g.atomicWrites, 0);
+  });
+
+  test('atomic and existing Move share one gate and prepared target', () async {
+    final completion = Completer<Object?>();
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () => completion.future;
+    final gate = RoutineMoveAttemptGate();
+    final atomicRepo = repo(g, gate: gate);
+    final existingRepo = repo(g, gate: gate);
+    final target = await inspect(atomicRepo);
+    final pending = atomicRepo.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    );
+    await expectLater(existingRepo.inspect(
+      sourceProgramId: source, routineId: routine,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(move(existingRepo, target),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 1);
+    completion.complete(5);
+    expect(await pending, RoutineMoveResult.confirmed);
+    await expectLater(move(atomicRepo, target),
+        throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    await expectLater(atomicRepo.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    expect(g.atomicWrites, 1);
+  });
+
+  test('atomic auth switch after server ACK is unknown, never confirmed',
+      () async {
+    var activeCycle = cycle;
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async {
+        activeCycle = 'cycle-b';
+        return 5;
+      };
+    final r = repo(g, loginCycle: () => activeCycle);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1, reason: 'Never refresh stale-owner data');
+  });
+
+  test('atomic timeout is unconfirmed and blocks existing Move at same revision',
+      () async {
+    final pending = Completer<Object?>();
+    final g = FakeMoveGateway()..onCreateAndMove = () => pending.future;
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate,
+        timeout: const Duration(milliseconds: 25));
+    final target = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    final second = repo(g, gate: gate);
+    final next = await inspect(second);
+    await expectLater(move(second, next),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(second.createAndMove(
+      target: next, newProgramId: destination,
+      newProgramName: 'Program 2', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.atomicWrites, 1);
+    expect(g.writes, 0);
+    pending.complete(5);
+    g.row = header(program: destination, revision: 5);
+    expect(await second.inspect(sourceProgramId: source,
+        routineId: routine), isNull);
+  });
+
+  for (final e in <(String, String, RoutineMoveFailureKind)>[
+    ('42501', 'permission denied', RoutineMoveFailureKind.forbidden),
+    ('P0002', 'routine_create_move_not_found',
+        RoutineMoveFailureKind.notFound),
+    ('P0001', 'routine_create_move_revision_conflict',
+        RoutineMoveFailureKind.revisionConflict),
+    ('P0001', 'routine_create_move_program_conflict',
+        RoutineMoveFailureKind.mutationConflict),
+    ('P0001', 'routine_create_move_mutation_conflict',
+        RoutineMoveFailureKind.mutationConflict),
+    ('PGRST203', 'RPC overload is ambiguous',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST303', 'JWT claims validation or parsing failed',
+        RoutineMoveFailureKind.unauthorized),
+    ('PGRST300', 'No active JWT secret configured',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST000', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST001', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST002', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST003', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('25006', 'cannot execute INSERT in a read-only transaction',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST106', 'schema public is not an exposed schema',
+        RoutineMoveFailureKind.unavailable),
+    ('57014', 'canceling statement due to statement timeout',
+        RoutineMoveFailureKind.transactionAborted),
+    ('55P03', 'canceling statement due to lock timeout',
+        RoutineMoveFailureKind.transactionAborted),
+    ('53000', 'insufficient resources',
+        RoutineMoveFailureKind.transactionAborted),
+    ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
+    ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('53400', 'configuration limit exceeded',
+        RoutineMoveFailureKind.transactionAborted),
+    ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
+    ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
+    ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
+  ]) {
+    test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: e.$2, code: e.$1);
+      final r = repo(g);
+      final t = await inspect(r);
+      await expectLater(r.createAndMove(
+        target: t, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(e.$3)));
+      expect(g.reads, 1, reason: 'Known server rejection is not unknown');
+      expect(g.atomicWrites, 1);
+    });
+  }
+
   test('SDK issues ONE protected RPC with frozen payload and no table update', () async {
     final sent = <http.Request>[];
     final client = SupabaseClient(
@@ -195,6 +720,38 @@ void main() {
     ('28000', 'routine_move_not_authenticated',
       RoutineMoveFailureKind.unauthorized),
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
+    ('57014', 'canceling statement due to statement timeout',
+      RoutineMoveFailureKind.transactionAborted),
+    ('55P03', 'canceling statement due to lock timeout',
+        RoutineMoveFailureKind.transactionAborted),
+    ('53000', 'insufficient resources',
+        RoutineMoveFailureKind.transactionAborted),
+    ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
+    ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('53400', 'configuration limit exceeded',
+        RoutineMoveFailureKind.transactionAborted),
+    ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
+    ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
+    ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
+    ('PGRST203', 'RPC overload is ambiguous',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST303', 'JWT claims validation or parsing failed',
+        RoutineMoveFailureKind.unauthorized),
+    ('PGRST300', 'No active JWT secret configured',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST000', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST001', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST002', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST003', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('25006', 'cannot execute INSERT in a read-only transaction',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST106', 'schema public is not an exposed schema',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
       final g = FakeMoveGateway()
