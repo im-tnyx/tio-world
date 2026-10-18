@@ -150,6 +150,29 @@ void main() {
     expect(g.reads, 1);
   });
 
+  test('PGRST303 bad JWT is definitive and leaves shared gate reusable',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'JWT claims validation or parsing failed',
+          code: 'PGRST303');
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'JWT validation failed before any RPC execution');
+    final second = repo(g, gate: gate);
+    final fresh = await inspect(second);
+    expect(await move(second, fresh), RoutineMoveResult.confirmed,
+        reason: 'A corrected JWT and fresh inspect must not be blocked');
+    expect(g.writes, 1);
+  });
+
   test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
       () async {
     final g = FakeMoveGateway()
@@ -328,6 +351,8 @@ void main() {
         RoutineMoveFailureKind.mutationConflict),
     ('PGRST203', 'RPC overload is ambiguous',
         RoutineMoveFailureKind.unavailable),
+    ('PGRST303', 'JWT claims validation or parsing failed',
+        RoutineMoveFailureKind.unauthorized),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -453,6 +478,8 @@ void main() {
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
     ('PGRST203', 'RPC overload is ambiguous',
         RoutineMoveFailureKind.unavailable),
+    ('PGRST303', 'JWT claims validation or parsing failed',
+        RoutineMoveFailureKind.unauthorized),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
       final g = FakeMoveGateway()
