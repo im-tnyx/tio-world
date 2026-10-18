@@ -1,6 +1,6 @@
 # #569 M3D3C — Explicit debug-only Move Routine UI preview
 
-**Status:** In progress
+**Status:** Review gate ready (source + test validated; independent review pending; unmerged)
 **Primary owner:** One cross-package implementation owner for Workout feature presentation and phone app-shell composition/tests
 **Affected platforms:** Flutter Android/iOS debug-only opt-in; all release/profile builds unchanged
 
@@ -19,8 +19,8 @@
 - **Repository state last verified:** Protected `main@e08d547b6cfe3c99096029f2df9c5196b6aad006` (squash merge #606), GitHub API confirms no open PRs. Post-merge Flutter CI at planning start still in progress.
 - **Branch:** `tnyx/issue-569-m3d3c-debug-move-ui-preview`, created from exact `main` head. Working tree cannot be observed via remote GitHub connector; no local Windows reset, stash, prune or sync.
 - **Trackers:** GitHub #569 open, related #568 open, Linear TNYX-81 broad Backlog and blocked by TNYX-78/80.
-- **Validation:** Not run on new slice yet; do not infer CI from prior PR.
-- **Next exact action:** Implement preview-only gate, enforce write interception in Workout flow, add both branch-specific and real app-router tests, open Draft PR, validate and hand off.
+- **Validation:** Source fix HEAD `d8b51210` Flutter CI [#39154571129](https://github.com/im-tnyx/tio-world/actions/runs/39154571129) 5/5 PASS including analyzer and app-workout; [commit attribution #39154569121](https://github.com/im-tnyx/tio-world/actions/runs/39154569121) 2/2 PASS. Independent review and final docs HEAD CI remain separate gates.
+- **Next exact action:** Verify this final handoff commit's exact-head CI/attribution; mark existing PR #607 Ready for Review and request applicable independent/Codex code review. Do not merge, deploy, or activate real Move.
 
 ## Owner physical-device UI acceptance amendments — 2026-10-18
 
@@ -53,20 +53,20 @@ No new schema, network capability, feature design, or app-store release. Opt-in 
 - Rejected alternatives: set existing release flag true, enable Supabase grants, create fake successful records, create a duplicate modal UI, use environment flag alone in profile/release.
 
 ### 5. Implementation Plan
-- [ ] Scoped debug/define provider, no production release flag changes.
-- [ ] Feature Move flow preview intercept both writes at final confirmation, no false success.
-- [ ] Feature widget tests for existing target and New Program confirmation: 0 Move/atomic/create, false refresh, visible no-save feedback; cancel and owner-session safety.
-- [ ] Real app-router widget regression for both Program Detail and expanded Library debug preview, with auth/SDK owner and zero gateway writes.
+- [x] Scoped debug/define provider, no production release flag changes.
+- [x] Feature Move flow preview intercept both writes at final confirmation, no false success.
+- [x] Feature widget tests for existing target and New Program confirmation: 0 Move/atomic/create, false refresh, visible no-save feedback; cancel and owner-session safety.
+- [x] Real app-router widget regression for both Program Detail and expanded Library debug preview, with auth/SDK owner and zero gateway writes.
 - [ ] CI, exact changed-file/ancestry diff audit, Codex review, handoff.
 
 ### 6. Quality Review
-**Validation run:** Not yet on this branch.
+**Validation run:** `d8b51210` Flutter CI #39154571129 5/5 SUCCESS and attribution #39154569121 2/2 SUCCESS; no local Flutter runner, APK install, or latest docs-only-head CI claimed.
 **Security/privacy:** All Program lists remain read-only authenticated owner scoped. Preview is not an authorization bypass for database writes.
 **Visual safety:** Reuse existing Core Modal and confirmation; no changed fixed spacing/geometry.
-**Open findings:** Await validation/review.
+**Open findings:** Initial analyzer-only `invalid_null_aware_operator` at `routine_move_flow.dart:467` fixed in `d8b51210`; review on exact final HEAD still pending.
 
 ### 7. Final Handoff
-**Status:** IN PROGRESS. No build/device QA, RPC, grant, feature activation or merge claimed.
+**Status:** REVIEW GATE HANDOFF. Automated source validation passed at `d8b51210`; independent review and final handoff-HEAD CI still pending. No current-device QA of latest refinements, RPC/grant/feature activation or merge claimed.
 
 ## 2026-10-18 Owner device QA feedback / contained visual revision
 
@@ -92,3 +92,13 @@ No new schema, network capability, feature design, or app-store release. Opt-in 
 ## Owner-approved Move confirmation card button height (2026-10-18)
 
 Owner requested **42dp visual minimum height** for the **Cancel** and **Move / Create & Move** buttons within the existing Move confirmation popup card, instead of their inherited 46dp minimum. This is a scoped exception for this card only, not a change to global `TioButtonTokens.height = TioSize.dp46`, the reusable `TioButton` contract, or other dialogs. Use the already governed `TioSize.dp42` primitive through local inherited Filled/Outlined button themes, preserving the Core colors/typography/radius, Material accessible tap targets, and flexible height at larger text scale. Keep both actions and the existing auth/preview no-write gate untouched. Add a widget regression for local 42dp minimum on both variants and confirm no 46dp global change. Validation pending exact-head CI, review and owner physical-device retest. GitHub API provides remote source state; local Windows worktree is not accessible from this execution session.
+
+
+## 2026-10-19 — Exact source review-gate evidence
+
+- Reviewed open Draft [PR #607](https://github.com/im-tnyx/tio-world/pull/607) on `main@e08d547b`, one implementation owner, 10 approved changed paths. Remote GitHub source used; local Windows worktree unavailable.
+- Prior `e348eefe` [Flutter CI #39153707202](https://github.com/im-tnyx/tio-world/actions/runs/39153707202) **FAILED** from analyzer `invalid_null_aware_operator` in `routine_move_flow.dart:467`, despite passing feature/app tests. `d8b51210` changed only `messenger?.hideCurrentSnackBar()` to `messenger.hideCurrentSnackBar()` in the preview `SnackBarAction`; no UI, auth, or mutation behavior changed.
+- `d8b51210` exact source/test head [Flutter CI #39154571129](https://github.com/im-tnyx/tio-world/actions/runs/39154571129) **5/5 SUCCESS**, including Flutter analyzer, app-workout, core-wear, nutrition-onboarding and aggregate; [commit attribution #39154569121](https://github.com/im-tnyx/tio-world/actions/runs/39154569121) **2/2 SUCCESS**.
+- Rechecked source: release gate hard `false`, debug opt-in requires `kDebugMode && bool.fromEnvironment`, both preview confirmed paths return `false` before Move / atomic Create+Move dispatch, Core-owned UI tokens retained, only Move confirmation card minimum uses `TioSize.dp42`, preview SnackBar has 5-second floating StadiumBorder with Undo (dismiss-only). No Supabase, schema, grant, RPC, or privileged API change.
+- Review requested/ready is **not** independent `APPROVED`, owner Go merge, physical retest, production release, or verified full M3D3 Create/Edit/Delete arbitration. Hosted Move EXECUTE remains revoked; atomic Create+Move not deployed; #568 canonical My Program identity and future security/release gates remain outstanding.
+- This docs/index handoff commit has a NEW HEAD and requires its own exact-head validation. Do not inherit source/test CI automatically; record the final checks in the PR review handoff after they complete.
