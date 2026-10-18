@@ -108,6 +108,70 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  test('atomic known SQL rejection after login-cycle change is UNKNOWN', () async {
+    var loginCycle = cycle;
+    final gate = RoutineMoveAttemptGate();
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async {
+        loginCycle = 'cycle-b';
+        throw const PostgrestException(
+          message: 'routine_create_move_revision_conflict', code: 'P0001');
+      };
+    final r = repo(g, gate: gate, loginCycle: () => loginCycle);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1, reason: 'No stale-cycle reconciliation read');
+    final next = repo(g, gate: gate, loginCycle: () => loginCycle);
+    final fresh = await inspect(next);
+    await expectLater(move(next, fresh),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.writes, 0,
+        reason: 'Old-owner response must freeze both Move paths');
+  });
+
+  test('existing Move known SQL rejection after login switch is UNKNOWN',
+      () async {
+    var loginCycle = cycle;
+    final g = FakeMoveGateway()
+      ..onMove = () async {
+        loginCycle = 'cycle-b';
+        throw const PostgrestException(
+          message: 'routine_move_revision_conflict', code: 'P0001');
+      };
+    final r = repo(g, loginCycle: () => loginCycle);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.writes, 1);
+    expect(g.reads, 1);
+  });
+
+  test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'RPC overload is ambiguous', code: 'PGRST203');
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'A rejected route cannot have executed SQL');
+    final second = repo(g, gate: gate);
+    final retryTarget = await inspect(second);
+    expect(await move(second, retryTarget), RoutineMoveResult.confirmed,
+        reason: 'A fresh inspected Move is permitted after definite rejection');
+    expect(g.writes, 1);
+  });
+
 
   test('atomic SDK sends exactly one protected RPC, no standalone Program INSERT',
       () async {
@@ -262,6 +326,8 @@ void main() {
         RoutineMoveFailureKind.mutationConflict),
     ('P0001', 'routine_create_move_mutation_conflict',
         RoutineMoveFailureKind.mutationConflict),
+    ('PGRST203', 'RPC overload is ambiguous',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -385,6 +451,8 @@ void main() {
     ('28000', 'routine_move_not_authenticated',
       RoutineMoveFailureKind.unauthorized),
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
+    ('PGRST203', 'RPC overload is ambiguous',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
       final g = FakeMoveGateway()
