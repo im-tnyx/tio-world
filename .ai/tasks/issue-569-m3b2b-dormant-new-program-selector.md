@@ -22,10 +22,10 @@
 **PR / tracker:** [Draft PR #600](https://github.com/im-tnyx/tio-world/pull/600), GitHub #569, Linear TNYX-81, TNYX-267, #568 separately gated.
 **Current implementation state:** Source/test `055d887e` implemented the dormant selector; Codex P2 post-dispatch auth switch refresh issue in PR #600 fixed at source/test `b31ccc28` for both New and existing Program paths; three new focused widget regressions added. App remains unwired and Supabase RPC grant is still revoked.
 **Validation completed at SHA:** Code/test HEAD `055d887e1960fae1d6e9da514b97d8b0d2bb18bb`: [Flutter CI #39101518706](https://github.com/im-tnyx/tio-world/actions/runs/39101518706) COMPLETED SUCCESS 5/5 (analyzer and all Flutter test shards); commit attribution guard 2/2 SUCCESS.
-**Validation remaining:** Exact latest P2 fix and subsequent task-only head Flutter CI, independent review and owner merge gate. No local Windows, hosted activation or device QA.
+**Validation remaining:** Re-run exact docs-only handoff HEAD Flutter CI, independent GitHub APPROVED review or policy disposition, explicit owner merge authorization; local Windows and physical device QA not run. Hosted activation separately gated.
 **Current blocker:** Actual protected Create+Move client gateway/app shell and Supabase release remain separate.
-**Open review finding IDs:** P2 Codex [thread PRRT_kwDOTOXwB86tn0tg](https://github.com/im-tnyx/tio-world/pull/600#discussion_r4305930495), confirmed post-dispatch auth switch falsely returned `false`; fix committed `b31ccc28`, awaiting exact-head CI and reviewed thread resolution.
-**Next exact action:** Verify exact-head CI for `b31ccc28` and docs handoff; reply with P2 evidence and resolve thread only after tests pass, then independent review. Do not connect the atomic callback or merge without separate approval.
+**Open review finding IDs:** None after disposition. Codex P2 [PRRT_kwDOTOXwB86tn0tg](https://github.com/im-tnyx/tio-world/pull/600#discussion_r4305930495) confirmed, fixed at `b31ccc28`, validated with [Flutter CI #39102545276](https://github.com/im-tnyx/tio-world/actions/runs/39102545276) all 7/7 exact-source/handoff HEAD `8e1b961d` checks SUCCESS, replied and resolved. Independent `APPROVED` review still absent.
+**Next exact action:** Verify the subsequent docs-only handoff HEAD CI, recheck reviews/new findings, obtain independent review and separate owner `Go merge`. Do not connect the atomic callback, deploy or grant EXECUTE.
 
 ## 1. Discovery
 User outcome: Saved Routine Move can choose either another existing owner Program or the first-row `+ New Program` and edit `Program N` name before explicit Create & Move.
@@ -48,15 +48,16 @@ Approved via #569: source-only Move list shows New Program only, no phantom My P
 - [x] Two new Flutter widget regressions for New Program order and source-only cancellation, plus pre-existing Move regression suite.
 - [x] Code/test HEAD Flutter CI #39101518706 PASS 5/5 and required attribution PASS 2/2.
 - [x] Codex P2 review finding reproduced in post-dispatch control flow and source fix committed `b31ccc28`; three new auth-switch success/uncertain regressions added, including existing-Program parity.
-- [ ] Exact latest source+docs HEAD CI, Codex P2 thread resolution, independent source/security/UI review and explicit owner Go merge.
+- [x] Codex P2 thread replied and resolved after current-code tests passed; exact HEAD `8e1b961d` CI #39102545276 all 7/7 SUCCESS.
+- [ ] Latest handoff-only HEAD CI and fresh review gate; independent source/security/UI review and explicit owner Go merge.
 - [ ] App-shell auth/operation mutex, protected atomic backend adapter, deployed migration, client grants, #568 and physical QA as separate slices.
 
 ## 6. Quality Review
 **Remote CI:** source/test `055d887e` [Flutter CI #39101518706](https://github.com/im-tnyx/tio-world/actions/runs/39101518706) completed SUCCESS: analyzer, app-workout, core-wear, nutrition-onboarding and aggregate 5/5; required commit attribution + runner 2/2. No local Windows `git status`, local `flutter`, or device QA possible with connector-only session.
-**Manual scoped code audit:** six intended paths; no SQL or apps/app diff, optional callback not provided by production; existing destination route unchanged, name-only editor never calls `ProgramRepository.create`. Codex P2 identified session change after dispatched atomic callback, where a committed mutation erroneously returned false and blocked caller refresh. `b31ccc28` changes both atomic and existing Move post-dispatch return paths and UNKNOWN/error handling to preserve `attempted` while suppressing old-session success/unknown messages, with three widget regression tests. Exact P2 fix CI not yet claimed passed. Future activation still requires shared process-lifetime concurrency/unknown gates and app-shell owner/session guards. Independent approval not claimed.
+**Manual scoped code audit:** six intended paths; no SQL or apps/app diff, optional callback not provided by production; existing destination route unchanged, name-only editor never calls `ProgramRepository.create`. Codex P2 identified session change after dispatched atomic callback, where a committed mutation erroneously returned false and blocked caller refresh. `b31ccc28` changes both atomic and existing Move post-dispatch return paths and UNKNOWN/error handling to preserve `attempted` while suppressing old-session success/unknown messages, with three widget regression tests. Exact P2 fix **Flutter CI #39102545276 completed SUCCESS 7/7 at `8e1b961d`**, including the changed app-workout tests. No original-user success feedback is shown after auth changes. Future activation still requires shared process-lifetime concurrency/unknown gates and app-shell owner/session guards. Independent approval not claimed.
 
 ## 7. Final Handoff
 **Changed paths:** `programs_controller.dart`, `programs_surface.dart`, `routine_move_flow.dart`, `routine_move_flow_test.dart`, this handoff and `.ai/tasks/README.md`.
 **Actual behavior:** New Program path is opt-in via an injected future atomic callback, not callable from the app. It prompts the existing editor for an editable name without writing, then confirms Create & Move. Existing destination flow remains.
 **Known limits:** In-flight and uncertain-result cross-operation protection must be implemented in real atomic client adapter; #568 default My Program, app-shell wiring, Supabase rollout and device QA still pending.
-**Final status:** REVIEW. **No merge, deployment or activation authorization from this task.**
+**Final status:** REVIEW (code fix validated and P2 thread resolved; independent APPROVED review/owner merge gate outstanding). **No merge, deployment or activation authorization from this task.**
