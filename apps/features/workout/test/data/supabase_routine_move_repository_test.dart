@@ -283,6 +283,31 @@ void main() {
     });
   }
 
+  for (final (code, message) in <(String, String)>[
+    ('25006', 'cannot execute INSERT in a read-only transaction'),
+    ('PGRST106', 'schema public is not an exposed schema'),
+  ]) {
+    test('$code rejects without poisoning the shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+          message: message, code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1, reason: 'Known rejection must not reconcile');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh inspect recovers after known rejection');
+      expect(g.writes, 1);
+    });
+  }
+
   test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
       () async {
     final g = FakeMoveGateway()
@@ -473,6 +498,10 @@ void main() {
         RoutineMoveFailureKind.unavailable),
     ('PGRST003', 'Cannot acquire database connection',
         RoutineMoveFailureKind.unavailable),
+    ('25006', 'cannot execute INSERT in a read-only transaction',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST106', 'schema public is not an exposed schema',
+        RoutineMoveFailureKind.unavailable),
     ('57014', 'canceling statement due to statement timeout',
         RoutineMoveFailureKind.transactionAborted),
   ]) {
@@ -613,6 +642,10 @@ void main() {
     ('PGRST002', 'Cannot acquire database connection',
         RoutineMoveFailureKind.unavailable),
     ('PGRST003', 'Cannot acquire database connection',
+        RoutineMoveFailureKind.unavailable),
+    ('25006', 'cannot execute INSERT in a read-only transaction',
+        RoutineMoveFailureKind.unavailable),
+    ('PGRST106', 'schema public is not an exposed schema',
         RoutineMoveFailureKind.unavailable),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
