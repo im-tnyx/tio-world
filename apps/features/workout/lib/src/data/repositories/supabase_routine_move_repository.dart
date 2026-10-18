@@ -418,12 +418,14 @@ final class SupabaseRoutineMoveRepository
       // Server-side query cancellation aborts the SQL transaction.
       '57014' => RoutineMoveFailureKind.transactionAborted,
       '25001' => RoutineMoveFailureKind.invalidRequest,
+      // SQLSTATE 25006 rejects writes in read-only database mode.
+      '25006' => RoutineMoveFailureKind.unavailable,
       // Connection setup/pool failures (PGRST000-003), RPC routing
-      // errors (PGRST202/203), and missing JWT secret (PGRST300)
+      // errors (PGRST106/202/203), and missing JWT secret (PGRST300)
       // all reject before SQL execution, even if HTTP status is 5xx.
       // Transport failures and other SQL 5xx remain UNKNOWN.
       'PGRST000' || 'PGRST001' || 'PGRST002' || 'PGRST003' ||
-          'PGRST202' || 'PGRST203' || 'PGRST300' =>
+          'PGRST106' || 'PGRST202' || 'PGRST203' || 'PGRST300' =>
         RoutineMoveFailureKind.unavailable,
       _ => null,
     };
