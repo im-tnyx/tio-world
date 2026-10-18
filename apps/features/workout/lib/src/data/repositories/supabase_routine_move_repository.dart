@@ -414,9 +414,11 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
       '25001' => RoutineMoveFailureKind.invalidRequest,
-      // Both PostgREST routing/overload errors reject before executing SQL.
-      // They cannot commit a Move, so never poison the shared unknown gate.
-      'PGRST202' || 'PGRST203' => RoutineMoveFailureKind.unavailable,
+      // PostgREST routing/overload and missing JWT-secret configuration
+      // reject BEFORE RPC execution, even when PGRST300 has HTTP 500.
+      // Do not poison the shared unknown gate for definite pre-execution errors.
+      'PGRST202' || 'PGRST203' || 'PGRST300' =>
+        RoutineMoveFailureKind.unavailable,
       _ => null,
     };
   }
