@@ -1,6 +1,6 @@
 # #569 M3C — Flutter protected atomic Create Program & Move adapter
 
-**Status:** IN REVIEW — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Ready for Review, unmerged. Thirteen Codex P2s recorded: first ten addressed and thread-resolved based on their exact-head tests, `55P03` and ordinary 4xx fixed in `cf8aff6c`/`c79fb383` with [Flutter CI #39120889523](https://github.com/im-tnyx/tio-world/actions/runs/39120889523) **7/7 PASS** at `35015ced`; latest [infrastructure `53100`/`53300`/`57P03` P2 #4306744599](https://github.com/im-tnyx/tio-world/pull/601#discussion_r4306744599) fixed in `68fe8e3a`/`a7f9817a` pending new exact-head CI. No deployment/grants/app activation.
+**Status:** IN REVIEW — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Open/Ready for Review/unmerged. **Current source+tests `fa3d06984289d60bfb690d71d9b311e41e437e91` [Flutter CI #39122855384](https://github.com/im-tnyx/tio-world/actions/runs/39122855384) 7/7 PASS**; all 18/18 inline review threads resolved, including final Class-53 P2. Independent `APPROVED` review/security-review completion and separate owner `Go merge` NOT verified; no Supabase rollout, grant, app wiring or Move activation.
 **Primary owner:** Workout feature domain/data.
 **Affected platforms:** Flutter phone repository capability only; no active UI entrypoint.
 
@@ -59,8 +59,16 @@ Rejected alternative: separate `ProgramRepository.create` followed by Move, beca
 - [ ] Latest source+docs exact-head Flutter CI and Codex re-review, unresolved P2/P3 thread disposition, independent review-policy evidence or documented exception, separate owner `Go merge` with GitHub enforcement. No hosted grant or activation.
 - [ ] Explicit future app-shell, hosted migration/grant and owner merge/release gates separately approved and verified.
 
+## 2026-10-18 current validation checkpoint
+
+- Source+test fix `fa3d06984289d60bfb690d71d9b311e41e437e91` addresses Class-53 `53000/53200/53400` known server transaction aborts. Both Move routes classify distinctly; shared gate remains reusable after failed atomic RPC. [Flutter CI #39122855384](https://github.com/im-tnyx/tio-world/actions/runs/39122855384) completed **7/7 PASS**. No blanket Class 53 or 5xx changes.
+- All four previously open findings [`55P03`](https://github.com/im-tnyx/tio-world/pull/601#discussion_r4306722495), [ordinary 4xx](https://github.com/im-tnyx/tio-world/pull/601#discussion_r4306722496), [`53100/53300/57P03`](https://github.com/im-tnyx/tio-world/pull/601#discussion_r4306744599), [remaining Class 53](https://github.com/im-tnyx/tio-world/pull/601#discussion_r4306765554) now have inline evidence replies and resolved threads. Totals **18 resolved, 0 unresolved**.
+- Keep remote connector-only worktree limitation explicit; exact newer docs HEAD CI pending separately. GitHub `APPROVED` **0**; not merged/activated. Hosted new RPC absent and existing Move client EXECUTE denied at last live check.
+
 ## 6. Quality Review
 GitHub root + feature AGENTS, ADR-0015, canonical Programs/Routine docs and current source audited. `35015ced` [CI #39120889523](https://github.com/im-tnyx/tio-world/actions/runs/39120889523) 7/7 PASS, older `6d3a80e0`/`46e010d9` source-head CI also 7/7 PASS. `861cb115` malformed classifier previously FAILED analyzer and was repaired; this newer infrastructure SQLSTATE source/test commit needs fresh CI. No local Windows Flutter/device, hosted migration/deploy/grants, or separate security-review completion claimed.
 
 ## 7. Final Handoff
-**State:** PR #601 Open / Ready for Review. All 13 reported Codex P2s have focused branch fixes, first ten threads resolved, later three P2 thread dispositions and exact latest-source/docs CI remain pending. Last verified `35015ced` 7/7 PASS cannot substitute for newer source/tests. No independent APPROVED, Supabase hosted release or app-shell Move activation.
+**State:** PR #601 Open / Ready for Review / **not merged**. All **18/18 inline threads resolved** (Codex and manual), **0 unresolved** at verified source commit `fa3d0698`. [Flutter CI #39122855384](https://github.com/im-tnyx/tio-world/actions/runs/39122855384) on that source/test SHA: **all 7/7 SUCCESS**, including app-workout regression suite and analyzer. Three remaining Class-53 cases `53000`, `53200`, `53400` are now explicit definite `transactionAborted` codes; atomic and existing Move tests and same shared-gate recovery matrix pass. Prior `55P03`, 4xx and `53100/53300/57P03` threads verified/replied/resolved using their code/tests/CI. Genuine unknown `40003`, HTTP `408/499` and arbitrary transport/HTTP `5xx` remain conservative.
+
+**Next:** this handoff-only update creates a newer PR HEAD, so verify its **own exact-head CI** before merge; request/inspect fresh Codex and independent security review for that SHA; check branch protection and owner permission. No local Windows `git status`/Flutter/device verification, independent APPROVED, hosted SQL/grants or app-shell release performed. Retain separate Go merge, post-merge sync and later app-shell/default My Program/hosted rollout QA gates.
