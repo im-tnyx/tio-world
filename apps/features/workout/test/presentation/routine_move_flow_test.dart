@@ -231,7 +231,8 @@ void main() {
     await tester.pumpAndSettle();
     await _choose(tester);
     await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(move.writes, 0);
     expect(programs.creates, 0);
     expect(needsRefresh, false,
@@ -245,7 +246,14 @@ void main() {
     expect(preview.behavior, SnackBarBehavior.floating);
     expect(preview.shape, isA<StadiumBorder>());
     expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.persist, isFalse,
+        reason: 'Undo must not prevent five-second automatic dismissal');
     expect(preview.action?.label, 'Undo');
+    final colors = Theme.of(tester.element(
+        find.byKey(const ValueKey('routine-move-preview-feedback'))))
+        .colorScheme;
+    expect(preview.action?.backgroundColor, colors.onInverseSurface);
+    expect(preview.action?.textColor, colors.inverseSurface);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
@@ -287,7 +295,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Create Program & Move Routine?'), findsOneWidget);
     await tester.tap(find.text('Create & Move'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(atomicCalls, 0);
     expect(move.writes, 0);
     expect(programs.creates, 0);
@@ -299,9 +308,21 @@ void main() {
     expect(preview.behavior, SnackBarBehavior.floating);
     expect(preview.shape, isA<StadiumBorder>());
     expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.persist, isFalse);
     expect(preview.action?.label, 'Undo');
+    final colors = Theme.of(tester.element(
+        find.byKey(const ValueKey('routine-move-preview-feedback'))))
+        .colorScheme;
+    expect(preview.action?.backgroundColor, colors.onInverseSurface);
+    expect(preview.action?.textColor, colors.inverseSurface);
     expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
         findsNothing);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+        findsNothing, reason: 'Preview pill must auto-dismiss after five seconds');
+    expect(atomicCalls, 0);
+    expect(move.writes, 0);
   });
 
   testWidgets('atomic Create & Move retains refresh after auth switch',
