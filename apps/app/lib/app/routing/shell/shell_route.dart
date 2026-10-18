@@ -407,7 +407,8 @@ List<RouteBase> _shellBranchChildRoutes(
                 final live = value.isLoading || value.hasError
                     ? null : value.valueOrNull;
                 final pending = ref.read(routinePendingCreateGateProvider);
-                return boot is AppSessionBootstrapReady &&
+                return ref.read(routineMoveReleaseEnabledProvider) &&
+                    boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     live is AuthSessionAuthenticated &&
                     live.session.userId == owner &&
