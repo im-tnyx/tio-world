@@ -67,6 +67,24 @@ void main() {
     expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
         reason: 'Program and Library must share one action single-flight');
   });
+  test('Move release capability is OFF even with valid auth', () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    final c = _moveContainer(
+      _MoveAuth(_moveUser(owner)),
+      const AuthSessionAuthenticated(
+        AuthSession(userId: owner, loginCycleId: 'cycle-a')),
+    );
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    expect(c.read(routineMoveRepositoryProvider), isNotNull);
+    expect(c.read(routineCreateMoveRepositoryProvider), isNotNull);
+    expect(c.read(routineMoveReleaseEnabledProvider), isFalse,
+        reason: 'backend + cross-mutation/refresh/device gates are not met');
+    c.invalidate(routineMoveReleaseEnabledProvider);
+    expect(c.read(routineMoveReleaseEnabledProvider), isFalse,
+        reason: 'provider refresh must not enable a release capability');
+  });
+
   test('Routine Move stays dormant without an authenticated Supabase client', () {
     final container = ProviderContainer(overrides: [
       supabaseClientProvider.overrideWithValue(null),
