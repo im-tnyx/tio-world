@@ -236,6 +236,57 @@ void main() {
     expect(g.writes, 1);
   });
 
+  for (final (code, kind) in
+      <(String, RoutineMoveFailureKind)>[
+        ('55P03', RoutineMoveFailureKind.transactionAborted),
+        ('429', RoutineMoveFailureKind.unavailable),
+        ('422', RoutineMoveFailureKind.invalidRequest),
+      ]) {
+    test('$code definitive rejection preserves shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'pre-execution rejection', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(kind)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 1,
+          reason: 'Definite rejection must not trigger unknown reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      expect(await move(next, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh owner-scoped attempt is permitted after rejection');
+      expect(g.writes, 1);
+    });
+  }
+
+  for (final code in <String>['408', '499']) {
+    test('HTTP $code is ambiguous and freezes shared Move gate', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'request timed out', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(g, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect(g.reads, 2,
+          reason: 'Ambiguous transport status must trigger reconciliation');
+      final next = repo(g, gate: gate);
+      final fresh = await inspect(next);
+      await expectLater(move(next, fresh),
+          throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+      expect(g.writes, 0);
+      expect(g.atomicWrites, 1);
+    });
+  }
+
   test('PGRST300 missing JWT secret is definite; new Move cannot poison gate',
       () async {
     final g = FakeMoveGateway()
@@ -504,6 +555,10 @@ void main() {
         RoutineMoveFailureKind.unavailable),
     ('57014', 'canceling statement due to statement timeout',
         RoutineMoveFailureKind.transactionAborted),
+    ('55P03', 'canceling statement due to lock timeout',
+        RoutineMoveFailureKind.transactionAborted),
+    ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
+    ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -629,6 +684,10 @@ void main() {
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
     ('57014', 'canceling statement due to statement timeout',
       RoutineMoveFailureKind.transactionAborted),
+    ('55P03', 'canceling statement due to lock timeout',
+        RoutineMoveFailureKind.transactionAborted),
+    ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
+    ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
     ('PGRST203', 'RPC overload is ambiguous',
         RoutineMoveFailureKind.unavailable),
     ('PGRST303', 'JWT claims validation or parsing failed',
