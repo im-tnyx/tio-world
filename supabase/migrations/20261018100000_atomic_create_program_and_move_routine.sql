@@ -118,11 +118,15 @@ begin
       raise exception 'routine_create_move_mutation_conflict'
         using errcode = 'P0001';
     end if;
-    -- Do not require a name match here: the destination may subsequently
-    -- be renamed without changing the Routine's latest aggregate mutation.
-    if not v_destination_exists then
-      raise exception 'routine_create_move_not_found' using errcode = 'P0002';
-    end if;
+    -- The locked Routine is already owner-scoped and its composite
+    -- (program_id, user_id) FK guarantees the matching owner Program.
+    -- During a concurrent identical retry, the destination INSERT can be
+    -- uncommitted at the initial sorted Program lookup; waiting on the
+    -- Routine UUID lock reveals the committed row only AFTER that lookup.
+    -- Do not use that stale v_destination_exists flag for exact replay,
+    -- and do not acquire a destination Program row lock after the UUID lock
+    -- (that would invert the M1 Move/Delete lock hierarchy).
+    -- Subsequent Program rename is independent of the immutable request.
     return v_current_revision;
   end if;
 
