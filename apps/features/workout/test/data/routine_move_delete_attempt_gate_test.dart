@@ -178,6 +178,33 @@ void main() {
     expect(dGateway.writes, 0);
   });
 
+  test('in-flight atomic Create & Move blocks Delete with zero Delete RPCs',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final completing = Completer<Object?>();
+    final mGateway = _MoveGateway()..onAtomic = () => completing.future;
+    final dGateway = _DeleteGateway();
+    final moving = _moveRepo(mGateway, gate);
+    final deleting = _deleteRepo(dGateway, gate);
+    final deleteTarget = await _inspectDelete(deleting);
+    final moveTarget = await _inspectMove(moving);
+
+    final pending = moving.createAndMove(
+      target: moveTarget,
+      newProgramId: _destination,
+      newProgramName: 'Program 1',
+      mutationId: _mutation,
+    );
+    await expectLater(deleting.delete(deleteTarget),
+        throwsA(_deleteFailure(RoutineDeleteFailureKind.inProgress)));
+    expect(dGateway.writes, 0);
+    completing.complete(5);
+    expect(await pending, RoutineMoveResult.confirmed);
+    expect(mGateway.atomicWrites, 1);
+    await expectLater(deleting.delete(deleteTarget),
+        throwsA(_deleteFailure(RoutineDeleteFailureKind.staleTarget)));
+  });
+
   test('in-flight Delete blocks both existing and atomic Move dispatch',
       () async {
     final gate = RoutineMoveDeleteAttemptGate();
