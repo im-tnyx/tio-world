@@ -105,7 +105,7 @@ final class SupabaseRoutineMoveRepository
   factory SupabaseRoutineMoveRepository.fromClient({
     required SupabaseClient client,
     required RoutineMoveAttemptGate attemptGate,
-    RoutineMoveDeleteAttemptGate? crossOperationGate,
+    required RoutineMoveDeleteAttemptGate crossOperationGate,
     required RoutineMoveCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineMoveRepository(
     gateway: SupabaseRoutineMoveGateway(client),
