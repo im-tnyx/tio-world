@@ -67,3 +67,16 @@ No new schema, network capability, feature design, or app-store release. Opt-in 
 
 ### 7. Final Handoff
 **Status:** IN PROGRESS. No build/device QA, RPC, grant, feature activation or merge claimed.
+
+## 2026-10-18 Owner device QA feedback / contained visual revision
+
+**Evidence:** Owner manually ran the opted-in debug branch on a physical device and confirmed the Move destination sheet appears. Owner reported a pause between the Routine 3-dot action sheet and the destination sheet; second sheet title lacked destination clarity; double plus before New Program; verbose text between New Program and saved Programs. Owner explicitly deferred any leading icon for existing Program rows.
+
+**Approved UI-only adjustments, no additional backend scope:**
+- Keep the first Routine action label **Move Routine** unchanged, but call the second sheet **Select Program**.
+- Retain the existing leading add icon and change row text from `+ New Program` to **New Program** (one plus).
+- Replace `Select an existing destination Program` with a Core/Material `Divider`, shown **only** when there is both a New Program row and one or more eligible existing destinations. With only the current saved Program, the selector shows only New Program and no divider.
+- Start the app-guarded Move destination inspection on the user Move tap while the first sheet starts dismissing instead of waiting for the sheet's reverse animation to finish. The Move app callback must still re-check Auth/bootstrap/SDK current-owner and login-cycle; never dispatch twice. Actual async server read latency is not under the UI's control. No premature success or backend write.
+- No existing Program row icon in this slice. Preserve Core TioEditorSheet, spacing roles, and both Program Detail and expanded Library routes.
+
+**Implementation checkpoint:** Source and widget regressions committed on the existing Draft PR #607 branch. Feature test asserts header/one leading icon/conditional divider and one immediate Move callback before completion of the reverse animation. App-router preview tests keep zero-write and both-surface checks. **CI and independent review of the latest commit not yet verified; no device retest of new refinements claimed.** Release gate remains default OFF; dev preview remains opt-in/debug-only.
