@@ -2156,7 +2156,7 @@ final class _DormantRouteSupabaseClient extends Fake implements SupabaseClient {
 
 final class _DormantRouteAuth extends Fake implements GoTrueClient {
   @override
-  User? get currentUser => User(
+  User? get currentUser => const User(
     id: 'test-user',
     appMetadata: const {},
     userMetadata: const {},
