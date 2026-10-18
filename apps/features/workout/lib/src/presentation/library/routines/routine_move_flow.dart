@@ -415,6 +415,9 @@ final class RoutineMoveFlow {
               ? const ValueKey('routine-move-preview-feedback')
               : null,
       duration: Duration(seconds: pill ? 5 : 4),
+      // Snackbar actions persist by default on current Flutter. Preview must
+      // still close after five seconds even when Undo is not pressed.
+      persist: preview ? false : null,
       behavior: pill ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
       shape: pill ? const StadiumBorder() : null,
       content: pill
@@ -435,6 +438,10 @@ final class RoutineMoveFlow {
       action: preview
           ? SnackBarAction(
               label: 'Undo',
+              // A filled contrasting action capsule inside the dark floating
+              // pill; all colours are from the active Material colour scheme.
+              backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
+              textColor: Theme.of(context).colorScheme.inverseSurface,
               onPressed: () => messenger?.hideCurrentSnackBar(),
             )
           : null,
