@@ -30,8 +30,11 @@ Matcher unknown(RoutineMoveUncertainty reason) =>
 
 final class FakeMoveGateway implements RoutineMoveGateway {
   Map<String, dynamic>? row = header();
-  int reads = 0, writes = 0;
+  int reads = 0, writes = 0, atomicWrites = 0;
   Future<Object?> Function()? onMove;
+  Future<Object?> Function()? onCreateAndMove;
+  String? createdName;
+  String? createdProgramId;
   void Function()? onRead;
   String? readOwner;
   String? readRoutine;
@@ -63,6 +66,23 @@ final class FakeMoveGateway implements RoutineMoveGateway {
     this.mutationId = mutationId;
     return await (onMove?.call() ?? Future<Object?>.value(expectedRevision + 1));
   }
+
+  @override
+  Future<Object?> createAndMove({
+    required String routineId, required String sourceProgramId,
+    required String newProgramId, required String newProgramName,
+    required int expectedRevision, required String mutationId,
+  }) async {
+    atomicWrites++;
+    this.routineId = routineId;
+    sourceId = sourceProgramId;
+    createdProgramId = newProgramId;
+    createdName = newProgramName;
+    this.expectedRevision = expectedRevision;
+    this.mutationId = mutationId;
+    return await (onCreateAndMove?.call() ??
+        Future<Object?>.value(expectedRevision + 1));
+  }
 }
 
 SupabaseRoutineMoveRepository repo(
@@ -88,6 +108,176 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+
+  test('atomic SDK sends exactly one protected RPC, no standalone Program INSERT',
+      () async {
+    final requests = <http.Request>[];
+    final client = SupabaseClient(
+      'https://example.test', 'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'GET') {
+          return http.Response(jsonEncode(header()), 200,
+              headers: {'content-type': 'application/json'}, request: request);
+        }
+        return http.Response('5', 200,
+            headers: {'content-type': 'application/json'}, request: request);
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final r = SupabaseRoutineMoveRepository(
+      gateway: SupabaseRoutineMoveGateway(client),
+      attemptGate: RoutineMoveAttemptGate(),
+      currentUserId: () => owner,
+      currentLoginCycleId: () => cycle,
+    );
+    final t = await inspect(r);
+    final atomic = r as RoutineCreateMoveRepository;
+    expect(await atomic.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio Focus', mutationId: mutation,
+    ), RoutineMoveResult.confirmed);
+    expect(requests, hasLength(2));
+    expect(requests.first.method, 'GET');
+    expect(requests.last.method, 'POST');
+    expect(requests.last.url.path,
+        '/rest/v1/rpc/create_user_workout_program_and_move_routine');
+    expect(jsonDecode(requests.last.body), {
+      'p_routine_id': routine.value,
+      'p_source_program_id': source.value,
+      'p_new_program_id': destination.value,
+      'p_new_program_name': 'Cardio Focus',
+      'p_expected_revision': 4,
+      'p_client_mutation_id': mutation,
+    });
+  });
+
+  test('atomic invalid inputs and stale owner/cycle never dispatch', () async {
+    final g = FakeMoveGateway();
+    var activeCycle = cycle;
+    final r = repo(g, loginCycle: () => activeCycle);
+    final t = await inspect(r);
+    Future<void> bad(ProgramId id, String name, String token) async {
+      await expectLater(r.createAndMove(
+        target: t, newProgramId: id,
+        newProgramName: name, mutationId: token,
+      ), throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
+    }
+    await bad(source, 'Cardio', mutation);
+    await bad(destination, '   ', mutation);
+    await bad(destination, 'Cardio', 'bad-token');
+    expect(g.atomicWrites, 0);
+    activeCycle = 'cycle-b';
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Cardio', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    expect(g.atomicWrites, 0);
+  });
+
+  test('atomic and existing Move share one gate and prepared target', () async {
+    final completion = Completer<Object?>();
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () => completion.future;
+    final gate = RoutineMoveAttemptGate();
+    final atomicRepo = repo(g, gate: gate);
+    final existingRepo = repo(g, gate: gate);
+    final target = await inspect(atomicRepo);
+    final pending = atomicRepo.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    );
+    await expectLater(existingRepo.inspect(
+      sourceProgramId: source, routineId: routine,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(move(existingRepo, target),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 1);
+    completion.complete(5);
+    expect(await pending, RoutineMoveResult.confirmed);
+    await expectLater(move(atomicRepo, target),
+        throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    await expectLater(atomicRepo.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    expect(g.atomicWrites, 1);
+  });
+
+  test('atomic auth switch after server ACK is unknown, never confirmed',
+      () async {
+    var activeCycle = cycle;
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async {
+        activeCycle = 'cycle-b';
+        return 5;
+      };
+    final r = repo(g, loginCycle: () => activeCycle);
+    final t = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1, reason: 'Never refresh stale-owner data');
+  });
+
+  test('atomic timeout is unconfirmed and blocks existing Move at same revision',
+      () async {
+    final pending = Completer<Object?>();
+    final g = FakeMoveGateway()..onCreateAndMove = () => pending.future;
+    final gate = RoutineMoveAttemptGate();
+    final r = repo(g, gate: gate,
+        timeout: const Duration(milliseconds: 25));
+    final target = await inspect(r);
+    await expectLater(r.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    final second = repo(g, gate: gate);
+    final next = await inspect(second);
+    await expectLater(move(second, next),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(second.createAndMove(
+      target: next, newProgramId: destination,
+      newProgramName: 'Program 2', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.atomicWrites, 1);
+    expect(g.writes, 0);
+    pending.complete(5);
+    g.row = header(program: destination, revision: 5);
+    expect(await second.inspect(sourceProgramId: source,
+        routineId: routine), isNull);
+  });
+
+  for (final e in <(String, String, RoutineMoveFailureKind)>[
+    ('42501', 'permission denied', RoutineMoveFailureKind.forbidden),
+    ('P0002', 'routine_create_move_not_found',
+        RoutineMoveFailureKind.notFound),
+    ('P0001', 'routine_create_move_revision_conflict',
+        RoutineMoveFailureKind.revisionConflict),
+    ('P0001', 'routine_create_move_program_conflict',
+        RoutineMoveFailureKind.mutationConflict),
+    ('P0001', 'routine_create_move_mutation_conflict',
+        RoutineMoveFailureKind.mutationConflict),
+  ]) {
+    test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: e.$2, code: e.$1);
+      final r = repo(g);
+      final t = await inspect(r);
+      await expectLater(r.createAndMove(
+        target: t, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(e.$3)));
+      expect(g.reads, 1, reason: 'Known server rejection is not unknown');
+      expect(g.atomicWrites, 1);
+    });
+  }
+
   test('SDK issues ONE protected RPC with frozen payload and no table update', () async {
     final sent = <http.Request>[];
     final client = SupabaseClient(
