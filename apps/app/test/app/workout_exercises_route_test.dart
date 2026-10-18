@@ -2158,8 +2158,8 @@ final class _DormantRouteAuth extends Fake implements GoTrueClient {
   @override
   User? get currentUser => const User(
     id: 'test-user',
-    appMetadata: const {},
-    userMetadata: const {},
+    appMetadata: {},
+    userMetadata: {},
     aud: 'authenticated',
     createdAt: '2026-10-18T00:00:00Z',
   );
