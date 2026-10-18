@@ -738,16 +738,27 @@ void main() {
     expect(find.text('Routine moved.'), findsNothing);
   });
 
-  testWidgets('simultaneous taps cannot reopen one Routine inspection',
+  testWidgets('simultaneous requests cannot reopen one Routine inspection',
       (tester) async {
     final inspect = Completer<RoutineMoveTarget?>();
     final g = _Move()..onInspect = () => inspect.future;
-    await _pump(tester, flow: RoutineMoveFlow(), move: g,
-      programs: _Programs(), canWrite: () => true, onResult: (_) {});
+    final flow = RoutineMoveFlow();
+    final programs = _Programs();
+    await _pump(tester, flow: flow, move: g,
+      programs: programs, canWrite: () => true, onResult: (_) {});
     await tester.tap(find.text('Open Move'));
     await tester.pump();
-    await tester.tap(find.text('Open Move'));
-    await tester.pump();
+    // The first request has already opened a blocking modal. Invoke another
+    // request directly, rather than tapping through that modal's barrier.
+    final rejected = await flow.run(
+      context: tester.element(find.text('Open Move')),
+      sourceProgram: source,
+      routine: routine,
+      programs: programs,
+      repository: g,
+      canWrite: () => true,
+    );
+    expect(rejected, false);
     expect(g.reads, 1);
     inspect.complete(null);
     await tester.pumpAndSettle();
