@@ -401,6 +401,15 @@ final class SupabaseRoutineMoveRepository
     if (RegExp(r'^(22|23)[0-9A-Z]{3}$').hasMatch(code)) {
       return RoutineMoveFailureKind.invalidRequest;
     }
+    // Ordinary HTTP 4xx errors from gateway/PostgREST reject this request.
+    // 408/499 have already returned UNKNOWN above; never swallow ambiguity.
+    if (status != null && status >= 400 && status < 500) {
+      if (status == 401) return RoutineMoveFailureKind.unauthorized;
+      if (status == 403) return RoutineMoveFailureKind.forbidden;
+      return status == 429
+          ? RoutineMoveFailureKind.unavailable
+          : RoutineMoveFailureKind.invalidRequest;
+    }
     return switch (code) {
       // JWT claims failure happens before an RPC can execute.
       '28000' || '28P01' || '401' || 'PGRST301' || 'PGRST302' ||
@@ -416,7 +425,7 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
       // Server-side query cancellation aborts the SQL transaction.
-      '57014' => RoutineMoveFailureKind.transactionAborted,
+      '55P03' || '57014' => RoutineMoveFailureKind.transactionAborted,
       '25001' => RoutineMoveFailureKind.invalidRequest,
       // SQLSTATE 25006 rejects writes in read-only database mode.
       '25006' => RoutineMoveFailureKind.unavailable,
