@@ -80,8 +80,11 @@ jobs:
             cd "$artifact_dir"
             ditto -c -k --sequesterRsrc --keepParent Payload Tio-unsigned-profile.ipa
             shasum -a 256 Tio-unsigned-profile.ipa > Tio-unsigned-profile.ipa.sha256
+            source_sha="${{ github.event.pull_request.head.sha || github.sha }}"
             {
-              echo "source_sha=${GITHUB_SHA}"
+              echo "source_sha=${source_sha}"
+              echo "build_sha=${GITHUB_SHA}"
+              echo "event=${GITHUB_EVENT_NAME}"
               echo "repository=${GITHUB_REPOSITORY}"
               echo "flutter=$(flutter --version | head -n 1)"
               echo "xcode=$(xcodebuild -version | tr '\n' ' ')"
