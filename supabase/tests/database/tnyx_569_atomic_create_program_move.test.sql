@@ -153,7 +153,7 @@ select pg_temp.assert_true(
 -- The exception caught by pg_temp.expect_state must roll both writes back.
 reset role;
 create function pg_temp.reject_atomic_move_after_insert()
-returns trigger language plpgsql as $
+returns trigger language plpgsql as $tnyx_atomic_trigger$
 begin
   if new.program_id='b5690000-0000-4000-8000-000000000032'::uuid then
     raise exception 'synthetic move rejects after Program INSERT'
@@ -161,18 +161,18 @@ begin
   end if;
   return new;
 end;
-$;
+$tnyx_atomic_trigger$;
 create trigger tnyx_569_atomic_late_failure_fixture
 before update on public.user_workout_routines
 for each row execute function pg_temp.reject_atomic_move_after_insert();
 set local role authenticated;
 
 select pg_temp.expect_state(
-  $select public.create_user_workout_program_and_move_routine(
+  $tnyx_atomic_query$select public.create_user_workout_program_and_move_routine(
     'b5690000-0000-4000-8000-000000000021',
     'b5690000-0000-4000-8000-000000000011',
     'b5690000-0000-4000-8000-000000000032',
-    'Must Not Persist',1,'b5690000-0000-4000-8000-000000000109')$,
+    'Must Not Persist',1,'b5690000-0000-4000-8000-000000000109')$tnyx_atomic_query$,
   '23514','Routine UPDATE failure aborts Program INSERT as one transaction');
 
 select pg_temp.assert_true(
