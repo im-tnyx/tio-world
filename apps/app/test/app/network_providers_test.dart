@@ -114,6 +114,47 @@ void main() {
         (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
   });
 
+  test('Move rejects captured A adapter after logout and account B login',
+      () async {
+    const ownerA = '11111111-1111-4111-8111-111111111111';
+    const ownerB = '22222222-2222-4222-8222-222222222222';
+    final auth = _MoveAuth(_moveUser(ownerA));
+    final c = _moveContainer(auth, const AuthSessionAuthenticated(
+        AuthSession(userId: ownerA, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final old = c.read(routineMoveRepositoryProvider)!;
+    final gate = c.read(routineMoveAttemptGateProvider);
+
+    auth.currentUser = null;
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionUnauthenticated();
+    await c.read(authSessionStateProvider.future);
+    expect(c.read(routineMoveRepositoryProvider), isNull);
+    await expectLater(old.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+
+    auth.currentUser = _moveUser(ownerB);
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: ownerB, loginCycleId: 'cycle-b'));
+    await c.read(authSessionStateProvider.future);
+    final newRepo = c.read(routineMoveRepositoryProvider);
+    expect(newRepo, isA<SupabaseRoutineMoveRepository>());
+    expect(identical(old, newRepo), isFalse);
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), newRepo),
+        isTrue);
+    expect(identical(c.read(routineMoveAttemptGateProvider), gate), isTrue);
+    await expectLater(old.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+  });
+
   group('Network & Auth Providers', () {
     test('providers instantiate with safe unavailable defaults in container',
         () {
