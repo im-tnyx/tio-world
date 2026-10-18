@@ -22,8 +22,10 @@ enum _MoveDestinationChoice { newProgram }
 
 /// Feature-owned Move workflow shared by the two Routine card surfaces.
 ///
-/// Returning true requests an owner-scoped list refresh, including an UNKNOWN
-/// RPC outcome; it is not proof that the Move committed.
+/// Returning true requests a caller-guarded, current-owner list refresh,
+/// including an UNKNOWN RPC outcome; it is not proof that the Move committed.
+/// Once a write was dispatched, a later auth switch or widget disposal must
+/// suppress feedback, never erase the refresh/reconciliation signal.
 /// Destination eligibility, cancellation and the sole confirmed RPC dispatch
 /// stay in [RoutineMoveDestinationController], not in this modal flow.
 final class RoutineMoveFlow {
@@ -160,7 +162,9 @@ final class RoutineMoveFlow {
           newProgramName: proposed.name,
           mutationId: _newMutationId(),
         );
-        if (!context.mounted || !canWrite()) return false;
+        // The atomic write may have committed before auth/widget changed.
+        // Preserve the caller's refresh signal without showing old-user data.
+        if (!context.mounted || !canWrite()) return attempted;
         if (result == RoutineMoveResult.confirmed) {
           _show(context, 'Routine moved.', confirmed: true);
         }
@@ -193,7 +197,8 @@ final class RoutineMoveFlow {
         destinationProgramId: destination.id,
         mutationId: _newMutationId(),
       );
-      if (!context.mounted || !canWrite()) return false;
+      // The existing-Program RPC has the same post-dispatch uncertainty.
+      if (!context.mounted || !canWrite()) return attempted;
       if (result == RoutineMoveResult.confirmed) {
         _show(context, 'Routine moved.', confirmed: true);
         return true;
@@ -203,11 +208,10 @@ final class RoutineMoveFlow {
       if (attempted && context.mounted && canWrite()) {
         _show(context,
             'Move status is unconfirmed. Refresh Programs; do not retry.');
-        return true;
       }
-      return false;
+      return attempted;
     } on RoutineMoveException catch (error) {
-      if (!context.mounted || !canWrite()) return false;
+      if (!context.mounted || !canWrite()) return attempted;
       switch (error.kind) {
         case RoutineMoveFailureKind.unauthorized:
         case RoutineMoveFailureKind.forbidden:
@@ -229,7 +233,7 @@ final class RoutineMoveFlow {
       if (context.mounted && canWrite()) {
         _show(context, 'Could not verify the Move. Try again later.');
       }
-      return attempted && context.mounted && canWrite();
+      return attempted;
     } finally {
       controller.abandon();
       _opening.remove(routine.id);

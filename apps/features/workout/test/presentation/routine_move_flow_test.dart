@@ -127,6 +127,109 @@ Future<void> _choose(WidgetTester tester) async {
 
 void main() {
 
+  testWidgets('atomic Create & Move retains refresh after auth switch',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    final g = _Move();
+    var authorized = true;
+    bool? needsRefresh;
+    var atomicCalls = 0;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs()..items = [source],
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) {
+        atomicCalls++;
+        return completion.future;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(atomicCalls, 1);
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true, reason: 'Dispatched writes need owner-safe refresh');
+    expect(find.text('Routine moved.'), findsNothing,
+        reason: 'Never show old-owner success after login-cycle change');
+    expect(g.writes, 0);
+  });
+
+  testWidgets('atomic uncertain result after auth switch still signals refresh',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    var authorized = true;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: _Move(), programs: _Programs()..items = [source],
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) => completion.future,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.completeError(const RoutineMoveOutcomeUnknown(
+      reason: RoutineMoveUncertainty.sessionChanged,
+    ));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true);
+    expect(find.textContaining('unconfirmed'), findsNothing,
+        reason: 'Do not show stale-session feedback');
+  });
+
+  testWidgets('existing Move retains refresh signal after auth switch',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    final g = _Move()..onMove = () => completion.future;
+    var authorized = true;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(),
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(g.writes, 1);
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true);
+    expect(find.text('Routine moved.'), findsNothing);
+  });
+
   testWidgets('New Program appears first and uses shared name editor only',
       (tester) async {
     final programs = _Programs()..items = [source, destination];
