@@ -26,6 +26,21 @@ void main() {
     expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
         reason: 'Program and Library must share one action single-flight');
   });
+  test('Routine Move stays dormant without an authenticated Supabase client', () {
+    final container = ProviderContainer(overrides: [
+      supabaseClientProvider.overrideWithValue(null),
+    ]);
+    addTearDown(container.dispose);
+    final gate = container.read(routineMoveAttemptGateProvider);
+    final flow = container.read(routineMoveFlowProvider);
+    expect(container.read(routineMoveRepositoryProvider), isNull);
+    expect(container.read(routineCreateMoveRepositoryProvider), isNull);
+    container.invalidate(routineMoveRepositoryProvider);
+    expect(container.read(routineMoveRepositoryProvider), isNull);
+    expect(identical(container.read(routineMoveAttemptGateProvider), gate), isTrue);
+    expect(identical(container.read(routineMoveFlowProvider), flow), isTrue);
+  });
+
   group('Network & Auth Providers', () {
     test('providers instantiate with safe unavailable defaults in container',
         () {
