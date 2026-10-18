@@ -14,6 +14,7 @@ Future<void> _pump(
   bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   Future<bool> Function(Program, Routine)? onEditRoutine,
+  Future<bool> Function(Program, Routine)? onMoveRoutine,
   Future<bool> Function(Program, Routine)? onDeleteRoutine,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
@@ -48,6 +49,7 @@ Future<void> _pump(
         hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
+        onMoveRoutine: onMoveRoutine,
         onDeleteRoutine: onDeleteRoutine,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
@@ -60,6 +62,59 @@ Future<void> _pump(
 }
 
 void main() {
+
+  testWidgets('Library Move-only action carries Program/Routine and rereads source',
+      (tester) async {
+    final routine = _routine(1, 101, 'Push');
+    final repository = _FakeRoutineRepository([routine]);
+    Program? movedFrom;
+    Routine? moved;
+    await _pump(tester, routineRepository: repository,
+      onMoveRoutine: (program, candidate) async {
+        movedFrom = program;
+        moved = candidate;
+        repository.rows.removeWhere((item) => item.id == candidate.id);
+        return true;
+      },
+    );
+    await tester.tap(find.byKey(ValueKey('routine-menu-${routine.id.value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('routine-move-${routine.id.value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('routine-edit-${routine.id.value}')), findsNothing);
+    expect(find.byKey(ValueKey('routine-delete-${routine.id.value}')), findsNothing);
+    await tester.tap(find.byKey(ValueKey('routine-move-${routine.id.value}')));
+    await tester.pumpAndSettle();
+    expect(movedFrom?.id, _id(1));
+    expect(moved?.id, routine.id);
+    expect(moved?.programId, _id(1));
+    expect(find.text('Push'), findsNothing);
+    expect(repository.queries.where((id) => id == _id(1)).length,
+        greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('Library Move suppressed during pending Create and without callback',
+      (tester) async {
+    final routine = _routine(1, 101, 'Push');
+    var calls = 0;
+    await _pump(tester,
+      routineRepository: _FakeRoutineRepository([routine]),
+      onMoveRoutine: (program, candidate) async {
+        calls++;
+        return true;
+      },
+      hasUnconfirmedCreate: (program) => program.id == _id(1),
+    );
+    expect(find.byKey(ValueKey('routine-menu-${routine.id.value}')), findsNothing);
+    expect(calls, 0);
+    await _pump(tester,
+      routineRepository: _FakeRoutineRepository([routine]),
+      onEditRoutine: (program, candidate) async => false,
+    );
+    await tester.tap(find.byKey(ValueKey('routine-menu-${routine.id.value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('routine-move-${routine.id.value}')), findsNothing);
+  });
 
   testWidgets('expanded Library Delete refreshes only owner Routine cards',
       (tester) async {
