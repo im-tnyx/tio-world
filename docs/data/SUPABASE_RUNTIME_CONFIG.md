@@ -82,8 +82,9 @@ Enter the existing QA account's email/password only on the iPhone during the
 manual smoke test.
 
 The workflow file must first exist on the default branch for GitHub to offer
-manual dispatch; select the PR branch in the Run workflow selector after the
-separate bootstrap gate is complete.
+manual dispatch. After PR #608 is merged, select the
+`tnyx/ios-free-device-ui-testing` branch in the Run workflow selector and
+manually dispatch the workflow.
 
 ## Legacy compatibility
 
