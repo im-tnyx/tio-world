@@ -342,6 +342,25 @@ final class RoutineMoveFlow {
   }) => showDialog<bool>(
     context: context,
     builder: (dialogContext) {
+      final theme = Theme.of(dialogContext);
+      // Only this confirmation card uses the owner-approved compact visual
+      // button height. Preserve Core button intent, colours, radius and padded
+      // accessible tap target; global TioButtonTokens.height stays 46dp.
+      const compactMinimum = WidgetStatePropertyAll<Size>(
+        Size(TioButtonTokens.minimumWidth, TioSize.dp42),
+      );
+      final compactButtonsTheme = theme.copyWith(
+        filledButtonTheme: FilledButtonThemeData(
+          style: theme.filledButtonTheme.style?.copyWith(
+            minimumSize: compactMinimum,
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: theme.outlinedButtonTheme.style?.copyWith(
+            minimumSize: compactMinimum,
+          ),
+        ),
+      );
       final card = Dialog(
         key: const ValueKey('routine-move-confirmation'),
         backgroundColor: TioPalette.transparent,
@@ -371,22 +390,25 @@ final class RoutineMoveFlow {
                       textAlign: TextAlign.center,
                       style: Theme.of(dialogContext).textTheme.bodyMedium),
                   const SizedBox(height: TioSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(child: TioButton.secondary(
-                        label: 'Cancel',
-                        expand: true,
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
-                      )),
-                      const SizedBox(width: TioSpacing.sm),
-                      Expanded(child: TioButton.primary(
-                        label: createProgram ? 'Create & Move' : 'Move',
-                        expand: true,
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
-                      )),
-                    ],
+                  Theme(
+                    data: compactButtonsTheme,
+                    child: Row(
+                      children: [
+                        Expanded(child: TioButton.secondary(
+                          label: 'Cancel',
+                          expand: true,
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
+                        )),
+                        const SizedBox(width: TioSpacing.sm),
+                        Expanded(child: TioButton.primary(
+                          label: createProgram ? 'Create & Move' : 'Move',
+                          expand: true,
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(true),
+                        )),
+                      ],
+                    ),
                   ),
                 ],
               ),
