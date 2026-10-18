@@ -321,7 +321,7 @@ void main() {
       expect(find.byKey(
           const ValueKey('routine-move-destinations-$routineId')),
           findsOneWidget);
-      expect(find.text('+ New Program'), findsOneWidget);
+      expect(find.text('New Program'), findsOneWidget);
       expect(gateway.reads, 1);
       expect(gateway.writes, 0);
 
@@ -333,7 +333,7 @@ void main() {
       expect(find.byKey(
           const ValueKey('routine-move-destinations-$routineId')),
           findsNothing);
-      expect(find.text('+ New Program'), findsNothing);
+      expect(find.text('New Program'), findsNothing);
       expect(gateway.writes, 0,
           reason: 're-login must revoke the old selector without Move RPC');
       expect(tester.takeException(), isNull);
@@ -376,7 +376,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('routine-move-destinations-$rid')),
           findsOneWidget);
-      expect(find.text('+ New Program'), findsOneWidget);
+      expect(find.text('New Program'), findsOneWidget);
       expect(find.text('Select an existing destination Program'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
       await tester.pumpAndSettle();
