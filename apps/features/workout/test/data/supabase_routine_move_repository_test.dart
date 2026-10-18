@@ -287,6 +287,33 @@ void main() {
     });
   }
 
+  for (final (code, kind) in <(String, RoutineMoveFailureKind)>[
+    ('53100', RoutineMoveFailureKind.transactionAborted),
+    ('53300', RoutineMoveFailureKind.unavailable),
+    ('57P03', RoutineMoveFailureKind.unavailable),
+  ]) {
+    test('$code infrastructure rejection is definite and reusable', () async {
+      final gateway = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw PostgrestException(
+            message: 'server unavailable before commit', code: code);
+      final gate = RoutineMoveAttemptGate();
+      final first = repo(gateway, gate: gate);
+      final target = await inspect(first);
+      await expectLater(first.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(failure(kind)));
+      expect(gateway.atomicWrites, 1);
+      expect(gateway.reads, 1,
+          reason: 'Definite server rejection must not reconcile UNKNOWN');
+      final second = repo(gateway, gate: gate);
+      final fresh = await inspect(second);
+      expect(await move(second, fresh), RoutineMoveResult.confirmed,
+          reason: 'Fresh owner-scoped Move works after infrastructure repair');
+      expect(gateway.writes, 1);
+    });
+  }
+
   test('PGRST300 missing JWT secret is definite; new Move cannot poison gate',
       () async {
     final g = FakeMoveGateway()
@@ -557,6 +584,9 @@ void main() {
         RoutineMoveFailureKind.transactionAborted),
     ('55P03', 'canceling statement due to lock timeout',
         RoutineMoveFailureKind.transactionAborted),
+    ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
   ]) {
@@ -686,6 +716,9 @@ void main() {
       RoutineMoveFailureKind.transactionAborted),
     ('55P03', 'canceling statement due to lock timeout',
         RoutineMoveFailureKind.transactionAborted),
+    ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
     ('PGRST203', 'RPC overload is ambiguous',
