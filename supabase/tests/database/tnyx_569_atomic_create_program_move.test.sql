@@ -261,6 +261,55 @@ select pg_temp.assert_true(
     'Program 1',1,'b5690000-0000-4000-8000-000000000101')=2,
  'replay proves original Create+Move after user renames destination');
 
+-- Exact committed replay must survive a deleted *old source* Program.
+-- It is legal to delete the now-empty source after the Routine moves;
+-- this savepoint isolates the case from the subsequent Move regression.
+savepoint replay_without_source;
+reset role;
+delete from public.user_workout_programs
+where id='b5690000-0000-4000-8000-000000000011';
+set local role authenticated;
+
+select pg_temp.assert_true(
+  (select count(*)=0 from public.user_workout_programs
+    where id='b5690000-0000-4000-8000-000000000011'),
+  'source Program is gone before exact Create+Move replay');
+
+select pg_temp.assert_true(
+  public.create_user_workout_program_and_move_routine(
+    'b5690000-0000-4000-8000-000000000021',
+    'b5690000-0000-4000-8000-000000000011',
+    'b5690000-0000-4000-8000-000000000031',
+    'Program 1',1,'b5690000-0000-4000-8000-000000000101')=2,
+  'latest exact retry still succeeds after source Program was deleted');
+
+select pg_temp.assert_true(
+  (select count(*)=2 from public.user_workout_programs
+    where user_id=auth.uid())
+  and (select program_id='b5690000-0000-4000-8000-000000000031'
+       and composition_revision=2
+       from public.user_workout_routines
+       where id='b5690000-0000-4000-8000-000000000021')
+  and (select count(*)=1 from public.user_workout_routine_exercises
+       where id='b5690000-0000-4000-8000-000000000041'
+         and routine_id='b5690000-0000-4000-8000-000000000021')
+  and (select count(*)=1 from public.user_workout_routine_sets
+       where id='b5690000-0000-4000-8000-000000000051'
+         and routine_exercise_id='b5690000-0000-4000-8000-000000000041'),
+  'source-deleted retry makes no extra Program and preserves all child IDs');
+
+select pg_temp.expect_state(
+  $tnyx_deleted_source_retry$select public.create_user_workout_program_and_move_routine(
+    'b5690000-0000-4000-8000-000000000021',
+    'b5690000-0000-4000-8000-000000000011',
+    'b5690000-0000-4000-8000-000000000031',
+    'Changed after source deletion',1,
+    'b5690000-0000-4000-8000-000000000101')$tnyx_deleted_source_retry$,
+  'P0001','same mutation with changed payload rejected after source deletion');
+
+rollback to savepoint replay_without_source;
+release savepoint replay_without_source;
+
 -- Another aggregate mutation invalidates any stale earlier success proof.
 select pg_temp.assert_true(
  public.move_user_workout_routine(
