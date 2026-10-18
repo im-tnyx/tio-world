@@ -280,6 +280,66 @@ void main() {
     });
   }
 
+
+  // M3D3B1: exercise the REAL dormant Move flow with a test-only release
+  // override. Production Move remains hard OFF. Neither a stale selector
+  // nor a new same-account login cycle may inherit its old write permission.
+  for (final onProgramDetail in <bool>[false, true]) {
+    testWidgets(
+        'enabled-test Move selector revokes on same-owner new login cycle on ${onProgramDetail ? 'Program Detail' : 'expanded Library'}',
+        (tester) async {
+      final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
+      final (container, router) = await _app(
+        tester, AppMode.hybrid,
+        withRoutineComposition: true,
+        withDormantMoveAdapters: true,
+        withEnabledMoveForTest: true,
+        moveGateway: gateway,
+      );
+      expect(container.read(routineMoveReleaseEnabledProvider), isTrue,
+          reason: 'true is a test-only override, not production');
+      expect(container.read(supabaseClientProvider)?.auth.currentUser?.id,
+          _moveTestOwner);
+      router.go(_libraryPath);
+      await tester.pumpAndSettle();
+      if (onProgramDetail) {
+        await tester.tap(find.byKey(const ValueKey(
+            'program-open-20000000-0000-4000-8000-000000000001')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramDetailPage), findsOneWidget);
+      } else {
+        expect(find.byType(LibraryPage), findsOneWidget);
+      }
+
+      const routineId = '30000000-0000-4000-8000-000000000001';
+      await tester.tap(find.byKey(const ValueKey('routine-menu-$routineId')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('routine-move-$routineId')),
+          findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('routine-move-$routineId')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(
+          const ValueKey('routine-move-destinations-$routineId')),
+          findsOneWidget);
+      expect(find.text('+ New Program'), findsOneWidget);
+      expect(gateway.reads, 1);
+      expect(gateway.writes, 0);
+
+      container.read(_routineTestAuthStateProvider.notifier).state =
+          const AuthSessionAuthenticated(
+        AuthSession(userId: _moveTestOwner, loginCycleId: 'next-cycle'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(
+          const ValueKey('routine-move-destinations-$routineId')),
+          findsNothing);
+      expect(find.text('+ New Program'), findsNothing);
+      expect(gateway.writes, 0,
+          reason: 're-login must revoke the old selector without Move RPC');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -2014,6 +2074,8 @@ void main() {
   });
 }
 
+const _moveTestOwner = '11111111-1111-4111-8111-111111111111';
+
 final _routineTestAuthStateProvider = StateProvider<AuthSessionState>((ref) =>
     const AuthSessionAuthenticated(
         AuthSession(userId: 'test-user', loginCycleId: 'test-cycle')));
@@ -2038,6 +2100,8 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool emptyProgramRoutines = false,
   bool withRoutineComposition = false,
   bool withDormantMoveAdapters = false,
+  bool withEnabledMoveForTest = false,
+  RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
   bool delayCreateCommit = false,
@@ -2062,11 +2126,13 @@ Future<(ProviderContainer, GoRouter)> _app(
   await calendarController.load();
   final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
+  assert(!withEnabledMoveForTest || withDormantMoveAdapters);
+  final moveOwner = withEnabledMoveForTest ? _moveTestOwner : 'test-user';
   final dormantMoveAdapter = withDormantMoveAdapters
       ? SupabaseRoutineMoveRepository(
-          gateway: _DormantRouteMoveGateway(),
+          gateway: moveGateway ?? _DormantRouteMoveGateway(owner: moveOwner),
           attemptGate: RoutineMoveAttemptGate(),
-          currentUserId: () => 'test-user',
+          currentUserId: () => moveOwner,
           currentLoginCycleId: () => 'test-cycle',
         )
       : null;
@@ -2074,8 +2140,16 @@ Future<(ProviderContainer, GoRouter)> _app(
   final container = ProviderContainer(
     overrides: [
       if (withDormantMoveAdapters) ...[
-        supabaseClientProvider.overrideWithValue(_DormantRouteSupabaseClient()),
+        supabaseClientProvider.overrideWithValue(
+            _DormantRouteSupabaseClient(owner: moveOwner)),
         routineMoveRepositoryProvider.overrideWithValue(dormantMoveAdapter),
+      ],
+      if (withEnabledMoveForTest) ...[
+        routineMoveReleaseEnabledProvider.overrideWithValue(true),
+        _routineTestAuthStateProvider.overrideWith((ref) =>
+            const AuthSessionAuthenticated(
+              AuthSession(userId: _moveTestOwner, loginCycleId: 'test-cycle'),
+            )),
       ],
       appModeControllerProvider.overrideWith((ref) => appModeController),
       onboardingStatusControllerProvider
@@ -2120,7 +2194,7 @@ Future<(ProviderContainer, GoRouter)> _app(
         profileDataProvider.overrideWith((ref) {
           final session = ref.watch(authSessionStateProvider).valueOrNull;
           if (session is AuthSessionAuthenticated &&
-              session.session.userId == 'test-user') {
+              session.session.userId == moveOwner) {
             if (sameOwnerProfiles == null) {
               return Stream.value(_routineUnitProfile(WeightUnit.lb));
             }
@@ -2136,6 +2210,11 @@ Future<(ProviderContainer, GoRouter)> _app(
     ],
   );
   addTearDown(container.dispose);
+  if (withEnabledMoveForTest) {
+    (container.read(appSessionBootstrapControllerProvider)
+            as _ReadyAppSessionBootstrapController)
+        .transitionTo(_moveTestOwner);
+  }
   final router = container.read(goRouterProvider);
 
   await tester.pumpWidget(
@@ -2146,20 +2225,75 @@ Future<(ProviderContainer, GoRouter)> _app(
 }
 
 
-/// No network writes are possible: any accidental Move attempt fails the test.
-final class _DormantRouteMoveGateway extends Fake implements RoutineMoveGateway {}
+/// A read-only test gateway; writes are counted and always rejected.
+final class _DormantRouteMoveGateway extends Fake implements RoutineMoveGateway {
+  _DormantRouteMoveGateway({required this.owner});
+  final String owner;
+  int reads = 0;
+  int writes = 0;
+
+  @override
+  Future<Map<String, dynamic>?> readOwnedHeader({
+    required String userId,
+    required String routineId,
+  }) async {
+    reads++;
+    if (userId != owner ||
+        routineId != '30000000-0000-4000-8000-000000000001') {
+      return null;
+    }
+    return {
+      'id': routineId,
+      'user_id': userId,
+      'program_id': '20000000-0000-4000-8000-000000000001',
+      'name': 'Synthetic Route Routine',
+      'composition_revision': 0,
+    };
+  }
+
+  @override
+  Future<Object?> move({
+    required String routineId,
+    required String sourceProgramId,
+    required String destinationProgramId,
+    required int expectedRevision,
+    required String mutationId,
+  }) async {
+    writes++;
+    throw StateError('Test-only Move gateway must not write');
+  }
+
+  @override
+  Future<Object?> createAndMove({
+    required String routineId,
+    required String sourceProgramId,
+    required String newProgramId,
+    required String newProgramName,
+    required int expectedRevision,
+    required String mutationId,
+  }) async {
+    writes++;
+    throw StateError('Test-only Move gateway must not create or move');
+  }
+}
 
 final class _DormantRouteSupabaseClient extends Fake implements SupabaseClient {
+  _DormantRouteSupabaseClient({required this.owner});
+  final String owner;
+
   @override
-  GoTrueClient get auth => _DormantRouteAuth();
+  GoTrueClient get auth => _DormantRouteAuth(owner);
 }
 
 final class _DormantRouteAuth extends Fake implements GoTrueClient {
+  _DormantRouteAuth(this.owner);
+  final String owner;
+
   @override
-  User? get currentUser => const User(
-    id: 'test-user',
-    appMetadata: {},
-    userMetadata: {},
+  User? get currentUser => User(
+    id: owner,
+    appMetadata: const {},
+    userMetadata: const {},
     aud: 'authenticated',
     createdAt: '2026-10-18T00:00:00Z',
   );
