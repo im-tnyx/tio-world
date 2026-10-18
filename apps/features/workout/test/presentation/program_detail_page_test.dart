@@ -19,6 +19,7 @@ Future<void> _pump(
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
   Future<bool> Function(Routine)? onEditRoutine,
+  Future<bool> Function(Routine)? onMoveRoutine,
   Future<bool> Function(Routine)? onDeleteRoutine,
   Future<bool> Function(String suggestedName)? onCreateRoutine,
   double textScale = 1,
@@ -40,6 +41,7 @@ Future<void> _pump(
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
+        onMoveRoutine: onMoveRoutine,
         onDeleteRoutine: onDeleteRoutine,
         onCreateRoutine: onCreateRoutine,
       ),
@@ -49,6 +51,54 @@ Future<void> _pump(
 }
 
 void main() {
+
+  testWidgets('Move-only action uses existing sheet and refreshes source Routine',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    Routine? moved;
+    await _pump(tester, repository: repository, onMoveRoutine: (routine) async {
+      moved = routine;
+      repository.rows.removeWhere((item) => item.id == routine.id);
+      return true;
+    });
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-$_routineId')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-edit-$_routineId')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(moved?.id.value, _routineId);
+    expect(moved?.programId, _program.id);
+    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+  });
+
+  testWidgets('dismissed or declined Move does not dispatch or claim success',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    var calls = 0;
+    await _pump(tester, repository: repository, onMoveRoutine: (routine) async {
+      calls++;
+      return false;
+    });
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(16, 50));
+    await tester.pumpAndSettle();
+    expect(calls, 0);
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.text('Push'), findsOneWidget);
+    expect(repository.rows, hasLength(1));
+  });
 
   testWidgets('Delete callback alone opens action and refreshes owner Routines',
       (tester) async {
