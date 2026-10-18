@@ -109,6 +109,8 @@ void main() {
     addTearDown(c.dispose);
     await c.read(authSessionStateProvider.future);
     final gate = c.read(routineMoveAttemptGateProvider);
+    final cross = c.read(routineMoveDeleteAttemptGateProvider);
+    final deleteGate = c.read(routineDeleteAttemptGateProvider);
     final flow = c.read(routineMoveFlowProvider);
     final original = c.read(routineMoveRepositoryProvider)!;
     expect(identical(c.read(routineCreateMoveRepositoryProvider), original),
@@ -124,6 +126,8 @@ void main() {
     expect(identical(c.read(routineCreateMoveRepositoryProvider), replacement),
         isTrue);
     expect(identical(c.read(routineMoveAttemptGateProvider), gate), isTrue);
+    expect(identical(c.read(routineMoveDeleteAttemptGateProvider), cross), isTrue);
+    expect(identical(c.read(routineDeleteAttemptGateProvider), deleteGate), isTrue);
     expect(identical(c.read(routineMoveFlowProvider), flow), isTrue);
     await expectLater(original.inspect(
       sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
