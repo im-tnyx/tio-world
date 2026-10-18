@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
@@ -229,6 +230,55 @@ void main() {
     expect(find.text('Synthetic Route Program'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
+
+
+  // M3D3A: mount the actual app-composed Routine sheet, not a mocked card.
+  // A valid Auth/bootstrap/SDK owner and an available existing/New Move adapter
+  // must still NEVER expose Move before the explicit release capability flips.
+  for (final onProgramDetail in <bool>[false, true]) {
+    testWidgets(
+        'Move release-OFF hides action on ${onProgramDetail ? 'Program Detail' : 'expanded Library'} with valid Move adapter',
+        (tester) async {
+      final (container, router) = await _app(
+        tester, AppMode.hybrid,
+        withRoutineComposition: true,
+        withDormantMoveAdapters: true,
+      );
+      final move = container.read(routineMoveRepositoryProvider);
+      expect(move, isNotNull);
+      expect(identical(
+        move, container.read(routineCreateMoveRepositoryProvider),
+      ), isTrue, reason: 'existing/New Program Move share the adapter');
+      expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+      expect(container.read(supabaseClientProvider)?.auth.currentUser?.id,
+          'test-user');
+      final auth = await container.read(authSessionStateProvider.future);
+      expect(auth, isA<AuthSessionAuthenticated>());
+      router.go(_libraryPath);
+      await tester.pumpAndSettle();
+
+      if (onProgramDetail) {
+        await tester.tap(find.byKey(const ValueKey(
+            'program-open-20000000-0000-4000-8000-000000000001')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProgramDetailPage), findsOneWidget);
+      } else {
+        expect(find.byType(LibraryPage), findsOneWidget);
+      }
+      const routineId = '30000000-0000-4000-8000-000000000001';
+      await tester.tap(find.byKey(const ValueKey('routine-menu-$routineId')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('routine-actions-sheet-$routineId')),
+          findsOneWidget);
+      expect(find.text('Edit Routine'), findsOneWidget,
+          reason: 'the real options sheet and Auth fixture must be active');
+      expect(find.byKey(const ValueKey('routine-move-$routineId')),
+          findsNothing);
+      expect(find.text('Move Routine'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
@@ -1987,6 +2037,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withRoutineRepository = true,
   bool emptyProgramRoutines = false,
   bool withRoutineComposition = false,
+  bool withDormantMoveAdapters = false,
   bool withRoutineCreate = false,
   bool loseCreateAcknowledgment = false,
   bool delayCreateCommit = false,
@@ -2011,9 +2062,21 @@ Future<(ProviderContainer, GoRouter)> _app(
   await calendarController.load();
   final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
+  final dormantMoveAdapter = withDormantMoveAdapters
+      ? SupabaseRoutineMoveRepository(
+          gateway: _DormantRouteMoveGateway(),
+          attemptGate: RoutineMoveAttemptGate(),
+          currentUserId: () => 'test-user',
+          currentLoginCycleId: () => 'test-cycle',
+        )
+      : null;
 
   final container = ProviderContainer(
     overrides: [
+      if (withDormantMoveAdapters) ...[
+        supabaseClientProvider.overrideWithValue(_DormantRouteSupabaseClient()),
+        routineMoveRepositoryProvider.overrideWithValue(dormantMoveAdapter),
+      ],
       appModeControllerProvider.overrideWith((ref) => appModeController),
       onboardingStatusControllerProvider
           .overrideWith((ref) => onboardingStatusController),
@@ -2080,6 +2143,26 @@ Future<(ProviderContainer, GoRouter)> _app(
   );
   await tester.pumpAndSettle();
   return (container, router);
+}
+
+
+/// No network writes are possible: any accidental Move attempt fails the test.
+final class _DormantRouteMoveGateway extends Fake implements RoutineMoveGateway {}
+
+final class _DormantRouteSupabaseClient extends Fake implements SupabaseClient {
+  @override
+  GoTrueClient get auth => _DormantRouteAuth();
+}
+
+final class _DormantRouteAuth extends Fake implements GoTrueClient {
+  @override
+  User? get currentUser => User(
+    id: 'test-user',
+    appMetadata: const {},
+    userMetadata: const {},
+    aud: 'authenticated',
+    createdAt: '2026-10-18T00:00:00Z',
+  );
 }
 
 final class _RoutePrograms implements ProgramRepository {
