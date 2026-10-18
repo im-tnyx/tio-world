@@ -1,6 +1,6 @@
 # #569 M3C — Flutter protected atomic Create Program & Move adapter
 
-**Status:** In progress — audit-first, dormant data/domain slice.
+**Status:** In progress — [Draft PR #601](https://github.com/im-tnyx/tio-world/pull/601) implementing dormant data/domain adapter; source/test exact-head CI #39106384033 not yet fully complete at this handoff.
 **Primary owner:** Workout feature domain/data.
 **Affected platforms:** Flutter phone repository capability only; no active UI entrypoint.
 
@@ -14,8 +14,9 @@
 **Planning owner:** GitHub #569; Linear TNYX-81/TNYX-267 (broad Backlog with parent blockers).
 **Implementation owner:** `tnyx/issue-569-m3c-atomic-create-move-flutter-adapter` exclusively.
 **Review owner:** GitHub CI and independent inline reviewer after PR.
-**Implementation ownership state:** Active.
+**Implementation ownership state:** Active on one dedicated source branch; no parallel implementation.
 **Repository baseline verified:** Protected `main@55ef926e9ed1be1300061f065b8f3458019410d7`, PR #600 merged, 0 open PRs at start; `AGENTS.md` and `apps/features/AGENTS.md` read, ADR-0015 accepted.
+**PR:** [Draft #601](https://github.com/im-tnyx/tio-world/pull/601), source+test on commit `8d7c88e2`, index handoff `0fca7910`; final review/CI/head state must be read live.
 **Environment:** GitHub connector remote branch only; Windows checkout `G:\projects\Tio-World` and local `git status`/Flutter execution cannot be inspected or claimed.
 
 ## 1. Discovery
@@ -36,9 +37,9 @@ Reuse `RoutineMoveTarget` (owner, login cycle, immutable source revision) and ex
 Rejected alternative: separate `ProgramRepository.create` followed by Move, because transactionality/orphan safety is violated. Rejected alternate gate: a new gate instance allows concurrent existing/new Move against the same Routine.
 
 ## 5. Implementation Plan
-- [ ] Add the optional owner-scoped atomic repository contract and single RPC gateway.
-- [ ] Reuse process-shared M3A guard for existing/new Move; one-use and uncertain outcomes across both paths.
-- [ ] SDK request + auth-switch, duplicate, timeout/unknown, definitive denied/collision tests; maintain existing Move tests.
+- [x] Add `RoutineCreateMoveRepository` optional domain capability and one `SupabaseRoutineMoveGateway.createAndMove()` protected RPC (no table writes).
+- [x] Reuse process-shared M3A gate for existing/new Move; one-use prepared target, in-flight and uncertain revision share one identity.
+- [x] Add focused SDK JSON/payload, auth switch, cross-route in-flight, invalid, timeout/unknown, definite denied/collision tests; existing M3A tests retained. CI not yet fully verified.
 - [ ] Exact source HEAD GitHub Flutter CI, independent security review, resolve findings.
 - [ ] Explicit future app-shell, hosted migration/grant and owner merge/release gates separately approved and verified.
 
@@ -46,4 +47,4 @@ Rejected alternative: separate `ProgramRepository.create` followed by Move, beca
 GitHub root + feature AGENTS, ADR-0015, canonical Programs/Routine docs and current source audited. No local Flutter/device execution; only future exact-head GitHub CI may establish tested implementation.
 
 ## 7. Final Handoff
-**State:** implementation starting in one new bounded branch after current-source audit; no hosted deployment or user-facing activation.
+**State:** audited and implemented on Draft PR #601. Source+tests not yet verified by complete exact-head CI or independent review. No app-shell Move callback, migration, hosted grant, deployment or user-facing activation. Review findings and CI remain the next gate.
