@@ -425,7 +425,11 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
       // Server-side query cancellation aborts the SQL transaction.
-      '55P03' || '57014' => RoutineMoveFailureKind.transactionAborted,
+      // Server SQLSTATE disk_full aborts its transaction; no commit.
+      '53100' || '55P03' || '57014' =>
+        RoutineMoveFailureKind.transactionAborted,
+      // Connection rejection/restart before an RPC can acquire a session.
+      '53300' || '57P03' => RoutineMoveFailureKind.unavailable,
       '25001' => RoutineMoveFailureKind.invalidRequest,
       // SQLSTATE 25006 rejects writes in read-only database mode.
       '25006' => RoutineMoveFailureKind.unavailable,
