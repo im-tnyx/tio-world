@@ -85,24 +85,20 @@ final class RoutineMoveFlow {
         builder: (sheetContext) {
           final sheet = TioEditorSheet(
             key: ValueKey('routine-move-destinations-${routine.id.value}'),
-            title: 'Move Routine',
+            title: 'Select Program',
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (createAndMove != null) ...[
                   ListTile(
                     key: const ValueKey('routine-move-new-program'),
-                    title: const Text('+ New Program'),
+                    title: const Text('New Program'),
                     leading: const Icon(Icons.add_rounded),
                     onTap: () => Navigator.of(sheetContext)
                         .pop(_MoveDestinationChoice.newProgram),
                   ),
                   if (destinations.isNotEmpty)
-                    const SizedBox(height: TioSpacing.sm),
-                ],
-                if (destinations.isNotEmpty) ...[
-                  const Text('Select an existing destination Program'),
-                  const SizedBox(height: TioSpacing.sm),
+                    const Divider(key: ValueKey('routine-move-program-divider')),
                 ],
                 for (final program in destinations)
                   ListTile(
