@@ -236,10 +236,22 @@ void main() {
     expect(programs.creates, 0);
     expect(needsRefresh, false,
         reason: 'Preview must never report a committed Move or request refresh');
-    expect(find.text('Preview only. No Program or Routine was changed.'),
+    expect(find.text('Preview only · No changes'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
         findsNothing);
+    final preview = tester.widget<SnackBar>(
+        find.byKey(const ValueKey('routine-move-preview-feedback')));
+    expect(preview.behavior, SnackBarBehavior.floating);
+    expect(preview.shape, isA<StadiumBorder>());
+    expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.action?.label, 'Undo');
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+        findsNothing, reason: 'Preview Undo only dismisses its feedback');
+    expect(move.writes, 0);
+    expect(programs.creates, 0);
   });
 
   testWidgets('debug preview Create & Move confirms without either write',
@@ -280,8 +292,16 @@ void main() {
     expect(move.writes, 0);
     expect(programs.creates, 0);
     expect(needsRefresh, false);
-    expect(find.text('Preview only. No Program or Routine was changed.'),
+    expect(find.text('Preview only · No changes'),
         findsOneWidget);
+    final preview = tester.widget<SnackBar>(
+        find.byKey(const ValueKey('routine-move-preview-feedback')));
+    expect(preview.behavior, SnackBarBehavior.floating);
+    expect(preview.shape, isA<StadiumBorder>());
+    expect(preview.duration, const Duration(seconds: 5));
+    expect(preview.action?.label, 'Undo');
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
   });
 
   testWidgets('atomic Create & Move retains refresh after auth switch',
