@@ -113,6 +113,14 @@ List<RouteBase> _shellBranchChildRoutes(
           final createRepository = ref.watch(routineCreateRepositoryProvider);
           final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
           final deleteFlow = ref.read(routineDeleteFlowProvider);
+          // Reuse the feature-owned Move flow and the same existing/New Program
+          // adapter instance. The release capability remains OFF until M3D3
+          // coordination, hosted RPC/grants and device QA are approved.
+          final moveReleaseEnabled = ref.watch(routineMoveReleaseEnabledProvider);
+          final moveRepository = ref.watch(routineMoveRepositoryProvider);
+          final createMoveRepository =
+              ref.watch(routineCreateMoveRepositoryProvider);
+          final moveFlow = ref.read(routineMoveFlowProvider);
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
@@ -358,6 +366,85 @@ List<RouteBase> _shellBranchChildRoutes(
                   }
                   return content;
                 },
+              ),
+            );
+          }
+
+          /// Prepare the canonical Workout Move flow behind a default-off
+          /// app release gate; do not expose a partially working card action.
+          /// Both existing Program Move and atomic Create+Move share the
+          /// same session-bound adapter, attempt gate and confirmation flow.
+          Future<bool> moveRoutine(Program program, Routine routine) async {
+            final programs = programRepository;
+            final moves = moveRepository;
+            final atomicMoves = createMoveRepository;
+            if (!moveReleaseEnabled || programs == null || moves == null ||
+                atomicMoves == null || !identical(moves, atomicMoves) ||
+                routineRepository == null || routine.programId != program.id) {
+              return false;
+            }
+
+            final openingBoot =
+                ref.read(appSessionBootstrapControllerProvider).state;
+            final owner = openingBoot is AppSessionBootstrapReady
+                ? openingBoot.userId : null;
+            final authValue = ref.read(authSessionStateProvider);
+            final auth = authValue.isLoading || authValue.hasError
+                ? null : authValue.valueOrNull;
+            final cycle = auth is AuthSessionAuthenticated &&
+                    auth.session.userId == owner
+                ? auth.session.loginCycleId : null;
+            if (owner == null || cycle == null || cycle.trim().isEmpty) {
+              return false;
+            }
+
+            // A previously captured callback may run after logout or
+            // same-owner relogin. Never give that old cycle new authority.
+            bool sameSession() {
+              try {
+                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final value = ref.read(authSessionStateProvider);
+                final live = value.isLoading || value.hasError
+                    ? null : value.valueOrNull;
+                final pending = ref.read(routinePendingCreateGateProvider);
+                return ref.read(routineMoveReleaseEnabledProvider) &&
+                    boot is AppSessionBootstrapReady &&
+                    boot.userId == owner &&
+                    live is AuthSessionAuthenticated &&
+                    live.session.userId == owner &&
+                    live.session.loginCycleId == cycle &&
+                    ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
+                        owner &&
+                    !pending.hasPending(
+                      owner: owner, loginCycle: cycle, programId: program.id,
+                    );
+              } catch (_) {
+                return false;
+              }
+            }
+
+            if (!sameSession()) return false;
+            return moveFlow.run(
+              context: context,
+              sourceProgram: program,
+              routine: routine,
+              programs: programs,
+              repository: moves,
+              canWrite: sameSession,
+              createAndMove: ({
+                required RoutineMoveTarget target,
+                required ProgramId newProgramId,
+                required String newProgramName,
+                required String mutationId,
+              }) => atomicMoves.createAndMove(
+                target: target,
+                newProgramId: newProgramId,
+                newProgramName: newProgramName,
+                mutationId: mutationId,
+              ),
+              modalGuard: (dialogContext, content) =>
+                  _guardRoutineOptionsSheet(
+                content: content, ownerId: owner, loginCycleId: cycle,
               ),
             );
           }
@@ -793,6 +880,13 @@ List<RouteBase> _shellBranchChildRoutes(
                           userExerciseRepository == null
                       ? null
                       : (routine) => editRoutine(program, routine),
+                  onMoveRoutine: !moveReleaseEnabled || revoked ||
+                          moveRepository == null ||
+                          createMoveRepository == null ||
+                          programRepository == null ||
+                          !openingSessionValid()
+                      ? null
+                      : (routine) => moveRoutine(program, routine),
                   onDeleteRoutine: revoked || deleteRepository == null ||
                           !openingSessionValid()
                       ? null
@@ -878,6 +972,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     userExerciseRepository == null
                 ? null
                 : editRoutine,
+            onMoveRoutine: !moveReleaseEnabled || !bound ||
+                    !canCreateForSession || programRepository == null ||
+                    routineRepository == null || moveRepository == null ||
+                    createMoveRepository == null
+                ? null
+                : moveRoutine,
             actionSheetGuard: (sheetContext, sheet) =>
                 _guardRoutineOptionsSheet(
                   content: sheet,
