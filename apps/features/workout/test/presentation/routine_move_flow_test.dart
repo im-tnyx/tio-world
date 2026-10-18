@@ -132,6 +132,91 @@ Future<void> _choose(WidgetTester tester) async {
 
 void main() {
 
+  testWidgets('Select Program opens while verified destination reads are pending',
+      (tester) async {
+    final header = Completer<RoutineMoveTarget?>();
+    final rows = Completer<List<Program>>();
+    final move = _Move()..onInspect = () => header.future;
+    final programs = _Programs()..onList = () => rows.future;
+    var atomicCalls = 0;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true, onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        throw StateError('A selector tap must not dispatch a write');
+      },
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('Select Program'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget,
+        reason: 'The sheet should open before the Routine header is fetched');
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsNothing);
+    expect(programs.reads, 0);
+    expect(move.writes, 0);
+
+    header.complete(move.target);
+    await tester.pump();
+    expect(programs.reads, 1);
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget,
+        reason: 'Owner Program list must also verify before options appear');
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsNothing);
+    rows.complete([source, destination]);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-program-divider')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey(
+        'routine-move-destination-${destination.id.value}')), findsOneWidget);
+    expect(move.writes, 0);
+    expect(atomicCalls, 0);
+    Navigator.of(tester.element(find.byKey(
+        ValueKey('routine-move-destinations-${routine.id.value}')))).pop();
+    await tester.pumpAndSettle();
+    expect(move.writes, 0);
+  });
+
+  testWidgets('dismissal during slow owner read never revives a stale selector',
+      (tester) async {
+    final header = Completer<RoutineMoveTarget?>();
+    final move = _Move()..onInspect = () => header.future;
+    final programs = _Programs();
+    bool? needsRefresh;
+    await _pump(tester, flow: RoutineMoveFlow(), move: move,
+      programs: programs, canWrite: () => true,
+      onResult: (v) => needsRefresh = v);
+    await tester.tap(find.text('Open Move'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byKey(const ValueKey('routine-move-destinations-loading')),
+        findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+        ValueKey('routine-move-destinations-${routine.id.value}')))).pop();
+    await tester.pump();
+    header.complete(move.target);
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey(
+        'routine-move-destination-${destination.id.value}')), findsNothing);
+    expect(move.writes, 0);
+    expect(needsRefresh, false);
+  });
+
+
+
 
   testWidgets('debug preview existing destination confirms with zero Move writes',
       (tester) async {
