@@ -88,6 +88,7 @@ Future<void> _pump(
   required bool Function() canWrite,
   required void Function(bool) onResult,
   Routine? selectedRoutine,
+  RoutineCreateMoveCallback? createAndMove,
 }) async {
   await tester.pumpWidget(MaterialApp(
     builder: (context, child) => TioTheme(
@@ -104,6 +105,7 @@ Future<void> _pump(
             programs: programs,
             repository: move,
             canWrite: canWrite,
+            createAndMove: createAndMove,
           )),
           child: const Text('Open Move'),
         ),
@@ -124,6 +126,97 @@ Future<void> _choose(WidgetTester tester) async {
 }
 
 void main() {
+
+  testWidgets('New Program appears first and uses shared name editor only',
+      (tester) async {
+    final programs = _Programs()..items = [source, destination];
+    final moves = _Move();
+    var createCalls = 0;
+    ProgramId? createdId;
+    String? createdName;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: moves, programs: programs, canWrite: () => true,
+      onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        createCalls++;
+        expect(target.routineId, routine.id);
+        expect(newProgramId, isNot(source.id));
+        expect(mutationId, token);
+        createdId = newProgramId;
+        createdName = newProgramName;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('routine-move-destination-${destination.id.value}')),
+        findsOneWidget);
+    final newTop = tester.getTopLeft(
+      find.byKey(const ValueKey('routine-move-new-program')));
+    final oldTop = tester.getTopLeft(
+      find.byKey(ValueKey('routine-move-destination-${destination.id.value}')));
+    expect(newTop.dy, lessThan(oldTop.dy));
+
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-name-field')), findsOneWidget);
+    expect(moves.writes, 0);
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    expect(find.textContaining('Program 1'), findsOneWidget);
+    expect(createCalls, 0);
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(createCalls, 1);
+    expect(createdId, isNotNull);
+    expect(createdName, 'Program 1');
+    expect(moves.writes, 0);
+  });
+
+  testWidgets('source-only selector shows only New Program, cancel writes zero',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final moves = _Move();
+    var createCalls = 0;
+    await _pump(tester, flow: RoutineMoveFlow(), move: moves,
+      programs: programs, canWrite: () => true,
+      onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        createCalls++;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.text('Select an existing destination Program'), findsNothing);
+    expect(find.textContaining('Create another Program'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+        const ValueKey('program-name-field')))).pop();
+    await tester.pumpAndSettle();
+    expect(createCalls, 0);
+    expect(moves.writes, 0);
+  });
+
   testWidgets('selection and confirmation use one existing owner Program RPC',
       (tester) async {
     final programs = _Programs();

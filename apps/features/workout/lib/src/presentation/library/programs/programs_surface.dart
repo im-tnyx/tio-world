@@ -271,8 +271,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
       useRootNavigator: true,
       useSafeArea: true,
       builder: (_) => _CreateProgramSheet(
-        controller: controller,
         initialName: controller.suggestedName(),
+        onSubmit: controller.create,
+        currentError: () => controller.state.createError,
       ),
     );
   }
@@ -891,12 +892,17 @@ class _RenameProgramSheetState extends State<_RenameProgramSheet> {
 
 class _CreateProgramSheet extends StatefulWidget {
   const _CreateProgramSheet({
-    required this.controller,
     required this.initialName,
+    required this.onSubmit,
+    this.currentError,
+    this.nameOnly = false,
   });
 
-  final ProgramsController controller;
   final String initialName;
+  final Future<bool> Function(String) onSubmit;
+  final String? Function()? currentError;
+  /// Name-only selection never persists a Program before Create & Move.
+  final bool nameOnly;
 
   @override
   State<_CreateProgramSheet> createState() => _CreateProgramSheetState();
@@ -935,17 +941,19 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
       _error = null;
     });
 
-    final succeeded = await widget.controller.create(_nameController.text);
+    final succeeded = await widget.onSubmit(_nameController.text);
     if (!mounted) return;
 
     if (succeeded) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(
+        widget.nameOnly ? _nameController.text.trim() : null,
+      );
       return;
     }
 
     setState(() {
       _saving = false;
-      _error = widget.controller.state.createError ??
+      _error = widget.currentError?.call() ??
           'Could not create program. Please try again.';
     });
   }
@@ -975,10 +983,33 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
         ),
         actions: TioButton.primary(
           key: const ValueKey('program-create-submit'),
-          label: _saving ? 'Creating...' : 'Create',
+          label: widget.nameOnly
+              ? (_saving ? 'Continuing...' : 'Continue')
+              : (_saving ? 'Creating...' : 'Create'),
           onPressed: canSubmit ? _submit : null,
         ),
       ),
     );
   }
 }
+
+
+/// Reuses the canonical Create Program name editor to return a draft only.
+/// In the Move workflow, this must never call ProgramRepository.create.
+Future<String?> promptCreateProgramName({
+  required BuildContext context,
+  required String initialName,
+  Widget Function(BuildContext, Widget)? modalGuard,
+}) => showTioEditorSheet<String>(
+  context: context,
+  useRootNavigator: true,
+  useSafeArea: true,
+  builder: (sheetContext) {
+    final sheet = _CreateProgramSheet(
+      initialName: initialName,
+      onSubmit: (_) async => true,
+      nameOnly: true,
+    );
+    return modalGuard?.call(sheetContext, sheet) ?? sheet;
+  },
+);
