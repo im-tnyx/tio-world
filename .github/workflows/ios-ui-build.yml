@@ -43,6 +43,9 @@ jobs:
           xcodebuild -version
           sw_vers
 
+      - name: Keep iOS dependency resolution on CocoaPods
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Resolve Flutter packages
         working-directory: apps/app
         run: flutter pub get

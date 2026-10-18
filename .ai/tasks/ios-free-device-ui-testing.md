@@ -8,8 +8,8 @@
 
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
-**Approval evidence:** Owner supplied explicit `Go` on 2026-10-19 after the read-only audit and accepted the proposed single-PR first slice.
-**Approved product/UI/data-shape boundaries:** Add the minimum iOS phone Runner and a manual unsigned profile-build workflow so a Windows owner can locally free-sign and sideload the artifact for UI testing.
+**Approval evidence:** Owner supplied explicit `Go` on 2026-10-19 after the read-only audit and accepted the proposed single-PR first slice. In the follow-up request, owner explicitly authorized a credential-free, path-filtered `pull_request` trigger while preserving manual dispatch, plus a scoped build fix if hosted execution exposed a confirmed in-scope failure.
+**Approved product/UI/data-shape boundaries:** Add the minimum iOS phone Runner and an unsigned profile-build workflow with manual dispatch and a narrowly path-filtered pre-merge trigger so a Windows owner can locally free-sign and sideload the artifact for UI testing.
 **Explicit non-changes:** No Flutter screen/layout/theme change; no production signing, TestFlight, App Store, Apple Watch target, HealthKit, push, provider activation, Supabase change, secrets, certificate, provisioning profile, device registration, hosted deployment, or release-readiness claim.
 
 ## Active Handoff
@@ -21,16 +21,16 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-19; after `git fetch --prune origin`, `origin/main` is `a69bc82443201c66c8d34e3c346db362cc2e450d`, is an ancestor of the task branch, and branch divergence is 2 ahead / 0 behind.
 **Branch:** `tnyx/ios-free-device-ui-testing`
-**HEAD SHA last audited before this remediation:** `643b95a8207b5f5251822b73704bb8b9125270b2`.
-**Observed working-tree state at fresh audit:** Clean before edits; only `.github/workflows/ios-ui-build.yml` and this task brief are in scope for this remediation.
-**PR / tracker:** Draft PR [#608](https://github.com/im-tnyx/tio-world/pull/608) is open at `643b95a8207b5f5251822b73704bb8b9125270b2`, `MERGEABLE`, ahead 2 / behind 0. No dedicated GitHub issue was found. No Linear connector is available in this session, so the live Mobile App project / `TNYX-126` state could not be re-read; the previous audit identified `TNYX-126` as broader release-readiness work and `TNYX-231` / `TNYX-161` as deferred auth-provider / watch work. This limitation must be reconciled with Linear when access is available.
-**Current implementation state:** iOS Runner remains phone-only. The workflow preserves `workflow_dispatch` and adds the owner-approved path-filtered `pull_request` trigger with read-only `contents` permission and `actions/checkout` credential persistence disabled. Exact-head Flutter CI passed at `643b95a8`; this remediation has not yet been pushed or validated by hosted workflows. macOS build, artifact inspection, signing, install, and device launch remain unverified.
-**Relevant execution surface:** `apps/app/ios`, manual GitHub Actions macOS build, Windows local signing/sideload instructions.
-**Validation completed at last reviewed SHA:** Exact-head PR #608 Flutter/Dart analysis and all Flutter test jobs passed; both attribution checks passed. Fresh local static checks confirmed valid Info.plist XML, all 22 asset catalog references resolve to 18 valid PNG files, all three Runner deployment targets are iOS 15.0, and workflow remains manual-only/profile/no-codesign with read-only contents permission and no signing secrets. Local Flutter 3.44.6 / Dart 3.12.2 is recorded in `bin/cache/flutter.version.json`; no local Xcode is available.
-**Validation remaining:** Commit/push the trigger remediation; verify exact-head Flutter CI and attribution; verify the `iOS UI Build` PR run starts and succeeds; inspect artifact SHA/provenance, IPA contents/arm64, embedded profile absence, and credential absence; then hand off Windows free signing and physical-iPhone install/launch/UI smoke to the owner. The previously passing Flutter CI does not compile iOS.
-**Current blocker:** Hosted macOS build has not run yet. If the workflow or runner fails, inspect the exact failed job/step and fix only confirmed in-scope defects. Keep signing credentials outside GitHub and the repository.
-**Open review finding IDs:** `IOS-001` P1 — trigger change implemented locally; remain open until successful hosted build evidence is attached; `IOS-002` P2 — addressed and resolved/outdated on GitHub; `IOS-003` P2 — fixed to iPhone-only on the prior branch commit.
-**Next exact action:** Run local static validation and `git diff --check`, commit and push the two scoped files to PR #608, then inspect exact-head CI, the hosted iOS run, and its artifact. Do not merge.
+**HEAD SHA last audited before this remediation:** `9c89e5d138f8599645f2844196a84d4f74b50498`.
+**Observed working-tree state at fresh audit:** Clean before remediation edits; only `.github/workflows/ios-ui-build.yml` and this task brief are in scope.
+**PR / tracker:** Draft PR [#608](https://github.com/im-tnyx/tio-world/pull/608) is open at `9c89e5d138f8599645f2844196a84d4f74b50498`, `MERGEABLE`, ahead 3 / behind 0. No dedicated GitHub issue was found. No Linear connector is available in this session, so the live Mobile App project / `TNYX-126` state could not be re-read; the previous audit identified `TNYX-126` as broader release-readiness work and `TNYX-231` / `TNYX-161` as deferred auth-provider / watch work. This limitation must be reconciled with Linear when access is available.
+**Current implementation state:** iOS Runner remains phone-only. The workflow preserves `workflow_dispatch`, adds the owner-approved path-filtered `pull_request` trigger, keeps read-only `contents` permission, and disables checkout credential persistence. At `9c89e5d1`, exact-head Flutter CI and attribution passed, but macOS iOS run [39160381592](https://github.com/im-tnyx/tio-world/actions/runs/39160381592) failed at Xcode build with `The sandbox is not in sync with the Podfile.lock`; no artifact was uploaded. The Flutter 3.44.6 log also showed Swift Package Manager integration being added before CocoaPods ran. A workflow-scoped opt-out of SwiftPM is now added to keep this first slice on its existing CocoaPods/Podfile.lock contract; its hosted result is pending. Signing, install, and device launch remain unverified.
+**Relevant execution surface:** `apps/app/ios`, manual and path-filtered GitHub Actions macOS build, CocoaPods dependency resolution for this Flutter 3.44.6 Runner, Windows local signing/sideload instructions.
+**Validation completed at last reviewed SHA:** At `9c89e5d1`, exact-head Flutter/Dart analysis, all Flutter test shards, and attribution passed. The first hosted macOS run exposed a CocoaPods sandbox/lockfile failure after Flutter 3.44.6 added SwiftPM integration. Local static checks previously confirmed valid `Info.plist`, all asset references, iOS 15 targets, iPhone-only target families, read-only permissions, and no signing credentials. Local Flutter 3.44.6 / Dart 3.12.2 is recorded in `bin/cache/flutter.version.json`; no local Xcode is available.
+**Validation remaining:** Commit/push the CocoaPods/SwiftPM workflow workaround; verify exact-head Flutter CI and attribution; verify the `iOS UI Build` PR run succeeds; inspect artifact SHA/provenance, IPA contents/arm64, embedded profile absence, and credential absence; then hand off Windows free signing and physical-iPhone install/launch/UI smoke to the owner. The previously passing Flutter CI does not compile iOS.
+**Current blocker:** Exact-head native build failed on mixed SwiftPM/CocoaPods state with a Podfile.lock sandbox mismatch. The workflow now disables Flutter SwiftPM for the ephemeral macOS build environment; confirm this exact fix with a rerun. Keep signing credentials outside GitHub and the repository.
+**Open review finding IDs:** `IOS-001` P1 — trigger change passes dispatchability but remains open until successful hosted build and artifact evidence; `IOS-002` P2 — addressed and resolved/outdated on GitHub; `IOS-003` P2 — fixed to iPhone-only on the prior branch commit.
+**Next exact action:** Run YAML/static checks and `git diff --check`, commit and push the two scoped files to PR #608, then inspect exact-head CI, the hosted iOS rerun, and its artifact. Do not merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -140,19 +140,27 @@ PASS — fresh local static native checks:
 - Runner configurations use iOS 15.0; iPhone-only target family is now set in all three Runner configurations.
 - `AppDelegate` uses `FlutterImplicitEngineDelegate` and registers generated plugins; `SceneDelegate` subclasses `FlutterSceneDelegate`.
 - No explicit team ID, provisioning profile, signing entitlement, secret, or Apple credential appears in the app target/workflow. Xcode's generic `iPhone Developer` identity remains template configuration; the workflow passes `--no-codesign`.
-- Workflow remains `workflow_dispatch`, `macos-15`, Flutter 3.44.6, profile/no-codesign, arm64 check, IPA container packaging, SHA-256/provenance, captured resolved `Podfile.lock`, read-only `contents`, and seven-day artifact retention.
+- Workflow remains manual and path-filtered, `macos-15`, Flutter 3.44.6, profile/no-codesign, arm64 check, IPA container packaging, SHA-256/provenance, captured resolved `Podfile.lock`, read-only `contents`, and seven-day artifact retention.
 
-BLOCKED — hosted native build/artifact validation:
+BLOCKED — initial audit before the approved PR trigger was added:
 - GitHub does not list the new workflow on `main`; the manual dispatch attempt returned `could not find any workflows named iOS UI Build`.
-- No macOS/Xcode/CocoaPods build, IPA, checksum, provenance output, embedded-profile scan, local signing, install, or device test exists yet.
 - Local Windows Flutter 3.44.6 / Dart 3.12.2 is installed, but the earlier local analyze attempt could not write `G:\dev\flutter-sdk\bin\cache\libimobiledevice.stamp`; shared SDK/cache state was preserved.
 ```
+
+PASS — exact-head checks at `9c89e5d138f8599645f2844196a84d4f74b50498`:
+- Flutter CI run [39160381437](https://github.com/im-tnyx/tio-world/actions/runs/39160381437) passed all analysis and test shards.
+- Attribution guard run [39160380965](https://github.com/im-tnyx/tio-world/actions/runs/39160380965) passed.
+
+FAIL — hosted iOS UI Build run [39160381592](https://github.com/im-tnyx/tio-world/actions/runs/39160381592):
+- macOS 15, Flutter 3.44.6, Xcode toolchain recording, package resolution, and Xcode build invocation completed.
+- Xcode failed with `The sandbox is not in sync with the Podfile.lock`; IPA packaging and upload were skipped.
+- Flutter also logged automatic SwiftPM integration followed by CocoaPods execution. The workflow now explicitly disables SwiftPM on its ephemeral runner to keep dependency resolution consistent with the existing Podfile and required `Podfile.lock` artifact. This workaround is unverified until the next hosted run.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| IOS-001 | P1 | Fix implemented locally — validation pending | Manual-only workflow could not be dispatched before merge because the workflow file is absent from the default branch. Owner explicitly approved the smallest credential-free, path-filtered `pull_request` trigger while retaining manual dispatch. | `643b95a8207b5f5251822b73704bb8b9125270b2` (finding); remediation pending commit | Do not resolve until the exact PR head starts and passes the hosted macOS build and artifact checks; then reply with run and artifact evidence. |
+| IOS-001 | P1 | Trigger validated; build/artifact validation pending | Manual-only workflow could not be dispatched before merge because the workflow file is absent from the default branch. Owner approved the smallest credential-free, path-filtered `pull_request` trigger while retaining manual dispatch. The trigger ran on PR #608. | Finding at `643b95a8207b5f5251822b73704bb8b9125270b2`; triggered run at `9c89e5d138f8599645f2844196a84d4f74b50498` | Do not resolve until the exact PR head starts and passes the hosted macOS build and artifact checks; then reply with run and artifact evidence. |
 | IOS-002 | P2 | Addressed; GitHub thread resolved/outdated | Task brief incorrectly named base SHA as HEAD and still said no PR / no current CI. | `2acc333d897470eb74b0470e15a699e6169a3b85` | This brief records the live PR, exact head, CI/review state, validation gap, and next action; the live review thread is resolved and outdated. |
 | IOS-003 | P2 | Fixed and statically verified | Runner project enabled iPad family (`TARGETED_DEVICE_FAMILY = "1,2"`) despite the approved phone-only slice. | `2acc333d897470eb74b0470e15a699e6169a3b85` | All three Runner configurations now use iPhone-only target family; static check passed after the fix. |
 
