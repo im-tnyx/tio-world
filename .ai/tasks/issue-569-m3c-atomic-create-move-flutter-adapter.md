@@ -1,6 +1,6 @@
 # #569 M3C — Flutter protected atomic Create Program & Move adapter
 
-**Status:** In Review — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Open / **Ready for Review** (not Draft, unmerged). Source+test P2 fixes through `f4ded10c`; exact-new-HEAD CI pending. Last fully verified source+test HEAD `5a2bdf7d` [CI #39112881033](https://github.com/im-tnyx/tio-world/actions/runs/39112881033) **7/7 PASS**. This subsequent source/docs change requires its own CI.
+**Status:** In Review — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Open / **Ready for Review** (not Draft, unmerged). Four Codex P2 fixes through source/test `f4ded10c` and task/index correction `ba3aae37`. **Verified exact source+docs HEAD `ba3aae37f3aceddaa637de55014bf64f451328cf` [CI #39113377190](https://github.com/im-tnyx/tio-world/actions/runs/39113377190) 7/7 PASS**; this later governance-only checkpoint must be rechecked on its own SHA. No merge or activation.
 **Primary owner:** Workout feature domain/data.
 **Affected platforms:** Flutter phone repository capability only; no active UI entrypoint.
 
@@ -13,10 +13,10 @@
 ## Active Handoff
 **Planning owner:** GitHub #569; Linear TNYX-81/TNYX-267 (broad Backlog with parent blockers).
 **Implementation owner:** `tnyx/issue-569-m3c-atomic-create-move-flutter-adapter` exclusively.
-**Review owner:** Codex independent code review found four P2 findings (first two at `2aa33cb`, next two at `5a2bdf7d`); source/tests amended on this single implementation branch. Separate security review was requested but completion has not been verified.
+**Review owner:** Codex identified four P2 findings (two at `2aa33cb`, two at `5a2bdf7d`); all fixed on this single branch with tests and exact-head CI evidence. **Automated exact-final-head re-review failed due Codex usage limit** (bot response [#6247959316](https://github.com/im-tnyx/tio-world/pull/601#issuecomment-6247959316)); do not claim independent APPROVED or completed security review. Original reviewer comments have been replied to with fix evidence; manual source/check validation must be recorded separately from independent review.
 **Implementation ownership state:** Active on one dedicated source branch; no parallel implementation.
 **Repository baseline verified:** Protected `main@55ef926e9ed1be1300061f065b8f3458019410d7`, PR #600 merged, 0 open PRs at start; `AGENTS.md` and `apps/features/AGENTS.md` read, ADR-0015 accepted.
-**PR:** [#601](https://github.com/im-tnyx/tio-world/pull/601) Ready for Review. Original `2aa33cb` [CI #39106667479](https://github.com/im-tnyx/tio-world/actions/runs/39106667479) **7/7 PASS**; fixed two P2 via `0fe24891` + tests `5a2bdf7d`, [CI #39112881033](https://github.com/im-tnyx/tio-world/actions/runs/39112881033) **7/7 PASS**; latest `PGRST303` source fix `58c8aed9` and regression `f4ded10c` are committed, but their exact-head checks remain unverified. New task-doc commit will change HEAD again. Always refresh PR head and CI before merge.
+**PR:** [#601](https://github.com/im-tnyx/tio-world/pull/601) Ready for Review. Original `2aa33cb` [CI #39106667479](https://github.com/im-tnyx/tio-world/actions/runs/39106667479) **7/7 PASS**; fixed two P2 via `0fe24891` + tests `5a2bdf7d`, [CI #39112881033](https://github.com/im-tnyx/tio-world/actions/runs/39112881033) **7/7 PASS**; latest `PGRST303` source fix `58c8aed9`, regression `f4ded10c` and task governance fixes `3cfcee0d`/`ba3aae37` are all included in `ba3aae37`: [CI #39113377190](https://github.com/im-tnyx/tio-world/actions/runs/39113377190) 7/7 SUCCESS. Subsequent docs-only HEAD needs independent CI and owner merge gate.
 **Environment:** GitHub connector remote branch only; Windows checkout `G:\projects\Tio-World` and local `git status`/Flutter execution cannot be inspected or claimed.
 
 ## 1. Discovery
@@ -43,11 +43,12 @@ Rejected alternative: separate `ProgramRepository.create` followed by Move, beca
 - [x] Address Codex P2 #4306389762 (stale login-cycle on definitive error) and #4306389767 (pre-execution `PGRST203` gate poison) in `0fe24891`/`5a2bdf7d`; exact-head CI PASS 7/7. Replies posted, original threads awaiting re-review/disposition.
 - [x] Address Codex P2 #4306413124 (`PGRST303` JWT claims failure must be definite pre-execution unauthorized) in `58c8aed9`/`f4ded10c`. Mapping matches Supabase official PostgREST errors; CI pending on this later HEAD.
 - [x] Address Codex P2 #4306413128 (active handoff falsely says Draft and earlier CI incomplete) with this brief and task index. Superseded historical gates explicitly distinguished from latest SHA.
-- [ ] Exact final source/docs HEAD GitHub Flutter CI, Codex code/security review outcome and all inline P2 threads resolved; independent APPROVED or policy disposition, owner `Go merge` separately gated.
+- [x] Source/docs HEAD `ba3aae37` exact [Flutter CI #39113377190](https://github.com/im-tnyx/tio-world/actions/runs/39113377190) 7/7 PASS (Workout, nutrition, core/wear, analyzer, aggregate, attribution 2/2); manual inspect verified code/test/brief fixes at that SHA.
+- [ ] New governance-only HEAD exact CI, four P2 thread dispositions, documented Codex review quota/unavailable security review, independent `APPROVED` or recorded policy exception, and explicit owner `Go merge` gate.
 - [ ] Explicit future app-shell, hosted migration/grant and owner merge/release gates separately approved and verified.
 
 ## 6. Quality Review
-GitHub root + feature AGENTS, ADR-0015, canonical Programs/Routine docs and current source audited. CI #39106667479 and #39112881033 both **7/7 PASS** at their respective historic exact HEADs. New source and governance commits require new exact-head evidence. No local Flutter/device execution. Hosted Supabase still NOT activated.
+GitHub root + feature AGENTS, ADR-0015, canonical Programs/Routine docs and current source audited. CI #39106667479, #39112881033, and final source+docs #39113377190 **7/7 PASS at their respective exact HEADs**. Next governance-only commit still needs its own exact-head CI. Automated final re-review could not finish due Codex usage limits; no security review completion or approval claimed. No local Flutter/device execution. Hosted Supabase still NOT activated.
 
 ## 7. Final Handoff
-**State:** [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Ready for Review and unmerged; four Codex P2 findings addressed in branch source/tests/governance, but new HEAD CI and re-review are outstanding. No app-shell Move callback, migration, hosted grant, deployment or user-facing activation. Only close threads once CI and source evidence is verified.
+**State:** [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Ready for Review and unmerged; four Codex P2 findings addressed in branch source/tests/governance with source+docs exact-head CI #39113377190 verified 7/7. Codex automatic latest-head re-review is quota-limited; new governance-only CI, thread disposition and separate approval/merge gates remain outstanding. No app-shell Move callback, migration, hosted grant, deployment or user-facing activation. Only close threads once CI and source evidence is verified.
