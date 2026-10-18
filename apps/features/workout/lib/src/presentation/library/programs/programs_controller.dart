@@ -4,6 +4,16 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/usecases/program_id_generator.dart';
 
+/// One canonical generated Program name policy for Create and Move drafts.
+String suggestProgramName(Iterable<Program> programs) {
+  final names = programs.map((p) => p.name.trim().toLowerCase()).toSet();
+  var index = 1;
+  while (names.contains('program $index')) {
+    index++;
+  }
+  return 'Program $index';
+}
+
 enum ProgramsStatus { loading, ready, loadFailed }
 
 final class ProgramsState {
@@ -77,16 +87,7 @@ final class ProgramsController extends ChangeNotifier {
 
   Future<void> retryLoad() => load();
 
-  String suggestedName() {
-    final names = _state.programs
-        .map((program) => program.name.trim().toLowerCase())
-        .toSet();
-    var index = 1;
-    while (names.contains('program $index')) {
-      index++;
-    }
-    return 'Program $index';
-  }
+  String suggestedName() => suggestProgramName(_state.programs);
 
   Future<bool> create(String name) async {
     final current = _state;

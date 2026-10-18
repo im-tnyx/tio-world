@@ -24,6 +24,7 @@ const token = '50000000-0000-4000-8000-000000000001';
 final class _Programs implements ProgramRepository {
   List<Program> items = [source, destination];
   int reads = 0;
+  int creates = 0;
   Future<List<Program>> Function()? onList;
 
   @override
@@ -33,8 +34,10 @@ final class _Programs implements ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program) async =>
-      throw UnimplementedError('Move never creates a Program');
+  Future<void> create(Program program) async {
+    creates++;
+    throw UnimplementedError('Move never creates a Program');
+  }
 
   @override
   Future<void> rename({required ProgramId id, required String name}) async =>
@@ -88,6 +91,7 @@ Future<void> _pump(
   required bool Function() canWrite,
   required void Function(bool) onResult,
   Routine? selectedRoutine,
+  RoutineCreateMoveCallback? createAndMove,
 }) async {
   await tester.pumpWidget(MaterialApp(
     builder: (context, child) => TioTheme(
@@ -104,6 +108,7 @@ Future<void> _pump(
             programs: programs,
             repository: move,
             canWrite: canWrite,
+            createAndMove: createAndMove,
           )),
           child: const Text('Open Move'),
         ),
@@ -124,6 +129,267 @@ Future<void> _choose(WidgetTester tester) async {
 }
 
 void main() {
+
+  testWidgets('atomic Create & Move retains refresh after auth switch',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    final g = _Move();
+    var authorized = true;
+    bool? needsRefresh;
+    var atomicCalls = 0;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs()..items = [source],
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) {
+        atomicCalls++;
+        return completion.future;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(atomicCalls, 1);
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true, reason: 'Dispatched writes need owner-safe refresh');
+    expect(find.text('Routine moved.'), findsNothing,
+        reason: 'Never show old-owner success after login-cycle change');
+    expect(g.writes, 0);
+  });
+
+  testWidgets('atomic uncertain result after auth switch still signals refresh',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    var authorized = true;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: _Move(), programs: _Programs()..items = [source],
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) => completion.future,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.completeError(const RoutineMoveOutcomeUnknown(
+      reason: RoutineMoveUncertainty.sessionChanged,
+    ));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true);
+    expect(find.textContaining('unconfirmed'), findsNothing,
+        reason: 'Do not show stale-session feedback');
+  });
+
+  testWidgets('existing Move retains refresh signal after auth switch',
+      (tester) async {
+    final completion = Completer<RoutineMoveResult>();
+    final g = _Move()..onMove = () => completion.future;
+    var authorized = true;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(),
+      canWrite: () => authorized,
+      onResult: (value) => needsRefresh = value,
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(g.writes, 1);
+    expect(needsRefresh, isNull);
+    authorized = false;
+    completion.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+    expect(needsRefresh, true);
+    expect(find.text('Routine moved.'), findsNothing);
+  });
+
+  testWidgets('New Program first row submits edited canonical name, no pre-create',
+      (tester) async {
+    final programs = _Programs()..items = [source, destination];
+    final moves = _Move();
+    var createCalls = 0;
+    ProgramId? createdId;
+    String? createdName;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: moves, programs: programs, canWrite: () => true,
+      onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        createCalls++;
+        expect(target.routineId, routine.id);
+        expect(newProgramId, isNot(source.id));
+        expect(mutationId, token);
+        createdId = newProgramId;
+        createdName = newProgramName;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('routine-move-destination-${destination.id.value}')),
+        findsOneWidget);
+    final newTop = tester.getTopLeft(
+      find.byKey(const ValueKey('routine-move-new-program')));
+    final oldTop = tester.getTopLeft(
+      find.byKey(ValueKey('routine-move-destination-${destination.id.value}')));
+    expect(newTop.dy, lessThan(oldTop.dy));
+
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    final nameField = find.byKey(const ValueKey('program-name-field'));
+    expect(nameField, findsOneWidget);
+    final editable = find.descendant(
+      of: nameField, matching: find.byType(EditableText));
+    expect(tester.widget<EditableText>(editable).controller.text, 'Program 1',
+        reason: 'Reuse the existing generated default Program name');
+    await tester.enterText(editable, 'Cardio Focus');
+    await tester.pumpAndSettle();
+    expect(moves.writes, 0);
+    expect(programs.creates, 0,
+        reason: 'The name editor must not create a standalone Program');
+
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    expect(find.textContaining('Cardio Focus'), findsOneWidget);
+    expect(find.textContaining('Morning'), findsOneWidget);
+    expect(createCalls, 0);
+    expect(programs.creates, 0);
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(createCalls, 1);
+    expect(createdId, isNotNull);
+    expect(createdName, 'Cardio Focus');
+    expect(programs.creates, 0);
+    expect(moves.writes, 0);
+  });
+
+  testWidgets('source-only selector shows only New Program, cancel writes zero',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final moves = _Move();
+    var createCalls = 0;
+    await _pump(tester, flow: RoutineMoveFlow(), move: moves,
+      programs: programs, canWrite: () => true,
+      onResult: (_) {},
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        createCalls++;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    expect(find.text('Select an existing destination Program'), findsNothing);
+    expect(find.textContaining('Create another Program'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Program'), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+        const ValueKey('program-name-field')))).pop();
+    await tester.pumpAndSettle();
+    expect(createCalls, 0);
+    expect(moves.writes, 0);
+  });
+
+  testWidgets('cancel Create & Move confirmation writes no Program or Move',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final moves = _Move();
+    var atomicCalls = 0;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: moves,
+      programs: programs,
+      canWrite: () => true,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    final editable = find.descendant(
+      of: find.byKey(const ValueKey('program-name-field')),
+      matching: find.byType(EditableText));
+    await tester.enterText(editable, 'Evening Training');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    expect(find.textContaining('Evening Training'), findsOneWidget);
+    expect(find.textContaining('Morning'), findsOneWidget);
+    expect(atomicCalls, 0);
+    expect(programs.creates, 0);
+    expect(moves.writes, 0);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, false);
+    expect(atomicCalls, 0,
+        reason: 'Final confirmation cancellation dispatches no atomic RPC');
+    expect(programs.creates, 0,
+        reason: 'Name-only editor must not persist a phantom Program');
+    expect(moves.writes, 0);
+    expect(programs.items, [source]);
+    expect(find.text('Routine moved.'), findsNothing);
+  });
+
   testWidgets('selection and confirmation use one existing owner Program RPC',
       (tester) async {
     final programs = _Programs();
