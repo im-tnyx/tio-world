@@ -9,28 +9,25 @@
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
 **Approval evidence:** Owner supplied explicit `Go` on 2026-10-19 for the initial UI-only slice, then supplied the pasted request on 2026-10-19 explicitly authorizing an optional authenticated Supabase QA build mode within PR #608. The latest owner execution contract keeps the iOS workflow strictly `workflow_dispatch` only; no future automatic iOS runs are authorized.
-**Approved product/UI/data-shape boundaries:** Keep the phone-only Runner and unsigned profile artifact; add opt-in `ui_only` (default) and `qa_login` modes. The QA mode may compile only the QA Supabase HTTPS URL and client-safe publishable key from GitHub Actions repository secrets via a temporary runner-local config file. Read those secrets only in the `qa_login`-gated step. Preserve existing Supabase initialization, email/password auth, session repository and router guards. Use an existing QA account only after local iPhone installation. Keep the workflow manual-only and resolve pre-merge dispatch through a separately reviewed one-file workflow bootstrap PR; do not add automatic triggers.
+**Approved product/UI/data-shape boundaries:** Keep the phone-only Runner and unsigned profile artifact; add opt-in `ui_only` (default) and `qa_login` modes. The QA mode may compile only the QA Supabase HTTPS URL and client-safe publishable key from GitHub Actions repository secrets via a temporary runner-local config file. Read those secrets only in the `qa_login`-gated step. Preserve existing Supabase initialization, email/password auth, session repository and router guards. Use an existing QA account only after local iPhone installation. Keep the workflow manual-only. It becomes dispatchable after PR #608 merges it to `main`; the owner accepts native QA-login build and device validation as post-merge acceptance. Do not create a separate bootstrap PR or add automatic triggers.
 **Explicit non-changes:** No Flutter screen/layout/theme change; no Supabase schema/RLS/Auth implementation or provider change; no production endpoint/config, secret/service-role key, Apple credentials, Google OAuth credentials, account password, production signing, TestFlight, App Store, Apple Watch target, HealthKit, push, certificate, provisioning profile, device registration, hosted deployment, or release-readiness claim. Do not claim authenticated login works until physical-device evidence exists.
 
 ## Active Handoff
 
-**Planning owner:** Current Codex task, based on the owner-approved manual-only iOS and optional QA-login extension.
+**Planning owner:** Current Codex task, reflecting the owner-approved post-merge acceptance decision.
 **Implementation owner:** Current Codex task on `tnyx/ios-free-device-ui-testing`.
-**Review owner:** Repository owner (`im-tnyx`) left a `COMMENTED` review on PR #608 that explicitly says `NOT APPROVED / HOLD`; IOS-001 remains open pending bootstrap/dispatch and exact-HEAD hosted macOS evidence.
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified before this handoff update:** 2026-10-19; `origin/main` is `a69bc82443201c66c8d34e3c346db362cc2e450d`, an ancestor of current PR head `f991e928b9ccb2119b2ad3e7e4112a717d2caff8`; divergence is 0 behind / 7 ahead.
-**Branch:** `tnyx/ios-free-device-ui-testing`
-**HEAD SHA last audited before this handoff update:** `f991e928b9ccb2119b2ad3e7e4112a717d2caff8`; branch matched origin and working tree was clean before this task-brief update.
-**Observed working-tree state:** The authenticated QA extension is in progress on top of `f991e928`; the workflow, validator/tests and app handoff documentation are being updated. No commit or push has been made for this extension yet.
-**PR / tracker:** Draft PR [#608](https://github.com/im-tnyx/tio-world/pull/608) is open, `MERGEABLE`, ahead 7 / behind 0 at `f991e928b9ccb2119b2ad3e7e4112a717d2caff8`. Latest PR body records Flutter CI [39162930656](https://github.com/im-tnyx/tio-world/actions/runs/39162930656) and attribution [39162929279](https://github.com/im-tnyx/tio-world/actions/runs/39162929279) as passing at this HEAD. Review decision remains empty; IOS-001 is unresolved and the review explicitly says `NOT APPROVED / HOLD`. The open P1 thread asks for the separate manual-only bootstrap; the P2 stale-handoff thread is resolved/outdated. GitHub issue searches for iOS/Supabase login returned no owning issue. No Linear connector/tool is available in this session, so live Linear state cannot be verified; do not invent ownership or update a Linear issue.
-**Current implementation state:** The baseline workflow accepted no build-mode input and passed no Supabase defines. `apps/app/.runtime.qa.json` is ignored and contains the two expected key names (values not recorded); canonical docs say Android Studio/Flutter must explicitly pass `--dart-define-from-file`. Runtime source reads the compile-time defines, initializes one Supabase client, selects Supabase auth/session repositories when configured, uses existing email/password sign-in, and retains the existing route/session guards. The new implementation adds an optional, manual-only QA config path without changing those runtime/auth components. No Apple signing credentials are present.
-**Relevant execution surface:** `apps/app/ios`, `.github/workflows/ios-ui-build.yml`, existing `SupabaseRuntimeConfig` and auth/session composition, a runner-local temporary define file, macOS unsigned profile build, Windows local signing/sideload instructions.
-**Validation completed:** Flutter CI and attribution passed at `022bffec` (Flutter CI run [39162581162](https://github.com/im-tnyx/tio-world/actions/runs/39162581162), attribution run [39162579349](https://github.com/im-tnyx/tio-world/actions/runs/39162579349)). The one-time iOS build/artifact at source `8514ac5c` passed as recorded below. Manual-only YAML contract and `git diff --check` passed locally. At `06ab9564`, the older artifact had incorrect provenance and is historical only. Local static checks previously confirmed valid `Info.plist`, all asset references, iOS 15 targets, iPhone-only target families, and no signing credentials. Local Flutter 3.44.6 / Dart 3.12.2 is recorded in `bin/cache/flutter.version.json`; no local Xcode is available.
-**Validation remaining:** Run helper tests, workflow static/manual-only contract, Python syntax, YAML parsing/actionlint where available, `git diff --check`, then publish the completed changes to PR #608 and verify exact-head Flutter CI/attribution. Do not run a macOS build now. After bootstrap and owner-configured Actions secrets, the owner manually triggers the `qa_login` build, verifies artifact/checksum/provenance/no signing material, then performs Windows AltServer install and physical email/password QA.
-**Current blocker:** GitHub still cannot manually dispatch this workflow until it exists on the default branch. The one-time artifact at `8514ac5c` is prior UI-only evidence and is not manual-dispatch or authenticated QA proof. Linear current state is unavailable in this session. Use only owner-managed Actions secrets for the QA URL and publishable key; the compiled client values remain extractable, so they must point to an isolated QA Supabase project and must never be privileged credentials. Never place values in tracked files, logs, provenance, caches, or uploaded artifacts.
-**Open review finding IDs:** `IOS-001` P1 — dispatch bootstrap and exact-head native evidence pending; `IOS-002` P2 — addressed/resolved on GitHub; `IOS-003` P2 — fixed to iPhone-only.
-**Next exact action:** Finish the approved optional `qa_login` implementation and local validation on PR #608 without triggering macOS. Keep P1 IOS-001 open until the separate bootstrap is approved/merged and manual exact-head build evidence exists. Then the owner configures QA repository secrets and manually dispatches the desired mode. Do not merge PR #608 without explicit `Go merge`.
+**Review owner:** Repository owner’s earlier `COMMENTED / NOT APPROVED / HOLD` review is superseded only for the dispatch-timing condition by the 2026-10-19 owner decision: merge the foundation first and perform native/device acceptance afterward. The inline P1 `IOS-001` is explicitly dispositioned below; no test is represented as passed.
+**Implementation ownership state:** Review handoff
+**Ownership transition:** Implementation → final review
+**Repository state last verified:** 2026-10-19; live `main` is `a69bc82443201c66c8d34e3c346db362cc2e450d`; PR #608 head is `f5f81ea98040859beb452aae3af246c4eeb522a8`, seven commits ahead and zero behind.
+**Local checkout:** `G:/projects/Tio-World` remains on local HEAD `f991e928b9ccb2119b2ad3e7e4112a717d2caff8` with pre-existing uncommitted task/docs/workflow edits and untracked QA helper scripts. A safe fetch updated remote-tracking refs without changing the worktree. Do not reset, checkout, merge, or overwrite these local edits; the helper script blob IDs match the current PR branch.
+**PR / tracker:** Draft PR [#608](https://github.com/im-tnyx/tio-world/pull/608) is open at `f5f81ea98040859beb452aae3af246c4eeb522a8`, base `main@a69bc82443201c66c8d34e3c346db362cc2e450d`, and GitHub reports mergeable. All seven exact-head check runs completed successfully: Flutter analysis/test aggregate and four shards, plus attribution guard and runner. The branch-protection endpoint returned 403 to this integration; repository rulesets returned none, so required-check policy could not be independently read. GitHub issue search found no separate iOS QA owner; PR #608 owns the implementation. No Linear connector is available, so live Linear state remains unverified; do not infer or update it.
+**Current implementation state:** The optional `ui_only` (default) / `qa_login` path is on PR #608. Only a manually selected `qa_login` step reads the two repository Actions Secrets, validates the HTTPS Supabase endpoint and publishable key type, and writes a mode-0600 temp JSON under `$RUNNER_TEMP`; the build cleanup removes it. The artifact allowlist excludes that JSON. The compiled IPA necessarily contains client-safe QA URL/key values; use only an isolated QA project and never privileged keys.
+**Validation completed:** Exact-head Flutter CI [39165304940](https://github.com/im-tnyx/tio-world/actions/runs/39165304940) passed all five jobs; exact-head attribution [39165303294](https://github.com/im-tnyx/tio-world/actions/runs/39165303294) and its runner passed. Local `python -B .github/scripts/test_ios_qa_runtime_config.py` passed 8 tests. Workflow/config/security source review completed. These checks do not establish macOS QA-login build or physical-device behavior.
+**Validation remaining (owner-approved post-merge acceptance):** After PR #608 is merged, owner manually dispatches the workflow with `qa_login`, verifies the native build/artifact/checksum/provenance and absence of signing material or config JSON, then locally signs/installs with Windows AltServer and records physical iPhone login/UI smoke evidence. Physical testing is explicitly deferred; none of these post-merge tasks has passed yet. No automatic iOS run is authorized.
+**Current blocker:** None for the pre-merge native/device timing decision after the owner’s explicit deferral. Actual merge still requires final PR review/readiness, exact-current checks, and a separate explicit `Go merge`. Manual dispatch becomes available after PR #608 merges the workflow to `main`; no separate bootstrap PR is required.
+**Review findings:** `IOS-001` P1 is owner-dispositioned as post-merge acceptance; `IOS-002` P2 is addressed/resolved/outdated; `IOS-003` P2 is fixed and statically verified.
+**Next exact action:** Complete the final review, record the owner’s post-merge acceptance decision in PR #608, and prepare the PR for merge without merging. Wait for explicit `Go merge`. After merge, run only an owner-selected manual iOS workflow and complete the deferred device acceptance.
 
 ## Global UI / Design-System Guardrail
 
@@ -180,21 +177,23 @@ PASS — one-time owner-authorized iOS UI Build run [39161809889](https://github
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| IOS-001 | P1 | Bootstrap/manual dispatch pending | Manual-only workflow cannot be dispatched until it exists on the default branch. A temporary path-filtered `pull_request` trigger was later authorized and validated once, but the owner superseded that decision and restored manual-only execution. The one-time `8514ac5c` build and artifact passed; manual dispatch on the current trigger contract has not run. | Finding at `643b95a8207b5f5251822b73704bb8b9125270b`; temporary trigger at `9c89e5d138f8599645f2844196a84d4f74b50498`; one-time build at `8514ac5c2837c7f2f95b712fd8496f191b67bbe5` | Use an independently reviewed, one-file bootstrap PR; after it is merged, select this PR branch in the Actions branch dropdown and manually dispatch. Keep this finding open until manual exact-head artifact validation. |
+| IOS-001 | P1 | Deferred by owner to post-merge acceptance | Owner explicitly directs merging the foundation before physical iPhone testing. The manual-only workflow becomes available on `main` after PR #608 merges; the `qa_login` macOS build, Windows AltServer signing/install, physical login and UI smoke remain unverified acceptance tasks. Prior UI-only native build at `8514ac5c` is historical and does not prove the QA-login mode. | Owner decision 2026-10-19; live PR #608 head `f5f81ea98040859beb452aae3af246c4eeb522a8` | No bootstrap PR. Preserve this P1 as an explicit post-merge acceptance gate; do not claim native QA-login or device testing passed.
 | IOS-002 | P2 | Addressed; GitHub thread resolved/outdated | Task brief incorrectly named base SHA as HEAD and still said no PR / no current CI. | `2acc333d897470eb74b0470e15a699e6169a3b85` | This brief records the live PR, exact head, CI/review state, validation gap, and next action; the live review thread is resolved and outdated. |
 | IOS-003 | P2 | Fixed and statically verified | Runner project enabled iPad family (`TARGETED_DEVICE_FAMILY = "1,2"`) despite the approved phone-only slice. | `2acc333d897470eb74b0470e15a699e6169a3b85` | All three Runner configurations now use iPhone-only target family; static check passed after the fix. |
 
-**Current disposition:** IOS-001 remains **OPEN**. The optional `qa_login` input changes artifact configuration only; it does not add the workflow to the default branch or enable manual dispatch. Preserve the separate manual-only bootstrap gate. No finding is closed without review evidence.
+**Current disposition:** Owner has dispositioned IOS-001 as **post-merge acceptance**, not a pre-merge blocker. After PR #608 merges the manual-only workflow to `main`, its dispatch becomes available. Native `qa_login` build, Windows AltServer signing/install, physical login and UI smoke remain **unverified** and must be recorded as post-merge acceptance. No separate bootstrap PR is required.
 
-### IOS-001 Trigger Decision And Validation Gate
+### IOS-001 Owner-Approved Post-Merge Acceptance
 
-GitHub requires a `workflow_dispatch` workflow to exist on the default branch
-before the Run workflow control is available. The owner requires strict
-manual-only execution; the temporary path-filtered `pull_request` trigger
-shown below is historical and has been superseded. Recommended resolution is
-a separate, one-file bootstrap PR that adds byte-identical workflow content to
-`main`, followed by a manual dispatch against the PR #608 branch. This keeps
-all macOS execution opt-in and avoids parallel workflow definitions.
+The owner’s 2026-10-19 decision is to merge the iOS build foundation before physical iPhone testing. The workflow is strictly `workflow_dispatch` only; it becomes available after PR #608 merges the workflow file to `main`. No separate bootstrap PR is required because this PR itself introduces the workflow to the default branch.
+
+This disposition resolves the pre-merge dispatch timing conflict while keeping native/device evidence outstanding. The following are **not yet verified** and remain post-merge acceptance tasks:
+
+1. Owner manually dispatches `iOS UI Build` against `main` and selects `qa_login` to validate macOS compilation, runtime config handling, artifact contents, checksum/provenance, arm64, and absence of signing material or the temporary JSON from artifacts.
+2. Owner downloads the unsigned IPA on Windows, signs/installs it locally with AltServer using a free Apple ID, and records the exact build/artifact.
+3. Owner tests physical iPhone launch, Supabase email/password login against the isolated QA project, and the agreed UI smoke checklist.
+
+The QA URL and publishable key are client-safe inputs and are extractable from the compiled IPA. GitHub Secrets protect build-time inputs only. Never configure production or privileged credentials. No automatic iOS build is authorized; do not mark these acceptance items passed before evidence exists.
 
 ```yaml
 on:
@@ -204,19 +203,7 @@ permissions:
   contents: read
 ```
 
-The macOS build remains credential-free, keeps `contents: read`, sets
-`actions/checkout` to `persist-credentials: false`, and does not use
-`pull_request_target`. GitHub documents that the workflow file must be on the
-default branch and allows selecting another branch for a manual run. No
-bootstrap PR has been created or merged.
-References: [workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch),
-[GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
-[workflow security](https://docs.github.com/en/actions/reference/security/secure-use).
-
-The temporary automatic run has been authorized to finish once. After it
-completes, the workflow will again be manual-only. The owner still performs
-Windows signing and physical-device acceptance; no Apple credentials are
-entered into GitHub or this repository.
+The macOS job uses standard `macos-15`, checkout `persist-credentials: false`, and no Apple signing credentials. Keep the pre-merge finding disposition transparent; no physical-device or QA-login success is claimed.
 
 ## 7. Final Handoff
 
