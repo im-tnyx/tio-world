@@ -228,7 +228,7 @@ final class RoutineMoveFlow {
         // Preview is a real owner-scoped, read-only UI flow. Never create a
         // Program or send the atomic Create+Move command even after confirm.
         if (previewOnly) {
-          _show(context, 'Preview only. No Program or Routine was changed.');
+          _show(context, 'Preview only · No changes', preview: true);
           return false;
         }
 
@@ -280,7 +280,7 @@ final class RoutineMoveFlow {
       // Preview must not reach the existing Program Move RPC either. False
       // means no write occurred and no success/refresh may be reported.
       if (previewOnly) {
-        _show(context, 'Preview only. No Program or Routine was changed.');
+        _show(context, 'Preview only · No changes', preview: true);
         return false;
       }
       attempted = true;
@@ -398,14 +398,46 @@ final class RoutineMoveFlow {
     },
   );
 
-  void _show(BuildContext context, String message, {bool confirmed = false}) {
+  void _show(BuildContext context, String message, {
+    bool confirmed = false,
+    bool preview = false,
+  }) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.hideCurrentSnackBar();
+    // Match the existing Delete feedback pill. Preview is an explicit
+    // no-write state; its Undo action only dismisses the visual preview.
+    // A real reverse Move needs its own protected server-side contract.
+    final pill = confirmed || preview;
     messenger?.showSnackBar(SnackBar(
-      key: confirmed ? const ValueKey('routine-move-confirmed-feedback') : null,
-      duration: Duration(seconds: confirmed ? 5 : 4),
-      behavior: confirmed ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
-      content: Text(message),
+      key: confirmed
+          ? const ValueKey('routine-move-confirmed-feedback')
+          : preview
+              ? const ValueKey('routine-move-preview-feedback')
+              : null,
+      duration: Duration(seconds: pill ? 5 : 4),
+      behavior: pill ? SnackBarBehavior.floating : SnackBarBehavior.fixed,
+      shape: pill ? const StadiumBorder() : null,
+      content: pill
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  confirmed
+                      ? Icons.swap_horiz_rounded
+                      : Icons.visibility_outlined,
+                  color: Theme.of(context).colorScheme.onInverseSurface,
+                ),
+                const SizedBox(width: TioSpacing.sm),
+                Flexible(child: Text(message)),
+              ],
+            )
+          : Text(message),
+      action: preview
+          ? SnackBarAction(
+              label: 'Undo',
+              onPressed: () => messenger?.hideCurrentSnackBar(),
+            )
+          : null,
     ));
   }
 }
