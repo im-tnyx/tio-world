@@ -400,7 +400,9 @@ final class SupabaseRoutineMoveRepository
       return RoutineMoveFailureKind.invalidRequest;
     }
     return switch (code) {
-      '28000' || '28P01' || '401' || 'PGRST301' || 'PGRST302' =>
+      // JWT claims failure happens before an RPC can execute.
+      '28000' || '28P01' || '401' || 'PGRST301' || 'PGRST302' ||
+          'PGRST303' =>
         RoutineMoveFailureKind.unauthorized,
       '42501' || '403' => RoutineMoveFailureKind.forbidden,
       'P0002' => RoutineMoveFailureKind.notFound,
