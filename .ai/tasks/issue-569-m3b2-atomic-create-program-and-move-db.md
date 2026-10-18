@@ -1,6 +1,6 @@
 # #569 M3B2 — Atomic Create Program and Move Routine (DB only)
 
-**Status:** [PR #599](https://github.com/im-tnyx/tio-world/pull/599) is the single canonical review surface. Live GitHub determines Draft/Ready/review status; exact-head disposable database CI and merge gate require verified completion. **Do not merge**.
+**Status:** [PR #599](https://github.com/im-tnyx/tio-world/pull/599), single canonical review surface. Implementation/test HEAD `0cb95e59c8b87819815d0cd7e9a4edf61fe06d45`: [Supabase Database CI #39097591063](https://github.com/im-tnyx/tio-world/actions/runs/39097591063) **COMPLETED SUCCESS**, all 3 exact-head check runs PASS (DB plus both attribution guards), existing SQL/lint matrix and all three #569 two-session races PASS. Both P2 inline threads replied and resolved after log verification; latest docs-only HEAD needs separate checks. Live GitHub determines PR status. **Do not merge**.
 **Primary owner:** Supabase/Postgres; follow-on Flutter selector is a separate bounded slice.
 **Affected surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/supabase-db-ci.yml`, this handoff and task index.
 **Owner approval:** Existing GitHub #569 owner-approved 2026-10-17 `+ New Program → canonical Create Program name editor → Create & Move` flow; no new independent feature. No new table/column shape or unapproved visible UX proposed.
@@ -34,4 +34,4 @@ Add **one dormant SECDEF RPC** `public.create_user_workout_program_and_move_rout
 
 **Execution context:** GitHub connector remote branch; owner Windows checkout not accessible. No `git status`, local Postgres/Docker/Flutter invocation, migration CLI generation or database replay claimed. Hosted Supabase read-only inspection only.
 
-**Next exact action:** continue **existing Draft PR #599**, avoid competing branches/migrations, run disposable DB CI and review threaded findings, reconcile source/SQL/test/handoff on exact HEAD, then advance to owner merge gate **without merging**. No hosted deployment or grant. A parallel duplicate migration with the same version was detected and removed in the branch; source of truth is the single `20261018100000_atomic_create_program_and_move_routine.sql`.
+**Next exact action:** verify new docs-only HEAD CI and latest protected `main`/eight-file diff, complete a current manual DB/security review and Ready-for-Review owner merge gate **without merging**. CI source baseline `0cb95e59`: all 3 checks PASS; SQL late-rollback trigger uses named dollar tags. No hosted migration, client grant or live Flutter activation. A parallel duplicate migration was detected and removed; the sole canonical source remains `20261018100000_atomic_create_program_and_move_routine.sql`.
