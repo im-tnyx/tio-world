@@ -2239,7 +2239,9 @@ final class _DormantRouteMoveGateway extends Fake implements RoutineMoveGateway 
   }) async {
     reads++;
     if (userId != owner ||
-        routineId != '30000000-0000-4000-8000-000000000001') return null;
+        routineId != '30000000-0000-4000-8000-000000000001') {
+      return null;
+    }
     return {
       'id': routineId,
       'user_id': userId,
