@@ -255,8 +255,4 @@ associated-domain behavior or release readiness.
 
 ### Final Status
 
-`REVIEW` — PR #608 remains open and draft, with no approval. The P1 manual
-dispatch/bootstrap finding remains open; this QA-login implementation does
-not resolve it. Exact-head Flutter CI/attribution, manual iOS build, Windows
-AltServer signing/install, and physical email/password QA remain separate
-gates. Do not merge without explicit `Go merge`.
+`REVIEW` — PR #608 remains open and draft. The owner-approved 2026-10-19 decision defers native QA-login and physical iPhone acceptance until after merge; these tasks remain unverified. The manual-only workflow becomes dispatchable after PR #608 merges it to `main`, so no bootstrap PR is required. The exact-head Flutter CI, attribution and config tests are recorded in the active handoff. Do not merge without explicit `Go merge`.
