@@ -393,7 +393,43 @@ final class SupabaseRoutineMoveRepository
         (status != null && status >= 500)) {
       return null;
     }
-    if (RegExp(r'^40[0-9A-Z]{3}$').hasMatch(code)) {
+    // SQLSTATE 40003 explicitly means statement_completion_unknown:
+    // the protected RPC may already have committed; freeze this revision.
+    if (code == '40003') return null;
+    if (RegExp(r'^40[0-9A-Z]{3}
+    if (RegExp(r'^(22|23)[0-9A-Z]{3}$').hasMatch(code)) {
+      return RoutineMoveFailureKind.invalidRequest;
+    }
+    return switch (code) {
+      // JWT claims failure happens before an RPC can execute.
+      '28000' || '28P01' || '401' || 'PGRST301' || 'PGRST302' ||
+          'PGRST303' =>
+        RoutineMoveFailureKind.unauthorized,
+      '42501' || '403' => RoutineMoveFailureKind.forbidden,
+      'P0002' => RoutineMoveFailureKind.notFound,
+      'P0001' when e.message == 'routine_move_revision_conflict' ||
+          e.message == 'routine_create_move_revision_conflict' =>
+        RoutineMoveFailureKind.revisionConflict,
+      'P0001' when e.message == 'routine_move_mutation_conflict' ||
+          e.message == 'routine_create_move_mutation_conflict' ||
+          e.message == 'routine_create_move_program_conflict' =>
+        RoutineMoveFailureKind.mutationConflict,
+      // PostgreSQL query_canceled aborts the current statement/transaction.
+      // Unlike client-side timeout, a server SQLSTATE 57014 proves no commit.
+      '57014' => RoutineMoveFailureKind.transactionAborted,
+      '25001' => RoutineMoveFailureKind.invalidRequest,
+      // Connection setup/pool failures (PGRST000-003), RPC routing
+      // errors (PGRST202/203), and missing JWT secret (PGRST300)
+      // all reject before SQL execution, even if HTTP status is 5xx.
+      // Transport failures and other SQL 5xx remain UNKNOWN.
+      'PGRST000' || 'PGRST001' || 'PGRST002' || 'PGRST003' ||
+          'PGRST202' || 'PGRST203' || 'PGRST300' =>
+        RoutineMoveFailureKind.unavailable,
+      _ => null,
+    };
+  }
+}
+).hasMatch(code)) {
       return RoutineMoveFailureKind.transactionAborted;
     }
     if (RegExp(r'^(22|23)[0-9A-Z]{3}$').hasMatch(code)) {
