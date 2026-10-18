@@ -1,11 +1,11 @@
 # #569 M3D2B1 — Dormant app-shell Move integration
 
-**Status:** In progress (remote-only branch, no user-facing Move activation)
+**Status:** In Review — Draft PR #604 with exact source/test HEAD `57f77d2ab565eb460170adfad6486833b87bbaea` Flutter CI #39139696738 **5/5 PASS** + attribution **2/2 PASS**. Later task/index-only HEAD CI and independent review pending. No user-facing Move activation.
 **Primary owner:** apps/app app-shell composition and routing
 **Issue:** GitHub #569 / Linear TNYX-81
 **Approval:** Owner requested "Next audit ke sath work start kare with agent.md" inside the approved Move #569 scope. This is NOT authorization for hosting/grants, activation or merge.
 **Implementation branch:** `tnyx/issue-569-m3d2b1-dormant-shell-move`
-**Verified base:** protected `main@11d5324fd44ff1c690417bfacf3005b02a865032`; PR #603 merged and main Flutter CI #39138469849 5/5 PASS, no open PRs when branch was created.
+**Verified base:** protected `main@11d5324fd44ff1c690417bfacf3005b02a865032`; merged PR #603 / post-merge Flutter CI #39138469849 5/5 PASS, no open PRs when branch was created. Current PR [#604](https://github.com/im-tnyx/tio-world/pull/604) Draft before review-ready gate.
 **Local Windows checkout:** NOT observed from remote connector. Last user-provided local git status was pre-#603. No reset/stash/force-delete/local sync performed.
 
 ## Scope / truths
@@ -26,11 +26,16 @@ No new UI geometry, screen, Create Program sheet, database/RLS, provider privile
 
 ## Quality gate
 
-- [ ] Implement guarded dormant app-shell coordinator and default-OFF capability.
-- [ ] Add tests for release-off default and retained Move adapter owner/login-cycle protection.
-- [ ] Exact-head Flutter/attribution CI.
-- [ ] Independent inline review (P1/P2 disposition), explicit owner Go merge separately.
+- [x] Implement guarded dormant app-shell coordinator and default-OFF capability, with mid-dialog release withdrawal recheck.
+- [x] Add valid-auth release-OFF provider regression (existing tests retain owner/login-cycle and stale-adapter protection). Dedicated release-enabled end-to-end device/refresh tests are M3D3/release gates.
+- [x] Source+tests `57f77d2a` Flutter CI #39139696738 5/5 PASS, attribution 2/2 PASS (7/7).
+- [ ] Final docs-only HEAD CI and independent review.
+- [ ] Independent inline review (P1/P2 disposition), separate explicit owner Go merge. GitHub branch protection enforced, no bypass.
 - [ ] M3D3 full source/destination/new Program refresh and Create/Edit/Delete arbitration.
 - [ ] Separate hosted atomic RPC/least privilege security rollout and Android QA.
 
 **Handoff:** Implementation owner apps/app only; do not merge, activate Move, or mutate hosted Supabase in this slice.
+
+## Latest verified quality checkpoint
+
+Exact source+test HEAD `57f77d2a` CI **7/7 PASS**. Changed scope before handoff: `apps/app/lib/app/composition/workout_providers.dart`, `apps/app/lib/app/routing/shell/shell_route.dart`, `apps/app/test/app/network_providers_test.dart` and two `.ai/tasks` files. Review flag is default-OFF and checked during `sameSession`; UI callback remains null in production. No independent GitHub approval, no local Windows checkout verification, no actual Move RPC rollout.
