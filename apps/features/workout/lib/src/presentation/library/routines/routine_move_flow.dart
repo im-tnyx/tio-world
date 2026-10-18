@@ -162,7 +162,7 @@ final class RoutineMoveFlow {
                       ),
                     if (createAndMove != null && destinations.isNotEmpty)
                       const Divider(
-                        key: ValueKey('routine-move-destinations-divider'),
+                        key: ValueKey('routine-move-program-divider'),
                       ),
                     for (final program in destinations)
                       ListTile(
