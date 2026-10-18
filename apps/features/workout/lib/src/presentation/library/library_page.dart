@@ -31,6 +31,7 @@ class LibraryPage extends StatefulWidget {
     this.pendingCreateChanges,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onMoveRoutine,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     required this.onExercisesPressed,
@@ -52,6 +53,8 @@ class LibraryPage extends StatefulWidget {
   final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  /// Optional Move action, hidden until injected by the app-shell release gate.
+  final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final VoidCallback onExercisesPressed;
@@ -96,6 +99,7 @@ class _LibraryPageState extends State<LibraryPage> {
         hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
         onRoutinePressed: widget.onRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
+        onMoveRoutine: widget.onMoveRoutine,
         onDeleteRoutine: widget.onDeleteRoutine,
         actionSheetGuard: widget.actionSheetGuard,
       );

@@ -16,6 +16,7 @@ class ProgramDetailPage extends StatefulWidget {
     this.newRoutineUuid,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onMoveRoutine,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     this.onCreateRoutine,
@@ -32,6 +33,9 @@ class ProgramDetailPage extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
   /// Opens the same verified owner Edit composer as Routine Detail.
   final Future<bool> Function(Routine routine)? onEditRoutine;
+  /// Optional owner-injected Move; true requests a current Program reread,
+  /// not a claim of confirmed server mutation.
+  final Future<bool> Function(Routine routine)? onMoveRoutine;
   /// Verified Delete returns true only when the owner-scoped list must refresh.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -159,6 +163,20 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     }
     final confirmed = await edit(routine);
     if (mounted && identical(controller, _controller) && confirmed) {
+      await controller.load();
+    }
+  }
+
+  Future<void> _moveRoutine(Routine routine) async {
+    final controller = _controller;
+    final move = widget.onMoveRoutine;
+    if (!_canEdit || _hasUnconfirmed || controller == null || move == null ||
+        routine.programId != widget.program.id ||
+        !controller.state.routines.any((item) => item.id == routine.id)) {
+      return;
+    }
+    final shouldRefresh = await move(routine);
+    if (mounted && identical(controller, _controller) && shouldRefresh) {
       await controller.load();
     }
   }
@@ -299,6 +317,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                   onEdit: _canEdit && widget.onEditRoutine != null
                       ? () => _openEditor(routine) : null,
                   actionSheetGuard: widget.actionSheetGuard,
+                  onMove: _canEdit && !_hasUnconfirmed &&
+                          widget.onMoveRoutine != null
+                      ? () => _moveRoutine(routine) : null,
                   onDelete: _canEdit && !_hasUnconfirmed &&
                           widget.onDeleteRoutine != null
                       ? () => _deleteRoutine(routine) : null,
