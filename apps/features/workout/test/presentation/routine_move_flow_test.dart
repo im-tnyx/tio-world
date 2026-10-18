@@ -130,6 +130,26 @@ Future<void> _choose(WidgetTester tester) async {
   expect(find.textContaining('Mobility'), findsOneWidget);
 }
 
+void _expectCompactConfirmationButtons(WidgetTester tester, {
+  required String primaryLabel,
+}) {
+  // Only this dialog gets the 42dp visual minimum; other Core buttons
+  // retain 46dp, and Material's padded touch target remains enabled.
+  final cancelTheme = Theme.of(tester.element(find.text('Cancel')));
+  final primaryTheme = Theme.of(tester.element(find.text(primaryLabel)));
+  const emptyStates = <WidgetState>{};
+  expect(cancelTheme.outlinedButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioSize.dp42);
+  expect(primaryTheme.filledButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioSize.dp42);
+  expect(primaryTheme.materialTapTargetSize, MaterialTapTargetSize.padded);
+  final globalTheme = Theme.of(tester.element(find.text('Open Move')));
+  expect(globalTheme.filledButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
+  expect(globalTheme.outlinedButtonTheme.style?.minimumSize
+      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
+}
+
 void main() {
 
   testWidgets('Select Program opens while verified destination reads are pending',
@@ -230,6 +250,7 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
+    _expectCompactConfirmationButtons(tester, primaryLabel: 'Move');
     await tester.tap(find.text('Move'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -294,6 +315,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
     expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    _expectCompactConfirmationButtons(tester, primaryLabel: 'Create & Move');
     await tester.tap(find.text('Create & Move'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
