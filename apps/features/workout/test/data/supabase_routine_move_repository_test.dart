@@ -173,6 +173,28 @@ void main() {
     expect(g.writes, 1);
   });
 
+  test('PGRST300 missing JWT secret is definite; new Move cannot poison gate',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'No active JWT secret configured', code: 'PGRST300');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'Missing JWT secret rejects before the RPC executes');
+    final second = repo(g, gate: gate);
+    final fresh = await inspect(second);
+    expect(await move(second, fresh), RoutineMoveResult.confirmed,
+        reason: 'After backend repair a new inspected Move is not frozen');
+    expect(g.writes, 1);
+  });
+
   test('PGRST203 is pre-execution rejection, never freezes shared Move gate',
       () async {
     final g = FakeMoveGateway()
@@ -353,6 +375,8 @@ void main() {
         RoutineMoveFailureKind.unavailable),
     ('PGRST303', 'JWT claims validation or parsing failed',
         RoutineMoveFailureKind.unauthorized),
+    ('PGRST300', 'No active JWT secret configured',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -480,6 +504,8 @@ void main() {
         RoutineMoveFailureKind.unavailable),
     ('PGRST303', 'JWT claims validation or parsing failed',
         RoutineMoveFailureKind.unauthorized),
+    ('PGRST300', 'No active JWT secret configured',
+        RoutineMoveFailureKind.unavailable),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
       final g = FakeMoveGateway()
