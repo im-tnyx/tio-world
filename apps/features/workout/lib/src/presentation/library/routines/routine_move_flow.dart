@@ -19,6 +19,17 @@ typedef RoutineCreateMoveCallback = Future<RoutineMoveResult> Function({
 });
 
 enum _MoveDestinationChoice { newProgram }
+enum _MoveSheetAbort { stale, noDestinations }
+
+typedef _MoveSheetChoice = ({
+  RoutineMoveSelection selection,
+  Object choice,
+});
+
+final class _MoveSheetError {
+  const _MoveSheetError(this.error);
+  final Object error;
+}
 
 /// Feature-owned Move workflow shared by the two Routine card surfaces.
 ///
@@ -59,64 +70,133 @@ final class RoutineMoveFlow {
     );
     var attempted = false;
     try {
-      final selection = await controller.inspect(
-        sourceProgramId: sourceProgram.id,
-        routineId: routine.id,
-      );
-      if (!context.mounted || !canWrite()) return false;
-      if (selection == null ||
-          selection.target.routineId != routine.id ||
-          selection.target.sourceProgramId != sourceProgram.id) {
-        _show(context, 'This Routine changed. Refresh the list.');
-        return true;
-      }
-      // Controller owns the one-use, owner-scoped destination eligibility.
-      // Do not infer My Program by its mutable display name.
-      final target = selection.target;
-      final destinations = selection.destinations;
-      if (destinations.isEmpty && createAndMove == null) {
-        _show(context, 'Create another Program before moving this Routine.');
-        return false;
+      // Push the sheet immediately. The authenticated owner-scoped reads
+      // continue inside its content; no destination is shown/selectable until
+      // BOTH the Routine header and Program list pass controller validation.
+      Future<({RoutineMoveSelection? selection, Object? error})>
+          readSelection() async {
+        try {
+          return (
+            selection: await controller.inspect(
+              sourceProgramId: sourceProgram.id,
+              routineId: routine.id,
+            ),
+            error: null,
+          );
+        } catch (error) {
+          // A canceled sheet must never leave an unhandled read failure.
+          return (selection: null, error: error);
+        }
       }
 
-      final chosen = await showTioEditorSheet<Object>(
+      final inspection = readSelection();
+      var dismissalScheduled = false;
+      final picked = await showTioEditorSheet<Object>(
         context: context,
         useSafeArea: true,
         builder: (sheetContext) {
+          // Match the previous fail-closed snackbar/refetch semantics after
+          // an invalid/failed read, without leaving a stuck empty picker.
+          void dismissAfterFrame(Object reason) {
+            if (dismissalScheduled) return;
+            dismissalScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop(reason);
+              }
+            });
+          }
+
           final sheet = TioEditorSheet(
             key: ValueKey('routine-move-destinations-${routine.id.value}'),
             title: 'Select Program',
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (createAndMove != null) ...[
-                  ListTile(
-                    key: const ValueKey('routine-move-new-program'),
-                    title: const Text('New Program'),
-                    leading: const Icon(Icons.add_rounded),
-                    onTap: () => Navigator.of(sheetContext)
-                        .pop(_MoveDestinationChoice.newProgram),
-                  ),
-                  if (destinations.isNotEmpty)
-                    const Divider(key: ValueKey('routine-move-program-divider')),
-                ],
-                for (final program in destinations)
-                  ListTile(
-                    key: ValueKey('routine-move-destination-${program.id.value}'),
-                    title: Text(program.name, maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () =>
-                        Navigator.of(sheetContext).pop(program.id),
-                  ),
-              ],
+            content: FutureBuilder<
+                ({RoutineMoveSelection? selection, Object? error})>(
+              future: inspection,
+              builder: (bodyContext, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const SizedBox(
+                    key: ValueKey('routine-move-destinations-loading'),
+                    height: TioSize.dp48,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final error = snapshot.data?.error;
+                if (error != null) {
+                  dismissAfterFrame(_MoveSheetError(error));
+                  return const SizedBox.shrink();
+                }
+                if (!canWrite()) return const SizedBox.shrink();
+                final selection = snapshot.data?.selection;
+                if (selection == null ||
+                    selection.target.routineId != routine.id ||
+                    selection.target.sourceProgramId != sourceProgram.id) {
+                  dismissAfterFrame(_MoveSheetAbort.stale);
+                  return const SizedBox.shrink();
+                }
+
+                // Keep all eligibility and owner validation in the
+                // controller: the UI only renders its verified snapshot.
+                final destinations = selection.destinations;
+                if (destinations.isEmpty && createAndMove == null) {
+                  dismissAfterFrame(_MoveSheetAbort.noDestinations);
+                  return const SizedBox.shrink();
+                }
+
+                void choose(Object choice) {
+                  if (!canWrite()) return;
+                  final _MoveSheetChoice result =
+                      (selection: selection, choice: choice);
+                  Navigator.of(sheetContext).pop(result);
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (createAndMove != null)
+                      ListTile(
+                        key: const ValueKey('routine-move-new-program'),
+                        title: const Text('New Program'),
+                        leading: const Icon(Icons.add_rounded),
+                        onTap: () => choose(_MoveDestinationChoice.newProgram),
+                      ),
+                    if (createAndMove != null && destinations.isNotEmpty)
+                      const Divider(
+                        key: ValueKey('routine-move-destinations-divider'),
+                      ),
+                    for (final program in destinations)
+                      ListTile(
+                        key: ValueKey(
+                            'routine-move-destination-${program.id.value}'),
+                        title: Text(program.name, maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => choose(program.id),
+                      ),
+                  ],
+                );
+              },
             ),
           );
           return modalGuard?.call(sheetContext, sheet) ?? sheet;
         },
       );
 
-      if (!context.mounted || !canWrite() || chosen == null) return false;
+      if (!context.mounted || !canWrite()) return false;
+      if (picked is _MoveSheetError) throw picked.error;
+      if (picked == _MoveSheetAbort.stale) {
+        _show(context, 'This Routine changed. Refresh the list.');
+        return true;
+      }
+      if (picked == _MoveSheetAbort.noDestinations) {
+        _show(context, 'Create another Program before moving this Routine.');
+        return false;
+      }
+      if (picked is! _MoveSheetChoice) return false;
+      final selection = picked.selection;
+      final chosen = picked.choice;
+      final target = selection.target;
+      final destinations = selection.destinations;
       if (chosen == _MoveDestinationChoice.newProgram) {
         if (createAndMove == null) return false;
         final proposedName = await promptCreateProgramName(
