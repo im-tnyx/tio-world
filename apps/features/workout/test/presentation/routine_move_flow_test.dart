@@ -24,6 +24,7 @@ const token = '50000000-0000-4000-8000-000000000001';
 final class _Programs implements ProgramRepository {
   List<Program> items = [source, destination];
   int reads = 0;
+  int creates = 0;
   Future<List<Program>> Function()? onList;
 
   @override
@@ -33,8 +34,10 @@ final class _Programs implements ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program) async =>
-      throw UnimplementedError('Move never creates a Program');
+  Future<void> create(Program program) async {
+    creates++;
+    throw UnimplementedError('Move never creates a Program');
+  }
 
   @override
   Future<void> rename({required ProgramId id, required String name}) async =>
@@ -230,7 +233,7 @@ void main() {
     expect(find.text('Routine moved.'), findsNothing);
   });
 
-  testWidgets('New Program appears first and uses shared name editor only',
+  testWidgets('New Program first row submits edited canonical name, no pre-create',
       (tester) async {
     final programs = _Programs()..items = [source, destination];
     final moves = _Move();
@@ -271,18 +274,31 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
     expect(find.text('Create Program'), findsOneWidget);
-    expect(find.byKey(const ValueKey('program-name-field')), findsOneWidget);
+    final nameField = find.byKey(const ValueKey('program-name-field'));
+    expect(nameField, findsOneWidget);
+    final editable = find.descendant(
+      of: nameField, matching: find.byType(EditableText));
+    expect(tester.widget<EditableText>(editable).controller.text, 'Program 1',
+        reason: 'Reuse the existing generated default Program name');
+    await tester.enterText(editable, 'Cardio Focus');
+    await tester.pumpAndSettle();
     expect(moves.writes, 0);
+    expect(programs.creates, 0,
+        reason: 'The name editor must not create a standalone Program');
+
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
     expect(find.text('Create Program & Move Routine?'), findsOneWidget);
-    expect(find.textContaining('Program 1'), findsOneWidget);
+    expect(find.textContaining('Cardio Focus'), findsOneWidget);
+    expect(find.textContaining('Morning'), findsOneWidget);
     expect(createCalls, 0);
+    expect(programs.creates, 0);
     await tester.tap(find.text('Create & Move'));
     await tester.pumpAndSettle();
     expect(createCalls, 1);
     expect(createdId, isNotNull);
-    expect(createdName, 'Program 1');
+    expect(createdName, 'Cardio Focus');
+    expect(programs.creates, 0);
     expect(moves.writes, 0);
   });
 
@@ -318,6 +334,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(createCalls, 0);
     expect(moves.writes, 0);
+  });
+
+  testWidgets('cancel Create & Move confirmation writes no Program or Move',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final moves = _Move();
+    var atomicCalls = 0;
+    bool? needsRefresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: moves,
+      programs: programs,
+      canWrite: () => true,
+      onResult: (value) => needsRefresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicCalls++;
+        return RoutineMoveResult.confirmed;
+      },
+    );
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('routine-move-new-program')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    final editable = find.descendant(
+      of: find.byKey(const ValueKey('program-name-field')),
+      matching: find.byType(EditableText));
+    await tester.enterText(editable, 'Evening Training');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+    expect(find.textContaining('Evening Training'), findsOneWidget);
+    expect(find.textContaining('Morning'), findsOneWidget);
+    expect(atomicCalls, 0);
+    expect(programs.creates, 0);
+    expect(moves.writes, 0);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(needsRefresh, false);
+    expect(atomicCalls, 0,
+        reason: 'Final confirmation cancellation dispatches no atomic RPC');
+    expect(programs.creates, 0,
+        reason: 'Name-only editor must not persist a phantom Program');
+    expect(moves.writes, 0);
+    expect(programs.items, [source]);
+    expect(find.text('Routine moved.'), findsNothing);
   });
 
   testWidgets('selection and confirmation use one existing owner Program RPC',
