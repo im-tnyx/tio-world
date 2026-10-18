@@ -25,6 +25,7 @@ class ProgramsSurface extends StatefulWidget {
         onProgramPressed = null,
         onRoutinePressed = null,
         onEditRoutine = null,
+        onMoveRoutine = null,
         onDeleteRoutine = null,
         actionSheetGuard = null,
         onAddRoutinePressed = null,
@@ -37,6 +38,7 @@ class ProgramsSurface extends StatefulWidget {
     this.onProgramPressed,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onMoveRoutine,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     this.onAddRoutinePressed,
@@ -56,6 +58,8 @@ class ProgramsSurface extends StatefulWidget {
   final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  /// Optional Move capability; production app shell does not inject it yet.
+  final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
@@ -400,6 +404,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
           onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
+          onMoveRoutine: widget.onMoveRoutine,
           onDeleteRoutine: widget.onDeleteRoutine,
           actionSheetGuard: widget.actionSheetGuard,
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
@@ -433,6 +438,7 @@ class _ProgramsList extends StatefulWidget {
     required this.routineRepository,
     required this.onRoutinePressed,
     required this.onEditRoutine,
+    required this.onMoveRoutine,
     required this.onDeleteRoutine,
     required this.actionSheetGuard,
     required this.hasUnconfirmedCreate,
@@ -447,6 +453,8 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+  /// Optional Move capability; production app shell does not inject it yet.
+  final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
@@ -525,6 +533,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             onEditRoutine: widget.onEditRoutine == null
                 ? null
                 : (routine) => widget.onEditRoutine!(program, routine),
+            onMoveRoutine: widget.onMoveRoutine == null
+                ? null
+                : (routine) => widget.onMoveRoutine!(program, routine),
             actionSheetGuard: widget.actionSheetGuard,
             onDeleteRoutine: widget.onDeleteRoutine == null
                 ? null
