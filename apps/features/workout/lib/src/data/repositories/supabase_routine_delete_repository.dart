@@ -92,7 +92,7 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   factory SupabaseRoutineDeleteRepository.fromClient({
     required SupabaseClient client,
     required RoutineDeleteAttemptGate attemptGate,
-    RoutineMoveDeleteAttemptGate? crossOperationGate,
+    required RoutineMoveDeleteAttemptGate crossOperationGate,
     required RoutineDeleteCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineDeleteRepository(
     gateway: SupabaseRoutineDeleteGateway(client),
