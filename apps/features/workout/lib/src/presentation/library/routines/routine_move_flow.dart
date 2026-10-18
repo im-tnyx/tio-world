@@ -464,7 +464,7 @@ final class RoutineMoveFlow {
               // pill; all colours are from the active Material colour scheme.
               backgroundColor: Theme.of(context).colorScheme.onInverseSurface,
               textColor: Theme.of(context).colorScheme.inverseSurface,
-              onPressed: () => messenger?.hideCurrentSnackBar(),
+              onPressed: () => messenger.hideCurrentSnackBar(),
             )
           : null,
     ));
