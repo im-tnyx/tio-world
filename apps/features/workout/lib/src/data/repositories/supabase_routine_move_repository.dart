@@ -414,10 +414,13 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
       '25001' => RoutineMoveFailureKind.invalidRequest,
+      // Connection establishment/pool failures never acquire a DB session,
+      // so PGRST000–003 cannot have executed the write RPC. In contrast,
+      // transport or arbitrary SQL 5xx failures remain UNKNOWN.
+      'PGRST000' || 'PGRST001' || 'PGRST002' || 'PGRST003' ||
       // PostgREST routing/overload and missing JWT-secret configuration
-      // reject BEFORE RPC execution, even when PGRST300 has HTTP 500.
-      // Do not poison the shared unknown gate for definite pre-execution errors.
-      'PGRST202' || 'PGRST203' || 'PGRST300' =>
+      // also reject before SQL execution (PGRST300 has HTTP 500).
+          'PGRST202' || 'PGRST203' || 'PGRST300' =>
         RoutineMoveFailureKind.unavailable,
       _ => null,
     };
