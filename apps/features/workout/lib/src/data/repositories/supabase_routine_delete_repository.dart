@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/routine_delete_repository.dart';
+import 'routine_move_delete_attempt_gate.dart';
 
 /// Deliberately no table DELETE. Server owns all child cascades and retirement.
 abstract interface class RoutineDeleteGateway {
@@ -63,6 +64,7 @@ final class RoutineDeleteAttemptGate {
   final Map<String, RoutineDeleteTarget> _preparedTargets = {};
   final Map<String, int> _dispatchGeneration = {};
   final Map<String, int> _inspectionGeneration = {};
+  final Map<String, int> _crossGeneration = {};
   final Set<String> _inFlight = {};
 }
 
@@ -72,11 +74,13 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   SupabaseRoutineDeleteRepository({
     required RoutineDeleteGateway gateway,
     required RoutineDeleteAttemptGate attemptGate,
+    RoutineMoveDeleteAttemptGate? crossOperationGate,
     required RoutineDeleteCurrentValue currentUserId,
     required RoutineDeleteCurrentValue currentLoginCycleId,
     Duration timeout = const Duration(seconds: 15),
   })  : _gateway = gateway,
         _gate = attemptGate,
+        _crossOperationGate = crossOperationGate,
         _currentUserId = currentUserId,
         _currentLoginCycleId = currentLoginCycleId,
         _timeout = timeout {
@@ -88,16 +92,19 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
   factory SupabaseRoutineDeleteRepository.fromClient({
     required SupabaseClient client,
     required RoutineDeleteAttemptGate attemptGate,
+    RoutineMoveDeleteAttemptGate? crossOperationGate,
     required RoutineDeleteCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineDeleteRepository(
     gateway: SupabaseRoutineDeleteGateway(client),
     attemptGate: attemptGate,
+    crossOperationGate: crossOperationGate,
     currentUserId: () => client.auth.currentUser?.id,
     currentLoginCycleId: currentLoginCycleId,
   );
 
   final RoutineDeleteGateway _gateway;
   final RoutineDeleteAttemptGate _gate;
+  final RoutineMoveDeleteAttemptGate? _crossOperationGate;
   final RoutineDeleteCurrentValue _currentUserId;
   final RoutineDeleteCurrentValue _currentLoginCycleId;
   final Duration _timeout;
@@ -110,7 +117,10 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     final session = _session();
     final ownerKey = _ownerKey(session, routineId);
     final cycleKey = _cycleKey(session, routineId);
-    if (_gate._inFlight.contains(ownerKey)) {
+    final crossGeneration =
+        _crossOperationGate?.generation(session.owner, routineId);
+    if (_crossOperationGate?.inFlight(session.owner, routineId) == true ||
+        _gate._inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
     // Each inspection supersedes the prior destructive capability even if
@@ -123,12 +133,19 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     // A Delete could have started while this read awaited the server, then
     // already committed by the time its old header arrived. Such a read is
     // never valid evidence for a new destructive confirmation.
-    if (_gate._inFlight.contains(ownerKey)) {
+    if (_crossOperationGate?.inFlight(session.owner, routineId) == true ||
+        _gate._inFlight.contains(ownerKey)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
     }
-    if ((_gate._dispatchGeneration[ownerKey] ?? 0) != startGeneration ||
+    if (_crossOperationGate?.generation(session.owner, routineId) !=
+            crossGeneration ||
+        (_gate._dispatchGeneration[ownerKey] ?? 0) != startGeneration ||
         _gate._inspectionGeneration[cycleKey] != inspection) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
+    }
+    if (row != null) {
+      _crossOperationGate?.observeRevision(
+          session.owner, routineId, row.revision);
     }
     if (row == null || row.program != programId) return null;
     final unresolvedRevision = _gate._unconfirmedRevisions[ownerKey];
@@ -145,6 +162,8 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       loginCycleId: session.cycle,
     );
     _gate._preparedTargets[cycleKey] = target;
+    _gate._crossGeneration[cycleKey] =
+        _crossOperationGate?.generation(session.owner, routineId) ?? 0;
     return target;
   }
 
@@ -168,6 +187,22 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
     // another owner-scoped inspect/confirmation rather than replaying it.
     if (!identical(_gate._preparedTargets[cycleKey], target)) {
       throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
+    }
+    final cross = _crossOperationGate;
+    if (cross != null) {
+      if (cross.uncertain(session.owner, target.routineId)) {
+        throw const RoutineDeleteOutcomeUnknown();
+      }
+      if (cross.inFlight(session.owner, target.routineId)) {
+        throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
+      }
+      if (_gate._crossGeneration[cycleKey] !=
+          cross.generation(session.owner, target.routineId)) {
+        throw const RoutineDeleteException(RoutineDeleteFailureKind.staleTarget);
+      }
+      if (!cross.tryStart(session.owner, target.routineId)) {
+        throw const RoutineDeleteException(RoutineDeleteFailureKind.inProgress);
+      }
     }
     _gate._inFlight.add(ownerKey);
     _gate._dispatchGeneration[ownerKey] = (_gate._dispatchGeneration[ownerKey] ?? 0) + 1;
@@ -200,9 +235,12 @@ final class SupabaseRoutineDeleteRepository implements RoutineDeleteRepository {
       return await _reconcile(target, session);
     } on RoutineDeleteOutcomeUnknown {
       _gate._unconfirmedRevisions[ownerKey] = target.expectedRevision;
+      _crossOperationGate?.markUncertain(
+          session.owner, target.routineId, target.expectedRevision);
       rethrow;
     } finally {
       _gate._inFlight.remove(ownerKey);
+      _crossOperationGate?.finish(session.owner, target.routineId);
     }
   }
 
