@@ -288,8 +288,11 @@ void main() {
   }
 
   for (final (code, kind) in <(String, RoutineMoveFailureKind)>[
+    ('53000', RoutineMoveFailureKind.transactionAborted),
     ('53100', RoutineMoveFailureKind.transactionAborted),
+    ('53200', RoutineMoveFailureKind.transactionAborted),
     ('53300', RoutineMoveFailureKind.unavailable),
+    ('53400', RoutineMoveFailureKind.transactionAborted),
     ('57P03', RoutineMoveFailureKind.unavailable),
   ]) {
     test('$code infrastructure rejection is definite and reusable', () async {
@@ -584,8 +587,13 @@ void main() {
         RoutineMoveFailureKind.transactionAborted),
     ('55P03', 'canceling statement due to lock timeout',
         RoutineMoveFailureKind.transactionAborted),
+    ('53000', 'insufficient resources',
+        RoutineMoveFailureKind.transactionAborted),
     ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
     ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('53400', 'configuration limit exceeded',
+        RoutineMoveFailureKind.transactionAborted),
     ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
@@ -716,8 +724,13 @@ void main() {
       RoutineMoveFailureKind.transactionAborted),
     ('55P03', 'canceling statement due to lock timeout',
         RoutineMoveFailureKind.transactionAborted),
+    ('53000', 'insufficient resources',
+        RoutineMoveFailureKind.transactionAborted),
     ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
+    ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
     ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
+    ('53400', 'configuration limit exceeded',
+        RoutineMoveFailureKind.transactionAborted),
     ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),

@@ -424,9 +424,11 @@ final class SupabaseRoutineMoveRepository
           e.message == 'routine_create_move_mutation_conflict' ||
           e.message == 'routine_create_move_program_conflict' =>
         RoutineMoveFailureKind.mutationConflict,
-      // Server-side query cancellation aborts the SQL transaction.
-      // Server SQLSTATE disk_full aborts its transaction; no commit.
-      '53100' || '55P03' || '57014' =>
+      // PostgreSQL Class 53 insufficient resources (including disk full,
+      // out of memory, and configuration limit) aborts this RPC transaction.
+      // Server-side lock/query cancellation likewise cannot commit.
+      '53000' || '53100' || '53200' || '53400' ||
+          '55P03' || '57014' =>
         RoutineMoveFailureKind.transactionAborted,
       // Connection rejection/restart before an RPC can acquire a session.
       '53300' || '57P03' => RoutineMoveFailureKind.unavailable,
