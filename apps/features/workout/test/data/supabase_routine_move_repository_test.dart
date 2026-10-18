@@ -173,6 +173,69 @@ void main() {
     expect(g.writes, 1);
   });
 
+  test('atomic SQLSTATE 40003 stays UNKNOWN and freezes both Move paths',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'statement completion unknown', code: '40003');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 2,
+        reason: 'Unknown completion must attempt owner-scoped reconciliation');
+    final next = repo(g, gate: gate);
+    final fresh = await inspect(next);
+    await expectLater(move(next, fresh),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(next.createAndMove(
+      target: fresh, newProgramId: destination,
+      newProgramName: 'Program 2', mutationId: mutation,
+    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 1,
+        reason: 'No new Program ID/token replay of uncertain commit');
+  });
+
+  test('existing Move SQLSTATE 40003 likewise remains UNKNOWN', () async {
+    final g = FakeMoveGateway()
+      ..onMove = () async => throw const PostgrestException(
+          message: 'statement completion unknown', code: '40003');
+    final r = repo(g);
+    final target = await inspect(r);
+    await expectLater(move(r, target),
+        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    expect(g.writes, 1);
+    expect(g.reads, 2);
+  });
+
+  test('SQLSTATE 57014 server cancellation is definite and gate reusable',
+      () async {
+    final g = FakeMoveGateway()
+      ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'canceling statement due to statement timeout',
+          code: '57014');
+    final gate = RoutineMoveAttemptGate();
+    final first = repo(g, gate: gate);
+    final target = await inspect(first);
+    await expectLater(first.createAndMove(
+      target: target, newProgramId: destination,
+      newProgramName: 'Program 1', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.transactionAborted)));
+    expect(g.atomicWrites, 1);
+    expect(g.reads, 1,
+        reason: 'Server query_canceled proves rolled-back statement');
+    final next = repo(g, gate: gate);
+    final fresh = await inspect(next);
+    expect(await move(next, fresh), RoutineMoveResult.confirmed,
+        reason: 'A new confirmed Move can proceed after server timeout');
+    expect(g.writes, 1);
+  });
+
   test('PGRST300 missing JWT secret is definite; new Move cannot poison gate',
       () async {
     final g = FakeMoveGateway()
@@ -410,6 +473,8 @@ void main() {
         RoutineMoveFailureKind.unavailable),
     ('PGRST003', 'Cannot acquire database connection',
         RoutineMoveFailureKind.unavailable),
+    ('57014', 'canceling statement due to statement timeout',
+        RoutineMoveFailureKind.transactionAborted),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
@@ -533,6 +598,8 @@ void main() {
     ('28000', 'routine_move_not_authenticated',
       RoutineMoveFailureKind.unauthorized),
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
+    ('57014', 'canceling statement due to statement timeout',
+      RoutineMoveFailureKind.transactionAborted),
     ('PGRST203', 'RPC overload is ambiguous',
         RoutineMoveFailureKind.unavailable),
     ('PGRST303', 'JWT claims validation or parsing failed',
