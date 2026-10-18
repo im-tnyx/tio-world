@@ -16,6 +16,7 @@ class InlineProgramRoutines extends StatefulWidget {
     required this.refreshVersion,
     this.onRoutinePressed,
     this.onEditRoutine,
+    this.onMoveRoutine,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     this.onAddRoutine,
@@ -31,6 +32,8 @@ class InlineProgramRoutines extends StatefulWidget {
   final Future<void> Function(Routine routine)? onRoutinePressed;
   /// Real canonical full editor, guarded by app shell identity/login cycle.
   final Future<bool> Function(Routine routine)? onEditRoutine;
+  /// Optional owner-injected Move. True requests source-list reread only.
+  final Future<bool> Function(Routine routine)? onMoveRoutine;
   /// Owner-checked and confirmed Delete (or uncertain write) requests a read.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -62,6 +65,22 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
       await add();
     } finally {
       if (mounted) setState(() => _openingCreate = false);
+    }
+  }
+
+  Future<void> _moveRoutine(Routine routine) async {
+    final controller = _controller;
+    final move = widget.onMoveRoutine;
+    if (controller == null || move == null ||
+        controller.state.status != ProgramRoutinesStatus.ready ||
+        controller.state.saving || widget.hasUnconfirmedCreate ||
+        routine.programId != widget.program.id ||
+        !controller.state.routines.any((item) => item.id == routine.id)) {
+      return;
+    }
+    final refresh = await move(routine);
+    if (mounted && identical(controller, _controller) && refresh) {
+      await controller.load();
     }
   }
 
@@ -198,6 +217,10 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                         ? null
                         : () { widget.onEditRoutine!(routine); },
                     actionSheetGuard: widget.actionSheetGuard,
+                    onMove: widget.onMoveRoutine == null ||
+                            widget.hasUnconfirmedCreate
+                        ? null
+                        : () => _moveRoutine(routine),
                     onDelete: widget.onDeleteRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
