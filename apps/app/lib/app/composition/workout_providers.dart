@@ -104,6 +104,59 @@ final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
   },
 );
 
+/// Shared across all Routine Move routes, owners and login cycles.
+final routineMoveAttemptGateProvider = Provider<RoutineMoveAttemptGate>(
+  (ref) => RoutineMoveAttemptGate(),
+);
+
+/// Feature-owned modal flow; no Routine card calls it in this slice.
+final routineMoveFlowProvider = Provider<RoutineMoveFlow>(
+  (ref) => RoutineMoveFlow(),
+);
+
+/// Dormant owner/login-cycle-bound Move and atomic Create+Move adapter.
+/// A captured old repository must NOT gain new-owner write authority.
+final routineMoveRepositoryProvider =
+    Provider<SupabaseRoutineMoveRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null : sessionAsync.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id) {
+    return null;
+  }
+  final owner = auth.session.userId;
+  final cycle = auth.session.loginCycleId;
+  if (cycle == null || cycle.trim().isEmpty) return null;
+  return SupabaseRoutineMoveRepository.fromClient(
+    client: client,
+    attemptGate: ref.watch(routineMoveAttemptGateProvider),
+    currentLoginCycleId: () {
+      try {
+        final live = ref.read(authSessionStateProvider);
+        final state = live.isLoading || live.hasError
+            ? null : live.valueOrNull;
+        if (state is AuthSessionAuthenticated &&
+            state.session.userId == owner &&
+            state.session.loginCycleId == cycle &&
+            client.auth.currentUser?.id == owner) {
+          return cycle;
+        }
+      } catch (_) {
+        // Revoked/disposed session must not authorize an old adapter.
+      }
+      return null;
+    },
+  );
+});
+
+/// Same repository object and gate for both Move variants.
+final routineCreateMoveRepositoryProvider =
+    Provider<RoutineCreateMoveRepository?>((ref) {
+  return ref.watch(routineMoveRepositoryProvider);
+});
+
 /// One in-process safety gate for ALL Delete adapters/routes and login cycles.
 /// Never key its lifetime to one Routine card or a reconstructed repository.
 final routineDeleteAttemptGateProvider = Provider<RoutineDeleteAttemptGate>(

@@ -10,7 +10,48 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+final _moveSessionProvider = StateProvider<AuthSessionState>(
+  (ref) => const AuthSessionUnauthenticated(),
+);
+
+ProviderContainer _moveContainer(
+  _MoveAuth auth, AuthSessionState initial,
+) => ProviderContainer(overrides: [
+  supabaseClientProvider.overrideWithValue(_MoveClient(auth)),
+  _moveSessionProvider.overrideWith((ref) => initial),
+  authSessionStateProvider.overrideWith(
+    (ref) => Stream.value(ref.watch(_moveSessionProvider)),
+  ),
+]);
+
 void main() {
+  test('Move denies missing, mismatched or incomplete authenticated sessions',
+      () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    const other = '22222222-2222-4222-8222-222222222222';
+    for (final state in <AuthSessionState>[
+      const AuthSessionUnauthenticated(),
+      const AuthSessionUnknown(),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: other, loginCycleId: 'cycle-a')),
+      const AuthSessionAuthenticated(AuthSession(userId: owner)),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: '')),
+    ]) {
+      final c = _moveContainer(_MoveAuth(_moveUser(owner)), state);
+      await c.read(authSessionStateProvider.future);
+      expect(c.read(routineMoveRepositoryProvider), isNull);
+      expect(c.read(routineCreateMoveRepositoryProvider), isNull);
+      c.dispose();
+    }
+    final c = _moveContainer(_MoveAuth(null),
+      const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    expect(c.read(routineMoveRepositoryProvider), isNull);
+  });
+
   test('Routine Delete fails closed without Supabase and retains shared gate', () {
     final container = ProviderContainer(overrides: [
       supabaseClientProvider.overrideWithValue(null),
@@ -26,6 +67,94 @@ void main() {
     expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
         reason: 'Program and Library must share one action single-flight');
   });
+  test('Routine Move stays dormant without an authenticated Supabase client', () {
+    final container = ProviderContainer(overrides: [
+      supabaseClientProvider.overrideWithValue(null),
+    ]);
+    addTearDown(container.dispose);
+    final gate = container.read(routineMoveAttemptGateProvider);
+    final flow = container.read(routineMoveFlowProvider);
+    expect(container.read(routineMoveRepositoryProvider), isNull);
+    expect(container.read(routineCreateMoveRepositoryProvider), isNull);
+    container.invalidate(routineMoveRepositoryProvider);
+    expect(container.read(routineMoveRepositoryProvider), isNull);
+    expect(identical(container.read(routineMoveAttemptGateProvider), gate), isTrue);
+    expect(identical(container.read(routineMoveFlowProvider), flow), isTrue);
+  });
+
+  test('Move repository shares both capabilities, not the login-cycle state',
+      () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    final auth = _MoveAuth(_moveUser(owner));
+    final c = _moveContainer(auth, const AuthSessionAuthenticated(
+        AuthSession(userId: owner, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final gate = c.read(routineMoveAttemptGateProvider);
+    final flow = c.read(routineMoveFlowProvider);
+    final original = c.read(routineMoveRepositoryProvider)!;
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), original),
+        isTrue);
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: owner, loginCycleId: 'cycle-b'));
+    await c.read(authSessionStateProvider.future);
+    c.invalidate(routineMoveRepositoryProvider);
+    final replacement = c.read(routineMoveRepositoryProvider);
+    expect(replacement, isA<SupabaseRoutineMoveRepository>());
+    expect(identical(replacement, original), isFalse);
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), replacement),
+        isTrue);
+    expect(identical(c.read(routineMoveAttemptGateProvider), gate), isTrue);
+    expect(identical(c.read(routineMoveFlowProvider), flow), isTrue);
+    await expectLater(original.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+  });
+
+  test('Move rejects captured A adapter after logout and account B login',
+      () async {
+    const ownerA = '11111111-1111-4111-8111-111111111111';
+    const ownerB = '22222222-2222-4222-8222-222222222222';
+    final auth = _MoveAuth(_moveUser(ownerA));
+    final c = _moveContainer(auth, const AuthSessionAuthenticated(
+        AuthSession(userId: ownerA, loginCycleId: 'cycle-a')));
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final old = c.read(routineMoveRepositoryProvider)!;
+    final gate = c.read(routineMoveAttemptGateProvider);
+
+    auth.currentUser = null;
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionUnauthenticated();
+    await c.read(authSessionStateProvider.future);
+    expect(c.read(routineMoveRepositoryProvider), isNull);
+    await expectLater(old.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+
+    auth.currentUser = _moveUser(ownerB);
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+            AuthSession(userId: ownerB, loginCycleId: 'cycle-b'));
+    await c.read(authSessionStateProvider.future);
+    final newRepo = c.read(routineMoveRepositoryProvider);
+    expect(newRepo, isA<SupabaseRoutineMoveRepository>());
+    expect(identical(old, newRepo), isFalse);
+    expect(identical(c.read(routineCreateMoveRepositoryProvider), newRepo),
+        isTrue);
+    expect(identical(c.read(routineMoveAttemptGateProvider), gate), isTrue);
+    await expectLater(old.inspect(
+      sourceProgramId: ProgramId('33333333-3333-4333-8333-333333333333'),
+      routineId: RoutineId('44444444-4444-4444-8444-444444444444'),
+    ), throwsA(isA<RoutineMoveException>().having(
+        (e) => e.kind, 'kind', RoutineMoveFailureKind.unauthorized)));
+  });
+
   group('Network & Auth Providers', () {
     test('providers instantiate with safe unavailable defaults in container',
         () {
@@ -306,6 +435,27 @@ void main() {
     });
   });
 }
+
+class _MoveClient extends Fake implements SupabaseClient {
+  _MoveClient(this.fakeAuth);
+  final _MoveAuth fakeAuth;
+  @override
+  GoTrueClient get auth => fakeAuth;
+}
+
+class _MoveAuth extends Fake implements GoTrueClient {
+  _MoveAuth(this.currentUser);
+  @override
+  User? currentUser;
+}
+
+User _moveUser(String id) => User(
+  id: id,
+  appMetadata: const {},
+  userMetadata: const {},
+  aud: 'authenticated',
+  createdAt: '2026-10-18T00:00:00Z',
+);
 
 class _FakeSupabaseClient extends Fake implements SupabaseClient {}
 
