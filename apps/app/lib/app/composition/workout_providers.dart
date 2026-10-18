@@ -104,6 +104,13 @@ final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
   },
 );
 
+/// Explicit production release hold for Routine Move #569.
+/// Keep false until M3D3 owner-safe cross-operation/list reconciliation,
+/// hosted atomic Create+Move RPC + least-privilege grants and device QA pass.
+/// The app shell may prepare Move closures, but it must not expose a 3-dot
+/// capability while any one of those release gates is incomplete.
+final routineMoveReleaseEnabledProvider = Provider<bool>((ref) => false);
+
 /// Shared across all Routine Move routes, owners and login cycles.
 final routineMoveAttemptGateProvider = Provider<RoutineMoveAttemptGate>(
   (ref) => RoutineMoveAttemptGate(),
