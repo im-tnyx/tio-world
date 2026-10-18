@@ -76,6 +76,29 @@ void main() {
     expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
   });
 
+  testWidgets('Move starts immediately while its options sheet dismisses',
+      (tester) async {
+    final repository = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+    ]);
+    var starts = 0;
+    await _pump(tester, repository: repository,
+        onMoveRoutine: (routine) async {
+      starts++;
+      return false;
+    });
+    await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
+    expect(starts, 1,
+        reason: 'Do not wait for the closing sheet reverse animation to '
+            'start owner-guarded destination inspection');
+    await tester.pumpAndSettle();
+    expect(starts, 1, reason: 'Dismiss completion must not double-dispatch');
+    expect(repository.rows, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('dismissed or declined Move does not dispatch or claim success',
       (tester) async {
     final repository = _MemoryRoutines([
