@@ -22,6 +22,19 @@
 - **Validation:** Not run on new slice yet; do not infer CI from prior PR.
 - **Next exact action:** Implement preview-only gate, enforce write interception in Workout flow, add both branch-specific and real app-router tests, open Draft PR, validate and hand off.
 
+## Owner physical-device UI acceptance amendments — 2026-10-18
+
+**Approval trigger:** Owner visually inspected the actual opted-in debug PR #607 branch on their phone and explicitly requested bounded UX corrections in the same Move destination selector. No separately scoped product work.
+**Requested changes:**
+- On selecting Routine's `Move Routine`, open the destination bottom sheet immediately, not after waiting for network inspection. Show an interim loading state *within* the same existing Core editor sheet, then display only verified owner-scoped destinations; preserve auth/login-cycle cancellation, retry/unknown safety, and all write gates.
+- Destination sheet title becomes **Select Program**; the Routine three-dot action remains **Move Routine** and final confirmations retain their descriptive existing copy.
+- Existing destinations are separated from New Program by one horizontal divider, replacing the instructional phrase. The divider is absent when no eligible existing destination is present.
+- New Program row has **one plus**: leading plus icon and text `New Program` (no plus embedded in the label). Do not add Program icons or modify other screens.
+**Source evidence:** `RoutineMoveFlow.run` awaits `RoutineMoveDestinationController.inspect` (readOwned header + ProgramRepository.list) *before* calling `showTioEditorSheet`, explaining the observed hand-off gap under network latency. `TioEditorSheet` shared geometry is not the owner of this asynchronous pause; do not globally alter Core sheet or route insets. Old label was `+ New Program` *and* `Icons.add_rounded`.
+**Non-goals:** No Product/Program icon redesign; no RPC grant, real write activation, preview-guard weakening or other sheet-layout change.
+**Additional validation:** Delayed inspect and list loading must show the title/sheet promptly and zero destination choices until both reads verify; auth cancellation and no stale destination; selected destinations/new-only divider rules; existing preview zero-write and app two-surface tests; exact branch CI.
+**Implementation state:** Added to current Draft PR #607 scope, validation pending.
+
 ## Seven-phase workflow
 
 ### 1. Discovery
