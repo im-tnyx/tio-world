@@ -101,7 +101,10 @@ final class RoutineMoveFlow {
             if (dismissalScheduled) return;
             dismissalScheduled = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (sheetContext.mounted) {
+              // A stale async read must never pop the screen *under* an
+              // already-dismissed selector or a newly opened modal.
+              if (sheetContext.mounted &&
+                  ModalRoute.of(sheetContext)?.isCurrent == true) {
                 Navigator.of(sheetContext).pop(reason);
               }
             });
