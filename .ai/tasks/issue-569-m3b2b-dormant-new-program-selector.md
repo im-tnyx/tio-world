@@ -20,12 +20,12 @@
 **Branch:** `tnyx/issue-569-m3b2b-dormant-new-program-selector`.
 **Observed working-tree state:** GitHub connector branch only; local Windows `git status` unavailable. No assumption of local worktree cleanliness.
 **PR / tracker:** [Draft PR #600](https://github.com/im-tnyx/tio-world/pull/600), GitHub #569, Linear TNYX-81, TNYX-267, #568 separately gated.
-**Current implementation state:** UI source and two widget regressions committed at `055d887e`; capability-injected `+ New Program` appears first; no live app wiring or Supabase RPC grant.
+**Current implementation state:** Source/test `055d887e` implemented the dormant selector; Codex P2 post-dispatch auth switch refresh issue in PR #600 fixed at source/test `b31ccc28` for both New and existing Program paths; three new focused widget regressions added. App remains unwired and Supabase RPC grant is still revoked.
 **Validation completed at SHA:** Code/test HEAD `055d887e1960fae1d6e9da514b97d8b0d2bb18bb`: [Flutter CI #39101518706](https://github.com/im-tnyx/tio-world/actions/runs/39101518706) COMPLETED SUCCESS 5/5 (analyzer and all Flutter test shards); commit attribution guard 2/2 SUCCESS.
-**Validation remaining:** Exact later docs-only HEAD CI if modified; independent review, device QA and owner merge gate. CI app-workout shard includes the two newly added widgets.
+**Validation remaining:** Exact latest P2 fix and subsequent task-only head Flutter CI, independent review and owner merge gate. No local Windows, hosted activation or device QA.
 **Current blocker:** Actual protected Create+Move client gateway/app shell and Supabase release remain separate.
-**Open review finding IDs:** None at start.
-**Next exact action:** Review the six-file Draft PR #600 against owner/login-cycle/unknown-outcome and UI reuse. Do not connect the atomic callback or merge without separate approval.
+**Open review finding IDs:** P2 Codex [thread PRRT_kwDOTOXwB86tn0tg](https://github.com/im-tnyx/tio-world/pull/600#discussion_r4305930495), confirmed post-dispatch auth switch falsely returned `false`; fix committed `b31ccc28`, awaiting exact-head CI and reviewed thread resolution.
+**Next exact action:** Verify exact-head CI for `b31ccc28` and docs handoff; reply with P2 evidence and resolve thread only after tests pass, then independent review. Do not connect the atomic callback or merge without separate approval.
 
 ## 1. Discovery
 User outcome: Saved Routine Move can choose either another existing owner Program or the first-row `+ New Program` and edit `Program N` name before explicit Create & Move.
@@ -47,12 +47,13 @@ Approved via #569: source-only Move list shows New Program only, no phantom My P
 - [x] Explicit Create & Move confirmation; frozen Program ID/mutation token for that attempt; no two-client-write fallback.
 - [x] Two new Flutter widget regressions for New Program order and source-only cancellation, plus pre-existing Move regression suite.
 - [x] Code/test HEAD Flutter CI #39101518706 PASS 5/5 and required attribution PASS 2/2.
-- [ ] Independent source/security/UI review, later exact-head CI if docs change, explicit owner Go merge.
+- [x] Codex P2 review finding reproduced in post-dispatch control flow and source fix committed `b31ccc28`; three new auth-switch success/uncertain regressions added, including existing-Program parity.
+- [ ] Exact latest source+docs HEAD CI, Codex P2 thread resolution, independent source/security/UI review and explicit owner Go merge.
 - [ ] App-shell auth/operation mutex, protected atomic backend adapter, deployed migration, client grants, #568 and physical QA as separate slices.
 
 ## 6. Quality Review
 **Remote CI:** source/test `055d887e` [Flutter CI #39101518706](https://github.com/im-tnyx/tio-world/actions/runs/39101518706) completed SUCCESS: analyzer, app-workout, core-wear, nutrition-onboarding and aggregate 5/5; required commit attribution + runner 2/2. No local Windows `git status`, local `flutter`, or device QA possible with connector-only session.
-**Manual scoped code audit:** six intended paths; no SQL or apps/app diff, optional callback not provided by production; existing destination route unchanged, name-only editor never calls `ProgramRepository.create`. Remaining future activation requires a shared process-lifetime concurrency/unknown-outcome gate and app-shell owner/session checks. Independent review not claimed.
+**Manual scoped code audit:** six intended paths; no SQL or apps/app diff, optional callback not provided by production; existing destination route unchanged, name-only editor never calls `ProgramRepository.create`. Codex P2 identified session change after dispatched atomic callback, where a committed mutation erroneously returned false and blocked caller refresh. `b31ccc28` changes both atomic and existing Move post-dispatch return paths and UNKNOWN/error handling to preserve `attempted` while suppressing old-session success/unknown messages, with three widget regression tests. Exact P2 fix CI not yet claimed passed. Future activation still requires shared process-lifetime concurrency/unknown gates and app-shell owner/session guards. Independent approval not claimed.
 
 ## 7. Final Handoff
 **Changed paths:** `programs_controller.dart`, `programs_surface.dart`, `routine_move_flow.dart`, `routine_move_flow_test.dart`, this handoff and `.ai/tasks/README.md`.
