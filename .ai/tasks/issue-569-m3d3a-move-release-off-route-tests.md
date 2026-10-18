@@ -40,13 +40,13 @@
 
 ## Implementation / quality
 
-- [ ] Add minimal inert Move gateway and authenticated SDK fixture only in existing app test.
-- [ ] Mount and assert both real entry surfaces with non-null adapter alias, release OFF and no Move action.
-- [ ] Verify no changes to production code or hosted database.
+- [x] Added an inert Move gateway and matching Auth/SDK user fixture only in existing app test.
+- [x] Added two real router tests: Program Detail and expanded Library with non-null adapter/alias, matching owner and release OFF; runtime execution/CI validation still pending.
+- [x] Scoped remote source write touched only the existing app widget test and task/index; no production code or hosted Supabase change.
 - [ ] Inspect PR scoped file diff and exact-head Flutter/attribution CI; fix any failing test before review.
 - [ ] Leave separate M3D3 enabled-path auth-cycle revocation, cross-operation arbitration, verified refresh/reconciliation and hosted RPC security rollout unclaimed.
 
 ## Final handoff
 
-**Actual behavior:** Pending test-only implementation; no runtime release.
+**Actual behavior:** Test-only app-router coverage added on isolated branch. It injects an inert Move gateway, a consistent SDK/authenticated owner and asserts both real action sheets keep Edit but omit Move while release is OFF. Test execution and CI are pending; no runtime release.
 **Final status:** PARTIAL, pending CI/review.
