@@ -801,8 +801,10 @@ void main() {
   testWidgets('UNKNOWN existing Move displays success only after exact receipt',
       (tester) async {
     final g = _VerifyingMove()
-      ..onMove = () async => throw const RoutineMoveOutcomeUnknown(
-        reason: RoutineMoveUncertainty.stillPresent)
+      ..onMove = () async {
+        throw const RoutineMoveOutcomeUnknown(
+          reason: RoutineMoveUncertainty.stillPresent);
+      }
       ..onVerify = () async => RoutineMoveReadback(
         kind: RoutineMoveReadbackKind.confirmedLatestMutation,
         observedProgramId: destination.id, observedRevision: 5);
@@ -834,7 +836,7 @@ void main() {
     testWidgets('UNKNOWN existing Move ${kind.name} cannot claim success',
         (tester) async {
       final g = _VerifyingMove()
-        ..onMove = () async => throw const RoutineMoveOutcomeUnknown()
+        ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
         ..onVerify = () async => RoutineMoveReadback(kind: kind);
       bool? refresh;
       await _pump(tester,
@@ -858,7 +860,7 @@ void main() {
   testWidgets('UNKNOWN verifier exception cannot replace uncertain outcome',
       (tester) async {
     final g = _VerifyingMove()
-      ..onMove = () async => throw const RoutineMoveOutcomeUnknown()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
       ..onVerify = () async => throw StateError('offline readback');
     bool? refresh;
     await _pump(tester,
@@ -883,7 +885,7 @@ void main() {
     var allowed = true;
     bool? refresh;
     final g = _VerifyingMove()
-      ..onMove = () async => throw const RoutineMoveOutcomeUnknown()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
       ..onVerify = () => receipt.future;
     await _pump(tester,
       flow: RoutineMoveFlow(newMutationId: () => token),
