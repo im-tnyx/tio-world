@@ -1,43 +1,44 @@
 # GitHub #569 — M3D3B3e UNKNOWN feedback lifecycle regression
 
-**Status:** In Review — [PR #616](https://github.com/im-tnyx/tio-world/pull/616) Ready for Review; P2 fix requires fresh exact-HEAD CI, owner authorized conditional merge
-**Implementation owner:** Workout presentation/widget tests
-**Planning and security review:** Repository architecture review + Codex code review
-**Branch:** `tnyx/issue-569-m3d3b3e-unknown-ui-lifecycle-regression`
-**Base:** Protected `main@173b5d979c5952d1a492c7c050ddcf6b4001920a`
-**Related:** GitHub #569, Linear TNYX-81, merged [#615](https://github.com/im-tnyx/tio-world/pull/615)
+**Status:** Validated — 2026-10-19; [PR #616](https://github.com/im-tnyx/tio-world/pull/616) squash-merged.
+**Implementation owner:** Workout presentation/widget tests — completed; no active source implementation in this slice.
+**Planning / review:** GitHub #569 remains OPEN; Linear TNYX-81 remains Backlog with W1/TNYX-78 and W3/TNYX-80 blockers.
+**Reviewed PR HEAD:** `45f7fa712ed6ab36252ab2dfd7eb7b61ebae4abc`.
+**Protected main merge commit:** `8d25bde88f3de0d8b896b4a30d3312b1e92f7ee0`.
+**Original branch:** `tnyx/issue-569-m3d3b3e-unknown-ui-lifecycle-regression` (historical, not the current branch).
 
-## Discovery and owner boundary
-Owner-approved #569 Move lifecycle includes truthfulness after UNKNOWN responses, auth/login-cycle revocation, owner-scoped list refresh and no blind retry. No new product/UI slice. User first requested work through review gate; on 2026-10-19 the owner separately authorized **Go merge with merge gate**. Merge remains blocked until the fresh P2/P3 review findings are resolved and all new exact-HEAD required checks pass.
+## Discovery, owner approval and scope
 
-**In scope:** Add focused widget regressions for (a) atomic Create & Move UNKNOWN whose optional verifier returns no exact receipt; and (b) widget disposal while a previously dispatched existing Move's receipt is pending. Existing Move/atomic success, preview zero writes and revoked-session tests already exist; avoid duplicating them. Reconcile stale merged #615 handoffs.
+GitHub #569 owner-approved Move UNKNOWN reconciliation includes accurate feedback, no blind retry, widget disposal and auth-cycle safety. The owner separately authorized PR #616 squash merge after its review gate. No new independently scoped product feature, product-visible UI, backend or schema change was authorized.
 
-**Out of scope:** Production UI geometry, code paths without a demonstrated test failure, 5-second real reversal Undo (separate owner approval required), hosted Supabase SQL/RPC/grants, release activation, backend or hardware QA.
+The merged slice was **test plus execution handoff only** (four paths): focused Workout widget tests, the prior B3d task handoff, this B3e brief and `.ai/tasks/README.md`. No production Flutter source, UI geometry, Supabase migration/RPC/grants/RLS, release toggle or real Undo code was changed.
 
-## Actual source/runtime audit
-- Root and nested AGENTS, canonical architecture/ownership/dev/roadmap/Supabase docs, feature workflow, task template/index, Workout Move flow and repository tests, GitHub issue #569, Linear TNYX-81 and its blockers read.
-- [PR #615](https://github.com/im-tnyx/tio-world/pull/615) merged at protected `main@173b5d979c5952d1a492c7c050ddcf6b4001920a`; [post-merge Flutter CI #39242585331](https://github.com/im-tnyx/tio-world/actions/runs/39242585331) **5/5 SUCCESS**; 0 open PRs at scope start.
-- Live read-only Supabase: `move_user_workout_routine` SECURITY DEFINER exists but authenticated/anon EXECUTE false; atomic Create+Move RPC absent. Existing advisor warnings not changed; no database write.
-- Production release `routineMoveReleaseEnabledProvider=false`. The current feature `RoutineMoveFlow` rechecks `context.mounted && canWrite()` after awaited verification. A confirmed repository receipt may request caller refresh even when original widget is gone, but cannot show old UI feedback.
+## Verified behavior and coverage
 
-## Intended tests
-- [x] Atomic UNKNOWN with `RoutineMoveReadbackKind.notConfirmed` (or unavailable) remains unconfirmed; exactly one atomic callback and one readback, no standalone Program create or Move RPC.
-- [x] Existing Move UNKNOWN exact receipt arrives after unmount: no stale "Routine moved" UI, no uncaught Flutter exception, exactly one original write and one verification, return flag preserves owner-guarded refresh request. No late retry.
-- [x] No production source modifications; only widget test and `.ai` handoff/index edits.
-- [ ] Latest exact-HEAD Flutter 5/5 and attribution after P2 fix plus P3 handoff edits. Original `203bb831` [Flutter #39245903335](https://github.com/im-tnyx/tio-world/actions/runs/39245903335) 5/5 SUCCESS and [attribution #39245903069](https://github.com/im-tnyx/tio-world/actions/runs/39245903069) SUCCESS, but **superseded** by the stronger test; new checks pending.
-- [ ] Latest-head code review and inline finding resolution; manual review recorded, PR Ready for Review. Codex completed at old HEAD `203bb831` with 0 findings; recheck the new HEAD.
-- [x] **Owner `Go merge` authorization received in current turn**; execute only once fresh CI, Codex/disposition and protected-branch gate are clear.
+- Atomic `Create & Move` UNKNOWN with no authoritative original mutation receipt remains unconfirmed, requests owner-guarded refresh, performs one atomic command and one verifier read, and never runs standalone Program creation or a second Move.
+- Existing Move UNKNOWN readback resolving after originating-route disposal cannot surface a stale success/error snackbar. The final P2-corrected test preserves the root `MaterialApp` and live `ScaffoldMessenger` while replacing only the original route with a destination `Scaffold`; a positive-control snackbar proves the messenger survives. One original write, one readback and the attempted refresh signal remain.
+- These are automated regression test results, not evidence of device QA or live permissioned Move writes.
 
-## Current checkpoint
-Remote-only GitHub connector; Windows checkout, `git status`, local Flutter tests and physical QA are not available. Use GitHub ancestry, scoped diff and hosted exact-HEAD CI as verifiable evidence.
+## Quality gate — completed at the exact reviewed SHA
 
+- [x] [Flutter CI #39248566192](https://github.com/im-tnyx/tio-world/actions/runs/39248566192): **SUCCESS 5/5** at PR HEAD `45f7fa71` (analyzer/Dart, app-workout, core-wear, nutrition-onboarding, aggregate).
+- [x] [Commit attribution #39248385873](https://github.com/im-tnyx/tio-world/actions/runs/39248385873): **SUCCESS** at the same PR HEAD.
+- [x] Codex **code review completed**, no findings, at `45f7fa71`; all **3/3 inline threads replied to and resolved**. Manual author-side review was COMMENTED, **not** an independent formal APPROVED; a separate automated security review was not claimed.
+- [x] Owner `Go merge with merge gate` authorization, followed by standard GitHub squash merge (no branch-protection bypass).
+- [x] [Protected-main post-merge Flutter CI #39249303687](https://github.com/im-tnyx/tio-world/actions/runs/39249303687): **SUCCESS 5/5** at the merge commit `8d25bde8`.
 
-## Quality review findings and exact-head handoff (2026-10-19)
+### Resolved review findings
 
-| ID | Priority | Status | Finding / correction |
-| --- | --- | --- | --- |
-| [P2 test route + messenger](https://github.com/im-tnyx/tio-world/pull/616) | P2 | Fixed in source `e3aa08cc`; validation pending | Previous test unmounted all of MaterialApp, so feedback assertions were vacuous. Replacement removes just the original Navigator route while keeping a persistent destination Scaffold and the same app-level ScaffoldMessenger; asserts no stale Snackbar after readback and proves messenger alive using a positive-control SnackBar. |
-| [P3 task status](https://github.com/im-tnyx/tio-world/pull/616) | P3 | Corrected in this handoff, latest-head review pending | This task now identifies PR #616 Ready for Review, latest code-review status, exact old-head CI evidence and P2 corrective HEAD/new CI requirement. |
-| [P3 index](https://github.com/im-tnyx/tio-world/pull/616) | P3 | Pending same-branch index correction | Index must identify PR #616 and distinguish earlier PASS from P2 fix final validation. |
+| ID | Severity | Disposition and evidence |
+| --- | --- | --- |
+| [Route disposal / live messenger](https://github.com/im-tnyx/tio-world/pull/616) | P2 | Resolved: corrected source test `e3aa08cc`, final PR-head Flutter 5/5 PASS and thread resolved. Replaced vacuous whole-app unmount with real route replacement while a root messenger is alive. |
+| [Task status drift](https://github.com/im-tnyx/tio-world/pull/616) | P3 | Resolved: status and exact-head gate evidence reconciled during PR, reviewer reply/thread resolved; this post-merge handoff records final actual outcome. |
+| [Task index drift](https://github.com/im-tnyx/tio-world/pull/616) | P3 | Resolved: reviewer reply/thread resolved; final index row is reconciled in the separate docs-only post-merge handoff PR. |
 
-**Current owner:** Workout presentation test implementation; review owner audits but does not modify runtime. Production Move release flag remains OFF, hosted Move EXECUTE revoked, hosted atomic Create+Move absent and true post-commit Undo separately approval gated. No local Windows checkout or physical device QA performed. Follow the live PR and GitHub checks for the final verdict rather than treating this dated checkpoint as a CI pass.
+## Final handoff and release boundaries
+
+**Actual outcome:** B3e test-only regression slice **VALIDATED / MERGED**, not the entire Move Routine feature. GitHub #569 is still OPEN and parent Linear TNYX-81 Backlog. Current `apps/app/lib/app/composition/workout_providers.dart` still sets `routineMoveReleaseEnabledProvider=false`. The implementation-period live read-only Supabase audit showed authenticated Move EXECUTE revoked and atomic Create+Move RPC absent; no fresh hosted DB write/deploy or grant is part of this handoff. Real five-second reverse Undo is **planning acceptance only** and needs a separately approved bounded implementation.
+
+**Verification environment:** GitHub connector and hosted GitHub Actions. No local Windows `git status`, worktree sync/cleanup, physical-device QA or production write performed or claimed. Follow `.github/POST_MERGE_SYNC.md` before local changes.
+
+**Archive decision:** Kept linked from the active #569 task index as a validated sub-slice for continuity while the umbrella issue and release gates remain open. Follow `.ai/archive/README.md` before any later archive action; do not mark #569/TNYX-81 complete on that basis.
