@@ -91,10 +91,12 @@ SupabaseRoutineMoveRepository repo(
   String? Function()? user,
   String? Function()? loginCycle,
   Duration timeout = const Duration(seconds: 15),
+  RoutineMovePendingCreateCheck? pendingCreateForProgram,
 }) => SupabaseRoutineMoveRepository(
   gateway: gateway, attemptGate: gate ?? RoutineMoveAttemptGate(),
   currentUserId: user ?? () => owner,
   currentLoginCycleId: loginCycle ?? () => cycle,
+  pendingCreateForProgram: pendingCreateForProgram,
   timeout: timeout,
 );
 
@@ -108,6 +110,69 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  test('pending Create in source Program blocks both Move variants before RPC',
+      () async {
+    var pending = true;
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        pending && u == owner && p == source);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'New Program', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 0,
+        reason: 'No Move RPC is dispatched while Create can still commit');
+    // The original prepared Move capability was not consumed by the
+    // program-level preflight; a definite Create release can unblock it.
+    pending = false;
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create in existing destination blocks Move only for that owner',
+      () async {
+    var pending = true;
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        pending && u == owner && p == destination);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    pending = false;
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create for another owner is not a Move blocker', () async {
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        u == other && p == source);
+    final t = await inspect(r);
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create lookup error fails closed for both Move paths',
+      () async {
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        throw StateError('disposed gate'));
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'New Program', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 0);
+  });
+
   test('atomic known SQL rejection after login-cycle change is UNKNOWN', () async {
     var loginCycle = cycle;
     final gate = RoutineMoveAttemptGate();
