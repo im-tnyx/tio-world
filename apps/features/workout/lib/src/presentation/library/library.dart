@@ -8,6 +8,7 @@ export 'routines/routine_pending_create_gate.dart';
 export 'routines/routine_delete_flow.dart';
 export 'routines/routine_move_destination_controller.dart';
 export 'routines/routine_move_flow.dart';
+export 'routines/routine_move_refresh_signal.dart';
 export 'routines/create_routine_page.dart';
 export 'routines/edit_routine_page.dart';
 export 'routines/routine_set_editor_sheet.dart';
