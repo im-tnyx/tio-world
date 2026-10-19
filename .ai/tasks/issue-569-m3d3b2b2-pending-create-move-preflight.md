@@ -1,6 +1,6 @@
 # #569 M3D3B2b2 — Pending Create versus Move Program dispatch preflight
 
-**Status:** Implementation / CI pending
+**Status:** Draft PR #611 / exact-head CI and review pending
 **Implementation owner:** Workout feature data/presentation and apps/app composition
 **Approval:** Existing approved #569 Move Routine safety acceptance; user 2026-10-19 `Next work go with audit` after B2b1 merge. Normal internal correctness subtask; no new visible product/UI or Supabase shape.
 
@@ -31,10 +31,10 @@ An atomic Create Routine produces a **new** RoutineId in its existing Program, w
 - [ ] Codex/inline review and owner merge gate.
 
 ## 5. Quality Review
-**Validation:** Pending GitHub exact-head CI. No local Windows checkout, `git status`, Flutter SDK, device QA or compiled APK run claimed.
+**Validation:** Source/test HEAD `30a96c5c` [Flutter CI #39209803598](https://github.com/im-tnyx/tio-world/actions/runs/39209803598) analyzer and core-wear PASS, app-workout and nutrition in progress at first checkpoint; [attribution #39209803599](https://github.com/im-tnyx/tio-world/actions/runs/39209803599) 2/2 PASS. This documentation-only update changes HEAD; verify its own latest checks before claiming full green. No local Windows checkout, `git status`, Flutter SDK, device QA or APK build.
 
 ## 6. Final Handoff
 **Branch:** `tnyx/issue-569-m3d3b2b2-pending-create-move-preflight`.
-**PR:** Not yet created.
+**PR:** [Draft #611](https://github.com/im-tnyx/tio-world/pull/611), OPEN and UNMERGED. Owner has not requested merge.
 **Release hold:** `routineMoveReleaseEnabledProvider=false`; debug Move preview zero-write; no hosted Supabase grant, migration or production activation.
 **Next:** M3D3B3 owner-verified source/dest refresh; real five-second Undo after approved server contract.
