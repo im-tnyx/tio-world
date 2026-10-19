@@ -99,7 +99,9 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     if (!mounted || signal == null || !signal.matches(
       ownerId: widget.moveRefreshOwnerId,
       loginCycleId: widget.moveRefreshLoginCycleId,
-    )) return;
+    )) {
+      return;
+    }
     // List reads are authoritative even after an UNKNOWN Move; no success
     // is inferred from the signal or from a failed/early read.
     _controller?.load();
