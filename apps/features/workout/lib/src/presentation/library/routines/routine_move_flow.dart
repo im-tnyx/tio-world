@@ -298,9 +298,32 @@ final class RoutineMoveFlow {
       }
       return true;
     } on RoutineMoveOutcomeUnknown {
+      // The original write may have committed despite a lost response.
+      // Only the optional same-cycle read-only mutation receipt can confirm
+      // that exact request. Never replay either Move RPC or infer success
+      // from destination membership / a later unrelated mutation.
+      var confirmedByReadback = false;
+      if (attempted && context.mounted && canWrite() &&
+          repository is RoutineMoveUnknownVerifier) {
+        try {
+          final readback = await repository.verifyUnknown(
+            routineId: routine.id,
+          );
+          confirmedByReadback =
+              readback.kind == RoutineMoveReadbackKind.confirmedLatestMutation;
+        } catch (_) {
+          // A failed, unsupported or stale-session read is not a receipt.
+          // Retain the original UNKNOWN message and caller refresh signal.
+        }
+      }
+      // A read may complete after widget disposal or account/cycle switch.
       if (attempted && context.mounted && canWrite()) {
-        _show(context,
-            'Move status is unconfirmed. Refresh Programs; do not retry.');
+        if (confirmedByReadback) {
+          _show(context, 'Routine moved.', confirmed: true);
+        } else {
+          _show(context,
+              'Move status is unconfirmed. Refresh Programs; do not retry.');
+        }
       }
       return attempted;
     } on RoutineMoveException catch (error) {
