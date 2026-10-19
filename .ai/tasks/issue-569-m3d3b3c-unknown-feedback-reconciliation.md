@@ -1,6 +1,6 @@
 # GitHub #569 — M3D3B3c UNKNOWN Move flow readback feedback
 
-**Status:** In progress, code and CI/review pending
+**Status:** Ready for Review gate (PR #614; no merge). Exact-HEAD CI and review evidence are tracked in the live PR, not assumed here.
 **Implementation owner:** Workout presentation / RoutineMoveFlow
 **Related:** GitHub #569, merged [PR #613](https://github.com/im-tnyx/tio-world/pull/613), Linear TNYX-81
 **Base:** protected `main@a892e2dbabf19d771234f3e1d8f94d8f2c58a544`; branch `tnyx/issue-569-m3d3b3c-unknown-feedback-reconciliation`
@@ -20,8 +20,13 @@
 - Keep preview-only Undo dismiss-only; do not introduce real reverse Move, timer changes, error spam, more RPC retries, hosted deployment or app-shell wiring. This only reuses existing UI copy and avoids false success.
 
 ## Review and quality gates
-- [ ] Focused widget tests: exact-token readback success for existing and atomic paths; negative, exceptional/unsupported verifier; revocation mid-read; preview zero-read/write.
-- [ ] Exact-head Flutter CI 5/5 and attribution.
+- [x] Focused widget test sources added for exact-token existing/atomic readback, four negative result kinds, verifier exception, auth switch and preview zero-write; execution PASS must be established from live exact-HEAD CI.
+- [ ] Before merge: recheck latest exact-head Flutter 5/5 and attribution in [PR #614](https://github.com/im-tnyx/tio-world/pull/614). Initial `402d3192` analyzer failed (optional verifier narrowing and chained async throw); follow-up `47145466` analyzer found one `prefer_const_constructors` lint at test line 916. Fix committed as `46fd922b`; later documentation-only edits require their own exact-HEAD CI.
 - [ ] Latest-head architecture/security review and Codex findings/thread disposition. Codex quota issues are external service failures, not green review.
-- [ ] PR Ready for Review, branch compare and 0 unresolved threads. **No actual merge** without separate owner `Go merge`.
+- [ ] At final gate: PR #614 Ready for Review, latest branch compare and zero unresolved inline review threads. **No actual merge** without separate owner `Go merge`.
 - Local Windows checkout, phone QA and Flutter CLI unavailable in the connected GitHub runtime. Never report those run.
+
+## Recovery checkpoint
+- Owner requested **review gate only**; PR #614 started Draft, source review and CI fixes applied sequentially. `main@a892e2db` held while work proceeded. No local Windows sync or branch deletion carried out.
+- Production Workout change is contained to existing `RoutineMoveFlow` UNKNOWN error catch, without a new widget/token. All other code paths and preview stay unchanged.
+- Original analyzer failures are real validation issues and fixed in subsequent scoped commits; no blanket success claim until the final HEAD run is completed.
