@@ -219,10 +219,6 @@ final class SupabaseRoutineMoveRepository
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
     }
-    if (_blockedByCreate(session.owner, target.sourceProgramId,
-        destinationProgramId)) {
-      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
-    }
     final cross = _crossOperationGate;
     if (cross != null) {
       if (cross.uncertain(session.owner, target.routineId)) {
@@ -235,6 +231,14 @@ final class SupabaseRoutineMoveRepository
           cross.generation(session.owner, target.routineId)) {
         throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
       }
+    }
+    // Preserve same-Routine UNKNOWN/stale-target error precedence before
+    // checking a different Routine's pending Create in these Programs.
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        destinationProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+    }
+    if (cross != null) {
       if (!cross.tryStart(session.owner, target.routineId)) {
         throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
       }
@@ -316,10 +320,6 @@ final class SupabaseRoutineMoveRepository
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
     }
-    if (_blockedByCreate(session.owner, target.sourceProgramId,
-        newProgramId)) {
-      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
-    }
     final cross = _crossOperationGate;
     if (cross != null) {
       if (cross.uncertain(session.owner, target.routineId)) {
@@ -332,6 +332,14 @@ final class SupabaseRoutineMoveRepository
           cross.generation(session.owner, target.routineId)) {
         throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
       }
+    }
+    // Preserve same-Routine UNKNOWN/stale-target error precedence before
+    // checking a different Routine's pending Create in these Programs.
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        newProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+    }
+    if (cross != null) {
       if (!cross.tryStart(session.owner, target.routineId)) {
         throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
       }
