@@ -11,7 +11,6 @@ routine_c='b5680000-0000-4000-8000-000000000023'
 mutation_a='b5680000-0000-4000-8000-000000000101'
 mutation_b='b5680000-0000-4000-8000-000000000102'
 mutation_c='b5680000-0000-4000-8000-000000000103'
-exercises='[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'
 
 if [[ "${GITHUB_ACTIONS:-}" != true || "$database_url" != "$expected_url" || "$#" -ne 0 ]]; then
   echo 'Refusing atomic default Create race outside disposable GitHub CI Postgres' >&2
@@ -79,7 +78,7 @@ SQL
 mkfifo "$fifo"
 psql "$database_url" --set=ON_ERROR_STOP=1 \
   --set=owner="$owner" --set=routine="$routine_a" \
-  --set=mutation="$mutation_a" --set=exercises="$exercises" \
+  --set=mutation="$mutation_a" \
   <"$fifo" >"$a_log" 2>&1 &
 pid_a=$!
 exec 3>"$fifo"
@@ -90,7 +89,8 @@ begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.create_user_workout_routine_in_my_program(
-  :'routine'::uuid, 'Race Routine A', :'mutation'::uuid, :'exercises'::jsonb
+  :'routine'::uuid, 'Race Routine A', :'mutation'::uuid,
+  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
 );
 \echo ACTOR_A_CREATED_UNCOMMITTED
 SQL
@@ -100,7 +100,7 @@ wait_log 'ACTOR_A_CREATED_UNCOMMITTED' "$a_log" "$pid_a"
 # Actor B attempts first-create concurrently
 psql "$database_url" --set=ON_ERROR_STOP=1 \
   --set=owner="$owner" --set=routine="$routine_b" \
-  --set=mutation="$mutation_b" --set=exercises="$exercises" \
+  --set=mutation="$mutation_b" \
   >"$b_log" 2>&1 <<'SQL' &
 begin;
 set local application_name='tnyx_568_atomic_default_race_b';
@@ -108,7 +108,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 \echo ACTOR_B_ATTEMPT
 select public.create_user_workout_routine_in_my_program(
-  :'routine'::uuid, 'Race Routine B', :'mutation'::uuid, :'exercises'::jsonb
+  :'routine'::uuid, 'Race Routine B', :'mutation'::uuid,
+  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
 );
 commit;
 \echo ACTOR_B_COMMITTED
@@ -175,7 +176,7 @@ mkfifo "$fifo"
 
 psql "$database_url" --set=ON_ERROR_STOP=1 \
   --set=owner="$owner" --set=routine="$routine_c" \
-  --set=mutation="$mutation_c" --set=exercises="$exercises" \
+  --set=mutation="$mutation_c" \
   <"$fifo" >"$a_log" 2>&1 &
 pid_a=$!
 exec 3>"$fifo"
@@ -186,7 +187,8 @@ begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.create_user_workout_routine_in_my_program(
-  :'routine'::uuid, 'Race Routine C', :'mutation'::uuid, :'exercises'::jsonb
+  :'routine'::uuid, 'Race Routine C', :'mutation'::uuid,
+  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
 );
 \echo ACTOR_A_C_UNCOMMITTED
 SQL
@@ -195,7 +197,7 @@ wait_log 'ACTOR_A_C_UNCOMMITTED' "$a_log" "$pid_a"
 
 psql "$database_url" --set=ON_ERROR_STOP=1 \
   --set=owner="$owner" --set=routine="$routine_c" \
-  --set=mutation="$mutation_c" --set=exercises="$exercises" \
+  --set=mutation="$mutation_c" \
   >"$b_log" 2>&1 <<'SQL' &
 begin;
 set local application_name='tnyx_568_atomic_default_replay_b';
@@ -203,7 +205,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 \echo ACTOR_B_REPLAY_ATTEMPT
 select public.create_user_workout_routine_in_my_program(
-  :'routine'::uuid, 'Race Routine C', :'mutation'::uuid, :'exercises'::jsonb
+  :'routine'::uuid, 'Race Routine C', :'mutation'::uuid,
+  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
 );
 commit;
 \echo ACTOR_B_REPLAY_COMMITTED

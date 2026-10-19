@@ -252,7 +252,10 @@ insert into auth.users (id, email)
 values ('c5680000-0000-4000-8000-000000000003', 'w1-owner-c@example.test');
 
 -- Canonical test exercise payload with 1 set
-\set valid_exercises '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'
+create function pg_temp.valid_exercises()
+returns jsonb language sql as $$
+  select '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb;
+$$;
 
 -- 9a. Input validation
 set local role authenticated;
@@ -260,7 +263,7 @@ select set_config('request.jwt.claim.sub', 'c5680000-0000-4000-8000-000000000003
 
 select pg_temp.assert_raises(
   $$select public.create_user_workout_routine_in_my_program(
-      null, 'Routine 1', 'c5680000-0000-4000-8000-000000000101', :'valid_exercises'::jsonb
+      null, 'Routine 1', 'c5680000-0000-4000-8000-000000000101', pg_temp.valid_exercises()
     )$$,
   '22023',
   'RPC rejects null routine_id'
@@ -268,7 +271,7 @@ select pg_temp.assert_raises(
 
 select pg_temp.assert_raises(
   $$select public.create_user_workout_routine_in_my_program(
-      'c5680000-0000-4000-8000-000000000201', '   ', 'c5680000-0000-4000-8000-000000000101', :'valid_exercises'::jsonb
+      'c5680000-0000-4000-8000-000000000201', '   ', 'c5680000-0000-4000-8000-000000000101', pg_temp.valid_exercises()
     )$$,
   '22023',
   'RPC rejects blank routine name'
@@ -276,7 +279,7 @@ select pg_temp.assert_raises(
 
 select pg_temp.assert_raises(
   $$select public.create_user_workout_routine_in_my_program(
-      'c5680000-0000-4000-8000-000000000201', 'Routine 1', null, :'valid_exercises'::jsonb
+      'c5680000-0000-4000-8000-000000000201', 'Routine 1', null, pg_temp.valid_exercises()
     )$$,
   '22023',
   'RPC rejects null client_mutation_id'
@@ -332,7 +335,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000201',
         'Morning Routine',
         'c5680000-0000-4000-8000-000000000101',
-        :'valid_exercises'::jsonb
+        pg_temp.valid_exercises()
       ) as res
     ) sub
   ),
@@ -368,7 +371,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000201',
         'Morning Routine',
         'c5680000-0000-4000-8000-000000000101',
-        :'valid_exercises'::jsonb
+        pg_temp.valid_exercises()
       ) as res
     ) sub
   ),
@@ -381,7 +384,7 @@ select pg_temp.assert_raises(
       'c5680000-0000-4000-8000-000000000201',
       'Altered Morning Routine',
       'c5680000-0000-4000-8000-000000000102',
-      :'valid_exercises'::jsonb
+      pg_temp.valid_exercises()
     )$$,
   'P0001',
   'altered payload with same routine_id raises identity conflict'
@@ -396,7 +399,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000202',
         'Evening Routine',
         'c5680000-0000-4000-8000-000000000103',
-        :'valid_exercises'::jsonb
+        pg_temp.valid_exercises()
       ) as res
     ) sub
   ),
@@ -422,7 +425,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000203',
         'Weekend Routine',
         'c5680000-0000-4000-8000-000000000104',
-        :'valid_exercises'::jsonb
+        pg_temp.valid_exercises()
       ) as res
     ) sub
   ),
@@ -447,7 +450,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000204',
         'User A Direct Routine',
         'c5680000-0000-4000-8000-000000000105',
-        :'valid_exercises'::jsonb
+        pg_temp.valid_exercises()
       ) as res
     ) sub
   ),
@@ -474,7 +477,7 @@ select pg_temp.assert_raises(
       'c5680000-0000-4000-8000-000000000201',
       'User B Hijack Attempt',
       'c5680000-0000-4000-8000-000000000106',
-      :'valid_exercises'::jsonb
+      pg_temp.valid_exercises()
     )$$,
   'P0002',
   'user B cannot reuse another user routine_id'

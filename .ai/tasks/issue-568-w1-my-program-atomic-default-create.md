@@ -117,6 +117,8 @@ Pending GitHub Actions Supabase Database CI on PR.
 - P1 Table INSERT hazard: Addressed by narrowing authenticated INSERT in the same migration.
 - P2 Concurrency serialization: Addressed by using `FOR NO KEY UPDATE` on `public.users`.
 - P2 Server-managed timestamps: Addressed by omitting `created_at` and `updated_at` from client INSERT grant.
+- P2-A Stale #569 Move test assertions: Fixed `tnyx_569_atomic_create_program_move.test.sql` lines 43-51 to assert 6 columns (including `is_default`) and column-level `(id, user_id, name)` INSERT instead of revoked table-wide INSERT.
+- P2-B Test psql variable substitution in dollar quotes: Fixed `tnyx_568_w1_my_program_atomic_default_create.test.sql` by defining `pg_temp.valid_exercises()` so dynamic SQL evaluation executes valid JSON without psql variable substitution failure. Inlined JSON in concurrency script.
 
 ## 7. Final Handoff
 
@@ -125,6 +127,7 @@ Pending GitHub Actions Supabase Database CI on PR.
 - `supabase/tests/database/tnyx_78_user_workout_program_privileges.test.sql`
 - `supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create.test.sql`
 - `supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create_concurrency.sh`
+- `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
 - `.github/workflows/supabase-db-ci.yml`
 - `.ai/tasks/issue-568-w1-my-program-atomic-default-create.md`
 - `.ai/tasks/README.md`

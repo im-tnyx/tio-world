@@ -40,15 +40,29 @@ select pg_temp.assert_true(
     'public.user_workout_routines','program_id','UPDATE')
   and not has_table_privilege('authenticated',
     'public.user_workout_programs','DELETE')
-  and has_table_privilege('authenticated',
-    'public.user_workout_programs','INSERT'),
-  'staged function dormant, direct Routine reparent denied, existing Program create untouched');
+  and not has_table_privilege('authenticated',
+    'public.user_workout_programs','INSERT')
+  and has_column_privilege('authenticated',
+    'public.user_workout_programs','id','INSERT')
+  and has_column_privilege('authenticated',
+    'public.user_workout_programs','user_id','INSERT')
+  and has_column_privilege('authenticated',
+    'public.user_workout_programs','name','INSERT')
+  and not has_column_privilege('authenticated',
+    'public.user_workout_programs','is_default','INSERT'),
+  'staged function dormant, direct Routine reparent denied, Program INSERT restricted to id/user_id/name');
 
 select pg_temp.assert_true(
-  (select count(*) = 5
+  (select count(*) = 6
     from information_schema.columns
-    where table_schema='public' and table_name='user_workout_programs'),
-  'no Program schema shape changes');
+    where table_schema='public' and table_name='user_workout_programs')
+  and exists (
+    select 1
+    from information_schema.columns
+    where table_schema='public' and table_name='user_workout_programs'
+      and column_name='is_default' and data_type='boolean'
+  ),
+  'Program schema contains approved six columns including is_default');
 
 -- CI-only transactional grants. No production client capability is published.
 grant execute on function public.create_user_workout_program_and_move_routine(
