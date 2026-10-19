@@ -71,7 +71,12 @@ final class RoutineMoveReadback {
 /// Optional recovery capability for an UNKNOWN Move within its original
 /// authenticated login cycle. Does not authorize new Move writes.
 abstract interface class RoutineMoveUnknownVerifier {
-  Future<RoutineMoveReadback> verifyUnknown({required RoutineId routineId});
+  /// Verify only this caller's attempted write, not an older UNKNOWN write
+  /// at the same Routine ID. The token must match the frozen attempt.
+  Future<RoutineMoveReadback> verifyUnknown({
+    required RoutineId routineId,
+    required String mutationId,
+  });
 }
 
 /// Optional Workout-owned capability, separate from RoutineRepository.
