@@ -20,6 +20,9 @@ Future<void> _pump(
   Future<void> Function(Routine)? onRoutinePressed,
   Future<bool> Function(Routine)? onEditRoutine,
   Future<bool> Function(Routine)? onMoveRoutine,
+  RoutineMoveRefreshSignal? moveRefreshSignal,
+  String? moveRefreshOwnerId,
+  String? moveRefreshLoginCycleId,
   Future<bool> Function(Routine)? onDeleteRoutine,
   Future<bool> Function(String suggestedName)? onCreateRoutine,
   double textScale = 1,
@@ -42,6 +45,9 @@ Future<void> _pump(
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
         onMoveRoutine: onMoveRoutine,
+        moveRefreshSignal: moveRefreshSignal,
+        moveRefreshOwnerId: moveRefreshOwnerId,
+        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
         onDeleteRoutine: onDeleteRoutine,
         onCreateRoutine: onCreateRoutine,
       ),
@@ -74,6 +80,48 @@ void main() {
     expect(moved?.id.value, _routineId);
     expect(moved?.programId, _program.id);
     expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+  });
+
+  testWidgets('external confirmed/unknown Move pulse rereads Detail once',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final rows = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id,
+        name: 'Push'),
+    ]);
+    await _pump(tester, repository: rows,
+      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a');
+    expect(find.text('Push'), findsOneWidget);
+    rows.rows.clear();
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+        programsMayHaveChanged: false);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-routines-empty')),
+        findsOneWidget,
+        reason: 'A read is needed; the signal never fabricates a Move');
+  });
+
+  testWidgets('Detail ignores old-cycle and foreign-owner Move signals',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final rows = _MemoryRoutines([
+      Routine(id: RoutineId(_routineId), programId: _program.id,
+        name: 'Push'),
+    ]);
+    await _pump(tester, repository: rows,
+      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-b',
+      moveRefreshLoginCycleId: 'cycle-b');
+    rows.rows.clear();
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-b',
+        programsMayHaveChanged: false);
+    signal.request(ownerId: 'owner-b', loginCycleId: 'cycle-a',
+        programsMayHaveChanged: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Push'), findsOneWidget,
+        reason: 'Old session events cannot re-read the new session');
   });
 
   testWidgets('Move starts immediately while its options sheet dismisses',
