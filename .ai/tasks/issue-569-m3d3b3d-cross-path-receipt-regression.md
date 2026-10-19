@@ -1,6 +1,6 @@
 # GitHub #569 — M3D3B3d cross-path UNKNOWN mutation receipt regression
 
-**Status:** In review · PR #615 OPEN / unmerged; exact-head CI and Codex review gates pending
+**Status:** Validated · [PR #615](https://github.com/im-tnyx/tio-world/pull/615) squash merged; protected main 173b5d97; post-merge CI 5/5 PASS
 **Primary owner:** Workout data / repository tests
 **Affected platforms:** Flutter Android/iOS Workout package (tests only)
 
@@ -15,17 +15,17 @@
 **Planning owner:** Tio-world repository audit
 **Implementation owner:** Workout data/repository test only
 **Review owner:** Codex and author-side manual security review
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Completed bounded test-only slice; no active source owner
 **Repository state last verified:** 2026-10-19, protected `main@428e2c6506533b2b4aecf0ae7f3b94835171f438` with 0 open PRs.
 **Branch:** `tnyx/issue-569-m3d3b3d-cross-path-receipt-regression`
-**HEAD SHA:** starts at `428e2c6506533b2b4aecf0ae7f3b94835171f438` (update after commits)
+**Merged SHA:** `173b5d979c5952d1a492c7c050ddcf6b4001920a`; PR reviewed source HEAD `35729fdfd9233ad2b9408117f6092737dea01309`
 **Observed working-tree state:** not available via remote-only GitHub connection; no local checkout was changed.
-**PR / tracker:** [Draft PR #615](https://github.com/im-tnyx/tio-world/pull/615) / #569 / Linear TNYX-81 (Backlog; W1/W3 dependencies retained).
-**Current implementation state:** Both opposite-path regression tests implemented; 0 production-source files changed. Three task files in PR, first analyzer/Dart CI PASS; remaining latest-head checks and Codex pending.
+**PR / tracker:** [Merged PR #615](https://github.com/im-tnyx/tio-world/pull/615) / #569 / Linear TNYX-81 (Backlog; W1/W3 dependencies retained).
+**Current implementation state:** Both cross-operation tests merged and passed in Flutter app-workout CI; no production-source files changed. Three scoped paths.
 **Validation completed at SHA:** [post-merge #614 Flutter CI #39238953843](https://github.com/im-tnyx/tio-world/actions/runs/39238953843) SUCCESS 5/5 at base.
-**Validation remaining:** new final docs-correction HEAD Flutter CI 5/5, attribution, exact-head Codex, 0 inline threads and final manual diff. Initial source/test SHA `3ca1c469` had attribution SUCCESS and analyzer/Dart PASS while remaining shards were running at this writing; not a claim of final-head green.
+**Validation completed:** Reviewed HEAD `35729fdf`: [Flutter CI #39240571900](https://github.com/im-tnyx/tio-world/actions/runs/39240571900) 5/5 SUCCESS, [attribution #39240569855](https://github.com/im-tnyx/tio-world/actions/runs/39240569855) SUCCESS, Codex code review completed 0 findings, 0 inline threads. [Main post-merge CI #39242585331](https://github.com/im-tnyx/tio-world/actions/runs/39242585331) 5/5 SUCCESS at merge SHA. No separate automatic security review claimed.
 **Current blocker:** none for this test-only approved subtask.
-**Next exact action:** verify final HEAD CI and Codex, repair any findings, move PR #615 to Ready for Review, record final evidence. Do not merge.
+**Next exact action:** None for B3d; follow-on M3D3B3e test-only workflow owns its new branch/review checkpoint.
 
 ## 1. Discovery
 **User outcome:** A previous ambiguous existing Move must never authorize a newer *atomic Create & Move* that was refused before dispatch, and vice versa.
@@ -47,14 +47,14 @@
 **Failure/accessibility:** test-only/no rendered UI. Denied second attempt remains unconfirmed; legacy older command can be confirmed only by its exact persisted receipt.
 
 ## 5. Implementation Plan
-- [x] Add both cross-variant regressions and assert no owner read on mismatched token (source written, awaiting full execution evidence).
+- [x] Add both cross-variant regressions and assert no owner read on mismatched token; verified by exact-head Flutter app-workout tests.
 - [x] Reconcile merged PR #614 with post-merge Flutter 5/5 and #615 active handoff in task index.
-- [ ] Exact latest-head CI and attribution.
-- [ ] Codex/manual review, ready-for-review gate, no merge.
+- [x] Exact latest-head Flutter CI 5/5 and attribution success.
+- [x] Codex code review zero findings, author-side manual security COMMENT (not independent APPROVED); standard GitHub squash merge completed on separate owner authorization.
 
 ## 6. Quality Review
-Not run yet. No independent approval claimed.
+Review and 5/5 Flutter validation completed on exact HEAD. No independent APPROVED review recorded. No device QA or live RPC activation claimed.
 
 ## 7. Final Handoff
 **Actual behavior:** no production change.
-**Final status:** REVIEW (CI/Codex still pending; no merge)
+**Final status:** VALIDATED / MERGED; production Move release remains OFF.
