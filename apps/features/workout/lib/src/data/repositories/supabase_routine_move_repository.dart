@@ -208,10 +208,6 @@ final class SupabaseRoutineMoveRepository
         !_isUuid(mutationId)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
     }
-    if (_blockedByCreate(session.owner, target.sourceProgramId,
-        destinationProgramId)) {
-      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
-    }
     final key = _ownerKey(session, target.routineId);
     final cycleKey = _cycleKey(session, target.routineId);
     if (_gate._uncertainRevision.containsKey(key)) {
@@ -222,6 +218,10 @@ final class SupabaseRoutineMoveRepository
     }
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        destinationProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
     final cross = _crossOperationGate;
     if (cross != null) {
@@ -305,10 +305,6 @@ final class SupabaseRoutineMoveRepository
         target.expectedRevision == 9223372036854775807) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
     }
-    if (_blockedByCreate(session.owner, target.sourceProgramId,
-        newProgramId)) {
-      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
-    }
     final key = _ownerKey(session, target.routineId);
     final cycleKey = _cycleKey(session, target.routineId);
     if (_gate._uncertainRevision.containsKey(key)) {
@@ -319,6 +315,10 @@ final class SupabaseRoutineMoveRepository
     }
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        newProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
     final cross = _crossOperationGate;
     if (cross != null) {
