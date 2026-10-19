@@ -404,23 +404,36 @@ List<RouteBase> _shellBranchChildRoutes(
 
             // A previously captured callback may run after logout or
             // same-owner relogin. Never give that old cycle new authority.
-            bool sameSession() {
+            // Post-write read invalidation must use only the authenticated
+            // owner/cycle. A newly pending Create or a release-toggle change
+            // may revoke NEW writes but cannot undo an already sent RPC.
+            bool sameAuthenticatedOwner() {
               try {
-                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final boot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final live = value.isLoading || value.hasError
                     ? null : value.valueOrNull;
-                final pending = ref.read(routinePendingCreateGateProvider);
-                return (ref.read(routineMoveReleaseEnabledProvider) ||
-                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
-                    boot is AppSessionBootstrapReady &&
+                return boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     live is AuthSessionAuthenticated &&
                     live.session.userId == owner &&
                     live.session.loginCycleId == cycle &&
                     ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
-                        owner &&
-                    !pending.hasPending(
+                        owner;
+              } catch (_) {
+                return false;
+              }
+            }
+
+            // Actual Move dispatch additionally requires the release/preview
+            // gate and no unresolved Create in its source Program.
+            bool sameSession() {
+              try {
+                return sameAuthenticatedOwner() &&
+                    (ref.read(routineMoveReleaseEnabledProvider) ||
+                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
+                    !ref.read(routinePendingCreateGateProvider).hasPending(
                       owner: owner, loginCycle: cycle, programId: program.id,
                     );
               } catch (_) {
@@ -465,7 +478,7 @@ List<RouteBase> _shellBranchChildRoutes(
             // invalidates live owner-scoped readers. The flow's boolean is
             // NOT a confirmed server mutation. If auth changed after dispatch,
             // the next owner/session must never receive the previous signal.
-            if (needsRefresh && sameSession()) {
+            if (needsRefresh && sameAuthenticatedOwner()) {
               moveRefresh.request(
                 ownerId: owner,
                 loginCycleId: cycle,
