@@ -6,6 +6,7 @@ import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../../../domain/usecases/program_id_generator.dart';
 import '../routines/inline_program_routines.dart';
+import '../routines/routine_move_refresh_signal.dart';
 import 'programs_controller.dart';
 
 enum _ProgramsSurfaceMode { standalone, library }
@@ -19,6 +20,9 @@ class ProgramsSurface extends StatefulWidget {
   const ProgramsSurface.standalone({
     required this.repository,
     this.idGenerator,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   })  : _mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null,
@@ -45,11 +49,18 @@ class ProgramsSurface extends StatefulWidget {
     this.hasUnconfirmedCreate,
     this.routineRepository,
     this.idGenerator,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
+  /// App-only owner/login-cycle bound invalidation, never Move success truth.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
@@ -76,14 +87,21 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   @override
   void initState() {
     super.initState();
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bindController();
   }
 
   @override
   void didUpdateWidget(covariant ProgramsSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (!identical(oldWidget.repository, widget.repository) ||
-        !identical(oldWidget.idGenerator, widget.idGenerator)) {
+        !identical(oldWidget.idGenerator, widget.idGenerator) ||
+        oldWidget.moveRefreshOwnerId != widget.moveRefreshOwnerId ||
+        oldWidget.moveRefreshLoginCycleId != widget.moveRefreshLoginCycleId) {
       _bindController();
     }
   }
@@ -112,8 +130,25 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     if (mounted) setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted || signal == null || !signal.matches(
+      ownerId: widget.moveRefreshOwnerId,
+      loginCycleId: widget.moveRefreshLoginCycleId,
+    )) return;
+    // Existing Move leaves Program membership unchanged: refresh expanded
+    // Routine lists without collapsing their expansion state. Atomic
+    // Create+Move may have created a Program, so re-read that collection too.
+    if (signal.programsMayHaveChanged) {
+      _controller?.load();
+    } else {
+      setState(() => _routineRefreshVersion++);
+    }
+  }
+
   @override
   void dispose() {
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
