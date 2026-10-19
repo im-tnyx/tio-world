@@ -116,6 +116,42 @@ void main() {
     expect(find.text('Lose Weight'), findsOneWidget);
   });
 
+  testWidgets('Body & Weight error Retry refreshes the canonical Body provider',
+      (tester) async {
+    final repository = _FakeBodyRepository();
+    final container = await buildContainer(repository);
+    addTearDown(container.dispose);
+
+    await openHealthGoals(tester, container);
+    await tester.tap(
+      find.byKey(const ValueKey('health-goals-body-weight-entry')),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    repository.failRead();
+    await tester.pumpAndSettle();
+    expect(find.text('Could not load Body & Weight'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('body-weight-current-weight-field')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    await tester.pump();
+    expect(repository.readCallCount, 2);
+    repository.completeRead(const BodyState());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load Body & Weight'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('body-weight-current-weight-field')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Daily Wellness still routes normally alongside Body & Weight',
       (tester) async {
     final repository = _FakeBodyRepository();
@@ -244,6 +280,12 @@ class _FakeBodyRepository implements BodyRepository {
 
   void completeRead(BodyState state) {
     if (!_completer.isCompleted) _completer.complete(state);
+  }
+
+  void failRead() {
+    if (!_completer.isCompleted) {
+      _completer.completeError(StateError('Body read unavailable'));
+    }
   }
 
   @override
