@@ -112,6 +112,89 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  group('cross-path UNKNOWN receipt correlation', () {
+    for (final atomicFirst in [true, false]) {
+      test('${atomicFirst ? 'atomic' : 'existing'} UNKNOWN cannot confirm '
+          'a blocked opposite-path command', () async {
+        final g = FakeMoveGateway();
+        if (atomicFirst) {
+          g.onCreateAndMove = () async => throw const PostgrestException(
+            message: 'completion unknown', code: '40003');
+        } else {
+          g.onMove = () async => throw const PostgrestException(
+            message: 'completion unknown', code: '40003');
+        }
+        final cross = RoutineMoveDeleteAttemptGate();
+        final r = repo(g, crossOperationGate: cross);
+        final first = await inspect(r);
+        if (atomicFirst) {
+          await expectLater(r.createAndMove(
+            target: first,
+            newProgramId: destination,
+            newProgramName: 'New Program',
+            mutationId: mutation,
+          ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+        } else {
+          await expectLater(move(r, first),
+              throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+        }
+        expect(g.writes, atomicFirst ? 0 : 1);
+        expect(g.atomicWrites, atomicFirst ? 1 : 0);
+        expect(cross.uncertain(owner, routine), isTrue);
+
+        final second = await inspect(r);
+        const newerToken = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+        if (atomicFirst) {
+          await expectLater(move(r, second, token: newerToken),
+              throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+        } else {
+          await expectLater(r.createAndMove(
+            target: second,
+            newProgramId: destination,
+            newProgramName: 'Not created',
+            mutationId: newerToken,
+          ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+        }
+        expect(g.writes, atomicFirst ? 0 : 1,
+            reason: 'Second cross-path Move cannot reach the RPC');
+        expect(g.atomicWrites, atomicFirst ? 1 : 0);
+
+        // Simulate the server committing ONLY the first ambiguous request.
+        // The newer, preflight-blocked command has a different UUID.
+        g.row = {
+          ...header(program: destination, revision: 5),
+          'last_composition_mutation_id': mutation,
+        };
+        final readsBeforeWrongToken = g.reads;
+        await expectLater(r.verifyUnknown(
+          routineId: routine, mutationId: newerToken),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+        expect(g.reads, readsBeforeWrongToken,
+            reason: 'Wrong command UUID denies before reading user data');
+        expect(cross.uncertain(owner, routine), isTrue);
+
+        final receipt = await r.verifyUnknown(
+          routineId: routine, mutationId: mutation);
+        expect(receipt.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
+        expect(receipt.observedProgramId, destination);
+        expect(receipt.observedRevision, 5);
+        expect(cross.uncertain(owner, routine), isFalse);
+        expect(g.writes, atomicFirst ? 0 : 1);
+        expect(g.atomicWrites, atomicFirst ? 1 : 0);
+
+        // A genuinely new Move is permitted only after owner-verified
+        // revision advancement and a fresh inspection.
+        g.onMove = null;
+        final fresh = await r.inspect(
+          sourceProgramId: destination, routineId: routine);
+        expect(fresh?.expectedRevision, 5);
+        expect(await move(r, fresh!, to: source, token: newerToken),
+            RoutineMoveResult.confirmed);
+        expect(g.writes, atomicFirst ? 1 : 2);
+      });
+    }
+  });
+
   group('read-only UNKNOWN Move verification', () {
     test('new blocked attempt cannot adopt previous UNKNOWN mutation receipt',
         () async {
