@@ -1,6 +1,6 @@
 # GitHub #569 — M3D3B3b UNKNOWN Move mutation readback
 
-**Status:** In progress; implementation / CI / review pending
+**Status:** Ready for Review / merge-gate verification; reviewer P3 governance corrections applied. Actual merge is separately owner-gated.
 **Implementation owner:** Workout domain/data repository
 **Related:** GitHub #569, merged PR #612, Linear TNYX-81 / TNYX-267
 **Base:** protected main@4b9404f4e6a93239f8ddab597eb6b55efdb7c1b0
@@ -26,7 +26,17 @@
 - Existing Python/Windows local checkout, Flutter CLI and physical device are not accessible through GitHub connector; never claim them tested.
 
 ## Quality gates
-- [ ] Exact-head hosted Flutter analyzer/app-workout/core-wear/nutrition/aggregate CI
-- [ ] Attribution guard
-- [ ] Codex/manual security review and disposition
-- [ ] Separate user Go merge, **not requested**
+- [x] Flutter CI [#39225108841](https://github.com/im-tnyx/tio-world/actions/runs/39225108841) **5/5 SUCCESS** on code+initial handoff HEAD `903040f803698cc6db4c2d3d58278d4df2517061` (app-workout, analyzer/Dart, core-wear, nutrition, aggregate).
+- [x] Attribution [#39225105724](https://github.com/im-tnyx/tio-world/actions/runs/39225105724) **SUCCESS** on the same prior exact HEAD.
+- [x] Author-side architecture/security [manual review #5569106776](https://github.com/im-tnyx/tio-world/pull/613#pullrequestreview-5569106776) COMMENTED (not independent APPROVED); two follow-up P3 governance findings identified at prior HEAD: [#4312018758](https://github.com/im-tnyx/tio-world/pull/613#discussion_r4312018758) and [#4312018764](https://github.com/im-tnyx/tio-world/pull/613#discussion_r4312018764).
+- [ ] Recheck **new documentation-correction HEAD** CI + attribution; do not reuse prior exact-HEAD result as the new HEAD's validation.
+- [ ] Codex review/inline thread disposition and latest-head scope audit. Zero earlier Codex reviews is not an independent approval.
+- [ ] Separate owner `Go merge`; **not requested**.
+
+## Merge-gate handoff — 2026-10-19
+- User instructed `Merge gate tak jana hoga go`: review and validation through the merge gate, **not an unconditional merge or production enablement**.
+- New correction scope limited to `.ai/tasks/README.md` P3 stale status and this handoff P3 stale CI checklist; no Workout runtime, SQL, Auth/session or UI edits.
+- Previous PR source/test HEAD `903040f8` passed hosted CI 5/5 and attribution. Manual follow-up review raised two P3 governance items; document status needs to reflect completed checks without falsely claiming new commit has passed.
+- Live GitHub status, PR body checkpoint and latest exact-HEAD checks govern if this documentation snapshot becomes historical. PR stays Ready for Review / unmerged until latest checks and all review findings are dispositioned.
+- Supabase authenticated Move EXECUTE stays revoked, atomic Create+Move function not hosted and production Move release flag OFF; no device QA asserted.
+
