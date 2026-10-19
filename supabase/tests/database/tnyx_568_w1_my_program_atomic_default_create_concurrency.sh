@@ -90,7 +90,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.create_user_workout_routine_in_my_program(
   :'routine'::uuid, 'Race Routine A', :'mutation'::uuid,
-  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
+  '[{"id": "b5680000-0000-4000-8000-000000000041", "exercise_ref": "ex_squat", "sets": [{"id": "b5680000-0000-4000-8000-000000000141", "reps": 10}]}]'::jsonb
 );
 \echo ACTOR_A_CREATED_UNCOMMITTED
 SQL
@@ -109,7 +109,7 @@ select set_config('request.jwt.claim.sub', :'owner', true);
 \echo ACTOR_B_ATTEMPT
 select public.create_user_workout_routine_in_my_program(
   :'routine'::uuid, 'Race Routine B', :'mutation'::uuid,
-  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
+  '[{"id": "b5680000-0000-4000-8000-000000000042", "exercise_ref": "ex_squat", "sets": [{"id": "b5680000-0000-4000-8000-000000000142", "reps": 10}]}]'::jsonb
 );
 commit;
 \echo ACTOR_B_COMMITTED
@@ -188,7 +188,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.create_user_workout_routine_in_my_program(
   :'routine'::uuid, 'Race Routine C', :'mutation'::uuid,
-  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
+  '[{"id": "b5680000-0000-4000-8000-000000000043", "exercise_ref": "ex_squat", "sets": [{"id": "b5680000-0000-4000-8000-000000000143", "reps": 10}]}]'::jsonb
 );
 \echo ACTOR_A_C_UNCOMMITTED
 SQL
@@ -206,7 +206,7 @@ select set_config('request.jwt.claim.sub', :'owner', true);
 \echo ACTOR_B_REPLAY_ATTEMPT
 select public.create_user_workout_routine_in_my_program(
   :'routine'::uuid, 'Race Routine C', :'mutation'::uuid,
-  '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb
+  '[{"id": "b5680000-0000-4000-8000-000000000043", "exercise_ref": "ex_squat", "sets": [{"id": "b5680000-0000-4000-8000-000000000143", "reps": 10}]}]'::jsonb
 );
 commit;
 \echo ACTOR_B_REPLAY_COMMITTED

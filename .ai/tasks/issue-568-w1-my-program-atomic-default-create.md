@@ -105,13 +105,17 @@ A first-time user entering the direct Library "Create Routine" flow without an e
 - [x] Write SQL test matrix `tnyx_568_w1_my_program_atomic_default_create.test.sql`.
 - [x] Write two-session concurrency script `tnyx_568_w1_my_program_atomic_default_create_concurrency.sh`.
 - [x] Wire tests in `.github/workflows/supabase-db-ci.yml`.
-- [ ] Perform review and commit changes.
-- [ ] Push and open PR.
+- [x] Perform review and commit changes.
+- [x] Push and open PR #620.
+- [x] Fix P2-A (tnyx_569 stale test assertion).
+- [x] Fix P2-B (psql variable substitution in dollar quotes).
+- [x] Fix P2-C (Routine composition payload format: entry/set UUIDs and ex_* reference).
 
 ## 6. Quality Review
 
 ### Validation Run
-Pending GitHub Actions Supabase Database CI on PR.
+- Commit attribution guard: PASS.
+- Supabase Database CI: validating exact-head CI run for PR #620.
 
 ### Review Findings and Resolution
 - P1 Table INSERT hazard: Addressed by narrowing authenticated INSERT in the same migration.
@@ -119,6 +123,7 @@ Pending GitHub Actions Supabase Database CI on PR.
 - P2 Server-managed timestamps: Addressed by omitting `created_at` and `updated_at` from client INSERT grant.
 - P2-A Stale #569 Move test assertions: Fixed `tnyx_569_atomic_create_program_move.test.sql` lines 43-51 to assert 6 columns (including `is_default`) and column-level `(id, user_id, name)` INSERT instead of revoked table-wide INSERT.
 - P2-B Test psql variable substitution in dollar quotes: Fixed `tnyx_568_w1_my_program_atomic_default_create.test.sql` by defining `pg_temp.valid_exercises()` so dynamic SQL evaluation executes valid JSON without psql variable substitution failure. Inlined JSON in concurrency script.
+- P2-C Routine composition test payload structure: `save_user_workout_routine_composition` requires explicit client-generated UUID `id` on each exercise entry and each set, catalog exercises formatted as `ex_*`, and unique IDs per routine/set. Addressed by parametrizing `pg_temp.valid_exercises(p_entry_id, p_set_id)` with default UUIDs, passing distinct UUIDs for secondary routine creates, and updating concurrency script with valid payloads.
 
 ## 7. Final Handoff
 

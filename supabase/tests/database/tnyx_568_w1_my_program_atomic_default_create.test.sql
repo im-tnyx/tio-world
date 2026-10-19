@@ -252,9 +252,23 @@ insert into auth.users (id, email)
 values ('c5680000-0000-4000-8000-000000000003', 'w1-owner-c@example.test');
 
 -- Canonical test exercise payload with 1 set
-create function pg_temp.valid_exercises()
+create function pg_temp.valid_exercises(
+  p_entry_id uuid default 'c5680000-0000-4000-8000-000000000041',
+  p_set_id uuid default 'c5680000-0000-4000-8000-000000000141'
+)
 returns jsonb language sql as $$
-  select '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10, "set_type": "regular"}]}]'::jsonb;
+  select jsonb_build_array(
+    jsonb_build_object(
+      'id', p_entry_id,
+      'exercise_ref', 'ex_squat',
+      'sets', jsonb_build_array(
+        jsonb_build_object(
+          'id', p_set_id,
+          'reps', 10
+        )
+      )
+    )
+  );
 $$;
 
 -- 9a. Input validation
@@ -296,7 +310,7 @@ select pg_temp.assert_raises(
 select pg_temp.assert_raises(
   $$select public.create_user_workout_routine_in_my_program(
       'c5680000-0000-4000-8000-000000000201', 'Routine 1', 'c5680000-0000-4000-8000-000000000101',
-      '[{"exercise_ref": "bench_press", "exercise_type": "standard", "sets": []}]'::jsonb
+      '[{"id": "c5680000-0000-4000-8000-000000000041", "exercise_ref": "ex_squat", "sets": []}]'::jsonb
     )$$,
   '22023',
   'RPC rejects exercise with empty sets'
@@ -309,7 +323,7 @@ savepoint sp_fail_test;
 select pg_temp.assert_raises(
   $$select public.create_user_workout_routine_in_my_program(
       'c5680000-0000-4000-8000-000000000201', 'Routine 1', 'c5680000-0000-4000-8000-000000000101',
-      '[{"exercise_ref": "00000000-0000-0000-0000-000000000000", "exercise_type": "standard", "sets": [{"position": 0, "reps": 10}]}]'::jsonb
+      '[{"id": "c5680000-0000-4000-8000-000000000041", "exercise_ref": "00000000-0000-0000-0000-000000000000", "sets": [{"id": "c5680000-0000-4000-8000-000000000141", "reps": 10}]}]'::jsonb
     )$$,
   'P0002',
   'RPC fails when custom exercise reference does not exist'
@@ -399,7 +413,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000202',
         'Evening Routine',
         'c5680000-0000-4000-8000-000000000103',
-        pg_temp.valid_exercises()
+        pg_temp.valid_exercises('c5680000-0000-4000-8000-000000000042', 'c5680000-0000-4000-8000-000000000142')
       ) as res
     ) sub
   ),
@@ -425,7 +439,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000203',
         'Weekend Routine',
         'c5680000-0000-4000-8000-000000000104',
-        pg_temp.valid_exercises()
+        pg_temp.valid_exercises('c5680000-0000-4000-8000-000000000043', 'c5680000-0000-4000-8000-000000000143')
       ) as res
     ) sub
   ),
@@ -450,7 +464,7 @@ select pg_temp.assert_true(
         'c5680000-0000-4000-8000-000000000204',
         'User A Direct Routine',
         'c5680000-0000-4000-8000-000000000105',
-        pg_temp.valid_exercises()
+        pg_temp.valid_exercises('c5680000-0000-4000-8000-000000000044', 'c5680000-0000-4000-8000-000000000144')
       ) as res
     ) sub
   ),
