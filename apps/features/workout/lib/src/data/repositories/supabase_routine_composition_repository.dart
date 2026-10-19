@@ -77,10 +77,20 @@ final class SupabaseRoutineCompositionRepository
     }
     try {
       return await dispatch();
-    } on RoutineCompositionSaveOutcomeUnknown {
-      // A late RPC can still commit after this adapter or route is rebuilt.
-      // Preserve the frozen old revision even if the owner's login changed.
-      gate.markUncertain(owner, routineId, expectedRevision);
+    } on RoutineCompositionSaveOutcomeUnknown catch (outcome) {
+      // A positively owner-verified, bracketed later revision from the
+      // adapter's reconciliation proves the old expected-revision CAS can
+      // never commit, even though the original response was lost. Do not
+      // retain a permanently blocked reservation in this superseded case.
+      // Same-revision, absent and auth-revoked observations are NOT proof.
+      final superseded = outcome.reason ==
+              RoutineCompositionSaveUncertainty.superseded &&
+          outcome.observedRevision != null &&
+          outcome.observedRevision! > expectedRevision;
+      if (!superseded) {
+        // A late RPC can still commit after this route or adapter is rebuilt.
+        gate.markUncertain(owner, routineId, expectedRevision);
+      }
       rethrow;
     } finally {
       gate.finish(owner, routineId);
