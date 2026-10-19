@@ -24,6 +24,28 @@ final command = RoutineCreateCommand(
 );
 
 void main() {
+  test('owner Program pending bit persists across cycles and has no draft',
+      () {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: owner, loginCycle: cycle);
+    gate.retain(owner: owner, loginCycle: cycle, command: command);
+    expect(gate.hasPendingForOwnerProgram(
+        owner: owner, programId: programId), isTrue);
+    expect(gate.hasPendingForOwnerProgram(
+        owner: 'other-user', programId: programId), isFalse);
+    gate.bindSession(owner: 'other-user', loginCycle: 'cycle-b');
+    expect(gate.hasPendingForOwnerProgram(
+        owner: owner, programId: programId), isTrue,
+        reason: 'A late Create RPC may still commit after account switch');
+    gate.bindSession(owner: owner, loginCycle: 'cycle-2');
+    gate.release(owner: owner, loginCycle: cycle, command: command);
+    expect(gate.hasPendingForOwnerProgram(
+        owner: owner, programId: programId), isTrue);
+    gate.releaseDefiniteForOwner(owner: owner, command: command);
+    expect(gate.hasPendingForOwnerProgram(
+        owner: owner, programId: programId), isFalse);
+  });
+
   test('negative early read stays locked; exact late commit unlocks', () async {
     final gate = RoutinePendingCreateGate()
       ..bindSession(owner: owner, loginCycle: cycle);
