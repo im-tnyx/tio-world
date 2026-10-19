@@ -1,6 +1,6 @@
 # GitHub #357 — C3d Body & Weight route ownership extraction
 
-**Status:** In progress — implementation committed; hosted CI/Codex review not yet validated
+**Status:** In Review — implementation and exact source-head Flutter CI validated; Codex review quota-limited (no clean Codex review). An independent read-only source review identified one P3 task-handoff wording issue, corrected in this update. PR merge remains separately gated.
 **Primary owner:** `apps/app` router composition and `apps/features/settings` presentation
 **Affected platforms:** Flutter Android/iOS phone app only
 
@@ -12,20 +12,20 @@
 ## Active Handoff
 **Planning owner:** ChatGPT architecture workflow
 **Implementation owner:** ChatGPT (single owner for bounded C3d slice)
-**Review owner:** Codex GitHub review after Draft PR
-**Implementation ownership state:** Active
+**Review owner:** Independent read-only review comment on PR #622 (COMMENTED, not APPROVED); Codex automated review attempted but quota-limited before analysis.
+**Implementation ownership state:** Handoff pending — source implementation complete, PR Ready for Review.
 **Ownership transition:** Not applicable
 **Repository state last verified:** remote `main@34eb6b55c097f7dbb66845e90924dfd3b7c8b590` on 2026-10-20
 **Branch:** `tnyx/issue-357-c3d-body-weight-route-extract` (created from exact verified main SHA)
-**HEAD SHA:** `8e698721b0b04cf2dea089792f5b8bf150488284` after six source/brief commits; branch created at `34eb6b55c097f7dbb66845e90924dfd3b7c8b590`
+**HEAD SHA:** Source implementation validated at `f02cf5dd9948afcb59cce5a8bf1430babc0b3cb4`. This documentation-only reconciliation creates a later branch commit; read exact latest HEAD and checks from [PR #622](https://github.com/im-tnyx/tio-world/pull/622), not from this fixed historical implementation SHA. Branch originally created from `main@34eb6b55c097f7dbb66845e90924dfd3b7c8b590`.
 **Observed working-tree state:** Connector-only remote GitHub execution; operator local Windows `git status`/current checkout not observable. Isolated branch from exact main, no existing open GitHub PRs at branch creation.
 **Observed uncommitted/dirty files:** Not observable locally; no operator local files touched.
 **PR / tracker:** GitHub #357 child of #260; Linear TNYX-201 In Progress. TNYX-154 option A completed by PR #515/#516; parent TNYX-154 remains In Progress.
-**Current implementation state:** Code and new error→Retry test committed. Root router delegates registration to `buildBodyWeightRoutes`; Settings presentation owns its exact pre-existing loading/error UI via `BodyWeightSettingsDestination`; app composes Body/Profile read/write/invalidation. Existing editor unchanged. Fresh compare to unchanged base: six commits ahead, zero behind, six expected files.
+**Current implementation state:** Source implementation complete; root delegates to `buildBodyWeightRoutes`, Settings owns the unchanged loading/error presentation via `BodyWeightSettingsDestination`, and app owns Body/Profile providers/writes/invalidation. Existing editor unchanged. Exact source-head PR compare: 8 commits ahead, 0 behind, six owned changed paths. This later documentation-only review-finding correction changes commit count but not changed-file scope.
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/body_weight_routes.dart`, `apps/features/settings/lib/src/presentation/pages/body_weight_settings_destination.dart`, `apps/features/settings/lib/src/presentation/presentation.dart`, focused `apps/app/test/app/body_weight_route_test.dart`.
-**Validation remaining:** Exact-head hosted Flutter/Dart analyze/tests, attribution, Codex; focused Body & Weight route tests and app provider lifetime; `git diff --check` locally unavailable via connector.
-**Current blocker:** No identified source blocker; hosted analyze/tests, attribution, exact-head Codex and post-PR scope checks are not yet complete.
-**Next exact action:** Implement one bounded extraction, audit exact branch-to-main diff, open Draft PR, validate CI and review, mark Ready only when all gates PASS. Do not merge without distinct owner instruction.
+**Validation remaining:** Before merge, recheck the latest PR HEAD, CI and required attribution on that HEAD and verify 0 unresolved review threads. The source implementation head `f02cf5dd9948afcb59cce5a8bf1430babc0b3cb4` already passed full hosted Flutter CI #39313401806 (all 7 checks). No local Flutter, screenshot parity or `git diff --check` run is claimed. Codex independent automated review remains unavailable due to quota, not a code finding or clean review.
+**Current blocker:** One independent review P3 handoff-accuracy finding is being corrected in this documentation-only update. No P1/P2 source defect identified in the independent read-only review. Merge remains blocked until the finding is resolved and the updated PR HEAD passes its required gate.
+**Next exact action:** Recheck final HEAD after this P3 correction; respond to and resolve the finding with evidence; verify exact-head CI/required checks and branch scope/ancestry. Owner separately authorized a conditional merge on 2026-10-20: merge only if all gates are clean, and document post-merge state. Parent TNYX-201 remains In Progress.
 
 ## 1. Discovery
 ### User Outcome
@@ -69,11 +69,11 @@ No relocation of `BodyWeightSettingsPage` or Body/Wellness domain owner; no gene
 5. Audit exact changed paths and ancestry; run CI and Codex exact-head review; stop at Ready for Review.
 
 ## 6. Quality Review
-**Validation Run:** Hosted CI pending. No local Flutter/Dart/`git diff --check` was executed by this connector-only agent. Remote GitHub compare confirmed six owned files, 6 ahead/0 behind at pre-PR code head `8e698721b0b04cf2dea089792f5b8bf150488284`.
-**Review Findings and Resolution:** Pending Codex and exact-head checks.
+**Validation Run:** [Flutter CI run 39313401806](https://github.com/im-tnyx/tio-world/actions/runs/39313401806) SUCCESS at source head `f02cf5dd9948afcb59cce5a8bf1430babc0b3cb4`: Flutter/Dart analysis, Dart tests, App/Workout, Nutrition/Onboarding, Core/Wear, aggregate Analyze and test, and two attribution checks PASS (7/7). Earlier initial-head analyze failed on a now-removed unused Progress import; subsequent exact source-head run passed. A docs-only commit to fix this P3 makes a new HEAD whose checks must be read live before merge. No local Flutter/Dart/`git diff --check` was run by this connector-only agent. GitHub compare at source head: six exact owned files, 8 ahead, 0 behind.
+**Review Findings and Resolution:** Codex request #6275732619 and Ready-triggered attempt returned usage-limit notices #6275744119/#6275907593 without code analysis; **Codex is neither clean nor a code finding**. Independent read-only source review #5576936667, GitHub review `COMMENTED` not APPROVED, found no P1/P2 source defects at exact source head and raised P3 inline comment #4318185110 (stale active handoff). This documentation-only correction addresses that P3; thread disposition and latest-head checks are separate live PR gates.
 
 ## 7. Final Handoff
 **Changed Files:** `.ai/tasks/issue-357-c3d-body-weight-route.md`; `apps/app/lib/app/router.dart`; `apps/app/lib/app/routing/routes/body_weight_routes.dart`; `apps/app/test/app/body_weight_route_test.dart`; `apps/features/settings/lib/src/presentation/pages/body_weight_settings_destination.dart`; `apps/features/settings/lib/src/presentation/presentation.dart`.
-**Actual Behavior:** Source inspected as behavior-preserving but awaiting Flutter CI; no runtime execution or visual comparison has been performed.
-**Known Limitations:** The remote GitHub connector cannot run local Windows Flutter or `git diff --check`; CI is the hosted code validation source. Owner's local working tree is not visible.
-**Final Status:** SOURCE PREPARED — review/CI pending, do not merge.
+**Actual Behavior:** Route composition remains behavior-preserving per source review and full hosted Flutter CI including focused Body route tests. Settings-owned presentation preserves old loading/error visual code; no independent screenshot parity or local Windows execution was observed.
+**Known Limitations:** The remote GitHub connector cannot inspect the operator's Windows working tree or run local Flutter and `git diff --check`; hosted CI is the execution evidence. No independent screenshot parity. Codex usage quota blocked automated review before analysis, and the separate independent human-style GitHub comment is COMMENTED, not formal APPROVED. Parent TNYX-201/#260/#357 remain open.
+**Final Status:** IN REVIEW — implementation source and CI validated at source HEAD; P3 documentation consistency corrected; merge conditional on clean *updated* exact-head checks and resolved review thread.
