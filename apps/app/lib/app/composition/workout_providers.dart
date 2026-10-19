@@ -51,6 +51,7 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   }
   return SupabaseRoutineRepository.fromClient(
     client,
+    crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
     currentLoginCycleId: () {
       try {
         final current = ref.read(authSessionStateProvider);
