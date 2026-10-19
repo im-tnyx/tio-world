@@ -51,12 +51,48 @@ select pg_temp.assert_true(
     'public.user_workout_programs',
     'SELECT'
   )
-  and has_table_privilege(
+  and not has_table_privilege(
     'authenticated',
     'public.user_workout_programs',
     'INSERT'
+  )
+  and has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'id',
+    'INSERT'
+  )
+  and has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'user_id',
+    'INSERT'
+  )
+  and has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'name',
+    'INSERT'
+  )
+  and not has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'is_default',
+    'INSERT'
+  )
+  and not has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'created_at',
+    'INSERT'
+  )
+  and not has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'updated_at',
+    'INSERT'
   ),
-  'authenticated must retain Program SELECT and INSERT'
+  'authenticated must retain Program SELECT and legacy metadata-column INSERT only'
 );
 
 select pg_temp.assert_true(
@@ -111,8 +147,14 @@ select pg_temp.assert_true(
     'public.user_workout_programs',
     'updated_at',
     'UPDATE'
+  )
+  and not has_column_privilege(
+    'authenticated',
+    'public.user_workout_programs',
+    'is_default',
+    'UPDATE'
   ),
-  'authenticated must not update Program identity, owner, or timestamps'
+  'authenticated must not update Program identity, owner, timestamps, or default marker'
 );
 
 select pg_temp.assert_true(
@@ -209,6 +251,26 @@ select pg_temp.assert_raises(
     where id = 'a3020000-0000-4000-8000-000000002001'$$,
   '42501',
   'authenticated must not update Program updated_at'
+);
+
+select pg_temp.assert_raises(
+  $$update public.user_workout_programs
+    set is_default = true
+    where id = 'a3020000-0000-4000-8000-000000002001'$$,
+  '42501',
+  'authenticated must not update Program is_default'
+);
+
+select pg_temp.assert_raises(
+  $$insert into public.user_workout_programs (id, user_id, name, is_default)
+    values (
+      'a3020000-0000-4000-8000-000000009999',
+      'a3020000-0000-4000-8000-000000001001',
+      'Malicious Default Program',
+      true
+    )$$,
+  '42501',
+  'authenticated must not insert Program is_default'
 );
 
 select pg_temp.assert_raises(
