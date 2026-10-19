@@ -81,8 +81,19 @@ class ProgramsSurface extends StatefulWidget {
 
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
+  // The list child unmounts while ProgramsController publishes loading.
+  // Keep the view-only collapse state in this stable, owner-scoped parent.
+  final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
   int _routineRefreshVersion = 0;
   bool _openingAddRoutine = false;
+
+  void _toggleExpanded(ProgramId id) {
+    setState(() {
+      if (!_collapsedPrograms.add(id)) {
+        _collapsedPrograms.remove(id);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -107,6 +118,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   void _bindController() {
+    // Controller rebind covers repository/owner/login-cycle changes. Never
+    // carry a former account's Program view preferences into a new session.
+    _collapsedPrograms.clear();
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
@@ -431,6 +445,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         return _ProgramsList(
           programs: state.programs,
           embedded: embedded,
+          collapsedPrograms: _collapsedPrograms,
+          onToggleExpanded: _toggleExpanded,
           onProgramActions: _openProgramActions,
           onProgramPressed: widget.onProgramPressed == null
               ? null
@@ -469,6 +485,8 @@ class _ProgramsList extends StatefulWidget {
   const _ProgramsList({
     required this.programs,
     required this.embedded,
+    required this.collapsedPrograms,
+    required this.onToggleExpanded,
     required this.onProgramActions,
     required this.onProgramPressed,
     required this.onAddRoutinePressed,
@@ -485,6 +503,8 @@ class _ProgramsList extends StatefulWidget {
 
   final List<Program> programs;
   final bool embedded;
+  final Set<ProgramId> collapsedPrograms;
+  final ValueChanged<ProgramId> onToggleExpanded;
   final Future<void> Function(Program program) onProgramActions;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
@@ -504,16 +524,6 @@ class _ProgramsList extends StatefulWidget {
 }
 
 class _ProgramsListState extends State<_ProgramsList> {
-  final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
-
-  void _toggleExpanded(ProgramId id) {
-    setState(() {
-      if (!_collapsedPrograms.add(id)) {
-        _collapsedPrograms.remove(id);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!widget.embedded) {
@@ -544,13 +554,13 @@ class _ProgramsListState extends State<_ProgramsList> {
     final children = <Widget>[];
     for (var index = 0; index < widget.programs.length; index++) {
       final program = widget.programs[index];
-      final expanded = !_collapsedPrograms.contains(program.id);
+      final expanded = !widget.collapsedPrograms.contains(program.id);
       children.add(
         _LibraryProgramRow(
           key: ValueKey('program-row-${program.id.value}'),
           program: program,
           expanded: expanded,
-          onToggleExpanded: () => _toggleExpanded(program.id),
+          onToggleExpanded: () => widget.onToggleExpanded(program.id),
           onOverflowPressed: () => widget.onProgramActions(program),
           onProgramPressed: widget.onProgramPressed == null
               ? null
