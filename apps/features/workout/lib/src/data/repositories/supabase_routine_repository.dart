@@ -4,6 +4,7 @@ import 'package:tio_shared/shared.dart';
 import '../../domain/repositories/routine_composition_repository.dart';
 import '../../domain/repositories/routine_repository.dart';
 import 'supabase_routine_composition_repository.dart';
+import 'routine_move_delete_attempt_gate.dart';
 
 abstract interface class RoutineTableGateway {
   Future<List<Map<String, dynamic>>> listRows({
@@ -60,12 +61,15 @@ final class SupabaseRoutineRepository
   factory SupabaseRoutineRepository.fromClient(
     SupabaseClient client, {
     required String? Function() currentLoginCycleId,
+    required RoutineMoveDeleteAttemptGate crossOperationGate,
   }) =>
       SupabaseRoutineRepository(
         gateway: SupabaseRoutineTableGateway(client),
         currentUserId: () => client.auth.currentUser?.id,
         currentLoginCycleId: currentLoginCycleId,
-        aggregateUpdates: SupabaseRoutineCompositionRepository.fromClient(client),
+        aggregateUpdates: SupabaseRoutineCompositionRepository.fromClient(
+          client, crossOperationGate: crossOperationGate,
+        ),
       );
 
   final RoutineTableGateway _gateway;

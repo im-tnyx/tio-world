@@ -51,6 +51,7 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   }
   return SupabaseRoutineRepository.fromClient(
     client,
+    crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
     currentLoginCycleId: () {
       try {
         final current = ref.read(authSessionStateProvider);
@@ -74,7 +75,10 @@ final routineCompositionRepositoryProvider =
     Provider<RoutineCompositionRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
-  return SupabaseRoutineCompositionRepository.fromClient(client);
+  return SupabaseRoutineCompositionRepository.fromClient(
+    client,
+    crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
+  );
 });
 
 /// User-owned Custom Exercise persistence.

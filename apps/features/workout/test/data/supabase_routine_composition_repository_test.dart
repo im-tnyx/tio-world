@@ -674,6 +674,173 @@ void main() {
     expect(gw.aggregateCalls, 1);
   });
 
+  test('in-flight composition Edit reserves same owner Routine across adapters',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final waiting = Completer<Object?>();
+    final first = _Gateway()..onSave = () => waiting.future;
+    final second = _Gateway();
+    final saving = first.repo(crossOperationGate: gate).save(_command());
+
+    expect(gate.inFlight(_owner, _routine), isTrue);
+    expect(gate.tryStart(_owner, _routine), isFalse,
+        reason: 'Move/Delete dispatch cannot overlap a saved Routine Edit');
+    await expectLater(second.repo(crossOperationGate: gate).save(_command()),
+        throwsA(_failure(RoutineCompositionFailureKind.readConflict)));
+    expect(second.saveCalls, 0, reason: 'No second Edit RPC is sent');
+    expect(gate.tryStart(_otherOwner, _routine), isTrue,
+        reason: 'Another owner must not be blocked');
+    gate.finish(_otherOwner, _routine);
+
+    waiting.complete(1);
+    expect(await saving, 1);
+    expect(gate.inFlight(_owner, _routine), isFalse);
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
+  test('in-flight Move/Delete prevents atomic Name plus composition Update',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway();
+    final update = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 0,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Renamed',
+    );
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    await expectLater(gw.repo(crossOperationGate: gate).updateAggregate(update),
+        throwsA(_failure(RoutineCompositionFailureKind.readConflict)));
+    expect(gw.aggregateCalls, 0);
+    gate.finish(_owner, _routine);
+    expect(await gw.repo(crossOperationGate: gate).updateAggregate(update), 2);
+    expect(gw.aggregateCalls, 1);
+  });
+
+  test('atomic Name Update also blocks Move until definitive response',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final waiting = Completer<Object?>();
+    final gw = _Gateway()..onAggregate = () => waiting.future;
+    final update = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 0,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Renamed',
+    );
+    final saving = gw.repo(crossOperationGate: gate).updateAggregate(update);
+    expect(gate.tryStart(_owner, _routine), isFalse);
+    waiting.complete(2);
+    expect(await saving, 2);
+    expect(gate.inFlight(_owner, _routine), isFalse);
+    expect(gw.aggregateCalls, 1);
+  });
+
+  test('unknown Edit CAS stays reserved until later owner-confirmed revision',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway()
+      ..onSave = () async => throw TimeoutException('lost ACK');
+    final repo = gw.repo(crossOperationGate: gate);
+    await expectLater(repo.save(_command()),
+        throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()));
+    expect(gw.saveCalls, 1);
+    expect(gate.uncertain(_owner, _routine), isTrue);
+    expect(gate.tryStart(_owner, _routine), isFalse);
+
+    // An absent or same-revision owner read never proves the timed-out
+    // server transaction cannot still commit at the original revision.
+    await repo.read(_routine);
+    expect(gate.uncertain(_owner, _routine), isTrue);
+    gw.header = _header(1, _otherMutation);
+    expect((await repo.read(_routine))?.revision, 1);
+    expect(gate.uncertain(_owner, _routine), isFalse);
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
+  test('uncertain atomic Name Update persists across adapter recreation',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway()
+      ..onAggregate = () async => throw TimeoutException('timeout');
+    final update = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 0,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Renamed',
+    );
+    await expectLater(gw.repo(crossOperationGate: gate).updateAggregate(update),
+        throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()));
+    final rebuilt = gw.repo(crossOperationGate: gate);
+    await expectLater(rebuilt.save(_command()),
+        throwsA(_failure(RoutineCompositionFailureKind.readConflict)));
+    expect(gw.saveCalls, 0);
+    gw.header = _header(1, _otherMutation);
+    await rebuilt.read(_routine);
+    expect(gate.uncertain(_owner, _routine), isFalse);
+  });
+
+  test('superseded composition Save retires old CAS without another read',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway();
+    gw.onSave = () async {
+      // Emulate the authorized, bracketed reconcile read seeing another
+      // committed mutation at the strictly greater revision.
+      gw.header = _header(1, _otherMutation);
+      throw TimeoutException('lost Save ACK');
+    };
+    await expectLater(
+      gw.repo(crossOperationGate: gate).save(_command()),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()
+          .having((e) => e.reason, 'reason',
+              RoutineCompositionSaveUncertainty.superseded)
+          .having((e) => e.observedRevision, 'observedRevision', 1)),
+    );
+    expect(gw.saveCalls, 1);
+    expect(gate.uncertain(_owner, _routine), isFalse,
+        reason: 'A verified later revision makes the old CAS impossible');
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
+  test('superseded atomic Name Update also retires old CAS on reconcile',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway();
+    gw.onAggregate = () async {
+      gw.header = _header(1, _otherMutation);
+      throw TimeoutException('lost aggregate ACK');
+    };
+    final update = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 0,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Renamed',
+    );
+    await expectLater(
+      gw.repo(crossOperationGate: gate).updateAggregate(update),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()
+          .having((e) => e.reason, 'reason',
+              RoutineCompositionSaveUncertainty.superseded)
+          .having((e) => e.observedRevision, 'observedRevision', 1)),
+    );
+    expect(gw.aggregateCalls, 1);
+    expect(gate.uncertain(_owner, _routine), isFalse);
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
   test('real deadline is bounded and does not send a second mutation',
       () async {
     final gateway = _Gateway()..onSave = () => Completer<Object?>().future;
@@ -704,10 +871,12 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
   SupabaseRoutineCompositionRepository get repository => repo();
   SupabaseRoutineCompositionRepository repo(
           {int pageSize = 500,
-          Duration timeout = const Duration(seconds: 15)}) =>
+          Duration timeout = const Duration(seconds: 15),
+          RoutineMoveDeleteAttemptGate? crossOperationGate}) =>
       SupabaseRoutineCompositionRepository(
           gateway: this,
           currentUserId: () => owner,
+          crossOperationGate: crossOperationGate,
           pageSize: pageSize,
           requestTimeout: timeout);
 
