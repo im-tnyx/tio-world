@@ -1,8 +1,10 @@
 # Pre-P9 — Current Supabase public schema inventory reconciliation
 
-**Status:** In progress — docs-only, source + live metadata audit complete; exact-head review/CI and owner merge gate remain.
+**Status:** Validated — bounded docs-only PR #584 squash-merged on 2026-10-17 (`7f5f49eb`); archived 2026-10-20
 **Primary owner:** Repository documentation governance / Supabase data documentation
 **Affected platforms:** Canonical database inventory only; no app, wearable, web, server or database behavior change
+
+**Archive disposition (2026-10-20):** This is a completed **2026-10-17 documentation snapshot**, not the current implementation handoff. [PR #584](https://github.com/im-tnyx/tio-world/pull/584) is verified merged at `7f5f49ebdd7c699fc1977931e15fad65ee427324`. Historical statements below about Draft PR, pending CI/review, next action or an earlier `main`/migration count belong to the pre-merge checkpoint and **must not be executed**. Current database/runtime and the canonical [docs/data/SUPABASE_SCHEMA.md](../../docs/data/SUPABASE_SCHEMA.md) require new source/live verification; broader GitHub [#250](https://github.com/im-tnyx/tio-world/issues/250) / Linear [TNYX-193](https://linear.app/tnyx/issue/TNYX-193) remain open. This archive does not close new Routine Move or pending migration work.
 
 ## Authorization and boundary
 

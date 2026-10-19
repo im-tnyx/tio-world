@@ -1,8 +1,10 @@
 # Pre-P9 — Supabase strategy current-state reconciliation
 
-**Status:** In progress — docs-only factual correction staged, exact-head PR review and separate merge authorization required
+**Status:** Validated — bounded docs-only PR #585 squash-merged on 2026-10-17 (`6cb353ea`); archived 2026-10-20
 **Primary owner:** Supabase data documentation + repository governance
 **Affected platforms:** Canonical Supabase strategy status only; no production/runtime/database or mobile/wearable implementation
+
+**Archive disposition (2026-10-20):** This is a completed **2026-10-17 documentation snapshot**, not the current implementation handoff. [PR #585](https://github.com/im-tnyx/tio-world/pull/585) is verified merged at `6cb353eaf492f178c707a94178e5d34f19c8ea04`. Historical statements below about Draft PR, pending CI/review, next action or an earlier `main`/migration count belong to the pre-merge checkpoint and **must not be executed**. Current database/runtime and the canonical [docs/data/SUPABASE_STRATEGY.md](../../docs/data/SUPABASE_STRATEGY.md) require new source/live verification; broader GitHub [#250](https://github.com/im-tnyx/tio-world/issues/250) / Linear [TNYX-193](https://linear.app/tnyx/issue/TNYX-193) remain open. This archive does not close new Routine Move or pending migration work.
 
 ## Owner Approval and Scope Boundary
 
