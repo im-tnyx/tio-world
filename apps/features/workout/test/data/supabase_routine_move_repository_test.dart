@@ -113,6 +113,40 @@ Future<RoutineMoveResult> move(
 
 void main() {
   group('read-only UNKNOWN Move verification', () {
+    test('new blocked attempt cannot adopt previous UNKNOWN mutation receipt',
+        () async {
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g);
+      final first = await inspect(r);
+      await expectLater(move(r, first),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect(g.writes, 1);
+      final later = await inspect(r);
+      const newToken = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      await expectLater(move(r, later, token: newToken),
+          throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+      expect(g.writes, 1, reason: 'Second attempt was never dispatched');
+
+      // The first write may have committed. Its token cannot be used as a
+      // completion receipt for the second, blocked command.
+      g.row = {
+        ...header(program: destination, revision: 5),
+        'last_composition_mutation_id': mutation,
+      };
+      final beforeRead = g.reads;
+      await expectLater(r.verifyUnknown(
+        routineId: routine, mutationId: newToken),
+        throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+      expect(g.reads, beforeRead,
+          reason: 'Wrong command token must fail before reading owner data');
+      expect(g.writes, 1);
+      expect((await r.verifyUnknown(
+        routineId: routine, mutationId: mutation)).kind,
+        RoutineMoveReadbackKind.confirmedLatestMutation);
+    });
+
     test('exact persisted mutation token attributes original existing Move',
         () async {
       final g = FakeMoveGateway()
@@ -130,13 +164,13 @@ void main() {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': mutation,
       };
-      final found = await r.verifyUnknown(routineId: routine);
+      final found = await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(found.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
       expect(found.observedProgramId, destination);
       expect(found.observedRevision, 5);
       expect(cross.uncertain(owner, routine), isFalse);
       expect(g.writes, 1, reason: 'Readback never repeats the write RPC');
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     });
 
@@ -155,7 +189,7 @@ void main() {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': mutation,
       };
-      expect((await r.verifyUnknown(routineId: routine)).kind,
+      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
           RoutineMoveReadbackKind.confirmedLatestMutation);
       expect(g.atomicWrites, 1);
       expect(g.writes, 0);
@@ -175,11 +209,11 @@ void main() {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       };
-      final check = await r.verifyUnknown(routineId: routine);
+      final check = await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(check.kind, RoutineMoveReadbackKind.superseded);
       expect(check.observedProgramId, destination);
       expect(g.writes, 1);
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     });
 
@@ -192,13 +226,13 @@ void main() {
       final target = await inspect(r);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
-      expect((await r.verifyUnknown(routineId: routine)).kind,
+      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
           RoutineMoveReadbackKind.notConfirmed);
       g.row = null;
-      expect((await r.verifyUnknown(routineId: routine)).kind,
+      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
           RoutineMoveReadbackKind.absentOnRead);
       g.row = header();
-      expect((await r.verifyUnknown(routineId: routine)).kind,
+      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
           RoutineMoveReadbackKind.notConfirmed);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
@@ -215,7 +249,7 @@ void main() {
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       g.onRead = () => throw StateError('network unavailable');
-      final check = await r.verifyUnknown(routineId: routine);
+      final check = await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(check.kind, RoutineMoveReadbackKind.readUnavailable);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
@@ -236,10 +270,10 @@ void main() {
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       final reads = g.reads;
       activeCycle = 'new-login-cycle';
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.unauthorized)));
       activeOwner = other;
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
       expect(g.reads, reads, reason: 'No cross-cycle/owner read is permitted');
     });
@@ -255,7 +289,7 @@ void main() {
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       g.onRead = () => activeCycle = 'cycle-b';
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.unauthorized)));
       expect(g.writes, 1);
     });
@@ -264,7 +298,7 @@ void main() {
         () async {
       final g = FakeMoveGateway();
       final r = repo(g);
-      await expectLater(r.verifyUnknown(routineId: routine),
+      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
       expect(g.reads, 0);
     });
