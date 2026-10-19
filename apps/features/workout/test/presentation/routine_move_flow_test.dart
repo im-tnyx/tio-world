@@ -948,6 +948,79 @@ void main() {
       findsOneWidget);
   });
 
+  testWidgets('atomic UNKNOWN without exact receipt never claims success',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final g = _VerifyingMove()
+      ..onVerify = () async => const RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.notConfirmed);
+    var atomicWrites = 0;
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: programs,
+      canWrite: () => true, onResult: (value) => refresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicWrites++;
+        expect(mutationId, token);
+        throw const RoutineMoveOutcomeUnknown();
+      });
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, true, reason: 'UNKNOWN requests an owner-guarded refresh');
+    expect(atomicWrites, 1, reason: 'No atomic retry when receipt is missing');
+    expect(g.writes, 0, reason: 'No standalone existing-Program Move');
+    expect(g.verifications, 1);
+    expect(programs.creates, 0, reason: 'No non-atomic Program INSERT');
+    expect(find.textContaining('unconfirmed'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+  });
+
+  testWidgets('disposed Move screen suppresses delayed UNKNOWN receipt UI',
+      (tester) async {
+    final readback = Completer<RoutineMoveReadback>();
+    final g = _VerifyingMove()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
+      ..onVerify = () => readback.future;
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(), canWrite: () => true,
+      onResult: (value) => refresh = value);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pump();
+    await tester.pump();
+    expect(g.writes, 1);
+    expect(g.verifications, 1);
+    // The old page is removed while the server read is unresolved.
+    await tester.pumpWidget(const SizedBox.shrink());
+    readback.complete(const RoutineMoveReadback(
+      kind: RoutineMoveReadbackKind.confirmedLatestMutation));
+    await tester.pumpAndSettle();
+    expect(refresh, true,
+        reason: 'Disposal must not erase the attempt refresh signal');
+    expect(g.writes, 1, reason: 'Readback never dispatches a second Move');
+    expect(g.verifications, 1);
+    expect(find.text('Routine moved.'), findsNothing);
+    expect(find.textContaining('unconfirmed'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('debug preview never invokes UNKNOWN verifier or writes',
       (tester) async {
     final g = _VerifyingMove()
