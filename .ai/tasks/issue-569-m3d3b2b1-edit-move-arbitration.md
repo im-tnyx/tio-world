@@ -18,8 +18,8 @@
 **Ownership state:** Active
 **Repository state last verified:** Protected remote `main@7801502a1d85670bc17b22d8a07a5aebd6f6b339`; merged #609; [post-merge Flutter CI #39202873606](https://github.com/im-tnyx/tio-world/actions/runs/39202873606) SUCCESS 5/5; no open PRs on starting audit. Local `G:\projects\Tio-World` unavailable to connector, so local status/worktree not verified.
 **Branch:** `tnyx/issue-569-m3d3b2b1-edit-move-arbitration`.
-**PR:** Not created yet.
-**Validation:** Pending exact-head Flutter CI and attribution guard; no local Flutter execution claimed.
+**PR:** [Draft #610](https://github.com/im-tnyx/tio-world/pull/610) on active branch; merge not authorized.
+**Validation:** Exact source HEAD `4a46ccb82ddeefc0f1af17584e28a7f01c98e0a8` [Flutter #39204273039](https://github.com/im-tnyx/tio-world/actions/runs/39204273039) still running at checkpoint (analyzer PASS); attribution two checks SUCCESS. Final full outcome not yet claimed. No local Flutter execution.
 
 ## 1. Discovery
 Safely serialize Edit and Move/Delete for the same owner/Routine without broadening client table privileges.
@@ -43,17 +43,17 @@ Split M3D3B2b into B2b1 existing Routine Edit vs Move/Delete and B2b2 new Routin
 - Avoid altering shared Core UI, composing scripts, server API, or app release-gated Move toggle.
 
 ## 5. Implementation Plan
-- [ ] Feature composition adapter optional injected coordinator for isolated tests; production fromClient composition consumes app singleton gate.
-- [ ] Both edit write variants guarded; owner-read later-revision resolution.
-- [ ] Focused fake-gateway in-flight/unknown/owner isolation/read-revision tests and app provider lifetime regression.
+- [x] Feature composition adapter optional injected coordinator for isolated tests; production fromClient composition consumes app singleton gate.
+- [x] Both Edit write variants guarded; owner-read later-revision resolution, plus alternate metadata Rename aggregate path.
+- [x] Five focused fake-gateway tests for in-flight/UNKNOWN/owner isolation/read revision; app provider injection established in source. Additional widget/provider regression remains a review consideration.
 - [ ] Review exact-head CI, attribution, diff scope, Codex findings.
 - [ ] Stop at review gate; separate owner `Go merge`.
 
 ## 6. Quality Review
-**Validation:** Not run yet.
+**Validation:** Flutter CI #39204273039 analyzer PASS at checkpoint, other shards running; required attribution guard 2/2 SUCCESS.
 **Review findings:** None asserted.
 
 ## 7. Final Handoff
-**Actual behavior:** Pending implementation/CI.
+**Actual behavior:** Source implementation complete in Draft PR #610 for Edit/Move/Delete same-Routine guard, including composition Save, aggregate Update and metadata Rename; CI final result pending.
 **Known limitations:** No Create vs Move arbitration yet; cross-device and DB CAS still authoritative; actual Move release OFF.
-**Final status:** PARTIAL — implementation active.
+**Final status:** PARTIAL — code/5 tests ready in Draft PR #610; exact-head full CI and review pending. No merge.
