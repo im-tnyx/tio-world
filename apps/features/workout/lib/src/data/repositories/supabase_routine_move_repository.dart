@@ -33,7 +33,7 @@ final class SupabaseRoutineMoveGateway implements RoutineMoveGateway {
   Future<Map<String, dynamic>?> readOwnedHeader({
     required String userId, required String routineId,
   }) => _client.from('user_workout_routines')
-      .select('id,user_id,program_id,name,composition_revision')
+      .select('id,user_id,program_id,name,composition_revision,last_composition_mutation_id')
       .eq('user_id', userId).eq('id', routineId)
       .maybeSingle().retry(enabled: false);
 
@@ -76,7 +76,13 @@ typedef RoutineMoveCurrentValue = String? Function();
 typedef RoutineMovePendingCreateCheck = bool Function(
     String owner, ProgramId programId);
 typedef _Session = ({String owner, String cycle});
-typedef _Header = ({RoutineId id, ProgramId program, String name, int revision});
+typedef _Header = ({
+  RoutineId id, ProgramId program, String name, int revision,
+  String? lastMutationId,
+});
+typedef _UnknownAttempt = ({
+  RoutineMoveTarget target, ProgramId destination, String mutationId,
+});
 
 /// One gate must be shared by all Move repository instances in the app.
 /// Not durable across a process restart; no ambiguous write replay.
@@ -85,12 +91,14 @@ final class RoutineMoveAttemptGate {
   final Map<String, int> _inspectGeneration = {};
   final Map<String, int> _dispatchGeneration = {};
   final Map<String, int> _uncertainRevision = {};
+  final Map<String, _UnknownAttempt> _unknownAttempts = {};
   final Map<String, int> _crossGeneration = {};
   final Set<String> _inFlight = {};
 }
 
 final class SupabaseRoutineMoveRepository
-    implements RoutineMoveRepository, RoutineCreateMoveRepository {
+    implements RoutineMoveRepository, RoutineCreateMoveRepository,
+        RoutineMoveUnknownVerifier {
   SupabaseRoutineMoveRepository({
     required RoutineMoveGateway gateway,
     required RoutineMoveAttemptGate attemptGate,
@@ -181,6 +189,7 @@ final class SupabaseRoutineMoveRepository
     if (unknown != null && header.revision > unknown) {
       // An old CAS can no longer commit at the original revision.
       _gate._uncertainRevision.remove(key);
+      _gate._unknownAttempts.remove(key);
     }
     final target = RoutineMoveTarget(
       routineId: header.id, sourceProgramId: header.program,
@@ -280,6 +289,12 @@ final class SupabaseRoutineMoveRepository
       return await _unknown(target, session);
     } on RoutineMoveOutcomeUnknown {
       _gate._uncertainRevision[key] = target.expectedRevision;
+      // Freeze only the attempt that may have reached the server. A later
+      // readback must match THIS token, not just destination membership.
+      _gate._unknownAttempts[key] = (
+        target: target, destination: destinationProgramId,
+        mutationId: mutationId.toLowerCase(),
+      );
       _crossOperationGate?.markUncertain(
           session.owner, target.routineId, target.expectedRevision);
       rethrow;
@@ -382,6 +397,12 @@ final class SupabaseRoutineMoveRepository
       return await _unknown(target, session);
     } on RoutineMoveOutcomeUnknown {
       _gate._uncertainRevision[key] = target.expectedRevision;
+      // Freeze only the attempt that may have reached the server. A later
+      // readback must match THIS token, not just destination membership.
+      _gate._unknownAttempts[key] = (
+        target: target, destination: newProgramId,
+        mutationId: mutationId.toLowerCase(),
+      );
       _crossOperationGate?.markUncertain(
           session.owner, target.routineId, target.expectedRevision);
       rethrow;
@@ -389,6 +410,74 @@ final class SupabaseRoutineMoveRepository
       _gate._inFlight.remove(key);
       _crossOperationGate?.finish(session.owner, target.routineId);
     }
+  }
+
+  /// Recheck only the frozen UNKNOWN attempt from this authenticated cycle.
+  /// No RPC dispatch, no optimistic inference from Program membership alone.
+  /// A latest matching server-side mutation token + Program + revision
+  /// identifies this request; a later unrelated write does not.
+  @override
+  Future<RoutineMoveReadback> verifyUnknown({
+    required RoutineId routineId,
+  }) async {
+    final session = _session();
+    final key = _ownerKey(session, routineId);
+    if (_gate._inFlight.contains(key) ||
+        _crossOperationGate?.inFlight(session.owner, routineId) == true) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+    }
+    final pending = _gate._unknownAttempts[key];
+    if (pending == null || !_gate._uncertainRevision.containsKey(key)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    // A new login cycle cannot adopt an old callback's recovery capability.
+    if (pending.target.loginCycleId != session.cycle) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.unauthorized);
+    }
+    final generation = _gate._dispatchGeneration[key];
+    _Header? observed;
+    try {
+      observed = await _read(session, routineId);
+    } on RoutineMoveException catch (e) {
+      if (e.kind == RoutineMoveFailureKind.unauthorized) rethrow;
+      return const RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.readUnavailable,
+      );
+    }
+    _checkSession(session);
+    if (!identical(_gate._unknownAttempts[key], pending) ||
+        !_gate._uncertainRevision.containsKey(key) ||
+        _gate._dispatchGeneration[key] != generation ||
+        _gate._inFlight.contains(key)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    if (observed == null) {
+      return const RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.absentOnRead,
+      );
+    }
+    final expected = pending.target.expectedRevision;
+    final exactCommit = observed.revision == expected + 1 &&
+        observed.program == pending.destination &&
+        observed.lastMutationId == pending.mutationId;
+
+    // Only a later owner-verified revision rules out another commit of
+    // the frozen original CAS; an unchanged/absent read never unlocks it.
+    if (observed.revision > expected) {
+      _gate._uncertainRevision.remove(key);
+      _gate._unknownAttempts.remove(key);
+      _crossOperationGate?.observeRevision(
+          session.owner, routineId, observed.revision);
+    }
+    return RoutineMoveReadback(
+      kind: exactCommit
+          ? RoutineMoveReadbackKind.confirmedLatestMutation
+          : observed.revision > expected
+              ? RoutineMoveReadbackKind.superseded
+              : RoutineMoveReadbackKind.notConfirmed,
+      observedProgramId: observed.program,
+      observedRevision: observed.revision,
+    );
   }
 
   Future<RoutineMoveResult> _unknown(
@@ -445,11 +534,17 @@ final class SupabaseRoutineMoveRepository
           (row['composition_revision'] as int) < 0) {
         throw const FormatException('Malformed Routine Move row');
       }
+      final lastMutation = row['last_composition_mutation_id'];
+      if (lastMutation != null &&
+          (lastMutation is! String || !_isUuid(lastMutation))) {
+        throw const FormatException('Malformed Routine mutation ID');
+      }
       return (
         id: RoutineId(row['id'] as String),
         program: ProgramId(row['program_id'] as String),
         name: row['name'] as String,
         revision: row['composition_revision'] as int,
+        lastMutationId: (lastMutation as String?)?.toLowerCase(),
       );
     } catch (_) {
       throw const RoutineMoveException(RoutineMoveFailureKind.malformedData);
