@@ -1,6 +1,6 @@
 # #569 M3D3B2b2 — Pending Create versus Move Program dispatch preflight
 
-**Status:** Draft PR #611 / exact-head CI and review pending
+**Status:** Ready for Review #611, Codex P2 fix submitted; exact-head CI/re-review pending. NOT MERGED.
 **Implementation owner:** Workout feature data/presentation and apps/app composition
 **Approval:** Existing approved #569 Move Routine safety acceptance; user 2026-10-19 `Next work go with audit` after B2b1 merge. Normal internal correctness subtask; no new visible product/UI or Supabase shape.
 
@@ -27,14 +27,20 @@ An atomic Create Routine produces a **new** RoutineId in its existing Program, w
 - [x] Inject callback from `routinePendingCreateGateProvider` into the existing Move data repository; do not reach UI draft from data.
 - [x] Both existing Move and atomic Create+Move check source and destination Program before write; preserve stale/UNKNOWN semantics.
 - [x] Add focused fake Move gateway tests for source, destination, other owner, callback failure; gate test for login-cycle retention and definite release.
-- [ ] Exact-head GitHub Flutter CI and attribution.
-- [ ] Codex/inline review and owner merge gate.
+- [ ] Exact repaired HEAD GitHub Flutter CI and attribution (previous `3d81c5d` 5/5 + 2/2 PASS; later source changes invalidate that evidence).
+- [ ] Codex P2 #4311021045 disposition after exact-head validation; then review/merge gate. Owner has NOT approved merge.
+
+### Codex P2 error precedence remediation (2026-10-19)
+- On Ready-for-Review, exact source HEAD `3d81c5df`, [Codex P2 #4311021045](https://github.com/im-tnyx/tio-world/pull/611#discussion_r4311021045) confirmed a real ordering bug. When a Routine Edit/Delete result is UNKNOWN or its post-inspection shared generation is stale, the owner+Program pending Create check was evaluated too early, emitting `inProgress` instead of `RoutineMoveOutcomeUnknown` / `staleTarget`, obscuring vital **do not retry** guidance. Affects both existing Move and atomic Create&Move.
+- Repair `3b5d3fb8`: perform the existing same-Routine uncertain, inFlight and generation checks **before** the pending Create preflight, then reserve with `cross.tryStart` synchronously before RPC. Pending Create still blocks before any write and does not consume the one-use Move target. No new gate, schema, RPC or UI.
+- Regression tests `e86e55df`: four cases, both Move variants × (shared UNKNOWN vs stale-generation), with positive pending Create and zero RPCs / zero pending-lookup calls when a higher-priority error is present. Original five pending-Create regression cases remain, nine focused tests total.
+- Prior `3d81c5df` Flutter CI 5/5 + attribution 2/2 PASS **predates the repair**. Do not count it as validation. Latest repair+handoff HEAD CI, Codex re-review and unresolved-thread resolution pending. Any updated handoff-only commit requires new exact-head validation.
 
 ## 5. Quality Review
 **Validation:** Source/test HEAD `30a96c5c` [Flutter CI #39209803598](https://github.com/im-tnyx/tio-world/actions/runs/39209803598) analyzer and core-wear PASS, app-workout and nutrition in progress at first checkpoint; [attribution #39209803599](https://github.com/im-tnyx/tio-world/actions/runs/39209803599) 2/2 PASS. This documentation-only update changes HEAD; verify its own latest checks before claiming full green. No local Windows checkout, `git status`, Flutter SDK, device QA or APK build.
 
 ## 6. Final Handoff
 **Branch:** `tnyx/issue-569-m3d3b2b2-pending-create-move-preflight`.
-**PR:** [Draft #611](https://github.com/im-tnyx/tio-world/pull/611), OPEN and UNMERGED. Owner has not requested merge.
+**PR:** [Ready for Review #611](https://github.com/im-tnyx/tio-world/pull/611), OPEN and UNMERGED. Owner only said `Go next`, not `Go merge`.
 **Release hold:** `routineMoveReleaseEnabledProvider=false`; debug Move preview zero-write; no hosted Supabase grant, migration or production activation.
 **Next:** M3D3B3 owner-verified source/dest refresh; real five-second Undo after approved server contract.
