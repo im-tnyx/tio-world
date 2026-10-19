@@ -1,6 +1,6 @@
 # #569 M3D3B2b1 — Routine Edit versus Move/Delete write arbitration
 
-**Status:** In progress
+**Status:** Review handoff (Ready for Review, unmerged; owner explicitly requests NO MERGE)
 **Primary owner:** Workout data adapters + apps/app composition root
 **Affected platforms:** Flutter Android/iOS (behavior-preserving, no visible UI change)
 
@@ -14,12 +14,12 @@
 ## Active Handoff
 **Planning owner:** GitHub #569 + Linear TNYX-81
 **Implementation owner:** This single active feature slice
-**Review owner:** GitHub CI/Codex after implementation; independent formal approval not claimed
-**Ownership state:** Active
+**Review owner:** Codex exact source-head review complete, 0 findings; manual review COMMENTED. Independent formal APPROVED not recorded.
+**Ownership state:** Source implementation complete / review gate, unmerged
 **Repository state last verified:** Protected remote `main@7801502a1d85670bc17b22d8a07a5aebd6f6b339`; merged #609; [post-merge Flutter CI #39202873606](https://github.com/im-tnyx/tio-world/actions/runs/39202873606) SUCCESS 5/5; no open PRs on starting audit. Local `G:\projects\Tio-World` unavailable to connector, so local status/worktree not verified.
 **Branch:** `tnyx/issue-569-m3d3b2b1-edit-move-arbitration`.
-**PR:** [Draft #610](https://github.com/im-tnyx/tio-world/pull/610) on active branch; merge not authorized.
-**Validation:** Exact source HEAD `4a46ccb82ddeefc0f1af17584e28a7f01c98e0a8` [Flutter #39204273039](https://github.com/im-tnyx/tio-world/actions/runs/39204273039) still running at checkpoint (analyzer PASS); attribution two checks SUCCESS. Final full outcome not yet claimed. No local Flutter execution.
+**PR:** [#610](https://github.com/im-tnyx/tio-world/pull/610) **OPEN / Ready for Review / UNMERGED**. Owner explicitly said merge gate, NOT merge.
+**Validation:** Source + tests and initial handoff exact HEAD `3497607a7e77e84f0486a606120d42e0a21545ff`: [Flutter CI #39204558404](https://github.com/im-tnyx/tio-world/actions/runs/39204558404) **5/5 SUCCESS** and [attribution #39204554521](https://github.com/im-tnyx/tio-world/actions/runs/39204554521) **2/2 SUCCESS**. Any later documentation-only HEAD requires separate exact-head check verification. Local Flutter execution not claimed.
 
 ## 1. Discovery
 Safely serialize Edit and Move/Delete for the same owner/Routine without broadening client table privileges.
@@ -46,14 +46,14 @@ Split M3D3B2b into B2b1 existing Routine Edit vs Move/Delete and B2b2 new Routin
 - [x] Feature composition adapter optional injected coordinator for isolated tests; production fromClient composition consumes app singleton gate.
 - [x] Both Edit write variants guarded; owner-read later-revision resolution, plus alternate metadata Rename aggregate path.
 - [x] Five focused fake-gateway tests for in-flight/UNKNOWN/owner isolation/read revision; app provider injection established in source. Additional widget/provider regression remains a review consideration.
-- [ ] Review exact-head CI, attribution, diff scope, Codex findings.
-- [ ] Stop at review gate; separate owner `Go merge`.
+- [x] Source/test HEAD `3497607a` 7/7 required checks, 7 scoped paths/0 behind; Codex [summary](https://github.com/im-tnyx/tio-world/pull/610#issuecomment-6260487254) completed with no findings, 0 unresolved threads. Later documentation-only HEAD must be checked.
+- [x] Stop at Ready-for-Review gate; owner requested explicitly NOT to merge.
 
 ## 6. Quality Review
-**Validation:** Flutter CI #39204273039 analyzer PASS at checkpoint, other shards running; required attribution guard 2/2 SUCCESS.
-**Review findings:** None asserted.
+**Validation:** Exact source/test HEAD `3497607a` [Flutter CI #39204558404](https://github.com/im-tnyx/tio-world/actions/runs/39204558404) 5/5 PASS + [attribution #39204554521](https://github.com/im-tnyx/tio-world/actions/runs/39204554521) 2/2 PASS. Prior source-only run #39204273039 was cancelled by a later docs commit after its analyzer/app-workout/core-wear shards passed; do not report that cancelled run as a pass. Codex completed no findings at 3497607a; [manual scoped review #5567361049](https://github.com/im-tnyx/tio-world/pull/610#pullrequestreview-5567361049) COMMENTED, no confirmed P1/P2; no formal GitHub APPROVED. Branch protection details 403 to connector, effective GitHub mergeability clean.
+**Review findings:** Exact source/test-head Codex has zero findings and 0 unresolved threads; manual scoped review no confirmed P1/P2. No independent formal APPROVED claimed.
 
 ## 7. Final Handoff
-**Actual behavior:** Source implementation complete in Draft PR #610 for Edit/Move/Delete same-Routine guard, including composition Save, aggregate Update and metadata Rename; CI final result pending.
+**Actual behavior:** Existing shared same-owner Routine gate now guards composition Save, atomic Name+Sets Update and alternate metadata Rename in Ready-for-Review PR #610; source/test CI green. No UI or backend changes.
 **Known limitations:** No Create vs Move arbitration yet; cross-device and DB CAS still authoritative; actual Move release OFF.
-**Final status:** PARTIAL — code/5 tests ready in Draft PR #610; exact-head full CI and review pending. No merge.
+**Final status:** REVIEW — PR #610 open Ready for Review. Source/test HEAD green, Codex no findings; documentation-only handoff checks pending final verification. Separate formal approval/branch policy and explicit owner instruction still gate any future merge. User explicitly prohibited merge.
