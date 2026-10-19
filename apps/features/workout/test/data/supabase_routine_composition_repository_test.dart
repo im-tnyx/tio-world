@@ -788,6 +788,59 @@ void main() {
     expect(gate.uncertain(_owner, _routine), isFalse);
   });
 
+  test('superseded composition Save retires old CAS without another read',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway();
+    gw.onSave = () async {
+      // Emulate the authorized, bracketed reconcile read seeing another
+      // committed mutation at the strictly greater revision.
+      gw.header = _header(1, _otherMutation);
+      throw TimeoutException('lost Save ACK');
+    };
+    await expectLater(
+      gw.repo(crossOperationGate: gate).save(_command()),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()
+          .having((e) => e.reason, 'reason',
+              RoutineCompositionSaveUncertainty.superseded)
+          .having((e) => e.observedRevision, 'observedRevision', 1)),
+    );
+    expect(gw.saveCalls, 1);
+    expect(gate.uncertain(_owner, _routine), isFalse,
+        reason: 'A verified later revision makes the old CAS impossible');
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
+  test('superseded atomic Name Update also retires old CAS on reconcile',
+      () async {
+    final gate = RoutineMoveDeleteAttemptGate();
+    final gw = _Gateway();
+    gw.onAggregate = () async {
+      gw.header = _header(1, _otherMutation);
+      throw TimeoutException('lost aggregate ACK');
+    };
+    final update = RoutineAggregateUpdate(
+      routineId: _routine,
+      programId: ProgramId('66666666-6666-6666-6666-666666666666'),
+      expectedRevision: 0,
+      expectedName: 'Old Name',
+      mutationId: _mutation,
+      name: 'Renamed',
+    );
+    await expectLater(
+      gw.repo(crossOperationGate: gate).updateAggregate(update),
+      throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()
+          .having((e) => e.reason, 'reason',
+              RoutineCompositionSaveUncertainty.superseded)
+          .having((e) => e.observedRevision, 'observedRevision', 1)),
+    );
+    expect(gw.aggregateCalls, 1);
+    expect(gate.uncertain(_owner, _routine), isFalse);
+    expect(gate.tryStart(_owner, _routine), isTrue);
+    gate.finish(_owner, _routine);
+  });
+
   test('real deadline is bounded and does not send a second mutation',
       () async {
     final gateway = _Gateway()..onSave = () => Completer<Object?>().future;
