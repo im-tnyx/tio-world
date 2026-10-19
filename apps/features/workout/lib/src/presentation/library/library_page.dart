@@ -6,6 +6,7 @@ import '../../domain/repositories/program_repository.dart';
 import '../../domain/repositories/routine_repository.dart';
 import '../../domain/usecases/program_id_generator.dart';
 import 'programs/programs_surface.dart';
+import 'routines/routine_move_refresh_signal.dart';
 
 enum _LibraryCategory {
   programs('Programs'),
@@ -32,6 +33,9 @@ class LibraryPage extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     required this.onExercisesPressed,
@@ -55,6 +59,9 @@ class LibraryPage extends StatefulWidget {
   final Future<bool> Function(Program, Routine)? onEditRoutine;
   /// Optional Move action, hidden until injected by the app-shell release gate.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final VoidCallback onExercisesPressed;
@@ -100,6 +107,9 @@ class _LibraryPageState extends State<LibraryPage> {
         onRoutinePressed: widget.onRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
         onMoveRoutine: widget.onMoveRoutine,
+        moveRefreshSignal: widget.moveRefreshSignal,
+        moveRefreshOwnerId: widget.moveRefreshOwnerId,
+        moveRefreshLoginCycleId: widget.moveRefreshLoginCycleId,
         onDeleteRoutine: widget.onDeleteRoutine,
         actionSheetGuard: widget.actionSheetGuard,
       );
