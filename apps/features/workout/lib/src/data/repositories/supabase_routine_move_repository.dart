@@ -419,6 +419,7 @@ final class SupabaseRoutineMoveRepository
   @override
   Future<RoutineMoveReadback> verifyUnknown({
     required RoutineId routineId,
+    required String mutationId,
   }) async {
     final session = _session();
     final key = _ownerKey(session, routineId);
@@ -433,6 +434,13 @@ final class SupabaseRoutineMoveRepository
     // A new login cycle cannot adopt an old callback's recovery capability.
     if (pending.target.loginCycleId != session.cycle) {
       throw const RoutineMoveException(RoutineMoveFailureKind.unauthorized);
+    }
+    // A later command may have been denied by the UNKNOWN hold before any
+    // write. Never mistake an earlier command's server receipt for this one.
+    // Reject mismatched tokens BEFORE an owner read or hold mutation.
+    if (!_isUuid(mutationId) ||
+        pending.mutationId != mutationId.toLowerCase()) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
     }
     final generation = _gate._dispatchGeneration[key];
     _Header? observed;
