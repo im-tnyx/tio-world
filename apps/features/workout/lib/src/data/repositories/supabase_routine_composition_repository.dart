@@ -5,6 +5,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/routine_composition_repository.dart';
 import 'supabase_routine_composition_gateway.dart';
+import 'routine_move_delete_attempt_gate.dart';
 
 typedef _Header = ({int revision, String? mutationId, String? name});
 
@@ -13,11 +14,13 @@ final class SupabaseRoutineCompositionRepository
   SupabaseRoutineCompositionRepository({
     required RoutineCompositionGateway gateway,
     required String? Function() currentUserId,
+    RoutineMoveDeleteAttemptGate? crossOperationGate,
     int pageSize = 500,
     int readAttempts = 3,
     Duration requestTimeout = const Duration(seconds: 15),
   })  : _gateway = gateway,
         _currentUserId = currentUserId,
+        _crossOperationGate = crossOperationGate,
         _pageSize = pageSize,
         _readAttempts = readAttempts,
         _requestTimeout = requestTimeout {
@@ -27,21 +30,62 @@ final class SupabaseRoutineCompositionRepository
   }
 
   factory SupabaseRoutineCompositionRepository.fromClient(
-          SupabaseClient client) =>
-      SupabaseRoutineCompositionRepository(
+    SupabaseClient client, {
+    required RoutineMoveDeleteAttemptGate crossOperationGate,
+  }) => SupabaseRoutineCompositionRepository(
         gateway: SupabaseRoutineCompositionGateway(client),
         currentUserId: () => client.auth.currentUser?.id,
+        crossOperationGate: crossOperationGate,
       );
 
   final RoutineCompositionGateway _gateway;
   final String? Function() _currentUserId;
+  final RoutineMoveDeleteAttemptGate? _crossOperationGate;
   final int _pageSize;
   final int _readAttempts;
   final Duration _requestTimeout;
 
   @override
-  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async =>
-      await _read(routineId, _owner());
+  Future<RoutineCompositionSnapshot?> read(RoutineId routineId) async {
+    final owner = _owner();
+    final snapshot = await _read(routineId, owner);
+    // Bracketed authenticated owner reads of a *later* CAS revision are
+    // positive evidence that an earlier UNKNOWN write cannot still commit.
+    // Missing/same-revision/failed reads deliberately never clear the gate.
+    if (snapshot != null) {
+      _crossOperationGate?.observeRevision(owner, routineId, snapshot.revision);
+    }
+    return snapshot;
+  }
+
+  /// Both composition-only Save and Name+composition Update use the same
+  /// process-local reservation as Routine Move/Delete. Never treat it as
+  /// a substitute for the server-side owner/RLS and revision checks.
+  Future<int> _reserveForEdit(
+    RoutineId routineId,
+    int expectedRevision,
+    Future<int> Function() dispatch,
+  ) async {
+    final gate = _crossOperationGate;
+    if (gate == null) return dispatch();
+    final owner = _owner();
+    if (!gate.tryStart(owner, routineId)) {
+      // No Edit RPC was sent. This is a definite local conflict, never
+      // a fabricated unconfirmed mutation or license to retry blindly.
+      throw const RoutineCompositionException(
+          RoutineCompositionFailureKind.readConflict);
+    }
+    try {
+      return await dispatch();
+    } on RoutineCompositionSaveOutcomeUnknown {
+      // A late RPC can still commit after this adapter or route is rebuilt.
+      // Preserve the frozen old revision even if the owner's login changed.
+      gate.markUncertain(owner, routineId, expectedRevision);
+      rethrow;
+    } finally {
+      gate.finish(owner, routineId);
+    }
+  }
 
   Future<RoutineCompositionSnapshot?> _read(
       RoutineId routineId, String owner) async {
@@ -108,7 +152,12 @@ final class SupabaseRoutineCompositionRepository
   }
 
   @override
-  Future<int> save(RoutineCompositionSave command) async {
+  Future<int> save(RoutineCompositionSave command) => _reserveForEdit(
+        command.routineId, command.expectedRevision,
+        () => _save(command),
+      );
+
+  Future<int> _save(RoutineCompositionSave command) async {
     final owner = _owner();
     Object? result;
     try {
@@ -139,7 +188,13 @@ final class SupabaseRoutineCompositionRepository
   /// One frozen versioned server-side transaction. Never fall back to
   /// two separate Flutter writes (metadata Rename + composition Save).
   @override
-  Future<int> updateAggregate(RoutineAggregateUpdate command) async {
+  Future<int> updateAggregate(RoutineAggregateUpdate command) =>
+      _reserveForEdit(
+        command.routineId, command.expectedRevision,
+        () => _updateAggregate(command),
+      );
+
+  Future<int> _updateAggregate(RoutineAggregateUpdate command) async {
     final owner = _owner();
     final gateway = _gateway;
     if (gateway is! RoutineAggregateUpdateGateway) {
