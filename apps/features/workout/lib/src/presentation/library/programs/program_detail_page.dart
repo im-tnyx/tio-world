@@ -5,6 +5,7 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../routines/program_routines_controller.dart';
 import '../routines/routine_metadata_card.dart';
+import '../routines/routine_move_refresh_signal.dart';
 
 /// Minimal Program-owned Routine metadata screen. Exercise composition/editing
 /// and Library-level Routine quick-create are different, still-gated slices.
@@ -17,6 +18,9 @@ class ProgramDetailPage extends StatefulWidget {
     this.onRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     this.onDeleteRoutine,
     this.actionSheetGuard,
     this.onCreateRoutine,
@@ -36,6 +40,10 @@ class ProgramDetailPage extends StatefulWidget {
   /// Optional owner-injected Move; true requests a current Program reread,
   /// not a claim of confirmed server mutation.
   final Future<bool> Function(Routine routine)? onMoveRoutine;
+  /// Owner/cycle-scoped read invalidation from another visible Program route.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
   /// Verified Delete returns true only when the owner-scoped list must refresh.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -77,6 +85,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   void initState() {
     super.initState();
     widget.pendingCreateChanges?.addListener(_pendingChanged);
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bind();
   }
 
@@ -85,9 +94,26 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted || signal == null || !signal.matches(
+      ownerId: widget.moveRefreshOwnerId,
+      loginCycleId: widget.moveRefreshLoginCycleId,
+    )) {
+      return;
+    }
+    // List reads are authoritative even after an UNKNOWN Move; no success
+    // is inferred from the signal or from a failed/early read.
+    _controller?.load();
+  }
+
   @override
   void didUpdateWidget(covariant ProgramDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (!identical(oldWidget.pendingCreateChanges, widget.pendingCreateChanges)) {
       oldWidget.pendingCreateChanges?.removeListener(_pendingChanged);
       widget.pendingCreateChanges?.addListener(_pendingChanged);
@@ -125,6 +151,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   @override
   void dispose() {
     widget.pendingCreateChanges?.removeListener(_pendingChanged);
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_onChanged)
       ..dispose();

@@ -141,6 +141,14 @@ final routineMoveFlowProvider = Provider<RoutineMoveFlow>(
   (ref) => RoutineMoveFlow(),
 );
 
+/// Read-only cross-surface Program/Routine invalidation after a Move attempt.
+/// One owner/login-cycle event; never proof of a committed Move or a retry.
+final routineMoveRefreshSignalProvider = Provider<RoutineMoveRefreshSignal>((ref) {
+  final signal = RoutineMoveRefreshSignal();
+  ref.onDispose(signal.dispose);
+  return signal;
+});
+
 /// Dormant owner/login-cycle-bound Move and atomic Create+Move adapter.
 /// A captured old repository must NOT gain new-owner write authority.
 final routineMoveRepositoryProvider =

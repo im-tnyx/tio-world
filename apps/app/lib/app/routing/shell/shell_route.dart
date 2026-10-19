@@ -124,6 +124,7 @@ List<RouteBase> _shellBranchChildRoutes(
           final createMoveRepository =
               ref.watch(routineCreateMoveRepositoryProvider);
           final moveFlow = ref.read(routineMoveFlowProvider);
+          final moveRefresh = ref.read(routineMoveRefreshSignalProvider);
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
@@ -403,23 +404,36 @@ List<RouteBase> _shellBranchChildRoutes(
 
             // A previously captured callback may run after logout or
             // same-owner relogin. Never give that old cycle new authority.
-            bool sameSession() {
+            // Post-write read invalidation must use only the authenticated
+            // owner/cycle. A newly pending Create or a release-toggle change
+            // may revoke NEW writes but cannot undo an already sent RPC.
+            bool sameAuthenticatedOwner() {
               try {
-                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final boot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final live = value.isLoading || value.hasError
                     ? null : value.valueOrNull;
-                final pending = ref.read(routinePendingCreateGateProvider);
-                return (ref.read(routineMoveReleaseEnabledProvider) ||
-                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
-                    boot is AppSessionBootstrapReady &&
+                return boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     live is AuthSessionAuthenticated &&
                     live.session.userId == owner &&
                     live.session.loginCycleId == cycle &&
                     ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
-                        owner &&
-                    !pending.hasPending(
+                        owner;
+              } catch (_) {
+                return false;
+              }
+            }
+
+            // Actual Move dispatch additionally requires the release/preview
+            // gate and no unresolved Create in its source Program.
+            bool sameSession() {
+              try {
+                return sameAuthenticatedOwner() &&
+                    (ref.read(routineMoveReleaseEnabledProvider) ||
+                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
+                    !ref.read(routinePendingCreateGateProvider).hasPending(
                       owner: owner, loginCycle: cycle, programId: program.id,
                     );
               } catch (_) {
@@ -428,7 +442,8 @@ List<RouteBase> _shellBranchChildRoutes(
             }
 
             if (!sameSession()) return false;
-            return moveFlow.run(
+            var atomicCreateWasAttempted = false;
+            final needsRefresh = await moveFlow.run(
               context: context,
               sourceProgram: program,
               routine: routine,
@@ -443,17 +458,36 @@ List<RouteBase> _shellBranchChildRoutes(
                 required ProgramId newProgramId,
                 required String newProgramName,
                 required String mutationId,
-              }) => atomicMoves.createAndMove(
-                target: target,
-                newProgramId: newProgramId,
-                newProgramName: newProgramName,
-                mutationId: mutationId,
-              ),
+              }) {
+                // Read the Program collection too even if the atomic RPC's
+                // response is UNKNOWN. Never claim the Program was created.
+                atomicCreateWasAttempted = true;
+                return atomicMoves.createAndMove(
+                  target: target,
+                  newProgramId: newProgramId,
+                  newProgramName: newProgramName,
+                  mutationId: mutationId,
+                );
+              },
               modalGuard: (dialogContext, content) =>
                   _guardRoutineOptionsSheet(
                 content: content, ownerId: owner, loginCycleId: cycle,
               ),
             );
+            // An attempted write (including UNKNOWN or a late rejection)
+            // invalidates live owner-scoped readers. The flow's boolean is
+            // NOT a confirmed server mutation. If auth changed after dispatch,
+            // the next owner/session must never receive the previous signal.
+            if (needsRefresh && sameAuthenticatedOwner()) {
+              moveRefresh.request(
+                ownerId: owner,
+                loginCycleId: cycle,
+                programsMayHaveChanged: atomicCreateWasAttempted,
+              );
+            }
+            // Registered Library/Detail listeners now own the refresh.
+            // Suppress the calling card's older one-Program duplicate read.
+            return false;
           }
 
           Future<void> openRoutine(Program program, Routine routine) async {
@@ -874,6 +908,9 @@ List<RouteBase> _shellBranchChildRoutes(
                           ? Program(id: program.id, name: 'Routines unavailable')
                           : program,
                       routineRepository: revoked ? null : routineRepository,
+                      moveRefreshSignal: revoked ? null : moveRefresh,
+                      moveRefreshOwnerId: revoked ? null : openingOwner,
+                      moveRefreshLoginCycleId: revoked ? null : openingCycle,
                       actionSheetGuard: (sheetContext, sheet) =>
                           _guardRoutineOptionsSheet(
                             content: sheet, ownerId: openingOwner,
@@ -964,6 +1001,9 @@ List<RouteBase> _shellBranchChildRoutes(
                 ? null
                 : (program) => openProgram(program, launchCreate: true),
             pendingCreateChanges: pendingCreates,
+            moveRefreshSignal: bound ? moveRefresh : null,
+            moveRefreshOwnerId: bound ? currentOwner : null,
+            moveRefreshLoginCycleId: bound ? currentCycle : null,
             hasUnconfirmedCreate: (program) =>
                 bound && currentOwner != null && currentCycle != null &&
                 pendingCreates.hasPending(

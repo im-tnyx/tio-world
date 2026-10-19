@@ -6,6 +6,7 @@ import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../../../domain/usecases/program_id_generator.dart';
 import '../routines/inline_program_routines.dart';
+import '../routines/routine_move_refresh_signal.dart';
 import 'programs_controller.dart';
 
 enum _ProgramsSurfaceMode { standalone, library }
@@ -19,6 +20,9 @@ class ProgramsSurface extends StatefulWidget {
   const ProgramsSurface.standalone({
     required this.repository,
     this.idGenerator,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   })  : _mode = _ProgramsSurfaceMode.standalone,
         onManagePressed = null,
@@ -45,11 +49,18 @@ class ProgramsSurface extends StatefulWidget {
     this.hasUnconfirmedCreate,
     this.routineRepository,
     this.idGenerator,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
+  /// App-only owner/login-cycle bound invalidation, never Move success truth.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
@@ -70,25 +81,46 @@ class ProgramsSurface extends StatefulWidget {
 
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
+  // The list child unmounts while ProgramsController publishes loading.
+  // Keep the view-only collapse state in this stable, owner-scoped parent.
+  final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
   int _routineRefreshVersion = 0;
   bool _openingAddRoutine = false;
+
+  void _toggleExpanded(ProgramId id) {
+    setState(() {
+      if (!_collapsedPrograms.add(id)) {
+        _collapsedPrograms.remove(id);
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bindController();
   }
 
   @override
   void didUpdateWidget(covariant ProgramsSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (!identical(oldWidget.repository, widget.repository) ||
-        !identical(oldWidget.idGenerator, widget.idGenerator)) {
+        !identical(oldWidget.idGenerator, widget.idGenerator) ||
+        oldWidget.moveRefreshOwnerId != widget.moveRefreshOwnerId ||
+        oldWidget.moveRefreshLoginCycleId != widget.moveRefreshLoginCycleId) {
       _bindController();
     }
   }
 
   void _bindController() {
+    // Controller rebind covers repository/owner/login-cycle changes. Never
+    // carry a former account's Program view preferences into a new session.
+    _collapsedPrograms.clear();
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
@@ -112,8 +144,27 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     if (mounted) setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted || signal == null || !signal.matches(
+      ownerId: widget.moveRefreshOwnerId,
+      loginCycleId: widget.moveRefreshLoginCycleId,
+    )) {
+      return;
+    }
+    // Existing Move leaves Program membership unchanged: refresh expanded
+    // Routine lists without collapsing their expansion state. Atomic
+    // Create+Move may have created a Program, so re-read that collection too.
+    if (signal.programsMayHaveChanged) {
+      _controller?.load();
+    } else {
+      setState(() => _routineRefreshVersion++);
+    }
+  }
+
   @override
   void dispose() {
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
@@ -394,6 +445,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         return _ProgramsList(
           programs: state.programs,
           embedded: embedded,
+          collapsedPrograms: _collapsedPrograms,
+          onToggleExpanded: _toggleExpanded,
           onProgramActions: _openProgramActions,
           onProgramPressed: widget.onProgramPressed == null
               ? null
@@ -432,6 +485,8 @@ class _ProgramsList extends StatefulWidget {
   const _ProgramsList({
     required this.programs,
     required this.embedded,
+    required this.collapsedPrograms,
+    required this.onToggleExpanded,
     required this.onProgramActions,
     required this.onProgramPressed,
     required this.onAddRoutinePressed,
@@ -448,6 +503,8 @@ class _ProgramsList extends StatefulWidget {
 
   final List<Program> programs;
   final bool embedded;
+  final Set<ProgramId> collapsedPrograms;
+  final ValueChanged<ProgramId> onToggleExpanded;
   final Future<void> Function(Program program) onProgramActions;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
@@ -467,16 +524,6 @@ class _ProgramsList extends StatefulWidget {
 }
 
 class _ProgramsListState extends State<_ProgramsList> {
-  final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
-
-  void _toggleExpanded(ProgramId id) {
-    setState(() {
-      if (!_collapsedPrograms.add(id)) {
-        _collapsedPrograms.remove(id);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!widget.embedded) {
@@ -507,13 +554,13 @@ class _ProgramsListState extends State<_ProgramsList> {
     final children = <Widget>[];
     for (var index = 0; index < widget.programs.length; index++) {
       final program = widget.programs[index];
-      final expanded = !_collapsedPrograms.contains(program.id);
+      final expanded = !widget.collapsedPrograms.contains(program.id);
       children.add(
         _LibraryProgramRow(
           key: ValueKey('program-row-${program.id.value}'),
           program: program,
           expanded: expanded,
-          onToggleExpanded: () => _toggleExpanded(program.id),
+          onToggleExpanded: () => widget.onToggleExpanded(program.id),
           onOverflowPressed: () => widget.onProgramActions(program),
           onProgramPressed: widget.onProgramPressed == null
               ? null
