@@ -6,9 +6,9 @@
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** Exact Supabase column/table shape approval — **AWAITING OWNER APPROVAL** before schema implementation.
+**Trigger:** Exact Supabase column/table shape approval — **APPROVED in subsequent owner `Go` (2026-10-19) for EXACT column/index/grant scope**; this PR remains design-only.
 **Already approved behavior:** [GitHub #568](https://github.com/im-tnyx/tio-world/issues/568), [#475](https://github.com/im-tnyx/tio-world/issues/475) and [ADR-0015](../../docs/adr/0015-program-owned-routine-and-program-source-boundary.md) approve lazy, stable, renameable, non-deletable default identity with direct Library Create Routine; no fabricated empty Program, no orphan or duplicate, nonempty composition. This does **not** approve the physical column/unique index or an independently scoped visible UI change.
-**Proposed—not approved—shape:** Add **only** `public.user_workout_programs.is_default boolean NOT NULL DEFAULT false`, plus **UNIQUE (user_id) WHERE is_default** (partial unique index). Existing Programs, including user-named "My Program", remain false and are **not automatically adopted, renamed, or reparented**. Old clients' Program name/ID insert and rename must remain functional; only server-authoritative paths may set the marker true.
+**Previously proposed; approved in follow-up owner `Go` (2026-10-19):** Add **only** `public.user_workout_programs.is_default boolean NOT NULL DEFAULT false`, plus **UNIQUE (user_id) WHERE is_default** (partial unique index). Existing Programs, including user-named "My Program", remain false and are **not automatically adopted, renamed, or reparented**. Old clients' Program name/ID insert and rename must remain functional; only server-authoritative paths may set the marker true.
 **Explicit non-changes:** No SQL migration created/applied, table grants altered, user rows read/modified, Flutter UI/code, Move RPC grants, feature release, Delete Program, quotas, new backend service, PR merge, or physical QA in this design-only slice.
 
 ## Active Handoff
@@ -53,7 +53,7 @@
 
 1. `user_workout_programs.is_default boolean NOT NULL DEFAULT false` and partial unique per-owner default constraint/index, without changing Program IDs or owner/provenance boundaries.
 2. All existing user Programs are **nondefaults**; no name-based adoption or implicit migration, even if displayed "My Program". No pre-seeding on signup, Library open or cancelled composer.
-3. Server-created default uses an unpredictable UUID and `auth.uid()` as owner. Server **serializes per-owner default resolution** with **`SELECT ... FOR NO KEY UPDATE` on the owner `public.users` row**, a self-conflicting lock compatible with the existing `FOR KEY SHARE` owner/FK reads; **do not use `FOR KEY SHARE` as a serialization lock**, then reads the existing marked default by owner under this lock; a partial unique index is the final race invariant. Validate lock ordering against Routine create/Edit/Move/Delete, account deletion and older clients in 2-session CI before implementation.
+3. Server-created default uses an unpredictable UUID and `auth.uid()` as owner. Server **serializes per-owner default resolution** with **`SELECT ... FOR NO KEY UPDATE` on the owner `public.users` row**, a self-conflicting lock compatible with existing `FOR KEY SHARE` owner/FK reads. **Do not use `FOR KEY SHARE` as a serialization lock.** Then read the existing marked default by owner under this lock; a partial unique index is the final race invariant. Validate lock ordering against Routine create/Edit/Move/Delete, account deletion and older clients in 2-session CI before implementation.
 4. Client can read the stable marker through owner-RLS and program repository projection once supported; Program rename changes only name. Do not make a second Program table/cache/identity source.
 5. The same approved migration must harden authenticated table-wide INSERT to its three legacy client-supplied columns (`id`, `user_id`, `name`). Explicitly deny client mutation of `is_default`; owner checks and DB uniqueness enforce the invariant independently of Flutter.
 
@@ -74,7 +74,7 @@
 | Decision | Current state | Required next gate |
 |---|---|---|
 | Lazy default Program user behavior | **Owner approved** in #568 | Preserve |
-| Exact `is_default` column + partial unique | **PROPOSED, NOT APPROVED** | Explicit owner approval of table/column shape and compatibility |
+| Exact `is_default` column + partial unique | **OWNER APPROVED IN FOLLOW-UP `Go` (2026-10-19); implementation in separately reviewed PR** | Explicit owner approval of table/column shape and compatibility |
 | Table INSERT ACL rewrite to protect marker | Security prerequisite **if** column approved | SQL ACL + legacy-client negative/positive tests |
 | Single atomic default + Routine composition RPC | Proposed implementation contract | W1 security/lock-order review; avoid standalone pre-save ensure |
 | Exact numeric inventory/velocity ceilings | #554 unapproved | Separate owner policy; do not silently add limits |
