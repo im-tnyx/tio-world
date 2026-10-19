@@ -306,7 +306,8 @@ final class RoutineMoveFlow {
       if (attempted && context.mounted && canWrite() &&
           repository is RoutineMoveUnknownVerifier) {
         try {
-          final readback = await repository.verifyUnknown(
+          final readback = await (repository as RoutineMoveUnknownVerifier)
+              .verifyUnknown(
             routineId: routine.id,
           );
           confirmedByReadback =
