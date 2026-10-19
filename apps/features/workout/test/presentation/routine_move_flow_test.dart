@@ -83,6 +83,26 @@ final class _Move implements RoutineMoveRepository {
   }
 }
 
+/// Explicit optional verifier: legacy Move repositories do not implement
+/// readback, and must continue showing UNKNOWN without another write.
+final class _VerifyingMove extends _Move implements RoutineMoveUnknownVerifier {
+  int verifications = 0;
+  Future<RoutineMoveReadback> Function()? onVerify;
+
+  @override
+  Future<RoutineMoveReadback> verifyUnknown({
+    required RoutineId routineId,
+    required String mutationId,
+  }) async {
+    verifications++;
+    expect(routineId, routine.id);
+    expect(mutationId, token,
+        reason: 'Only the current confirmed attempt may be verified');
+    return await (onVerify?.call() ?? Future.value(
+      const RoutineMoveReadback(kind: RoutineMoveReadbackKind.notConfirmed)));
+  }
+}
+
 Future<void> _pump(
   WidgetTester tester, {
   required RoutineMoveFlow flow,
@@ -779,6 +799,174 @@ void main() {
     expect(find.textContaining('unconfirmed'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
         findsNothing);
+  });
+
+  testWidgets('UNKNOWN existing Move displays success only after exact receipt',
+      (tester) async {
+    final g = _VerifyingMove()
+      ..onMove = () async {
+        throw const RoutineMoveOutcomeUnknown(
+          reason: RoutineMoveUncertainty.stillPresent);
+      }
+      ..onVerify = () async => RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.confirmedLatestMutation,
+        observedProgramId: destination.id, observedRevision: 5);
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(), canWrite: () => true,
+      onResult: (value) => refresh = value);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, true, reason: 'Readback success is still a refresh request');
+    expect(g.writes, 1, reason: 'Never retry the original Move RPC');
+    expect(g.verifications, 1);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+      findsOneWidget);
+    expect(find.text('Move status is unconfirmed. Refresh Programs; do not retry.'),
+      findsNothing);
+  });
+
+  for (final kind in [
+    RoutineMoveReadbackKind.notConfirmed,
+    RoutineMoveReadbackKind.superseded,
+    RoutineMoveReadbackKind.absentOnRead,
+    RoutineMoveReadbackKind.readUnavailable,
+  ]) {
+    testWidgets('UNKNOWN existing Move ${kind.name} cannot claim success',
+        (tester) async {
+      final g = _VerifyingMove()
+        ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
+        ..onVerify = () async => RoutineMoveReadback(kind: kind);
+      bool? refresh;
+      await _pump(tester,
+        flow: RoutineMoveFlow(newMutationId: () => token),
+        move: g, programs: _Programs(), canWrite: () => true,
+        onResult: (value) => refresh = value);
+      await tester.tap(find.text('Open Move'));
+      await tester.pumpAndSettle();
+      await _choose(tester);
+      await tester.tap(find.text('Move'));
+      await tester.pumpAndSettle();
+      expect(g.writes, 1);
+      expect(g.verifications, 1);
+      expect(refresh, true);
+      expect(find.textContaining('unconfirmed'), findsOneWidget);
+      expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+    });
+  }
+
+  testWidgets('UNKNOWN verifier exception cannot replace uncertain outcome',
+      (tester) async {
+    final g = _VerifyingMove()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
+      ..onVerify = () async => throw StateError('offline readback');
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(), canWrite: () => true,
+      onResult: (value) => refresh = value);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, true);
+    expect(g.writes, 1);
+    expect(g.verifications, 1);
+    expect(find.textContaining('unconfirmed'), findsOneWidget);
+    expect(find.textContaining('Try again later'), findsNothing);
+  });
+
+  testWidgets('UNKNOWN readback after auth revocation cannot show old success',
+      (tester) async {
+    final receipt = Completer<RoutineMoveReadback>();
+    var allowed = true;
+    bool? refresh;
+    final g = _VerifyingMove()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
+      ..onVerify = () => receipt.future;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(), canWrite: () => allowed,
+      onResult: (value) => refresh = value);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pump();
+    await tester.pump();
+    expect(g.verifications, 1);
+    allowed = false;
+    receipt.complete(const RoutineMoveReadback(
+      kind: RoutineMoveReadbackKind.confirmedLatestMutation));
+    await tester.pumpAndSettle();
+    expect(g.writes, 1);
+    expect(refresh, true);
+    expect(find.text('Routine moved.'), findsNothing);
+    expect(find.textContaining('unconfirmed'), findsNothing);
+  });
+
+  testWidgets('UNKNOWN atomic Create & Move uses same verifier once',
+      (tester) async {
+    var atomicWrites = 0;
+    bool? refresh;
+    final g = _VerifyingMove()
+      ..onVerify = () async => const RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.confirmedLatestMutation,
+        observedRevision: 5);
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs()..items = [source],
+      canWrite: () => true, onResult: (value) => refresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicWrites++;
+        throw const RoutineMoveOutcomeUnknown();
+      });
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, true);
+    expect(atomicWrites, 1);
+    expect(g.writes, 0);
+    expect(g.verifications, 1);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+      findsOneWidget);
+  });
+
+  testWidgets('debug preview never invokes UNKNOWN verifier or writes',
+      (tester) async {
+    final g = _VerifyingMove()
+      ..onVerify = () async => throw StateError('preview must never read back');
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: _Programs(), canWrite: () => true,
+      previewOnly: true, onResult: (value) => refresh = value);
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, false);
+    expect(g.writes, 0);
+    expect(g.verifications, 0);
+    expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+      findsOneWidget);
   });
 
   testWidgets('revision conflict remains a rejected Move requiring refresh',

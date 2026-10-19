@@ -69,6 +69,7 @@ final class RoutineMoveFlow {
       moves: repository, programs: programs, canWrite: canWrite,
     );
     var attempted = false;
+    String? dispatchedMutationId;
     try {
       // Push the sheet immediately. The authenticated owner-scoped reads
       // continue inside its content; no destination is shown/selectable until
@@ -243,11 +244,13 @@ final class RoutineMoveFlow {
           return false;
         }
         attempted = true;
+        final mutationId = _newMutationId();
+        dispatchedMutationId = mutationId;
         final result = await createAndMove(
           target: target,
           newProgramId: proposed.id,
           newProgramName: proposed.name,
-          mutationId: _newMutationId(),
+          mutationId: mutationId,
         );
         // The atomic write may have committed before auth/widget changed.
         // Preserve the caller's refresh signal without showing old-user data.
@@ -284,11 +287,13 @@ final class RoutineMoveFlow {
         return false;
       }
       attempted = true;
+      final mutationId = _newMutationId();
+      dispatchedMutationId = mutationId;
 
       final result = await controller.dispatchConfirmed(
         selection: selection,
         destinationProgramId: destination.id,
-        mutationId: _newMutationId(),
+        mutationId: mutationId,
       );
       // The existing-Program RPC has the same post-dispatch uncertainty.
       if (!context.mounted || !canWrite()) return attempted;
@@ -298,9 +303,35 @@ final class RoutineMoveFlow {
       }
       return true;
     } on RoutineMoveOutcomeUnknown {
+      // The original write may have committed despite a lost response.
+      // Only the optional same-cycle read-only mutation receipt can confirm
+      // that exact request. Never replay either Move RPC or infer success
+      // from destination membership / a later unrelated mutation.
+      var confirmedByReadback = false;
+      final tokenToVerify = dispatchedMutationId;
+      if (attempted && tokenToVerify != null &&
+          context.mounted && canWrite() &&
+          repository is RoutineMoveUnknownVerifier) {
+        try {
+          final readback = await (repository as RoutineMoveUnknownVerifier)
+              .verifyUnknown(
+            routineId: routine.id, mutationId: tokenToVerify,
+          );
+          confirmedByReadback =
+              readback.kind == RoutineMoveReadbackKind.confirmedLatestMutation;
+        } catch (_) {
+          // A failed, unsupported or stale-session read is not a receipt.
+          // Retain the original UNKNOWN message and caller refresh signal.
+        }
+      }
+      // A read may complete after widget disposal or account/cycle switch.
       if (attempted && context.mounted && canWrite()) {
-        _show(context,
-            'Move status is unconfirmed. Refresh Programs; do not retry.');
+        if (confirmedByReadback) {
+          _show(context, 'Routine moved.', confirmed: true);
+        } else {
+          _show(context,
+              'Move status is unconfirmed. Refresh Programs; do not retry.');
+        }
       }
       return attempted;
     } on RoutineMoveException catch (error) {
