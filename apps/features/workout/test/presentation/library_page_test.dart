@@ -15,6 +15,9 @@ Future<void> _pump(
   Future<void> Function(Program, Routine)? onRoutinePressed,
   Future<bool> Function(Program, Routine)? onEditRoutine,
   Future<bool> Function(Program, Routine)? onMoveRoutine,
+  RoutineMoveRefreshSignal? moveRefreshSignal,
+  String? moveRefreshOwnerId,
+  String? moveRefreshLoginCycleId,
   Future<bool> Function(Program, Routine)? onDeleteRoutine,
   RoutineRepository? routineRepository,
   ProgramRepository? programRepository,
@@ -50,6 +53,9 @@ Future<void> _pump(
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
         onMoveRoutine: onMoveRoutine,
+        moveRefreshSignal: moveRefreshSignal,
+        moveRefreshOwnerId: moveRefreshOwnerId,
+        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
         onDeleteRoutine: onDeleteRoutine,
         onExercisesPressed: onExercisesPressed ?? () {},
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
@@ -91,6 +97,134 @@ void main() {
     expect(find.text('Push'), findsNothing);
     expect(repository.queries.where((id) => id == _id(1)).length,
         greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('Move refreshes both expanded Program Routine lists, keeps collapse',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+    );
+    final id = _routine(1, 101, 'Push').id;
+    final routines = _FakeRoutineRepository([
+      _routine(1, 101, 'Push'),
+      _routine(2, 201, 'Legs'),
+    ]);
+    await _pump(tester, routineRepository: routines,
+      programRepository: programs, moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a',
+      onMoveRoutine: (sourceProgram, candidate) async {
+        expect(sourceProgram.id, _id(1));
+        routines.rows.removeWhere((r) => r.id == id);
+        routines.rows.add(Routine(
+          id: id, programId: _id(2), name: 'Push',
+        ));
+        signal.request(
+          ownerId: 'owner-a', loginCycleId: 'cycle-a',
+          programsMayHaveChanged: false,
+        );
+        // App shell already broadcast; the old source-only callback
+        // deliberately does not request a second load.
+        return false;
+      },
+    );
+    expect(programs.listReads, 1);
+    final before = routines.queries.length;
+    await tester.tap(find.byKey(ValueKey('routine-menu-${id.value}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('routine-move-${id.value}')));
+    await tester.pumpAndSettle();
+    expect(routines.queries.length, greaterThanOrEqualTo(before + 2));
+    expect(routines.queries, containsAll([_id(1), _id(2)]));
+    expect(programs.listReads, 1,
+        reason: 'Existing Move does not replace expanded Program collection');
+    final one = find.byKey(ValueKey('library-routines-${_id(1).value}'));
+    final two = find.byKey(ValueKey('library-routines-${_id(2).value}'));
+    expect(one, findsOneWidget);
+    expect(two, findsOneWidget);
+    expect(find.descendant(of: one, matching: find.text('Push')), findsNothing);
+    expect(find.descendant(of: two, matching: find.text('Push')), findsOneWidget);
+    expect(routines.rows.singleWhere((r) => r.id == id).id, id);
+  });
+
+  testWidgets('UNKNOWN refresh rereads without inventing Move success',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+      routineRepository: routines,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a',
+    );
+    final initialReads = routines.queries.length;
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+        programsMayHaveChanged: false);
+    await tester.pumpAndSettle();
+    expect(routines.queries.length, greaterThanOrEqualTo(initialReads + 2));
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
+        findsOneWidget);
+    // Reads cannot attribute a late/cross-device mutation to our RPC.
+    expect(find.descendant(
+      of: find.byKey(ValueKey('library-routines-${_id(2).value}')),
+      matching: find.text('Push'),
+    ), findsNothing);
+  });
+
+  testWidgets('atomic Create and Move refresh includes newly saved Program',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final id = _routine(1, 101, 'Push').id;
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+      programRepository: programs, routineRepository: routines,
+      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a');
+    await programs.create(_program(3, 'New Program'));
+    routines.rows
+      ..clear()
+      ..add(Routine(id: id, programId: _id(3), name: 'Push'));
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+        programsMayHaveChanged: true);
+    await tester.pumpAndSettle();
+    expect(programs.listReads, 2);
+    final three = find.byKey(ValueKey('library-routines-${_id(3).value}'));
+    expect(three, findsOneWidget);
+    expect(find.descendant(of: three, matching: find.text('Push')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+        findsOneWidget);
+    expect(routines.rows.single.id, id);
+  });
+
+  testWidgets('old owner or login cycle Move event cannot refresh Library',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    final programs = _FakeProgramRepository(
+        programs: [_program(1, 'Strength')]);
+    await _pump(tester,
+      programRepository: programs, routineRepository: routines,
+      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-b',
+      moveRefreshLoginCycleId: 'cycle-2');
+    final reads = routines.queries.length;
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-2',
+        programsMayHaveChanged: true);
+    signal.request(ownerId: 'owner-b', loginCycleId: 'cycle-1',
+        programsMayHaveChanged: true);
+    await tester.pumpAndSettle();
+    expect(routines.queries.length, reads);
+    expect(programs.listReads, 1);
   });
 
   testWidgets('Library Move suppressed during pending Create and without callback',
@@ -1043,12 +1177,16 @@ final class _FakeProgramRepository implements ProgramRepository {
   }) : programs = [...?programs];
 
   final List<Program> programs;
+  int listReads = 0;
   final List<Program> created = [];
   final List<({ProgramId id, String name})> renamed = [];
   final Object? renameErrorAfterWrite;
 
   @override
-  Future<List<Program>> list() async => List.unmodifiable(programs);
+  Future<List<Program>> list() async {
+    listReads++;
+    return List.unmodifiable(programs);
+  }
 
   @override
   Future<void> create(Program program) async {
