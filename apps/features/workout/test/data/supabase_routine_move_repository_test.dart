@@ -112,6 +112,164 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  group('read-only UNKNOWN Move verification', () {
+    test('exact persisted mutation token attributes original existing Move',
+        () async {
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final gate = RoutineMoveAttemptGate();
+      final cross = RoutineMoveDeleteAttemptGate();
+      final r = repo(g, gate: gate, crossOperationGate: cross);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect(cross.uncertain(owner, routine), isTrue);
+      expect(g.writes, 1);
+      g.row = {
+        ...header(program: destination, revision: 5),
+        'last_composition_mutation_id': mutation,
+      };
+      final found = await r.verifyUnknown(routineId: routine);
+      expect(found.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
+      expect(found.observedProgramId, destination);
+      expect(found.observedRevision, 5);
+      expect(cross.uncertain(owner, routine), isFalse);
+      expect(g.writes, 1, reason: 'Readback never repeats the write RPC');
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    });
+
+    test('atomic Create and Move also attributes the original token only',
+        () async {
+      final g = FakeMoveGateway()
+        ..onCreateAndMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g);
+      final target = await inspect(r);
+      await expectLater(r.createAndMove(
+        target: target, newProgramId: destination,
+        newProgramName: 'Program 1', mutationId: mutation,
+      ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      g.row = {
+        ...header(program: destination, revision: 5),
+        'last_composition_mutation_id': mutation,
+      };
+      expect((await r.verifyUnknown(routineId: routine)).kind,
+          RoutineMoveReadbackKind.confirmedLatestMutation);
+      expect(g.atomicWrites, 1);
+      expect(g.writes, 0);
+    });
+
+    test('destination membership without the token cannot confirm Move',
+        () async {
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final gate = RoutineMoveAttemptGate();
+      final r = repo(g, gate: gate);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      g.row = {
+        ...header(program: destination, revision: 5),
+        'last_composition_mutation_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      };
+      final check = await r.verifyUnknown(routineId: routine);
+      expect(check.kind, RoutineMoveReadbackKind.superseded);
+      expect(check.observedProgramId, destination);
+      expect(g.writes, 1);
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    });
+
+    test('early unchanged and absent owner reads preserve the UNKNOWN hold',
+        () async {
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect((await r.verifyUnknown(routineId: routine)).kind,
+          RoutineMoveReadbackKind.notConfirmed);
+      g.row = null;
+      expect((await r.verifyUnknown(routineId: routine)).kind,
+          RoutineMoveReadbackKind.absentOnRead);
+      g.row = header();
+      expect((await r.verifyUnknown(routineId: routine)).kind,
+          RoutineMoveReadbackKind.notConfirmed);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+      expect(g.writes, 1);
+    });
+
+    test('read failures keep the frozen attempt; no retry or success',
+        () async {
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      g.onRead = () => throw StateError('network unavailable');
+      final check = await r.verifyUnknown(routineId: routine);
+      expect(check.kind, RoutineMoveReadbackKind.readUnavailable);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+      expect(g.writes, 1);
+    });
+
+    test('owner or login-cycle changes cannot verify old UNKNOWN attempt',
+        () async {
+      var activeOwner = owner;
+      var activeCycle = cycle;
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g,
+          user: () => activeOwner, loginCycle: () => activeCycle);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      final reads = g.reads;
+      activeCycle = 'new-login-cycle';
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+      activeOwner = other;
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+      expect(g.reads, reads, reason: 'No cross-cycle/owner read is permitted');
+    });
+
+    test('mid-read session change rejects stale verification',
+        () async {
+      var activeCycle = cycle;
+      final g = FakeMoveGateway()
+        ..onMove = () async => throw const PostgrestException(
+          message: 'completion unknown', code: '40003');
+      final r = repo(g, loginCycle: () => activeCycle);
+      final target = await inspect(r);
+      await expectLater(move(r, target),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      g.onRead = () => activeCycle = 'cycle-b';
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+      expect(g.writes, 1);
+    });
+
+    test('no UNKNOWN attempt cannot read or claim a Move receipt',
+        () async {
+      final g = FakeMoveGateway();
+      final r = repo(g);
+      await expectLater(r.verifyUnknown(routineId: routine),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+      expect(g.reads, 0);
+    });
+  });
+
   test('pending Create in source Program blocks both Move variants before RPC',
       () async {
     var pending = true;
