@@ -49,6 +49,31 @@ final class RoutineMoveOutcomeUnknown implements Exception {
 }
 enum RoutineMoveResult { confirmed }
 
+/// A read-only check of the *original* ambiguous write, never a retry.
+/// An exact latest persisted server mutation token is required for confirmed.
+/// Negative/early owner reads are not proof the original RPC was rejected.
+enum RoutineMoveReadbackKind {
+  confirmedLatestMutation, notConfirmed, superseded,
+  absentOnRead, readUnavailable,
+}
+
+final class RoutineMoveReadback {
+  const RoutineMoveReadback({
+    required this.kind,
+    this.observedProgramId,
+    this.observedRevision,
+  });
+  final RoutineMoveReadbackKind kind;
+  final ProgramId? observedProgramId;
+  final int? observedRevision;
+}
+
+/// Optional recovery capability for an UNKNOWN Move within its original
+/// authenticated login cycle. Does not authorize new Move writes.
+abstract interface class RoutineMoveUnknownVerifier {
+  Future<RoutineMoveReadback> verifyUnknown({required RoutineId routineId});
+}
+
 /// Optional Workout-owned capability, separate from RoutineRepository.
 /// An uncertain request must never be retried with a new token or assumed done.
 abstract interface class RoutineMoveRepository {
