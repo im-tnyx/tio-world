@@ -995,10 +995,35 @@ void main() {
       ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
       ..onVerify = () => readback.future;
     bool? refresh;
-    await _pump(tester,
-      flow: RoutineMoveFlow(newMutationId: () => token),
-      move: g, programs: _Programs(), canWrite: () => true,
-      onResult: (value) => refresh = value);
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final messengerKey = GlobalKey<ScaffoldMessengerState>();
+    final flow = RoutineMoveFlow(newMutationId: () => token);
+    await tester.pumpWidget(MaterialApp(
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: Builder(builder: (context) => Center(
+          child: TextButton(
+            onPressed: () async {
+              refresh = await flow.run(
+                context: context,
+                sourceProgram: source,
+                routine: routine,
+                programs: _Programs(),
+                repository: g,
+                canWrite: () => true,
+              );
+            },
+            child: const Text('Open Move'),
+          ),
+        )),
+      ),
+    ));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
@@ -1007,8 +1032,22 @@ void main() {
     await tester.pump();
     expect(g.writes, 1);
     expect(g.verifications, 1);
-    // The old page is removed while the server read is unresolved.
-    await tester.pumpWidget(const SizedBox.shrink());
+    final originalMessenger = messengerKey.currentState;
+    expect(originalMessenger, isNotNull);
+    // Dispose ONLY the origin route. A real app-level ScaffoldMessenger and
+    // destination Scaffold must remain alive to expose a stale snackbar.
+    navigatorKey.currentState!.pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(
+          body: Center(child: Text('Destination screen')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Destination screen'), findsOneWidget);
+    expect(messengerKey.currentState, same(originalMessenger));
+    expect(find.byType(ScaffoldMessenger), findsOneWidget);
+
     readback.complete(const RoutineMoveReadback(
       kind: RoutineMoveReadbackKind.confirmedLatestMutation));
     await tester.pumpAndSettle();
@@ -1018,7 +1057,18 @@ void main() {
     expect(g.verifications, 1);
     expect(find.text('Routine moved.'), findsNothing);
     expect(find.textContaining('unconfirmed'), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
     expect(tester.takeException(), isNull);
+    // A positive control verifies the destination route can still render
+    // a root-messenger SnackBar; findsNothing above is not vacuous.
+    messengerKey.currentState!.showSnackBar(
+      const SnackBar(content: Text('Messenger is live')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Messenger is live'), findsOneWidget);
+    messengerKey.currentState!.removeCurrentSnackBar();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('debug preview never invokes UNKNOWN verifier or writes',
