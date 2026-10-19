@@ -8,7 +8,6 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_profile/profile.dart';
-import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 
