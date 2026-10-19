@@ -72,6 +72,9 @@ final class SupabaseRoutineMoveGateway implements RoutineMoveGateway {
 }
 
 typedef RoutineMoveCurrentValue = String? Function();
+/// Checked synchronously before a Move RPC, never after dispatch.
+typedef RoutineMovePendingCreateCheck = bool Function(
+    String owner, ProgramId programId);
 typedef _Session = ({String owner, String cycle});
 typedef _Header = ({RoutineId id, ProgramId program, String name, int revision});
 
@@ -92,11 +95,13 @@ final class SupabaseRoutineMoveRepository
     required RoutineMoveGateway gateway,
     required RoutineMoveAttemptGate attemptGate,
     RoutineMoveDeleteAttemptGate? crossOperationGate,
+    RoutineMovePendingCreateCheck? pendingCreateForProgram,
     required RoutineMoveCurrentValue currentUserId,
     required RoutineMoveCurrentValue currentLoginCycleId,
     Duration timeout = const Duration(seconds: 15),
   }) : _gateway = gateway, _gate = attemptGate,
        _crossOperationGate = crossOperationGate,
+       _pendingCreateForProgram = pendingCreateForProgram,
        _user = currentUserId, _cycle = currentLoginCycleId,
        _timeout = timeout {
     if (timeout <= Duration.zero) throw ArgumentError.value(timeout, 'timeout');
@@ -106,11 +111,13 @@ final class SupabaseRoutineMoveRepository
     required SupabaseClient client,
     required RoutineMoveAttemptGate attemptGate,
     required RoutineMoveDeleteAttemptGate crossOperationGate,
+    required RoutineMovePendingCreateCheck pendingCreateForProgram,
     required RoutineMoveCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineMoveRepository(
     gateway: SupabaseRoutineMoveGateway(client),
     attemptGate: attemptGate,
     crossOperationGate: crossOperationGate,
+    pendingCreateForProgram: pendingCreateForProgram,
     currentUserId: () => client.auth.currentUser?.id,
     currentLoginCycleId: currentLoginCycleId,
   );
@@ -118,9 +125,23 @@ final class SupabaseRoutineMoveRepository
   final RoutineMoveGateway _gateway;
   final RoutineMoveAttemptGate _gate;
   final RoutineMoveDeleteAttemptGate? _crossOperationGate;
+  final RoutineMovePendingCreateCheck? _pendingCreateForProgram;
   final RoutineMoveCurrentValue _user;
   final RoutineMoveCurrentValue _cycle;
   final Duration _timeout;
+
+  /// An unresolved Create can commit after login-cycle or route changes.
+  /// Do not expose its private command; deny only the affected Program.
+  /// A failed callback must fail closed, before dispatching a Move RPC.
+  bool _blockedByCreate(String owner, ProgramId source, ProgramId target) {
+    final check = _pendingCreateForProgram;
+    if (check == null) return false; // Optional only in isolated tests.
+    try {
+      return check(owner, source) || check(owner, target);
+    } catch (_) {
+      return true;
+    }
+  }
 
   @override
   Future<RoutineMoveTarget?> inspect({
@@ -186,6 +207,10 @@ final class SupabaseRoutineMoveRepository
         target.expectedRevision == 9223372036854775807 ||
         !_isUuid(mutationId)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
+    }
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        destinationProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
     final key = _ownerKey(session, target.routineId);
     final cycleKey = _cycleKey(session, target.routineId);
@@ -279,6 +304,10 @@ final class SupabaseRoutineMoveRepository
         newProgramName.trim().isEmpty ||
         target.expectedRevision == 9223372036854775807) {
       throw const RoutineMoveException(RoutineMoveFailureKind.invalidRequest);
+    }
+    if (_blockedByCreate(session.owner, target.sourceProgramId,
+        newProgramId)) {
+      throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
     final key = _ownerKey(session, target.routineId);
     final cycleKey = _cycleKey(session, target.routineId);
