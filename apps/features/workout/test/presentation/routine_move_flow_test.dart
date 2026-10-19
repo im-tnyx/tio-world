@@ -948,6 +948,129 @@ void main() {
       findsOneWidget);
   });
 
+  testWidgets('atomic UNKNOWN without exact receipt never claims success',
+      (tester) async {
+    final programs = _Programs()..items = [source];
+    final g = _VerifyingMove()
+      ..onVerify = () async => const RoutineMoveReadback(
+        kind: RoutineMoveReadbackKind.notConfirmed);
+    var atomicWrites = 0;
+    bool? refresh;
+    await _pump(tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g, programs: programs,
+      canWrite: () => true, onResult: (value) => refresh = value,
+      createAndMove: ({
+        required RoutineMoveTarget target,
+        required ProgramId newProgramId,
+        required String newProgramName,
+        required String mutationId,
+      }) async {
+        atomicWrites++;
+        expect(mutationId, token);
+        throw const RoutineMoveOutcomeUnknown();
+      });
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create & Move'));
+    await tester.pumpAndSettle();
+    expect(refresh, true, reason: 'UNKNOWN requests an owner-guarded refresh');
+    expect(atomicWrites, 1, reason: 'No atomic retry when receipt is missing');
+    expect(g.writes, 0, reason: 'No standalone existing-Program Move');
+    expect(g.verifications, 1);
+    expect(programs.creates, 0, reason: 'No non-atomic Program INSERT');
+    expect(find.textContaining('unconfirmed'), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+        findsNothing);
+  });
+
+  testWidgets('disposed Move screen suppresses delayed UNKNOWN receipt UI',
+      (tester) async {
+    final readback = Completer<RoutineMoveReadback>();
+    final g = _VerifyingMove()
+      ..onMove = () async { throw const RoutineMoveOutcomeUnknown(); }
+      ..onVerify = () => readback.future;
+    bool? refresh;
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final messengerKey = GlobalKey<ScaffoldMessengerState>();
+    final flow = RoutineMoveFlow(newMutationId: () => token);
+    await tester.pumpWidget(MaterialApp(
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: Builder(builder: (context) => Center(
+          child: TextButton(
+            onPressed: () async {
+              refresh = await flow.run(
+                context: context,
+                sourceProgram: source,
+                routine: routine,
+                programs: _Programs(),
+                repository: g,
+                canWrite: () => true,
+              );
+            },
+            child: const Text('Open Move'),
+          ),
+        )),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+    await tester.tap(find.text('Move'));
+    await tester.pump();
+    await tester.pump();
+    expect(g.writes, 1);
+    expect(g.verifications, 1);
+    final originalMessenger = messengerKey.currentState;
+    expect(originalMessenger, isNotNull);
+    // Dispose ONLY the origin route. A real app-level ScaffoldMessenger and
+    // destination Scaffold must remain alive to expose a stale snackbar.
+    navigatorKey.currentState!.pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(
+          body: Center(child: Text('Destination screen')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Destination screen'), findsOneWidget);
+    expect(messengerKey.currentState, same(originalMessenger));
+    expect(find.byType(ScaffoldMessenger), findsOneWidget);
+
+    readback.complete(const RoutineMoveReadback(
+      kind: RoutineMoveReadbackKind.confirmedLatestMutation));
+    await tester.pumpAndSettle();
+    expect(refresh, true,
+        reason: 'Disposal must not erase the attempt refresh signal');
+    expect(g.writes, 1, reason: 'Readback never dispatches a second Move');
+    expect(g.verifications, 1);
+    expect(find.text('Routine moved.'), findsNothing);
+    expect(find.textContaining('unconfirmed'), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(tester.takeException(), isNull);
+    // A positive control verifies the destination route can still render
+    // a root-messenger SnackBar; findsNothing above is not vacuous.
+    messengerKey.currentState!.showSnackBar(
+      const SnackBar(content: Text('Messenger is live')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Messenger is live'), findsOneWidget);
+    messengerKey.currentState!.removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('debug preview never invokes UNKNOWN verifier or writes',
       (tester) async {
     final g = _VerifyingMove()
