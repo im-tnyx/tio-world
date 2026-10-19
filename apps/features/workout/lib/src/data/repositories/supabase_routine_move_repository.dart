@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 import '../../domain/repositories/routine_move_repository.dart';
+import 'routine_move_delete_attempt_gate.dart';
 
 /// Read-only owner snapshot plus the single protected M1 RPC. Never table UPDATE.
 abstract interface class RoutineMoveGateway {
@@ -81,6 +82,7 @@ final class RoutineMoveAttemptGate {
   final Map<String, int> _inspectGeneration = {};
   final Map<String, int> _dispatchGeneration = {};
   final Map<String, int> _uncertainRevision = {};
+  final Map<String, int> _crossGeneration = {};
   final Set<String> _inFlight = {};
 }
 
@@ -89,10 +91,12 @@ final class SupabaseRoutineMoveRepository
   SupabaseRoutineMoveRepository({
     required RoutineMoveGateway gateway,
     required RoutineMoveAttemptGate attemptGate,
+    RoutineMoveDeleteAttemptGate? crossOperationGate,
     required RoutineMoveCurrentValue currentUserId,
     required RoutineMoveCurrentValue currentLoginCycleId,
     Duration timeout = const Duration(seconds: 15),
   }) : _gateway = gateway, _gate = attemptGate,
+       _crossOperationGate = crossOperationGate,
        _user = currentUserId, _cycle = currentLoginCycleId,
        _timeout = timeout {
     if (timeout <= Duration.zero) throw ArgumentError.value(timeout, 'timeout');
@@ -101,16 +105,19 @@ final class SupabaseRoutineMoveRepository
   factory SupabaseRoutineMoveRepository.fromClient({
     required SupabaseClient client,
     required RoutineMoveAttemptGate attemptGate,
+    required RoutineMoveDeleteAttemptGate crossOperationGate,
     required RoutineMoveCurrentValue currentLoginCycleId,
   }) => SupabaseRoutineMoveRepository(
     gateway: SupabaseRoutineMoveGateway(client),
     attemptGate: attemptGate,
+    crossOperationGate: crossOperationGate,
     currentUserId: () => client.auth.currentUser?.id,
     currentLoginCycleId: currentLoginCycleId,
   );
 
   final RoutineMoveGateway _gateway;
   final RoutineMoveAttemptGate _gate;
+  final RoutineMoveDeleteAttemptGate? _crossOperationGate;
   final RoutineMoveCurrentValue _user;
   final RoutineMoveCurrentValue _cycle;
   final Duration _timeout;
@@ -122,7 +129,10 @@ final class SupabaseRoutineMoveRepository
     final session = _session();
     final key = _ownerKey(session, routineId);
     final cycleKey = _cycleKey(session, routineId);
-    if (_gate._inFlight.contains(key)) {
+    final crossGeneration =
+        _crossOperationGate?.generation(session.owner, routineId);
+    if (_crossOperationGate?.inFlight(session.owner, routineId) == true ||
+        _gate._inFlight.contains(key)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
     final seq = (_gate._inspectGeneration[cycleKey] ?? 0) + 1;
@@ -130,13 +140,20 @@ final class SupabaseRoutineMoveRepository
     _gate._prepared.remove(cycleKey);
     final dispatched = _gate._dispatchGeneration[key] ?? 0;
     final header = await _read(session, routineId);
-    if (_gate._inFlight.contains(key)) {
+    if (_crossOperationGate?.inFlight(session.owner, routineId) == true ||
+        _gate._inFlight.contains(key)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
     }
-    if (_gate._inspectGeneration[cycleKey] != seq ||
+    if (_crossOperationGate?.generation(session.owner, routineId) !=
+            crossGeneration ||
+        _gate._inspectGeneration[cycleKey] != seq ||
         _gate._dispatchGeneration[key] != null &&
           _gate._dispatchGeneration[key] != dispatched) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    if (header != null) {
+      _crossOperationGate?.observeRevision(
+          session.owner, routineId, header.revision);
     }
     if (header == null || header.program != sourceProgramId) return null;
     final unknown = _gate._uncertainRevision[key];
@@ -150,6 +167,8 @@ final class SupabaseRoutineMoveRepository
       ownerId: session.owner, loginCycleId: session.cycle,
     );
     _gate._prepared[cycleKey] = target;
+    _gate._crossGeneration[cycleKey] =
+        _crossOperationGate?.generation(session.owner, routineId) ?? 0;
     return target;
   }
 
@@ -178,6 +197,22 @@ final class SupabaseRoutineMoveRepository
     }
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    final cross = _crossOperationGate;
+    if (cross != null) {
+      if (cross.uncertain(session.owner, target.routineId)) {
+        throw const RoutineMoveOutcomeUnknown();
+      }
+      if (cross.inFlight(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+      }
+      if (_gate._crossGeneration[cycleKey] !=
+          cross.generation(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+      }
+      if (!cross.tryStart(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+      }
     }
     _gate._prepared.remove(cycleKey);
     _gate._inFlight.add(key);
@@ -216,9 +251,12 @@ final class SupabaseRoutineMoveRepository
       return await _unknown(target, session);
     } on RoutineMoveOutcomeUnknown {
       _gate._uncertainRevision[key] = target.expectedRevision;
+      _crossOperationGate?.markUncertain(
+          session.owner, target.routineId, target.expectedRevision);
       rethrow;
     } finally {
       _gate._inFlight.remove(key);
+      _crossOperationGate?.finish(session.owner, target.routineId);
     }
   }
 
@@ -252,6 +290,22 @@ final class SupabaseRoutineMoveRepository
     }
     if (!identical(_gate._prepared[cycleKey], target)) {
       throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+    }
+    final cross = _crossOperationGate;
+    if (cross != null) {
+      if (cross.uncertain(session.owner, target.routineId)) {
+        throw const RoutineMoveOutcomeUnknown();
+      }
+      if (cross.inFlight(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+      }
+      if (_gate._crossGeneration[cycleKey] !=
+          cross.generation(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.staleTarget);
+      }
+      if (!cross.tryStart(session.owner, target.routineId)) {
+        throw const RoutineMoveException(RoutineMoveFailureKind.inProgress);
+      }
     }
     _gate._prepared.remove(cycleKey);
     _gate._inFlight.add(key);
@@ -291,9 +345,12 @@ final class SupabaseRoutineMoveRepository
       return await _unknown(target, session);
     } on RoutineMoveOutcomeUnknown {
       _gate._uncertainRevision[key] = target.expectedRevision;
+      _crossOperationGate?.markUncertain(
+          session.owner, target.routineId, target.expectedRevision);
       rethrow;
     } finally {
       _gate._inFlight.remove(key);
+      _crossOperationGate?.finish(session.owner, target.routineId);
     }
   }
 

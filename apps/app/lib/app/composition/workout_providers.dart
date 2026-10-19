@@ -121,6 +121,12 @@ final routineMoveUiPreviewEnabledProvider = Provider<bool>((ref) =>
     const bool.fromEnvironment('TIO_MOVE_ROUTINE_UI_PREVIEW',
         defaultValue: false));
 
+/// Shared process-local Move/Delete arbitration, not a server CAS substitute.
+final routineMoveDeleteAttemptGateProvider =
+    Provider<RoutineMoveDeleteAttemptGate>(
+  (ref) => RoutineMoveDeleteAttemptGate(),
+);
+
 /// Shared across all Routine Move routes, owners and login cycles.
 final routineMoveAttemptGateProvider = Provider<RoutineMoveAttemptGate>(
   (ref) => RoutineMoveAttemptGate(),
@@ -149,6 +155,7 @@ final routineMoveRepositoryProvider =
   return SupabaseRoutineMoveRepository.fromClient(
     client: client,
     attemptGate: ref.watch(routineMoveAttemptGateProvider),
+    crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
     currentLoginCycleId: () {
       try {
         final live = ref.read(authSessionStateProvider);
@@ -200,6 +207,7 @@ final routineDeleteRepositoryProvider = Provider<RoutineDeleteRepository?>((ref)
   return SupabaseRoutineDeleteRepository.fromClient(
     client: client,
     attemptGate: ref.watch(routineDeleteAttemptGateProvider),
+    crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
     currentLoginCycleId: () {
       // Re-read the LIVE auth cycle; never close over the opening JWT.
       try {
