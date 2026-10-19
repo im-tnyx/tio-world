@@ -189,6 +189,12 @@ void main() {
       programRepository: programs, routineRepository: routines,
       moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
       moveRefreshLoginCycleId: 'cycle-a');
+    // The ProgramsController briefly publishes loading during atomic refresh.
+    // Collapsed view state must survive the list widget being unmounted.
+    final first = ValueKey('library-routines-${_id(1).value}');
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(first), findsNothing);
     await programs.create(_program(3, 'New Program'));
     routines.rows
       ..clear()
@@ -201,9 +207,35 @@ void main() {
     expect(three, findsOneWidget);
     expect(find.descendant(of: three, matching: find.text('Push')),
         findsOneWidget);
-    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+    expect(find.byKey(first), findsNothing,
+        reason: 'Atomic Program reload must preserve collapsed source cards');
+    expect(find.byKey(ValueKey('program-row-${_id(1).value}')),
         findsOneWidget);
     expect(routines.rows.single.id, id);
+  });
+
+  testWidgets('rebind to a different owner cycle resets collapsed Program view',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')]);
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester, programRepository: programs,
+      routineRepository: routines, moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a');
+    await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    final first = ValueKey('library-routines-${_id(1).value}');
+    expect(find.byKey(first), findsNothing);
+
+    // Reuse the mounted Library root: the owner/cycle rebind, not a new
+    // navigation route, must reset account-scoped collapse state.
+    await _pump(tester, programRepository: programs,
+      routineRepository: routines, moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-b', moveRefreshLoginCycleId: 'cycle-b');
+    expect(find.byKey(first), findsOneWidget);
+    expect(programs.listReads, greaterThanOrEqualTo(2));
   });
 
   testWidgets('old owner or login cycle Move event cannot refresh Library',
