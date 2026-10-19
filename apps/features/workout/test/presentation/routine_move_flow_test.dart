@@ -92,9 +92,12 @@ final class _VerifyingMove extends _Move implements RoutineMoveUnknownVerifier {
   @override
   Future<RoutineMoveReadback> verifyUnknown({
     required RoutineId routineId,
+    required String mutationId,
   }) async {
     verifications++;
     expect(routineId, routine.id);
+    expect(mutationId, token,
+        reason: 'Only the current confirmed attempt may be verified');
     return await (onVerify?.call() ?? Future.value(
       const RoutineMoveReadback(kind: RoutineMoveReadbackKind.notConfirmed)));
   }
