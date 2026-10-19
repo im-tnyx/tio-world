@@ -38,6 +38,14 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
   }) => _same(owner, loginCycle) &&
       (_pendingByOwner[owner]?.containsKey(programId) ?? false);
 
+  /// Boolean-only owner/Program arbitration for an unrelated Routine Move.
+  /// A pending Create's RPC can still commit after a route or login cycle
+  /// changes. Never return the frozen Create command/draft to the Move path.
+  /// The caller must independently verify its own live authenticated owner.
+  bool hasPendingForOwnerProgram({
+    required String owner, required ProgramId programId,
+  }) => _pendingByOwner[owner]?.containsKey(programId) ?? false;
+
   void retain({
     required String owner, required String loginCycle,
     required RoutineCreateCommand command,

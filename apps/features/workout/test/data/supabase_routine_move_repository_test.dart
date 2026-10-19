@@ -88,13 +88,17 @@ final class FakeMoveGateway implements RoutineMoveGateway {
 SupabaseRoutineMoveRepository repo(
   FakeMoveGateway gateway, {
   RoutineMoveAttemptGate? gate,
+  RoutineMoveDeleteAttemptGate? crossOperationGate,
   String? Function()? user,
   String? Function()? loginCycle,
   Duration timeout = const Duration(seconds: 15),
+  RoutineMovePendingCreateCheck? pendingCreateForProgram,
 }) => SupabaseRoutineMoveRepository(
   gateway: gateway, attemptGate: gate ?? RoutineMoveAttemptGate(),
+  crossOperationGate: crossOperationGate,
   currentUserId: user ?? () => owner,
   currentLoginCycleId: loginCycle ?? () => cycle,
+  pendingCreateForProgram: pendingCreateForProgram,
   timeout: timeout,
 );
 
@@ -108,6 +112,137 @@ Future<RoutineMoveResult> move(
   target: target, destinationProgramId: to ?? destination, mutationId: token);
 
 void main() {
+  test('pending Create in source Program blocks both Move variants before RPC',
+      () async {
+    var pending = true;
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        pending && u == owner && p == source);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'New Program', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 0,
+        reason: 'No Move RPC is dispatched while Create can still commit');
+    // The original prepared Move capability was not consumed by the
+    // program-level preflight; a definite Create release can unblock it.
+    pending = false;
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create in existing destination blocks Move only for that owner',
+      () async {
+    var pending = true;
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        pending && u == owner && p == destination);
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    pending = false;
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create for another owner is not a Move blocker', () async {
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        u == other && p == source);
+    final t = await inspect(r);
+    expect(await move(r, t), RoutineMoveResult.confirmed);
+    expect(g.writes, 1);
+  });
+
+  test('pending Create lookup error fails closed for both Move paths',
+      () async {
+    final g = FakeMoveGateway();
+    final r = repo(g, pendingCreateForProgram: (u, p) =>
+        throw StateError('disposed gate'));
+    final t = await inspect(r);
+    await expectLater(move(r, t),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(r.createAndMove(
+      target: t, newProgramId: destination,
+      newProgramName: 'New Program', mutationId: mutation,
+    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    expect(g.writes, 0);
+    expect(g.atomicWrites, 0);
+  });
+
+  for (final atomic in <bool>[false, true]) {
+    final variant = atomic ? 'atomic Create and Move' : 'existing Move';
+
+    Future<RoutineMoveResult> dispatch(
+      SupabaseRoutineMoveRepository repository, RoutineMoveTarget target,
+    ) => atomic
+        ? repository.createAndMove(
+            target: target, newProgramId: destination,
+            newProgramName: 'New Program', mutationId: mutation,
+          )
+        : move(repository, target);
+
+    test('cross-operation UNKNOWN outranks pending Create for $variant',
+        () async {
+      final cross = RoutineMoveDeleteAttemptGate();
+      final gateway = FakeMoveGateway();
+      var pendingLookupCalls = 0;
+      final repository = repo(
+        gateway,
+        crossOperationGate: cross,
+        pendingCreateForProgram: (ownerId, programId) {
+          pendingLookupCalls++;
+          return true;
+        },
+      );
+      final target = await inspect(repository);
+      expect(cross.tryStart(owner, routine), isTrue);
+      cross.markUncertain(owner, routine, target.expectedRevision);
+      cross.finish(owner, routine);
+
+      await expectLater(
+        dispatch(repository, target),
+        throwsA(isA<RoutineMoveOutcomeUnknown>()),
+      );
+      expect(pendingLookupCalls, 0,
+          reason: 'UNKNOWN requires do-not-retry, not Create in-progress');
+      expect(gateway.writes, 0);
+      expect(gateway.atomicWrites, 0);
+    });
+
+    test('stale cross-operation generation outranks Create for $variant',
+        () async {
+      final cross = RoutineMoveDeleteAttemptGate();
+      final gateway = FakeMoveGateway();
+      var pendingLookupCalls = 0;
+      final repository = repo(
+        gateway,
+        crossOperationGate: cross,
+        pendingCreateForProgram: (ownerId, programId) {
+          pendingLookupCalls++;
+          return true;
+        },
+      );
+      final target = await inspect(repository);
+      expect(cross.tryStart(owner, routine), isTrue);
+      cross.finish(owner, routine);
+
+      await expectLater(
+        dispatch(repository, target),
+        throwsA(failure(RoutineMoveFailureKind.staleTarget)),
+      );
+      expect(pendingLookupCalls, 0,
+          reason: 'Previously inspected target is stale after peer write');
+      expect(gateway.writes, 0);
+      expect(gateway.atomicWrites, 0);
+    });
+  }
+
   test('atomic known SQL rejection after login-cycle change is UNKNOWN', () async {
     var loginCycle = cycle;
     final gate = RoutineMoveAttemptGate();

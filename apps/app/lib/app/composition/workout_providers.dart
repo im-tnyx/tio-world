@@ -160,6 +160,10 @@ final routineMoveRepositoryProvider =
     client: client,
     attemptGate: ref.watch(routineMoveAttemptGateProvider),
     crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
+    // Share only the owner-scoped pending bit, never a Create draft.
+    pendingCreateForProgram: (owner, programId) =>
+        ref.read(routinePendingCreateGateProvider)
+            .hasPendingForOwnerProgram(owner: owner, programId: programId),
     currentLoginCycleId: () {
       try {
         final live = ref.read(authSessionStateProvider);
