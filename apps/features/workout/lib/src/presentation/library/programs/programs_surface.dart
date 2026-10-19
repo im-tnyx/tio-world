@@ -135,7 +135,9 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     if (!mounted || signal == null || !signal.matches(
       ownerId: widget.moveRefreshOwnerId,
       loginCycleId: widget.moveRefreshLoginCycleId,
-    )) return;
+    )) {
+      return;
+    }
     // Existing Move leaves Program membership unchanged: refresh expanded
     // Routine lists without collapsing their expansion state. Atomic
     // Create+Move may have created a Program, so re-read that collection too.
