@@ -1,8 +1,9 @@
 import 'package:tio_shared/shared.dart';
 
-/// Process-local arbitration between Routine Move (both variants) and Delete.
+/// Process-local arbitration for same-owner Routine Edit, Move and Delete.
 ///
-/// This gate is shared across adapter recreations, routes and login cycles.
+/// Shared by composition-only and atomic Name+composition Edit, both Move
+/// variants, metadata Rename and Delete, across adapters and login cycles.
 /// It does not replace server-side owner/RLS and revision-CAS checks. UNKNOWN
 /// writes stay blocked until an authenticated owner read proves the old CAS
 /// revision cannot still commit. An absent or same-revision read is not proof.
@@ -33,7 +34,8 @@ final class RoutineMoveDeleteAttemptGate {
     }
   }
 
-  /// Reserve synchronously before an RPC; prevents cross-adapter overlap.
+  /// Reserve synchronously before a mutation RPC; prevents cross-adapter
+  /// Edit/Move/Delete overlap without adding a second source of truth.
   bool tryStart(String owner, RoutineId routineId) {
     final key = _key(owner, routineId);
     if (_inFlight.contains(key) || _unknownRevisions.containsKey(key)) {
