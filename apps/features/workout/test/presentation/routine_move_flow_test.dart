@@ -913,7 +913,7 @@ void main() {
     var atomicWrites = 0;
     bool? refresh;
     final g = _VerifyingMove()
-      ..onVerify = () async => RoutineMoveReadback(
+      ..onVerify = () async => const RoutineMoveReadback(
         kind: RoutineMoveReadbackKind.confirmedLatestMutation,
         observedRevision: 5);
     await _pump(tester,
