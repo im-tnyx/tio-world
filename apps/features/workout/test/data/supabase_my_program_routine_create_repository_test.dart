@@ -226,6 +226,27 @@ void main() {
     });
   }
 
+  for (final status in [401, 403, 422, 429]) {
+    test('unclassified HTTP $status stays UNKNOWN, one request', () async {
+      var requests = 0;
+      final client = _client((request) async {
+        requests++;
+        return http.Response(
+          jsonEncode({'code': '$status', 'message': 'Gateway uncertainty'}),
+          status,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        );
+      });
+      addTearDown(client.dispose);
+      final repo = SupabaseMyProgramRoutineCreateRepository(
+        client: client, currentUserId: () => _owner);
+      await expectLater(repo.createInMyProgram(_command()),
+          throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()));
+      expect(requests, 1);
+    });
+  }
+
   test('server 5xx remains UNKNOWN, never automatically replays write',
       () async {
     var requests = 0;
@@ -313,5 +334,21 @@ void main() {
       entries: cmd.entries,
     );
     expect(cmd.confirmsPersistedRoutine(mismatch), isFalse);
+    final editedByOtherMutation = RoutineCompositionSnapshot(
+      routineId: cmd.routineId,
+      revision: 2,
+      lastMutationId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      entries: const [],
+    );
+    expect(cmd.confirmsPersistedRoutine(editedByOtherMutation), isFalse,
+        reason: 'Later mutation without original history is not proof');
+    final sameMutationButSuperseded = RoutineCompositionSnapshot(
+      routineId: cmd.routineId,
+      revision: 2,
+      lastMutationId: cmd.mutationId,
+      entries: cmd.entries,
+    );
+    expect(cmd.confirmsPersistedRoutine(sameMutationButSuperseded), isFalse,
+        reason: 'Revision >1 requires a separate authoritative chain');
   });
 }
