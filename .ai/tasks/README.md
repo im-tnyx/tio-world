@@ -164,15 +164,7 @@ Never automatically discard, reset, stash, overwrite, or recreate existing work 
 
 ### State Verification And Precedence
 
-Use this precedence when records disagree:
-
-```text
-Current runtime/source and Git state
-→ live PR/tracker state
-→ canonical architecture/product docs
-→ active task handoff snapshot
-→ previous chat claims
-```
+Resolve disagreements by **question type** using the canonical [documentation authority and conflict-resolution rules](../../docs/README.md#conflict-resolution); do not apply a single global ladder across unrelated kinds of truth. Checked-in source/config and verified runtime/Git state establish executable behavior; owning canonical docs/accepted ADRs define architecture/product policy; live Linear/GitHub establish task scope, state and review history; task handoffs and chat claims are dated execution context, not overrides. If a task tracker conflicts with canonical policy, flag and reconcile it before writing source. A current checkout does not prove unseen local edits in another worktree.
 
 A handoff branch, SHA, PR, tracker, or task-state record is a timestamped snapshot. Report mismatches and refresh the handoff block after verification. A stale snapshot must never cause an automatic checkout, reset, revert, stash, or overwrite.
 
