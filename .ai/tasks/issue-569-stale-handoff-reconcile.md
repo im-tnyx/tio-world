@@ -4,9 +4,9 @@
 
 ## PR #626 approval
 
-Owner (Santosh) approved [PR #626](https://github.com/im-tnyx/tio-world/pull/626)’s test-only scope on 2026-10-20. That approval is chat-only. It is recorded in the #626 brief and is not recorded on GitHub #569. Chat-only bot audit verdicts from Security #05, Engineering Auditor #01, and QA #04 APPROVE at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` and at `56029459dfafe3038a0a7441a179a9415986a811`. Those verdicts are not GitHub reviews. GitHub shows 0 formal reviews. Current proof is the latest #626 head. This docs branch does not edit that PR. Do not open a new slice without explicit owner approval.
+Owner (Santosh) approved [PR #626](https://github.com/im-tnyx/tio-world/pull/626)’s test-only scope on 2026-10-20. That approval is chat-only. It is recorded in the #626 brief and is not recorded on GitHub #569. Chat-only bot audit verdicts from Security #05, Engineering Auditor #01, and QA #04 APPROVE at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` and at `56029459dfafe3038a0a7441a179a9415986a811`. Those verdicts are not GitHub reviews. GitHub shows 0 formal reviews. At write time, proof was the latest #626 head and this docs branch did not edit that PR. [PR #626](https://github.com/im-tnyx/tio-world/pull/626) later **MERGED** as squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`. Do not open a new product slice without explicit owner approval.
 
-The #626 brief and README row still say not to bulk-rewrite older #569 rows. That instruction applies to the #626 test slice. Option C, approved separately, is the archive recorded below. The #626 README row text is copied byte-identical from the latest #626 head into this branch’s task index so either PR can merge first without a README conflict.
+The #626 brief and README row historically said not to bulk-rewrite older #569 rows. That instruction applied to the #626 test slice. Option C, approved separately, is the archive recorded below. The pre-merge #626 README row was copied byte-identical so either PR could merge first without a README conflict; post-merge status for #626 is reconciled in a later docs-only follow-up.
 
 **Primary owner:** Documentation handoff for GitHub #569.
 **Affected platforms:** `.ai/tasks` and `.ai/archive` only.
@@ -79,7 +79,7 @@ Read-only on 2026-10-20. Nothing here grants, deploys, or flips the flag.
 
 | Gate | Verified state | Evidence | Approval needed |
 |---|---|---|---|
-| Automated tests | Merged disposable SQL and Flutter matrices cover dormant Move, CAS, auth revocation, arbitration, and UNKNOWN paths. They do not prove a live permissioned write. | Merged PRs #588–#616 listed above. Open [PR #626](https://github.com/im-tnyx/tio-world/pull/626) is a separate unmerged default-identity regression and is outside this docs slice. | QA accepts the exact activation build's CI, including any new grant migration tests. |
+| Automated tests | Merged disposable SQL and Flutter matrices cover dormant Move, CAS, auth revocation, arbitration, and UNKNOWN paths. They do not prove a live permissioned write. | Merged PRs #588–#616 listed above. [PR #626](https://github.com/im-tnyx/tio-world/pull/626) disposable default-identity regression later merged as squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`; it was outside this docs slice at write time. Production Move remains OFF. | QA accepts the exact activation build's CI, including any new grant migration tests. |
 | Physical-device QA, Android and iOS | Debug preview only. Owner phone UI PASS for #607 was zero-write. No physical-device pass of a real Move write. | [PR #607](https://github.com/im-tnyx/tio-world/pull/607) `main@a69bc82443201c66c8d34e3c346db362cc2e450d`. [DEVELOPMENT_SETUP.md](../../docs/development/DEVELOPMENT_SETUP.md) debug define `TIO_MOVE_ROUTINE_UI_PREVIEW`. | Owner device QA on Android and iOS after a reviewed activation build. |
 | Concurrency / UNKNOWN | Covered in CI for dormant code: revision conflict, one-use gate, UNKNOWN readback, cross-path receipt. Not exercised as live hosted writes. | PRs #609–#616. | QA sign-off on those scenarios against the activated grant, including two-device conflict. |
 
