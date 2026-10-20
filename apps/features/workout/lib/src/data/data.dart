@@ -8,6 +8,7 @@ export 'repositories/supabase_routine_repository.dart';
 export 'repositories/supabase_routine_composition_gateway.dart';
 export 'repositories/supabase_routine_composition_repository.dart';
 export 'repositories/supabase_routine_create_repository.dart';
+export 'repositories/supabase_my_program_routine_create_repository.dart';
 export 'repositories/supabase_routine_delete_repository.dart';
 export 'repositories/supabase_routine_move_repository.dart';
 export 'repositories/routine_move_delete_attempt_gate.dart';
