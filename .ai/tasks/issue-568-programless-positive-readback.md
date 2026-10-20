@@ -26,10 +26,10 @@
 **PR / tracker:** [PR #639](https://github.com/im-tnyx/tio-world/pull/639), #568, #569, TNYX-78 In Progress, TNYX-81 Backlog.
 **Current implementation state:** Dormant My Program RPC adapter and `Program.isDefault` projection already merged; this slice adds only the positive proof boundary needed for future UNKNOWN reconciliation.
 **Relevant execution surface:** `apps/features/workout/lib/src/domain/repositories/my_program_routine_create_repository.dart` and focused existing repository test, plus this handoff/index.
-**Validation completed at SHA:** Read-only main/source, 66 hosted migrations; Move, Create+Move and first-Routine RPC authenticated EXECUTE still denied on 2026-10-20. CI for this slice not yet run.
+**Validation completed at SHA:** Read-only main/source, 66 hosted migrations; Move, Create+Move and first-Routine RPC authenticated EXECUTE still denied on 2026-10-20. Exact prior head `0963d164` Flutter CI #39458382128 5/5 SUCCESS; independent `im-tio` P2 found afterward. Updated-head CI on this correction remains pending and must not be inferred from prior-head result.
 **Validation remaining:** Compare file scope/parent ancestry; exact-PR-head Flutter CI and independent review; owner-local `git diff --check` and device QA before activation.
 **Current blocker:** First-Routine grant/UI and full owner-cycle pending controller remain gated. This helper must not be mistaken for a complete user-visible Create flow.
-**Open review finding IDs:** None yet.
+**Open review finding IDs:** P2-SNAPSHOT-NAME from independent `im-tio` exact-head review on `0963d164`: missing `snapshot.name` agreement. Source/test correction in `d372d870` and `56c2e9db`; fresh CI and formal re-review required.
 **Next exact action:** Verify latest PR #639 exact-head Flutter CI and independent findings, obtain owner-local diff receipt, then separate follow-up programless pending/UNKNOWN controller slice.
 
 ## 1. Discovery
@@ -39,9 +39,9 @@ Prevent the programless first Routine Create from being reported successful base
 
 ### Success Criteria
 - Require persisted Program with `isDefault=true`, same `RoutineId`, owner Program relation and submitted Routine name.
-- Also require exact revision-one mutation and ordered Exercise/Set content via existing `confirmsPersistedRoutine` check.
+- Also require bracketed `RoutineCompositionSnapshot.name == submitted name`, exact revision-one mutation and ordered Exercise/Set content via existing `confirmsPersistedRoutine` check.
 - A renamed canonical default is accepted; ordinary Program named `My Program` is rejected.
-- Other Program, other Routine, renamed/superseded Routine, changed mutation or composition fail closed.
+- Other Program, other Routine, renamed/superseded Routine, absent/mismatched bracketed snapshot name, changed mutation or composition fail closed.
 - This helper is positive evidence only. Caller still must enforce owner/login-cycle-authenticated reads.
 
 ### Non-Goals
@@ -73,7 +73,7 @@ Caller performs owner/login-cycle-verified `ProgramRepository.list`, `RoutineRep
 
 **Validation Run:** Not run yet for this branch; no local Flutter SDK/checkout available to this GitHub-connected session.
 **Acceptance evidence:** Awaiting exact-head CI.
-**Review provenance:** Awaiting independent review; no claimed approval.
+**Review provenance:** Independent `im-tio` review on prior `0963d164` submitted CHANGES_REQUESTED (P2 snapshot header-name agreement); corrected in following source/test commits, needs fresh independent disposition. Codex prior-docs P2 corrected and its thread was resolved after branch verification.
 
 ## 7. Final Handoff
 
