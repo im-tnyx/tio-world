@@ -49,8 +49,10 @@ select pg_temp.assert_true(
   and has_column_privilege('authenticated',
     'public.user_workout_programs','name','INSERT')
   and not has_column_privilege('authenticated',
-    'public.user_workout_programs','is_default','INSERT'),
-  'staged function dormant, direct Routine reparent denied, Program INSERT restricted to id/user_id/name');
+    'public.user_workout_programs','is_default','INSERT')
+  and not has_column_privilege('authenticated',
+    'public.user_workout_programs','is_default','UPDATE'),
+  'staged function dormant, direct Routine reparent denied, Program INSERT restricted to id/user_id/name, is_default frozen');
 
 select pg_temp.assert_true(
   (select count(*) = 6
@@ -73,10 +75,10 @@ grant execute on function public.move_user_workout_routine(
 insert into auth.users(id,email) values
  ('b5690000-0000-4000-8000-000000000001','newmove-owner-a@example.test'),
  ('b5690000-0000-4000-8000-000000000002','newmove-owner-b@example.test');
-insert into public.user_workout_programs(id,user_id,name) values
- ('b5690000-0000-4000-8000-000000000011','b5690000-0000-4000-8000-000000000001','Source A'),
- ('b5690000-0000-4000-8000-000000000012','b5690000-0000-4000-8000-000000000002','Source B'),
- ('b5690000-0000-4000-8000-000000000013','b5690000-0000-4000-8000-000000000001','Other A');
+insert into public.user_workout_programs(id,user_id,name,is_default) values
+ ('b5690000-0000-4000-8000-000000000011','b5690000-0000-4000-8000-000000000001','Source A', true),
+ ('b5690000-0000-4000-8000-000000000012','b5690000-0000-4000-8000-000000000002','Source B', false),
+ ('b5690000-0000-4000-8000-000000000013','b5690000-0000-4000-8000-000000000001','Other A', false);
 
 insert into public.user_workout_routines(id,user_id,program_id,name) values
  ('b5690000-0000-4000-8000-000000000021','b5690000-0000-4000-8000-000000000001','b5690000-0000-4000-8000-000000000011','My Routine'),
@@ -85,6 +87,12 @@ insert into public.user_workout_routines(id,user_id,program_id,name) values
 set local role authenticated;
 select set_config('request.jwt.claim.sub',
  'b5690000-0000-4000-8000-000000000001',true);
+
+select pg_temp.expect_state(
+  $$update public.user_workout_programs
+    set is_default = true
+    where id='b5690000-0000-4000-8000-000000000013'$$,
+  '42501','authenticated cannot mint a second default beside Create & Move');
 
 -- Test the real composed aggregate (stable Exercise & Set IDs through move).
 select pg_temp.assert_true(
@@ -161,6 +169,14 @@ select pg_temp.assert_true(
       and composition_revision=1 from public.user_workout_routines
        where id='b5690000-0000-4000-8000-000000000021'),
   'all failed requests preserve exactly two owner-visible Programs and source Routine');
+-- Post-rollback sanity. pg_temp.expect_state already caught the rejection
+-- inside a subtransaction, so this read cannot see a committed failed write.
+select pg_temp.assert_true(
+  (select count(*)=1 from public.user_workout_programs
+    where user_id='b5690000-0000-4000-8000-000000000001' and is_default)
+  and (select is_default from public.user_workout_programs
+    where id='b5690000-0000-4000-8000-000000000011'),
+  'post-rollback sanity: rejected Create & Move leaves the canonical default on the source Program');
 
 -- Late atomicity regression: force the Routine UPDATE to fail AFTER the
 -- server has INSERTed the proposed Program in the same statement.
@@ -203,6 +219,14 @@ select pg_temp.assert_true(
      where routine_exercise_id='b5690000-0000-4000-8000-000000000041'
        and id='b5690000-0000-4000-8000-000000000051'),
   'late rejected Move leaves no empty Program and preserves child identities');
+-- Post-rollback sanity. expect_state already rolled the rejected INSERT back.
+select pg_temp.assert_true(
+  (select count(*)=1 from public.user_workout_programs
+    where user_id='b5690000-0000-4000-8000-000000000001' and is_default)
+  and not exists (
+    select 1 from public.user_workout_programs
+    where id='b5690000-0000-4000-8000-000000000032'),
+  'post-rollback sanity: rolled-back Program INSERT does not create or replace the default');
 
 reset role;
 drop trigger tnyx_569_atomic_late_failure_fixture
@@ -237,6 +261,15 @@ select pg_temp.assert_true(
          and routine_exercise_id='b5690000-0000-4000-8000-000000000041'
          and reps=8 and load_kg=40 and rest_seconds=90),
   'atomic success preserves original Routine, Exercise and Set IDs and prescription');
+select pg_temp.assert_true(
+  (select is_default = false and name='Program 1'
+    from public.user_workout_programs
+    where id='b5690000-0000-4000-8000-000000000031')
+  and (select count(*)=1 from public.user_workout_programs
+    where user_id='b5690000-0000-4000-8000-000000000001' and is_default)
+  and (select is_default from public.user_workout_programs
+    where id='b5690000-0000-4000-8000-000000000011'),
+  'Create & Move destination is not a second canonical default');
 
 select pg_temp.assert_true(
  public.create_user_workout_program_and_move_routine(
@@ -246,8 +279,10 @@ select pg_temp.assert_true(
     'Program 1',1,'b5690000-0000-4000-8000-000000000101')=2,
  'exact identical retry confirms revision without creating another Program');
 select pg_temp.assert_true(
- (select count(*)=3 from public.user_workout_programs where user_id=auth.uid()),
- 'identical replay leaves exactly three owner-visible Programs, one new');
+ (select count(*)=3 from public.user_workout_programs where user_id=auth.uid())
+ and (select count(*)=1 from public.user_workout_programs
+    where user_id=auth.uid() and is_default),
+ 'identical replay leaves exactly three owner-visible Programs and one default');
 
 select pg_temp.expect_state(
   $$select public.create_user_workout_program_and_move_routine(
@@ -276,10 +311,19 @@ select pg_temp.assert_true(
  'replay proves original Create+Move after user renames destination');
 
 -- Exact committed replay must survive a deleted *old source* Program.
--- It is legal to delete the now-empty source after the Routine moves;
--- this savepoint isolates the case from the subsequent Move regression.
+-- The privileged fixture moves the canonical default from 011 to 013 before
+-- deleting 011. That keeps the canonical default present while proving 031
+-- is not promoted. A zero-default owner is a separate #568 lazy-resolver
+-- state and is not covered here. The savepoint still isolates the delete
+-- from the subsequent Move regression.
 savepoint replay_without_source;
 reset role;
+update public.user_workout_programs
+  set is_default = false
+  where id = 'b5690000-0000-4000-8000-000000000011';
+update public.user_workout_programs
+  set is_default = true
+  where id = 'b5690000-0000-4000-8000-000000000013';
 delete from public.user_workout_programs
 where id='b5690000-0000-4000-8000-000000000011';
 set local role authenticated;
@@ -309,8 +353,14 @@ select pg_temp.assert_true(
          and routine_id='b5690000-0000-4000-8000-000000000021')
   and (select count(*)=1 from public.user_workout_routine_sets
        where id='b5690000-0000-4000-8000-000000000051'
-         and routine_exercise_id='b5690000-0000-4000-8000-000000000041'),
-  'source-deleted retry makes no extra Program and preserves all child IDs');
+         and routine_exercise_id='b5690000-0000-4000-8000-000000000041')
+  and (select is_default = false from public.user_workout_programs
+       where id='b5690000-0000-4000-8000-000000000031')
+  and (select count(*)=1 from public.user_workout_programs
+       where user_id=auth.uid() and is_default)
+  and (select is_default from public.user_workout_programs
+       where id='b5690000-0000-4000-8000-000000000013'),
+  'source-deleted retry does not promote 031; the moved default remains 013');
 
 select pg_temp.expect_state(
   $tnyx_deleted_source_retry$select public.create_user_workout_program_and_move_routine(
@@ -344,8 +394,16 @@ select pg_temp.assert_true(
   and (select program_id='b5690000-0000-4000-8000-000000000013'
        and composition_revision=3
       from public.user_workout_routines
-      where id='b5690000-0000-4000-8000-000000000021'),
-  'stale operations never make a duplicate or change newest parent');
+      where id='b5690000-0000-4000-8000-000000000021')
+  and (select is_default from public.user_workout_programs
+      where id='b5690000-0000-4000-8000-000000000011')
+  and not (select is_default from public.user_workout_programs
+      where id='b5690000-0000-4000-8000-000000000013')
+  and not (select is_default from public.user_workout_programs
+      where id='b5690000-0000-4000-8000-000000000031')
+  and (select count(*)=1 from public.user_workout_programs
+      where user_id=auth.uid() and is_default),
+  'later Move keeps the original default and does not mark the new parents');
 
 -- Privilege checks must still hold when transactional grants roll back.
 rollback;
