@@ -1,8 +1,17 @@
 # GitHub #596 — Slice B1 multi-agent evidence and completion contract
 
-**Status:** Blocked
+**Status:** Validated
+**Completed / archived:** 2026-10-20
 **Primary owner:** Repository AI governance
 **Affected platforms:** Documentation/process only (all platforms use the same agent workflow)
+
+## Post-Merge Validated Outcome (supersedes historical pre-merge snapshots)
+
+**Validated scope:** B1 repository AI-governance documentation/process contract only. [PR #631](https://github.com/im-tnyx/tio-world/pull/631) was squash-merged with the owner-approved gate; remote `main` and owner-supplied clean Windows `main` checkout matched merge commit `6000fe818dcf4a886a598a5e5655430d7bb74c8f` on 2026-10-20. Source head was `4586ad1e1cf51814c4a8266b678e15ff5b0f8c33`.
+
+**Verification:** Owner-run local `git diff --check origin/main...origin/docs/issue-596-b1-quality-contract` returned exit `0` on the exact source head; required `Commit attribution guard` and supplemental Cursor Bugbot, Approval Router, Security Reviewer checks were SUCCESS at that head. A separate exact-head reviewer `im-tio` submitted `COMMENTED` with no new actionable findings; **no formal GitHub `APPROVED`** is claimed. GitHub verified **9/9 review threads resolved** before the normal squash merge. See [final PR gate](https://github.com/im-tnyx/tio-world/pull/631#issuecomment-6287946587) and [parent merge/local-sync receipt](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6287966260).
+
+**Evidence and handoff boundaries:** The original Active Handoff, historical review-finding table (including B1-R01), pending-validation text, and pre-merge `BLOCKED` assessment *below* are retained as dated execution history, **not current outstanding blockers**. Live [GitHub PR #631](https://github.com/im-tnyx/tio-world/pull/631) defines merged/review state; `main` defines current source. Parent [GitHub #596](https://github.com/im-tnyx/tio-world/issues/596) remains **OPEN** for separately approved future quality-governance work. No runtime, CI workflow, branch-protection or data changes; no remote/local branch deletion or worktree cleanup was part of this archive.
 
 ## Owner Approval and Scope Boundary
 
@@ -12,7 +21,9 @@
 **Approved product/UI/data-shape boundaries:** None.
 **Explicit non-changes:** No app/watch/UI, Auth/health data, Supabase schema/RLS/functions, CI workflow, branch protection, attribution guard, credentials, product architecture, new governance framework, #250/#571/#580 scope, or merge.
 
-## Active Handoff
+## Historical Active Handoff — Pre-Merge Snapshot (superseded 2026-10-20)
+
+> **Historical evidence only.** The ownership, branch/HEAD, validation, blocker, and `Open` finding statements in this section describe the execution state **before PR #631 merged**. They do not describe the current B1 state. For the verified result, use the **Post-Merge Validated Outcome** above and the live [merged PR #631](https://github.com/im-tnyx/tio-world/pull/631).
 
 **Planning owner:** GitHub #596 [Slice A baseline](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6286554549).
 **Implementation owner:** B1 GitHub connector edit session, resumed under the owner's next `Go` for one bounded review-provenance correction. No concurrently editing implementation owner was observed in live PR history; local Windows worktrees were not inspected.
@@ -126,7 +137,9 @@ Unavailable independent review or runner must be recorded, not fabricated. Exist
 **Independent review?** `im-tio` is a distinct GitHub reviewer account and submitted an exact-`92408d44` `COMMENT` (separate review, not `APPROVED`); author-side `im-tnyx` reviews are **self-review**. Cursor checks are supplemental and passing checks do not imply formal approval.
 **Limitations and unmet required gates:** Owner's exact-head local `git diff --check` **PASSED** at `92408d44`, but this task-brief-only correction advances HEAD and needs a new docs check. Required check/review-thread disposition must be verified again; Codex quota failure is not an approval. Owner must separately authorize any merge.
 
-### Review Findings and Resolution
+### Historical Review Findings and Resolution — Pre-Merge Snapshot (superseded 2026-10-20)
+
+> Findings shown as `Open` below are **as-recorded historical review statuses**, not live unresolved PR threads. At the completed B1 gate, GitHub confirmed 9/9 review threads resolved; refer to the post-merge outcome and live PR #631.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
@@ -154,6 +167,10 @@ Docs/process only; no runtime behavior changed.
 
 Windows worktree is unavailable from this connector. Owner-supplied PowerShell **did** show exact SHA `92408d44` and docs `git diff --check` exit `0`. This brief-only follow-up advances HEAD, so local validation and required checks for the new commit are still pending. `im-tio` gave a separate `COMMENT` review on prior head, but **no** GitHub `APPROVED` or owner merge authorization is claimed.
 
-### Final Status
+### Historical Pre-Merge Final Status (superseded on 2026-10-20)
 
 `BLOCKED` for validated completion/merge until the new task-brief-only head receives its own required docs-only `git diff --check` and remaining review findings are dispositioned. Previous-head local validation at `92408d44` passed. The PR may continue **in review** while the completion gate is blocked. Apply `BLOCKED > PARTIAL > REVIEW > PASS` precedence.
+
+### Final Status — Archive Checkpoint (2026-10-20)
+
+`PASS` — The bounded B1 docs/process slice was exact-head validated and merged as `main@6000fe818dcf4a886a598a5e5655430d7bb74c8f`. The independent GitHub review evidence was `COMMENTED`, **not** `APPROVED`; all nine inline threads were resolved before merge. Parent #596 remains OPEN, and branch/worktree cleanup is a separate unverified operation.
