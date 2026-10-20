@@ -53,6 +53,7 @@ P5 and P6 apply the four-line governance headers only after the separately gated
 
 | Document | Purpose |
 | :--- | :--- |
+| [`DESIGN.md`](../DESIGN.md) | Entry point to UI/UX policy, core theme/components, screen specifications, ownership, and design decision records. |
 | [`ARCHITECTURE.md`](architecture/ARCHITECTURE.md) | Repository shape, architecture principles, app boundaries, and dependency direction. |
 | [`AUTH_ARCHITECTURE.md`](security/AUTH_ARCHITECTURE.md) | Canonical Supabase Auth identity authority and future protected-service token boundary. |
 | [`SUPABASE_STRATEGY.md`](data/SUPABASE_STRATEGY.md) | Supabase Auth, Postgres/RLS, Storage, AI-provider, and future-backend boundaries. |
