@@ -1,6 +1,6 @@
 # GitHub #569 — Canonical default identity survives Move
 
-**Status:** Merged — disposable SQL regression on `main`
+**Status:** Validated
 **Primary owner:** Workout / Supabase test matrix
 **Affected platforms:** Disposable Supabase database CI
 
@@ -19,19 +19,19 @@
 **Review owner:** Not assigned for the merged SQL slice. Historical limitation: GitHub formal reviews remained 0; chat-only bot audits are not independent APPROVED reviews. Self-review is not an independent review.
 **Implementation ownership state:** Complete
 **Ownership transition:** Historical: no previous active #569 Implementation owner when the SQL branch started from `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a`.
-**Repository state last verified:** `main@9c3330e85fea63bcc769d137c0551d46b4b7f1f2` (includes merged [PR #628](https://github.com/im-tnyx/tio-world/pull/628) stale-handoff docs after [PR #626](https://github.com/im-tnyx/tio-world/pull/626))
-**Branch:** Historical feature branch `tnyx/issue-569-default-identity-move-regression-fb6f` merged via [PR #626](https://github.com/im-tnyx/tio-world/pull/626)
-**HEAD SHA:** SQL behaviour last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c`. Final pre-squash PR head was `d66cc57e9d68307a00f83ee1650e3e3d1df2972f`, proven by exact-head Supabase Database CI [run 39381841484](https://github.com/im-tnyx/tio-world/actions/runs/39381841484) SUCCESS and Commit attribution guard [run 39381839072](https://github.com/im-tnyx/tio-world/actions/runs/39381839072) SUCCESS. Squash merge commit on `main` is `fbf132841597bae8ff41aac3e2d8d1b922b49d35`.
+**Repository state last verified:** Parent `main@9c3330e85fea63bcc769d137c0551d46b4b7f1f2` (includes merged [PR #628](https://github.com/im-tnyx/tio-world/pull/628) after [PR #626](https://github.com/im-tnyx/tio-world/pull/626)). Current docs reconcile head below.
+**Branch:** `docs/issue-569-pr626-postmerge-reconcile` ([PR #629](https://github.com/im-tnyx/tio-world/pull/629)). Historical SQL branch `tnyx/issue-569-default-identity-move-regression-fb6f` was merged via [PR #626](https://github.com/im-tnyx/tio-world/pull/626).
+**HEAD SHA:** Docs reconcile tip of `docs/issue-569-pr626-postmerge-reconcile` / [PR #629](https://github.com/im-tnyx/tio-world/pull/629) (read `git rev-parse HEAD` or the PR head OID; do not treat historical SQL SHAs below as this docs tree). Historical SQL evidence preserved: SQL behaviour last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c`; final pre-squash PR #626 head `d66cc57e9d68307a00f83ee1650e3e3d1df2972f` proven by Database CI [run 39381841484](https://github.com/im-tnyx/tio-world/actions/runs/39381841484) SUCCESS and attribution [run 39381839072](https://github.com/im-tnyx/tio-world/actions/runs/39381839072) SUCCESS; squash on `main` is `fbf132841597bae8ff41aac3e2d8d1b922b49d35`.
 **Observed working-tree state:** Post-merge reconcile uses a clean worktree from `origin/main`; primary checkouts left untouched
 **Observed uncommitted/dirty files:** None in this docs worktree. Unrelated dirty generated/tooling files in other checkouts must not be modified for this slice.
-**PR / tracker:** [PR #626](https://github.com/im-tnyx/tio-world/pull/626) **MERGED** 2026-10-20T06:56:06Z as squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`. GitHub #569 remains Open. Linear TNYX-81 remains Backlog. Production Move remains OFF. Prior archived `#569` child headers that still say unmerged are historical snapshots; live GitHub merge state wins.
+**PR / tracker:** [PR #626](https://github.com/im-tnyx/tio-world/pull/626) **MERGED** 2026-10-20T06:56:06Z as squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`. Post-merge docs reconcile [PR #629](https://github.com/im-tnyx/tio-world/pull/629). GitHub #569 remains Open. Linear TNYX-81 remains Backlog. Production Move remains OFF. Prior archived `#569` child headers that still say unmerged are historical snapshots; live GitHub merge state wins.
 **Current implementation state:** Disposable SQL matrices are on `main` via PR #626. SQL behaviour last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c` and is proven by exact-head Database CI on final PR head `d66cc57e`. The deleted-source savepoint moves the canonical default from 011 to 013 before deleting 011 so the canonical default stays present while proving 031 is not promoted. A zero-default owner is a separate #568 lazy-resolver state and is not covered here.
 **Relevant execution surface:** `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`, `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
 **Validation completed at SHA:** Exact-head Database CI on final [PR #626](https://github.com/im-tnyx/tio-world/pull/626) head `d66cc57e9d68307a00f83ee1650e3e3d1df2972f` proves the SQL behaviour last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c` ([DB CI run 39381841484](https://github.com/im-tnyx/tio-world/actions/runs/39381841484) SUCCESS; attribution [run 39381839072](https://github.com/im-tnyx/tio-world/actions/runs/39381839072) SUCCESS). Chat-only bot audit verdicts APPROVE at `56029459dfafe3038a0a7441a179a9415986a811`: Security #05, Engineering Auditor #01, and QA #04, with no P1/P2. Those verdicts are not GitHub APPROVED reviews. GitHub shows 0 formal reviews (historical review limitation). Local Supabase CLI was not available.
 **Validation remaining:** None for this disposable-SQL slice. EXECUTE grant, hosted deploy, production Move flag flip, and real five-second Undo remain separately gated and are not claimed complete here.
 **Current blocker:** None for this slice source. Hosted ledger is 65 applied through `20261018100000`; repository migration `20261019162535` (#568) is not hosted. This slice does not deploy it. Production Move remains OFF.
-**Open review finding IDs:** None open for the merged SQL slice. Historical P3 proof-wording / fixture polish was corrected before merge on PR #626.
-**Next exact action:** Independent review of this post-merge docs reconciliation only. Do not grant EXECUTE, deploy hosted migrations, or enable production Move.
+**Open review finding IDs:** Codex P2 on PR #629 (unsupported `Merged` status; missing docs-reconcile HEAD) dispositioned in this follow-up. None open for the merged SQL slice. Historical P3 proof-wording / fixture polish was corrected before merge on PR #626.
+**Next exact action:** Independent review of [PR #629](https://github.com/im-tnyx/tio-world/pull/629) docs reconcile only. Do not grant EXECUTE, deploy hosted migrations, or enable production Move.
 
 ## 1. Discovery
 
@@ -173,4 +173,4 @@ Local Supabase runner was unavailable for the SQL slice. Hosted #568 migration r
 
 ### Final Status
 
-`MERGED` — disposable SQL regression via [PR #626](https://github.com/im-tnyx/tio-world/pull/626) squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`. Production Move OFF.
+`Validated` — disposable SQL regression merged via [PR #626](https://github.com/im-tnyx/tio-world/pull/626) squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35`. Production Move OFF. Post-merge docs reconcile on [PR #629](https://github.com/im-tnyx/tio-world/pull/629).
