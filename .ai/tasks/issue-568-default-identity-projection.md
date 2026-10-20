@@ -1,6 +1,6 @@
 # GitHub #568 — Canonical My Program identity read projection
 
-**Status:** Ready for Review in [PR #638](https://github.com/im-tnyx/tio-world/pull/638), exact-head CI and independent review pending.
+**Status:** In Review at [PR #638](https://github.com/im-tnyx/tio-world/pull/638). Original exact-head Flutter CI 5/5 PASS; formal independent `im-tio` CHANGES_REQUESTED P2 docs-precondition correction. This update resolves the cited conflicting index wording; latest-head revalidation/re-review still pending.
 **Primary owner:** Workout shared domain + feature Program repository
 **Affected platforms:** Flutter pure Dart shared model and Workout repository/controller, no visible UI change
 
@@ -16,7 +16,7 @@
 
 **Planning owner:** GitHub #568 / Linear TNYX-78; downstream #569 / TNYX-81
 **Implementation owner:** Connected GitHub session for this bounded read-projection slice
-**Review owner:** Independent PR reviewer not yet assigned
+**Review owner:** `im-tio`, formal independent GitHub CHANGES_REQUESTED on `80f1c737` (P2 documentation consistency, no code-level P1/P2/P3); re-review required after this amendment.
 **Implementation ownership state:** Handoff pending; source staged on review branch, no merge authorization
 **Ownership transition:** Prior #568 staged RPC adapter PR #637 merged; this is a nonoverlapping next scoped slice.
 **Repository state last verified:** remote protected `main@34d69fbe668448a0bc098514c09168647d4140fe`; owner's Windows checkout not accessible in this session.
@@ -27,11 +27,11 @@
 **PR / tracker:** #568, #569, TNYX-78 In Progress, TNYX-81 Backlog
 **Current implementation state:** Source now selects `id,name,is_default` and maps mandatory boolean into immutable `Program.isDefault`. Cross-owner post-await reads are rejected, explicit client creation cannot claim the default marker, and controller rename preserves it. Hosted #568 migration 66/66; client RPC EXECUTE still OFF.
 **Relevant execution surface:** `apps/shared/lib/src/workout/program.dart`; `apps/features/workout/lib/src/data/repositories/supabase_program_repository.dart`; `apps/features/workout/lib/src/presentation/library/programs/programs_controller.dart`; focused tests and this task index.
-**Validation completed at SHA:** GitHub compare on staged source `347058b5` shows 2 ahead/0 behind and 8 expected paths; GitHub per-file patches contain no added trailing whitespace; commit attribution SUCCESS. Exact-head Flutter CI was in progress, not reported as PASS.
-**Validation remaining:** Actual exact-head Flutter/Dart CI, independent review, owner-local diff whitespace validation and cross-session/device QA later.
-**Current blocker:** None for dormant read projection; real UI release stays blocked by separate #568 client gates and RPC grants.
-**Open review finding IDs:** None yet.
-**Next exact action:** Recheck exact-head CI, review independent `im-tio` feedback (requested on PR #638), collect owner-local `git diff --check` receipt and address findings. No merge or release.
+**Validation completed at SHA:** Flutter CI #39451793158 **5/5 PASS** and attribution **PASS** at PR `80f1c737`; hosted read-only 66/66 applied with authenticated `is_default` SELECT true, INSERT false (2026-10-20). Owner Windows receipt on same SHA confirms clean local `main...origin/main` and `git diff --check` with no diagnostics; explicit process exit code not printed. Docs-only reviewer-finding commit still requires fresh exact-head CI/check verification.
+**Validation remaining:** Latest-head CI after reviewer-finding docs amendment; independent `im-tio` re-review clearing CHANGES_REQUESTED; explicit owner-local diff exit-code receipt if required by final merge gate; device QA only before future activation.
+**Current blocker:** Formal `im-tio` P2 document inconsistency in `.ai/tasks/README.md` raised at `80f1c737`; addressed in current PR branch, awaiting independent verification. Product release blocked separately by #568 pending client gates and RPC grants.
+**Open review finding IDs:** P2-DOC-01, `im-tio` review on `80f1c737`: current task index wrongly still listed 65/66 and `is_default` absent in 4 #569 rows. Corrected those four rows with current 66/66 + link to dated #568 hosted deployment receipt; historical pre-deployment snapshots explicitly marked superseded. Awaiting re-review.
+**Next exact action:** Verify latest docs-only correction SHA, exact changed paths/CI; request independent `im-tio` re-review and secure formal disposition. No merge or release.
 
 ## 1. Discovery
 
@@ -72,9 +72,9 @@ Keep server-only default creation; no direct client marker writes. Reuse existin
 - [ ] Audit exact source diff; run exact-head CI and independent PR review.
 
 ## 6. Quality Review
-**Validation Run:** Source and patch audited through GitHub API only; local Flutter SDK and Windows checkout unavailable. Exact-head CI result pending at this checkpoint.
+**Validation Run:** Flutter CI #39451793158 5/5 PASS on prior `80f1c737` (source behavior). Read-only hosted 66/66 verified and `is_default` authenticated SELECT true/INSERT false. Owner-provided Windows PowerShell `git diff --check` had no diagnostics; `$LASTEXITCODE` not printed. Re-run checks after docs-only change and do not presume new-head success.
 **Acceptance Evidence:** Focused tests added for mapped renamed default, malformed marker, cross-owner list read, client default creation prevention and marker-preserving controller Rename. Tests have not yet been reported passing at the latest head.
-**Review Provenance:** GitHub PR #638 marked Ready for Review and `im-tio` explicitly requested. No review submitted at this checkpoint; self inspection is not independent review.
+**Review Provenance:** Independent `im-tio` GitHub formal CHANGES_REQUESTED on `80f1c737`, P2 docs/precondition mismatch in task index. No new code-level P1/P2/P3 identified. Author `im-tnyx` COMMENTED is self-review only. Fix applied in this PR with dated hosted receipt; waiting on independent re-review.
 **Review Findings and Resolution:** None submitted.
 
 ## 7. Final Handoff
