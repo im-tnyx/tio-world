@@ -366,6 +366,7 @@ void main() {
       routineId: command.routineId,
       revision: 1,
       lastMutationId: command.mutationId,
+      name: command.name,
       entries: command.entries,
     );
 
@@ -374,6 +375,31 @@ void main() {
       routine: persistedRoutine,
       snapshot: matchingComposition,
     ), isTrue, reason: 'Renaming the server-owned default cannot lose identity');
+
+    final absentName = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 1,
+      lastMutationId: command.mutationId,
+      entries: command.entries,
+    );
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: persistedRoutine,
+      snapshot: absentName,
+    ), isFalse, reason: 'A missing bracketed header name cannot prove Create');
+
+    final conflictingHeaderName = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 1,
+      lastMutationId: command.mutationId,
+      name: 'Another name',
+      entries: command.entries,
+    );
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: persistedRoutine,
+      snapshot: conflictingHeaderName,
+    ), isFalse, reason: 'Separate metadata and header reads must agree');
 
     final lookalike = Program(
       id: persistedDefault.id, name: 'My Program', isDefault: false);
@@ -414,6 +440,7 @@ void main() {
       routineId: command.routineId,
       revision: 1,
       lastMutationId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      name: command.name,
       entries: command.entries,
     );
     expect(command.confirmsPersistedInCanonicalDefault(
@@ -426,6 +453,7 @@ void main() {
       routineId: command.routineId,
       revision: 2,
       lastMutationId: command.mutationId,
+      name: command.name,
       entries: command.entries,
     );
     expect(command.confirmsPersistedInCanonicalDefault(
