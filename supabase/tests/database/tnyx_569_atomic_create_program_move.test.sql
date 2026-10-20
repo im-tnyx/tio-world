@@ -311,10 +311,11 @@ select pg_temp.assert_true(
  'replay proves original Create+Move after user renames destination');
 
 -- Exact committed replay must survive a deleted *old source* Program.
--- 011 is the canonical default. The privileged fixture moves that default
--- onto 013 before deleting 011, so this savepoint does not leave the owner
--- with zero defaults. 031 must not become the default. The savepoint still
--- isolates the delete from the subsequent Move regression.
+-- The privileged fixture moves the canonical default from 011 to 013 before
+-- deleting 011. That keeps the canonical default present while proving 031
+-- is not promoted. A zero-default owner is a separate #568 lazy-resolver
+-- state and is not covered here. The savepoint still isolates the delete
+-- from the subsequent Move regression.
 savepoint replay_without_source;
 reset role;
 update public.user_workout_programs

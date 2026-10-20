@@ -218,6 +218,9 @@ select pg_temp.expect_state(
    'a5690000-0000-4000-8000-000000000101')$$,
  'P0001','old move replay invalid after another aggregate mutation');
 
+-- Post-rollback sanity check. pg_temp.expect_state already caught the
+-- rejection inside a subtransaction, so this read cannot see a committed
+-- failed write. The boolean check is unchanged.
 select pg_temp.assert_true(
  (select program_id='a5690000-0000-4000-8000-000000000011'
     and composition_revision=3 from public.user_workout_routines
@@ -230,7 +233,7 @@ select pg_temp.assert_true(
       where user_id='a5690000-0000-4000-8000-000000000001' and is_default)
  and (select is_default from public.user_workout_programs
       where id='a5690000-0000-4000-8000-000000000012'),
- 'failed requests preserve owner Routine, children, and the canonical default'
+ 'post-rollback sanity check: failed requests preserve owner Routine, children, and the canonical default'
 );
 
 

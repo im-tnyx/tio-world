@@ -7,7 +7,7 @@
 ## Owner Approval and Scope Boundary
 
 **Trigger:** None
-**Approval status:** Owner-approved test-only scope. Santosh, 2026-10-20 (GitHub #569 / chat).
+**Approval status:** Chat-only owner approval of the test-only scope (Santosh, 2026-10-20). Not recorded on GitHub #569.
 **Approval evidence:** GitHub #569 owner-approved Move acceptance (2026-10-15 and 2026-10-17): a new destination is a normal user-created Program, not the special default My Program, and Move must not create a duplicate default Program. Canonical identity is `ProgramId` / `is_default`, not a display-name match. Linear TNYX-81 remains the parent Backlog. GitHub #568 / PR #620 already approved and merged the `user_workout_programs.is_default` column; this slice does not change that shape.
 **Approved product/UI/data-shape boundaries:** Disposable SQL regression only. Existing and atomic Move must leave exactly one owner default Program, must insert Create & Move destinations with `is_default = false`, and must not let an authenticated client flip `is_default`.
 **Explicit non-changes:** No production Move release, no `routineMoveReleaseEnabledProvider` change, no client `EXECUTE` grant, no hosted migration or hosted write, no new table/column, no Flutter UI, no real five-second Undo, no duplicate Program creation, no #568 RPC activation.
@@ -21,16 +21,16 @@
 **Ownership transition:** No previous active #569 Implementation owner. Open PRs were 0 and no `issue-569` remote branch existed at `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a` before this branch.
 **Repository state last verified:** `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a`
 **Branch:** `tnyx/issue-569-default-identity-move-regression-fb6f`
-**HEAD SHA:** SQL behavior was reviewed and CI-proven at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` ([Supabase Database CI #39378392950](https://github.com/im-tnyx/tio-world/actions/runs/39378392950) SUCCESS, [Commit attribution guard #39378389864](https://github.com/im-tnyx/tio-world/actions/runs/39378389864) SUCCESS). This P3 follow-up does not store its own commit SHA. Read [PR #626](https://github.com/im-tnyx/tio-world/pull/626) for the latest exact-head runs that cover this docs-and-fixture commit.
+**HEAD SHA:** SQL last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c`. It is proven by exact-head Supabase Database CI on the latest [PR #626](https://github.com/im-tnyx/tio-world/pull/626) head. This brief does not store that head SHA. Read the PR for the latest runs.
 **Observed working-tree state:** Clean `main` at takeover
 **Observed uncommitted/dirty files:** None at takeover
 **PR / tracker:** GitHub #569 Open. Linear TNYX-81 Backlog, blocked by TNYX-78 and TNYX-80 (both In Progress). TNYX-267 Backlog. Prior `.ai/tasks/issue-569-m3*` headers that still say unmerged are historical snapshots; live GitHub merge state wins. Do not bulk-rewrite them in this slice.
-**Current implementation state:** Default-identity assertions proven at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. The deleted-source savepoint now moves the canonical default from 011 to 013 before deleting 011.
+**Current implementation state:** SQL last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c` and is proven by exact-head Database CI on the latest PR #626 head. The deleted-source savepoint moves the canonical default from 011 to 013 before deleting 011 so the canonical default stays present while proving 031 is not promoted. A zero-default owner is a separate #568 lazy-resolver state and is not covered here.
 **Relevant execution surface:** `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`, `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
-**Validation completed at SHA:** [Supabase Database CI #39378392950](https://github.com/im-tnyx/tio-world/actions/runs/39378392950) SUCCESS and [Commit attribution guard #39378389864](https://github.com/im-tnyx/tio-world/actions/runs/39378389864) SUCCESS at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. Independent Security, Engineering Auditor, and QA reviews APPROVE that head with no P1/P2. Local Supabase CLI was not available.
+**Validation completed at SHA:** Exact-head Database CI on the latest [PR #626](https://github.com/im-tnyx/tio-world/pull/626) head proves the SQL last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c`. Chat-only bot audit verdicts APPROVE at `56029459dfafe3038a0a7441a179a9415986a811`: Security #05, Engineering Auditor #01, and QA #04, with no P1/P2. Those verdicts are not GitHub APPROVED reviews. GitHub shows 0 formal reviews. Local Supabase CLI was not available.
 **Validation remaining:** None recorded here. The P3 fixture follow-up is evidenced by the latest exact-head runs on PR #626.
 **Current blocker:** None for source. Hosted ledger is 65 applied through `20261018100000`; repository migration `20261019162535` (#568) is not hosted. This slice does not deploy it.
-**Open review finding IDs:** None open. P3 SHA/CI, approval wording, deleted-source default, and sanity labels are corrected in this follow-up.
+**Open review finding IDs:** None open. Proof wording, chat-only approval labels, the deleted-source comment, and the existing-move post-rollback sanity label are corrected in this docs polish.
 **Next exact action:** Independent review of PR #626. Do not merge, grant EXECUTE, or deploy.
 
 ## 1. Discovery
@@ -106,7 +106,7 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 
 - [x] Confirm exclusive ownership
 - [x] Add default-identity assertions to both #569 SQL matrices
-- [x] Record exact-head CI for `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`
+- [x] SQL last changed in `c7081b37`; proof is exact-head Database CI on the latest PR #626 head
 - [x] P3: move the default to 013 before deleting source 011
 - [x] P3: relabel post-rollback default checks as sanity checks
 
@@ -115,13 +115,13 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 ### Validation Run
 
 ```text
-git diff --check: pass on the staged implementation diff at the proven SQL head.
-git merge-base --is-ancestor origin/main HEAD: pass at 6e1d6f7ab45b8e5328132e1fe50185252fe2c94b.
+git diff --check: pass on this docs-and-comment polish before push.
+git merge-base --is-ancestor origin/main HEAD: pass. origin/main remains an ancestor.
 Local supabase/psql/docker: not installed.
-Supabase Database CI #39378392950 SUCCESS at 6e1d6f7ab45b8e5328132e1fe50185252fe2c94b.
-Commit attribution guard #39378389864 SUCCESS at the same SHA.
-Independent reviews APPROVE that head: Security, Engineering Auditor, QA. No P1/P2.
-This P3 follow-up does not embed its own SHA. PR #626 lists the latest exact-head runs.
+SQL last changed in c7081b37b41072c3e5a10c7c32875ccd7996935c.
+Proof is the latest exact-head Supabase Database CI and Commit attribution guard on PR #626. This brief does not store that head SHA.
+Chat-only bot audit verdicts APPROVE at 56029459dfafe3038a0a7441a179a9415986a811: Security #05, Engineering Auditor #01, QA #04. No P1/P2. These are not GitHub APPROVED reviews. GitHub shows 0 formal reviews.
+Owner approval of the test-only scope is chat-only (Santosh, 2026-10-20) and is not recorded on GitHub #569.
 No Flutter files changed, so Flutter CI did not run.
 No hosted SQL executed.
 ```
@@ -130,10 +130,10 @@ No hosted SQL executed.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| SHA/CI | P3 | Corrected | Brief and index cited `ccd96a2f` / `397d9f15` and said head CI was still pending | `6e1d6f7a` | Proven head and runs recorded above. This follow-up points at the PR for its own exact-head runs |
-| Approval | P3 | Corrected | Approval status said Not required | `6e1d6f7a` | Owner-approved test-only scope, Santosh, 2026-10-20 |
-| Deleted source | P3 | Corrected | Savepoint deleted the only default and asserted zero defaults | `6e1d6f7a` | Fixture moves the default 011 → 013 before delete; 031 stays false and 013 is the one default |
-| Sanity labels | P3 | Corrected | Post-`expect_state` default asserts cannot observe a committed rejection | `6e1d6f7a` | Messages and comments now say post-rollback sanity. Asserts kept |
+| SHA/CI | P3 | Corrected | Brief and index said SQL was proven at `6e1d6f7a` | `6e1d6f7a` | SQL last changed in `c7081b37`. Proof is exact-head Database CI on the latest PR #626 head |
+| Approval | P3 | Corrected | Approval status said Not required, then read as a GitHub record | `6e1d6f7a` | Chat-only owner approval (Santosh, 2026-10-20), not recorded on GitHub #569. Chat-only bot audit verdicts Security #05, Engineering Auditor #01, QA #04 APPROVE at `56029459`. Not GitHub APPROVED reviews; GitHub shows 0 formal reviews |
+| Deleted source | P3 | Corrected | Savepoint deleted the only default and the comment treated zero defaults as invalid | `6e1d6f7a` | Fixture still moves the default 011 → 013 before delete. Comment now says that keeps the canonical default present while proving 031 is not promoted. Zero-default is a separate #568 lazy-resolver state and is not covered here |
+| Sanity labels | P3 | Corrected | Post-`expect_state` default asserts cannot observe a committed rejection | `6e1d6f7a` | Atomic messages already say post-rollback sanity. The existing-move message and comment now say post-rollback sanity check. Predicates unchanged |
 
 ## 7. Final Handoff
 
@@ -150,7 +150,7 @@ Disposable tests now require one canonical `is_default` Program to survive exist
 
 ### Known Limitations
 
-Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Database CI and attribution passed at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. The P3 fixture follow-up is covered by the latest exact-head runs on PR #626. Prior APPROVE reviews apply to `6e1d6f7a`, not automatically to this follow-up.
+Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. SQL last changed in `c7081b37b41072c3e5a10c7c32875ccd7996935c` and is proven by the latest exact-head Database CI on PR #626. Chat-only bot audit verdicts (Security #05, Engineering Auditor #01, QA #04) APPROVE at `56029459`. They are not GitHub APPROVED reviews. GitHub shows 0 formal reviews. Owner approval of the test-only scope is chat-only (Santosh, 2026-10-20) and is not recorded on GitHub #569.
 
 ### Final Status
 
