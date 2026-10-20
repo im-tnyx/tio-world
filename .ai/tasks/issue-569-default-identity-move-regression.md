@@ -1,6 +1,6 @@
 # GitHub #569 — Canonical default identity survives Move
 
-**Status:** In progress
+**Status:** Ready for review
 **Primary owner:** Workout / Supabase test matrix
 **Affected platforms:** Disposable Supabase database CI
 
@@ -21,17 +21,17 @@
 **Ownership transition:** No previous active #569 Implementation owner. Open PRs were 0 and no `issue-569` remote branch existed at `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a` before this branch.
 **Repository state last verified:** `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a`
 **Branch:** `tnyx/issue-569-default-identity-move-regression-fb6f`
-**HEAD SHA:** Implementation `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`. A later handoff-only commit may be the PR head; read CI on that exact head.
+**HEAD SHA:** SQL `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`. Docs handoff parent `397d9f1522b0aa29aada563da2ffa580415ab630` passed exact-head CI. Read CI again on any later head.
 **Observed working-tree state:** Clean `main` at takeover
 **Observed uncommitted/dirty files:** None at takeover
 **PR / tracker:** GitHub #569 Open. Linear TNYX-81 Backlog, blocked by TNYX-78 and TNYX-80 (both In Progress). TNYX-267 Backlog. Prior `.ai/tasks/issue-569-m3*` headers that still say unmerged are historical snapshots; live GitHub merge state wins. Do not bulk-rewrite them in this slice.
 **Current implementation state:** SQL assertions committed at `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`
 **Relevant execution surface:** `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`, `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
-**Validation completed at SHA:** Not yet
-**Validation remaining:** Disposable DB CI on the PR head. Local Supabase CLI was not available in this environment.
+**Validation completed at SHA:** [Supabase Database CI #39378097844](https://github.com/im-tnyx/tio-world/actions/runs/39378097844) SUCCESS and [Commit attribution guard #39378097947](https://github.com/im-tnyx/tio-world/actions/runs/39378097947) SUCCESS at `397d9f1522b0aa29aada563da2ffa580415ab630`.
+**Validation remaining:** Exact-head CI for this CI-evidence commit. Local Supabase CLI was not available.
 **Current blocker:** None for source. Hosted ledger is 65 applied through `20261018100000`; repository migration `20261019162535` (#568) is not hosted. This slice does not deploy it.
 **Open review finding IDs:** None
-**Next exact action:** Commit the regression, push, open a Ready-for-Review PR, and record exact-head CI.
+**Next exact action:** Independent review of PR #626. Do not merge, grant EXECUTE, or deploy.
 
 ## 1. Discovery
 
@@ -106,7 +106,7 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 
 - [x] Confirm exclusive ownership
 - [x] Add default-identity assertions to both #569 SQL matrices
-- [ ] Record exact-head CI after the PR is open
+- [x] Record exact-head CI for `397d9f1522b0aa29aada563da2ffa580415ab630`
 
 ## 6. Quality Review
 
@@ -115,8 +115,10 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 ```text
 git diff --check: pass on the staged implementation diff.
 git merge-base --is-ancestor origin/main HEAD: pass at ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c.
-Local supabase/psql/docker: not installed. Disposable DB CI is the required check and has not run yet.
-No Flutter tests: no Dart/UI files changed.
+Local supabase/psql/docker: not installed.
+Supabase Database CI #39378097844 SUCCESS at 397d9f1522b0aa29aada563da2ffa580415ab630.
+Commit attribution guard #39378097947 SUCCESS at the same SHA.
+No Flutter files changed, so Flutter CI did not run.
 No hosted SQL executed.
 ```
 
@@ -141,7 +143,7 @@ Disposable tests now require one canonical `is_default` Program to survive exist
 
 ### Known Limitations
 
-Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Exact-head CI is not yet recorded. This handoff is not an independent review.
+Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Database CI and attribution passed at `397d9f15`; this evidence commit needs its own head check. This handoff is not an independent review.
 
 ### Final Status
 
