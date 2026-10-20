@@ -15,21 +15,23 @@ final class MyProgramRoutineCreateCommand {
     required List<RoutineCompositionEntry> entries,
     Map<String, ExerciseType?> expectedCustomTypes = const {},
   })  : name = name.trim(),
-        mutationId = mutationId,
+        // The canonical composer normalizes a validated UUID to lowercase.
+        // Persist that identity so read-back confirmation can match the RPC.
+        mutationId = RoutineCompositionSave(
+          routineId: routineId,
+          expectedRevision: 0,
+          mutationId: mutationId,
+          entries: entries,
+          expectedCustomTypes: expectedCustomTypes,
+        ).mutationId,
         entries = List.unmodifiable(entries),
         expectedCustomTypes = Map.unmodifiable(expectedCustomTypes) {
-    if (this.name.isEmpty || this.entries.isEmpty) {
-      throw ArgumentError('Create requires a name and an Exercise.');
+    // A nonempty Exercise without Sets passes the basic composition envelope
+    // but the atomic #568 RPC rejects it. Block it before any dispatch.
+    if (this.name.isEmpty || this.entries.isEmpty ||
+        this.entries.any((entry) => entry.sets.isEmpty)) {
+      throw ArgumentError('Create requires a name, Exercise and Set.');
     }
-    // Reuse the existing composition validator for canonical UUIDs, Sets,
-    // duplicate entry/Set IDs and the same server payload contract.
-    RoutineCompositionSave(
-      routineId: routineId,
-      expectedRevision: 0,
-      mutationId: mutationId,
-      entries: this.entries,
-      expectedCustomTypes: this.expectedCustomTypes,
-    );
   }
 
   final RoutineId routineId;
