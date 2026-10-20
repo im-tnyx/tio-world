@@ -1,7 +1,7 @@
 # Feature Development Workflow
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-10-20
 Owner: repository AI governance
 Truth Boundary: Authoritative for the repository's AI/contributor feature-execution workflow and Owner Approval gates; not product architecture, runtime behavior, or live tracker state.
 
