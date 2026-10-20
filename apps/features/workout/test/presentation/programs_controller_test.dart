@@ -20,6 +20,29 @@ void main() {
     expect(repository.listCalls, 1);
   });
 
+  test('renaming the persisted default keeps its canonical identity',
+      () async {
+    final original = Program(
+      id: _id(1),
+      name: 'My Program',
+      isDefault: true,
+    );
+    final repository = _FakeProgramRepository(programs: [original]);
+    final controller = ProgramsController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.rename(program: original, name: 'Strength'),
+      isNull,
+    );
+
+    expect(controller.state.programs.single.name, 'Strength');
+    expect(controller.state.programs.single.isDefault, isTrue);
+    expect(repository.programs.single.isDefault, isTrue);
+    expect(repository.renameCalls, 1);
+  });
+
   test('load failure exposes retry and later recovers', () async {
     final repository = _FakeProgramRepository(
       programs: [_program(1, 'Strength')],
@@ -237,6 +260,10 @@ final class _FakeProgramRepository implements ProgramRepository {
     renameCalls++;
     final index = programs.indexWhere((program) => program.id == id);
     if (index < 0) throw StateError('Program not found');
-    programs[index] = Program(id: id, name: name);
+    programs[index] = Program(
+      id: id,
+      name: name,
+      isDefault: programs[index].isDefault,
+    );
   }
 }
