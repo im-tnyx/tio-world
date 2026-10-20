@@ -351,4 +351,87 @@ void main() {
     expect(cmd.confirmsPersistedRoutine(sameMutationButSuperseded), isFalse,
         reason: 'Revision >1 requires a separate authoritative chain');
   });
+
+  test('programless UNKNOWN read-back requires server-default Program identity',
+      () {
+    final command = _command();
+    final persistedDefault = Program(
+      id: ProgramId(_owner), name: 'Renamed Strength Program', isDefault: true);
+    final persistedRoutine = Routine(
+      id: command.routineId,
+      programId: persistedDefault.id,
+      name: command.name,
+    );
+    final matchingComposition = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 1,
+      lastMutationId: command.mutationId,
+      entries: command.entries,
+    );
+
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: persistedRoutine,
+      snapshot: matchingComposition,
+    ), isTrue, reason: 'Renaming the server-owned default cannot lose identity');
+
+    final lookalike = Program(
+      id: persistedDefault.id, name: 'My Program', isDefault: false);
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: lookalike,
+      routine: persistedRoutine,
+      snapshot: matchingComposition,
+    ), isFalse, reason: 'The display name cannot impersonate is_default');
+
+    final differentProgram = Program(
+      id: ProgramId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      name: 'My Program', isDefault: true);
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: differentProgram,
+      routine: persistedRoutine,
+      snapshot: matchingComposition,
+    ), isFalse, reason: 'The persisted Routine must belong to that default');
+
+    final differentRoutine = Routine(
+      id: RoutineId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+      programId: persistedDefault.id, name: command.name);
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: differentRoutine,
+      snapshot: matchingComposition,
+    ), isFalse, reason: 'A different Routine is not evidence of this Create');
+
+    final changedName = Routine(
+      id: command.routineId,
+      programId: persistedDefault.id, name: 'Different name');
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: changedName,
+      snapshot: matchingComposition,
+    ), isFalse, reason: 'A superseding Rename is not this exact Create');
+
+    final differentMutation = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 1,
+      lastMutationId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      entries: command.entries,
+    );
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: persistedRoutine,
+      snapshot: differentMutation,
+    ), isFalse, reason: 'A different mutation cannot resolve UNKNOWN');
+
+    final supersededComposition = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 2,
+      lastMutationId: command.mutationId,
+      entries: command.entries,
+    );
+    expect(command.confirmsPersistedInCanonicalDefault(
+      program: persistedDefault,
+      routine: persistedRoutine,
+      snapshot: supersededComposition,
+    ), isFalse, reason: 'A later revision cannot prove this exact write');
+  });
 }
