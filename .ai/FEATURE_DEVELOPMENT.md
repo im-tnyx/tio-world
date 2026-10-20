@@ -68,9 +68,9 @@ For substantive changes, link each applicable acceptance criterion to the change
 | Status | Evidence-based meaning |
 |---|---|
 | `PASS` | All applicable approved acceptance criteria have verified outcomes, all applicable required checks have actually succeeded at the claimed SHA/environment, blocking findings are resolved or validly dispositioned, and any required review/approval gates are satisfied. Optional non-applicable or consciously excluded checks have explained scope/risk; no false independent-review claim. |
-| `REVIEW` | Implementation/evidence is ready for an outstanding review, decision, required validation or exact-head re-verification; do not call it completed or ready to merge solely because earlier tests were green. |
+| `REVIEW` | Work is awaiting review, an outstanding decision, or a required check that is scheduled/in progress but has no failure conclusion yet. Do not claim completion or merge readiness until those gates pass. |
 | `PARTIAL` | Only a documented subset is verified, or meaningful applicable validation could not run and residual risk remains; list incomplete criteria and the next action. Do not use `PARTIAL` to hide a failed required merge check. |
-| `BLOCKED` | A required dependency, approval, safety/ownership decision, unresolved blocking finding or failing/incomplete required check prevents safe continuation or merge. Record the blocker and who can resolve it. |
+| `BLOCKED` | A known failed required check, inability to obtain required validation, unresolved blocking finding, owner/ownership ambiguity or denied required approval prevents safe continuation or merge. Record the blocker and who can resolve it. A still-running required check remains a pending merge gate, not a claimed failure. |
 
 These are final **handoff outcomes**, distinct from the task-lifecycle values in [tasks/README.md](tasks/README.md) and GitHub review states. Required-vs-supplemental security checks and infrastructure-failure-vs-concrete-finding decisions retain the existing `AGENTS.md` and `.github/PUSH_TEMPLATE.md` rules. A documented tool limitation never overrides branch protection or owner-only merge authorization.
 
@@ -94,4 +94,4 @@ Roles are interchangeable responsibilities, not fixed agent identities or a mand
 - **Implementer**: changes the agreed vertical slice.
 - **Reviewer**: checks the diff, tests, security boundaries, and stated outcome; record whether this was independent review or self-review.
 
-The primary agent remains responsible for integrating evidence and never treats an agent suggestion as runtime truth without verification.
+The currently verified task/handoff owner integrates evidence; after ownership transfer the receiving owner re-verifies claims against live sources. No specific agent identity remains permanently responsible, and no agent suggestion becomes runtime truth without verification.
