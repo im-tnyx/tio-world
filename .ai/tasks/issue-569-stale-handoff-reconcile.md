@@ -1,6 +1,12 @@
 # #569 — Stale handoff reconcile (docs only)
 
 **Status:** Docs-only reconcile, 2026-10-20. Owner (Santosh) approved Option C. No source, migration, grant, flag, hosted deploy, or Undo change.
+
+## Frozen PR #626 approval (recorded here)
+
+Owner (Santosh) explicitly approved [PR #626](https://github.com/im-tnyx/tio-world/pull/626)’s test-only scope on 2026-10-20: disposable SQL assertions only. That PR stays open for independent review. Its head is frozen at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` and this slice does not push to it. `.ai/tasks/issue-569-default-identity-move-regression.md` on that head still says `Approval status: Not required`. That wording is superseded by this owner approval. Do not open a new slice without explicit owner approval.
+
+The same frozen brief and README row say not to bulk-rewrite older #569 rows. That instruction applied to the #626 test slice. Option C, approved separately, is the archive recorded below. The #626 README row text is copied unchanged into this branch’s task index so either PR can merge first without a README conflict.
 **Primary owner:** Documentation handoff for GitHub #569.
 **Affected platforms:** `.ai/tasks` and `.ai/archive` only.
 
