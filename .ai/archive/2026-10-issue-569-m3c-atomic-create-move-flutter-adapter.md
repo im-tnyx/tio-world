@@ -1,6 +1,7 @@
 # #569 M3C — Flutter protected atomic Create Program & Move adapter
 
-**Status:** IN REVIEW — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Open/Ready for Review/unmerged. **Current source+tests `fa3d06984289d60bfb690d71d9b311e41e437e91` [Flutter CI #39122855384](https://github.com/im-tnyx/tio-world/actions/runs/39122855384) 7/7 PASS**; all 18/18 inline review threads resolved, including final Class-53 P2. Independent `APPROVED` review/security-review completion and separate owner `Go merge` NOT verified; no Supabase rollout, grant, app wiring or Move activation.
+**Status:** **Validated / archived 2026-10-20.** [PR #601](https://github.com/im-tnyx/tio-world/pull/601) squash-merged as `main@b53c330303503a91b7b6131999095a21f63ebb8e` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** IN REVIEW — [PR #601](https://github.com/im-tnyx/tio-world/pull/601) Open/Ready for Review/unmerged. **Current source+tests `fa3d06984289d60bfb690d71d9b311e41e437e91` [Flutter CI #39122855384](https://github.com/im-tnyx/tio-world/actions/runs/39122855384) 7/7 PASS**; all 18/18 inline review threads resolved, including final Class-53 P2. Independent `APPROVED` review/security-review completion and separate owner `Go merge` NOT verified; no Supabase rollout, grant, app wiring or Move activation.
 **Primary owner:** Workout feature domain/data.
 **Affected platforms:** Flutter phone repository capability only; no active UI entrypoint.
 

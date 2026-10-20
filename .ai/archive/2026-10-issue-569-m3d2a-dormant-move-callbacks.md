@@ -1,6 +1,7 @@
 # #569 M3D2A — Dormant Move callback plumbing
 
-**Status:** In Review — [PR #603](https://github.com/im-tnyx/tio-world/pull/603) **Open / Ready for Review / unmerged**. Exact last verified HEAD `6a96d8ea718ea676524b72694cd4b7afdfcf307d` [Flutter CI #39134695940](https://github.com/im-tnyx/tio-world/actions/runs/39134695940) **5/5 PASS** plus attribution **2/2 PASS** (7/7). Earlier source/test `155a0feb` and first handoff `af6cc5f5` also 7/7 PASS. Final governance-only follow-up HEAD requires fresh checks; independent APPROVED and owner merge authorization pending.
+**Status:** **Validated / archived 2026-10-20.** [PR #603](https://github.com/im-tnyx/tio-world/pull/603) squash-merged as `main@11d5324fd44ff1c690417bfacf3005b02a865032` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In Review — [PR #603](https://github.com/im-tnyx/tio-world/pull/603) **Open / Ready for Review / unmerged**. Exact last verified HEAD `6a96d8ea718ea676524b72694cd4b7afdfcf307d` [Flutter CI #39134695940](https://github.com/im-tnyx/tio-world/actions/runs/39134695940) **5/5 PASS** plus attribution **2/2 PASS** (7/7). Earlier source/test `155a0feb` and first handoff `af6cc5f5` also 7/7 PASS. Final governance-only follow-up HEAD requires fresh checks; independent APPROVED and owner merge authorization pending.
 **Primary owner:** Workout feature presentation (`apps/features/workout`)
 **Affected platforms:** Flutter phone shared Routine cards in Program Detail and expanded Library
 

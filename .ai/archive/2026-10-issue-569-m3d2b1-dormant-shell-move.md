@@ -1,6 +1,7 @@
 # #569 M3D2B1 — Dormant app-shell Move integration
 
-**Status:** In Review — Draft PR #604 with exact source/test HEAD `57f77d2ab565eb460170adfad6486833b87bbaea` Flutter CI #39139696738 **5/5 PASS** + attribution **2/2 PASS**. Later task/index-only HEAD CI and independent review pending. No user-facing Move activation.
+**Status:** **Validated / archived 2026-10-20.** [PR #604](https://github.com/im-tnyx/tio-world/pull/604) squash-merged as `main@d3753bcda7cc0dae6a61d0c3914d78e6500fc3ea` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In Review — Draft PR #604 with exact source/test HEAD `57f77d2ab565eb460170adfad6486833b87bbaea` Flutter CI #39139696738 **5/5 PASS** + attribution **2/2 PASS**. Later task/index-only HEAD CI and independent review pending. No user-facing Move activation.
 **Primary owner:** apps/app app-shell composition and routing
 **Issue:** GitHub #569 / Linear TNYX-81
 **Approval:** Owner requested "Next audit ke sath work start kare with agent.md" inside the approved Move #569 scope. This is NOT authorization for hosting/grants, activation or merge.

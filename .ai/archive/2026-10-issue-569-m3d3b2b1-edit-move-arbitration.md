@@ -1,6 +1,7 @@
 # #569 M3D3B2b1 — Routine Edit versus Move/Delete write arbitration
 
-**Status:** Review handoff (Ready for Review, unmerged; owner explicitly requests NO MERGE)
+**Status:** **Validated / archived 2026-10-20.** [PR #610](https://github.com/im-tnyx/tio-world/pull/610) squash-merged as `main@d758f6652d23aa82c7542b75d940e4ce32e44e68` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Review handoff (Ready for Review, unmerged; owner explicitly requests NO MERGE)
 **Primary owner:** Workout data adapters + apps/app composition root
 **Affected platforms:** Flutter Android/iOS (behavior-preserving, no visible UI change)
 

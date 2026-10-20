@@ -1,6 +1,7 @@
 # GitHub #569 — M2C Legacy Rename Retirement Preflight
 
-**Status:** **Validated and merged** as [PR #593](https://github.com/im-tnyx/tio-world/pull/593), protected `main@1188346d90fd8e1a15b77d00eae48d369bd4d817`. CI-only historical preflight; current permanent cutoff work lives in [the M2C cutoff task](issue-569-m2c-legacy-rename-cutoff.md). No hosted deployment.
+**Status:** **Validated / archived 2026-10-20.** [PR #593](https://github.com/im-tnyx/tio-world/pull/593) squash-merged as `main@1188346d90fd8e1a15b77d00eae48d369bd4d817` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** **Validated and merged** as [PR #593](https://github.com/im-tnyx/tio-world/pull/593), protected `main@1188346d90fd8e1a15b77d00eae48d369bd4d817`. CI-only historical preflight; current permanent cutoff work lives in [the M2C cutoff task](2026-10-issue-569-m2c-legacy-rename-cutoff.md). No hosted deployment.
 **Primary owner:** Supabase/Postgres security; linked to Workout identity.
 **Affected platforms:** Supabase test harness and GitHub CI only.
 

@@ -1,6 +1,7 @@
 # #569 M3D3A — App-router Move release-OFF regression
 
-**Status:** In progress
+**Status:** **Validated / archived 2026-10-20.** [PR #605](https://github.com/im-tnyx/tio-world/pull/605) squash-merged as `main@bd55f80eb0171590544205fc41a36451ab550a65` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In progress
 **PR review state:** Ready for Review; Codex review findings under correction, independent approval pending.
 **Primary owner:** `apps/app` authenticated shell/widget tests
 **Affected platforms:** Flutter Android/iOS tests only

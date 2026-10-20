@@ -1,6 +1,7 @@
 # #569 M3D3B1 — Enabled-test-only Move selector Auth-cycle revocation
 
-**Status:** In progress
+**Status:** **Validated / archived 2026-10-20.** [PR #606](https://github.com/im-tnyx/tio-world/pull/606) squash-merged as `main@e08d547b6cfe3c99096029f2df9c5196b6aad006` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In progress
 **Primary owner:** `apps/app` app-router widget tests
 **Affected platforms:** Flutter Android/iOS widget regression only
 

@@ -1,6 +1,7 @@
 # GitHub #569 — M3D3B3c UNKNOWN Move flow readback feedback
 
-**Status:** Ready for Review gate (PR #614; no merge). Exact-HEAD CI and review evidence are tracked in the live PR, not assumed here.
+**Status:** **Validated / archived 2026-10-20.** [PR #614](https://github.com/im-tnyx/tio-world/pull/614) squash-merged as `main@428e2c6506533b2b4aecf0ae7f3b94835171f438` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Ready for Review gate (PR #614; no merge). Exact-HEAD CI and review evidence are tracked in the live PR, not assumed here.
 **Implementation owner:** Workout presentation / RoutineMoveFlow
 **Related:** GitHub #569, merged [PR #613](https://github.com/im-tnyx/tio-world/pull/613), Linear TNYX-81
 **Base:** protected `main@a892e2dbabf19d771234f3e1d8f94d8f2c58a544`; branch `tnyx/issue-569-m3d3b3c-unknown-feedback-reconciliation`

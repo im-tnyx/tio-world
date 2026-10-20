@@ -1,6 +1,7 @@
 # GitHub #569 — M3D3B3b UNKNOWN Move mutation readback
 
-**Status:** Ready for Review / merge-gate verification; reviewer P3 governance corrections applied. Actual merge is separately owner-gated.
+**Status:** **Validated / archived 2026-10-20.** [PR #613](https://github.com/im-tnyx/tio-world/pull/613) squash-merged as `main@a892e2dbabf19d771234f3e1d8f94d8f2c58a544` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Ready for Review / merge-gate verification; reviewer P3 governance corrections applied. Actual merge is separately owner-gated.
 **Implementation owner:** Workout domain/data repository
 **Related:** GitHub #569, merged PR #612, Linear TNYX-81 / TNYX-267
 **Base:** protected main@4b9404f4e6a93239f8ddab597eb6b55efdb7c1b0

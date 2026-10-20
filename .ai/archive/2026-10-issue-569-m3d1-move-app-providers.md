@@ -1,6 +1,7 @@
 # #569 M3D1 — Dormant Move app providers
 
-**Status:** In Review — [PR #602](https://github.com/im-tnyx/tio-world/pull/602) Open / Ready for Review / unmerged. Exact preceding HEAD `70291762c6cdf1bb9234c09026630a39a62de926` [Flutter CI #39128199802](https://github.com/im-tnyx/tio-world/actions/runs/39128199802) 5/5 SUCCESS plus 2/2 attribution = **7/7 PASS**. Separate independent APPROVED review and owner merge gate pending.
+**Status:** **Validated / archived 2026-10-20.** [PR #602](https://github.com/im-tnyx/tio-world/pull/602) squash-merged as `main@bbe255c071e064b1aab6d68e836397b0becc4352` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In Review — [PR #602](https://github.com/im-tnyx/tio-world/pull/602) Open / Ready for Review / unmerged. Exact preceding HEAD `70291762c6cdf1bb9234c09026630a39a62de926` [Flutter CI #39128199802](https://github.com/im-tnyx/tio-world/actions/runs/39128199802) 5/5 SUCCESS plus 2/2 attribution = **7/7 PASS**. Separate independent APPROVED review and owner merge gate pending.
 **Primary owner:** apps/app composition
 **Affected platforms:** Flutter phone internal providers; no visible UI
 

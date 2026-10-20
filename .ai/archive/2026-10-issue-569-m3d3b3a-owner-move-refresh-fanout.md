@@ -1,6 +1,7 @@
 # GitHub #569 — M3D3B3a owner-cycle Move list refresh fan-out
 
-**Status:** Implementation on scoped branch, exact-head CI and review pending
+**Status:** **Validated / archived 2026-10-20.** [PR #612](https://github.com/im-tnyx/tio-world/pull/612) squash-merged as `main@4b9404f4e6a93239f8ddab597eb6b55efdb7c1b0` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Implementation on scoped branch, exact-head CI and review pending
 **Owner:** Workout feature presentation + thin apps/app wiring/tests
 **Approved boundary:** Follow-up correctness subtask under owner-approved #569 after merged #611. Owner `Next work go with audit` on 2026-10-19. **NO MERGE** in this turn.
 
