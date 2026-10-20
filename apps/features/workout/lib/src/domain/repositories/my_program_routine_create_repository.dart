@@ -59,6 +59,24 @@ final class MyProgramRoutineCreateCommand {
       entries: entries,
     ));
   }
+
+  /// Positive read-back evidence for an uncertain *programless* Create.
+  ///
+  /// The caller must first establish that all three records were read for
+  /// the same authenticated owner and login cycle. This predicate cannot
+  /// establish ownership by itself because canonical Program/Routine values
+  /// deliberately do not contain the auth session. A false result means
+  /// UNKNOWN, not proof that the server transaction rolled back.
+  bool confirmsPersistedInCanonicalDefault({
+    required Program program,
+    required Routine routine,
+    required RoutineCompositionSnapshot snapshot,
+  }) =>
+      program.isDefault &&
+      routine.id == routineId &&
+      routine.programId == program.id &&
+      routine.name == name &&
+      confirmsPersistedRoutine(snapshot);
 }
 
 /// ACK from the atomic default resolver. Never treat a non-ACK, malformed
