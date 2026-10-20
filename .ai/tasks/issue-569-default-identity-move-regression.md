@@ -30,7 +30,7 @@
 **Validation completed at SHA:** [Supabase Database CI #39378392950](https://github.com/im-tnyx/tio-world/actions/runs/39378392950) SUCCESS and [Commit attribution guard #39378389864](https://github.com/im-tnyx/tio-world/actions/runs/39378389864) SUCCESS at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. Independent Security, Engineering Auditor, and QA reviews APPROVE that head with no P1/P2. Local Supabase CLI was not available.
 **Validation remaining:** None recorded here. The P3 fixture follow-up is evidenced by the latest exact-head runs on PR #626.
 **Current blocker:** None for source. Hosted ledger is 65 applied through `20261018100000`; repository migration `20261019162535` (#568) is not hosted. This slice does not deploy it.
-**Open review finding IDs:** None
+**Open review finding IDs:** None open. P3 SHA/CI, approval wording, deleted-source default, and sanity labels are corrected in this follow-up.
 **Next exact action:** Independent review of PR #626. Do not merge, grant EXECUTE, or deploy.
 
 ## 1. Discovery
