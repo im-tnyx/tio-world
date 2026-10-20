@@ -1,7 +1,7 @@
 # Feature Development Workflow
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-10-20
 Owner: repository AI governance
 Truth Boundary: Authoritative for the repository's AI/contributor feature-execution workflow and Owner Approval gates; not product architecture, runtime behavior, or live tracker state.
 
@@ -55,9 +55,26 @@ Implement the smallest complete vertical slice. Keep the task brief's approved s
 
 Run the smallest meaningful checks. Review the diff for module-boundary violations, secrets, accessibility, empty/loading/error states, offline behavior where applicable, and platform-specific constraints. Record failed or unavailable validation honestly.
 
+Independent review is preferred for substantive changes when available, but this is a **role separation**, not a mandated number, order, vendor, or model of agents. A reviewer who also implemented the reviewed changes performs **self-review**, not independent review. Record the review source (GitHub, linked external tool, manual, or chat-only), reviewed diff/commit SHA, reviewer relationship to the implementation, findings/dispositions, and what could not be reviewed. A Grok, Codex, Cursor, or other agent assessment is evidence to verify, not automatically a formal GitHub `APPROVED` review or passing CI. A failed/limited review service is not a clean review; honor any actually required independent-review or merge-policy gate.
+
 ### 7. Final Handoff
 
 State the changed files, actual behavior, validation evidence, known limitations, and one final status: `PASS`, `REVIEW`, `PARTIAL`, or `BLOCKED`. Update [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md), canonical docs, and the task brief when the observed state changed.
+
+For substantive changes, link each applicable acceptance criterion to the changed behavior/files and a test or manual proof with its actual result and observed SHA/environment. Note negative, error, offline, accessibility, or owner/tenant-failure paths when relevant to that change, without requiring blanket checks. Explicitly classify required checks, intentionally not-run/non-applicable optional checks, failed checks, and residual risks. A green CI status alone is not proof of all acceptance criteria or independent review.
+
+### Final Status Decision Rule
+
+| Status | Evidence-based meaning |
+|---|---|
+| `PASS` | All applicable approved acceptance criteria have verified outcomes, all applicable required checks have actually succeeded at the claimed SHA/environment, blocking findings are resolved or validly dispositioned, and any required review/approval gates are satisfied. Optional non-applicable or consciously excluded checks have explained scope/risk; no false independent-review claim. |
+| `REVIEW` | Work is awaiting review, an outstanding decision, or a required check that is scheduled/in progress but has no failure conclusion yet. Do not claim completion or merge readiness until those gates pass. |
+| `PARTIAL` | Only a documented subset is verified, or meaningful applicable validation could not run and residual risk remains; list incomplete criteria and the next action. Do not use `PARTIAL` to hide a failed required merge check. |
+| `BLOCKED` | A known failed required check, inability to obtain required validation, unresolved blocking finding, owner/ownership ambiguity or denied required approval prevents safe continuation or merge. Record the blocker and who can resolve it. A still-running required check remains a pending merge gate, not a claimed failure. |
+
+If several statuses apply, report the **most restrictive**: `BLOCKED` > `PARTIAL` > `REVIEW` > `PASS`, and list the remaining open conditions. In particular, a required validation that cannot be run is `BLOCKED` for completion/merge even when a PR is available for review; an in-progress required check without a failure is `REVIEW` only when no more restrictive condition applies. Do not downgrade an outstanding required gate to `PARTIAL` just because other criteria passed.
+
+These are final **handoff outcomes**, distinct from the task-lifecycle values in [tasks/README.md](tasks/README.md) and GitHub review states. Required-vs-supplemental security checks and infrastructure-failure-vs-concrete-finding decisions retain the existing `AGENTS.md` and `.github/PUSH_TEMPLATE.md` rules. A documented tool limitation never overrides branch protection or owner-only merge authorization.
 
 ## Required Gates
 
@@ -67,16 +84,16 @@ State the changed files, actual behavior, validation evidence, known limitations
 | Make a product-visible UI/UX change | The visible change is included in the owner-approved task scope or has later explicit approval. |
 | Change a Supabase table/column shape | The exact table/column change and its data-model and compatibility impact are explained and approved. |
 | Continue normal implementation | The work is necessary for the approved outcome and remains within its scope and non-goals; no separate Owner Approval is required. |
-| Claim completion | Applicable validation has run, or the exact limitation is recorded. |
+| Claim completion as `PASS` | Satisfy the [Final Status Decision Rule](#final-status-decision-rule), including actually completed applicable required validation; when that validation cannot run, record the limitation and report `REVIEW`, `PARTIAL`, or `BLOCKED` as appropriate instead of claiming completion. |
 | Archive a task | It is validated or superseded, and durable decisions/status are reflected in canonical docs. |
 
 ## Agent Roles
 
-When multiple agents are available, separate the work into bounded roles:
+Roles are interchangeable responsibilities, not fixed agent identities or a mandatory multi-agent sequence. One or more agents may perform different roles sequentially, preserving the single active implementation owner and truthful review provenance:
 
 - **Explorer**: maps current execution paths, dependencies, and conventions.
 - **Architect**: proposes owner-safe approaches and records trade-offs.
 - **Implementer**: changes the agreed vertical slice.
-- **Reviewer**: independently checks the diff, tests, security boundaries, and stated outcome.
+- **Reviewer**: checks the diff, tests, security boundaries, and stated outcome; record whether this was independent review or self-review.
 
-The primary agent remains responsible for integrating evidence and never treats an agent suggestion as runtime truth without verification.
+The currently verified task/handoff owner integrates evidence; after ownership transfer the receiving owner re-verifies claims against live sources. No specific agent identity remains permanently responsible, and no agent suggestion becomes runtime truth without verification.

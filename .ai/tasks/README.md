@@ -10,6 +10,7 @@ Completed #569 B3e UNKNOWN Move feedback regression is [archived](../archive/202
 
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
+| [#596 — B1 multi-agent evidence and completion contract](issue-596-b1-multi-agent-evidence-contract.md) | **Blocked for completion / PR review open** — Docs-only quality-rule clarification; local `git diff --check` not run, latest-head review/required checks pending. Based on [Slice A audit](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6286554549); no CI/protection/product change or merge authorization | Repository AI governance | [GitHub #596](https://github.com/im-tnyx/tio-world/issues/596), `docs/README.md`, `.ai/FEATURE_DEVELOPMENT.md` |
 | [#569 — canonical default identity survives Move](issue-569-default-identity-move-regression.md) | **Validated** — [PR #626](https://github.com/im-tnyx/tio-world/pull/626) **MERGED** squash `main@fbf132841597bae8ff41aac3e2d8d1b922b49d35` (2026-10-20). SQL behaviour last changed in `c7081b37`; exact-head Database CI [run 39381841484](https://github.com/im-tnyx/tio-world/actions/runs/39381841484) SUCCESS on final PR head `d66cc57e` (attribution [run 39381839072](https://github.com/im-tnyx/tio-world/actions/runs/39381839072) SUCCESS). Chat-only bot audits APPROVE; GitHub formal reviews 0. Post-merge docs reconcile [PR #629](https://github.com/im-tnyx/tio-world/pull/629). Production Move OFF; no EXECUTE grant or hosted deploy | Workout / Supabase test matrix | One owner `is_default` stays put across existing Move and Create & Move; deleted-source savepoint keeps exactly one default on 013 |
 | [#568 — W1 My Program Identity and Atomic First Routine Create](issue-568-w1-my-program-atomic-default-create.md) | Review gate — migration 20261019162535 generated via official CLI; is_default partial index + authenticated INSERT narrowed; dormant RPC + disposable CI matrix wired | Supabase/Postgres | Lazy default identity, single-transaction atomic routine creation rollback, no client marker modification, RPC dormant |
 | [iOS free physical-device UI testing foundation](ios-free-device-ui-testing.md) | Review gate — owner approves merge before physical testing; manual QA-login build, Windows signing and iPhone smoke are unverified post-merge acceptance | Flutter phone platform / repository CI | Manual-only workflow, client-safe QA Secrets, post-merge iPhone acceptance; no automatic builds or production release scope |
@@ -164,15 +165,7 @@ Never automatically discard, reset, stash, overwrite, or recreate existing work 
 
 ### State Verification And Precedence
 
-Use this precedence when records disagree:
-
-```text
-Current runtime/source and Git state
-→ live PR/tracker state
-→ canonical architecture/product docs
-→ active task handoff snapshot
-→ previous chat claims
-```
+Resolve disagreements by **question type** using the canonical [documentation authority and conflict-resolution rules](../../docs/README.md#conflict-resolution); do not apply a single global ladder across unrelated kinds of truth. Checked-in source/config and verified runtime/Git state establish executable behavior; owning canonical docs/accepted ADRs define architecture/product policy; live Linear/GitHub establish task scope, state and review history; task handoffs and chat claims are dated execution context, not overrides. If a task tracker conflicts with canonical policy, flag and reconcile it before writing source. A current checkout does not prove unseen local edits in another worktree.
 
 A handoff branch, SHA, PR, tracker, or task-state record is a timestamped snapshot. Report mismatches and refresh the handoff block after verification. A stale snapshot must never cause an automatic checkout, reset, revert, stash, or overwrite.
 
