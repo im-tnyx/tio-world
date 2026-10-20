@@ -55,9 +55,24 @@ Implement the smallest complete vertical slice. Keep the task brief's approved s
 
 Run the smallest meaningful checks. Review the diff for module-boundary violations, secrets, accessibility, empty/loading/error states, offline behavior where applicable, and platform-specific constraints. Record failed or unavailable validation honestly.
 
+Independent review is preferred for substantive changes when available, but this is a **role separation**, not a mandated number, order, vendor, or model of agents. A reviewer who also implemented the reviewed changes performs **self-review**, not independent review. Record the review source (GitHub, linked external tool, manual, or chat-only), reviewed diff/commit SHA, reviewer relationship to the implementation, findings/dispositions, and what could not be reviewed. A Grok, Codex, Cursor, or other agent assessment is evidence to verify, not automatically a formal GitHub `APPROVED` review or passing CI. A failed/limited review service is not a clean review; honor any actually required independent-review or merge-policy gate.
+
 ### 7. Final Handoff
 
 State the changed files, actual behavior, validation evidence, known limitations, and one final status: `PASS`, `REVIEW`, `PARTIAL`, or `BLOCKED`. Update [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md), canonical docs, and the task brief when the observed state changed.
+
+For substantive changes, link each applicable acceptance criterion to the changed behavior/files and a test or manual proof with its actual result and observed SHA/environment. Note negative, error, offline, accessibility, or owner/tenant-failure paths when relevant to that change, without requiring blanket checks. Explicitly classify required checks, intentionally not-run/non-applicable optional checks, failed checks, and residual risks. A green CI status alone is not proof of all acceptance criteria or independent review.
+
+### Final Status Decision Rule
+
+| Status | Evidence-based meaning |
+|---|---|
+| `PASS` | All applicable approved acceptance criteria have verified outcomes, all applicable required checks have actually succeeded at the claimed SHA/environment, blocking findings are resolved or validly dispositioned, and any required review/approval gates are satisfied. Optional non-applicable or consciously excluded checks have explained scope/risk; no false independent-review claim. |
+| `REVIEW` | Implementation/evidence is ready for an outstanding review, decision, required validation or exact-head re-verification; do not call it completed or ready to merge solely because earlier tests were green. |
+| `PARTIAL` | Only a documented subset is verified, or meaningful applicable validation could not run and residual risk remains; list incomplete criteria and the next action. Do not use `PARTIAL` to hide a failed required merge check. |
+| `BLOCKED` | A required dependency, approval, safety/ownership decision, unresolved blocking finding or failing/incomplete required check prevents safe continuation or merge. Record the blocker and who can resolve it. |
+
+These are final **handoff outcomes**, distinct from the task-lifecycle values in [tasks/README.md](tasks/README.md) and GitHub review states. Required-vs-supplemental security checks and infrastructure-failure-vs-concrete-finding decisions retain the existing `AGENTS.md` and `.github/PUSH_TEMPLATE.md` rules. A documented tool limitation never overrides branch protection or owner-only merge authorization.
 
 ## Required Gates
 
@@ -72,11 +87,11 @@ State the changed files, actual behavior, validation evidence, known limitations
 
 ## Agent Roles
 
-When multiple agents are available, separate the work into bounded roles:
+Roles are interchangeable responsibilities, not fixed agent identities or a mandatory multi-agent sequence. One or more agents may perform different roles sequentially, preserving the single active implementation owner and truthful review provenance:
 
 - **Explorer**: maps current execution paths, dependencies, and conventions.
 - **Architect**: proposes owner-safe approaches and records trade-offs.
 - **Implementer**: changes the agreed vertical slice.
-- **Reviewer**: independently checks the diff, tests, security boundaries, and stated outcome.
+- **Reviewer**: checks the diff, tests, security boundaries, and stated outcome; record whether this was independent review or self-review.
 
 The primary agent remains responsible for integrating evidence and never treats an agent suggestion as runtime truth without verification.
