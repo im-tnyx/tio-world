@@ -5,6 +5,7 @@ export 'pages/app_mode_settings_page.dart';
 export 'pages/app_settings_page.dart';
 export 'pages/body_weight_settings_destination.dart';
 export 'pages/body_weight_settings_page.dart';
+export 'pages/daily_wellness_settings_destination.dart';
 export 'pages/daily_wellness_settings_page.dart';
 export 'pages/health_goals_settings_page.dart';
 export 'pages/measurement_units_settings_page.dart';

@@ -232,6 +232,31 @@ void main() {
         isNull);
   });
 
+  testWidgets(
+      'Daily Wellness route preserves Settings destination and session key',
+      (tester) async {
+    final repository = _FakeWellnessTargetsRepository()
+      ..value = const WellnessTargetsData(waterMl: 2400);
+    final hydration = _FakeHydrationRepository()
+      ..value = const HydrationPreferences(defaultGlassSizeMl: 300);
+    final container = await buildContainer(repository, hydration: hydration);
+    addTearDown(container.dispose);
+
+    await openPage(tester, container, repository);
+
+    expect(find.byType(DailyWellnessSettingsDestination), findsOneWidget);
+    final page = tester.widget<DailyWellnessSettingsPage>(
+      find.byType(DailyWellnessSettingsPage),
+    );
+    // This fixture is unauthenticated; no invented user ID is added to the
+    // widget key while Hydration Preferences remains an independent read.
+    expect(page.key, const ValueKey<String?>(null));
+    expect(page.initialTargets?.waterMl, 2400);
+    expect(page.hydrationPreferences?.defaultGlassSizeMl, 300);
+    expect(page.onRetryHydration, isNotNull);
+    expect(page.onSaveHydration, isNotNull);
+  });
+
   testWidgets('wellness read loading shows loading UI, not five Not set values',
       (tester) async {
     final repository = _FakeWellnessTargetsRepository();
