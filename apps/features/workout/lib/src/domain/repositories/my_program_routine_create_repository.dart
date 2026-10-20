@@ -45,9 +45,10 @@ final class MyProgramRoutineCreateCommand {
   /// infer ownership from a matching mutable Program display name.
   bool confirmsPersistedRoutine(RoutineCompositionSnapshot snapshot) {
     if (snapshot.routineId != routineId) return false;
-    if (snapshot.revision > 1) {
-      return snapshot.lastMutationId != null;
-    }
+    // A later revision may have been created by a different mutation.
+    // Without a server-verified history chain, it cannot prove that this
+    // particular pending Create committed; fail closed on superseded state.
+    if (snapshot.revision > 1) return false;
     if (snapshot.revision != 1 || snapshot.lastMutationId != mutationId) {
       return false;
     }
