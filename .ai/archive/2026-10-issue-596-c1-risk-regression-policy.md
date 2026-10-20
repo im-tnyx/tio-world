@@ -1,5 +1,26 @@
 # GitHub #596 — C1 risk-based regression and review policy
 
+**Status:** Validated
+**Completed / archived:** 2026-10-20
+**Primary owner:** Repository AI governance / developer experience documentation
+**Affected platforms:** Documentation/process only; relevant Flutter, Wear, Supabase and future approved services
+
+## Post-Merge Validated Outcome (supersedes historical pre-merge snapshot)
+
+**Validated scope:** C1 docs-only testing/review policy. [PR #633](https://github.com/im-tnyx/tio-world/pull/633) was normal squash-merged on 2026-10-20, without an admin bypass, at source HEAD `1fcff5bc93361ff43279dc6d25980a4b0d2303d1`; base `main@b327a63a19b5f500cb8683880cb5b0f69ffabd01`; verified merge commit and current main `0627cdaca9ebaeed602cb1a12244d3a002c4f877`. Owner-provided PowerShell after merge showed a clean primary worktree, `git pull --ff-only` success, and local HEAD equal to that SHA. See [merge receipt](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6289356409) and [local-sync evidence](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6289385443). GitHub connector did not execute Windows commands.
+
+**Canonical outcome:** [TESTING_GUIDE.md](../../docs/development/TESTING_GUIDE.md#risk-based-regression-selection) owns the risk-based regression matrix for Flutter pure domain/state/UI/routing, phone-Wear sync, Auth/health/privacy, Supabase RLS/migrations/privileged APIs and future approved integration/service boundaries. [Feature workflow](../FEATURE_DEVELOPMENT.md#6-quality-review) links to that matrix. PR #633 merged exactly four documentation files: `docs/development/TESTING_GUIDE.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/README.md`, `.ai/tasks/issue-596-c1-risk-regression-policy.md`. The later archival move and index reconciliation are a distinct docs-only follow-up PR, not part of PR #633's SHA.
+
+**Actual validation at exact source HEAD:** Owner-run Windows `git diff --check origin/main...origin/docs/issue-596-c1-risk-regression-policy` returned exit `0` ([validation receipt](https://github.com/im-tnyx/tio-world/pull/633#issuecomment-6289243138)). Five exact-head GitHub check-runs completed SUCCESS: Commit attribution guard, Attribution guard runner, Cursor Bugbot, Cursor Approval Agent: Pull Request Router, Cursor Security Agent: Security Reviewer. Branch-protection required-check enumeration returned 403, so the required/supplemental status of individual checks is not invented; GitHub accepted the normal protected merge. Docs-only scope did not run Flutter/Wear device or Supabase runtime tests.
+
+**Independent review / finding:** `im-tio` submitted [GitHub `COMMENTED`](https://github.com/im-tnyx/tio-world/pull/633#pullrequestreview-5584046999) identifying a P3 **PR-description count only** (`4 ahead / 0 behind`, actual `5 ahead / 0 behind`). PR metadata was corrected without a new source commit ([disposition](https://github.com/im-tnyx/tio-world/pull/633#issuecomment-6289292640)). `im-tio` then submitted an exact-head GitHub **`APPROVED`** review: no remaining P1/P2/P3 findings and zero unresolved inline threads. Previous Codex attempt at an older head hit usage limits; not counted as passing independent review.
+
+**Original C1 final outcome: PASS — validated, independently approved, merged and owner-synced.** This is not a completion or merge claim for the **separate archive follow-up PR**. Parent GitHub [#596](https://github.com/im-tnyx/tio-world/issues/596) stays OPEN for D1 ten-PR measurement and final acceptance. No C1 source-branch deletion, other worktree cleanup, CI/protection change or product runtime change is claimed.
+
+## Historical Pre-Merge Handoff (superseded, not current state)
+
+> Original brief retained below as historical audit context. Its `In progress`, old SHA, `PR open`, `unrun` and `review pending` statements are historical and **not** today's C1 status or blockers. Verified post-merge evidence above and live GitHub state supersede them. Do not reactivate this historical snapshot.
+
 **Status:** In progress — PR #633 open for review; final exact-head validation and independent review pending
 **Primary owner:** Repository AI governance / developer experience documentation
 **Affected platforms:** Documentation guidance only for Flutter phone, Wear OS, future Apple Watch, Supabase and future approved protected service

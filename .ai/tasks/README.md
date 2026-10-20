@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-GitHub [#596](https://github.com/im-tnyx/tio-world/issues/596) Slice C1 risk-based regression and review policy is [in progress](issue-596-c1-risk-regression-policy.md) on `docs/issue-596-c1-risk-regression-policy`; no runtime/CI changes and no claim of exact-head docs validation or independent review yet. Parent #596 remains OPEN.
+Validated GitHub [#596](https://github.com/im-tnyx/tio-world/issues/596) Slice C1 risk-based regression and review policy is [archived](../archive/2026-10-issue-596-c1-risk-regression-policy.md) after [PR #633](https://github.com/im-tnyx/tio-world/pull/633) normal squash merge at `main@0627cdaca9ebaeed602cb1a12244d3a002c4f877`. Owner-run exact-head docs check exit `0`, five GitHub check-runs SUCCESS and independent `im-tio` GitHub `APPROVED` review verified. Parent #596 remains OPEN for D1 and final acceptance.
 
 Validated #596 B1 multi-agent evidence-contract handoff is [archived](../archive/2026-10-issue-596-b1-multi-agent-evidence-contract.md) after [PR #631](https://github.com/im-tnyx/tio-world/pull/631) squash-merged at `main@6000fe818dcf4a886a598a5e5655430d7bb74c8f`, exact-head docs check exit `0`, required attribution and supplemental Cursor checks PASS, and 9/9 review threads resolved. A separate `im-tio` GitHub review was `COMMENTED`, **not** `APPROVED`; parent [#596](https://github.com/im-tnyx/tio-world/issues/596) stays OPEN. Archive records the earlier `BLOCKED` text as a historical pre-merge snapshot, not a current B1 blocker.
 
