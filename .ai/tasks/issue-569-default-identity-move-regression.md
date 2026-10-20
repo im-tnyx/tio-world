@@ -7,7 +7,7 @@
 ## Owner Approval and Scope Boundary
 
 **Trigger:** None
-**Approval status:** Not required
+**Approval status:** Owner-approved test-only scope. Santosh, 2026-10-20 (GitHub #569 / chat).
 **Approval evidence:** GitHub #569 owner-approved Move acceptance (2026-10-15 and 2026-10-17): a new destination is a normal user-created Program, not the special default My Program, and Move must not create a duplicate default Program. Canonical identity is `ProgramId` / `is_default`, not a display-name match. Linear TNYX-81 remains the parent Backlog. GitHub #568 / PR #620 already approved and merged the `user_workout_programs.is_default` column; this slice does not change that shape.
 **Approved product/UI/data-shape boundaries:** Disposable SQL regression only. Existing and atomic Move must leave exactly one owner default Program, must insert Create & Move destinations with `is_default = false`, and must not let an authenticated client flip `is_default`.
 **Explicit non-changes:** No production Move release, no `routineMoveReleaseEnabledProvider` change, no client `EXECUTE` grant, no hosted migration or hosted write, no new table/column, no Flutter UI, no real five-second Undo, no duplicate Program creation, no #568 RPC activation.
@@ -21,14 +21,14 @@
 **Ownership transition:** No previous active #569 Implementation owner. Open PRs were 0 and no `issue-569` remote branch existed at `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a` before this branch.
 **Repository state last verified:** `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a`
 **Branch:** `tnyx/issue-569-default-identity-move-regression-fb6f`
-**HEAD SHA:** SQL `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`. Docs handoff parent `397d9f1522b0aa29aada563da2ffa580415ab630` passed exact-head CI. Read CI again on any later head.
+**HEAD SHA:** SQL behavior was reviewed and CI-proven at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` ([Supabase Database CI #39378392950](https://github.com/im-tnyx/tio-world/actions/runs/39378392950) SUCCESS, [Commit attribution guard #39378389864](https://github.com/im-tnyx/tio-world/actions/runs/39378389864) SUCCESS). This P3 follow-up does not store its own commit SHA. Read [PR #626](https://github.com/im-tnyx/tio-world/pull/626) for the latest exact-head runs that cover this docs-and-fixture commit.
 **Observed working-tree state:** Clean `main` at takeover
 **Observed uncommitted/dirty files:** None at takeover
 **PR / tracker:** GitHub #569 Open. Linear TNYX-81 Backlog, blocked by TNYX-78 and TNYX-80 (both In Progress). TNYX-267 Backlog. Prior `.ai/tasks/issue-569-m3*` headers that still say unmerged are historical snapshots; live GitHub merge state wins. Do not bulk-rewrite them in this slice.
-**Current implementation state:** SQL assertions committed at `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`
+**Current implementation state:** Default-identity assertions proven at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. The deleted-source savepoint now moves the canonical default from 011 to 013 before deleting 011.
 **Relevant execution surface:** `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`, `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
-**Validation completed at SHA:** [Supabase Database CI #39378097844](https://github.com/im-tnyx/tio-world/actions/runs/39378097844) SUCCESS and [Commit attribution guard #39378097947](https://github.com/im-tnyx/tio-world/actions/runs/39378097947) SUCCESS at `397d9f1522b0aa29aada563da2ffa580415ab630`.
-**Validation remaining:** Exact-head CI for this CI-evidence commit. Local Supabase CLI was not available.
+**Validation completed at SHA:** [Supabase Database CI #39378392950](https://github.com/im-tnyx/tio-world/actions/runs/39378392950) SUCCESS and [Commit attribution guard #39378389864](https://github.com/im-tnyx/tio-world/actions/runs/39378389864) SUCCESS at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. Independent Security, Engineering Auditor, and QA reviews APPROVE that head with no P1/P2. Local Supabase CLI was not available.
+**Validation remaining:** None recorded here. The P3 fixture follow-up is evidenced by the latest exact-head runs on PR #626.
 **Current blocker:** None for source. Hosted ledger is 65 applied through `20261018100000`; repository migration `20261019162535` (#568) is not hosted. This slice does not deploy it.
 **Open review finding IDs:** None
 **Next exact action:** Independent review of PR #626. Do not merge, grant EXECUTE, or deploy.
@@ -45,7 +45,7 @@ Moving a Routine, including Create & Move into a new Program, does not create or
 - Existing-Program A→B and B→A leave the original default flag on that Program.
 - Atomic Create & Move inserts the new Program with `is_default = false` and does not clear or duplicate the existing default.
 - Idempotent replay and a later ordinary Move keep that same single default.
-- Deleting the old default source in the existing savepoint does not promote the Create & Move destination.
+- The deleted-source savepoint first moves the canonical default from 011 to 013, then deletes 011. Replay does not promote 031. Exactly one default remains, and it is 013.
 
 ### Scope
 
@@ -106,18 +106,22 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 
 - [x] Confirm exclusive ownership
 - [x] Add default-identity assertions to both #569 SQL matrices
-- [x] Record exact-head CI for `397d9f1522b0aa29aada563da2ffa580415ab630`
+- [x] Record exact-head CI for `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`
+- [x] P3: move the default to 013 before deleting source 011
+- [x] P3: relabel post-rollback default checks as sanity checks
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-git diff --check: pass on the staged implementation diff.
-git merge-base --is-ancestor origin/main HEAD: pass at ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c.
+git diff --check: pass on the staged implementation diff at the proven SQL head.
+git merge-base --is-ancestor origin/main HEAD: pass at 6e1d6f7ab45b8e5328132e1fe50185252fe2c94b.
 Local supabase/psql/docker: not installed.
-Supabase Database CI #39378097844 SUCCESS at 397d9f1522b0aa29aada563da2ffa580415ab630.
-Commit attribution guard #39378097947 SUCCESS at the same SHA.
+Supabase Database CI #39378392950 SUCCESS at 6e1d6f7ab45b8e5328132e1fe50185252fe2c94b.
+Commit attribution guard #39378389864 SUCCESS at the same SHA.
+Independent reviews APPROVE that head: Security, Engineering Auditor, QA. No P1/P2.
+This P3 follow-up does not embed its own SHA. PR #626 lists the latest exact-head runs.
 No Flutter files changed, so Flutter CI did not run.
 No hosted SQL executed.
 ```
@@ -126,7 +130,10 @@ No hosted SQL executed.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| SHA/CI | P3 | Corrected | Brief and index cited `ccd96a2f` / `397d9f15` and said head CI was still pending | `6e1d6f7a` | Proven head and runs recorded above. This follow-up points at the PR for its own exact-head runs |
+| Approval | P3 | Corrected | Approval status said Not required | `6e1d6f7a` | Owner-approved test-only scope, Santosh, 2026-10-20 |
+| Deleted source | P3 | Corrected | Savepoint deleted the only default and asserted zero defaults | `6e1d6f7a` | Fixture moves the default 011 → 013 before delete; 031 stays false and 013 is the one default |
+| Sanity labels | P3 | Corrected | Post-`expect_state` default asserts cannot observe a committed rejection | `6e1d6f7a` | Messages and comments now say post-rollback sanity. Asserts kept |
 
 ## 7. Final Handoff
 
@@ -139,11 +146,11 @@ No hosted SQL executed.
 
 ### Actual Behavior
 
-Disposable tests now require one canonical `is_default` Program to survive existing Move, Create & Move, replay, and a later Move. Authenticated clients still cannot write `is_default`. The RPCs themselves are unchanged.
+Disposable tests now require one canonical `is_default` Program to survive existing Move, Create & Move, replay, and a later Move. The deleted-source savepoint moves that default to 013 before deleting 011 and checks that 031 is not promoted. Authenticated clients still cannot write `is_default`. The RPCs themselves are unchanged.
 
 ### Known Limitations
 
-Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Database CI and attribution passed at `397d9f15`; this evidence commit needs its own head check. This handoff is not an independent review.
+Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Database CI and attribution passed at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b`. The P3 fixture follow-up is covered by the latest exact-head runs on PR #626. Prior APPROVE reviews apply to `6e1d6f7a`, not automatically to this follow-up.
 
 ### Final Status
 

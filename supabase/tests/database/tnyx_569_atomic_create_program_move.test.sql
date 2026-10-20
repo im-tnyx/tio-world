@@ -169,12 +169,14 @@ select pg_temp.assert_true(
       and composition_revision=1 from public.user_workout_routines
        where id='b5690000-0000-4000-8000-000000000021'),
   'all failed requests preserve exactly two owner-visible Programs and source Routine');
+-- Post-rollback sanity. pg_temp.expect_state already caught the rejection
+-- inside a subtransaction, so this read cannot see a committed failed write.
 select pg_temp.assert_true(
   (select count(*)=1 from public.user_workout_programs
     where user_id='b5690000-0000-4000-8000-000000000001' and is_default)
   and (select is_default from public.user_workout_programs
     where id='b5690000-0000-4000-8000-000000000011'),
-  'rejected Create & Move leaves the canonical default on the source Program');
+  'post-rollback sanity: rejected Create & Move leaves the canonical default on the source Program');
 
 -- Late atomicity regression: force the Routine UPDATE to fail AFTER the
 -- server has INSERTed the proposed Program in the same statement.
@@ -217,13 +219,14 @@ select pg_temp.assert_true(
      where routine_exercise_id='b5690000-0000-4000-8000-000000000041'
        and id='b5690000-0000-4000-8000-000000000051'),
   'late rejected Move leaves no empty Program and preserves child identities');
+-- Post-rollback sanity. expect_state already rolled the rejected INSERT back.
 select pg_temp.assert_true(
   (select count(*)=1 from public.user_workout_programs
     where user_id='b5690000-0000-4000-8000-000000000001' and is_default)
   and not exists (
     select 1 from public.user_workout_programs
     where id='b5690000-0000-4000-8000-000000000032'),
-  'rolled-back Program INSERT does not create or replace the default');
+  'post-rollback sanity: rolled-back Program INSERT does not create or replace the default');
 
 reset role;
 drop trigger tnyx_569_atomic_late_failure_fixture
@@ -308,10 +311,18 @@ select pg_temp.assert_true(
  'replay proves original Create+Move after user renames destination');
 
 -- Exact committed replay must survive a deleted *old source* Program.
--- It is legal to delete the now-empty source after the Routine moves;
--- this savepoint isolates the case from the subsequent Move regression.
+-- 011 is the canonical default. The privileged fixture moves that default
+-- onto 013 before deleting 011, so this savepoint does not leave the owner
+-- with zero defaults. 031 must not become the default. The savepoint still
+-- isolates the delete from the subsequent Move regression.
 savepoint replay_without_source;
 reset role;
+update public.user_workout_programs
+  set is_default = false
+  where id = 'b5690000-0000-4000-8000-000000000011';
+update public.user_workout_programs
+  set is_default = true
+  where id = 'b5690000-0000-4000-8000-000000000013';
 delete from public.user_workout_programs
 where id='b5690000-0000-4000-8000-000000000011';
 set local role authenticated;
@@ -344,9 +355,11 @@ select pg_temp.assert_true(
          and routine_exercise_id='b5690000-0000-4000-8000-000000000041')
   and (select is_default = false from public.user_workout_programs
        where id='b5690000-0000-4000-8000-000000000031')
-  and (select count(*)=0 from public.user_workout_programs
-       where user_id=auth.uid() and is_default),
-  'source-deleted retry does not promote the new Program to default');
+  and (select count(*)=1 from public.user_workout_programs
+       where user_id=auth.uid() and is_default)
+  and (select is_default from public.user_workout_programs
+       where id='b5690000-0000-4000-8000-000000000013'),
+  'source-deleted retry does not promote 031; the moved default remains 013');
 
 select pg_temp.expect_state(
   $tnyx_deleted_source_retry$select public.create_user_workout_program_and_move_routine(
