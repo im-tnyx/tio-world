@@ -11,6 +11,26 @@ The #626 brief and README row historically said not to bulk-rewrite older #569 r
 **Primary owner:** Documentation handoff for GitHub #569.
 **Affected platforms:** `.ai/tasks` and `.ai/archive` only.
 
+## 2026-10-21 remote-only release-readiness recheck (current checkpoint)
+
+**Scope/ownership:** Documentation and gate-evidence continuation of approved GitHub #569 Move Routine, not a new Move/Undo product implementation. GitHub #569 / Linear TNYX-81 own planning. This GitHub-connected session owns only this handoff and its task-index row. No ownership transfer of Flutter source, database migrations, or the owner's Windows checkout is claimed. Independent review is pending.
+
+**Verified GitHub/Linear:** Protected `main@da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79` contains merged [PR #640](https://github.com/im-tnyx/tio-world/pull/640). [#569](https://github.com/im-tnyx/tio-world/issues/569) and [#568](https://github.com/im-tnyx/tio-world/issues/568) remain open; [TNYX-81](https://linear.app/tnyx/issue/TNYX-81) is Backlog and blocked by TNYX-78/TNYX-80. Move's UNKNOWN feedback regression [#616](https://github.com/im-tnyx/tio-world/pull/616) and default identity SQL regression [#626](https://github.com/im-tnyx/tio-world/pull/626) merged. Upstream #568 adapter [#637](https://github.com/im-tnyx/tio-world/pull/637), default Program identity [#638](https://github.com/im-tnyx/tio-world/pull/638), positive read-back predicate [#639](https://github.com/im-tnyx/tio-world/pull/639), and 66/66 inventory [#640](https://github.com/im-tnyx/tio-world/pull/640) merged. Older In Review rows in task briefs are historical checkpoints, not current PR state. No open Move-specific PR was found.
+
+**Verified hosted read-only:** Connected Tio-world Supabase project `oykupyiitspujzpwwvuj` reports **66 applied migrations**, including `20261017100000` Move, `20261017154241` Rename cutoff, `20261018100000` atomic Create+Move, and `20261019162535` W1 default Program. Program and Routine tables both have RLS enabled; direct authenticated Routine `UPDATE(program_id)` remains denied in the prior privilege audit. All three `public` RPCs (`move_user_workout_routine`, `create_user_workout_program_and_move_routine`, `create_user_workout_routine_in_my_program`) report `EXECUTE=false` for `anon`, `authenticated`, and `service_role`. This **supersedes the historical 65/66 / absent-default-marker state in older 2026-10-20 sections below**. Do not reapply the already deployed W1 migration.
+
+**Verified app hold:** `apps/app/lib/app/composition/workout_providers.dart` defines `routineMoveReleaseEnabledProvider = Provider<bool>((ref) => false)`. `TIO_MOVE_ROUTINE_UI_PREVIEW` is a debug-only zero-write capability. Dormant RPC deployment and merged implementation do not constitute production Move release.
+
+### Remaining gates before any real Move release
+
+1. **Security and owner approval:** independently review a separately scoped exact `GRANT EXECUTE` migration, server-side ownership/CAS/idempotency, legacy-client compatibility, security findings, and a rollback plan. Do not grant permissions under this docs-only task.
+2. **Implementation / QA:** reconcile W1/W3 dependencies and the pending #568 first-Routine client/UNKNOWN path; validate the actual activation build with current-head CI, independent review, server/Flutter race cases, and Android/iOS physical-device real-write QA. The dormant test matrix does **not** establish successful real hosted moves.
+3. **Product decision:** five-second real post-commit `Undo` is requested but remains unimplemented; preview Undo only dismisses a no-write pill. The owner must explicitly decide whether an independently approved real Move release can precede Undo. This audit does not approve Undo implementation.
+
+**Remote validation boundary:** This connector cannot inspect `G:\projects\Tio-World`, claim a local `git diff --check`, run Flutter/Dart on the owner's PC, or claim physical QA. Current `main@da3a94ce` returned no commit check-runs via the inspected endpoint; earlier successful `main@9e1b96f4` Flutter CI is not exact-current-main proof. Validate branch scope, exact PR-head GitHub CI and independent reviewer disposition after pushing. No hosted writes, grants, migrations, flags, user data, Workout source, UI, or Undo were changed.
+
+**Next exact action:** Independent scope/evidence review of this documentation PR. A subsequent #568 implementation, #569 activation, or Undo slice needs its own explicit ownership and release gate; this documentation merge must never enable Move.
+
 ## Evidence used
 
 - Base `main` at reconcile start: `59155cc7db7e29eab7d601e8a22e6d337fdd824a`.
