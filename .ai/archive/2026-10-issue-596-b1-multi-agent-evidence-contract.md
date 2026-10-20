@@ -21,7 +21,9 @@
 **Approved product/UI/data-shape boundaries:** None.
 **Explicit non-changes:** No app/watch/UI, Auth/health data, Supabase schema/RLS/functions, CI workflow, branch protection, attribution guard, credentials, product architecture, new governance framework, #250/#571/#580 scope, or merge.
 
-## Active Handoff
+## Historical Active Handoff — Pre-Merge Snapshot (superseded 2026-10-20)
+
+> **Historical evidence only.** The ownership, branch/HEAD, validation, blocker, and `Open` finding statements in this section describe the execution state **before PR #631 merged**. They do not describe the current B1 state. For the verified result, use the **Post-Merge Validated Outcome** above and the live [merged PR #631](https://github.com/im-tnyx/tio-world/pull/631).
 
 **Planning owner:** GitHub #596 [Slice A baseline](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6286554549).
 **Implementation owner:** B1 GitHub connector edit session, resumed under the owner's next `Go` for one bounded review-provenance correction. No concurrently editing implementation owner was observed in live PR history; local Windows worktrees were not inspected.
@@ -135,7 +137,9 @@ Unavailable independent review or runner must be recorded, not fabricated. Exist
 **Independent review?** `im-tio` is a distinct GitHub reviewer account and submitted an exact-`92408d44` `COMMENT` (separate review, not `APPROVED`); author-side `im-tnyx` reviews are **self-review**. Cursor checks are supplemental and passing checks do not imply formal approval.
 **Limitations and unmet required gates:** Owner's exact-head local `git diff --check` **PASSED** at `92408d44`, but this task-brief-only correction advances HEAD and needs a new docs check. Required check/review-thread disposition must be verified again; Codex quota failure is not an approval. Owner must separately authorize any merge.
 
-### Review Findings and Resolution
+### Historical Review Findings and Resolution — Pre-Merge Snapshot (superseded 2026-10-20)
+
+> Findings shown as `Open` below are **as-recorded historical review statuses**, not live unresolved PR threads. At the completed B1 gate, GitHub confirmed 9/9 review threads resolved; refer to the post-merge outcome and live PR #631.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
