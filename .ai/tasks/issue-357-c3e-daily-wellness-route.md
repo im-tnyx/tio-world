@@ -1,6 +1,6 @@
 # GitHub #357 — C3e Daily Wellness route owner extraction
 
-**Status:** In progress
+**Status:** In progress — source validated at reviewed HEAD, PR Draft pending final documentation-head checks/review
 **Primary owner:** `apps/app` route and provider composition; `apps/features/settings` route-state presentation
 **Affected platforms:** Flutter Android/iOS phone only
 
@@ -13,22 +13,22 @@
 ## Active Handoff
 **Planning owner:** ChatGPT architecture workflow
 **Implementation owner:** ChatGPT — sole source implementation owner for C3e
-**Review owner:** Codex / GitHub review (plus explicitly labeled manual implementation-owner audit)
-**Implementation ownership state:** Active
+**Review owner:** Codex attempted but quota-limited before analysis (not a clean code review); implementation owner performs transparent manual code audit and hosted CI provides execution evidence. Independent review is not claimed.
+**Implementation ownership state:** Handoff pending — implementation source complete, awaiting final review gate.
 **Ownership transition:** Not applicable
 **Repository state last verified:** remote protected `main@3fe7be42c0292f05659cfc2817589c408101df27` on 2026-10-20; zero open GitHub PRs at branch creation.
 **Branch:** `tnyx/issue-357-c3e-daily-wellness-route-extract`
-**HEAD SHA:** `3fe7be42c0292f05659cfc2817589c408101df27` at branch creation; read live PR HEAD for subsequent changes.
+**HEAD SHA:** Source implementation reviewed/CI-validated at `b747d87ae9806f7316993ceaf1b154fb1dfbcf93`, base `main@3fe7be42c0292f05659cfc2817589c408101df27`. This handoff-only update creates a newer HEAD; use [PR #624](https://github.com/im-tnyx/tio-world/pull/624) for final latest-head checks and review. Do not mistake the validated source SHA for the newer docs-only SHA.
 **Observed working-tree state:** Connector-only execution; owner Windows checkout/git status cannot be inspected. Branch created from verified remote SHA; no local working tree was modified.
 **Observed uncommitted/dirty files:** Not observable locally; no unrelated GitHub PRs open at branch creation.
 **PR / tracker:** GitHub #357 child of #260, Linear TNYX-201 In Progress; TNYX-154 contract-only child #514 completed/archived; TNYX-155 separately Backlog.
 **Current implementation state:** Source extraction and focused destination/identity regression test committed. Root `router.dart` delegates Daily Wellness at its old position to `buildDailyWellnessRoutes`. App watches Wellness/Hydration/Profile/Auth, retains independent callbacks and identity; Settings owns unchanged loading/error Scaffolds plus original editor child. No existing editor code changed. GitHub compare to verified base: 6 commits ahead, 0 behind, six intended paths. Root router now 612 lines (740 prior).
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/daily_wellness_routes.dart`, `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_destination.dart`, Settings presentation barrel, focused `apps/app/test/app/daily_wellness_route_test.dart`.
-**Validation completed at SHA:** Static source/ownership equivalence audit at code head `a35cdd6e634d87ce3d14febe9a99df6f5e181ba8`: single GoRouter/registration; identical path/parent/order, user-scoped key, Wellness/Hydration split retry/save/invalidation, route UI copy; 6 changed paths and branch merge-base matching `main@3fe7be42c0292f05659cfc2817589c408101df27`. Hosted Flutter compilation/tests **not yet run**.
-**Validation remaining:** Hosted exact-head Flutter/Dart analyze/test shards, attribution, review findings and ancestry/scope; local Flutter/`git diff --check` and visual screenshot test not observed.
-**Current blocker:** No source blocker identified; hosted Flutter/Dart CI, attribution checks, and independent review remain to run.
+**Validation completed at SHA:** Reviewed source HEAD `b747d87ae9806f7316993ceaf1b154fb1dfbcf93`: [Flutter CI #39368940553](https://github.com/im-tnyx/tio-world/actions/runs/39368940553) SUCCESS **7/7**, including full Flutter/Dart analyze/test aggregate, three Flutter test shards and both attribution checks. Static source/ownership parity checked: single GoRouter/registration, identical route path/parent/order, user-scoped key, distinct Wellness/Hydration retry/write/invalidation, unchanged route error/loading copy. Final documentation-head CI must be verified separately.
+**Validation remaining:** Verify CI/attribution and 0 unresolved review threads at **latest PR HEAD after this documentation-only update**; check branch ancestry and exact 6-path scope. Codex review is quota-limited (no automated approval). Local Flutter/`git diff --check` and visual screenshot test not observed.
+**Current blocker:** No source defect found in self-audit and reviewed source-head hosted CI passed; Codex code review quota blocked meaningful independent automated analysis (not a finding or clean review). Ready depends on new documentation-head CI, scopes and threads.
 **Open review finding IDs:** None at creation.
-**Next exact action:** Open bounded Draft PR, run exact-head hosted Flutter CI and review; correct any P1/P2/P3 finding, revalidate and move to Ready for Review only when gates pass. Do not merge.
+**Next exact action:** Recheck [PR #624](https://github.com/im-tnyx/tio-world/pull/624) after this docs-only update, verify exact-head checks and resolved threads, note independent Codex limitation honestly, record ready gate in PR body, and transition to Ready only if clean. No merge.
 
 ## Global UI / Design-System Guardrail
 Read root `AGENTS.md`, `apps/features/AGENTS.md`, `apps/core/lib/src/theme/README.md`, and `.ai/tasks/design-system-token-consolidation.md`; preserve exact original Daily Wellness Scaffold, TioAppBar, BackButton, typography, spacing, retry copy, and user-scoped editor key. No new token/component or visual normalization.
@@ -73,11 +73,11 @@ No Daily Wellness editor rewrite, Hydration storage migration, Auth session rede
 6. Stop at Ready for Review only after applicable gates are clean; merge needs a separate owner instruction.
 
 ## 6. Quality Review
-**Validation Run:** Hosted Flutter/Dart CI not yet run at this handoff checkpoint. GitHub API diff/ancestry source audit PASS at `a35cdd6e634d87ce3d14febe9a99df6f5e181ba8`; local Windows Flutter/`git diff --check` and screenshot parity not observed.
-**Review Findings and Resolution:** Pending.
+**Validation Run:** [Flutter CI #39368940553](https://github.com/im-tnyx/tio-world/actions/runs/39368940553) SUCCESS at reviewed source HEAD `b747d87ae9806f7316993ceaf1b154fb1dfbcf93`: full analyze/test aggregate, Dart/Flutter analysis and tests, core-wear/app-workout/nutrition-onboarding shards, and 2 attribution guards (7/7). Focused route tests are included in app-workout shard. New docs-only HEAD checks pending. GitHub API compare/patch source audit PASS, not a local `git diff --check`.
+**Review Findings and Resolution:** Codex request in PR #624 received quota-limit notice before code analysis; no Codex clean review, no concrete P1/P2/P3 bot code finding. Manual implementation-owner static route/UI parity review found no blocker; **not independent GitHub APPROVED**. Any new exact-head findings must be dispositioned before Ready.
 
 ## 7. Final Handoff
 **Changed Files:** `.ai/tasks/issue-357-c3e-daily-wellness-route.md`; `apps/app/lib/app/router.dart`; `apps/app/lib/app/routing/routes/daily_wellness_routes.dart`; `apps/app/test/app/daily_wellness_route_test.dart`; `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_destination.dart`; `apps/features/settings/lib/src/presentation/presentation.dart`.
-**Actual Behavior:** Static comparison supports equivalent provider/route behavior and UI copy; execution evidence pending hosted CI; no rendered screenshot parity has been performed.
+**Actual Behavior:** Static comparison supports route/UI parity; hosted Flutter CI 7/7 passed at reviewed source HEAD, including focused route regression coverage. No independent screenshot parity or local device execution was performed.
 **Known Limitations:** Connector-only execution cannot observe local Windows git, Flutter or rendered screenshots.
-**Final Status:** SOURCE PREPARED — awaiting hosted CI/review; no merge.
+**Final Status:** SOURCE CI VALIDATED — pending docs-only exact-head gate and Ready transition. Not merged.
