@@ -4,9 +4,10 @@
 
 ## PR #626 approval
 
-Owner (Santosh) approved [PR #626](https://github.com/im-tnyx/tio-world/pull/626)’s test-only scope on 2026-10-20. That approval is now in `.ai/tasks/issue-569-default-identity-move-regression.md` on that branch (`Approval status: Owner-approved test-only scope. Santosh, 2026-10-20`). The reviewed head `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` was APPROVE with no P1/P2. P3 fixture follow-up head is `56029459dfafe3038a0a7441a179a9415986a811`. This docs branch does not edit that PR. Do not open a new slice without explicit owner approval.
+Owner (Santosh) approved [PR #626](https://github.com/im-tnyx/tio-world/pull/626)’s test-only scope on 2026-10-20. That approval is chat-only. It is recorded in the #626 brief and is not recorded on GitHub #569. Chat-only bot audit verdicts from Security #05, Engineering Auditor #01, and QA #04 APPROVE at `6e1d6f7ab45b8e5328132e1fe50185252fe2c94b` and at `56029459dfafe3038a0a7441a179a9415986a811`. Those verdicts are not GitHub reviews. GitHub shows 0 formal reviews. Current proof is the latest #626 head. This docs branch does not edit that PR. Do not open a new slice without explicit owner approval.
 
-The #626 brief and README row still say not to bulk-rewrite older #569 rows. That instruction applies to the #626 test slice. Option C, approved separately, is the archive recorded below. The #626 README row text is copied unchanged into this branch’s task index so either PR can merge first without a README conflict.
+The #626 brief and README row still say not to bulk-rewrite older #569 rows. That instruction applies to the #626 test slice. Option C, approved separately, is the archive recorded below. The #626 README row text is copied byte-identical from the latest #626 head into this branch’s task index so either PR can merge first without a README conflict.
+
 **Primary owner:** Documentation handoff for GitHub #569.
 **Affected platforms:** `.ai/tasks` and `.ai/archive` only.
 
