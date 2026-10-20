@@ -72,6 +72,8 @@ For substantive changes, link each applicable acceptance criterion to the change
 | `PARTIAL` | Only a documented subset is verified, or meaningful applicable validation could not run and residual risk remains; list incomplete criteria and the next action. Do not use `PARTIAL` to hide a failed required merge check. |
 | `BLOCKED` | A known failed required check, inability to obtain required validation, unresolved blocking finding, owner/ownership ambiguity or denied required approval prevents safe continuation or merge. Record the blocker and who can resolve it. A still-running required check remains a pending merge gate, not a claimed failure. |
 
+If several statuses apply, report the **most restrictive**: `BLOCKED` > `PARTIAL` > `REVIEW` > `PASS`, and list the remaining open conditions. In particular, a required validation that cannot be run is `BLOCKED` for completion/merge even when a PR is available for review; an in-progress required check without a failure is `REVIEW` only when no more restrictive condition applies. Do not downgrade an outstanding required gate to `PARTIAL` just because other criteria passed.
+
 These are final **handoff outcomes**, distinct from the task-lifecycle values in [tasks/README.md](tasks/README.md) and GitHub review states. Required-vs-supplemental security checks and infrastructure-failure-vs-concrete-finding decisions retain the existing `AGENTS.md` and `.github/PUSH_TEMPLATE.md` rules. A documented tool limitation never overrides branch protection or owner-only merge authorization.
 
 ## Required Gates
@@ -82,7 +84,7 @@ These are final **handoff outcomes**, distinct from the task-lifecycle values in
 | Make a product-visible UI/UX change | The visible change is included in the owner-approved task scope or has later explicit approval. |
 | Change a Supabase table/column shape | The exact table/column change and its data-model and compatibility impact are explained and approved. |
 | Continue normal implementation | The work is necessary for the approved outcome and remains within its scope and non-goals; no separate Owner Approval is required. |
-| Claim completion | Applicable validation has run, or the exact limitation is recorded. |
+| Claim completion as `PASS` | Satisfy the [Final Status Decision Rule](#final-status-decision-rule), including actually completed applicable required validation; when that validation cannot run, record the limitation and report `REVIEW`, `PARTIAL`, or `BLOCKED` as appropriate instead of claiming completion. |
 | Archive a task | It is validated or superseded, and durable decisions/status are reflected in canonical docs. |
 
 ## Agent Roles
