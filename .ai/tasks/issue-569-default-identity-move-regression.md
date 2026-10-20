@@ -21,11 +21,11 @@
 **Ownership transition:** No previous active #569 Implementation owner. Open PRs were 0 and no `issue-569` remote branch existed at `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a` before this branch.
 **Repository state last verified:** `main@59155cc7db7e29eab7d601e8a22e6d337fdd824a`
 **Branch:** `tnyx/issue-569-default-identity-move-regression-fb6f`
-**HEAD SHA:** Pending commit
+**HEAD SHA:** Implementation `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`. A later handoff-only commit may be the PR head; read CI on that exact head.
 **Observed working-tree state:** Clean `main` at takeover
 **Observed uncommitted/dirty files:** None at takeover
 **PR / tracker:** GitHub #569 Open. Linear TNYX-81 Backlog, blocked by TNYX-78 and TNYX-80 (both In Progress). TNYX-267 Backlog. Prior `.ai/tasks/issue-569-m3*` headers that still say unmerged are historical snapshots; live GitHub merge state wins. Do not bulk-rewrite them in this slice.
-**Current implementation state:** Test assertions not yet committed
+**Current implementation state:** SQL assertions committed at `ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c`
 **Relevant execution surface:** `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`, `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
 **Validation completed at SHA:** Not yet
 **Validation remaining:** Disposable DB CI on the PR head. Local Supabase CLI was not available in this environment.
@@ -105,15 +105,19 @@ Not a UI slice. Failed Move requests must leave the single default unchanged.
 ## 5. Implementation Plan
 
 - [x] Confirm exclusive ownership
-- [ ] Add default-identity assertions to both #569 SQL matrices
-- [ ] Record validation and PR head
+- [x] Add default-identity assertions to both #569 SQL matrices
+- [ ] Record exact-head CI after the PR is open
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+git diff --check: pass on the staged implementation diff.
+git merge-base --is-ancestor origin/main HEAD: pass at ccd96a2ff6e388143c6212fdb5dc688db2a0bf9c.
+Local supabase/psql/docker: not installed. Disposable DB CI is the required check and has not run yet.
+No Flutter tests: no Dart/UI files changed.
+No hosted SQL executed.
 ```
 
 ### Review Findings and Resolution
@@ -126,15 +130,18 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+- `supabase/tests/database/tnyx_569_existing_program_routine_move.test.sql`
+- `supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql`
+- `.ai/tasks/issue-569-default-identity-move-regression.md`
+- `.ai/tasks/README.md`
 
 ### Actual Behavior
 
-Pending.
+Disposable tests now require one canonical `is_default` Program to survive existing Move, Create & Move, replay, and a later Move. Authenticated clients still cannot write `is_default`. The RPCs themselves are unchanged.
 
 ### Known Limitations
 
-Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF.
+Local Supabase runner was unavailable. Hosted #568 migration remains unapplied. Production Move stays OFF. Exact-head CI is not yet recorded. This handoff is not an independent review.
 
 ### Final Status
 
