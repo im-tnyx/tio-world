@@ -1,6 +1,6 @@
 # GitHub #568 — W1 My Program Identity and Atomic First Routine Create
 
-**Status:** In progress
+**Status:** Source merged 2026-10-19; hosted preflight pending; production Move OFF (2026-10-20 read)
 **Primary owner:** W1 / Supabase-Postgres
 **Affected platforms:** Supabase Database, CI
 
@@ -136,3 +136,20 @@ A first-time user entering the direct Library "Create Routine" flow without an e
 - `.github/workflows/supabase-db-ci.yml`
 - `.ai/tasks/issue-568-w1-my-program-atomic-default-create.md`
 - `.ai/tasks/README.md`
+
+
+## Post-merge source and hosted preflight (2026-10-20)
+
+**Fresh base:** protected `main@6810ce2f199db61022cfc12590b67e3022ea81e0`, read via GitHub; this docs-only reconciliation is not a new schema/Flutter slice.
+**Source evidence:** [PR #620](https://github.com/im-tnyx/tio-world/pull/620) merged on 2026-10-19 as `4d7e7986fb93b0aae14c38f2b9c236585eac61bf`. Exact PR source HEAD `f5b77383b51eec24f874d70a6ad171a7cdf1bd2e`: [Supabase Database CI #39292962703](https://github.com/im-tnyx/tio-world/actions/runs/39292962703) completed SUCCESS. GitHub reports zero formal review submissions and zero inline review threads for PR #620; do not infer independent GitHub approval from CI or older chat audits.
+**Current repository/hosted delta:** `main` has 66 SQL migrations; connected Tio-tnyx hosted Postgres has 65 applied through `20261018100000`. Source-only `20261019162535_w1_my_program_atomic_default_create.sql` remains NOT applied. Live `public.user_workout_programs.is_default` is absent and `public.create_user_workout_routine_in_my_program` is absent. Live existing Move and atomic Create & Move RPCs exist as `SECURITY DEFINER`, but `anon`, `authenticated`, and `service_role` have `EXECUTE=false` on both. Read-only verification; no mutation, grant, flag change, or client rollout.
+**Truth reconciliation:** The earlier "Implementation Plan", "Active Handoff", and "Quality Review" entries above refer to the historical implementation PR before merge. The dated post-merge record here wins for merge/deployment state. GitHub #568 and #569 stay OPEN; Linear TNYX-78 remains In Progress and TNYX-81 Backlog (blocked by TNYX-78 and TNYX-80).
+
+### Next safe gate, still not a deployment authorization
+
+1. Owner's Windows checkout: read-only `git status -sb`, `git fetch origin --prune`, `git rev-parse origin/main`, official CLI `--version` / `db push --help`, `migration list --linked`, and **only if its help supports it** `db push --dry-run --linked`. Verify linked project ref `oykupyiitspujzpwwvuj` without sharing tokens/credentials. Do not reset, checkout over dirty worktrees, run live SQL fixtures, or issue `db push` without `--dry-run`.
+2. Independently review the exact source-only #568 migration for legacy `INSERT(id,user_id,name)` compatibility, row/column ACLs, `SECURITY DEFINER` auth ownership, `is_default` uniqueness, first-Create rollback, two-device races, old app clients, and account-delete lock-order safety. Correlate with the successful disposable CI and existing security/performance advisories, which are not all fixed by this slice.
+3. Separately authorize any hosted migration apply **only after** clean preflight and owner deployment approval. Verify ledger, column/index/default constraint, disabled new RPC grant, preserved Program operations, and post-apply advisors. Even a successful dormant #568 deployment must **not** enable `#569` Move or real five-second Undo.
+4. Move release remains an independent future review gate for two Move RPC `EXECUTE` grants, Flutter release-provider change, physical Android/iOS end-to-end writes, and Undo contract. Keep `routineMoveReleaseEnabledProvider` false until these independent gates pass.
+
+**Scope of this reconciliation:** update the existing task brief and task-index row only. No schema source or migrations changed, no hosted deploy, no `EXECUTE`, no issue completion, no new design, and no claim of local Windows verification.
