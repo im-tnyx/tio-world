@@ -55,6 +55,8 @@ Implement the smallest complete vertical slice. Keep the task brief's approved s
 
 Run the smallest meaningful checks. Review the diff for module-boundary violations, secrets, accessibility, empty/loading/error states, offline behavior where applicable, and platform-specific constraints. Record failed or unavailable validation honestly.
 
+Select change-class-specific coverage using the canonical [risk-based regression matrix](../docs/development/TESTING_GUIDE.md#risk-based-regression-selection); it guides applicable evidence without introducing blanket new CI gates or replacing the security-sensitive rules in `AGENTS.md`.
+
 Independent review is preferred for substantive changes when available, but this is a **role separation**, not a mandated number, order, vendor, or model of agents. A reviewer who also implemented the reviewed changes performs **self-review**, not independent review. Record the review source (GitHub, linked external tool, manual, or chat-only), reviewed diff/commit SHA, reviewer relationship to the implementation, findings/dispositions, and what could not be reviewed. A Grok, Codex, Cursor, or other agent assessment is evidence to verify, not automatically a formal GitHub `APPROVED` review or passing CI. A failed/limited review service is not a clean review; honor any actually required independent-review or merge-policy gate.
 
 ### 7. Final Handoff

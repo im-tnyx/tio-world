@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+GitHub [#596](https://github.com/im-tnyx/tio-world/issues/596) Slice C1 risk-based regression and review policy is [in progress](issue-596-c1-risk-regression-policy.md) on `docs/issue-596-c1-risk-regression-policy`; no runtime/CI changes and no claim of exact-head docs validation or independent review yet. Parent #596 remains OPEN.
+
 Validated #596 B1 multi-agent evidence-contract handoff is [archived](../archive/2026-10-issue-596-b1-multi-agent-evidence-contract.md) after [PR #631](https://github.com/im-tnyx/tio-world/pull/631) squash-merged at `main@6000fe818dcf4a886a598a5e5655430d7bb74c8f`, exact-head docs check exit `0`, required attribution and supplemental Cursor checks PASS, and 9/9 review threads resolved. A separate `im-tio` GitHub review was `COMMENTED`, **not** `APPROVED`; parent [#596](https://github.com/im-tnyx/tio-world/issues/596) stays OPEN. Archive records the earlier `BLOCKED` text as a historical pre-merge snapshot, not a current B1 blocker.
 
 Validated pre-P9 #563/#582 handoffs are in the [archive](../archive/README.md); current source and live GitHub/Linear trackers govern remaining #250 acceptance and any P9 decision.
