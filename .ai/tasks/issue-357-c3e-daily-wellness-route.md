@@ -22,13 +22,13 @@
 **Observed working-tree state:** Connector-only execution; owner Windows checkout/git status cannot be inspected. Branch created from verified remote SHA; no local working tree was modified.
 **Observed uncommitted/dirty files:** Not observable locally; no unrelated GitHub PRs open at branch creation.
 **PR / tracker:** GitHub #357 child of #260, Linear TNYX-201 In Progress; TNYX-154 contract-only child #514 completed/archived; TNYX-155 separately Backlog.
-**Current implementation state:** Read-only source/ownership audit complete; coding unstarted when brief written.
+**Current implementation state:** Source extraction and focused destination/identity regression test committed. Root `router.dart` delegates Daily Wellness at its old position to `buildDailyWellnessRoutes`. App watches Wellness/Hydration/Profile/Auth, retains independent callbacks and identity; Settings owns unchanged loading/error Scaffolds plus original editor child. No existing editor code changed. GitHub compare to verified base: 6 commits ahead, 0 behind, six intended paths. Root router now 612 lines (740 prior).
 **Relevant execution surface:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/daily_wellness_routes.dart`, `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_destination.dart`, Settings presentation barrel, focused `apps/app/test/app/daily_wellness_route_test.dart`.
-**Validation completed at SHA:** None yet for implementation. Existing source/main contains established focused route and page tests.
+**Validation completed at SHA:** Static source/ownership equivalence audit at code head `a35cdd6e634d87ce3d14febe9a99df6f5e181ba8`: single GoRouter/registration; identical path/parent/order, user-scoped key, Wellness/Hydration split retry/save/invalidation, route UI copy; 6 changed paths and branch merge-base matching `main@3fe7be42c0292f05659cfc2817589c408101df27`. Hosted Flutter compilation/tests **not yet run**.
 **Validation remaining:** Hosted exact-head Flutter/Dart analyze/test shards, attribution, review findings and ancestry/scope; local Flutter/`git diff --check` and visual screenshot test not observed.
-**Current blocker:** None identified during source audit; gates pending.
+**Current blocker:** No source blocker identified; hosted Flutter/Dart CI, attribution checks, and independent review remain to run.
 **Open review finding IDs:** None at creation.
-**Next exact action:** Preserve exact original loading/error UI while extracting provider wiring and callbacks; run hosted CI, review and gate. Do not merge.
+**Next exact action:** Open bounded Draft PR, run exact-head hosted Flutter CI and review; correct any P1/P2/P3 finding, revalidate and move to Ready for Review only when gates pass. Do not merge.
 
 ## Global UI / Design-System Guardrail
 Read root `AGENTS.md`, `apps/features/AGENTS.md`, `apps/core/lib/src/theme/README.md`, and `.ai/tasks/design-system-token-consolidation.md`; preserve exact original Daily Wellness Scaffold, TioAppBar, BackButton, typography, spacing, retry copy, and user-scoped editor key. No new token/component or visual normalization.
@@ -73,11 +73,11 @@ No Daily Wellness editor rewrite, Hydration storage migration, Auth session rede
 6. Stop at Ready for Review only after applicable gates are clean; merge needs a separate owner instruction.
 
 ## 6. Quality Review
-**Validation Run:** Pending.
+**Validation Run:** Hosted Flutter/Dart CI not yet run at this handoff checkpoint. GitHub API diff/ancestry source audit PASS at `a35cdd6e634d87ce3d14febe9a99df6f5e181ba8`; local Windows Flutter/`git diff --check` and screenshot parity not observed.
 **Review Findings and Resolution:** Pending.
 
 ## 7. Final Handoff
-**Changed Files:** Pending.
-**Actual Behavior:** Expected behavior preservation; not yet runtime-verified.
+**Changed Files:** `.ai/tasks/issue-357-c3e-daily-wellness-route.md`; `apps/app/lib/app/router.dart`; `apps/app/lib/app/routing/routes/daily_wellness_routes.dart`; `apps/app/test/app/daily_wellness_route_test.dart`; `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_destination.dart`; `apps/features/settings/lib/src/presentation/presentation.dart`.
+**Actual Behavior:** Static comparison supports equivalent provider/route behavior and UI copy; execution evidence pending hosted CI; no rendered screenshot parity has been performed.
 **Known Limitations:** Connector-only execution cannot observe local Windows git, Flutter or rendered screenshots.
-**Final Status:** IN PROGRESS — not merged.
+**Final Status:** SOURCE PREPARED — awaiting hosted CI/review; no merge.
