@@ -17,21 +17,21 @@
 **Planning owner:** GitHub #596 [Slice A baseline](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6286554549).
 **Implementation owner:** This bounded B1 GitHub connector edit session; only one active source writer for this slice.
 **Review owner:** Not assigned. Independent review pending; author self-audit must not be labeled independent.
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending (docs edits complete; no additional source writer authorized without refreshed ownership check)
 **Ownership transition:** Not applicable (new B1 slice).
 **Repository state last verified:** 2026-10-20, remote `main@08757a899ed6ecd7f72e8aa358f6475bf9cd1a3d`.
 **Branch:** `docs/issue-596-b1-quality-contract`.
-**HEAD SHA:** Initial branch base `08757a899ed6ecd7f72e8aa358f6475bf9cd1a3d`; re-check latest head before review.
+**HEAD SHA:** Docs/process content last changed at `ca1c541b865c18867db74fc903eff34f229ed6b4`; subsequent handoff-only commit must be verified as the live PR head.
 **Observed working-tree state:** GitHub API editing only. Remote branch based on verified main; local Windows checkout not accessible.
 **Observed uncommitted/dirty files:** Unknown in user's local checkout; no cleanliness claim.
 **PR / tracker:** GitHub #596; no dedicated Linear counterpart positively identified. TNYX-193 tracks separate #250.
-**Current implementation state:** Audit completed; focused documentation clarifications in progress.
+**Current implementation state:** Focused documentation edits complete; GitHub PR review and required checks remain.
 **Relevant execution surface:** `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.ai/tasks/README.md`, `.github/PULL_REQUEST_TEMPLATE.md`, this brief and focused task-index entry.
-**Validation completed at SHA:** Not yet.
-**Validation remaining:** Exact branch changed-file/scope and diff/whitespace checks, review findings disposition, required checks.
-**Current blocker:** None for docs authoring; local `git diff --check` unavailable without mounted checkout.
+**Validation completed at SHA:** GitHub API-equivalent source/scope validation at `ca1c541b865c18867db74fc903eff34f229ed6b4`: base ancestor / 7 ahead / 0 behind; exactly five expected paths; complete changed-file scan found no trailing whitespace, missing final newlines, or merge-conflict markers; new relative links verified against checked repo paths; all four final status rules present. This is **not** local `git diff --check` or a completed independent review.
+**Validation remaining:** Run actual `git diff --check origin/main...HEAD` from a checkout when available; review exact final PR head, disposition findings, verify required GitHub checks. Source inspection/API-equivalent whitespace check is not the required local command.
+**Current blocker:** Local `git diff --check` is unavailable on this connector-only execution surface; no local repository is mounted. This is a disclosed review/validation limitation, not permission to waive a required merge gate.
 **Open review finding IDs:** G596-A01 through A04 and A02/A03 clarify via this slice; remaining A05–A08 outside scope.
-**Next exact action:** Complete the narrow documentation edits, inspect final diff, open a PR for review; **do not merge**.
+**Next exact action:** Open a narrowly scoped PR from this branch to `main`, independently review its exact head and run the remaining docs-only validation from an available checkout; **do not merge**.
 
 ## 1. Discovery
 
@@ -93,17 +93,19 @@ Unavailable independent review or runner must be recorded, not fabricated. Exist
 
 ## 5. Implementation Plan
 
-- [ ] Clarify canonical review and final status conditions.
-- [ ] Add compact acceptance-to-proof and reviewer provenance fields.
-- [ ] Resolve task handoff precedence shortcut.
-- [ ] Add PR evidence cues.
-- [ ] Exact-head validation and independent review/limitations.
+- [x] Clarify canonical review and final status conditions.
+- [x] Add compact acceptance-to-proof and reviewer provenance fields.
+- [x] Resolve task handoff precedence shortcut.
+- [x] Add PR evidence cues.
+- [ ] Local docs `git diff --check`, exact final-head independent review, and GitHub required checks.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-`Not run yet.`
+- GitHub read-only/API comparisons and complete changed-file hygiene inspection at `ca1c541b`: PASS, five owned paths, no observed trailing whitespace/conflict markers, expected new links/statuses present.
+- **Not run:** local `git diff --check` (checkout unavailable). No Flutter/DB tests applicable to these docs-only changes.
+- **Review:** author-side limited source inspection only; independent review and final PR exact-head check outstanding.
 
 ### Review Findings and Resolution
 
@@ -115,7 +117,7 @@ Unavailable independent review or runner must be recorded, not fabricated. Exist
 
 ### Changed Files
 
-Pending exact-head changed-file audit.
+`.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`, `.ai/tasks/README.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.ai/tasks/issue-596-b1-multi-agent-evidence-contract.md` (five paths; no runtime/CI/protection files).
 
 ### Actual Behavior
 
@@ -123,7 +125,7 @@ Docs/process only; no runtime behavior changed.
 
 ### Known Limitations
 
-Local Windows worktree unavailable from this GitHub API surface. Independent review not yet provided.
+Local Windows worktree unavailable from this GitHub API surface, so `git status` and actual `git diff --check` are unverified locally. No independent review, current-HEAD required-check pass or merge authorization is claimed.
 
 ### Final Status
 
