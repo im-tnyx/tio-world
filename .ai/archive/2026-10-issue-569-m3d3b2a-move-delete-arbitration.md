@@ -1,6 +1,7 @@
 # #569 M3D3B2a — Routine Move/Delete cross-operation arbitration
 
-**Status:** Review handoff (scoped source + tests green; reviewer gate separate from merge)
+**Status:** **Validated / archived 2026-10-20.** [PR #609](https://github.com/im-tnyx/tio-world/pull/609) squash-merged as `main@7801502a1d85670bc17b22d8a07a5aebd6f6b339` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Review handoff (scoped source + tests green; reviewer gate separate from merge)
 **Primary owner:** Workout feature repository/data adapters; app-shell dependency composition only
 **Affected platforms:** Flutter Android/iOS shared Workout; no visual/UI changes
 

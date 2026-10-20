@@ -1,6 +1,7 @@
 # #569 M3D3C — Explicit debug-only Move Routine UI preview
 
-**Status:** Review gate ready (source + test validated; independent review pending; unmerged)
+**Status:** **Validated / archived 2026-10-20.** [PR #607](https://github.com/im-tnyx/tio-world/pull/607) squash-merged as `main@a69bc82443201c66c8d34e3c346db362cc2e450d` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Review gate ready (source + test validated; independent review pending; unmerged)
 **Primary owner:** One cross-package implementation owner for Workout feature presentation and phone app-shell composition/tests
 **Affected platforms:** Flutter Android/iOS debug-only opt-in; all release/profile builds unchanged
 

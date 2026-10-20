@@ -1,6 +1,7 @@
 # #569 M3B2B1 — Dormant Move to New Program selection UI
 
-**Status:** In review, [PR #600](https://github.com/im-tnyx/tio-world/pull/600) Ready for Review and unmerged. Latest source/test HEAD `b7029caf8570c8f52c5bfc4f1e70ac35c68fbe36` [Flutter CI #39104577882](https://github.com/im-tnyx/tio-world/actions/runs/39104577882) **SUCCESS 7/7**; both inline review threads resolved. This later task-document update requires separate exact-head checks. No live Move activation.
+**Status:** **Validated / archived 2026-10-20.** [PR #600](https://github.com/im-tnyx/tio-world/pull/600) squash-merged as `main@55ef926e9ed1be1300061f065b8f3458019410d7` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** In review, [PR #600](https://github.com/im-tnyx/tio-world/pull/600) Ready for Review and unmerged. Latest source/test HEAD `b7029caf8570c8f52c5bfc4f1e70ac35c68fbe36` [Flutter CI #39104577882](https://github.com/im-tnyx/tio-world/actions/runs/39104577882) **SUCCESS 7/7**; both inline review threads resolved. This later task-document update requires separate exact-head checks. No live Move activation.
 **Primary owner:** Workout feature/presentation, single implementation owner for this bounded slice.
 **Affected platforms:** Flutter phone, both Program Detail and expanded Library once later app shell wiring enables Move.
 

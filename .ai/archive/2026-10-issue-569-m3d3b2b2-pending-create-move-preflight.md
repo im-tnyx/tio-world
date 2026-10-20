@@ -1,6 +1,7 @@
 # #569 M3D3B2b2 — Pending Create versus Move Program dispatch preflight
 
-**Status:** Ready for Review #611, Codex P2 fix submitted; exact-head CI/re-review pending. NOT MERGED.
+**Status:** **Validated / archived 2026-10-20.** [PR #611](https://github.com/im-tnyx/tio-world/pull/611) squash-merged as `main@948ad092562eab45590eac42411a61d93c28a52a` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Ready for Review #611, Codex P2 fix submitted; exact-head CI/re-review pending. NOT MERGED.
 **Implementation owner:** Workout feature data/presentation and apps/app composition
 **Approval:** Existing approved #569 Move Routine safety acceptance; user 2026-10-19 `Next work go with audit` after B2b1 merge. Normal internal correctness subtask; no new visible product/UI or Supabase shape.
 

@@ -1,6 +1,7 @@
 # #569 M3B1 — Owner Program Move destination controller
 
-**Status:** Draft PR #597 — dormant destination controller validated at exact source+test HEAD `056b0b56d8dfdcb97976dbe3ab7e873005e8c8ae`; cross-PR integration/owner merge gate remains open.
+**Status:** **Validated / archived 2026-10-20.** [PR #597](https://github.com/im-tnyx/tio-world/pull/597) squash-merged as `main@f58fbc34e28110ef8bddfbce14756430b19ada4e` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Draft PR #597 — dormant destination controller validated at exact source+test HEAD `056b0b56d8dfdcb97976dbe3ab7e873005e8c8ae`; cross-PR integration/owner merge gate remains open.
 **Primary owner:** Workout presentation implementation, single remote branch.
 **Affected platforms:** Flutter Workout feature only; no user-visible route.
 

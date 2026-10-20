@@ -1,6 +1,7 @@
 # GitHub #569 — M3D3B3d cross-path UNKNOWN mutation receipt regression
 
-**Status:** Validated · [PR #615](https://github.com/im-tnyx/tio-world/pull/615) squash merged; protected main 173b5d97; post-merge CI 5/5 PASS
+**Status:** **Validated / archived 2026-10-20.** [PR #615](https://github.com/im-tnyx/tio-world/pull/615) squash-merged as `main@173b5d979c5952d1a492c7c050ddcf6b4001920a` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Validated · [PR #615](https://github.com/im-tnyx/tio-world/pull/615) squash merged; protected main 173b5d97; post-merge CI 5/5 PASS
 **Primary owner:** Workout data / repository tests
 **Affected platforms:** Flutter Android/iOS Workout package (tests only)
 

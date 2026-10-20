@@ -1,6 +1,7 @@
 # #569 M3A — Existing-Owned-Program Move Repository Adapter
 
-**Status:** Ready for Review — bounded Flutter Move repository and tests; source+docs exact-HEAD CI PASS at `1e14aacc2c25c9deb745464c1a5ee8a53ac830f8` (5/5 Flutter jobs + 2 attribution checks). Subsequent P3 task-handoff-only correction requires its own fresh HEAD checks.
+**Status:** **Validated / archived 2026-10-20.** [PR #595](https://github.com/im-tnyx/tio-world/pull/595) squash-merged as `main@59a21ba305b3265aa8d903dc3f46ee397b39219f` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Ready for Review — bounded Flutter Move repository and tests; source+docs exact-HEAD CI PASS at `1e14aacc2c25c9deb745464c1a5ee8a53ac830f8` (5/5 Flutter jobs + 2 attribution checks). Subsequent P3 task-handoff-only correction requires its own fresh HEAD checks.
 **Primary owner:** Workout domain/data implementation (one remote branch).
 **Affected platforms:** Flutter Workout feature package; no UI/runtime activation.
 

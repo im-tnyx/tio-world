@@ -1,6 +1,7 @@
 # GitHub #569 — M2C Permanent Legacy Rename Cutoff
 
-**Status:** Ready for Review — exact-head code/database CI PASSED at `8ea0be95107d2712716d7c15624393045e6eb1fc`; P3 canonical Workout status drift addressed in subsequent docs-only review correction; merge review and hosted deployment NOT approved.
+**Status:** **Validated / archived 2026-10-20.** [PR #594](https://github.com/im-tnyx/tio-world/pull/594) squash-merged as `main@20c1d21efe1760109b28daffa8990a9e77b4aca0` (verified `gh pr list --state merged` on 2026-10-20). Parent [GitHub #569](https://github.com/im-tnyx/tio-world/issues/569) stays OPEN. Production Move stays OFF. The historical status line is not the current handoff.
+**Historical status:** **Status:** Ready for Review — exact-head code/database CI PASSED at `8ea0be95107d2712716d7c15624393045e6eb1fc`; P3 canonical Workout status drift addressed in subsequent docs-only review correction; merge review and hosted deployment NOT approved.
 **Primary owner:** Supabase/Postgres implementation on the single remote branch `tnyx/issue-569-m2c-legacy-rename-cutoff`.
 **Affected platforms:** Supabase versioned migration, SQL/security tests, GitHub CI.
 
