@@ -1,6 +1,6 @@
 # GitHub #568 — Canonical My Program identity read projection
 
-**Status:** In progress, review not yet validated.
+**Status:** Ready for Review in [PR #638](https://github.com/im-tnyx/tio-world/pull/638), exact-head CI and independent review pending.
 **Primary owner:** Workout shared domain + feature Program repository
 **Affected platforms:** Flutter pure Dart shared model and Workout repository/controller, no visible UI change
 
@@ -17,21 +17,21 @@
 **Planning owner:** GitHub #568 / Linear TNYX-78; downstream #569 / TNYX-81
 **Implementation owner:** Connected GitHub session for this bounded read-projection slice
 **Review owner:** Independent PR reviewer not yet assigned
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending; source staged on review branch, no merge authorization
 **Ownership transition:** Prior #568 staged RPC adapter PR #637 merged; this is a nonoverlapping next scoped slice.
 **Repository state last verified:** remote protected `main@34d69fbe668448a0bc098514c09168647d4140fe`; owner's Windows checkout not accessible in this session.
 **Branch:** `tnyx/issue-568-default-identity-projection-20261020`
-**HEAD SHA:** To be verified after implementation
+**HEAD SHA:** source + tests staged at `347058b50b5e847c5b9e1f85279c3933c8912980`; final PR head must be reverified after this handoff-only commit
 **Observed working-tree state:** GitHub remote, local owner working-tree UNKNOWN
 **Observed uncommitted/dirty files:** Local Windows checkout not accessible; none assumed clean
 **PR / tracker:** #568, #569, TNYX-78 In Progress, TNYX-81 Backlog
-**Current implementation state:** Hosted #568 migration 66/66. `is_default` authenticated SELECT=true, INSERT=false. Existing `ProgramRepository.list()` selects only id/name; incoming `Program` contains no default marker, so renamed default is indistinguishable from a non-default Program.
+**Current implementation state:** Source now selects `id,name,is_default` and maps mandatory boolean into immutable `Program.isDefault`. Cross-owner post-await reads are rejected, explicit client creation cannot claim the default marker, and controller rename preserves it. Hosted #568 migration 66/66; client RPC EXECUTE still OFF.
 **Relevant execution surface:** `apps/shared/lib/src/workout/program.dart`; `apps/features/workout/lib/src/data/repositories/supabase_program_repository.dart`; `apps/features/workout/lib/src/presentation/library/programs/programs_controller.dart`; focused tests and this task index.
-**Validation completed at SHA:** Preflight source, GitHub PR #637 and read-only hosted metadata only. No code changes validated yet.
+**Validation completed at SHA:** GitHub compare on staged source `347058b5` shows 2 ahead/0 behind and 8 expected paths; GitHub per-file patches contain no added trailing whitespace; commit attribution SUCCESS. Exact-head Flutter CI was in progress, not reported as PASS.
 **Validation remaining:** Actual exact-head Flutter/Dart CI, independent review, owner-local diff whitespace validation and cross-session/device QA later.
 **Current blocker:** None for dormant read projection; real UI release stays blocked by separate #568 client gates and RPC grants.
 **Open review finding IDs:** None yet.
-**Next exact action:** Add typed default marker and fail-closed mapping, owner-switch guard and tests; open PR for independent review, do not merge or enable release.
+**Next exact action:** Recheck exact-head CI, review independent `im-tio` feedback (requested on PR #638), collect owner-local `git diff --check` receipt and address findings. No merge or release.
 
 ## 1. Discovery
 
@@ -66,19 +66,19 @@ Do not activate real My Program Create, Move/Undo, or change database shape, ten
 Keep server-only default creation; no direct client marker writes. Reuse existing Program constructors and controller.
 
 ## 5. Implementation Plan
-- [ ] Extend Program model/equality with a default-false marker and tests.
-- [ ] Map server bool, fail closed on malformed rows and auth owner transition.
-- [ ] Preserve marker across confirmed rename; tests for renamed default.
+- [x] Extend Program model/equality with a default-false marker and tests.
+- [x] Map server bool, fail closed on malformed rows and auth owner transition.
+- [x] Preserve marker across confirmed rename; tests for renamed default.
 - [ ] Audit exact source diff; run exact-head CI and independent PR review.
 
 ## 6. Quality Review
-**Validation Run:** Not yet. Flutter SDK/local owner checkout unavailable to connected GitHub session; require GitHub exact-head CI.
-**Acceptance Evidence:** Pending exact-head validation and formal review.
-**Review Provenance:** Not yet requested; self inspection is not independent review.
+**Validation Run:** Source and patch audited through GitHub API only; local Flutter SDK and Windows checkout unavailable. Exact-head CI result pending at this checkpoint.
+**Acceptance Evidence:** Focused tests added for mapped renamed default, malformed marker, cross-owner list read, client default creation prevention and marker-preserving controller Rename. Tests have not yet been reported passing at the latest head.
+**Review Provenance:** GitHub PR #638 marked Ready for Review and `im-tio` explicitly requested. No review submitted at this checkpoint; self inspection is not independent review.
 **Review Findings and Resolution:** None submitted.
 
 ## 7. Final Handoff
-**Changed Files:** Pending.
-**Actual Behavior:** Pending.
+**Changed Files:** Shared Program model + test; Workout Program Supabase repository + test; ProgramsController + test; task brief and `.ai/tasks/README.md`.
+**Actual Behavior:** On a successful owner read, a server-provided boolean distinguishes a default Program even after rename. No production user-visible entry or mutation is enabled.
 **Known Limitations:** Product activation and complete unknown-outcome Create reconciliation remain separate.
-**Final Status:** REVIEW only after source PR opened; no merge claimed.
+**Final Status:** REVIEW gate. PR #638 open and review requested; no pass/approval/merge claimed.
