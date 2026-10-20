@@ -76,6 +76,7 @@ final class MyProgramRoutineCreateCommand {
       routine.id == routineId &&
       routine.programId == program.id &&
       routine.name == name &&
+      snapshot.name == name &&
       confirmsPersistedRoutine(snapshot);
 }
 
