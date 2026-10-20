@@ -170,7 +170,11 @@ final class ProgramsController extends ChangeNotifier {
 
     late final Program renamed;
     try {
-      renamed = Program(id: program.id, name: name);
+      renamed = Program(
+        id: program.id,
+        name: name,
+        isDefault: program.isDefault,
+      );
     } catch (_) {
       return 'Enter a program name.';
     }

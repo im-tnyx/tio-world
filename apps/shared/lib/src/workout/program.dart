@@ -9,6 +9,7 @@ final class Program {
   Program({
     required this.id,
     required String name,
+    this.isDefault = false,
   }) : name = _requireNonBlankName(name);
 
   /// Stable identity of this user-owned Program.
@@ -16,6 +17,12 @@ final class Program {
 
   /// Human-readable Program name.
   final String name;
+
+  /// Server-managed canonical default identity, unaffected by rename.
+  ///
+  /// Newly client-created Programs start non-default. Persisted owner reads
+  /// must load the value from `user_workout_programs.is_default`, never name.
+  final bool isDefault;
 
   static String _requireNonBlankName(String value) {
     if (value.trim().isEmpty) {
@@ -31,8 +38,11 @@ final class Program {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Program && other.id == id && other.name == name;
+      other is Program &&
+          other.id == id &&
+          other.name == name &&
+          other.isDefault == isDefault;
 
   @override
-  int get hashCode => Object.hash(id, name);
+  int get hashCode => Object.hash(id, name, isDefault);
 }

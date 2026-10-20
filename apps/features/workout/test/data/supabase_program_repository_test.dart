@@ -27,7 +27,7 @@ void main() {
     test('list maps canonical rows to Programs', () async {
       final gateway = _FakeProgramGateway(
         rows: [
-          {'id': idValue, 'name': 'Program 1'},
+          {'id': idValue, 'name': 'Strength', 'is_default': true},
         ],
       );
       final repository = _repository(gateway: gateway);
@@ -35,23 +35,61 @@ void main() {
       final programs = await repository.list();
 
       expect(programs, [
-        Program(id: ProgramId(idValue), name: 'Program 1'),
+        Program(id: ProgramId(idValue), name: 'Strength', isDefault: true),
       ]);
+      expect(programs.single.isDefault, isTrue);
       expect(gateway.listUserIds, ['user-1']);
     });
 
     test('malformed canonical rows fail closed', () async {
       for (final row in <Map<String, dynamic>>[
-        {'id': 1, 'name': 'Program 1'},
-        {'id': idValue, 'name': null},
-        {'id': 'not-a-uuid', 'name': 'Program 1'},
-        {'id': idValue, 'name': '   '},
+        {'id': 1, 'name': 'Program 1', 'is_default': false},
+        {'id': idValue, 'name': null, 'is_default': false},
+        {'id': 'not-a-uuid', 'name': 'Program 1', 'is_default': false},
+        {'id': idValue, 'name': '   ', 'is_default': false},
+        {'id': idValue, 'name': 'My Program'},
+        {'id': idValue, 'name': 'My Program', 'is_default': null},
+        {'id': idValue, 'name': 'My Program', 'is_default': 'true'},
       ]) {
         final repository = _repository(
           gateway: _FakeProgramGateway(rows: [row]),
         );
         await expectLater(repository.list(), throwsA(anything));
       }
+    });
+
+    test('owner switch after list read never returns prior owner Programs',
+        () async {
+      var activeOwner = 'user-1';
+      final gateway = _FakeProgramGateway(
+        rows: [
+          {'id': idValue, 'name': 'Strength', 'is_default': true},
+        ],
+        onList: () => activeOwner = 'user-2',
+      );
+      final repository = SupabaseProgramRepository(
+        client: _UnusedSupabaseClient(),
+        gateway: gateway,
+        currentUserId: () => activeOwner,
+      );
+
+      await expectLater(repository.list(), throwsStateError);
+      expect(gateway.listUserIds, ['user-1']);
+    });
+
+    test('client cannot create a purported canonical default', () async {
+      final gateway = _FakeProgramGateway();
+      final repository = _repository(gateway: gateway);
+
+      await expectLater(
+        repository.create(Program(
+          id: ProgramId(idValue),
+          name: 'My Program',
+          isDefault: true,
+        )),
+        throwsArgumentError,
+      );
+      expect(gateway.insertPayloads, isEmpty);
     });
 
     test('create writes only approved Program columns', () async {
@@ -106,9 +144,10 @@ SupabaseProgramRepository _repository({
 class _UnusedSupabaseClient extends Fake implements SupabaseClient {}
 
 class _FakeProgramGateway implements ProgramTableGateway {
-  _FakeProgramGateway({this.rows = const []});
+  _FakeProgramGateway({this.rows = const [], this.onList});
 
   final List<Map<String, dynamic>> rows;
+  final void Function()? onList;
   final List<String> listUserIds = [];
   final List<Map<String, dynamic>> insertPayloads = [];
   final List<({String userId, String programId, String name})> renameCalls = [];
@@ -116,6 +155,7 @@ class _FakeProgramGateway implements ProgramTableGateway {
   @override
   Future<List<Map<String, dynamic>>> listRows(String userId) async {
     listUserIds.add(userId);
+    onList?.call();
     return rows;
   }
 
