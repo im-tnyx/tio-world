@@ -1,6 +1,6 @@
 # Pre-P9 — Supabase public inventory reconciliation (66 migrations)
 
-**Status:** In Review — PR #640 Open / Ready for Review, independent `im-tio` CHANGES_REQUESTED. Corrected content findings are resolved; exact-head owner-local `git diff --check` P2 remains blocking. New handoff wording findings require re-review; no merge authorization.
+**Status:** In progress — PR #640 Open / Ready for Review; independent `im-tio` CHANGES_REQUESTED. Documentation review fixes are staged; owner-local `git diff --check` passed at prior HEAD `e2af0c96`, but must be rerun on this new HEAD. No merge authorization.
 **Primary owner:** Supabase data documentation governance
 **Affected platforms:** Canonical public schema inventory only
 
