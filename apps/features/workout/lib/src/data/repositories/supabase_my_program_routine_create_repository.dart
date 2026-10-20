@@ -80,14 +80,14 @@ final class SupabaseMyProgramRoutineCreateRepository
         throw const RoutineCompositionSaveOutcomeUnknown();
       }
     } on PostgrestException catch (error) {
-      // Known transactional SQL/Auth rejections prove rollback. Numeric
-      // ordinary 4xx also reject before a successful commit. A 5xx or
-      // uncertain transport result may arrive after a committed write.
+      // Known transactional SQLSTATE/Auth rejections prove rollback.
+      // Other HTTP statuses are not sufficient evidence of rollback:
+      // a gateway may have dropped an ACK after commit.
       final kind = switch (error.code) {
-        '28000' || '28P01' || '401' ||
+        '28000' || '28P01' ||
         'PGRST301' || 'PGRST302' || 'PGRST303' =>
           RoutineCompositionFailureKind.unauthorized,
-        '42501' || '403' =>
+        '42501' =>
           RoutineCompositionFailureKind.forbidden,
         '22023' || '22P02' || '22003' || '23514' ||
         '23503' || '23505' || 'P0001' || 'P0002' ||
@@ -98,12 +98,10 @@ final class SupabaseMyProgramRoutineCreateRepository
       if (kind != null) {
         throw RoutineCompositionException(kind);
       }
-      final httpCode = int.tryParse(error.code ?? '');
-      if (httpCode != null && httpCode >= 400 && httpCode < 500) {
-        throw const RoutineCompositionException(
-          RoutineCompositionFailureKind.invalidRequest,
-        );
-      }
+      // An unrecognized numeric HTTP 4xx is not proof that an intermediate
+      // gateway/auth/proxy did not lose the ACK after a committed transaction.
+      // Only the explicit SQLSTATE/PostgREST pre-execution codes above are
+      // definite. Everything else stays UNKNOWN with frozen mutation IDs.
       if (_currentUserId()?.trim() != owner) {
         throw const RoutineCompositionSaveOutcomeUnknown(
           reason: RoutineCompositionSaveUncertainty.authChanged,
