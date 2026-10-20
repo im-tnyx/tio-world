@@ -1,6 +1,6 @@
 # #568 — Flutter My Program atomic first-Routine RPC contract (bounded adapter slice)
 
-**Status:** In progress; implementation/test validation and independent review pending
+**Status:** Source staged; exact-head Flutter CI and independent review pending (NO product activation)
 **Primary owner:** Workout feature data/domain
 **Affected platforms:** Flutter Android/iOS Workout package, no production UI activation
 
@@ -26,10 +26,10 @@
 **Observed uncommitted/dirty files:** Not locally inspected, outside current connector
 **PR / tracker:** GitHub #568; Linear TNYX-78 In Progress; TNYX-81 Backlog blocked by TNYX-78/TNYX-80
 **Relevant execution surface:** `apps/features/workout/lib/src/domain/repositories/**`, `apps/features/workout/lib/src/data/**`, `apps/features/workout/test/data/**`, this brief
-**Validation completed at SHA:** Not yet run for this new branch
+**Validation completed at SHA:** GitHub compare scope audit at branch head before final brief edit (7 owned files, 0 behind); manual source review; Flutter CI not yet run
 **Validation remaining:** Exact-head Flutter CI, independent security review, owner exact-branch `git diff --check`, real device path later
-**Current blocker:** New RPC EXECUTE denied on hosted intentionally; no live UI exposure permitted
-**Next exact action:** Add typed contract + RPC adapter + tests, open PR, run Flutter CI and independent review. Do not merge or release in this session without separate owner merge instruction.
+**Current blocker:** New RPC EXECUTE denied on hosted intentionally; no live UI exposure permitted. Flutter SDK is not available to this connected GitHub session; exact-head GitHub CI is required before code validation can be claimed.
+**Next exact action:** Validate the staged typed contract + RPC adapter + tests on the exact PR head through Flutter CI and independent review. Do not merge or release in this session without separate owner merge instruction.
 
 ## Audit / architecture
 
@@ -43,7 +43,7 @@
 ## Acceptance for this slice
 
 - [ ] Valid request invokes only `create_user_workout_routine_in_my_program` once, omits `p_program_id`, uses exactly immutable IDs and existing payload codec; validates result Program UUID and integer revision 1.
-- [ ] Empty name/exercise and duplicate composition identities reject before I/O; invalid Custom type hints rejected by existing composer validation.
+- [ ] Empty name/exercise and duplicate composition identities reject before I/O; composition UUID/Set identity validation uses existing RoutineCompositionSave; owner/active Custom type is validated atomically by the existing server composer.
 - [ ] Signed-out call fails before I/O; owner transition after ACK produces UNKNOWN, never success; definite SQL/Auth 4xx rejection remains definite even after owner switch.
 - [ ] Network timeout/5xx/malformed 2xx remains UNKNOWN with no silent retry or additional write.
 - [ ] Existing explicit Program Create API/tests unchanged; no runtime or release path consumes the new adapter in this slice.
