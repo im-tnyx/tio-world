@@ -36,6 +36,10 @@ select pg_temp.assert_true(
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_column_privilege('authenticated',
     'public.user_workout_routines', 'program_id', 'UPDATE')
+  and not has_column_privilege('authenticated',
+    'public.user_workout_programs', 'is_default', 'INSERT')
+  and not has_column_privilege('authenticated',
+    'public.user_workout_programs', 'is_default', 'UPDATE')
   and has_function_privilege('authenticated',
     'public.update_user_workout_routine_with_composition(uuid,uuid,bigint,text,uuid,text,jsonb)', 'EXECUTE')
   and has_function_privilege('authenticated',
@@ -60,13 +64,13 @@ select pg_temp.assert_true(
 insert into auth.users (id,email) values
  ('a5690000-0000-4000-8000-000000000001','move-a@example.test'),
  ('a5690000-0000-4000-8000-000000000002','move-b@example.test');
-insert into public.user_workout_programs(id,user_id,name) values
+insert into public.user_workout_programs(id,user_id,name,is_default) values
  ('a5690000-0000-4000-8000-000000000011',
-  'a5690000-0000-4000-8000-000000000001','Source A'),
+  'a5690000-0000-4000-8000-000000000001','Source A', false),
  ('a5690000-0000-4000-8000-000000000012',
-  'a5690000-0000-4000-8000-000000000001','Destination A'),
+  'a5690000-0000-4000-8000-000000000001','Destination A', true),
  ('a5690000-0000-4000-8000-000000000013',
-  'a5690000-0000-4000-8000-000000000002','Foreign B');
+  'a5690000-0000-4000-8000-000000000002','Foreign B', false);
 insert into public.user_workout_routines(id,user_id,program_id,name) values
  ('a5690000-0000-4000-8000-000000000021',
   'a5690000-0000-4000-8000-000000000001',
@@ -131,6 +135,11 @@ select pg_temp.expect_state(
    set program_id='a5690000-0000-4000-8000-000000000012'
    where id='a5690000-0000-4000-8000-000000000021'$$,
  '42501','direct client program_id UPDATE denied');
+select pg_temp.expect_state(
+ $$update public.user_workout_programs
+   set is_default = true
+   where id='a5690000-0000-4000-8000-000000000011'$$,
+ '42501','authenticated cannot retarget canonical default during Move');
 
 select pg_temp.assert_true(
  public.move_user_workout_routine(
@@ -154,8 +163,14 @@ select pg_temp.assert_true(
  and (select count(*)=1 from public.user_workout_routine_sets
       where routine_exercise_id='a5690000-0000-4000-8000-000000000041'
         and id='a5690000-0000-4000-8000-000000000051'
-        and reps=10 and load_kg=20 and rest_seconds=60),
- 'same Routine/Exercise/Set UUID, order, prescription; no child re-creation'
+        and reps=10 and load_kg=20 and rest_seconds=60)
+ and (select count(*)=1 from public.user_workout_programs
+      where user_id='a5690000-0000-4000-8000-000000000001' and is_default)
+ and (select is_default from public.user_workout_programs
+      where id='a5690000-0000-4000-8000-000000000012')
+ and not (select is_default from public.user_workout_programs
+      where id='a5690000-0000-4000-8000-000000000011'),
+ 'same Routine/Exercise/Set UUID, order, prescription; default Program stays put'
 );
 select pg_temp.assert_true(
  public.move_user_workout_routine(
@@ -210,8 +225,12 @@ select pg_temp.assert_true(
  and (select count(*)=1 from public.user_workout_routine_exercises
       where routine_id='a5690000-0000-4000-8000-000000000021')
  and (select count(*)=1 from public.user_workout_routine_sets
-      where routine_exercise_id='a5690000-0000-4000-8000-000000000041'),
- 'failed requests preserve owner Routine and children'
+      where routine_exercise_id='a5690000-0000-4000-8000-000000000041')
+ and (select count(*)=1 from public.user_workout_programs
+      where user_id='a5690000-0000-4000-8000-000000000001' and is_default)
+ and (select is_default from public.user_workout_programs
+      where id='a5690000-0000-4000-8000-000000000012'),
+ 'failed requests preserve owner Routine, children, and the canonical default'
 );
 
 
@@ -248,8 +267,12 @@ select pg_temp.assert_true(
   from public.user_workout_routines
   where id='a5690000-0000-4000-8000-000000000021')
  and (select count(*)=1 from public.user_workout_routine_sets
-      where id='a5690000-0000-4000-8000-000000000051'),
- 'replay does not bump revision or modify child composition'
+      where id='a5690000-0000-4000-8000-000000000051')
+ and (select is_default from public.user_workout_programs
+      where id='a5690000-0000-4000-8000-000000000012')
+ and (select count(*)=1 from public.user_workout_programs
+      where user_id='a5690000-0000-4000-8000-000000000001' and is_default),
+ 'replay does not bump revision, modify children, or move the default flag'
 );
 select pg_temp.expect_state(
  $$select public.move_user_workout_routine(
