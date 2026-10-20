@@ -236,6 +236,7 @@ melos test
 Start here:
 
 - [Documentation index](docs/README.md)
+- [Design guide](DESIGN.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
 - [AI context and active tasks](.ai/README.md)
 - [Onboarding flow architecture](docs/architecture/ONBOARDING_ARCHITECTURE.md)
