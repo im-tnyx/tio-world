@@ -1,6 +1,6 @@
 # GitHub #596 — C1 risk-based regression and review policy
 
-**Status:** In progress (docs-only; PR review and exact-head validation pending)
+**Status:** In progress — PR #633 open for review; final exact-head validation and independent review pending
 **Primary owner:** Repository AI governance / developer experience documentation
 **Affected platforms:** Documentation guidance only for Flutter phone, Wear OS, future Apple Watch, Supabase and future approved protected service
 
@@ -16,20 +16,20 @@
 
 **Planning owner:** [GitHub #596](https://github.com/im-tnyx/tio-world/issues/596), completed C0 policy-level audit.
 **Implementation owner:** This C1 GitHub connector docs-edit session only; no known competing C1 branch/PR writer observed.
-**Review owner:** Not assigned; independent PR review to be requested if available.
-**Implementation ownership state:** Active for C1 docs-only files; handoff at open PR.
+**Review owner:** Requested separately via GitHub reviewer request if available; until confirmed, no independent review claimed.
+**Implementation ownership state:** Handoff pending after authoring; do not make more source edits without a fresh live-head/ownership check.
 **Ownership transition:** Not applicable — new C1 branch at verified main.
 **Repository state last verified:** 2026-10-20, remote `main@b327a63a19b5f500cb8683880cb5b0f69ffabd01`.
 **Branch:** `docs/issue-596-c1-risk-regression-policy`.
-**HEAD SHA:** Initial branch `b327a63a19b5f500cb8683880cb5b0f69ffabd01`; consult live GitHub before claiming current-head checks.
+**HEAD SHA:** PR #633 was opened at `0f102bb8fe04b3e9513e8026aadf30b19f6b348f`; this handoff correction advances the SHA, so use GitHub's live PR HEAD for all future checks/reviews.
 **Observed working-tree state:** Remote GitHub API source and branch only.
 **Observed uncommitted/dirty files:** Owner's Windows/local worktree is inaccessible; unknown, not claimed clean.
-**PR / tracker:** Parent [#596](https://github.com/im-tnyx/tio-world/issues/596), C1 PR pending.
-**Validation completed at SHA:** None for this new branch.
-**Validation remaining:** Owner/runner exact-head `git diff --check origin/main...origin/docs/issue-596-c1-risk-regression-policy`, live PR changed-file and patch audit, required GitHub checks, review and findings dispositions.
-**Current blocker:** No documented policy blocker; exact-head validation/review not yet done.
+**PR / tracker:** [GitHub PR #633](https://github.com/im-tnyx/tio-world/pull/633), parent [#596](https://github.com/im-tnyx/tio-world/issues/596).
+**Validation completed at SHA:** Author-side GitHub compare (4 expected docs paths; 4 ahead / 0 behind) and API diff inspection at pre-handoff PR head `0f102bb8fe04b3e9513e8026aadf30b19f6b348f`. **Not** an executed local `git diff --check`, CI pass or independent review.
+**Validation remaining:** Owner/runner exact-new-head `git diff --check origin/main...origin/docs/issue-596-c1-risk-regression-policy`, fresh PR diff/required checks, independent review and disposition of any findings.
+**Current blocker:** Final PASS/merge gate not met: exact-head docs `git diff --check` has not run, and independent PR review/required checks are not yet verified. PR remains available for review; do not merge.
 **Open review findings:** None observed yet; update on PR review.
-**Next exact action:** Add smallest canonical risk matrix, narrow process pointer, inspect diff, open PR for independent review. No merge.
+**Next exact action:** Verify live PR HEAD and exact-head docs check, request/receive independent review if possible, triage any P1/P2/P3 findings without widening C1; report clean review/merge gate to owner, but do not merge.
 
 ## Discovery and verified evidence
 
@@ -51,6 +51,6 @@
 
 ## Review and final handoff checkpoint
 
-**Review provenance:** Pending; no independent review is claimed.
-**Validation:** Pending for final branch SHA. GitHub API diff inspection is not the owner's local `git diff --check`.
+**Review provenance:** Author-side self-review of PR #633 GitHub patch at historical head `0f102bb8fe04b3e9513e8026aadf30b19f6b348f`; no independent reviewer has submitted an approval at this checkpoint.
+**Validation:** GitHub compare/file-scope and PR patch inspection completed for historical head `0f102bb8fe04b3e9513e8026aadf30b19f6b348f`. Required local exact-HEAD docs check remains pending. This handoff edit generates a newer SHA.
 **Final status:** `REVIEW` while review/checks are pending; a known failed or un-runnable required check escalates the completion/merge gate to `BLOCKED` under `.ai/FEATURE_DEVELOPMENT.md`.
