@@ -13,11 +13,14 @@ const _mutation = '33333333-3333-4333-8333-333333333333';
 const _entry = '44444444-4444-4444-8444-444444444444';
 const _set = '55555555-5555-4555-8555-555555555555';
 
-MyProgramRoutineCreateCommand _command({String name = 'Routine 1'}) =>
+MyProgramRoutineCreateCommand _command({
+  String name = 'Routine 1',
+  String mutationId = _mutation,
+}) =>
     MyProgramRoutineCreateCommand(
       routineId: RoutineId(_routine),
       name: name,
-      mutationId: _mutation,
+      mutationId: mutationId,
       entries: [
         RoutineCompositionEntry(
           id: _entry,
@@ -85,6 +88,37 @@ void main() {
         as Map<String, dynamic>;
     expect(set['id'], _set);
     expect(set['reps'], 1);
+  });
+
+  test('uppercase mutation UUID is canonical on wire and read-back', () async {
+    const uppercase = 'ABCDEF12-3456-4ABC-8ABC-ABCDEFABCDEF';
+    const canonical = 'abcdef12-3456-4abc-8abc-abcdefabcdef';
+    final command = _command(mutationId: uppercase);
+    expect(command.mutationId, canonical);
+    final snapshot = RoutineCompositionSnapshot(
+      routineId: command.routineId,
+      revision: 1,
+      lastMutationId: canonical,
+      entries: command.entries,
+    );
+    expect(command.confirmsPersistedRoutine(snapshot), isTrue);
+    final requests = <http.Request>[];
+    final client = _client((request) async {
+      requests.add(request);
+      return http.Response(
+        jsonEncode({'program_id': _owner, 'composition_revision': 1}),
+        200,
+        headers: {'content-type': 'application/json'},
+        request: request,
+      );
+    });
+    addTearDown(client.dispose);
+    final repo = SupabaseMyProgramRoutineCreateRepository(
+      client: client, currentUserId: () => _owner);
+    expect((await repo.createInMyProgram(command)).compositionRevision, 1);
+    expect(requests, hasLength(1));
+    final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(body['p_client_mutation_id'], canonical);
   });
 
   test('signed-out attempt fails before I/O', () async {
@@ -221,6 +255,21 @@ void main() {
         mutationId: _mutation,
         entries: const [],
       ), throwsArgumentError,
+    );
+    expect(
+      () => MyProgramRoutineCreateCommand(
+        routineId: RoutineId(_routine),
+        name: 'Test',
+        mutationId: _mutation,
+        entries: [
+          RoutineCompositionEntry(
+            id: _entry,
+            exercise: ExerciseRef.catalog('ex_bench_press'),
+            sets: const [],
+          ),
+        ],
+      ), throwsArgumentError,
+      reason: 'RPC rejects Exercise without Sets before committing',
     );
     expect(
       () => MyProgramRoutineCreateCommand(
