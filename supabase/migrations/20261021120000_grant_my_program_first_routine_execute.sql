@@ -23,7 +23,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_user_id uuid := auth.uid();
   v_program_id uuid;
@@ -127,7 +127,7 @@ begin
     'composition_revision', v_revision
   );
 end;
-$;
+$$;
 
 revoke all on function public.create_user_workout_routine_in_my_program(
   uuid, text, uuid, jsonb
