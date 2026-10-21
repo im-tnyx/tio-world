@@ -30,7 +30,11 @@ Existing `CreateRoutinePage.forMyProgram` and `RoutinePendingCreateGate` already
 
 ## Validation and review
 
-Pending exact-head GitHub Flutter CI, attribution guard, source/diff scope checks, independent `im-tio` review and owner-local native `git diff --check` receipt. GitHub connector cannot run Windows Flutter/Dart or inspect `G:\\projects\\Tio-World`. Never label these PASS before verification.
+**Verified baseline** (2026-10-21, `f4c07a1483339405e9b11e611c2888e2cdb35966`): exact-HEAD GitHub Flutter CI run [#39567096629](https://github.com/im-tnyx/tio-world/actions/runs/39567096629) **5/5 SUCCESS**; exact-HEAD commit attribution run [#39567093527](https://github.com/im-tnyx/tio-world/actions/runs/39567093527) **SUCCESS**; bounded 8-file compare 12 ahead/0 behind; owner-provided clean-local-main, exact-HEAD ancestry and native `git diff --check origin/main...FETCH_HEAD` **PASS**. Owner-local terminal evidence was provided in chat and documented in the PR and Linear. This connector did **not** execute Windows tooling.
+
+**Review remediation in progress:** `im-tio` [COMMENTED review #5597291255](https://github.com/im-tnyx/tio-world/pull/645) on original exact HEAD (not APPROVED). One P3 inline finding identified that the test fake modeled the atomic first-Routine transaction as independently failing Program/Routine writes, without a definite server rollback regression. The implementation owner is correcting the test-only fake to make both rows visible in one synchronous in-memory commit, with a typed pre-commit rejection test asserting no default Program or Routine remains and a subsequent explicit Save succeeds. No production code or grant is changed in this remediation.
+
+**Current PR-head gate:** Following P3 and handoff corrections, revalidate the **new exact HEAD** (Flutter CI jobs, attribution, eight-file scope, native owner `git diff --check`, independent review and P3 disposition). Old-head PASS receipts must **not** be claimed for the new HEAD. The current task stays **In progress / NO MERGE** until revalidation and an independent APPROVED review. GitHub cannot inspect `G:\\projects\\Tio-World`; production SQL/write QA and release remain deferred.
 
 ## Handoff
 
