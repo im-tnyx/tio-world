@@ -9,6 +9,8 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
+import '../../../domain/repositories/my_program_routine_create_repository.dart';
+import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
@@ -20,8 +22,9 @@ import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
 
-/// Full-screen, Program-owned Create draft. Nothing persists until Save
-/// calls an atomic Create repository. This is NOT the existing-Routine editor.
+/// Full-screen canonical Create draft. Existing-Program and dormant programless
+/// modes share the same composition/editor UI and distinct atomic repositories.
+/// Nothing persists until Save; this is NOT the existing-Routine editor.
 class CreateRoutinePage extends StatefulWidget {
   const CreateRoutinePage({
     required this.program,
@@ -41,11 +44,46 @@ class CreateRoutinePage extends StatefulWidget {
     this.canWrite,
     this.newUuid,
     super.key,
-  });
+  }) : myProgramRepository = null,
+       programRepository = null,
+       onMyProgramUnconfirmedExit = null,
+       onMyProgramWriteStarted = null,
+       onMyProgramWriteResolved = null,
+       onMyProgramDefiniteFailure = null;
 
-  final Program program;
+  /// Dormant #568 entry to the SAME Exercise/Set composer. A Program is
+  /// resolved only inside the atomic server RPC; no fake ProgramId is used.
+  /// App-shell wiring and the client EXECUTE grant remain separate gates.
+  const CreateRoutinePage.forMyProgram({
+    required this.initialName,
+    required MyProgramRoutineCreateRepository this.myProgramRepository,
+    required ProgramRepository this.programRepository,
+    required this.catalogRepository,
+    required this.weightUnit,
+    this.userExerciseRepository,
+    this.viewerMediaGender,
+    this.routineRepository,
+    this.compositionRepository,
+    required this.onMyProgramUnconfirmedExit,
+    required this.onMyProgramWriteStarted,
+    required this.onMyProgramWriteResolved,
+    required this.onMyProgramDefiniteFailure,
+    this.returnToLibrary = true,
+    required this.canWrite,
+    this.newUuid,
+    super.key,
+  }) : program = null,
+       createRepository = null,
+       onUnconfirmedExit = null,
+       onWriteStarted = null,
+       onWriteResolved = null,
+       onDefiniteFailure = null;
+
+  final Program? program;
   final String initialName;
-  final RoutineCreateRepository createRepository;
+  final RoutineCreateRepository? createRepository;
+  final MyProgramRoutineCreateRepository? myProgramRepository;
+  final ProgramRepository? programRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
   /// Resolved at app/profile boundary; null follows catalog default gender.
@@ -55,16 +93,24 @@ class CreateRoutinePage extends StatefulWidget {
   /// App composition uses this to refresh the Program after an explicitly
   /// unconfirmed Create exit; this does not mean a write was acknowledged.
   final ValueChanged<RoutineCreateCommand>? onUnconfirmedExit;
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramUnconfirmedExit;
   /// The visible exit destination when Create was launched from Library.
   final bool returnToLibrary;
   /// Reserve the immutable Create identity BEFORE the network request;
   /// revoking the private route cannot cancel an already dispatched RPC.
   final ValueChanged<RoutineCreateCommand>? onWriteStarted;
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramWriteStarted;
   /// Release that reservation only on acknowledged Save or definite failure.
   final ValueChanged<RoutineCreateCommand>? onWriteResolved;
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramWriteResolved;
   /// Exact RPC rejection can arrive after auth revoked and disposed this
   /// screen; pending-gate cleanup must not depend on a widget listener.
   final ValueChanged<RoutineCreateCommand>? onDefiniteFailure;
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramDefiniteFailure;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -88,6 +134,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   String? _openSetId;
   bool _unknownExitPromptOpen = false;
   RoutineCreateCommand? _trackedWriteAttempt;
+  MyProgramRoutineCreateCommand? _trackedMyProgramWriteAttempt;
 
   @override
   void initState() {
@@ -98,8 +145,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   @override
   void didUpdateWidget(covariant CreateRoutinePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.program.id != widget.program.id ||
+    if (oldWidget.program?.id != widget.program?.id ||
         !identical(oldWidget.createRepository, widget.createRepository) ||
+        !identical(oldWidget.myProgramRepository, widget.myProgramRepository) ||
         !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
       _draft.removeListener(_changed);
       _draft.dispose();
@@ -109,21 +157,34 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _draftRangeEntryIds.clear();
       _untouchedRepSetIds.clear();
       _openSetId = null;
+      _trackedWriteAttempt = null;
+      _trackedMyProgramWriteAttempt = null;
       _bind();
     }
   }
 
   void _bind() {
     _name = TextEditingController(text: widget.initialName);
-    _draft = RoutineCreateController(
-      program: widget.program,
-      initialName: _name.text,
-      repository: widget.createRepository,
-      userExercises: widget.userExerciseRepository,
-      canWrite: widget.canWrite,
-      onDefiniteFailure: widget.onDefiniteFailure,
-      newUuid: widget.newUuid,
-    )..addListener(_changed);
+    _draft = widget.program == null
+        ? RoutineCreateController.forMyProgram(
+            initialName: _name.text,
+            myProgramRepository: widget.myProgramRepository!,
+            userExercises: widget.userExerciseRepository,
+            canWrite: widget.canWrite,
+            onMyProgramWriteStarted: widget.onMyProgramWriteStarted,
+            onMyProgramDefiniteFailure: widget.onMyProgramDefiniteFailure,
+            newUuid: widget.newUuid,
+          )
+        : RoutineCreateController(
+            program: widget.program!,
+            initialName: _name.text,
+            repository: widget.createRepository!,
+            userExercises: widget.userExerciseRepository,
+            canWrite: widget.canWrite,
+            onDefiniteFailure: widget.onDefiniteFailure,
+            newUuid: widget.newUuid,
+          );
+    _draft.addListener(_changed);
   }
 
   void _changed() {
@@ -139,6 +200,19 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       final resolved = _trackedWriteAttempt!;
       _trackedWriteAttempt = null;
       widget.onWriteResolved?.call(resolved);
+    }
+    final myInFlight = _draft.inFlightMyProgramAttempt;
+    if (myInFlight != null &&
+        !identical(_trackedMyProgramWriteAttempt, myInFlight)) {
+      _trackedMyProgramWriteAttempt = myInFlight;
+      // Reservation already happened synchronously in the controller BEFORE
+      // entering saving. Never invoke the potentially throwing gate here.
+    } else if (_trackedMyProgramWriteAttempt != null &&
+        (_draft.state.status == RoutineCreateStatus.ready ||
+         _draft.state.status == RoutineCreateStatus.saved)) {
+      final resolved = _trackedMyProgramWriteAttempt!;
+      _trackedMyProgramWriteAttempt = null;
+      widget.onMyProgramWriteResolved?.call(resolved);
     }
     setState(() {});
   }
@@ -403,8 +477,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Future<void> _verify() async {
     final routines = widget.routineRepository;
     final compositions = widget.compositionRepository;
-    if (routines == null || compositions == null) return;
+    if (routines == null || compositions == null ||
+        (widget.program == null && widget.programRepository == null)) {
+      return;
+    }
     final confirmed = await _draft.reconcileUnknown(
+      programs: widget.programRepository,
       routines: routines, compositions: compositions,
     );
     if (confirmed && mounted) _closeConfirmed();
@@ -434,8 +512,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         context: context,
         cardKey: const ValueKey('create-routine-unknown-confirmation'),
         title: 'Routine save not confirmed',
-        message: 'This Routine may already have been saved. Check your '
-            'Program before creating another Routine.',
+        message: widget.program == null
+            ? 'This Routine may already have been saved. Check your '
+                'Library before creating another Routine.'
+            : 'This Routine may already have been saved. Check your '
+                'Program before creating another Routine.',
         cancelLabel: 'Keep verifying',
         confirmLabel: returnToLibraryLabel,
       );
@@ -445,8 +526,13 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         return;
       }
       final attempt = _draft.unconfirmedAttempt;
-      if (attempt == null) return;
-      widget.onUnconfirmedExit?.call(attempt);
+      final myAttempt = _draft.unconfirmedMyProgramAttempt;
+      if (attempt == null && myAttempt == null) return;
+      if (myAttempt != null) {
+        widget.onMyProgramUnconfirmedExit?.call(myAttempt);
+      } else {
+        widget.onUnconfirmedExit?.call(attempt!);
+      }
       Navigator.of(context).pop<bool>(false);
     } finally {
       _unknownExitPromptOpen = false;
@@ -535,7 +621,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                   key: const ValueKey('create-routine-verify'),
                   label: 'Verify saved Routine',
                   onPressed: widget.routineRepository != null &&
-                          widget.compositionRepository != null
+                          widget.compositionRepository != null &&
+                          (widget.program != null ||
+                           widget.programRepository != null)
                       ? _verify
                       : null,
                   expand: true,
