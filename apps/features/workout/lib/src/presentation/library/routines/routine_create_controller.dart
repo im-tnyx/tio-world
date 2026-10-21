@@ -57,7 +57,7 @@ final class RoutineCreateController extends ChangeNotifier {
     required String initialName,
     required MyProgramRoutineCreateRepository this.myProgramRepository,
     this.userExercises,
-    this.canWrite,
+    required this.canWrite,
     this.onMyProgramDefiniteFailure,
     String Function()? newUuid,
   })  : program = null,
@@ -107,7 +107,7 @@ final class RoutineCreateController extends ChangeNotifier {
   RoutineCreateState get state => _state;
 
   bool get _authorized {
-    if (_disposed) return false;
+    if (_disposed || (program == null && canWrite == null)) return false;
     try {
       return canWrite?.call() ?? true;
     } catch (_) {
