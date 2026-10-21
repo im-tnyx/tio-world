@@ -103,6 +103,87 @@ void main() {
     expect(gate.hasPendingMyProgramForOwner(owner: 'owner-a'), isFalse);
   });
 
+  testWidgets('read-only Program provider refresh preserves saving and UNKNOWN',
+      (tester) async {
+    final repo = _MyCreates();
+    final pending = Completer<MyProgramRoutineCreateReceipt>();
+    repo.waitOn = pending.future;
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: 'owner-a', loginCycle: 'cycle-1');
+    addTearDown(gate.dispose);
+    final programs = ValueNotifier<_Programs>(_Programs());
+    addTearDown(programs.dispose);
+    final ids = [_entryUuid, _setUuid, _routineUuid, _mutationUuid].iterator;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: ValueListenableBuilder<_Programs>(
+        valueListenable: programs,
+        builder: (context, current, _) => CreateRoutinePage.forMyProgram(
+          initialName: 'First Routine',
+          myProgramRepository: repo,
+          programRepository: current,
+          routineRepository: _Routines(),
+          compositionRepository: _Compositions(),
+          catalogRepository: _Catalog(),
+          weightUnit: WeightUnit.kg,
+          canWrite: () => true,
+          onMyProgramWriteStarted: (command) => gate.retainMyProgram(
+            owner: 'owner-a', loginCycle: 'cycle-1', command: command,
+          ),
+          onMyProgramWriteResolved: (command) => gate.releaseMyProgram(
+            owner: 'owner-a', loginCycle: 'cycle-1', command: command,
+          ),
+          onMyProgramDefiniteFailure: (command) =>
+              gate.releaseDefiniteMyProgramForOwner(
+                owner: 'owner-a', command: command,
+              ),
+          onMyProgramUnconfirmedExit: (_) {},
+          newUuid: () {
+            if (!ids.moveNext()) throw StateError('Second mutation allocated');
+            return ids.current;
+          },
+        ),
+      ),
+    ));
+    await tester.tap(find.byKey(
+        const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pump();
+    expect(repo.calls, 1);
+    final frozen = repo.command!;
+    expect(find.text('Saving Routine...'), findsOneWidget);
+    programs.value = _Programs();
+    await tester.pump();
+    expect(find.text('Saving Routine...'), findsOneWidget);
+    expect(repo.command, same(frozen));
+    expect(gate.hasPendingMyProgramForOwner(owner: 'owner-a'), isTrue);
+
+    pending.completeError(StateError('ACK lost'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-verify')),
+        findsOneWidget);
+    programs.value = _Programs()..rows.add(Program(
+      id: _defaultId, name: 'Renamed default', isDefault: true,
+    ));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('create-routine-verify')),
+        findsOneWidget);
+    expect(tester.widget<TextButton>(
+        find.byKey(const ValueKey('create-routine-save'))).onPressed, isNull);
+    expect(repo.command, same(frozen));
+    expect(repo.calls, 1);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'owner-a'), isTrue);
+  });
+
   test('UNKNOWN retains the same programless identity, negative reads cannot retry',
       () async {
     final repo = _MyCreates()..loseAck = true;
