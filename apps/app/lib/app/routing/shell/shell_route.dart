@@ -111,6 +111,10 @@ List<RouteBase> _shellBranchChildRoutes(
           final routineRepository = ref.watch(routineRepositoryProvider);
           final compositions = ref.watch(routineCompositionRepositoryProvider);
           final createRepository = ref.watch(routineCreateRepositoryProvider);
+          final myProgramCreateRepository =
+              ref.watch(myProgramRoutineCreateRepositoryProvider);
+          final myProgramCreateEnabled =
+              ref.watch(myProgramRoutineCreateReleaseEnabledProvider);
           final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
           final deleteFlow = ref.read(routineDeleteFlowProvider);
           // Reuse the feature-owned Move flow and the same existing/New Program
@@ -982,16 +986,236 @@ List<RouteBase> _shellBranchChildRoutes(
               ? auth.session.loginCycleId
               : null;
 
+          // #568: the root entry reuses the existing canonical composer.
+          // There is NO client-side Program INSERT, default-name identity
+          // inference or second write path. Hosted client EXECUTE is still OFF.
+          bool firstRoutineSessionValid(String owner, String cycle) {
+            try {
+              final liveBoot =
+                  ref.read(appSessionBootstrapControllerProvider).state;
+              final session = ref.read(authSessionStateProvider);
+              final liveAuth = session.isLoading || session.hasError
+                  ? null : session.valueOrNull;
+              final sdkOwner =
+                  ref.read(supabaseClientProvider)?.auth.currentUser?.id;
+              return liveBoot is AppSessionBootstrapReady &&
+                  liveBoot.userId == owner &&
+                  liveAuth is AuthSessionAuthenticated &&
+                  liveAuth.session.userId == owner &&
+                  liveAuth.session.loginCycleId == cycle &&
+                  sdkOwner == owner &&
+                  ref.read(myProgramRoutineCreateReleaseEnabledProvider);
+            } catch (_) {
+              return false;
+            }
+          }
+
+          Future<void> createFirstRoutine() async {
+            final owner = currentOwner;
+            final cycle = currentCycle;
+            final myCreate = myProgramCreateRepository;
+            final programs = programRepository;
+            final routines = routineRepository;
+            final exerciseRepo = userExerciseRepository;
+            final compositionRepo = compositions;
+            final libraryRoute = ModalRoute.of(context);
+            if (owner == null || cycle == null ||
+                myCreate == null || programs == null ||
+                routines == null || exerciseRepo == null ||
+                compositionRepo == null || catalog == null ||
+                libraryRoute == null || !libraryRoute.isCurrent ||
+                !firstRoutineSessionValid(owner, cycle) ||
+                pendingCreates.hasPendingMyProgramForOwner(owner: owner)) {
+              return;
+            }
+
+            // Reuse the current Routine naming sequence when a real default
+            // Program exists; otherwise the first name is Routine 1.
+            var suggestedName = 'Routine 1';
+            try {
+              final savedPrograms = await programs.list();
+              if (!context.mounted || !libraryRoute.isCurrent ||
+                  !firstRoutineSessionValid(owner, cycle)) return;
+              final defaults =
+                  savedPrograms.where((p) => p.isDefault).toList();
+              if (defaults.length > 1) return;
+              if (defaults.isNotEmpty) {
+                final defaultProgram = defaults.single;
+                if (pendingCreates.hasPendingForOwnerProgram(
+                    owner: owner, programId: defaultProgram.id)) return;
+                final naming = ProgramRoutinesController(
+                  program: defaultProgram, repository: routines);
+                try {
+                  await naming.load();
+                  if (!context.mounted || !libraryRoute.isCurrent ||
+                      !firstRoutineSessionValid(owner, cycle) ||
+                      naming.state.status != ProgramRoutinesStatus.ready) {
+                    return;
+                  }
+                  suggestedName = naming.suggestedName();
+                } finally {
+                  naming.dispose();
+                }
+              }
+            } catch (_) {
+              // Missing or stale owner reads must not open a writable draft.
+              return;
+            }
+            if (pendingCreates.hasPendingMyProgramForOwner(owner: owner) ||
+                !firstRoutineSessionValid(owner, cycle)) return;
+
+            var exitedUnconfirmed = false;
+            var revoked = false;
+            WeightUnit? lastVerifiedUnit;
+            final confirmed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => Consumer(
+                  builder: (createContext, createRef, _) {
+                    final liveBoot = createRef
+                        .watch(appSessionBootstrapControllerProvider).state;
+                    final session = createRef.watch(authSessionStateProvider);
+                    final liveAuth = session.isLoading || session.hasError
+                        ? null : session.valueOrNull;
+                    final authorized =
+                        liveBoot is AppSessionBootstrapReady &&
+                        liveBoot.userId == owner &&
+                        liveAuth is AuthSessionAuthenticated &&
+                        liveAuth.session.userId == owner &&
+                        liveAuth.session.loginCycleId == cycle &&
+                        firstRoutineSessionValid(owner, cycle);
+                    if (!authorized && !revoked) {
+                      revoked = true;
+                      final privateRoute = ModalRoute.of(createContext);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!createContext.mounted ||
+                            privateRoute == null || !privateRoute.isActive) {
+                          return;
+                        }
+                        final navigator = Navigator.of(createContext);
+                        navigator.popUntil(
+                            (route) => identical(route, privateRoute));
+                        navigator.removeRoute(privateRoute);
+                      });
+                    }
+                    final profile = createRef.watch(profileDataProvider);
+                    final verifiedUnit = authorized &&
+                            !profile.isLoading && !profile.hasError
+                        ? profile.valueOrNull?.unitPreferences.weightUnit
+                        : null;
+                    if (verifiedUnit != null) {
+                      lastVerifiedUnit = verifiedUnit;
+                    }
+                    if (!authorized || lastVerifiedUnit == null) {
+                      return const Scaffold(
+                        body: Center(
+                            child: Text('Create Routine is unavailable.')),
+                      );
+                    }
+                    return CreateRoutinePage.forMyProgram(
+                      key: ValueKey(
+                          'create-my-program-owner-$owner-cycle-$cycle'),
+                      initialName: suggestedName,
+                      myProgramRepository: myCreate,
+                      programRepository: programs,
+                      catalogRepository: catalog,
+                      userExerciseRepository: exerciseRepo,
+                      routineRepository: routines,
+                      compositionRepository: compositionRepo,
+                      viewerMediaGender: createRef
+                          .watch(exerciseViewerMediaGenderProvider),
+                      weightUnit: lastVerifiedUnit!,
+                      canWrite: () => firstRoutineSessionValid(owner, cycle),
+                      onMyProgramWriteStarted: (command) {
+                        if (!firstRoutineSessionValid(owner, cycle)) {
+                          throw StateError('First Routine session revoked.');
+                        }
+                        pendingCreates.retainMyProgram(
+                          owner: owner, loginCycle: cycle, command: command);
+                      },
+                      onMyProgramWriteResolved: (command) {
+                        if (firstRoutineSessionValid(owner, cycle)) {
+                          pendingCreates.releaseMyProgram(
+                            owner: owner, loginCycle: cycle, command: command);
+                        }
+                      },
+                      onMyProgramDefiniteFailure: (command) {
+                        pendingCreates.releaseDefiniteMyProgramForOwner(
+                          owner: owner, command: command);
+                      },
+                      onMyProgramUnconfirmedExit: (command) {
+                        if (!firstRoutineSessionValid(owner, cycle)) return;
+                        // Dispatch already reserved this exact identity.
+                        exitedUnconfirmed = true;
+                      },
+                    );
+                  },
+                ),
+              ),
+            );
+            if (context.mounted && libraryRoute.isCurrent &&
+                firstRoutineSessionValid(owner, cycle) &&
+                (confirmed == true || exitedUnconfirmed)) {
+              // UNKNOWN causes only a read-refresh, never a claimed ACK.
+              moveRefresh.request(ownerId: owner, loginCycleId: cycle,
+                  programsMayHaveChanged: true);
+            }
+          }
+
+          Future<void> verifyFirstRoutine() async {
+            final owner = currentOwner;
+            final cycle = currentCycle;
+            final programs = programRepository;
+            final routines = routineRepository;
+            final snapshots = compositions;
+            if (owner == null || cycle == null ||
+                programs == null || routines == null || snapshots == null ||
+                !firstRoutineSessionValid(owner, cycle)) return;
+            final verified = await pendingCreates.verifyMyProgram(
+              owner: owner, loginCycle: cycle, programs: programs,
+              routines: routines, compositions: snapshots,
+              canWrite: () => firstRoutineSessionValid(owner, cycle),
+            );
+            if (!context.mounted || !firstRoutineSessionValid(owner, cycle)) {
+              return;
+            }
+            if (verified) {
+              moveRefresh.request(ownerId: owner, loginCycleId: cycle,
+                  programsMayHaveChanged: true);
+            }
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(verified
+                  ? 'Saved Routine verified.'
+                  : 'Routine save is still unconfirmed.'),
+            ));
+          }
+
           return _VerifiedLibraryCreateSession(
             gate: pendingCreates,
             owner: canCreateForSession ? currentOwner : null,
             loginCycle: canCreateForSession ? currentCycle : null,
-            builder: (bound) => LibraryPage(
+            builder: (bound) => ListenableBuilder(
+              listenable: pendingCreates,
+              builder: (context, _) => LibraryPage(
             programRepository: programRepository,
             routineRepository: routineRepository,
             onProgramPressed: routineRepository == null
                 ? null
                 : (program) => openProgram(program),
+            onCreateRoutinePressed: !bound || !myProgramCreateEnabled ||
+                    !canCreateForSession || currentOwner == null ||
+                    pendingCreates.hasPendingMyProgramForOwner(
+                        owner: currentOwner) ||
+                    myProgramCreateRepository == null ||
+                    programRepository == null || routineRepository == null ||
+                    compositions == null || userExerciseRepository == null
+                ? null : createFirstRoutine,
+            onVerifyPendingRoutine: bound && myProgramCreateEnabled &&
+                    canCreateForSession && currentOwner != null &&
+                    pendingCreates.hasPendingMyProgramForOwner(
+                        owner: currentOwner) &&
+                    programRepository != null && routineRepository != null &&
+                    compositions != null
+                ? verifyFirstRoutine : null,
             onAddRoutinePressed: !bound ||
                     !canCreateForSession ||
                     routineRepository == null ||
@@ -1057,6 +1281,7 @@ List<RouteBase> _shellBranchChildRoutes(
                 queryParameters: const {_exercisesSearchParameter: 'true'},
               ).toString(),
             ),
+              ),
             ),
           );
         },
