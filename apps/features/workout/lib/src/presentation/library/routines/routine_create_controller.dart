@@ -32,9 +32,10 @@ final class RoutineCreateState {
       entries.every((entry) => entry.sets.isNotEmpty);
 }
 
-/// One in-memory Program-owned draft; no metadata-only persistence path.
-/// Every selected Exercise immediately owns an identified Set; numeric targets
-/// remain genuinely unspecified until the user chooses to prescribe them.
+/// One canonical in-memory Routine draft for an existing Program or the
+/// server-owned default Program. Neither mode allows metadata-only writes.
+/// Every picked Exercise owns an identified Set; numeric targets remain
+/// unspecified until the user chooses to prescribe them.
 final class RoutineCreateController extends ChangeNotifier {
   RoutineCreateController({
     required this.program,
