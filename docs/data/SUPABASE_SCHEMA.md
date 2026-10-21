@@ -15,6 +15,8 @@ Verified on **2026-10-20** against:
 - the connected `tio-world` project's read-only applied migration ledger (**66/66** exact version + name matches; no repository-only or live-only migration);
 - read-only live `pg_catalog` metadata for `public` tables, columns, keys/constraints, indexes, RLS, and seven Routine/Move/My Program RPC signatures and EXECUTE privileges.
 
+**2026-10-21 pending review branch (not a revised hosted inventory):** A 67th repository-only migration `20261021120000_grant_my_program_first_routine_execute.sql` is being reviewed to grant exact-signature first-Routine RPC EXECUTE only to `authenticated`. The connected live project still has only the 66 previously verified migrations, and the hosted function remains client-EXECUTE denied until a separately authorized deployment. All 66/66 and zero-pending figures below describe the dated 2026-10-20 source/hosted snapshot, **not** this unmerged branch's new migration count. The migration changes ACL only, not any public table/column/index inventory.
+
 The **2026-10-17, 62/62** snapshot through `20261016220000_prevent_deleted_routine_resurrection` and older **2026-10-11, 55/55** snapshot through `20261010061809_create_user_workout_routine_composition` remain historical. Newer deployed migrations add staged Move functions, retire a legacy grant and introduce a server-owned My Program identity. The 2026-10-20 update only records verified metadata; it **did not** deploy or rerun any migration, execute mutating RPCs or change user data. The private Routine tombstone table remains intentionally excluded from this `public`-only inventory.
 
 ## Truth Boundary

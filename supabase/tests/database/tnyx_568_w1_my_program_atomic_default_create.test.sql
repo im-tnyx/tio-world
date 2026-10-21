@@ -102,15 +102,25 @@ select pg_temp.assert_true(
   'authenticated must not have DELETE on user_workout_programs'
 );
 
--- 4. RPC must start dormant (no EXECUTE for anyone)
+-- 4. Post-migration least-privilege ACL. User-facing Flutter release still OFF.
 select pg_temp.assert_true(
-  not has_function_privilege('authenticated',
+  (select count(*) = 1
+   from supabase_migrations.schema_migrations
+   where version = '20261021120000'),
+  '#568 authenticated-only grant migration must be recorded exactly once'
+);
+select pg_temp.assert_true(
+  has_function_privilege('authenticated',
     'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE')
   and not has_function_privilege('anon',
     'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE')
   and not has_function_privilege('service_role',
-    'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE'),
-  'create_user_workout_routine_in_my_program must be dormant with no EXECUTE'
+    'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE')
+  and (select p.prosecdef and p.proowner = 'postgres'::regrole
+        and p.proconfig @> array['search_path=""']::text[]
+       from pg_catalog.pg_proc as p
+       where p.oid = 'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)'::regprocedure),
+  '#568 RPC has authenticated-only EXECUTE with original SECDEF owner and locked search_path'
 );
 
 -- 5. Test fixture users
@@ -243,9 +253,8 @@ select pg_temp.assert_true(
 delete from public.user_workout_programs
 where id in ('c5680000-0000-4000-8000-000000001020', 'c5680000-0000-4000-8000-000000001022');
 
--- 9. Server-authoritative RPC testing with test-local grant
-grant execute on function public.create_user_workout_routine_in_my_program(uuid, text, uuid, jsonb)
-to authenticated;
+-- 9. Server-authoritative RPC testing against migration-granted authenticated role.
+-- No test-only grant: verify the actual forward migration rather than bypassing it.
 
 -- Test-fixture user C with NO programs initially
 insert into auth.users (id, email)
