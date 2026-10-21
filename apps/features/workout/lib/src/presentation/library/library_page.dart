@@ -28,6 +28,8 @@ class LibraryPage extends StatefulWidget {
     required this.onProgramsManagePressed,
     this.onProgramPressed,
     this.onAddRoutinePressed,
+    this.onCreateRoutinePressed,
+    this.onVerifyPendingRoutine,
     this.hasUnconfirmedCreate,
     this.pendingCreateChanges,
     this.onRoutinePressed,
@@ -52,6 +54,11 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function() onProgramsManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+  /// Direct Library Create resolves My Program on the server, not in the UI.
+  /// Null means its production release capability is intentionally unavailable.
+  final Future<void> Function()? onCreateRoutinePressed;
+  /// An uncertain first Create only permits owner-safe read verification.
+  final Future<void> Function()? onVerifyPendingRoutine;
   final bool Function(Program)? hasUnconfirmedCreate;
   /// Rebuilds pending Program actions as uncertain writes settle.
   final Listenable? pendingCreateChanges;
@@ -81,6 +88,7 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   _LibraryCategory? _selectedCategory;
+  bool _openingRootRoutine = false;
 
   _LibraryCategory get _contentCategory =>
       _selectedCategory ?? _LibraryCategory.programs;
@@ -93,6 +101,18 @@ class _LibraryPageState extends State<LibraryPage> {
   void _clearCategorySelection() {
     if (_selectedCategory == null) return;
     setState(() => _selectedCategory = null);
+  }
+
+  Future<void> _openRootRoutine() async {
+    final action =
+        widget.onVerifyPendingRoutine ?? widget.onCreateRoutinePressed;
+    if (_openingRootRoutine || action == null) return;
+    setState(() => _openingRootRoutine = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _openingRootRoutine = false);
+    }
   }
 
   Widget _programsContent() => ProgramsSurface.library(
@@ -135,6 +155,19 @@ class _LibraryPageState extends State<LibraryPage> {
           ),
         ),
         actions: [
+          if (widget.onCreateRoutinePressed != null ||
+              widget.onVerifyPendingRoutine != null)
+            IconButton(
+              key: const ValueKey('library-create-routine'),
+              tooltip: widget.onVerifyPendingRoutine != null
+                  ? 'Verify saved Routine'
+                  : 'Create Routine',
+              color: colors.textPrimary,
+              onPressed: _openingRootRoutine ? null : _openRootRoutine,
+              icon: Icon(widget.onVerifyPendingRoutine != null
+                  ? Icons.verified_outlined
+                  : Icons.add_rounded),
+            ),
           IconButton(
             key: const ValueKey('library-search'),
             tooltip: 'Search exercises',
