@@ -105,14 +105,14 @@ select set_config('request.jwt.claim.sub',
   'e5680000-0000-4000-8000-000000000001', true);
 select set_config('request.jwt.claim.is_anonymous', 'false', true);
 select pg_temp.assert_raises(
-  $select public.create_user_workout_routine_in_my_program(
+  $$select public.create_user_workout_routine_in_my_program(
     'e5680000-0000-4000-8000-000000000101'::uuid,
     'Guest Routine',
     'e5680000-0000-4000-8000-000000000201'::uuid,
     '[{"id":"e5680000-0000-4000-8000-000000000301",
        "exercise_ref":"ex_squat",
        "sets":[{"id":"e5680000-0000-4000-8000-000000000401",
-                "reps":10}]}]'::jsonb)$,
+                "reps":10}]}]'::jsonb)$$,
   '28000',
   'guest with authenticated role and valid UID is denied before write'
 );
