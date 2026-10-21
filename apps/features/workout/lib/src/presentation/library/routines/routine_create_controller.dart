@@ -46,6 +46,7 @@ final class RoutineCreateController extends ChangeNotifier {
     this.onDefiniteFailure,
     String Function()? newUuid,
   })  : myProgramRepository = null,
+        onMyProgramWriteStarted = null,
         onMyProgramDefiniteFailure = null,
         _name = initialName,
         _newUuid = newUuid ?? (() => const Uuid().v4()) {
@@ -59,6 +60,7 @@ final class RoutineCreateController extends ChangeNotifier {
     required MyProgramRoutineCreateRepository this.myProgramRepository,
     this.userExercises,
     required this.canWrite,
+    required this.onMyProgramWriteStarted,
     this.onMyProgramDefiniteFailure,
     String Function()? newUuid,
   })  : program = null,
@@ -72,6 +74,10 @@ final class RoutineCreateController extends ChangeNotifier {
   final Program? program;
   final RoutineCreateRepository? repository;
   final MyProgramRoutineCreateRepository? myProgramRepository;
+  /// Reserve the frozen command before dispatch. Rejection is a safe no-write
+  /// outcome, not a transport UNKNOWN and never leaves the composer locked.
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramWriteStarted;
   /// Definite server rejections release only the frozen programless command.
   final ValueChanged<MyProgramRoutineCreateCommand>?
       onMyProgramDefiniteFailure;
@@ -419,6 +425,29 @@ final class RoutineCreateController extends ChangeNotifier {
         entries: _entries,
         expectedCustomTypes: _pickedCustomTypes,
       );
+    }
+    if (myCommand != null) {
+      try {
+        // An existing unresolved Create or stale login-cycle binding must
+        // reject BEFORE changing UI state to saving or dispatching the RPC.
+        onMyProgramWriteStarted!(myCommand);
+      } catch (_) {
+        _myProgramAttempt = null; // No write was dispatched.
+        _status = RoutineCreateStatus.ready;
+        _publish('Another Routine Create needs verification before saving.');
+        return false;
+      }
+      if (!_authorized) {
+        // Session invalidated after reservation but before network dispatch.
+        // Release only this un-dispatched identity, never a foreign pending one.
+        try {
+          onMyProgramDefiniteFailure?.call(myCommand);
+        } catch (_) {}
+        _myProgramAttempt = null;
+        _status = RoutineCreateStatus.ready;
+        _publish('Session changed. Reopen Routine Create.');
+        return false;
+      }
     }
     _status = RoutineCreateStatus.saving;
     _publish();
