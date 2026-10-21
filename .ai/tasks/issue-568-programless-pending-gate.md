@@ -1,6 +1,6 @@
 # #568 — Dormant programless first-Routine pending/UNKNOWN gate
 
-**Status:** Implementation staged on remote GitHub branch; exact-head Flutter CI, independent review and merge authorization pending.
+**Status:** In Review — 2026-10-21 verified source HEAD `31af4081f31c69159987b1561de49c72645c01f8` Flutter CI 5/5 SUCCESS; independent `im-tio` source review completed with documentation-handoff P2 still open. This documentation correction requires fresh-head CI/re-review; merge and activation not authorized.
 **Primary owner:** Workout feature presentation state, existing `RoutinePendingCreateGate`
 **Affected platforms:** Flutter Workout Android/iOS package tests only; no production entry wiring.
 
@@ -15,20 +15,20 @@
 
 **Planning owner:** [GitHub #568](https://github.com/im-tnyx/tio-world/issues/568) / [Linear TNYX-78](https://linear.app/tnyx/issue/TNYX-78) In Progress; downstream [#569](https://github.com/im-tnyx/tio-world/issues/569) / TNYX-81 Backlog.
 **Implementation owner:** GitHub-connected session, exclusive to this gate/test subtask and its own documentation brief.
-**Review owner:** Independent `im-tio` reviewer requested after PR creation.
+**Review owner:** `im-tio` performed independent exact-source-HEAD reviews; latest [review `5594916090`](https://github.com/im-tnyx/tio-world/pull/642#pullrequestreview-5594916090) requests changes solely for stale validation handoff, without a new code correctness finding. Fresh docs-HEAD review remains required.
 **Implementation ownership state:** Active; no overlap with open PR #641's #569-only documentation paths.
 **Ownership transition:** Previous #568 helper PRs #637/#638/#639 are merged, so this uses protected main, not their stale branches.
 **Repository state last verified:** Remote `main@da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79`; no owner Windows checkout inspection.
 **Branch:** `tnyx/issue-568-programless-pending-gate-20261021`.
-**HEAD SHA:** Obtain exact live branch commit from GitHub after final index update.
-**Observed working-tree state:** GitHub remote only; local `G:\projects\Tio-World` and untracked files not inspected or changed.
+**HEAD SHA:** Last CI-validated SOURCE HEAD `31af4081f31c69159987b1561de49c72645c01f8`; current branch HEAD must be read live after this docs-only update, and CI/review reconfirmed at that new SHA.
+**Observed working-tree state:** GitHub changes remote only. Owner independently ran read-only PowerShell validation from `G:\projects\Tio-World`; branch and porcelain status before/after were unchanged. Connector did not inspect untracked content, modify the local checkout, or run local Flutter/Dart.
 **PR / tracker:** This branch under #568 / TNYX-78; no new issue.
 **Current implementation state:** Dormant owner-scoped programless reservation and positive verifier added to existing gate. Existing Program-scoped gate and app runtime entry untouched.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_pending_create_gate.dart`; `apps/features/workout/test/presentation/routine_pending_my_program_create_gate_test.dart`; this task brief and task index.
-**Validation completed:** Read-only source and GitHub refs, feature ownership, previous merged helper and RPC contract; local compile/analyze/test not run.
-**Validation remaining:** GitHub exact-head Flutter CI, full compare diff/whitespace inspection, independent code/security review, owner merge direction and later separately gated physical QA.
-**Current blocker:** Hosted `create_user_workout_routine_in_my_program` client `EXECUTE=false` by design; no current app callback uses this gate. No production release possible from this change.
-**Next exact action:** Verify current branch diff and CI; submit to `im-tio` for independent exact-head review. Hold merge pending explicit owner direction.
+**Validation completed at source SHA `31af4081f31c69159987b1561de49c72645c01f8`:** GitHub [Flutter CI `39487767044`](https://github.com/im-tnyx/tio-world/actions/runs/39487767044) completed SUCCESS (five successful jobs: Analyze Flutter and Dart/test Dart, nutrition-onboarding, app-workout, core-wear, aggregate Analyze and test); [attribution `39487766869`](https://github.com/im-tnyx/tio-world/actions/runs/39487766869) SUCCESS. Owner-provided Windows guarded `git diff --check` PASS / exit 0 for exact `main@da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79...31af4081f31c69159987b1561de49c72645c01f8`, exactly four reviewed paths; reviewer independently retrieved CI, not the owner-local command. No local Flutter run claimed.
+**Validation remaining:** New docs-only HEAD requires fresh GitHub exact-head CI/checks, compare and whitespace inspection, independent `im-tio` re-review/explicit approval of handoff P2, and owner-controlled normal merge. Separately gated first-Routine activation/physical-device QA is not authorized by this PR.
+**Current blocker:** Latest independent [review `5594916090`](https://github.com/im-tnyx/tio-world/pull/642#pullrequestreview-5594916090) was CHANGES_REQUESTED for stale task/index evidence only. Hosted `create_user_workout_routine_in_my_program` client `EXECUTE=false` by design; no current app callback consumes this gate. Neither merger nor release activation is yet verified.
+**Next exact action:** Verify new docs-only commit SHA, scope/CI and branch checks; request `im-tio` re-review of reconciled handoff. Hold merge for independent formal approval and current protected-branch requirements; separately verify post-merge `main` before continuing #568.
 
 ## 1. Discovery
 
@@ -67,16 +67,18 @@ Rejected: introduce a second global provider or a fabricated canonical `ProgramI
 - [x] Add programless `retainMyProgram`, boolean pending queries and exact instance-based release/definite release.
 - [x] Add positive default Program + Routine + composition read-back with auth/session checks between awaits.
 - [x] Add focused regressions for zero/default-lookalike, renamed default, missing/wrong name/mutation/revision, duplicate defaults, account A→B→A, auth-switch during read, exact definite rejection and no implicit second Create.
-- [ ] GitHub CI test/analyzer validation on exact HEAD.
-- [ ] Independent code/security review and review finding disposition.
-- [ ] Explicit owner merge authorization.
+- [x] GitHub [Flutter CI `39487767044`](https://github.com/im-tnyx/tio-world/actions/runs/39487767044) 5/5 SUCCESS and [attribution `39487766869`](https://github.com/im-tnyx/tio-world/actions/runs/39487766869) SUCCESS at original source HEAD `31af4081`.
+- [x] Owner-provided guarded exact-base/source-HEAD `git diff --check` exit 0 and four-file scope receipt, separate from independent CI verification.
+- [x] Independent `im-tio` code review performed; no concrete code P2, handoff P2 identified at [review `5594916090`](https://github.com/im-tnyx/tio-world/pull/642#pullrequestreview-5594916090).
+- [ ] Reconfirm checks/CI and clean diff on new docs-only PR HEAD; obtain independent re-review resolving handoff P2.
+- [ ] Explicit owner-controlled normal merge after gate closure.
 
 ## 5. Quality Review and release guard
 
-No local Flutter/Dart/`git diff --check` commands have run through the GitHub connector. Do not claim success from a committed test source or from earlier PR CI. GitHub compare can independently confirm changed-file scope and patch whitespace but does not substitute for a locally executed `git diff --check` if required by independent review.
+**Evidence provenance:** GitHub connector independently read exact source-HEAD Flutter and attribution workflow results. Separately, the owner executed guarded Windows PowerShell `git diff --check` (exit 0) against the exact pre-documentation base/head and supplied the successful transcript; the connector did not execute that local command. New docs commits invalidate literal *current-head* CI/diff-check claims until re-verified. Neither the earlier independent code review nor the local receipt is an `APPROVED` review for a new HEAD.
 
 This slice writes no health or owner data and introduces no client permission. It cannot establish end-to-end RPC behavior, physical-device UX or future five-second Undo. Subsequent programless composer/app-shell integration must use the same session-bound reservation before dispatch and still needs separate grant/release QA.
 
 ## 6. Final Handoff
 
-**Current status:** REMOTE IMPLEMENTATION / REVIEW GATE, NOT MERGED, NOT RELEASED. Capture verified SHA, CI, review and scope evidence in PR discussion before merge. Production Move and direct My Program RPC permissions remain OFF.
+**Current status:** IN REVIEW / HANDOFF P2 FIX STAGED, NOT MERGED, NOT RELEASED. Source HEAD `31af4081` Flutter CI/attribution PASS and owner-local diff-check receipt PASS; latest independent review CHANGES_REQUESTED due to stale documentation (this correction). New doc HEAD requires exact-head CI/re-review; explicit owner merge gate still applies. Production Move and direct My Program RPC permissions remain OFF.
