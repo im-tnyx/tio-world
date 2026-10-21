@@ -148,7 +148,6 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (oldWidget.program?.id != widget.program?.id ||
         !identical(oldWidget.createRepository, widget.createRepository) ||
         !identical(oldWidget.myProgramRepository, widget.myProgramRepository) ||
-        !identical(oldWidget.programRepository, widget.programRepository) ||
         !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
       _draft.removeListener(_changed);
       _draft.dispose();
@@ -172,6 +171,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             myProgramRepository: widget.myProgramRepository!,
             userExercises: widget.userExerciseRepository,
             canWrite: widget.canWrite,
+            onMyProgramWriteStarted: widget.onMyProgramWriteStarted,
             onMyProgramDefiniteFailure: widget.onMyProgramDefiniteFailure,
             newUuid: widget.newUuid,
           )
@@ -205,7 +205,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (myInFlight != null &&
         !identical(_trackedMyProgramWriteAttempt, myInFlight)) {
       _trackedMyProgramWriteAttempt = myInFlight;
-      widget.onMyProgramWriteStarted?.call(myInFlight);
+      // Reservation already happened synchronously in the controller BEFORE
+      // entering saving. Never invoke the potentially throwing gate here.
     } else if (_trackedMyProgramWriteAttempt != null &&
         (_draft.state.status == RoutineCreateStatus.ready ||
          _draft.state.status == RoutineCreateStatus.saved)) {
