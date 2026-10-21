@@ -32,7 +32,8 @@ begin
 end;
 $$;
 
--- The original server-owned function has not been replaced or broadened.
+-- The original server-owned function signature, owner and SECDEF boundary remain unchanged;
+-- a trusted Auth guest-admission guard was added before authenticated EXECUTE.
 select pg_temp.assert_true(
   (select count(*) = 1 from supabase_migrations.schema_migrations
    where version = '20261021120000')
@@ -83,6 +84,51 @@ select pg_temp.assert_raises(
   'service role has no direct EXECUTE access'
 );
 reset role;
+
+-- A valid anonymous signed-in identity uses DB role authenticated, not anon.
+-- auth.users.is_anonymous is server-owned even if request claims say otherwise.
+-- The auth.users trigger auto-provisions public.users for this guest fixture.
+insert into auth.users (id, is_anonymous)
+values ('e5680000-0000-4000-8000-000000000001', true);
+
+select pg_temp.assert_true(
+  exists (select 1 from public.users
+          where id = 'e5680000-0000-4000-8000-000000000001'::uuid)
+  and exists (select 1 from auth.users
+              where id = 'e5680000-0000-4000-8000-000000000001'::uuid
+                and is_anonymous is true),
+  'anonymous Auth identity must have a valid application account root'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub',
+  'e5680000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.is_anonymous', 'false', true);
+select pg_temp.assert_raises(
+  $select public.create_user_workout_routine_in_my_program(
+    'e5680000-0000-4000-8000-000000000101'::uuid,
+    'Guest Routine',
+    'e5680000-0000-4000-8000-000000000201'::uuid,
+    '[{"id":"e5680000-0000-4000-8000-000000000301",
+       "exercise_ref":"ex_squat",
+       "sets":[{"id":"e5680000-0000-4000-8000-000000000401",
+                "reps":10}]}]'::jsonb)$,
+  '28000',
+  'guest with authenticated role and valid UID is denied before write'
+);
+reset role;
+
+select pg_temp.assert_true(
+  not exists (
+    select 1 from public.user_workout_programs
+    where user_id = 'e5680000-0000-4000-8000-000000000001'::uuid
+  )
+  and not exists (
+    select 1 from public.user_workout_routines
+    where user_id = 'e5680000-0000-4000-8000-000000000001'::uuid
+  ),
+  'rejected guest cannot create default Program or Routine'
+);
 
 -- Exercise the emergency rollback in a transaction. It must revoke exactly
 -- authenticated EXECUTE and leave other existing grants/table privileges intact.
