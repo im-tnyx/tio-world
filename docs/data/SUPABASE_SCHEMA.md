@@ -1,7 +1,7 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-20
+Last Verified: 2026-10-21 (hosted ledger/RPC delta; structural inventory reuses 2026-10-20 measured counts)
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
@@ -9,13 +9,13 @@ Truth Boundary: Authoritative as a readable inventory of the verified current `p
 
 **Canonical readable inventory of the current Tio-world Supabase `public` schema.**
 
-Verified on **2026-10-20** against:
+Structural counts below were measured on **2026-10-20**; the migration ledger and three affected RPCs were **reverified live on 2026-10-21** against:
 
-- all **66** checked-in `supabase/migrations/` SQL files, through `20261019162535_w1_my_program_atomic_default_create.sql`;
-- the connected `tio-world` project's read-only applied migration ledger (**66/66** exact version + name matches; no repository-only or live-only migration);
-- read-only live `pg_catalog` metadata for `public` tables, columns, keys/constraints, indexes, RLS, and seven Routine/Move/My Program RPC signatures and EXECUTE privileges.
+- all **68** currently checked-in `supabase/migrations/` SQL files through `20261021130000_harden_move_routine_permanent_owner.sql` (the structural catalog baseline was originally measured at 66 files);
+- the linked Tio-world project's read-only applied migration ledger (**68/68** exact versions + names; no repository-only or hosted-only migration);
+- existing read-only structural `pg_catalog` inventory of `public` tables, columns, keys/constraints, indexes, RLS, plus the 2026-10-21 independently verified owner, search-path, body and ACL delta of the three #568/#569 RPCs.
 
-**2026-10-21 pending review branch (not a revised hosted inventory):** A 67th repository-only migration `20261021120000_grant_my_program_first_routine_execute.sql` is being reviewed to grant exact-signature first-Routine RPC EXECUTE only to `authenticated`. The connected live project still has only the 66 previously verified migrations, and the hosted function remains client-EXECUTE denied until a separately authorized deployment. All 66/66 and zero-pending figures below describe the dated 2026-10-20 source/hosted snapshot, **not** this unmerged branch's new migration count. The migration changes ACL only, not any public table/column/index inventory.
+**2026-10-21 hosted deployment update:** Owner Windows `supabase db push --linked --skip-vault` reported both reviewed migrations applied: `20261021120000_grant_my_program_first_routine_execute.sql` and `20261021130000_harden_move_routine_permanent_owner.sql`. An independent hosted audit confirmed **68/68 exact version/name parity** with protected GitHub `main@8da55bdfe29ed5ec1eee3e5e2f7fed972260b42c`. All three affected live SECURITY DEFINER bodies match committed reviewed SQL bodies after newline normalization. The #568 four-argument first-Routine RPC is `authenticated` executable, while `anon`, `service_role` and `PUBLIC` are denied. Both #569 Move RPCs remain denied to those client roles; all three reject `auth.users.is_anonymous=true` under their trusted server-owned guard. Both Flutter release flags remain false; real-write Android/iOS QA and user-visible release are **NOT verified**. The two migrations add **no table/column/index changes**; structural counts below remain the previously verified inventory.
 
 The **2026-10-17, 62/62** snapshot through `20261016220000_prevent_deleted_routine_resurrection` and older **2026-10-11, 55/55** snapshot through `20261010061809_create_user_workout_routine_composition` remain historical. Newer deployed migrations add staged Move functions, retire a legacy grant and introduce a server-owned My Program identity. The 2026-10-20 update only records verified metadata; it **did not** deploy or rerun any migration, execute mutating RPCs or change user data. The private Routine tombstone table remains intentionally excluded from this `public`-only inventory.
 
@@ -57,10 +57,10 @@ This inventory intentionally excludes:
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 66 / 66 |
+| Applied live migrations matched to repository | 68 / 68 |
 | Repository-only pending migrations | 0 |
 
-The verified live migration ledger ends at `20261019162535_w1_my_program_atomic_default_create`; all **66** checked-in and **66** applied migration versions **and names** match exactly, with no repo-only or live-only migrations observed. This read-only verification is **not** a fresh CLI dry-run, privilege grant, mutation test or production write.
+The verified live migration ledger ends at `20261021130000_harden_move_routine_permanent_owner`; all **68** checked-in and **68** applied migration versions and names matched in the 2026-10-21 read-only audit, with no repository-only/live-only versions. The pre-existing catalog/constraint measurements above were taken on 2026-10-20 and were not recomputed by this documentation slice. This verification is not an authenticated end-user write or device QA test.
 
 ## Table Overview
 
@@ -840,7 +840,7 @@ The verified live migration ledger ends at `20261019162535_w1_my_program_atomic_
 
 ## Routine Composition RPC
 
-Verified **2026-10-20 live `public` RPC metadata** (argument types, return values and EXECUTE boundaries):
+RPC signatures and return types were inspected on **2026-10-20**. The `authenticated` EXECUTE and other client-role privileges shown below were **reverified live on 2026-10-21** after the combined #568/#569 hosted deployment:
 
 | Function | Argument types (in order) | Returns | `authenticated` EXECUTE |
 | :--- | :--- | :--- | :---: |
@@ -850,9 +850,9 @@ Verified **2026-10-20 live `public` RPC metadata** (argument types, return value
 | `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` | Yes |
 | `move_user_workout_routine` | `uuid, uuid, uuid, bigint, uuid` | `bigint` | **No — dormant** |
 | `create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, text, bigint, uuid` | `bigint` | **No — dormant** |
-| `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **No — dormant** |
+| `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **Yes — API granted; Flutter release OFF** |
 
-Read-only catalog inspection confirms **SECURITY DEFINER**, empty `search_path` and denied `anon`/`PUBLIC` EXECUTE on **all seven** RPCs. The original four composition/Create/Update/Delete RPCs permit authenticated EXECUTE; the three staged Move/Create+Move/first-Routine functions deny EXECUTE to `authenticated`, `anon`, `PUBLIC` and `service_role`. **Deployed but dormant is not production activation**, user-facing release or permission to grant EXECUTE. The current checked-in migrations define the server ownership, revision/atomicity and anti-resurrection contracts. The Routine Delete implementation retires deleted Routine IDs in private `private.deleted_user_workout_routine_ids` (not an ordinary `public` table). No direct authenticated Routine table DELETE is authorized by these RPC observations.
+Read-only catalog inspection confirms **SECURITY DEFINER**, empty `search_path` and denied `anon`/`PUBLIC` EXECUTE on **all seven** RPCs. The four existing composition/Create/Update/Delete RPCs and the #568 `create_user_workout_routine_in_my_program` RPC now permit `authenticated` EXECUTE; the latter is directly callable via authenticated REST by eligible permanent owners even though Flutter's `myProgramRoutineCreateReleaseEnabledProvider` is hard `false`. Only the two #569 Move/Create+Move RPCs remain `authenticated`/`service_role` EXECUTE-denied, and `routineMoveReleaseEnabledProvider` remains hard `false`. The first-Routine grant is a real privileged backend boundary, **not** a verified mobile release or real-write QA pass. The current checked-in migrations define the server ownership, revision/atomicity and anti-resurrection contracts. The Routine Delete implementation retires deleted Routine IDs in private `private.deleted_user_workout_routine_ids` (not an ordinary `public` table). No direct authenticated Routine table DELETE is authorized by these RPC observations.
 
 **Evidence boundary:** Live metadata verification establishes table structure, RPC signatures and RPC EXECUTE status; the W1 table/column ACL description is additionally source-backed but was not independently queried successfully in this pass. This inventory update did not execute mutating RPCs, retest concurrency, validate existing rows against the `NOT VALID` Set position constraint or establish a distributed phone-app release. Workout Start, Routine Move release, programless first-Routine UI and device QA are tracked by live GitHub/Linear and runtime source, not by this catalog.
 
