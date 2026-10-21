@@ -63,12 +63,12 @@ class CreateRoutinePage extends StatefulWidget {
     this.viewerMediaGender,
     this.routineRepository,
     this.compositionRepository,
-    this.onMyProgramUnconfirmedExit,
-    this.onMyProgramWriteStarted,
-    this.onMyProgramWriteResolved,
-    this.onMyProgramDefiniteFailure,
+    required this.onMyProgramUnconfirmedExit,
+    required this.onMyProgramWriteStarted,
+    required this.onMyProgramWriteResolved,
+    required this.onMyProgramDefiniteFailure,
     this.returnToLibrary = true,
-    this.canWrite,
+    required this.canWrite,
     this.newUuid,
     super.key,
   }) : program = null,
@@ -157,6 +157,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _draftRangeEntryIds.clear();
       _untouchedRepSetIds.clear();
       _openSetId = null;
+      _trackedWriteAttempt = null;
+      _trackedMyProgramWriteAttempt = null;
       _bind();
     }
   }
