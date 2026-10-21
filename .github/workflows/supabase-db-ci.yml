@@ -387,39 +387,45 @@ jobs:
             exit 1
           fi
 
+      - name: Run #568 authenticated-only grant and transactional rollback matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_568_first_routine_execute_grant.test.sql
+
       - name: Run #568 W1 My Program atomic default Create SQL matrix
         shell: bash
         run: |
-          # Fixture grants are transaction-local and rolled back.
+          # Exercise the reviewed forward-migration ACL, not a temporary grant.
           psql "$DATABASE_URL" \
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create.test.sql
 
-      - name: Run #568 W1 two-session concurrency races with CI-only temporary EXECUTE
+      - name: Run #568 W1 two-session concurrency races with migrated EXECUTE
         shell: bash
         run: |
           set -euo pipefail
           expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
           if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Atomic default create grant must not run outside disposable CI database.' >&2
+            echo 'Atomic default race must not run outside disposable CI database.' >&2
             exit 1
           fi
           sql_signature='public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)'
-          cleanup_atomic_default_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
+          check_acl() {
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+              select has_function_privilege('authenticated','$sql_signature','EXECUTE')
+                and not has_function_privilege('anon','$sql_signature','EXECUTE')
+                and not has_function_privilege('service_role','$sql_signature','EXECUTE')
+            " | tr -d '[:space:]'
           }
-          trap cleanup_atomic_default_grant EXIT
-          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
+          if [[ "$(check_acl)" != t ]]; then
+            echo 'W1 migrated RPC ACL differs from authenticated-only contract.' >&2
+            exit 1
+          fi
           bash supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create_concurrency.sh
-          cleanup_atomic_default_grant
-          trap - EXIT
-          can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-              or has_function_privilege('anon','$sql_signature','EXECUTE')
-              or has_function_privilege('service_role','$sql_signature','EXECUTE')
-          " | tr -d '[:space:]')"
-          if [[ "$can_execute" != f ]]; then
-            echo 'W1 atomic default Create RPC must remain dormant after race fixture.' >&2
+          if [[ "$(check_acl)" != t ]]; then
+            echo 'W1 race must preserve migrated authenticated-only EXECUTE.' >&2
             exit 1
           fi
 
