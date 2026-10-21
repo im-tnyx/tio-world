@@ -1,6 +1,6 @@
 # #569 — Stale handoff reconcile (docs only)
 
-**Status:** Docs-only reconcile, 2026-10-20. Owner (Santosh) approved Option C. No source, migration, grant, flag, hosted deploy, or Undo change.
+**Status:** Docs-only release-readiness recheck [PR #641](https://github.com/im-tnyx/tio-world/pull/641), 2026-10-21. Owner (Santosh) approved earlier Option C scope; previous 2026-10-20 reconciliation is historical. Owner-local diff receipt and independent review now supplied; docs-only handoff correction/new-HEAD re-review and owner-controlled merge pending. No source, migration, grant, flag, hosted deploy, or Undo change.
 
 ## PR #626 approval
 
@@ -10,6 +10,31 @@ The #626 brief and README row historically said not to bulk-rewrite older #569 r
 
 **Primary owner:** Documentation handoff for GitHub #569.
 **Affected platforms:** `.ai/tasks` and `.ai/archive` only.
+
+## 2026-10-21 remote-only release-readiness recheck (current checkpoint)
+
+**Scope/ownership:** Documentation and gate-evidence continuation of approved GitHub #569 Move Routine, not a new Move/Undo product implementation. GitHub #569 / Linear TNYX-81 own planning. This GitHub-connected session owns only this handoff and its task-index row. No ownership transfer of Flutter source, database migrations, or the owner's Windows checkout is claimed. `im-tio` independent review has occurred, most recently [review `5594915887`](https://github.com/im-tnyx/tio-world/pull/641#pullrequestreview-5594915887); disposition CHANGES_REQUESTED for stale validation handoff/CI applicability, not a product-code finding.
+
+**Verified GitHub/Linear:** Protected `main@da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79` contains merged [PR #640](https://github.com/im-tnyx/tio-world/pull/640). [#569](https://github.com/im-tnyx/tio-world/issues/569) and [#568](https://github.com/im-tnyx/tio-world/issues/568) remain open; [TNYX-81](https://linear.app/tnyx/issue/TNYX-81) is Backlog and blocked by TNYX-78/TNYX-80. Move's UNKNOWN feedback regression [#616](https://github.com/im-tnyx/tio-world/pull/616) and default identity SQL regression [#626](https://github.com/im-tnyx/tio-world/pull/626) merged. Upstream #568 adapter [#637](https://github.com/im-tnyx/tio-world/pull/637), default Program identity [#638](https://github.com/im-tnyx/tio-world/pull/638), positive read-back predicate [#639](https://github.com/im-tnyx/tio-world/pull/639), and 66/66 inventory [#640](https://github.com/im-tnyx/tio-world/pull/640) merged. Older In Review rows in task briefs are historical checkpoints, not current PR state. No open Move-specific PR was found.
+
+**Verified hosted read-only:** Connected Tio-world Supabase project `oykupyiitspujzpwwvuj` reports **66 applied migrations**, including `20261017100000` Move, `20261017154241` Rename cutoff, `20261018100000` atomic Create+Move, and `20261019162535` W1 default Program. Program and Routine tables both have RLS enabled; direct authenticated Routine `UPDATE(program_id)` remains denied in the prior privilege audit. All three `public` RPCs (`move_user_workout_routine`, `create_user_workout_program_and_move_routine`, `create_user_workout_routine_in_my_program`) report `EXECUTE=false` for `anon`, `authenticated`, and `service_role`. This **supersedes the historical 65/66 / absent-default-marker state in older 2026-10-20 sections below**. Do not reapply the already deployed W1 migration.
+
+**Verified app hold:** `apps/app/lib/app/composition/workout_providers.dart` defines `routineMoveReleaseEnabledProvider = Provider<bool>((ref) => false)`. `TIO_MOVE_ROUTINE_UI_PREVIEW` is a debug-only zero-write capability. Dormant RPC deployment and merged implementation do not constitute production Move release.
+
+### Remaining gates before any real Move release
+
+1. **Security and owner approval:** independently review a separately scoped exact `GRANT EXECUTE` migration, server-side ownership/CAS/idempotency, legacy-client compatibility, security findings, and a rollback plan. Do not grant permissions under this docs-only task.
+2. **Implementation / QA:** reconcile W1/W3 dependencies and the pending #568 first-Routine client/UNKNOWN path; validate the actual activation build with current-head CI, independent review, server/Flutter race cases, and Android/iOS physical-device real-write QA. The dormant test matrix does **not** establish successful real hosted moves.
+3. **Product decision:** five-second real post-commit `Undo` is requested but remains unimplemented; preview Undo only dismisses a no-write pill. The owner must explicitly decide whether an independently approved real Move release can precede Undo. This audit does not approve Undo implementation.
+
+**Validation / CI applicability (2026-10-21):** The GitHub connector itself did not run Windows git or Flutter. The owner ran a guarded read-only Windows PowerShell check from `G:\projects\Tio-World`, pinned `main@da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79` and original PR source HEAD `afd1caf42e995473a6b1359a749298466975b623`: `git diff --check` **PASS / exit 0**, exact two expected Markdown paths (`.ai/tasks/README.md`, `.ai/tasks/issue-569-stale-handoff-reconcile.md`), branch and porcelain working tree unchanged. This is **owner-provided local evidence**, not a command executed by this connector or reviewer. GitHub [attribution guard run `39486096237`](https://github.com/im-tnyx/tio-world/actions/runs/39486096237) succeeded on that original PR HEAD. The checked-in `.github/workflows/flutter-ci.yml` triggers `pull_request` only for changes to `apps/**`, key workspace manifests, `scripts/ci/flutter-test-shards.sh` and the Flutter workflow itself; this two-file `.ai/tasks/**` docs-only change does **not** match its path filter. Flutter CI is therefore **not an applicable PR-triggered check** for this docs-only slice, and the absence of a Flutter run is **not** a Flutter CI PASS. Neither release-activation CI nor device QA is implied. After the docs correction, inspect new HEAD attribution, diff/merge-base and independent reviewer disposition; do not reuse the old local exact-HEAD receipt as proof for newly changed docs. No hosted writes, grants, migrations, flags, user data, Workout source, UI, or Undo were changed.
+
+**Next exact action:** Recheck corrected documentation PR's new HEAD, attribution guard and independent `im-tio` review; close P2 only on reviewer verification, then owner-authorized normal merge. A subsequent #568 implementation, #569 activation, or Undo slice needs its own explicit ownership and release gate; this documentation merge must never enable Move.
+
+
+### PR #641 independent review status (2026-10-21)
+
+`im-tio` re-reviewed the original docs-only HEAD `afd1caf42e995473a6b1359a749298466975b623` after the owner-local diff-check receipt. The reviewer accepted the owner-provided exact-base/head diff-check evidence; the remaining **P2** concerns a stale handoff/PR description and explicit applicability of exact-head Flutter CI to a docs-only PR. Those factual gaps are addressed in this document and PR description; the current updated HEAD is **not yet independently APPROVED**. The original source HEAD remains distinct from this later docs-only correction. Hosted activation security/physical QA/rollback/real Undo decision remain OPEN.
 
 ## Evidence used
 
