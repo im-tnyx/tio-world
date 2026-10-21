@@ -22,8 +22,9 @@ import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
 
-/// Full-screen, Program-owned Create draft. Nothing persists until Save
-/// calls an atomic Create repository. This is NOT the existing-Routine editor.
+/// Full-screen canonical Create draft. Existing-Program and dormant programless
+/// modes share the same composition/editor UI and distinct atomic repositories.
+/// Nothing persists until Save; this is NOT the existing-Routine editor.
 class CreateRoutinePage extends StatefulWidget {
   const CreateRoutinePage({
     required this.program,
