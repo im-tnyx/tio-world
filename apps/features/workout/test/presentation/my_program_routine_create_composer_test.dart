@@ -23,12 +23,14 @@ RoutineCreateController _draft(
   _MyCreates repo, {
   bool Function()? canWrite,
   ValueChanged<MyProgramRoutineCreateCommand>? onDefiniteFailure,
+  ValueChanged<MyProgramRoutineCreateCommand>? onStarted,
 }) {
   final ids = [_entryUuid, _setUuid, _routineUuid, _mutationUuid].iterator;
   return RoutineCreateController.forMyProgram(
     initialName: 'First Routine',
     myProgramRepository: repo,
     canWrite: canWrite ?? () => true,
+    onMyProgramWriteStarted: onStarted ?? (_) {},
     onMyProgramDefiniteFailure: onDefiniteFailure,
     newUuid: () {
       if (!ids.moveNext()) throw StateError('Extra UUID allocation');
@@ -155,6 +157,7 @@ void main() {
       initialName: 'First Routine',
       myProgramRepository: repo,
       onMyProgramDefiniteFailure: rejected.add,
+      onMyProgramWriteStarted: (_) {},
       canWrite: () => true,
       newUuid: () => ids[index++],
     );
@@ -171,12 +174,65 @@ void main() {
     expect(c.state.status, RoutineCreateStatus.saved);
   });
 
+  test('duplicate or stale-cycle reservation rejects before RPC without stuck saving',
+      () async {
+    final gate = RoutinePendingCreateGate()
+      ..bindSession(owner: 'owner-a', loginCycle: 'cycle-1');
+    addTearDown(gate.dispose);
+    final prior = MyProgramRoutineCreateCommand(
+      routineId: RoutineId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      mutationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      name: 'Earlier Routine',
+      entries: [
+        RoutineCompositionEntry(
+          id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          exercise: _exercise.ref,
+          sets: [
+            RoutineCompositionSet(
+              id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              prescription: SetPrescription(),
+            ),
+          ],
+        ),
+      ],
+    );
+    gate.retainMyProgram(
+      owner: 'owner-a', loginCycle: 'cycle-1', command: prior,
+    );
+    final repo = _MyCreates();
+    final c = _draft(repo, onStarted: (command) => gate.retainMyProgram(
+      owner: 'owner-a', loginCycle: 'cycle-1', command: command,
+    ));
+    addTearDown(c.dispose);
+    c.addPickedExercise(_exercise);
+    expect(await c.save(), isFalse);
+    expect(repo.calls, 0);
+    expect(c.state.status, RoutineCreateStatus.ready);
+    expect(c.state.message, contains('needs verification'));
+    expect(gate.hasPendingMyProgramForOwner(owner: 'owner-a'), isTrue);
+    gate.releaseMyProgram(owner: 'owner-a', loginCycle: 'cycle-1',
+        command: prior);
+    gate.bindSession(owner: 'owner-b', loginCycle: 'cycle-b1');
+    // A stale owner/cycle cannot reserve, and must not dispatch a write.
+    final fresh = _draft(_MyCreates(),
+      onStarted: (command) => gate.retainMyProgram(
+        owner: 'owner-a', loginCycle: 'cycle-1', command: command,
+      ),
+    );
+    addTearDown(fresh.dispose);
+    fresh.addPickedExercise(_exercise);
+    expect(await fresh.save(), isFalse);
+    expect(fresh.state.status, RoutineCreateStatus.ready);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'owner-b'), isFalse);
+  });
+
   test('missing verified login-cycle guard prevents any programless write',
       () async {
     final repo = _MyCreates();
     final c = RoutineCreateController.forMyProgram(
       initialName: 'First Routine',
       myProgramRepository: repo,
+      onMyProgramWriteStarted: (_) {},
       canWrite: null,
     );
     addTearDown(c.dispose);
