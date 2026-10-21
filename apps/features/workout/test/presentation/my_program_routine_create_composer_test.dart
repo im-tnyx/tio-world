@@ -171,6 +171,20 @@ void main() {
     expect(c.state.status, RoutineCreateStatus.saved);
   });
 
+  test('missing verified login-cycle guard prevents any programless write',
+      () async {
+    final repo = _MyCreates();
+    final c = RoutineCreateController.forMyProgram(
+      initialName: 'First Routine',
+      myProgramRepository: repo,
+      canWrite: null,
+    );
+    addTearDown(c.dispose);
+    c.addPickedExercise(_exercise);
+    expect(await c.save(), isFalse);
+    expect(repo.calls, 0);
+  });
+
   test('revoking the login cycle before RPC ACK never confirms or releases',
       () async {
     final repo = _MyCreates();
