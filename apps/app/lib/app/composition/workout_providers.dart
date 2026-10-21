@@ -100,6 +100,49 @@ final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref)
   return SupabaseRoutineCreateRepository(client: client);
 });
 
+/// #568 first-Routine release hold. The hosted atomic default resolver exists,
+/// but its authenticated EXECUTE grant remains revoked. Tests may override this
+/// capability; a normal production build must never expose a broken write path.
+final myProgramRoutineCreateReleaseEnabledProvider =
+    Provider<bool>((ref) => false);
+
+/// The staged atomic adapter is owner/login-cycle bound, with no local Program
+/// INSERT or metadata-only fallback. A captured prior-session adapter loses
+/// authority as soon as bootstrap/Auth/SDK identity changes.
+final myProgramRoutineCreateRepositoryProvider =
+    Provider<MyProgramRoutineCreateRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final session = ref.watch(authSessionStateProvider);
+  final auth = session.isLoading || session.hasError
+      ? null : session.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id ||
+      auth.session.loginCycleId.trim().isEmpty) {
+    return null;
+  }
+  final owner = auth.session.userId;
+  final cycle = auth.session.loginCycleId;
+  return SupabaseMyProgramRoutineCreateRepository(
+    client: client,
+    currentUserId: () {
+      try {
+        final current = ref.read(authSessionStateProvider);
+        final state = current.isLoading || current.hasError
+            ? null : current.valueOrNull;
+        if (state is AuthSessionAuthenticated &&
+            state.session.userId == owner &&
+            state.session.loginCycleId == cycle &&
+            client.auth.currentUser?.id == owner) {
+          return owner;
+        }
+      } catch (_) {
+        // A disposed or revoked session cannot dispatch an old owner's RPC.
+      }
+      return null;
+    },
+  );
+});
+
 /// Ephemeral owner/login-cycle pending Create identities, not persisted content.
 final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
   (ref) {
