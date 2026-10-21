@@ -1035,14 +1035,20 @@ List<RouteBase> _shellBranchChildRoutes(
             try {
               final savedPrograms = await programs.list();
               if (!context.mounted || !libraryRoute.isCurrent ||
-                  !firstRoutineSessionValid(owner, cycle)) return;
+                  !firstRoutineSessionValid(owner, cycle)) {
+                return;
+              }
               final defaults =
                   savedPrograms.where((p) => p.isDefault).toList();
-              if (defaults.length > 1) return;
+              if (defaults.length > 1) {
+                return;
+              }
               if (defaults.isNotEmpty) {
                 final defaultProgram = defaults.single;
                 if (pendingCreates.hasPendingForOwnerProgram(
-                    owner: owner, programId: defaultProgram.id)) return;
+                    owner: owner, programId: defaultProgram.id)) {
+                  return;
+                }
                 final naming = ProgramRoutinesController(
                   program: defaultProgram, repository: routines);
                 try {
@@ -1062,7 +1068,9 @@ List<RouteBase> _shellBranchChildRoutes(
               return;
             }
             if (pendingCreates.hasPendingMyProgramForOwner(owner: owner) ||
-                !firstRoutineSessionValid(owner, cycle)) return;
+                !firstRoutineSessionValid(owner, cycle)) {
+              return;
+            }
 
             var exitedUnconfirmed = false;
             var revoked = false;
@@ -1143,7 +1151,9 @@ List<RouteBase> _shellBranchChildRoutes(
                           owner: owner, command: command);
                       },
                       onMyProgramUnconfirmedExit: (command) {
-                        if (!firstRoutineSessionValid(owner, cycle)) return;
+                        if (!firstRoutineSessionValid(owner, cycle)) {
+                          return;
+                        }
                         // Dispatch already reserved this exact identity.
                         exitedUnconfirmed = true;
                       },
@@ -1169,7 +1179,9 @@ List<RouteBase> _shellBranchChildRoutes(
             final snapshots = compositions;
             if (owner == null || cycle == null ||
                 programs == null || routines == null || snapshots == null ||
-                !firstRoutineSessionValid(owner, cycle)) return;
+                !firstRoutineSessionValid(owner, cycle)) {
+              return;
+            }
             final verified = await pendingCreates.verifyMyProgram(
               owner: owner, loginCycle: cycle, programs: programs,
               routines: routines, compositions: snapshots,
