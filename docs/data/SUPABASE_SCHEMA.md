@@ -840,7 +840,7 @@ The verified live migration ledger ends at `20261021130000_harden_move_routine_p
 
 ## Routine Composition RPC
 
-Verified **2026-10-20 live `public` RPC metadata** (argument types, return values and EXECUTE boundaries):
+RPC signatures and return types were inspected on **2026-10-20**. The `authenticated` EXECUTE and other client-role privileges shown below were **reverified live on 2026-10-21** after the combined #568/#569 hosted deployment:
 
 | Function | Argument types (in order) | Returns | `authenticated` EXECUTE |
 | :--- | :--- | :--- | :---: |
@@ -850,9 +850,9 @@ Verified **2026-10-20 live `public` RPC metadata** (argument types, return value
 | `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` | Yes |
 | `move_user_workout_routine` | `uuid, uuid, uuid, bigint, uuid` | `bigint` | **No — dormant** |
 | `create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, text, bigint, uuid` | `bigint` | **No — dormant** |
-| `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **No — dormant** |
+| `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **Yes — API granted; Flutter release OFF** |
 
-Read-only catalog inspection confirms **SECURITY DEFINER**, empty `search_path` and denied `anon`/`PUBLIC` EXECUTE on **all seven** RPCs. The original four composition/Create/Update/Delete RPCs permit authenticated EXECUTE; the three staged Move/Create+Move/first-Routine functions deny EXECUTE to `authenticated`, `anon`, `PUBLIC` and `service_role`. **Deployed but dormant is not production activation**, user-facing release or permission to grant EXECUTE. The current checked-in migrations define the server ownership, revision/atomicity and anti-resurrection contracts. The Routine Delete implementation retires deleted Routine IDs in private `private.deleted_user_workout_routine_ids` (not an ordinary `public` table). No direct authenticated Routine table DELETE is authorized by these RPC observations.
+Read-only catalog inspection confirms **SECURITY DEFINER**, empty `search_path` and denied `anon`/`PUBLIC` EXECUTE on **all seven** RPCs. The four existing composition/Create/Update/Delete RPCs and the #568 `create_user_workout_routine_in_my_program` RPC now permit `authenticated` EXECUTE; the latter is directly callable via authenticated REST by eligible permanent owners even though Flutter's `myProgramRoutineCreateReleaseEnabledProvider` is hard `false`. Only the two #569 Move/Create+Move RPCs remain `authenticated`/`service_role` EXECUTE-denied, and `routineMoveReleaseEnabledProvider` remains hard `false`. The first-Routine grant is a real privileged backend boundary, **not** a verified mobile release or real-write QA pass. The current checked-in migrations define the server ownership, revision/atomicity and anti-resurrection contracts. The Routine Delete implementation retires deleted Routine IDs in private `private.deleted_user_workout_routine_ids` (not an ordinary `public` table). No direct authenticated Routine table DELETE is authorized by these RPC observations.
 
 **Evidence boundary:** Live metadata verification establishes table structure, RPC signatures and RPC EXECUTE status; the W1 table/column ACL description is additionally source-backed but was not independently queried successfully in this pass. This inventory update did not execute mutating RPCs, retest concurrency, validate existing rows against the `NOT VALID` Set position constraint or establish a distributed phone-app release. Workout Start, Routine Move release, programless first-Routine UI and device QA are tracked by live GitHub/Linear and runtime source, not by this catalog.
 
