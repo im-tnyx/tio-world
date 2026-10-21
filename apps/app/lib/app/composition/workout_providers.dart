@@ -117,7 +117,7 @@ final myProgramRoutineCreateRepositoryProvider =
       ? null : session.valueOrNull;
   if (client == null || auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id ||
-      auth.session.loginCycleId.trim().isEmpty) {
+      (auth.session.loginCycleId?.trim().isEmpty ?? true)) {
     return null;
   }
   final owner = auth.session.userId;
