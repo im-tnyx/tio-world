@@ -1022,7 +1022,7 @@ List<RouteBase> _shellBranchChildRoutes(
             if (owner == null || cycle == null ||
                 myCreate == null || programs == null ||
                 routines == null || exerciseRepo == null ||
-                compositionRepo == null || catalog == null ||
+                compositionRepo == null ||
                 libraryRoute == null || !libraryRoute.isCurrent ||
                 !firstRoutineSessionValid(owner, cycle) ||
                 pendingCreates.hasPendingMyProgramForOwner(owner: owner)) {
