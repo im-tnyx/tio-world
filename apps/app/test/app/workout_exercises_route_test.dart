@@ -1012,6 +1012,56 @@ void main() {
         .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
   });
 
+  testWidgets('lost first Routine ACK blocks retry and offers owner verification',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        loseFirstRoutineAcknowledgment: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-verify')),
+        findsOneWidget);
+    final adapter = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    expect(adapter.calls, 1);
+    final gate = container.read(routinePendingCreateGateProvider);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    final rootAction = find.byKey(const ValueKey('library-create-routine'));
+    expect(tester.widget<IconButton>(rootAction).tooltip,
+        'Verify saved Routine');
+    await tester.tap(rootAction);
+    await tester.pumpAndSettle();
+    // A Program row and Routine name alone do not prove the frozen mutation:
+    // the fake composition source deliberately cannot attest its receipt.
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    expect(adapter.calls, 1);
+    expect(find.text('Routine save is still unconfirmed.'), findsOneWidget);
+  });
+
   testWidgets('first Routine draft closes when login-cycle changes',
       (tester) async {
     final (container, router) = await _app(tester, AppMode.hybrid,
