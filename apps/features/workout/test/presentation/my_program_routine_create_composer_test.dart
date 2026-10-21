@@ -28,7 +28,7 @@ RoutineCreateController _draft(
   return RoutineCreateController.forMyProgram(
     initialName: 'First Routine',
     myProgramRepository: repo,
-    canWrite: canWrite,
+    canWrite: canWrite ?? () => true,
     onMyProgramDefiniteFailure: onDefiniteFailure,
     newUuid: () {
       if (!ids.moveNext()) throw StateError('Extra UUID allocation');
@@ -62,6 +62,8 @@ void main() {
         onMyProgramWriteResolved: (command) => gate.releaseMyProgram(
           owner: 'owner-a', loginCycle: 'cycle-1', command: command,
         ),
+        onMyProgramUnconfirmedExit: (_) {},
+        canWrite: () => true,
         onMyProgramDefiniteFailure: (command) =>
             gate.releaseDefiniteMyProgramForOwner(
               owner: 'owner-a', command: command,
@@ -153,6 +155,7 @@ void main() {
       initialName: 'First Routine',
       myProgramRepository: repo,
       onMyProgramDefiniteFailure: rejected.add,
+      canWrite: () => true,
       newUuid: () => ids[index++],
     );
     addTearDown(c.dispose);
