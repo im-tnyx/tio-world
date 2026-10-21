@@ -308,6 +308,14 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_m2c_legacy_rename_retirement_preflight.test.sql
 
+      - name: Reject #569 anonymous signed-in owners in both Move RPCs
+        shell: bash
+        run: |
+          # Migration remains client EXECUTE-revoked; test grants roll back.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_permanent_owner_move_guard.test.sql
+
       - name: Run #569 owner-scoped existing-Program Routine Move SQL matrix
         shell: bash
         run: |
