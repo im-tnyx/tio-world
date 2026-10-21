@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
+import '../../../domain/repositories/my_program_routine_create_repository.dart';
+import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -42,13 +44,36 @@ final class RoutineCreateController extends ChangeNotifier {
     this.canWrite,
     this.onDefiniteFailure,
     String Function()? newUuid,
-  })  : _name = initialName,
+  })  : myProgramRepository = null,
+        onMyProgramDefiniteFailure = null,
+        _name = initialName,
         _newUuid = newUuid ?? (() => const Uuid().v4()) {
     _publish();
   }
 
-  final Program program;
-  final RoutineCreateRepository repository;
+  /// Reuse this exact composer for a direct Library Create without inventing
+  /// a temporary ProgramId. Only the atomic default resolver owns persistence.
+  RoutineCreateController.forMyProgram({
+    required String initialName,
+    required MyProgramRoutineCreateRepository this.myProgramRepository,
+    this.userExercises,
+    this.canWrite,
+    this.onMyProgramDefiniteFailure,
+    String Function()? newUuid,
+  })  : program = null,
+        repository = null,
+        onDefiniteFailure = null,
+        _name = initialName,
+        _newUuid = newUuid ?? (() => const Uuid().v4()) {
+    _publish();
+  }
+
+  final Program? program;
+  final RoutineCreateRepository? repository;
+  final MyProgramRoutineCreateRepository? myProgramRepository;
+  /// Definite server rejections release only the frozen programless command.
+  final ValueChanged<MyProgramRoutineCreateCommand>?
+      onMyProgramDefiniteFailure;
   final UserExerciseRepository? userExercises;
   final bool Function()? canWrite;
   /// The rejected command can outlive a revoked/disposed Create route.
@@ -62,13 +87,19 @@ final class RoutineCreateController extends ChangeNotifier {
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
   RoutineCreateStatus _status = RoutineCreateStatus.ready;
   RoutineCreateCommand? _attempt;
+  MyProgramRoutineCreateCommand? _myProgramAttempt;
   /// The exact uncertain mutation, for owner-scoped recovery on route exit.
   RoutineCreateCommand? get unconfirmedAttempt =>
       _status == RoutineCreateStatus.outcomeUnknown ? _attempt : null;
+  MyProgramRoutineCreateCommand? get unconfirmedMyProgramAttempt =>
+      _status == RoutineCreateStatus.outcomeUnknown
+          ? _myProgramAttempt : null;
   /// Capturable only once the atomic write is actually dispatched, before
   /// its network Future can outlive an auth-revoked Create route.
   RoutineCreateCommand? get inFlightAttempt =>
       _status == RoutineCreateStatus.saving ? _attempt : null;
+  MyProgramRoutineCreateCommand? get inFlightMyProgramAttempt =>
+      _status == RoutineCreateStatus.saving ? _myProgramAttempt : null;
   String? _message;
   bool _disposed = false;
 
@@ -366,20 +397,35 @@ final class RoutineCreateController extends ChangeNotifier {
       }
     }
     if (!_authorized) return false;
-    final command = _attempt ??= RoutineCreateCommand(
-      routine: Routine(
-        id: RoutineId(_newUuid()),
-        programId: program.id,
+    RoutineCreateCommand? command;
+    MyProgramRoutineCreateCommand? myCommand;
+    if (program != null) {
+      command = _attempt ??= RoutineCreateCommand(
+        routine: Routine(
+          id: RoutineId(_newUuid()),
+          programId: program!.id,
+          name: _name.trim(),
+        ),
+        mutationId: _newUuid(),
+        entries: _entries,
+        expectedCustomTypes: _pickedCustomTypes,
+      );
+    } else {
+      myCommand = _myProgramAttempt ??= MyProgramRoutineCreateCommand(
+        routineId: RoutineId(_newUuid()),
         name: _name.trim(),
-      ),
-      mutationId: _newUuid(),
-      entries: _entries,
-      expectedCustomTypes: _pickedCustomTypes,
-    );
+        mutationId: _newUuid(),
+        entries: _entries,
+        expectedCustomTypes: _pickedCustomTypes,
+      );
+    }
     _status = RoutineCreateStatus.saving;
     _publish();
     try {
-      final revision = await repository.create(command);
+      final revision = myCommand != null
+          ? (await myProgramRepository!.createInMyProgram(myCommand))
+              .compositionRevision
+          : await repository!.create(command!);
       if (!_authorized) return false;
       if (revision != 1) throw const FormatException('Invalid Create revision.');
       _status = RoutineCreateStatus.saved;
@@ -390,7 +436,11 @@ final class RoutineCreateController extends ChangeNotifier {
       // controller was disposed by auth revocation, release the old pending
       // identity through the app's owner-bound gate. Do not notify UI state.
       try {
-        onDefiniteFailure?.call(command);
+        if (myCommand != null) {
+          onMyProgramDefiniteFailure?.call(myCommand);
+        } else {
+          onDefiniteFailure?.call(command!);
+        }
       } catch (_) {
         // Fail closed: a broken cleanup callback must not turn a rejection
         // into an unhandled error or a new/unknown write attempt.
@@ -400,6 +450,7 @@ final class RoutineCreateController extends ChangeNotifier {
       // Keep the editable Exercise/Set draft, but discard the rejected
       // identity+mutation attempt so an explicit Save can try afresh.
       _attempt = null;
+      _myProgramAttempt = null;
       _status = RoutineCreateStatus.ready;
       _publish('Could not create Routine. Review Exercises and try again.');
       return false;
@@ -416,31 +467,59 @@ final class RoutineCreateController extends ChangeNotifier {
   /// Read-only authoritative confirmation; an unknown outcome is not auto-
   /// retried and does not allow generating a new mutation token.
   Future<bool> reconcileUnknown({
+    ProgramRepository? programs,
     required RoutineRepository routines,
     required RoutineCompositionRepository compositions,
   }) async {
-    final attempted = _attempt;
-    if (_disposed || attempted == null ||
-        _status != RoutineCreateStatus.outcomeUnknown || !_authorized) {
+    if (_disposed || _status != RoutineCreateStatus.outcomeUnknown ||
+        !_authorized) {
       return false;
     }
     try {
-      final owned = await routines.list(program.id);
-      if (!_authorized) return false;
-      final found = owned.where((r) => r.id == attempted.routine.id).toList();
-      if (found.length != 1 ||
-          found.single.programId != program.id) {
-        return false;
-      }
-      final snapshot = await compositions.read(attempted.routine.id);
-      if (!_authorized) return false;
-      if (snapshot == null || !attempted.confirmsPersistedRoutine(snapshot)) {
-        return false;
+      final myCommand = _myProgramAttempt;
+      if (myCommand != null) {
+        if (programs == null) return false;
+        // Match the server-owned is_default identity, not the display name.
+        final defaults = (await programs.list())
+            .where((p) => p.isDefault).toList();
+        if (!_authorized || defaults.length != 1) return false;
+        final defaultProgram = defaults.single;
+        final rows = await routines.list(defaultProgram.id);
+        if (!_authorized) return false;
+        final matches = rows.where((r) => r.id == myCommand.routineId &&
+            r.programId == defaultProgram.id).toList();
+        if (matches.length != 1) return false;
+        final snapshot = await compositions.read(myCommand.routineId);
+        if (!_authorized || snapshot == null ||
+            !myCommand.confirmsPersistedInCanonicalDefault(
+              program: defaultProgram,
+              routine: matches.single,
+              snapshot: snapshot,
+            )) {
+          return false;
+        }
+      } else {
+        final attempted = _attempt;
+        final ownerProgram = program;
+        if (attempted == null || ownerProgram == null) return false;
+        final owned = await routines.list(ownerProgram.id);
+        if (!_authorized) return false;
+        final found = owned.where((r) => r.id == attempted.routine.id).toList();
+        if (found.length != 1 ||
+            found.single.programId != ownerProgram.id) {
+          return false;
+        }
+        final snapshot = await compositions.read(attempted.routine.id);
+        if (!_authorized || snapshot == null ||
+            !attempted.confirmsPersistedRoutine(snapshot)) {
+          return false;
+        }
       }
       _status = RoutineCreateStatus.saved;
       _publish();
       return true;
     } catch (_) {
+      // Any missing/ambiguous read stays UNKNOWN and cannot trigger a retry.
       return false;
     }
   }
