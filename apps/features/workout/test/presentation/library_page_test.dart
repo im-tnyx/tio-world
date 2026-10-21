@@ -11,6 +11,8 @@ Future<void> _pump(
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
   Future<void> Function(Program)? onAddRoutinePressed,
+  Future<void> Function()? onCreateRoutinePressed,
+  Future<void> Function()? onVerifyPendingRoutine,
   bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
   Future<bool> Function(Program, Routine)? onEditRoutine,
@@ -49,6 +51,8 @@ Future<void> _pump(
         onProgramsManagePressed: onProgramsManagePressed ?? () async {},
         onProgramPressed: onProgramPressed,
         onAddRoutinePressed: onAddRoutinePressed,
+        onCreateRoutinePressed: onCreateRoutinePressed,
+        onVerifyPendingRoutine: onVerifyPendingRoutine,
         hasUnconfirmedCreate: hasUnconfirmedCreate,
         onRoutinePressed: onRoutinePressed,
         onEditRoutine: onEditRoutine,
@@ -68,6 +72,49 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('Library first Routine action stays absent until capability',
+      (tester) async {
+    await _pump(tester, programRepository:
+        _FakeProgramRepository(programs: []));
+    expect(find.byKey(const ValueKey('library-create-routine')), findsNothing);
+    expect(find.byKey(const ValueKey('library-programs-create')),
+        findsOneWidget);
+  });
+
+  testWidgets('programless Create button works without a saved Program',
+      (tester) async {
+    var calls = 0;
+    await _pump(tester,
+      programRepository: _FakeProgramRepository(programs: []),
+      onCreateRoutinePressed: () async { calls++; },
+    );
+    final action = find.byKey(const ValueKey('library-create-routine'));
+    expect(action, findsOneWidget);
+    expect(tester.widget<IconButton>(action).tooltip, 'Create Routine');
+    await tester.tap(action);
+    await tester.pump();
+    expect(calls, 1);
+  });
+
+  testWidgets('pending first Routine shows Verify instead of a second Create',
+      (tester) async {
+    var created = 0;
+    var verified = 0;
+    await _pump(tester,
+      programRepository: _FakeProgramRepository(programs: []),
+      onCreateRoutinePressed: () async { created++; },
+      onVerifyPendingRoutine: () async { verified++; },
+      mode: TioThemeMode.dark,
+    );
+    final button = tester.widget<IconButton>(
+      find.byKey(const ValueKey('library-create-routine')));
+    expect(button.tooltip, 'Verify saved Routine');
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pump();
+    expect(created, 0);
+    expect(verified, 1);
+  });
+
 
   testWidgets('Library Move-only action carries Program/Routine and rereads source',
       (tester) async {

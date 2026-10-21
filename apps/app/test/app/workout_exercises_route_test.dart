@@ -935,6 +935,201 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
+
+  testWidgets('first Routine action is hidden while release grant is OFF',
+      (tester) async {
+    final (_, router) = await _app(
+        tester, AppMode.hybrid, withRoutineComposition: true,
+        emptyAllPrograms: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    expect(find.byType(LibraryPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-create-routine')),
+        findsNothing);
+    expect(find.text('My Program'), findsNothing);
+  });
+
+  testWidgets('root Create cancellation keeps a zero-Program Library empty',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    final first = find.byKey(const ValueKey('library-create-routine'));
+    expect(first, findsOneWidget);
+    final programs = container.read(programRepositoryProvider)!;
+    expect(await programs.list(), isEmpty);
+    await tester.tap(first);
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(tester.widget<TioInput>(
+        find.byKey(const ValueKey('create-routine-name')))
+        .controller!.text, 'Routine 1');
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(await programs.list(), isEmpty);
+    expect((container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate).calls, 0);
+  });
+
+  testWidgets('rejected first Routine transaction leaves no empty default',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        rejectFirstRoutineTransaction: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+
+    final adapter = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    final programs = container.read(programRepositoryProvider)!;
+    final routines = container.read(routineRepositoryProvider)!;
+    expect(adapter.calls, 1);
+    expect(await programs.list(), isEmpty);
+    expect((routines as _RouteRoutines).rows, isEmpty);
+    expect(container.read(routinePendingCreateGateProvider)
+        .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    expect(find.text('My Program'), findsNothing);
+
+    // The first attempt definitively rolled back. Explicit Save is a new
+    // atomic transaction, not an UNKNOWN/timeout retry.
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(adapter.calls, 2);
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    final defaults = (await programs.list()).where((p) => p.isDefault).toList();
+    expect(defaults, hasLength(1));
+    expect((await routines.list(defaults.single.id)), hasLength(1));
+  });
+
+  testWidgets('first Routine ACK creates canonical default and refreshes Library',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    final repository = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    expect(repository.calls, 1);
+    final defaults = (await container.read(programRepositoryProvider)!.list())
+        .where((program) => program.isDefault).toList();
+    expect(defaults, hasLength(1));
+    expect(defaults.single.name, 'My Program');
+    expect(find.text('My Program'), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider)
+        .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
+  });
+
+  testWidgets('lost first Routine ACK blocks retry and offers owner verification',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        loseFirstRoutineAcknowledgment: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-routine-verify')),
+        findsOneWidget);
+    final adapter = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    expect(adapter.calls, 1);
+    final gate = container.read(routinePendingCreateGateProvider);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.text('Routine save not confirmed'), findsOneWidget);
+    await tester.tap(find.text('Exit to Library'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    final rootAction = find.byKey(const ValueKey('library-create-routine'));
+    expect(tester.widget<IconButton>(rootAction).tooltip,
+        'Verify saved Routine');
+    await tester.tap(rootAction);
+    await tester.pumpAndSettle();
+    // A Program row and Routine name alone do not prove the frozen mutation:
+    // the fake composition source deliberately cannot attest its receipt.
+    expect(gate.hasPendingMyProgramForOwner(owner: 'test-user'), isTrue);
+    expect(adapter.calls, 1);
+    expect(find.text('Routine save is still unconfirmed.'), findsOneWidget);
+  });
+
+  testWidgets('first Routine draft closes when login-cycle changes',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user', loginCycleId: 'next-cycle'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect((container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate).calls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('atomic Create Routine appears under owning Library Program',
       (tester) async {
     final (container, router) = await _app(
@@ -2174,6 +2369,10 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withMovePreviewForTest = false,
   RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
+  bool withFirstRoutineForTest = false,
+  bool emptyAllPrograms = false,
+  bool loseFirstRoutineAcknowledgment = false,
+  bool rejectFirstRoutineTransaction = false,
   bool loseCreateAcknowledgment = false,
   bool delayCreateCommit = false,
   bool holdCreateResponse = false,
@@ -2197,6 +2396,12 @@ Future<(ProviderContainer, GoRouter)> _app(
   await calendarController.load();
   final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
+  final routePrograms = _RoutePrograms(empty: emptyAllPrograms);
+  final firstRoutine = _RouteMyProgramCreate(
+      routePrograms, routeRoutines,
+      loseAcknowledgment: loseFirstRoutineAcknowledgment,
+      rejectFirstAttempt: rejectFirstRoutineTransaction);
+
   assert(!withEnabledMoveForTest || withDormantMoveAdapters);
   assert(!withMovePreviewForTest || withDormantMoveAdapters);
   final moveOwner = withEnabledMoveForTest || withMovePreviewForTest
@@ -2212,6 +2417,12 @@ Future<(ProviderContainer, GoRouter)> _app(
 
   final container = ProviderContainer(
     overrides: [
+      if (withFirstRoutineForTest) ...[
+        supabaseClientProvider.overrideWithValue(
+            _DormantRouteSupabaseClient(owner: 'test-user')),
+        myProgramRoutineCreateReleaseEnabledProvider.overrideWithValue(true),
+        myProgramRoutineCreateRepositoryProvider.overrideWithValue(firstRoutine),
+      ],
       if (withDormantMoveAdapters) ...[
         supabaseClientProvider.overrideWithValue(
             _DormantRouteSupabaseClient(owner: moveOwner)),
@@ -2244,7 +2455,7 @@ Future<(ProviderContainer, GoRouter)> _app(
       ),
       exerciseCatalogRepositoryProvider.overrideWithValue(_RouteCatalog()),
       programRepositoryProvider.overrideWithValue(
-        withProgramRepository ? _RoutePrograms() : null,
+        withProgramRepository ? routePrograms : null,
       ),
       routineRepositoryProvider.overrideWithValue(
         withRoutineRepository ? routeRoutines : null,
@@ -2378,6 +2589,9 @@ final class _DormantRouteAuth extends Fake implements GoTrueClient {
 }
 
 final class _RoutePrograms implements ProgramRepository {
+  _RoutePrograms({bool empty = false}) {
+    if (empty) _programs.clear();
+  }
   final List<Program> _programs = [
     Program(
       id: ProgramId('20000000-0000-4000-8000-000000000001'),
@@ -2401,6 +2615,48 @@ final class _RoutePrograms implements ProgramRepository {
     final index = _programs.indexWhere((program) => program.id == id);
     if (index < 0) return;
     _programs[index] = Program(id: id, name: name);
+  }
+}
+
+/// Test-only atomic #568 server model: a default is created together with the
+/// first identified Routine, never by a standalone Flutter Program INSERT.
+final class _RouteMyProgramCreate implements MyProgramRoutineCreateRepository {
+  _RouteMyProgramCreate(this.programs, this.routines,
+      {this.loseAcknowledgment = false, this.rejectFirstAttempt = false});
+  final _RoutePrograms programs;
+  final _RouteRoutines routines;
+  final bool loseAcknowledgment;
+  final bool rejectFirstAttempt;
+  int calls = 0;
+
+  @override
+  Future<MyProgramRoutineCreateReceipt> createInMyProgram(
+      MyProgramRoutineCreateCommand command) async {
+    calls++;
+    final existing = await programs.list();
+    final matches = existing.where((program) => program.isDefault).toList();
+    if (matches.length > 1) throw StateError('Ambiguous default');
+    final program = matches.isEmpty
+        ? Program(
+            id: ProgramId('90000000-0000-4000-8000-000000000001'),
+            name: 'My Program', isDefault: true)
+        : matches.single;
+    final routine = Routine(
+      id: command.routineId, programId: program.id, name: command.name,
+    );
+    if (rejectFirstAttempt && calls == 1) {
+      // Transaction rejection happens BEFORE either canonical row is visible.
+      throw const RoutineCompositionException(
+          RoutineCompositionFailureKind.invalidRequest);
+    }
+    // Test-only in-memory transactional commit: do not suspend between writes
+    // or model the server's single atomic RPC as two independently failing
+    // repository calls. The real SQL transaction is validated separately.
+    if (matches.isEmpty) programs._programs.add(program);
+    routines.rows.add(routine);
+    if (loseAcknowledgment) throw StateError('Simulated missing ACK');
+    return MyProgramRoutineCreateReceipt(
+      programId: program.id, compositionRevision: 1);
   }
 }
 
