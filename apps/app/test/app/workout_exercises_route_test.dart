@@ -1083,6 +1083,43 @@ void main() {
         .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
   });
 
+  testWidgets('debug QA first-Routine Save persists via existing atomic path',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withQaFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isTrue);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    final saved = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    expect(saved.calls, 1);
+    final defaults = (await container.read(programRepositoryProvider)!.list())
+        .where((program) => program.isDefault).toList();
+    expect(defaults, hasLength(1));
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider)
+        .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
+  });
+
   testWidgets('lost first Routine ACK blocks retry and offers owner verification',
       (tester) async {
     final (container, router) = await _app(tester, AppMode.hybrid,
