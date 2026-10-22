@@ -949,6 +949,29 @@ void main() {
     expect(find.text('My Program'), findsNothing);
   });
 
+  testWidgets('debug QA first-Routine uses canonical composer with production OFF',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withQaFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isTrue);
+    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    final create = find.byKey(const ValueKey('library-create-routine'));
+    expect(create, findsOneWidget);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(await container.read(programRepositoryProvider)!.list(), isEmpty);
+    expect((container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate).calls, 0);
+  });
+
   testWidgets('root Create cancellation keeps a zero-Program Library empty',
       (tester) async {
     final (container, router) = await _app(tester, AppMode.hybrid,
@@ -1055,6 +1078,43 @@ void main() {
     expect(defaults, hasLength(1));
     expect(defaults.single.name, 'My Program');
     expect(find.text('My Program'), findsOneWidget);
+    expect(find.text('Routine 1'), findsOneWidget);
+    expect(container.read(routinePendingCreateGateProvider)
+        .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
+  });
+
+  testWidgets('debug QA first-Routine Save persists via existing atomic path',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withQaFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isTrue);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+        const ValueKey('exercise-row-ex_synthetic_route_curl')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+    final reps = find.byWidgetPredicate((widget) =>
+        widget is TioInput && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value.startsWith('routine-set-reps-'));
+    await tester.enterText(reps, '8');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    final saved = container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate;
+    expect(saved.calls, 1);
+    final defaults = (await container.read(programRepositoryProvider)!.list())
+        .where((program) => program.isDefault).toList();
+    expect(defaults, hasLength(1));
+    expect(find.byType(CreateRoutinePage), findsNothing);
     expect(find.text('Routine 1'), findsOneWidget);
     expect(container.read(routinePendingCreateGateProvider)
         .hasPendingMyProgramForOwner(owner: 'test-user'), isFalse);
@@ -2370,6 +2430,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
   bool withFirstRoutineForTest = false,
+  bool withQaFirstRoutineForTest = false,
   bool emptyAllPrograms = false,
   bool loseFirstRoutineAcknowledgment = false,
   bool rejectFirstRoutineTransaction = false,
@@ -2417,10 +2478,13 @@ Future<(ProviderContainer, GoRouter)> _app(
 
   final container = ProviderContainer(
     overrides: [
-      if (withFirstRoutineForTest) ...[
+      if (withFirstRoutineForTest || withQaFirstRoutineForTest) ...[
         supabaseClientProvider.overrideWithValue(
             _DormantRouteSupabaseClient(owner: 'test-user')),
-        myProgramRoutineCreateReleaseEnabledProvider.overrideWithValue(true),
+        if (withFirstRoutineForTest)
+          myProgramRoutineCreateReleaseEnabledProvider.overrideWithValue(true),
+        if (withQaFirstRoutineForTest)
+          myProgramRoutineCreateQaEnabledProvider.overrideWithValue(true),
         myProgramRoutineCreateRepositoryProvider.overrideWithValue(firstRoutine),
       ],
       if (withDormantMoveAdapters) ...[

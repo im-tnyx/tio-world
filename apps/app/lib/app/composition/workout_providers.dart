@@ -100,11 +100,28 @@ final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref)
   return SupabaseRoutineCreateRepository(client: client);
 });
 
-/// #568 first-Routine release hold. The hosted atomic default resolver exists,
-/// but its authenticated EXECUTE grant remains revoked. Tests may override this
-/// capability; a normal production build must never expose a broken write path.
+/// #568 first-Routine PRODUCTION release hold. Hosted owner-guarded RPC EXECUTE
+/// is now intentionally granted to eligible authenticated permanent accounts,
+/// but this production capability remains false until separate release approval.
 final myProgramRoutineCreateReleaseEnabledProvider =
     Provider<bool>((ref) => false);
+
+/// QA-only presentation opt-in for the existing canonical first-Routine flow.
+/// Requires BOTH a debug build and explicit TIO_FIRST_ROUTINE_QA=true.
+/// This does not authorize a database user: hosted RPC ownership/permanent-user
+/// checks remain authoritative. Distribute QA builds only to approved testers.
+bool firstRoutineQaOptInAllowed({
+  required bool debugMode,
+  required bool optedIn,
+}) =>
+    debugMode && optedIn;
+
+final myProgramRoutineCreateQaEnabledProvider = Provider<bool>((ref) =>
+    firstRoutineQaOptInAllowed(
+      debugMode: kDebugMode,
+      optedIn: const bool.fromEnvironment('TIO_FIRST_ROUTINE_QA',
+          defaultValue: false),
+    ));
 
 /// The staged atomic adapter is owner/login-cycle bound, with no local Program
 /// INSERT or metadata-only fallback. A captured prior-session adapter loses
