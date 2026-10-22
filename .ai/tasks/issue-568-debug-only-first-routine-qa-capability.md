@@ -12,11 +12,11 @@
 ## Active Handoff
 **Planning:** GitHub #568 and Linear TNYX-78; #569/TNYX-81 separately dormant.
 **Implementation owner:** `im-tnyx` GitHub isolated branch; no ownership transfer.
-**Review owner:** independent `im-tio` GitHub PR review, pending.
+**Review owner:** separate authenticated `im-tio` GitHub review account; formal COMMENTED at reviewed source SHA `1206e48aff29f32d178ae9f85fe41f5f3f10a0c5` with one P3 handoff-accuracy finding; not APPROVED. Review was assistant-operated, not separate human verification.
 **Repository:** protected main `1352fa90d654606be42346906dc1bec6d96dd46e` verified via GitHub API. Branch `tnyx/issue-568-debug-only-first-routine-qa-20261022` forked at exact main; owner's Windows `git status` and local worktrees unavailable via connector, untouched.
 **Supabase read-only:** Tio-tnyx hosted 68/68 migrations; first-Routine `authenticated EXECUTE=true`, Move RPCs `authenticated EXECUTE=false`; security advisor 10 authenticated-SECDEF WARNs, one password WARN and one private no-policy INFO.
 **Tracker limitation:** Linear TNYX-78 and TNYX-81 are readable; `get_agent_context` API returned tool-not-found, so no unverified field-note claim.
-**Prior test evidence:** owner-local 55 Workout plus 77 app-route tests passed at historical `main@ba611e7e` per #568 receipt. Not rerun in this session; no physical hosted real-write receipt.
+**Prior test evidence:** owner-local 55 Workout plus 77 app-route tests passed at historical `main@ba611e7e` per #568 receipt. At PR source SHA `1206e48aff29f32d178ae9f85fe41f5f3f10a0c5`, GitHub Flutter CI 5/5 SUCCESS, Docs Hygiene and attribution SUCCESS. GitHub CI is not local Windows or physical hosted-write QA.
 
 ## Discovery and Architecture
 - `apps/app/lib/app/composition/workout_providers.dart` currently has hard-false first-Routine production provider and an inaccurate pre-hosted-grant comment.
@@ -33,4 +33,11 @@
 5. Device QA with owner-approved test accounts remains separate, including real Save, A/B isolation, UNKNOWN, races, and Android/iOS signing/install.
 
 ## Final handoff
-**Current:** [GitHub PR #654](https://github.com/im-tnyx/tio-world/pull/654) OPEN / Ready for Review; source/test implementation is committed and independent `im-tio` review is requested, not approved. Exact-head Flutter CI is in progress at the first inspection; attribution and Docs Hygiene checks passed at `5f3bc4c9`. GitHub remote branch comparison 2 ahead/0 behind with 7 scoped files. Local `git diff --check` and actual hosted/device writes have NOT run here. Product release NO-GO; no Supabase changes. Dated check outcomes need refresh for the final HEAD before claiming merge readiness.
+
+**Current review checkpoint (2026-10-22):** [GitHub PR #654](https://github.com/im-tnyx/tio-world/pull/654) is OPEN / NOT MERGED. Verified previous implementation HEAD `1206e48aff29f32d178ae9f85fe41f5f3f10a0c5` had **4 commits, 7 scoped files, 0 behind** `main@1352fa90`. Exact-source [Flutter CI 39729268310](https://github.com/im-tnyx/tio-world/actions/runs/39729268310) **5/5 SUCCESS**, [Docs Hygiene 39729268296](https://github.com/im-tnyx/tio-world/actions/runs/39729268296) SUCCESS (scoped Git diff hygiene), [attribution 39729266360](https://github.com/im-tnyx/tio-world/actions/runs/39729266360) SUCCESS. Cursor bot checks NEUTRAL, not security/independent approval.
+
+**Review finding:** Separate authenticated GitHub reviewer `im-tio` submitted [COMMENTED review](https://github.com/im-tnyx/tio-world/pull/654) against that exact previous SHA: no P0/P1/P2 identified; P3 inline finding reports this task brief's formerly stale 2-commit/in-progress-CI prose. This bounded docs correction addresses P3. The PR HEAD after this correction is newer; **do not carry previous CI/review PASS forward as exact-current-HEAD validation**. Read the new HEAD, current checks, current thread status, and reviewer follow-up from GitHub before passing the gate.
+
+**Validation not claimed:** Owner-local Windows `git status` / `git diff --check` on the updated PR HEAD, signed Android/iOS debug QA build, consented hosted real-write testing, two-device/UNKNOWN/account-isolation acceptance, or published release. Branch-protection API read returned 403, so current requiredness cannot be asserted from it. A QA build opt-in is not authorization. Production first-Routine provider remains hard `false`; #569 Move/Undo release remains OFF; no Supabase modification.
+
+**Final status:** `REVIEW` pending new exact-head checks, P3 reviewer disposition and applicable owner-native/policy gate. **STOP before merge**; explicit owner `Go merge` is required. Keep GitHub #568 OPEN, Linear TNYX-78 In Progress and #569/TNYX-81 release-gated.
