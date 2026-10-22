@@ -473,6 +473,96 @@ void main() {
     }
   }
 
+  // Cancel must never dispatch a real Move attempt in opted-in debug QA.
+  for (final onProgramDetail in <bool>[false, true]) {
+    testWidgets(
+        'debug Move QA Cancel never writes from ${onProgramDetail ? 'Program Detail' : 'Library'}',
+        (tester) async {
+      final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
+      final (_, router) = await _app(
+        tester, AppMode.hybrid,
+        withRoutineComposition: true,
+        withDormantMoveAdapters: true,
+        withMoveQaForTest: true,
+        moveGateway: gateway,
+      );
+      router.go(_libraryPath);
+      await tester.pumpAndSettle();
+      if (onProgramDetail) {
+        await tester.tap(find.byKey(const ValueKey(
+            'program-open-20000000-0000-4000-8000-000000000001')));
+        await tester.pumpAndSettle();
+      }
+      const rid = '30000000-0000-4000-8000-000000000001';
+      await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('routine-move-$rid')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey(
+          'routine-move-destination-20000000-0000-4000-8000-000000000002')));
+      await tester.pumpAndSettle();
+      expect(find.text('Move Routine?'), findsOneWidget);
+      expect(gateway.writes, 0);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(gateway.writes, 0);
+      expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  // A ZERO-write preview takes precedence if both debug flags are set.
+  // Verify BOTH dispatch branches remain unreachable after confirmation.
+  for (final createNew in <bool>[false, true]) {
+    testWidgets(
+        'debug Move QA plus preview stays zero-write for ${createNew ? 'Create & Move' : 'existing Move'}',
+        (tester) async {
+      final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
+      final (container, router) = await _app(
+        tester, AppMode.hybrid,
+        withRoutineComposition: true,
+        withDormantMoveAdapters: true,
+        withMoveQaForTest: true,
+        withMovePreviewForTest: true,
+        moveGateway: gateway,
+      );
+      expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+      expect(container.read(routineMoveQaEnabledProvider), isTrue);
+      expect(container.read(routineMoveUiPreviewEnabledProvider), isTrue);
+      router.go(_libraryPath);
+      await tester.pumpAndSettle();
+      const rid = '30000000-0000-4000-8000-000000000001';
+      await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('routine-move-$rid')));
+      await tester.pumpAndSettle();
+      if (createNew) {
+        await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+        await tester.pumpAndSettle();
+        expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+      } else {
+        await tester.tap(find.byKey(const ValueKey(
+            'routine-move-destination-20000000-0000-4000-8000-000000000002')));
+        await tester.pumpAndSettle();
+        expect(find.text('Move Routine?'), findsOneWidget);
+      }
+      expect(gateway.writes, 0);
+      await tester.tap(find.text(createNew ? 'Create & Move' : 'Move'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(gateway.writes, 0,
+          reason: 'preview must override the opted-in real QA capability');
+      expect(find.byKey(const ValueKey('routine-move-preview-feedback')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
