@@ -95,34 +95,74 @@ The UI reports that no change was made. Clearing the define restores the
 default hidden action. This opt-in does not turn on
 `routineMoveReleaseEnabledProvider`, Supabase RPC grants, or production Move.
 
-## Move Routine real-write debug QA (separately opted in, not released)
+## Move Routine real-write debug QA (isolated environment, not released)
 
 The #569 existing-Program Move and atomic Create & Move implementation can
 be exercised in an explicitly opted-in **debug** app without enabling the
 production `routineMoveReleaseEnabledProvider`. This is **not** the
 zero-write preview above. A confirmed QA action uses the existing live,
-owner-bound Move RPC adapter and **can change hosted workout data if the
-server has separately authorized EXECUTE**.
+owner-bound Move RPC adapter and **can change workout data if the
+connected Supabase database has separately authorized EXECUTE**.
 
 ```bash
 cd apps/app
 flutter run --debug --dart-define=TIO_MOVE_ROUTINE_QA=true
 ```
 
-**Current security prerequisite:** both Move RPCs remain EXECUTE-denied to
-`authenticated` in hosted Tio-world. The QA opt-in does **not** bypass or
-grant database permission, so a current live Move attempt will be rejected.
-Do not work around it with direct `UPDATE(program_id)`, a service-role client,
-an unreviewed SQL GRANT, or a source-level production flag change.
+**Architecture & Security Decision (Option A — Isolated QA Environment):**
+Per explicit owner approval on 2026-10-23 (Option A), real-write QA for Move
+Routine is restricted to **isolated Supabase environments** (local Docker-based
+Supabase CLI or a dedicated disposable staging project). Hosted Tio-world
+Move RPCs remain **EXECUTE-denied** (`authenticated = false`) to completely
+prevent exposure to ordinary users before the 5-second post-commit Undo and
+#567 Program Delete reparenting features are implemented and approved.
+A Flutter debug flag is a client UI gate, **not** a database security boundary;
+granting EXECUTE on hosted would expose PostgREST endpoints to all signed-in
+accounts.
 
-Only after a distinct reviewed, owner-approved grant/deployment should approved
-testers run real Moves using consenting, isolated test accounts on physical
-Android/iOS debug builds. Verify A→B, B→A, new Program atomicity, cancel,
-idempotency/UNKNOWN, stale revision, owner switch, cross-device races and
-Program/Exercise/Set stability; document actual receipts before release.
-The opt-in is a client presentation flag, **not** server authorization or a
-test-user allowlist. Never distribute write-capable QA builds to normal users
-or point them at private real-user workout data.
+### Isolated Local Supabase QA Execution Runbook
+
+1. **Start local Supabase runtime:**
+   ```bash
+   supabase start
+   ```
+2. **Apply the isolated Move RPC grant in the local container:**
+   ```sql
+   -- Run ONLY against isolated local/disposable QA database:
+   grant execute on function public.move_user_workout_routine(
+     uuid, uuid, uuid, bigint, uuid
+   ) to authenticated;
+
+   grant execute on function public.create_user_workout_program_and_move_routine(
+     uuid, uuid, uuid, text, bigint, uuid
+   ) to authenticated;
+   ```
+3. **Run debug app against local Supabase runtime:**
+   Launch the app with local runtime configuration and `--dart-define=TIO_MOVE_ROUTINE_QA=true`.
+   Verify A→B, B→A, new Program atomicity, cancel, idempotency/UNKNOWN, stale
+   revision CAS, owner switch, cross-device races, and Program/Exercise/Set
+   stability with isolated test accounts.
+4. **Tested rollback / revoke procedure:**
+   When testing concludes or to verify fail-closed behavior, execute:
+   ```sql
+   -- Tested revocation rollback:
+   revoke execute on function public.move_user_workout_routine(
+     uuid, uuid, uuid, bigint, uuid
+   ) from authenticated;
+
+   revoke execute on function public.create_user_workout_program_and_move_routine(
+     uuid, uuid, uuid, text, bigint, uuid
+   ) from authenticated;
+   ```
+   PostgREST immediately returns SQLSTATE `42501` (`insufficient_privilege`)
+   to any subsequent Move attempt while routine/program records remain unharmed.
+
+**Current hosted security prerequisite:** both Move RPCs remain EXECUTE-denied
+to `authenticated` in hosted Tio-world. Do not work around it with direct
+`UPDATE(program_id)`, a service-role client, an unreviewed SQL GRANT, or a
+source-level production flag change. No deployable forward migration granting
+broad authenticated EXECUTE will be added to `supabase/migrations/` without
+a separate owner exposure decision.
 
 If `TIO_MOVE_ROUTINE_UI_PREVIEW=true` and `TIO_MOVE_ROUTINE_QA=true`
 are both supplied, the preview takes precedence and performs **zero writes**.
