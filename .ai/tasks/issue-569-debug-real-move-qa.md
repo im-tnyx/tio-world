@@ -1,6 +1,6 @@
 # GitHub #569 / Linear TNYX-81: Debug-only REAL Move Routine QA gate
 
-**Status:** Source implementation in progress; independent review and merge pending.
+**Status:** Source staged; exact-head CI rerun, independent review and merge pending.
 **Ownership:** GitHub `im-tnyx` scoped implementation; separate independent review required.
 **Base:** `main@becb33bb09c05e1470375bb616cdf62d9f3f2c3d` verified before branch creation (2026-10-22).
 **Owner-approved behavior:** Existing #569 Move Routine selector, owner-scoped existing-Program and atomic New Program destinations; this is a bounded internal QA subtask, not a new product UX. No new tables or columns.
@@ -21,7 +21,7 @@
 
 ## Validation requirements
 - Predicate truth-table for debug/define combinations and default production OFF.
-- App-route coverage with production release false + QA-only override from Program Detail and expanded Library: cancellation must dispatch zero writes, confirmed New Program Move must invoke the single existing owner-safe gateway, and failure must not be misreported as success.
+- App-route coverage with production release false + QA-only override from Program Detail and expanded Library: cancellation must dispatch zero writes, confirmed New Program Move must invoke the single existing owner-safe gateway, and failure must not be misreported as success. Added two explicit cancellation tests and two QA+preview priority tests for existing/new dispatch; assertions run in the exact-head Flutter CI, not through this remote connector.
 - Preview-only behavior remains zero-write, even with QA opt-in. Same-owner re-login/auth-switch must revoke stale sheet write access; preserve existing regression coverage.
 - `Flutter CI` exact-head including app-workout, `Docs Hygiene`, attribution and applicable branch gate checked on PR; independent reviewer must disposition findings. Owner-native `git diff --check` pending because connected GitHub API does not access `G:\\projects\\Tio-World`.
 
@@ -32,4 +32,10 @@
 4. Authorized debug-device owners run authenticated real-write QA (A→B, B→A, New Program atomicity, idempotent retries, UNKNOWN, stale revision, second device race, owner switching, cancellation and 2 surfaced entry points) before production release approval.
 5. Five-second post-commit Undo is a distinct owner-approval/implementation gate. Do not imply it exists.
 
-**Final status:** REVIEW until exact-head CI and independent review are verified. No production activation or live data mutation in this slice.
+## 2026-10-22 review-gate reconciliation
+- PR [#655](https://github.com/im-tnyx/tio-world/pull/655) is draft and unmerged. Initial head `e2416b51` had exact-head Flutter CI all-pass (app-workout, core-wear, nutrition-onboarding, analyzer/Dart), Docs Hygiene and attribution all successful; that receipt is historical after test amendment.
+- Follow-up test commit `b06fefcb` adds opt-in Cancel (Program Detail and Library) and simultaneous QA+preview ZERO-write (both existing/New Program flows). CI on this amended SHA was in progress when this brief was edited. A new brief-doc SHA must receive its own applicable exact-head check inventory.
+- GitHub compare main `becb33bb` → test head showed ahead 8, behind 0, exactly seven original owned paths; no Supabase/schema/GRANT/files added. Local Windows `git status` and native `git diff --check` remain unverified.
+- Independent GitHub review has not yet been delivered. No merge, SQL write, production flag, hosted device QA or data mutation may be inferred.
+
+**Final status:** REVIEW until amended exact-head CI and independent review are verified. No production activation or live data mutation in this slice.
