@@ -86,6 +86,25 @@ void main() {
         reason: 'normal test/debug without QA define must remain OFF');
   });
 
+  test('Move QA opt-in requires debug AND explicit define', () {
+    for (final debugMode in <bool>[false, true]) {
+      for (final optedIn in <bool>[false, true]) {
+        expect(
+          moveRoutineQaOptInAllowed(
+            debugMode: debugMode,
+            optedIn: optedIn,
+          ),
+          debugMode && optedIn,
+        );
+      }
+    }
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    expect(container.read(routineMoveQaEnabledProvider), isFalse,
+        reason: 'ordinary debug/profile/release builds must not expose Move');
+  });
+
   test('Move release capability is OFF even with valid auth', () async {
     const owner = '11111111-1111-4111-8111-111111111111';
     final c = _moveContainer(
