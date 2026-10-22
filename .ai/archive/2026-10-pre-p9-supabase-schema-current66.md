@@ -1,8 +1,15 @@
 # Pre-P9 — Supabase public inventory reconciliation (66 migrations)
 
-**Status:** In progress — PR #640 Open / Ready for Review; independent `im-tio` CHANGES_REQUESTED at reviewed `d6d35d51`. Owner-local guarded `git diff --check` **PASS / exit 0** was received for exact `d6d35d51`; any later PR HEAD must be validated separately using live PR receipts. No approval or merge authorization.
+**Status:** Validated historical snapshot — PR #640 approved and squash-merged on 2026-10-20; this file preserves the 66/66 documentation slice and is no longer an active implementation handoff.
 **Primary owner:** Supabase data documentation governance
 **Affected platforms:** Canonical public schema inventory only
+
+## Final disposition — 2026-10-22 archive review
+
+- [PR #640](https://github.com/im-tnyx/tio-world/pull/640) is **merged** (squash [`da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79`](https://github.com/im-tnyx/tio-world/commit/da3a94ce9bde2c2e6fdf3ef367a3aad55a28ee79)); exact final PR head `98f41428c4b40a0be7d55dc5b67cdbeeba45185e` had independent `im-tio` GitHub **APPROVED** review, 10/10 review threads resolved, required app-pinned attribution guard and runner SUCCESS, and an owner-executed guarded Windows `git diff --check` **PASS / exit 0** against `main@9e1b96f4cc5d8928887b2be5c99ec41a3692ab6f`. Owner explicitly authorized `Go merge with gate`; protected `main` contained the resulting squash commit. Later owner-local main sync to that SHA reported clean.
+- **This is a historical 66/66 inventory reconciliation.** After later separately authorized #568/#569 migrations, the current `docs/data/SUPABASE_SCHEMA.md` and `docs/data/SUPABASE_STRATEGY.md` record a separately verified **68/68 hosted migration checkpoint** (2026-10-21). The two migrations modify existing RPC body/privilege boundaries, not the previously measured 19-table/191-column/55-index structure. Source, verified live schema, current canonical docs and linked GitHub/Linear trackers override older status claims below.
+- **Historical record boundary:** sections below are the preserved pre-merge execution and reviewer handoff. Any references below to PR Open, `CHANGES_REQUESTED`, waiting for local validation, or 66/66 as the most recent live count are **past checkpoints, not current blockers**. Do not mutate these dated evidentiary statements merely to imply fresh measurement.
+- GitHub [#250](https://github.com/im-tnyx/tio-world/issues/250) stays **Open**, Linear [TNYX-193](https://linear.app/tnyx/issue/TNYX-193) stays **In Progress**, because whole-catalog contradiction acceptance is unchecked; P9 is not started. This archive does not authorize feature deployment, RPC grants, production Workout activation or a broad documentation sweep.
 
 ## Owner Approval and Scope Boundary
 
