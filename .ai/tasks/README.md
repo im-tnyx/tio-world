@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+Validated [Docs Hygiene CI PR #652](https://github.com/im-tnyx/tio-world/pull/652) handoff is [archived](../archive/2026-10-docs-hygiene-ci.md) after normal squash merge `main@5fb6fae82e98efb7b4f4b17d3ec2e526b9ec711f` and exact-head hosted diff/attribution SUCCESS; the read-only workflow remains supplemental. Parent [#250](https://github.com/im-tnyx/tio-world/issues/250) is Open and Linear TNYX-193 In Progress; historical task validation does not complete the whole-catalog contradiction audit.
+
 
 Validated GitHub [#596](https://github.com/im-tnyx/tio-world/issues/596) Slice C1 risk-based regression and review policy is [archived](../archive/2026-10-issue-596-c1-risk-regression-policy.md) after [PR #633](https://github.com/im-tnyx/tio-world/pull/633) normal squash merge at `main@0627cdaca9ebaeed602cb1a12244d3a002c4f877`. Owner-run exact-head docs check exit `0`, five GitHub check-runs SUCCESS and independent `im-tio` GitHub `APPROVED` review verified. Parent #596 remains OPEN for D1 and final acceptance.
 
