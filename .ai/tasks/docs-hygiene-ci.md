@@ -21,8 +21,8 @@
 **Branch:** `ci/docs-hygiene-exact-pr-head`
 **HEAD SHA:** Always read live PR metadata; this checked-in file cannot validate its own final commit SHA.
 **Observed working-tree state:** Not accessible remotely; no local cleanliness assertion.
-**Current blocker:** Independent formal review, observed GitHub-hosted CI, and owner's separate merge authorization.
-**Next exact action:** Verify exact new-HEAD checks and workflow job logs, inspect reviewer inline findings, validate GitHub CI's own positive/negative coverage, then owner-only merge gate. New workflow cannot be credited with validating old PR #651 unless an actual run targets that exact SHA.
+**Current blocker:** Independent formal `im-tio` follow-up review of the P3 handoff finding and owner's separate `Go merge` authorization. At prior exact PR HEAD `cb208077239a2bef30c62b627bcd4eef7d4b183e`, GitHub-hosted Docs Hygiene CI run [#39720999221](https://github.com/im-tnyx/tio-world/actions/runs/39720999221) and required attribution run [#39720999123](https://github.com/im-tnyx/tio-world/actions/runs/39720999123) completed **SUCCESS**. Any subsequent commit must receive its own exact-HEAD validation; this dated receipt does not transfer.
+**Next exact action:** Resolve the documented P3 inline finding, verify actual hosted Docs Hygiene and attribution checks at the new final PR HEAD, then obtain updated independent reviewer disposition before owner-only merge gate. The prior hosted positive run and author-supplied local negative-whitespace fixture are distinct evidence. No GitHub-hosted negative-test job has been observed. New workflow cannot be credited with validating old PR #651 unless an actual run targets that exact SHA.
 
 ## Behavior and Trust Boundary
 
@@ -36,7 +36,7 @@
 
 - Audited existing six GitHub workflows: only the required `Commit attribution guard` ran on docs-only PR #651; its job checks prohibited AI attribution, **not** `git diff --check`. Existing Flutter/Android/Supabase workflows are path-filtered to their own scopes; no duplicate workflow exists.
 - Before commit: stand-alone YAML parsed successfully (GitHub `on.pull_request` and permissions checked), embedded Bash passed `bash -n`, temporary Git fixture produced PASS on a clean renamed Markdown diff and expected nonzero FAIL on a whitespace defect.
-- Fixture/static results are **not GitHub-hosted CI evidence**. This workflow must actually execute at the exact PR SHA before being described as CI PASS.
+- **Source-level fixture evidence (author-supplied, not hosted):** local YAML/Bash checks and temporary Git clean/intentional-whitespace scenarios showed clean PASS and expected failure. **Separately verified GitHub-hosted positive execution:** at historical exact PR head `cb208077239a2bef30c62b627bcd4eef7d4b183e`, [Docs Hygiene run #39720999221](https://github.com/im-tnyx/tio-world/actions/runs/39720999221) completed SUCCESS with the exact-ref and documentation-diff step SUCCESS; [attribution run #39720999123](https://github.com/im-tnyx/tio-world/actions/runs/39720999123) completed SUCCESS. GitHub-hosted negative-case coverage was not run. Recheck these gates for any newer head rather than claiming old results transfer.
 - GitHub CI validation cannot substitute for a required *owner-local* receipt if the independent reviewer/owner explicitly retains that prerequisite; seek explicit independent updated review disposition before claiming the gate replaced.
 - PR #651 remains independently reviewed as `COMMENTED` at `eef57a7089f8312d7dfcf97ec483bff47dd932c3`, with no actionable changed-line defects but missing accepted exact-head diff validation; no status of PR #651 is modified in this CI slice.
 
