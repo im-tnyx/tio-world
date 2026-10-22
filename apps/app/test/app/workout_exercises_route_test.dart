@@ -410,6 +410,69 @@ void main() {
     });
   }
 
+  // #569 QA-only gated route. No host grant is present: the fake gateway
+  // rejects every attempted RPC, so the UI must not claim a confirmed Move.
+  // Both Program Detail and Library reuse the same protected command.
+  for (final onProgramDetail in <bool>[false, true]) {
+    for (final createNew in <bool>[false, true]) {
+      testWidgets(
+          'debug Move QA dispatches one confirmed ${createNew ? 'Create & Move' : 'existing-Program Move'} from ${onProgramDetail ? 'Program Detail' : 'Library'} without production release',
+          (tester) async {
+        final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
+        final (container, router) = await _app(
+          tester, AppMode.hybrid,
+          withRoutineComposition: true,
+          withDormantMoveAdapters: true,
+          withMoveQaForTest: true,
+          moveGateway: gateway,
+        );
+        expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+        expect(container.read(routineMoveQaEnabledProvider), isTrue);
+        expect(container.read(routineMoveUiPreviewEnabledProvider), isFalse);
+        router.go(_libraryPath);
+        await tester.pumpAndSettle();
+        if (onProgramDetail) {
+          await tester.tap(find.byKey(const ValueKey(
+              'program-open-20000000-0000-4000-8000-000000000001')));
+          await tester.pumpAndSettle();
+          expect(find.byType(ProgramDetailPage), findsOneWidget);
+        } else {
+          expect(find.byType(LibraryPage), findsOneWidget);
+        }
+        const rid = '30000000-0000-4000-8000-000000000001';
+        await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('routine-move-$rid')));
+        await tester.pumpAndSettle();
+        expect(gateway.reads, 1);
+        expect(gateway.writes, 0);
+        if (createNew) {
+          await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('program-create-submit')));
+          await tester.pumpAndSettle();
+          expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+        } else {
+          await tester.tap(find.byKey(const ValueKey(
+              'routine-move-destination-20000000-0000-4000-8000-000000000002')));
+          await tester.pumpAndSettle();
+          expect(find.text('Move Routine?'), findsOneWidget);
+        }
+        expect(gateway.writes, 0,
+            reason: 'selector and confirmation must not dispatch a write');
+        await tester.tap(find.text(createNew ? 'Create & Move' : 'Move'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(gateway.writes, 1,
+            reason: 'exactly one RPC attempt after explicit confirmation');
+        expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
+            findsNothing,
+            reason: 'a rejected write is never reported as success');
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);
@@ -2427,6 +2490,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   bool withDormantMoveAdapters = false,
   bool withEnabledMoveForTest = false,
   bool withMovePreviewForTest = false,
+  bool withMoveQaForTest = false,
   RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
   bool withFirstRoutineForTest = false,
@@ -2457,7 +2521,8 @@ Future<(ProviderContainer, GoRouter)> _app(
   await calendarController.load();
   final routeRoutines = _RouteRoutines(empty: emptyProgramRoutines);
   final routeCompositions = _RouteCompositions();
-  final routePrograms = _RoutePrograms(empty: emptyAllPrograms);
+  final routePrograms = _RoutePrograms(
+      empty: emptyAllPrograms, withSecondProgram: withMoveQaForTest);
   final firstRoutine = _RouteMyProgramCreate(
       routePrograms, routeRoutines,
       loseAcknowledgment: loseFirstRoutineAcknowledgment,
@@ -2465,7 +2530,8 @@ Future<(ProviderContainer, GoRouter)> _app(
 
   assert(!withEnabledMoveForTest || withDormantMoveAdapters);
   assert(!withMovePreviewForTest || withDormantMoveAdapters);
-  final moveOwner = withEnabledMoveForTest || withMovePreviewForTest
+  assert(!withMoveQaForTest || withDormantMoveAdapters);
+  final moveOwner = withEnabledMoveForTest || withMovePreviewForTest || withMoveQaForTest
       ? _moveTestOwner : 'test-user';
   final dormantMoveAdapter = withDormantMoveAdapters
       ? SupabaseRoutineMoveRepository(
@@ -2498,7 +2564,10 @@ Future<(ProviderContainer, GoRouter)> _app(
       if (withMovePreviewForTest) ...[
         routineMoveUiPreviewEnabledProvider.overrideWithValue(true),
       ],
-      if (withEnabledMoveForTest || withMovePreviewForTest) ...[
+      if (withMoveQaForTest) ...[
+        routineMoveQaEnabledProvider.overrideWithValue(true),
+      ],
+      if (withEnabledMoveForTest || withMovePreviewForTest || withMoveQaForTest) ...[
         _routineTestAuthStateProvider.overrideWith((ref) =>
             const AuthSessionAuthenticated(
               AuthSession(userId: _moveTestOwner, loginCycleId: 'test-cycle'),
@@ -2563,7 +2632,7 @@ Future<(ProviderContainer, GoRouter)> _app(
     ],
   );
   addTearDown(container.dispose);
-  if (withEnabledMoveForTest || withMovePreviewForTest) {
+  if (withEnabledMoveForTest || withMovePreviewForTest || withMoveQaForTest) {
     (container.read(appSessionBootstrapControllerProvider)
             as _ReadyAppSessionBootstrapController)
         .transitionTo(_moveTestOwner);
@@ -2653,8 +2722,14 @@ final class _DormantRouteAuth extends Fake implements GoTrueClient {
 }
 
 final class _RoutePrograms implements ProgramRepository {
-  _RoutePrograms({bool empty = false}) {
+  _RoutePrograms({bool empty = false, bool withSecondProgram = false}) {
     if (empty) _programs.clear();
+    if (withSecondProgram) {
+      _programs.add(Program(
+        id: ProgramId('20000000-0000-4000-8000-000000000002'),
+        name: 'Second Route Program',
+      ));
+    }
   }
   final List<Program> _programs = [
     Program(
