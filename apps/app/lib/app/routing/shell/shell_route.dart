@@ -114,7 +114,8 @@ List<RouteBase> _shellBranchChildRoutes(
           final myProgramCreateRepository =
               ref.watch(myProgramRoutineCreateRepositoryProvider);
           final myProgramCreateEnabled =
-              ref.watch(myProgramRoutineCreateReleaseEnabledProvider);
+              ref.watch(myProgramRoutineCreateReleaseEnabledProvider) ||
+              ref.watch(myProgramRoutineCreateQaEnabledProvider);
           final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
           final deleteFlow = ref.read(routineDeleteFlowProvider);
           // Reuse the feature-owned Move flow and the same existing/New Program
@@ -988,7 +989,8 @@ List<RouteBase> _shellBranchChildRoutes(
 
           // #568: the root entry reuses the existing canonical composer.
           // There is NO client-side Program INSERT, default-name identity
-          // inference or second write path. Hosted client EXECUTE is still OFF.
+          // inference or second write path. QA may opt in on debug only;
+// normal builds remain release-OFF despite hosted client EXECUTE.
           bool firstRoutineSessionValid(String owner, String cycle) {
             try {
               final liveBoot =
@@ -1004,7 +1006,8 @@ List<RouteBase> _shellBranchChildRoutes(
                   liveAuth.session.userId == owner &&
                   liveAuth.session.loginCycleId == cycle &&
                   sdkOwner == owner &&
-                  ref.read(myProgramRoutineCreateReleaseEnabledProvider);
+                  (ref.read(myProgramRoutineCreateReleaseEnabledProvider) ||
+                      ref.read(myProgramRoutineCreateQaEnabledProvider));
             } catch (_) {
               return false;
             }

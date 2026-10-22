@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+[#568 debug-only first-Routine QA capability](issue-568-debug-only-first-routine-qa-capability.md) is an **active source/review slice**: separately opt-in debug-only Library first-Routine testing through existing authenticated atomic flow; production provider remains OFF, no hosted mutation or physical-device QA has been performed. GitHub #568 / Linear TNYX-78 stay open; #569 Move and real Undo remain OFF.
+
 Validated [Docs Hygiene CI PR #652](https://github.com/im-tnyx/tio-world/pull/652) handoff is [archived](../archive/2026-10-docs-hygiene-ci.md) after normal squash merge `main@5fb6fae82e98efb7b4f4b17d3ec2e526b9ec711f` and exact-head hosted diff/attribution SUCCESS; the read-only workflow remains supplemental. Parent [#250](https://github.com/im-tnyx/tio-world/issues/250) is Open and Linear TNYX-193 In Progress; historical task validation does not complete the whole-catalog contradiction audit.
 
 

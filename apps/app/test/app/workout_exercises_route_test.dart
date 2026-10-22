@@ -949,6 +949,29 @@ void main() {
     expect(find.text('My Program'), findsNothing);
   });
 
+  testWidgets('debug QA first-Routine uses canonical composer with production OFF',
+      (tester) async {
+    final (container, router) = await _app(tester, AppMode.hybrid,
+        withRoutineComposition: true, withQaFirstRoutineForTest: true,
+        emptyAllPrograms: true, emptyProgramRoutines: true);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isTrue);
+    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    final create = find.byKey(const ValueKey('library-create-routine'));
+    expect(create, findsOneWidget);
+    await tester.tap(create);
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('create-routine-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateRoutinePage), findsNothing);
+    expect(await container.read(programRepositoryProvider)!.list(), isEmpty);
+    expect((container.read(myProgramRoutineCreateRepositoryProvider)
+        as _RouteMyProgramCreate).calls, 0);
+  });
+
   testWidgets('root Create cancellation keeps a zero-Program Library empty',
       (tester) async {
     final (container, router) = await _app(tester, AppMode.hybrid,
@@ -2370,6 +2393,7 @@ Future<(ProviderContainer, GoRouter)> _app(
   RoutineMoveGateway? moveGateway,
   bool withRoutineCreate = false,
   bool withFirstRoutineForTest = false,
+  bool withQaFirstRoutineForTest = false,
   bool emptyAllPrograms = false,
   bool loseFirstRoutineAcknowledgment = false,
   bool rejectFirstRoutineTransaction = false,
@@ -2417,10 +2441,13 @@ Future<(ProviderContainer, GoRouter)> _app(
 
   final container = ProviderContainer(
     overrides: [
-      if (withFirstRoutineForTest) ...[
+      if (withFirstRoutineForTest || withQaFirstRoutineForTest) ...[
         supabaseClientProvider.overrideWithValue(
             _DormantRouteSupabaseClient(owner: 'test-user')),
-        myProgramRoutineCreateReleaseEnabledProvider.overrideWithValue(true),
+        if (withFirstRoutineForTest)
+          myProgramRoutineCreateReleaseEnabledProvider.overrideWithValue(true),
+        if (withQaFirstRoutineForTest)
+          myProgramRoutineCreateQaEnabledProvider.overrideWithValue(true),
         myProgramRoutineCreateRepositoryProvider.overrideWithValue(firstRoutine),
       ],
       if (withDormantMoveAdapters) ...[

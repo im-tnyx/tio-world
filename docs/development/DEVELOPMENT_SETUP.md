@@ -95,6 +95,40 @@ The UI reports that no change was made. Clearing the define restores the
 default hidden action. This opt-in does not turn on
 `routineMoveReleaseEnabledProvider`, Supabase RPC grants, or production Move.
 
+## First-Routine debug-only hosted QA (opt-in, REAL writes)
+
+The #568 direct Library **Create Routine** uses the existing canonical composer
+and owner/login-cycle-bound atomic `create_user_workout_routine_in_my_program`
+RPC. The hosted RPC is now `authenticated EXECUTE=true` for eligible permanent
+accounts, but **production is not released**. An explicit **debug-only** build
+opt-in exposes this flow for separately approved QA with dedicated consenting
+test accounts; unlike the Move preview above, **Save here can write to the
+connected Supabase project**. Cancel before Save still performs zero writes.
+
+```bash
+cd apps/app
+flutter run --debug --dart-define=TIO_FIRST_ROUTINE_QA=true
+```
+
+Supply the already governed local QA Supabase runtime configuration separately.
+Keep secrets and testers' credentials out of Git, CLI logs and artifacts. Only
+distribute the debug build to authorized testers. Removing the define or running
+profile/release makes this QA-only UI capability false; the independent
+`myProgramRoutineCreateReleaseEnabledProvider` remains hard false. On a
+signed-in debug QA build, bootstrap owner, Auth login-cycle, SDK current user,
+repository and pending-UNKNOWN gates still apply. A compile-time flag is **NOT**
+server authorization, a tester allowlist, a permission kill switch, or proof
+of a staging backend. The hosted RPC remains directly callable by eligible
+permanent accounts. Do not point a QA build at real users' data.
+
+The checked-in iOS GitHub workflow currently produces an **unsigned profile**
+artifact, which does not enable this debug-only capability and does not prove
+installation on a physical iPhone. A signed, authorized debug-device workflow,
+test-account consent, actual-write Android/iOS evidence, A/B isolation, race,
+UNKNOWN readback and rollback review remain separate pre-release gates.
+Do not enable #569 Move permissions or confuse its zero-write preview with
+this actual-write first-Routine QA path.
+
 ## Flutter Feature Packages
 
 Feature packages live in:

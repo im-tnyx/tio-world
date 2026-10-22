@@ -67,6 +67,25 @@ void main() {
     expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
         reason: 'Program and Library must share one action single-flight');
   });
+  test('first-Routine QA opt-in requires debug AND explicit define', () {
+    for (final debugMode in <bool>[false, true]) {
+      for (final optedIn in <bool>[false, true]) {
+        expect(
+          firstRoutineQaOptInAllowed(
+            debugMode: debugMode,
+            optedIn: optedIn,
+          ),
+          debugMode && optedIn,
+        );
+      }
+    }
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isFalse,
+        reason: 'normal test/debug without QA define must remain OFF');
+  });
+
   test('Move release capability is OFF even with valid auth', () async {
     const owner = '11111111-1111-4111-8111-111111111111';
     final c = _moveContainer(
