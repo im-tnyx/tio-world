@@ -124,7 +124,9 @@ List<RouteBase> _shellBranchChildRoutes(
           final moveReleaseEnabled = ref.watch(routineMoveReleaseEnabledProvider);
           final movePreviewEnabled =
               ref.watch(routineMoveUiPreviewEnabledProvider);
-          final moveActionEnabled = moveReleaseEnabled || movePreviewEnabled;
+          final moveQaEnabled = ref.watch(routineMoveQaEnabledProvider);
+          final moveActionEnabled =
+              moveReleaseEnabled || movePreviewEnabled || moveQaEnabled;
           final moveRepository = ref.watch(routineMoveRepositoryProvider);
           final createMoveRepository =
               ref.watch(routineCreateMoveRepositoryProvider);
@@ -437,7 +439,8 @@ List<RouteBase> _shellBranchChildRoutes(
               try {
                 return sameAuthenticatedOwner() &&
                     (ref.read(routineMoveReleaseEnabledProvider) ||
-                        ref.read(routineMoveUiPreviewEnabledProvider)) &&
+                        ref.read(routineMoveUiPreviewEnabledProvider) ||
+                        ref.read(routineMoveQaEnabledProvider)) &&
                     !ref.read(routinePendingCreateGateProvider).hasPending(
                       owner: owner, loginCycle: cycle, programId: program.id,
                     );
@@ -455,8 +458,8 @@ List<RouteBase> _shellBranchChildRoutes(
               programs: programs,
               repository: moves,
               canWrite: sameSession,
-              // Debug-only preview still uses live owner-scoped reads but
-              // never reaches either protected write RPC after confirmation.
+              // Debug preview takes precedence over QA when both are opted in:
+              // preview must never call either protected write RPC.
               previewOnly: movePreviewEnabled,
               createAndMove: ({
                 required RoutineMoveTarget target,
