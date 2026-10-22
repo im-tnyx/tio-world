@@ -176,6 +176,22 @@ final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
 /// capability while any one of those release gates is incomplete.
 final routineMoveReleaseEnabledProvider = Provider<bool>((ref) => false);
 
+/// Separate debug-only REAL Move QA presentation gate. This does not grant
+/// remote database permission or enable production Move. Only owner-approved
+/// debug builds/test accounts may exercise the existing Move callbacks.
+bool moveRoutineQaOptInAllowed({
+  required bool debugMode,
+  required bool optedIn,
+}) =>
+    debugMode && optedIn;
+
+final routineMoveQaEnabledProvider = Provider<bool>((ref) =>
+    moveRoutineQaOptInAllowed(
+      debugMode: kDebugMode,
+      optedIn: const bool.fromEnvironment('TIO_MOVE_ROUTINE_QA',
+          defaultValue: false),
+    ));
+
 /// Opt-in visual QA of the existing Move selector on an Android/iOS DEBUG APK.
 /// Neither profile/release builds nor ordinary debug builds expose it.
 /// This is intentionally independent of the actual-write release capability;

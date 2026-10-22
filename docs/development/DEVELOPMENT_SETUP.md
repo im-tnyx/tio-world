@@ -95,6 +95,40 @@ The UI reports that no change was made. Clearing the define restores the
 default hidden action. This opt-in does not turn on
 `routineMoveReleaseEnabledProvider`, Supabase RPC grants, or production Move.
 
+## Move Routine real-write debug QA (separately opted in, not released)
+
+The #569 existing-Program Move and atomic Create & Move implementation can
+be exercised in an explicitly opted-in **debug** app without enabling the
+production `routineMoveReleaseEnabledProvider`. This is **not** the
+zero-write preview above. A confirmed QA action uses the existing live,
+owner-bound Move RPC adapter and **can change hosted workout data if the
+server has separately authorized EXECUTE**.
+
+```bash
+cd apps/app
+flutter run --debug --dart-define=TIO_MOVE_ROUTINE_QA=true
+```
+
+**Current security prerequisite:** both Move RPCs remain EXECUTE-denied to
+`authenticated` in hosted Tio-world. The QA opt-in does **not** bypass or
+grant database permission, so a current live Move attempt will be rejected.
+Do not work around it with direct `UPDATE(program_id)`, a service-role client,
+an unreviewed SQL GRANT, or a source-level production flag change.
+
+Only after a distinct reviewed, owner-approved grant/deployment should approved
+testers run real Moves using consenting, isolated test accounts on physical
+Android/iOS debug builds. Verify A→B, B→A, new Program atomicity, cancel,
+idempotency/UNKNOWN, stale revision, owner switch, cross-device races and
+Program/Exercise/Set stability; document actual receipts before release.
+The opt-in is a client presentation flag, **not** server authorization or a
+test-user allowlist. Never distribute write-capable QA builds to normal users
+or point them at private real-user workout data.
+
+If `TIO_MOVE_ROUTINE_UI_PREVIEW=true` and `TIO_MOVE_ROUTINE_QA=true`
+are both supplied, the preview takes precedence and performs **zero writes**.
+Neither flag works in profile/release builds. Production Move and real
+five-second post-commit Undo remain separate review/release gates.
+
 ## First-Routine debug-only hosted QA (opt-in, REAL writes)
 
 The #568 direct Library **Create Routine** uses the existing canonical composer
