@@ -990,7 +990,7 @@ List<RouteBase> _shellBranchChildRoutes(
           // #568: the root entry reuses the existing canonical composer.
           // There is NO client-side Program INSERT, default-name identity
           // inference or second write path. QA may opt in on debug only;
-// normal builds remain release-OFF despite hosted client EXECUTE.
+          // normal builds remain release-OFF despite hosted client EXECUTE.
           bool firstRoutineSessionValid(String owner, String cycle) {
             try {
               final liveBoot =

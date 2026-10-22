@@ -33,4 +33,4 @@
 5. Device QA with owner-approved test accounts remains separate, including real Save, A/B isolation, UNKNOWN, races, and Android/iOS signing/install.
 
 ## Final handoff
-**Current:** branch task brief prepared; code/test PR and independent review pending. Product release NO-GO; no Supabase changes.
+**Current:** [GitHub PR #654](https://github.com/im-tnyx/tio-world/pull/654) OPEN / Ready for Review; source/test implementation is committed and independent `im-tio` review is requested, not approved. Exact-head Flutter CI is in progress at the first inspection; attribution and Docs Hygiene checks passed at `5f3bc4c9`. GitHub remote branch comparison 2 ahead/0 behind with 7 scoped files. Local `git diff --check` and actual hosted/device writes have NOT run here. Product release NO-GO; no Supabase changes. Dated check outcomes need refresh for the final HEAD before claiming merge readiness.
