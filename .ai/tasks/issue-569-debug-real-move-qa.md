@@ -1,6 +1,6 @@
 # GitHub #569 / Linear TNYX-81: Debug-only REAL Move Routine QA gate
 
-**Status:** Source staged; exact-head CI rerun, independent review and merge pending.
+**Status:** REVIEW / P2 validation handoff. Independent `im-tio` review on `7961675b` requests changes solely for task evidence and owner-native `git diff --check`; source correctness was not rejected. This brief edit is a new commit and MUST receive fresh exact-head CI/re-review before merge.
 **Ownership:** GitHub `im-tnyx` scoped implementation; separate independent review required.
 **Base:** `main@becb33bb09c05e1470375bb616cdf62d9f3f2c3d` verified before branch creation (2026-10-22).
 **Owner-approved behavior:** Existing #569 Move Routine selector, owner-scoped existing-Program and atomic New Program destinations; this is a bounded internal QA subtask, not a new product UX. No new tables or columns.
@@ -32,10 +32,17 @@
 4. Authorized debug-device owners run authenticated real-write QA (A→B, B→A, New Program atomicity, idempotent retries, UNKNOWN, stale revision, second device race, owner switching, cancellation and 2 surfaced entry points) before production release approval.
 5. Five-second post-commit Undo is a distinct owner-approval/implementation gate. Do not imply it exists.
 
-## 2026-10-22 review-gate reconciliation
-- PR [#655](https://github.com/im-tnyx/tio-world/pull/655) is draft and unmerged. Initial head `e2416b51` had exact-head Flutter CI all-pass (app-workout, core-wear, nutrition-onboarding, analyzer/Dart), Docs Hygiene and attribution all successful; that receipt is historical after test amendment.
-- Follow-up test commit `b06fefcb` adds opt-in Cancel (Program Detail and Library) and simultaneous QA+preview ZERO-write (both existing/New Program flows). CI on this amended SHA was in progress when this brief was edited. A new brief-doc SHA must receive its own applicable exact-head check inventory.
-- GitHub compare main `becb33bb` → test head showed ahead 8, behind 0, exactly seven original owned paths; no Supabase/schema/GRANT/files added. Local Windows `git status` and native `git diff --check` remain unverified.
-- Independent GitHub review has not yet been delivered. No merge, SQL write, production flag, hosted device QA or data mutation may be inferred.
+## 2026-10-22 exact-head review and evidence reconciliation
+- PR [#655](https://github.com/im-tnyx/tio-world/pull/655) is **READY FOR REVIEW, unmerged**. Base `main@becb33bb09c05e1470375bb616cdf62d9f3f2c3d`. On reviewed head `7961675b0461edde5c76affb6d7f9f88776ef6b7`, API compare showed 9 scoped commits, zero behind and exactly seven changed paths (the original allowlist in PR).
+- **Verified checks on reviewed HEAD `7961675b`:**
+  - [Flutter CI #39762892584](https://github.com/im-tnyx/tio-world/actions/runs/39762892584): **SUCCESS**, all 5 jobs (app-workout, nutrition-onboarding, core-wear, Analyze Flutter and Dart / test Dart, aggregate Analyze and test).
+  - [Docs Hygiene #39762892613](https://github.com/im-tnyx/tio-world/actions/runs/39762892613): **SUCCESS**.
+  - [Commit attribution #39762890250](https://github.com/im-tnyx/tio-world/actions/runs/39762890250): **SUCCESS**.
+  - Neutral Cursor checks do not represent an approved code review. Codex/Cursor Bugbot usage limits were reported, not treated as passing reviewer verdicts.
+- **Historical, NOT current:** Initial `e2416b51` exact-head Flutter/Docs/attribution passed; the test follow-up `b06fefcb` added QA cancellation (both entry surfaces) plus QA+preview zero-write (existing/New Program), and its Flutter run was **CANCELLED** when this task-brief commit advanced the branch. The later `7961675b` exact-head SUCCESS superseded these outcomes for review purposes.
+- **Independent `im-tio` review [#5613145783](https://github.com/im-tnyx/tio-world/pull/655#pullrequestreview-5613145783)** at `7961675b`: **CHANGES_REQUESTED**, with two open P2 inline threads: (1) task-brief CI evidence stale, and (2) owner-native exact-head `git diff --check` receipt missing. Reviewer found no concrete source correctness defect. The first finding is addressed by this brief update; it is **NOT** considered resolved until reviewer disposition.
+- **Required owner-native receipt still NOT obtained.** This connected GitHub session cannot run Windows `G:\\projects\\Tio-World` Git, so do NOT claim `git diff --check` was executed. The owner must inspect the refreshed final branch SHA, verify parent-to-head ancestry, exact seven-path allowlist and exit code `0`; post the receipt to PR #655. This new brief commit changes the HEAD again, so re-check the current SHA instead of using `7961675b` as the target.
+- **Post-commit gates:** this documentation correction triggers a new HEAD; require applicable current-HEAD checks, owner-native diff receipt and independent re-review/re-disposition. Do not automatically resolve review threads, approve, merge, deploy or enable Move.
+- **Hosted/release boundary remains unchanged:** No SQL/migration, GRANT, hosted test write, physical Android/iOS QA, real five-second Undo or production release. Both Move RPCs remain EXECUTE-denied to client roles and production flag hard false.
 
-**Final status:** REVIEW until amended exact-head CI and independent review are verified. No production activation or live data mutation in this slice.
+**Final status: REVIEW.** No completion, merge, deployment, production activation or owner-local verification claimed.
