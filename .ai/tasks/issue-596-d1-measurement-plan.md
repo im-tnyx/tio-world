@@ -25,16 +25,16 @@
 **Ownership transition:** Fresh implementation owner established under owner approval from clean `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Repository state last verified:** 2026-10-23, remote `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Branch:** `docs/issue-596-d1-measurement-plan`
-**HEAD SHA:** `828dc92e3a5c25181742d4a962f1074d1afe0c49` (prior reviewed HEAD; this commit resolves remaining formula/receipt findings)
-**Observed working-tree state:** Clean working tree; PR #658 open
+**HEAD SHA:** `0ada08d6e3c5262feb83fbdb73492a6520a8014a` (prior reviewed HEAD; this commit resolves D1-F07 zero-denominator semantics and D1-F08 SHA provenance)
+**Observed working-tree state:** Clean working tree; PR #658 open (4 commits ahead / 0 behind)
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596); no dedicated Linear mirror (TNYX-193 belongs to #250)
-**Current implementation state:** PR #658 opened; required and supplemental CI passed; independent review requested
+**Current implementation state:** PR #658 amended; prior D1-F01..D1-F06 verified fixed; D1-F07/F08 edge cases resolved
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `828dc92e`: GitHub-hosted Docs Hygiene CI run #39925853978 PASS (7s); Commit attribution guard run #39925853111 PASS (4s); Attribution guard runner PASS (11s); historical `beec9099` and `75755a8a` receipts preserved
+**Validation completed at SHA:** `0ada08d6`: GitHub-hosted Docs Hygiene CI run #39927198717 PASS (5s); Commit attribution guard run #39927196366 PASS (4s); Attribution guard runner PASS (11s); historical receipts preserved
 **Validation remaining:** Exact-head checks on amended commit; re-review approval from `im-tio`
 **Current blocker:** Awaiting re-review approval from `im-tio` and explicit owner `Go merge` authorization; do not merge or close #596
-**Open review finding IDs:** D1-F01..D1-F06 resolved in this amendment
+**Open review finding IDs:** D1-F01..D1-F08 resolved in this amendment
 **Next exact action:** Push amended commit, verify exact-HEAD CI, await re-review approval from `im-tio` and owner merge directive
 
 ---
@@ -188,6 +188,7 @@ For every eligible PR, the following fields must be recorded in the measurement 
 
 4. **Post-Review Exact-HEAD Revalidation Rate ($R_{revalidation}$):**
    $$R_{revalidation} = \frac{\sum \text{PRs with Rework that Re-Ran and Verified Exact-HEAD Checks}}{\sum \text{PRs with Review Findings Causing Code/Docs Rework}}$$
+   *Zero-denominator rule:* If no PR in the cohort requires rework (denominator = 0), this rate is formally reported as `N/A (no review-caused rework; 0/0)` recording raw numerator and denominator counts, rather than a misleading `0%` or generic `Unknown`.
 
 5. **Review Finding Yield ($Y_{findings}$) and Density ($D_{findings}$):**
    $$Y_{findings} = \sum P0 + \sum P1 + \sum P2 + \sum P3 \quad (\text{Categorized deduplicated findings caught pre-merge})$$
@@ -198,6 +199,7 @@ For every eligible PR, the following fields must be recorded in the measurement 
    - **Provisional Reporting (at 10th PR Merge Checkpoint):**
      At the merge of PR #10, report regression counts and rate only for cohort PRs whose 7-day (168h) observation window has completed ($N_{completed}$). PRs whose 7-day window remains open (e.g. PR #10) are explicitly reported as censored (`In observation (window open)`), not counted as zero regressions.
      $$R_{regression\_provisional} = \frac{\sum \text{Cohort PRs with Linked Regressions in Completed Windows}}{N_{completed}}$$
+     *Zero-denominator rule:* If all 10 cohort PRs merge within 168 hours ($N_{completed} = 0$), the provisional rate is formally reported as `N/A (no completed windows; 0/0, 10 open)` along with the exact timestamp when the earliest window matures, rather than a computed `0%` or generic `Unknown`.
    - **Final Reporting (after all 10 PRs reach 7-day window):**
      $$R_{regression\_final} = \frac{\sum \text{Cohort PRs with Linked Reverts, Regressions, or Reopened Tasks within 7-Day Window}}{\text{Total Merged Cohort PRs with Completed 7-Day Window (10)}}$$
    *Attribution rules:* A regression is attributed if verifiably linked via: (a) a revert commit on `main`, (b) a reopened parent/child GitHub or Linear issue, or (c) a newly filed bug issue citing the PR or squash merge SHA.
@@ -265,8 +267,8 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 ### Review Provenance
 - **Review source / link:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658)
 - **Reviewer / relation:** Independent review completed by `im-tio` (Collaborator, separate from author)
-- **Reviewed SHA:** `828dc92e3a5c25181742d4a962f1074d1afe0c49` (PR commit 3, re-reviewing prior `beec9099170c61eb28b2a5b1297b5cc14e3fc77e`)
-- **Review verdict:** `CHANGES_REQUESTED` by `im-tio` on `828dc92e` (D1-F01/F03 verified; D1-F02/F04/F05/F06 remaining open formula/receipt items resolved in this amendment). External tool notes:
+- **Reviewed SHA:** `0ada08d6e3c5262feb83fbdb73492a6520a8014a` (PR commit 4, re-reviewing prior `828dc92e3a5c25181742d4a962f1074d1afe0c49` and `beec9099170c61eb28b2a5b1297b5cc14e3fc77e`)
+- **Review verdict:** `CHANGES_REQUESTED` by `im-tio` on `0ada08d6` (prior D1-F01..D1-F06 verified fixed; new edge cases D1-F07 zero-denominator semantics and D1-F08 SHA provenance resolved in this amendment). External tool notes:
   - Codex code review: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
   - Cursor Bugbot: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
   - Copilot pull request reviewer: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
@@ -280,7 +282,9 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | D1-F03 | P2 | Resolved | Hardcoded Flutter & Database CI as required across entire cohort | `beec9099` | Dynamic per-PR check classification (Required vs Supplemental vs Path-Filtered) codified |
 | D1-F04 | P2 | Resolved | Independent review conflated with formal approval; denominator unanchored | `beec9099` | Separated into Activity Rate ($R_{ind\_reviewed}$) and Approval Rate ($R_{ind\_approved}$), fixed to 10 PRs |
 | D1-F05 | P2 | Resolved | Unequal post-merge observation horizon biased regression metric | `beec9099` | Fixed 7-calendar-day (168h) window established; open windows censored as `In observation` |
-| D1-F06 | P3 | Resolved | Final status pinned to older commit SHA `75755a8a` instead of current PR HEAD | `beec9099` | Updated exact-HEAD SHA and verified GitHub Actions Docs Hygiene CI #39918674439 |
+| D1-F06 | P3 | Resolved | Final status pinned to older commit SHA `75755a8a` instead of current PR HEAD | `beec9099` | Corrected reviewed SHA `beec9099170c61eb28b2a5b1297b5cc14e3fc77e` and updated exact-HEAD receipt |
+| D1-F07 | P2 | Resolved | Undefined zero denominator for provisional regression and revalidation rates | `0ada08d6` | Explicit N/A semantics, raw count reporting, and open-window maturation tracking added to formulas 4 & 6 |
+| D1-F08 | P3 | Resolved | PR description and comment receipts cited imprecise commit SHAs | `0ada08d6` | Exact 40-character SHAs verified via `git rev-parse`; PR description synchronized |
 
 ---
 
@@ -299,4 +303,4 @@ Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
-**`REVIEW`** (Implementation complete, PR #658 amended with exact formulas and verified SHAs resolving all D1-F01..D1-F06 items; CI green on `828dc92e` [Docs Hygiene #39925853978]; awaiting exact-HEAD CI and re-review approval from `im-tio` before owner `Go merge`. Not `PASS` until gates pass; do not merge).
+**`REVIEW`** (Implementation complete, PR #658 amended resolving D1-F01..D1-F08; CI green on `0ada08d6` [Docs Hygiene #39927198717]; awaiting exact-HEAD CI and re-review approval from `im-tio` before owner `Go merge`. Not `PASS` until gates pass; do not merge).
