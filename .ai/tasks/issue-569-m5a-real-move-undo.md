@@ -1,6 +1,6 @@
 # GitHub #569 / Linear TNYX-81 + TNYX-267: M5A Existing-Program Real Move Undo
 
-**Status:** In Review / Merge Gate
+**Status:** REVIEW
 **Primary owner:** `im-tnyx`
 **Affected platforms:** Flutter Android, Workout feature, isolated Supabase QA
 
@@ -29,16 +29,18 @@
 **Repository state last verified:** `main@6dee84bfd018e13a7f8674560c07f719cfb0f5e9`
 **Branch:** `codex/issue-569-m5a-real-move-undo`
 **PR / tracker:** GitHub #569 OPEN; PR #661 OPEN; Linear TNYX-81 & TNYX-267 in Backlog (CLI unauthenticated).
-**Current implementation state:** M5A source, app routing integration, and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS and session guards wired; post-dispatch invalidation decoupled from new-write eligibility; 45/45 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
+**Current implementation state:** M5A source, app routing integration, and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS, decoupled invalidation, and post-dispatch identity safety guards wired; 48/48 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart`, `apps/features/workout/test/presentation/routine_move_flow_test.dart`, `apps/app/lib/app/routing/shell/shell_route.dart`.
-**Validation completed at SHA:** Local working tree: `flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart` (45/45 PASS), `flutter test apps/app/test/app/workout_exercises_route_test.dart` (87/87 PASS), `flutter analyze apps/app apps/features/workout` (0 issues).
-**Validation remaining:** Push branch commit, verify exact-head CI, re-request review, await explicit owner `Go merge`.
+**Validation completed at SHA:** Local working tree: `flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart` (48/48 PASS), `flutter test apps/app/test/app/workout_exercises_route_test.dart` (87/87 PASS), `flutter analyze apps/app apps/features/workout` (0 issues). Exact-head CI on earlier commit `127a5a00` passed 5/5 jobs.
+**Validation remaining:** Push P2/P3 commit, verify exact-head CI, obtain reviewer approval on PR #661, stop at merge readiness gate.
 **Current blocker:** None. Gate 1 Android E2E completed against isolated local Docker Supabase with disposable account `qa_user_a@tio.local`; temporary RPC grants rolled back (`authenticated_execute: f`).
 **Review findings addressed:**
 1. `PRRT_kwDOTOXwB86voxAL` (Codex P2): UNKNOWN Undo reverse Move must invalidate owner-scoped lists without claiming success. Resolved via `onUndoWriteAttempted` callback.
 2. `PRRT_kwDOTOXwB86vp10A` (im-tio P2-1): In-flight reverse Move write eligibility race. Resolved by decoupling `onUndoWriteAttempted` in `finally` from mutable new-write eligibility `canWrite()`, with caller verifying frozen `sameAuthenticatedOwner()`.
 3. `PRRT_kwDOTOXwB86vp10G` (im-tio P2-2): Contradictory Gate 1 evidence. Resolved by reconstructing authoritative Gate 1 record with full provenance, preserving earlier pre-flight blocker as historical context.
 4. `PRRT_kwDOTOXwB86vp10M` (im-tio P2-3): Materially incorrect handoff and changed-files scope. Resolved by auditing all 7 changed files and providing accurate runtime descriptions.
+5. `PRRT_kwDOTOXwB86vrKx1` (im-tio P2): Post-Undo UI feedback identity safety. Resolved by introducing `sameAuthenticatedOwner` predicate to `_executeUndo` (`canPresentFeedback`), preventing cross-owner or old login-cycle UI feedback/confirm callbacks while preserving decoupled refresh reconciliation.
+6. `PRRT_kwDOTOXwB86vrKyA` (im-tio P3): Canonical final handoff status token. Resolved by using canonical token `REVIEW` with separate lifecycle and merge gate fields.
 **Next exact action:** Push commit to branch, reply to review threads, verify CI checks, stop at merge readiness gate.
 
 ## 1. Discovery
@@ -155,7 +157,7 @@ Verified on `Pixel_9_API35` (emulator-5554, API 35) against isolated local Docke
 | Android E2E regression (Gate 1) | PASS: Isolated Android E2E completed on Pixel 9 API 35 with disposable account `qa_user_a@tio.local`; Scenarios A-D verified; local grants revoked | Local temporary grants verified revoked (`authenticated_execute: f`) |
 | SQL/database identity | Local `config.toml` matches Docker project; PG 17.6, 68 migrations, Move EXECUTE denied locally and on hosted | Hosted database untouched |
 | Real Undo (M5A) | Implemented and verified: 5-second existing-Program Undo with CAS revision check, decoupled invalidation, and session guards | None in approved existing-Program scope; M5B deferred |
-| Automated test coverage | 45/45 workout move tests PASS; 87/87 app route tests PASS; flutter analyze 0 issues | Exact-head CI run required after push |
+| Automated test coverage | 48/48 workout move tests PASS; 87/87 app route tests PASS; flutter analyze 0 issues | Exact-head CI run required after push |
 | Production feature flags | `routineMoveReleaseEnabledProvider = false` strictly preserved | Feature remains dormant in production |
 | Hosted security posture | Hosted Move RPCs remain EXECUTE-denied; zero hosted migrations or grants | Verify hosted posture remains untouched |
 
@@ -168,8 +170,9 @@ Verified on `Pixel_9_API35` (emulator-5554, API 35) against isolated local Docke
 3. `.ai/tasks/README.md`: Reconciled M5A status to reflect in-review / merge-gate state with passing Gate 1 E2E.
 4. `.ai/tasks/issue-569-m5a-real-move-undo.md`: This active task brief, updated with complete P2 resolutions, verified Gate 1 records, and accurate handoff.
 5. `apps/app/lib/app/routing/shell/shell_route.dart`: Wired `onUndoWriteAttempted` callback to request `moveRefresh.request()` guarded by `sameAuthenticatedOwner()`.
-6. `apps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart`: Added 5-second floating Undo SnackBar action for existing-Program Move, CAS inspection/validation, protected reverse Move dispatch, and decoupled `onUndoWriteAttempted` invalidation in `finally`.
-7. `apps/features/workout/test/presentation/routine_move_flow_test.dart`: Added comprehensive unit and widget tests for real Undo lifecycle, CAS revision conflict abort, duplicate tap debounce, 5-second expiry, UNKNOWN outcome refresh invalidation without false success, post-dispatch exceptions, in-flight write eligibility race, cross-owner switch suppression, and widget unmount safety (45/45 tests passing).
+5. `apps/app/lib/app/routing/shell/shell_route.dart`: Wired `onUndoWriteAttempted` callback to request `moveRefresh.request()` guarded by `sameAuthenticatedOwner()`, and passed `sameAuthenticatedOwner` to `moveFlow.run()`.
+6. `apps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart`: Added 5-second floating Undo SnackBar action for existing-Program Move, CAS inspection/validation, protected reverse Move dispatch, decoupled `onUndoWriteAttempted` invalidation in `finally`, and `sameAuthenticatedOwner` identity guard for post-dispatch feedback (`canPresentFeedback`).
+7. `apps/features/workout/test/presentation/routine_move_flow_test.dart`: Added comprehensive unit and widget tests for real Undo lifecycle, CAS revision conflict abort, duplicate tap debounce, 5-second expiry, UNKNOWN outcome refresh invalidation without false success, post-dispatch exceptions, in-flight write eligibility race, cross-owner switch suppression, login-cycle change suppression, and widget unmount safety (48/48 tests passing).
 
 ### Actual Runtime Behavior
 
@@ -189,4 +192,7 @@ Verified on `Pixel_9_API35` (emulator-5554, API 35) against isolated local Docke
 
 ### Final Status
 
-`IN REVIEW / MERGE GATE (AWAITING OWNER AUTHORIZATION)`
+`REVIEW`
+
+- **Lifecycle:** In Review
+- **Merge Gate:** Awaiting independent reviewer approval and owner `Go merge`

@@ -106,6 +106,11 @@ final class RoutineMoveFlow {
     /// Routine lists without treating the signal as confirmed success.
     /// Never called if target inspection fails or the request is rejected before dispatch.
     VoidCallback? onUndoWriteAttempted,
+    /// Stable identity predicate for post-dispatch feedback and callbacks:
+    /// returns true if the current authenticated owner and login cycle match
+    /// the session that initiated the flow.
+    /// When omitted, falls back to [canWrite].
+    bool Function()? sameAuthenticatedOwner,
   }) async {
     if (routine.programId != sourceProgram.id || !canWrite() ||
         !_opening.add(routine.id)) {
@@ -296,7 +301,9 @@ final class RoutineMoveFlow {
         );
         // The atomic write may have committed before auth/widget changed.
         // Preserve the caller's refresh signal without showing old-user data.
-        if (!context.mounted || !canWrite()) return attempted;
+        if (!context.mounted || !(sameAuthenticatedOwner ?? canWrite)()) {
+          return attempted;
+        }
         if (result == RoutineMoveResult.confirmed) {
           _show(context, 'Routine moved.', confirmed: true);
         }
@@ -331,7 +338,9 @@ final class RoutineMoveFlow {
         mutationId: mutationId,
       );
       // The existing-Program RPC has the same post-dispatch uncertainty.
-      if (!context.mounted || !canWrite()) return attempted;
+      if (!context.mounted || !(sameAuthenticatedOwner ?? canWrite)()) {
+        return attempted;
+      }
       if (result == RoutineMoveResult.confirmed) {
         final receipt = _MoveUndoReceipt(
           routineId: routine.id,
@@ -350,6 +359,7 @@ final class RoutineMoveFlow {
           programs: programs,
           repository: repository,
           canWrite: canWrite,
+          sameAuthenticatedOwner: sameAuthenticatedOwner,
           onMoveConfirmed: onMoveConfirmed,
           onUndoWriteAttempted: onUndoWriteAttempted,
         );
@@ -428,6 +438,7 @@ final class RoutineMoveFlow {
     required ProgramRepository programs,
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
+    bool Function()? sameAuthenticatedOwner,
     VoidCallback? onMoveConfirmed,
     VoidCallback? onUndoWriteAttempted,
   }) {
@@ -472,6 +483,7 @@ final class RoutineMoveFlow {
               programs: programs,
               repository: repository,
               canWrite: canWrite,
+              sameAuthenticatedOwner: sameAuthenticatedOwner,
               onMoveConfirmed: onMoveConfirmed,
               onUndoWriteAttempted: onUndoWriteAttempted,
             );
@@ -489,9 +501,11 @@ final class RoutineMoveFlow {
     required ProgramRepository programs,
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
+    bool Function()? sameAuthenticatedOwner,
     VoidCallback? onMoveConfirmed,
     VoidCallback? onUndoWriteAttempted,
   }) async {
+    // 1. Strict new mutation eligibility check before inspection.
     if (!canWrite()) return;
 
     RoutineMoveTarget? target;
@@ -501,12 +515,13 @@ final class RoutineMoveFlow {
         routineId: receipt.routineId,
       );
     } catch (_) {
-      if (context.mounted && canWrite()) {
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
         _show(context, 'Could not restore. Check your Programs.');
       }
       return;
     }
 
+    // 2. Strict new mutation eligibility check before reverse move dispatch.
     if (!context.mounted || !canWrite()) return;
 
     // Validate the inspected target for safe Undo:
@@ -516,9 +531,19 @@ final class RoutineMoveFlow {
         target.expectedRevision != receipt.postMoveRevision ||
         target.sourceProgramId != receipt.destinationProgramId) {
       // An intervening write occurred or the session changed — Undo is unsafe.
-      _show(context, 'Could not restore. Check your Programs.');
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
       return;
     }
+
+    // 3. Post-dispatch UI feedback eligibility:
+    // Requires mounted context AND stable same authenticated owner + login cycle.
+    // When sameAuthenticatedOwner is omitted, falls back to canWrite().
+    // Mutable new-write eligibility (pending Create / QA toggle) does NOT suppress
+    // feedback for an already-dispatched mutation as long as the session identity matches.
+    bool canPresentFeedback() =>
+        context.mounted && (sameAuthenticatedOwner ?? canWrite)();
 
     var reverseWriteAttempted = false;
     RoutineMoveResult? result;
@@ -530,18 +555,18 @@ final class RoutineMoveFlow {
         mutationId: _newMutationId(),
       );
     } on RoutineMoveOutcomeUnknown {
-      if (context.mounted) {
+      if (context.mounted && canPresentFeedback()) {
         _show(
           context,
           'Restore status unconfirmed. Check your Programs.',
         );
       }
     } on RoutineMoveException {
-      if (context.mounted) {
+      if (context.mounted && canPresentFeedback()) {
         _show(context, 'Could not restore. Check your Programs.');
       }
     } catch (_) {
-      if (context.mounted) {
+      if (context.mounted && canPresentFeedback()) {
         _show(context, 'Could not restore. Try again later.');
       }
     } finally {
@@ -558,7 +583,7 @@ final class RoutineMoveFlow {
       }
     }
 
-    if (!context.mounted) return;
+    if (!context.mounted || !canPresentFeedback()) return;
 
     if (result == RoutineMoveResult.confirmed) {
       _show(context, 'Restored to ${receipt.originalProgramName}');

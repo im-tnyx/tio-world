@@ -120,6 +120,7 @@ Future<void> _pump(
   bool previewOnly = false,
   VoidCallback? onMoveConfirmed,
   VoidCallback? onUndoWriteAttempted,
+  bool Function()? sameAuthenticatedOwner,
 }) async {
   await tester.pumpWidget(MaterialApp(
     builder: (context, child) => TioTheme(
@@ -140,6 +141,7 @@ Future<void> _pump(
             previewOnly: previewOnly,
             onMoveConfirmed: onMoveConfirmed,
             onUndoWriteAttempted: onUndoWriteAttempted,
+            sameAuthenticatedOwner: sameAuthenticatedOwner,
           )),
           child: const Text('Open Move'),
         ),
@@ -1523,6 +1525,7 @@ void main() {
       move: g,
       programs: _Programs(),
       canWrite: () => canWriteFlag,
+      sameAuthenticatedOwner: () => isSameAuthenticatedOwner,
       onResult: (_) {},
       onMoveConfirmed: () => confirmCalls++,
       onUndoWriteAttempted: () {
@@ -1605,6 +1608,7 @@ void main() {
       move: g,
       programs: _Programs(),
       canWrite: () => canWriteFlag,
+      sameAuthenticatedOwner: () => isSameAuthenticatedOwner,
       onResult: (_) {},
       onMoveConfirmed: () => confirmCalls++,
       onUndoWriteAttempted: () {
@@ -1640,7 +1644,7 @@ void main() {
   });
 
   testWidgets(
-      'in-flight reverse Move cross-owner account switch suppresses caller refresh',
+      'in-flight reverse Move cross-owner account switch suppresses caller refresh AND suppresses old-owner feedback/confirm',
       (tester) async {
     final g = _Move();
     g.targetForProgram = (pid) {
@@ -1673,6 +1677,7 @@ void main() {
     };
 
     var undoAttemptCalls = 0;
+    var confirmCalls = 0;
     var callerRefreshCalls = 0;
     var isSameAuthenticatedOwner = true;
 
@@ -1682,7 +1687,9 @@ void main() {
       move: g,
       programs: _Programs(),
       canWrite: () => true,
+      sameAuthenticatedOwner: () => isSameAuthenticatedOwner,
       onResult: (_) {},
+      onMoveConfirmed: () => confirmCalls++,
       onUndoWriteAttempted: () {
         undoAttemptCalls++;
         if (isSameAuthenticatedOwner) {
@@ -1705,9 +1712,222 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(undoAttemptCalls, 1,
-        reason: 'Flow notifies onUndoWriteAttempted');
+        reason: 'Flow notifies onUndoWriteAttempted for attempted write');
     expect(callerRefreshCalls, 0,
         reason: 'Caller suppresses refresh when authenticated owner changed');
+    expect(confirmCalls, 0,
+        reason: 'Flow must NOT call onMoveConfirmed after owner switch');
+    expect(find.textContaining('Restored to'), findsNothing,
+        reason: 'Old-owner success feedback must NOT appear on new account screen');
+    expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')), findsNothing);
+  });
+
+  testWidgets(
+      'in-flight reverse Move UNKNOWN outcome after account switch suppresses unconfirmed UI feedback',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    var confirmCalls = 0;
+    var callerRefreshCalls = 0;
+    var isSameAuthenticatedOwner = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => true,
+      sameAuthenticatedOwner: () => isSameAuthenticatedOwner,
+      onResult: (_) {},
+      onMoveConfirmed: () => confirmCalls++,
+      onUndoWriteAttempted: () {
+        undoAttemptCalls++;
+        if (isSameAuthenticatedOwner) {
+          callerRefreshCalls++;
+        }
+      },
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    // User switches accounts during in-flight reverse Move
+    isSameAuthenticatedOwner = false;
+
+    reverseCompleter.completeError(const RoutineMoveOutcomeUnknown());
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1);
+    expect(callerRefreshCalls, 0);
+    expect(confirmCalls, 0);
+    expect(find.text('Restore status unconfirmed. Check your Programs.'), findsNothing,
+        reason: 'Unconfirmed message must NOT be displayed to different owner');
+  });
+
+  testWidgets(
+      'in-flight reverse Move server exception after account switch suppresses error feedback',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    var isSameAuthenticatedOwner = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => true,
+      sameAuthenticatedOwner: () => isSameAuthenticatedOwner,
+      onResult: (_) {},
+      onUndoWriteAttempted: () => undoAttemptCalls++,
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    isSameAuthenticatedOwner = false;
+
+    reverseCompleter.completeError(Exception('network drop'));
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1);
+    expect(find.text('Could not restore. Try again later.'), findsNothing,
+        reason: 'Error message must NOT be displayed to different owner');
+  });
+
+  testWidgets(
+      'same-owner relogin with new login cycle suppresses old-cycle Undo feedback',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    var confirmCalls = 0;
+    var isSameLoginCycle = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => true,
+      sameAuthenticatedOwner: () => isSameLoginCycle,
+      onResult: (_) {},
+      onMoveConfirmed: () => confirmCalls++,
+      onUndoWriteAttempted: () => undoAttemptCalls++,
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    // Login cycle changes (re-login or token refreshed with new cycle)
+    isSameLoginCycle = false;
+
+    reverseCompleter.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1);
+    expect(confirmCalls, 0,
+        reason: 'New login cycle must NOT receive old-cycle confirmed callback');
+    expect(find.textContaining('Restored to'), findsNothing,
+        reason: 'New login cycle must NOT render old-cycle SnackBar');
   });
 
   testWidgets(

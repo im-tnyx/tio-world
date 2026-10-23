@@ -458,6 +458,7 @@ List<RouteBase> _shellBranchChildRoutes(
               programs: programs,
               repository: moves,
               canWrite: sameSession,
+              sameAuthenticatedOwner: sameAuthenticatedOwner,
               // Debug preview takes precedence over QA when both are opted in:
               // preview must never call either protected write RPC.
               previewOnly: movePreviewEnabled,
