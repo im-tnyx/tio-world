@@ -25,14 +25,15 @@
 **Planning owner:** GitHub #569 / Linear TNYX-81 and TNYX-267
 **Implementation owner:** `im-tnyx`
 **Review owner:** Connected reviewer `im-tio` / Codex
-**Implementation ownership state:** Active (Documentation and task handoff reconciliation complete; local validation in progress)
+**Implementation ownership state:** In Review ([PR #662](https://github.com/im-tnyx/tio-world/pull/662) opened; CI passed; P3 review findings resolved)
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@16dbb6dbee51035280bfa8dec97153273cd764be`
 **Branch:** `docs/issue-569-slice-1-post-merge-reconciliation`
-**HEAD SHA:** `16dbb6dbee51035280bfa8dec97153273cd764be` (branch base)
-**Observed working-tree state:** Clean on base; modified documentation files: `docs/screens/routine-library.md`, `docs/data/SUPABASE_STRATEGY.md`, `docs/development/DEVELOPMENT_SETUP.md`, `.ai/tasks/issue-569-m5a-real-move-undo.md`, `.ai/tasks/README.md`.
-**PR / tracker:** GitHub #569 OPEN; GitHub #567 OPEN; PR #657 MERGED; PR #660 MERGED; PR #661 MERGED (`16dbb6db`; post-merge CI `39989687126` SUCCESS); Linear TNYX-81 & TNYX-267 in Backlog (CLI unauthenticated).
-**Current implementation state:** Documentation and task handoff reconciliation complete across canonical docs and task indexes. Local git diff check and link validation in progress.
+**HEAD SHA:** GitHub live tip is authoritative ([PR #662](https://github.com/im-tnyx/tio-world/pull/662))
+**Observed working-tree state:** Clean on branch; bounded documentation and task brief updates.
+**Observed uncommitted/dirty files:** None outside bounded task files.
+**PR / tracker:** GitHub #569 OPEN (reconciliation comment [#6371164064](https://github.com/im-tnyx/tio-world/issues/569#issuecomment-6371164064) posted); GitHub #567 OPEN; PR #657 MERGED; PR #660 MERGED; PR #661 MERGED (`16dbb6db`; post-merge CI `39989687126` SUCCESS); PR #662 OPEN; Linear TNYX-81 & TNYX-267 in Backlog.
+**Current implementation state:** Documentation and task handoff reconciliation complete across canonical docs and task indexes. P3-1 and P3-2 review findings addressed.
 **Relevant execution surface:**
 - `docs/screens/routine-library.md`
 - `docs/data/SUPABASE_STRATEGY.md`
@@ -40,11 +41,11 @@
 - `.ai/tasks/issue-569-m5a-real-move-undo.md`
 - `.ai/tasks/README.md`
 - `.ai/tasks/issue-569-slice-1-post-merge-reconciliation.md`
-**Validation completed at SHA:** Local `git diff --check` and link consistency checks.
-**Validation remaining:** Push documentation branch, open GitHub PR, run PR CI checks, request independent review, verify merge gate (stop before merge).
-**Current blocker:** None. Linear CLI reports `No API key configured`, noted as documented limitation without inventing status.
-**Open review finding IDs:** None.
-**Next exact action:** Run `git diff --check`, commit changes, push branch, open PR with clear `#569` reconciliation scope.
+**Validation completed at SHA:** Local `git diff --check` PASS (exit 0); PR #662 Docs Hygiene CI [run #39997741516](https://github.com/im-tnyx/tio-world/actions/runs/39997741516) SUCCESS; Commit attribution guard [run #39997741428](https://github.com/im-tnyx/tio-world/actions/runs/39997741428) SUCCESS; Codex code review COMPLETED with 0 findings.
+**Validation remaining:** Push P3 fixes, verify exact-head CI on PR #662, request reviewer recheck, stop at merge gate.
+**Current blocker:** None. Linear CLI reports `No API key configured` (recorded limitation).
+**Open review finding IDs:** `PRRT_kwDOTOXwB86vt6au` (P3-1: resolved); `PRRT_kwDOTOXwB86vt6a3` (P3-2: resolved).
+**Next exact action:** Commit and push P3 corrections, reply to and resolve review threads, verify CI, stop before merge.
 
 ## 1. Discovery
 
@@ -118,8 +119,9 @@ This is a documentation and tracker reconciliation slice. No architectural modif
 - [x] Reconcile `docs/data/SUPABASE_STRATEGY.md` line 15 to reflect M5A merged status, dormant hosted RPCs, and pending release gates.
 - [x] Reconcile `docs/development/DEVELOPMENT_SETUP.md` lines 117-118 and 169-170 to clarify M5A merged status while M5B and #567 remain pending.
 - [x] Validate changes using `git diff --check` and file inspection.
-- [ ] Commit changes, push branch, open GitHub PR, and verify exact-head CI.
-- [ ] Request review and stop at merge gate.
+- [x] Commit changes, push branch, open GitHub PR, and verify exact-head CI.
+- [x] Address review findings (P3-1: M5A Final Status token, P3-2: Slice 1 handoff completion, PR description SHA).
+- [ ] Await owner Go merge decision (stop before merge).
 
 ## 5. Quality Review
 
@@ -143,3 +145,29 @@ This is a documentation and tracker reconciliation slice. No architectural modif
 4. `docs/screens/routine-library.md`: Reconciled implementation and delivery boundary to reflect PRs #657, #660, and #661.
 5. `docs/data/SUPABASE_STRATEGY.md`: Reconciled Routine Move status to reflect M5A real Undo in client source while preserving dormant hosted RPC posture.
 6. `docs/development/DEVELOPMENT_SETUP.md`: Clarified that M5A existing-Program Undo is merged in source, while M5B full atomic Undo and #567 remain pending.
+
+### Actual Verification vs Limitations
+
+- **Verification completed:**
+  - Local `git diff --check` passed with 0 whitespace/formatting issues.
+  - GitHub Docs Hygiene CI ([run #39997741516](https://github.com/im-tnyx/tio-world/actions/runs/39997741516)) passed, running GitHub-hosted native `git diff --check`.
+  - Commit attribution guard ([run #39997741428](https://github.com/im-tnyx/tio-world/actions/runs/39997741428)) and companion runner passed.
+  - Codex code review completed with zero findings.
+  - `im-tio` independent review completed with `COMMENTED` disposition and two nonblocking P3 findings addressed here.
+- **Documented limitations:**
+  - Cursor Bugbot, Security, and Approval checks were neutral due to usage limits.
+  - Linear CLI was unauthenticated locally; issue status verified as `Backlog` via independent reviewer and team alignment.
+  - Documentation-only PR: zero Flutter code, SQL migrations, or database mutations were performed or required.
+
+### Remaining Review and Merge Gates
+
+1. Verify exact-head CI and attribution on final pushed commit.
+2. Verify zero unresolved review threads on GitHub PR #662.
+3. Stop condition: Await owner Go merge decision (no auto-merge, no PR merge without explicit instruction).
+
+### Final Status
+
+`REVIEW`
+
+- **Lifecycle:** In Review ([PR #662](https://github.com/im-tnyx/tio-world/pull/662))
+- **Merge Gate:** Awaiting owner Go merge authorization; do not merge without explicit instruction.
