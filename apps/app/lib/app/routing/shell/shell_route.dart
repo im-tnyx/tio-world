@@ -458,6 +458,7 @@ List<RouteBase> _shellBranchChildRoutes(
               programs: programs,
               repository: moves,
               canWrite: sameSession,
+              sameAuthenticatedOwner: sameAuthenticatedOwner,
               // Debug preview takes precedence over QA when both are opted in:
               // preview must never call either protected write RPC.
               previewOnly: movePreviewEnabled,
@@ -481,6 +482,15 @@ List<RouteBase> _shellBranchChildRoutes(
                   _guardRoutineOptionsSheet(
                 content: content, ownerId: owner, loginCycleId: cycle,
               ),
+              onUndoWriteAttempted: () {
+                if (sameAuthenticatedOwner()) {
+                  moveRefresh.request(
+                    ownerId: owner,
+                    loginCycleId: cycle,
+                    programsMayHaveChanged: false,
+                  );
+                }
+              },
             );
             // An attempted write (including UNKNOWN or a late rejection)
             // invalidates live owner-scoped readers. The flow's boolean is
