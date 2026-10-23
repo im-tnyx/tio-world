@@ -31,11 +31,11 @@
 **PR / tracker:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596); no dedicated Linear mirror (TNYX-193 belongs to #250)
 **Current implementation state:** PR #658 opened; required and supplemental CI passed; independent review requested
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `75755a8a`: local `git diff --check` PASS (exit 0); Docs Hygiene CI run #39918254080 PASS (8s); Commit attribution guard run #39918254108 PASS (3s); Attribution guard runner PASS (7s)
-**Validation remaining:** Exact-head checks on amended PR commit; independent review disposition from `im-tio`
-**Current blocker:** Awaiting independent review disposition and explicit owner `Go merge` authorization; do not merge or close #596
-**Open review finding IDs:** None observed
-**Next exact action:** Push receipt update, verify CI on amended HEAD, await independent review from `im-tio` and owner merge directive
+**Validation completed at SHA:** `beec9099`: GitHub-hosted Docs Hygiene CI run #39918674439 PASS (7s); Commit attribution guard run #39918672284 PASS (3s); Attribution guard runner PASS (7s); local `git diff --check` PASS (exit 0) on previous `75755a8a`
+**Validation remaining:** Exact-head checks on amended commit resolving D1-F01..D1-F06; re-review approval from `im-tio`
+**Current blocker:** Awaiting re-review approval on amended commit and explicit owner `Go merge` authorization; do not merge or close #596
+**Open review finding IDs:** D1-F01 (P2), D1-F02 (P2), D1-F03 (P2), D1-F04 (P2), D1-F05 (P2), D1-F06 (P3) addressed in this commit
+**Next exact action:** Push amended commit, verify CI, request re-review from `im-tio`, await explicit owner merge directive
 
 ---
 
@@ -148,17 +148,27 @@ Owner Approval Boundary (2026-10-23T12:55:54+05:30 @ 21286e78)
 ### 3. Per-PR Measurement Schema (13 Verifiable Dimensions)
 For every eligible PR, the following fields must be recorded in the measurement ledger:
 1. **PR Identifier:** PR number, Title, and GitHub URL.
-2. **Change Class & Risk Level:** Mapped directly to `docs/development/TESTING_GUIDE.md#risk-based-regression-selection` (7 categories: Docs, Pure Domain, Controller/Repo, UI/Routing, Wear/Sync, Auth/Health/Privacy, Supabase/RLS).
+2. **Change Class & Risk Level:** Exhaustive taxonomy mapped to repository scopes with explicit precedence:
+   - `Pure Domain` (`apps/shared`)
+   - `Controller / Repository` (`apps/features/*` domain/data/state)
+   - `UI / Routing / Design System` (`apps/app`, `apps/features/*` presentation, `apps/core` UI)
+   - `Wearables & Sync` (`apps/wear`, `apps/watchos`)
+   - `Auth, Health & Personal Data` (`apps/features/auth`, biometric, credential flows)
+   - `Supabase / Database / RLS / RPCs` (`supabase/**`)
+   - `CI, Tooling & Workflows` (`.github/workflows/**`, tooling scripts)
+   - `Substantive Architecture & Governance Process` (`docs/architecture/**`, `AGENTS.md`, `.ai/FEATURE_DEVELOPMENT.md`, `TESTING_GUIDE.md`)
+   - `Multi-Class / Mixed` (Classified by highest-risk touched boundary: Supabase/Security/Auth > Wear/Sync > UI/Routing > Domain/Controller > CI/Tooling > Architecture/Process)
+   - `Other / Unknown` (Fallback with mandatory explicit explanation of touched scope)
 3. **Author / Agent Provenance:** Implementing model, tool, or human (e.g. Cursor, Claude, Codex, Human).
 4. **Source HEAD SHA:** Exact commit SHA of the reviewed PR tip.
 5. **Merged SHA:** Exact squash merge commit SHA on `main`.
 6. **Acceptance Evidence Completeness:** Evaluation of PR description against DoD (`Complete` / `Partial` / `Missing` / `Not applicable`). Requires mapping of AC → Changed Files → Test/Proof → Result → SHA.
 7. **Review Provenance & Relationship:** Reviewer identity, tool, and relationship to implementer (`Independent` vs `Self-review` vs `Automated bot`).
 8. **Review Verdict:** Formal GitHub review state (`APPROVED`, `COMMENTED`, `CHANGES_REQUESTED`, or `None`). Chat-only or external bot comments cannot be labeled `APPROVED`.
-9. **Review Findings & Severity:** Count of distinct findings by severity (`P1` blocking defect, `P2` correctness/maintainability, `P3` polish/docs) and their resolution (`Resolved` / `Deferred` / `Open`).
+9. **Review Findings & Severity:** Count of distinct deduplicated findings by severity (`P0` critical blocker, `P1` blocking defect, `P2` correctness/maintainability, `P3` polish/docs) and their resolution (`Resolved` / `Deferred` / `Open`). Deduplication rule: A finding raised across multiple review comments or repeated across commits is counted once by its root issue ID.
 10. **Post-Review Rework & Commit Provenance:** Did review findings generate subsequent commits? If yes, number of rework commits and was the final HEAD re-reviewed?
-11. **Check Results (Required vs Supplemental):** Status of required checks (Flutter CI, Attribution guard, Database CI) and supplemental checks (Cursor Bugbot, Security Reviewer), distinguishing concrete code findings from external scanner/infra failures.
-12. **Downstream Regression / Reopened Work:** Verifiably linked post-merge regressions, bug reports, reopened tasks, or revert commits.
+11. **Check Results (Required vs Supplemental vs Path-Filtered):** The required-check set for each PR is derived dynamically from its touched paths and live branch protection/ruleset evidence on `main` (where only `Commit attribution guard` is universally required; Flutter CI and Database CI are path-filtered). Each check run is classified as: `Required`, `Supplemental`, or `Not applicable (path-filtered)`; status is tracked independently distinguishing concrete code/security findings from external tool infrastructure/quota failures.
+12. **Downstream Regression / Reopened Work (7-Day Observation Window):** Evaluated after a fixed 7-calendar-day (168-hour) observation horizon post-merge. Any verifiably linked post-merge regression, bug report, reopened task, or revert commit is recorded. If the 7-day window is not yet complete at evaluation time, status is explicitly recorded as `In observation (window open)`, not as zero regressions.
 13. **Data Integrity / Unknown Classification:** Any unavailable or unverified field must be explicitly marked `Unknown`, never inferred or left blank.
 
 ### 4. Observable Metric Formulas (Strict Numerator/Denominator)
@@ -191,7 +201,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 
 ### 6. Prospective Cohort Tracking Ledger (Slots 1 to 10)
 
-| Slot | PR # | Title & Platform | Change Class | Merged SHA | AC Evidence | Review Provenance | Verdict | Findings (P1/P2/P3) | Rework & Revalidation | Check Results | Downstream Regression |
+| Slot | PR # | Title & Platform | Change Class | Merged SHA | AC Evidence | Review Provenance | Verdict | Findings (P0/P1/P2/P3) | Rework & Revalidation | Check Results | Downstream Regression |
 |:---:|:---:|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **PR 01** | *Pending* | *Awaiting next eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
 | **PR 02** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
@@ -243,18 +253,23 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 
 ### Review Provenance
 - **Review source / link:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658)
-- **Reviewer / relation:** Independent review requested (`im-tio`); automated scanners noted
-- **Reviewed SHA:** `75755a8a` (initial PR HEAD)
-- **Review result:** Formal review pending from `im-tio`. External tool notes:
+- **Reviewer / relation:** Independent review completed by `im-tio` (Collaborator, separate from author)
+- **Reviewed SHA:** `beec9099c0d388277259f9cb89c6cf26d30f4a86` (PR commit 2)
+- **Review verdict:** `CHANGES_REQUESTED` with 5 P2 data/measurement correctness findings and 1 P3 status/provenance finding (D1-F01..D1-F06). All 6 findings resolved in this commit. External tool notes:
   - Codex code review: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
   - Cursor Bugbot: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
-  - Concrete findings: 0 code defects or security vulnerabilities identified.
-- **Limitations:** Independent review pending; no formal `APPROVED` review claimed yet.
+  - Copilot pull request reviewer: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
+- **Limitations:** Formal re-review pending from `im-tio` on amended HEAD; no formal `APPROVED` review claimed yet.
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| *None* | - | - | *Awaiting PR review* | - | - |
+| D1-F01 | P2 | Resolved | Change class taxonomy lacked CI/process classes and precedence rules | `beec9099` | Exhaustive 10-class taxonomy + mixed precedence + Other/Unknown fallback added |
+| D1-F02 | P2 | Resolved | Omission of P0 findings from schema, table, and finding yield formula | `beec9099` | P0 added to schema, table header, yield formula, deduplication rule, and density metric |
+| D1-F03 | P2 | Resolved | Hardcoded Flutter & Database CI as required across entire cohort | `beec9099` | Dynamic per-PR check classification (Required vs Supplemental vs Path-Filtered) codified |
+| D1-F04 | P2 | Resolved | Independent review conflated with formal approval; denominator unanchored | `beec9099` | Separated into Activity Rate ($R_{ind\_reviewed}$) and Approval Rate ($R_{ind\_approved}$), fixed to 10 PRs |
+| D1-F05 | P2 | Resolved | Unequal post-merge observation horizon biased regression metric | `beec9099` | Fixed 7-calendar-day (168h) window established; open windows censored as `In observation` |
+| D1-F06 | P3 | Resolved | Final status pinned to older commit SHA `75755a8a` instead of current PR HEAD | `beec9099` | Updated exact-HEAD SHA and verified GitHub Actions Docs Hygiene CI #39918674439 |
 
 ---
 
@@ -273,4 +288,4 @@ Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
-**`REVIEW`** (Implementation complete, PR #658 opened and CI green at exact HEAD `75755a8a`; awaiting independent review disposition and owner `Go merge` authorization. Not `PASS` until gates pass; do not merge).
+**`REVIEW`** (Implementation complete, PR #658 amended to resolve findings D1-F01..D1-F06 from `im-tio`; CI green on previous `beec9099` [Docs Hygiene #39918674439]; awaiting exact-HEAD CI and re-review approval from `im-tio` before owner `Go merge`. Not `PASS` until gates pass; do not merge).
