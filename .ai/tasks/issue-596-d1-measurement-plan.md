@@ -42,16 +42,16 @@
 **Ownership transition:** Post-merge reconciliation established from clean `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
 **Repository state last verified:** 2026-10-23, remote `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
 **Branch:** `docs/issue-596-d1-post-merge-handoff-reconcile`
-**HEAD SHA:** `6a4e113b06bc714039199f94d38ce59e4e0515b7` (base `main`)
+**HEAD SHA:** `e84a7409fa2f1483e72e6bedd8a00c104b4b449e` (PR #659 commit 1; amended to resolve P3 finding D1-F09)
 **Observed working-tree state:** Clean working tree on reconciliation branch
 **Observed uncommitted/dirty files:** None
-**PR / tracker:** Parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) (OPEN); merged plan [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658); no dedicated Linear mirror (TNYX-193 belongs to #250)
-**Current implementation state:** PR #658 merged; post-merge handoff synchronized; prospective cohort ledger active
+**PR / tracker:** [GitHub PR #659](https://github.com/im-tnyx/tio-world/pull/659), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) (OPEN); merged plan [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658); no dedicated Linear mirror (TNYX-193 belongs to #250)
+**Current implementation state:** PR #658 merged; PR #659 post-merge handoff open; P3 finding D1-F09 resolved
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `d7d50bdf`: GitHub-hosted Docs Hygiene CI run #39928984283 PASS; Commit attribution guard run #39928982511 PASS; Attribution guard runner PASS; local `main@6a4e113b` `git diff --check` exit 0
-**Validation remaining:** Exact-head checks on post-merge handoff reconciliation PR; independent review from `im-tio`
-**Current blocker:** None (Awaiting next eligible substantive PR merged into `main` after boundary `21286e78`)
-**Open review finding IDs:** None (D1-F01..D1-F08 verified resolved in PR #658)
+**Validation completed at SHA:** `e84a7409`: GitHub-hosted Docs Hygiene CI run #39931880702 PASS; Commit attribution guard run #39931880706 PASS; Attribution guard runner PASS; local `git diff --check` exit 0
+**Validation remaining:** Exact-head checks on amended PR #659 commit; re-review approval from `im-tio`
+**Current blocker:** Awaiting re-review from `im-tio` and owner `go merge` authorization on PR #659; do not close #596
+**Open review finding IDs:** D1-F09 resolved in this amendment
 **Next exact action:** Maintain measurement ledger in GitHub #596 comments for subsequent eligible PRs; do not close #596 or archive D1 task brief until 10th PR milestone audit is reached
 
 ---
@@ -311,6 +311,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | D1-F06 | P3 | Resolved | Final status pinned to older commit SHA `75755a8a` instead of current PR HEAD | `beec9099` | Corrected reviewed SHA `beec9099170c61eb28b2a5b1297b5cc14e3fc77e` and updated exact-HEAD receipt |
 | D1-F07 | P2 | Resolved | Undefined zero denominator for provisional regression and revalidation rates | `0ada08d6` | Explicit N/A semantics, raw count reporting, and open-window maturation tracking added to formulas 4 & 6 |
 | D1-F08 | P3 | Resolved | PR description and comment receipts cited imprecise commit SHAs | `0ada08d6` | Exact 40-character SHAs verified via `git rev-parse`; PR description synchronized |
+| D1-F09 | P3 | Resolved | Composite final status token `PASS / ACTIVE MEASUREMENT` used instead of canonical single token | `e84a7409` | Separated into canonical `PASS` for plan slice and `Measurement phase: ACTIVE` for ongoing lifecycle |
 
 ---
 
@@ -329,4 +330,5 @@ Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
-**`PASS / ACTIVE MEASUREMENT`** (D1 measurement plan implementation merged into `main@6a4e113b06bc714039199f94d38ce59e4e0515b7` via PR #658 with `im-tio` APPROVED review and all CI green; post-merge synchronization complete; prospective measurement active for next 10 consecutive eligible PRs; parent #596 remains OPEN).
+**`PASS`** (D1 measurement plan implementation merged into `main@6a4e113b06bc714039199f94d38ce59e4e0515b7` via PR #658 with `im-tio` APPROVED review and all CI green; post-merge synchronization complete).
+**Measurement phase:** **`ACTIVE`** (Prospective measurement active for next 10 consecutive eligible PRs; parent #596 remains OPEN).
