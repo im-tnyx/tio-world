@@ -953,6 +953,7 @@ class _CreateProgramSheet extends StatefulWidget {
     required this.onSubmit,
     this.currentError,
     this.nameOnly = false,
+    this.submitLabel,
   });
 
   final String initialName;
@@ -960,6 +961,7 @@ class _CreateProgramSheet extends StatefulWidget {
   final String? Function()? currentError;
   /// Name-only selection never persists a Program before Create & Move.
   final bool nameOnly;
+  final String? submitLabel;
 
   @override
   State<_CreateProgramSheet> createState() => _CreateProgramSheetState();
@@ -1015,6 +1017,21 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
     });
   }
 
+  String _submitButtonLabel() {
+    final custom = widget.submitLabel;
+    if (custom != null) {
+      if (_saving) {
+        if (custom == 'Save & Move') return 'Saving & Moving...';
+        return 'Saving...';
+      }
+      return custom;
+    }
+    if (widget.nameOnly) {
+      return _saving ? 'Continuing...' : 'Continue';
+    }
+    return _saving ? 'Creating...' : 'Create';
+  }
+
   @override
   Widget build(BuildContext context) {
     final canSubmit = !_saving && _nameController.text.trim().isNotEmpty;
@@ -1040,9 +1057,7 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
         ),
         actions: TioButton.primary(
           key: const ValueKey('program-create-submit'),
-          label: widget.nameOnly
-              ? (_saving ? 'Continuing...' : 'Continue')
-              : (_saving ? 'Creating...' : 'Create'),
+          label: _submitButtonLabel(),
           onPressed: canSubmit ? _submit : null,
         ),
       ),
@@ -1057,6 +1072,7 @@ Future<String?> promptCreateProgramName({
   required BuildContext context,
   required String initialName,
   Widget Function(BuildContext, Widget)? modalGuard,
+  String submitLabel = 'Save & Move',
 }) => showTioEditorSheet<String>(
   context: context,
   useRootNavigator: true,
@@ -1066,6 +1082,7 @@ Future<String?> promptCreateProgramName({
       initialName: initialName,
       onSubmit: (_) async => true,
       nameOnly: true,
+      submitLabel: submitLabel,
     );
     return modalGuard?.call(sheetContext, sheet) ?? sheet;
   },
