@@ -1,6 +1,7 @@
 # Feature Task: Issue #569 Direct Move UX Correction
 
-**Status:** Ready for review
+**Status:** Validated
+**Completion date:** 2026-10-23
 **Primary owner:** Antigravity
 **Affected platforms:** `apps/features/workout`, `apps/app` (Flutter Android / iOS)
 
@@ -29,21 +30,21 @@
 **Planning owner:** GitHub #569; Linear TNYX-81 / TNYX-267
 **Implementation owner:** Antigravity
 **Review owner:** Codex / Peer Reviewer
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** `37e507cb120f842d05918eeda1ed6ca995438885`
-**Branch:** `tnyx/issue-569-direct-move-ux-20261023`
-**HEAD SHA:** `37e507cb120f842d05918eeda1ed6ca995438885`
-**Observed working-tree state:** Clean
-**Observed uncommitted/dirty files:** None
-**PR / tracker:** GitHub #569, Linear TNYX-81, TNYX-267
-**Current implementation state:** Implemented direct Move and Save & Move UX with 0 confirmation dialogs; 31/31 routine move tests pass; 87/87 app workout route tests pass; 923/923 workout package tests pass
+**Repository state last verified:** `main@6dee84bfd018e13a7f8674560c07f719cfb0f5e9`
+**Branch:** `tnyx/issue-569-direct-move-ux-20261023` (merged through PR #660)
+**HEAD SHA:** PR source `b0c9cd13d98cfff383921f26f3c0c74fbfa21f7a`; merge commit `6dee84bfd018e13a7f8674560c07f719cfb0f5e9`
+**Observed working-tree state:** Historical task branch; current checkout is clean at `main` during reconciliation.
+**Observed uncommitted/dirty files:** None at reconciliation.
+**PR / tracker:** GitHub PR #660 MERGED; GitHub #569 remains OPEN. Linear TNYX-81/TNYX-267 state was not re-read in this session.
+**Current implementation state:** Direct Move and `Save & Move` UX merged; no real five-second Undo, Move release, or hosted RPC grant is included.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart`, `apps/features/workout/lib/src/presentation/library/programs/programs_surface.dart`, `apps/features/workout/test/presentation/routine_move_flow_test.dart`, `apps/app/test/app/workout_exercises_route_test.dart`
-**Validation completed at SHA:** Local working tree on branch `tnyx/issue-569-direct-move-ux-20261023`: `flutter analyze apps/app apps/features/workout` (PASS), `flutter test apps/features/workout` (923/923 PASS), `flutter test apps/app/test/app/workout_exercises_route_test.dart` (87/87 PASS)
-**Validation remaining:** Exact-head PR CI, independent Code review
-**Current blocker:** None
+**Validation completed at SHA:** PR source head `b0c9cd13d98cfff383921f26f3c0c74fbfa21f7a`: merged PR checks passed (Flutter/Dart analysis and tests, app-workout, core-wear, nutrition-onboarding, docs diff hygiene, attribution); prior task-local Flutter analysis/workout/app-route tests are recorded above.
+**Validation remaining:** None for this bounded UX slice. Android E2E real-write regression remains a separate M5A prerequisite and is not proven by Flutter CI.
+**Current blocker:** None for PR #660; M5A real Undo is separately blocked pending isolated Android E2E.
 **Open review finding IDs:** None
-**Next exact action:** Commit app test updates, push branch, monitor PR #660 CI and review
+**Next exact action:** See [active M5A handoff](../tasks/issue-569-m5a-real-move-undo.md); complete Gate 1 before any Undo architecture or source work.
 
 ## Global UI / Design-System Guardrail
 
