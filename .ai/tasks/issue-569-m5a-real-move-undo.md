@@ -1,6 +1,6 @@
 # GitHub #569 / Linear TNYX-81 + TNYX-267: M5A Existing-Program Real Move Undo
 
-**Status:** REVIEW
+**Status:** Validated
 **Primary owner:** `im-tnyx`
 **Affected platforms:** Flutter Android, Workout feature, isolated Supabase QA
 
@@ -24,15 +24,15 @@
 **Planning owner:** GitHub #569 / Linear TNYX-81 and TNYX-267
 **Implementation owner:** `im-tnyx`
 **Review owner:** Connected reviewer `im-tio` (CHANGES_REQUESTED on earlier HEAD; P2 findings addressed)
-**Implementation ownership state:** Implementation & test reconciliation complete; PR #661 updated
+**Implementation ownership state:** Complete; merged via PR #661 at main@16dbb6dbee51035280bfa8dec97153273cd764be
 **Ownership transition:** Not applicable
-**Repository state last verified:** `main@6dee84bfd018e13a7f8674560c07f719cfb0f5e9`
+**Repository state last verified:** `main@16dbb6dbee51035280bfa8dec97153273cd764be`
 **Branch:** `codex/issue-569-m5a-real-move-undo`
-**PR / tracker:** GitHub #569 OPEN; PR #661 OPEN; Linear TNYX-81 & TNYX-267 in Backlog (CLI unauthenticated).
+**PR / tracker:** GitHub #569 OPEN; PR #661 MERGED (commit `16dbb6dbee51035280bfa8dec97153273cd764be`; post-merge Flutter CI run `39989687126` SUCCESS); Linear TNYX-81 & TNYX-267 in Backlog (CLI unauthenticated).
 **Current implementation state:** M5A source, app routing integration, and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS, decoupled invalidation, and post-dispatch identity safety guards wired; 48/48 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart`, `apps/features/workout/test/presentation/routine_move_flow_test.dart`, `apps/app/lib/app/routing/shell/shell_route.dart`.
 **Validation completed at SHA:** Local working tree: `flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart` (48/48 PASS), `flutter test apps/app/test/app/workout_exercises_route_test.dart` (87/87 PASS), `flutter analyze apps/app apps/features/workout` (0 issues). Exact-head CI on earlier commit `127a5a00` passed 5/5 jobs.
-**Validation remaining:** Push P2/P3 commit, verify exact-head CI, obtain reviewer approval on PR #661, stop at merge readiness gate.
+**Validation remaining:** Merged to main; post-merge Flutter CI run `39989687126` passed 5/5 jobs. Remaining product gates: M5B Create & Move Undo, #567 Delete Program lifecycle, hosted Move RPC EXECUTE grants, and production release activation.
 **Current blocker:** None. Gate 1 Android E2E completed against isolated local Docker Supabase with disposable account `qa_user_a@tio.local`; temporary RPC grants rolled back (`authenticated_execute: f`).
 **Review findings addressed:**
 1. `PRRT_kwDOTOXwB86voxAL` (Codex P2): UNKNOWN Undo reverse Move must invalidate owner-scoped lists without claiming success. Resolved via `onUndoWriteAttempted` callback.
@@ -41,7 +41,7 @@
 4. `PRRT_kwDOTOXwB86vp10M` (im-tio P2-3): Materially incorrect handoff and changed-files scope. Resolved by auditing all 7 changed files and providing accurate runtime descriptions.
 5. `PRRT_kwDOTOXwB86vrKx1` (im-tio P2): Post-Undo UI feedback identity safety. Resolved by introducing `sameAuthenticatedOwner` predicate to `_executeUndo` (`canPresentFeedback`), preventing cross-owner or old login-cycle UI feedback/confirm callbacks while preserving decoupled refresh reconciliation.
 6. `PRRT_kwDOTOXwB86vrKyA` (im-tio P3): Canonical final handoff status token. Resolved by using canonical token `REVIEW` with separate lifecycle and merge gate fields.
-**Next exact action:** Push commit to branch, reply to review threads, verify CI checks, stop at merge readiness gate.
+**Next exact action:** Slice 1 post-merge documentation and tracker reconciliation.
 
 ## 1. Discovery
 
@@ -122,7 +122,7 @@ During initial pre-flight check at base commit `6dee84bf`:
 - [x] Preserve production release OFF and hosted EXECUTE-denied posture.
 - [x] Run applicable Flutter tests/analyze, isolated SQL/RPC checks, security review, and exact-head CI.
 - [x] Reconcile all P2 review findings and update documentation.
-- [ ] Obtain independent review approval; stop at merge-readiness and do not merge without explicit owner authorization.
+- [x] Obtain independent review approval; PR #661 squash-merged to main at commit `16dbb6db`; post-merge Flutter CI passed 5/5 jobs.
 
 ## 5. Quality Review
 
@@ -192,7 +192,7 @@ Verified on `Pixel_9_API35` (emulator-5554, API 35) against isolated local Docke
 
 ### Final Status
 
-`REVIEW`
+`PASS`
 
-- **Lifecycle:** In Review
-- **Merge Gate:** Awaiting independent reviewer approval and owner `Go merge`
+- **Lifecycle:** Merged to main via PR #661 (`16dbb6dbee51035280bfa8dec97153273cd764be`)
+- **Merge Gate:** MERGED; post-merge Flutter CI run `39989687126` SUCCESS (5/5). Production release flag remains false; hosted Move RPCs EXECUTE denied. Pending gates: M5B Create & Move Undo, #567 Program Delete, production grants/activation.

@@ -114,8 +114,8 @@ Per explicit owner approval on 2026-10-23 (Option A), real-write QA for Move
 Routine is restricted to **isolated Supabase environments** (local Docker-based
 Supabase CLI or a dedicated disposable staging project). Hosted Tio-world
 Move RPCs remain **EXECUTE-denied** (`authenticated = false`) to completely
-prevent exposure to ordinary users before the 5-second post-commit Undo and
-#567 Program Delete reparenting features are implemented and approved.
+prevent exposure to ordinary users before M5B full Create & Move Undo and
+#567 Program Delete reparenting features are implemented and approved (M5A real five-second Undo for existing Program moves is merged in source via PR #661, while M5B full atomic Undo and #567 remain pending).
 A Flutter debug flag is a client UI gate, **not** a database security boundary;
 granting EXECUTE on hosted would expose PostgREST endpoints to all signed-in
 accounts.
@@ -166,8 +166,8 @@ a separate owner exposure decision.
 
 If `TIO_MOVE_ROUTINE_UI_PREVIEW=true` and `TIO_MOVE_ROUTINE_QA=true`
 are both supplied, the preview takes precedence and performs **zero writes**.
-Neither flag works in profile/release builds. Production Move and real
-five-second post-commit Undo remain separate review/release gates.
+Neither flag works in profile/release builds. Production Move release, M5B full Create & Move Undo,
+and #567 Program Delete remain separate review/release gates (M5A existing-Program Undo is merged in source via PR #661).
 
 ## First-Routine debug-only hosted QA (opt-in, REAL writes)
 
