@@ -481,6 +481,15 @@ List<RouteBase> _shellBranchChildRoutes(
                   _guardRoutineOptionsSheet(
                 content: content, ownerId: owner, loginCycleId: cycle,
               ),
+              onMoveConfirmed: () {
+                if (sameAuthenticatedOwner()) {
+                  moveRefresh.request(
+                    ownerId: owner,
+                    loginCycleId: cycle,
+                    programsMayHaveChanged: false,
+                  );
+                }
+              },
             );
             // An attempted write (including UNKNOWN or a late rejection)
             // invalidates live owner-scoped readers. The flow's boolean is

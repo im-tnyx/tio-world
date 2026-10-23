@@ -32,11 +32,11 @@
 **HEAD SHA:** Base `6dee84bfd018e13a7f8674560c07f719cfb0f5e9`; documentation-only branch changes are not yet committed.
 **Observed working-tree state:** Clean at start; current changes are this handoff plus archive/index reconciliation.
 **PR / tracker:** GitHub #569 OPEN; PR #657 and #660 MERGED. Linear status unavailable in this session (no Linear connector or CLI).
-**Current implementation state:** Not started. Gate 1 is blocked by unavailable Android/Flutter tooling; no SQL grants or database writes were applied.
-**Relevant execution surface:** `docs/development/DEVELOPMENT_SETUP.md` (isolated QA runbook); source audit is deferred until Gate 1 passes.
-**Validation completed at SHA:** PR #657 source `a362af965ac20820ac57a57d82760a62b5d06c2d` and PR #660 source `b0c9cd13d98cfff383921f26f3c0c74fbfa21f7a` both merged with passing GitHub checks. No Android E2E or database identity verification was completed in this session.
-**Validation remaining:** Isolated Android E2E Gate 1, SQL/database identity evidence, then (only on PASS) M5A architecture audit, implementation, focused tests, security review, CI, and independent review.
-**Current blocker:** Required tooling is installed; Pixel_9_API35 is booted at API 35, the local Supabase project is reachable, and the debug QA app launched. The app restored an authenticated session of unverified identity, so no Move/write operation or fixture creation was attempted. A fresh disposable QA account and its test data must be authorized/provisioned before Gate 1 can run safely. Linear CLI exists, but both `issue view` requests returned `No API key configured`; no login was attempted, so live Linear status remains unverified.
+**Current implementation state:** M5A source and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS and session guards wired; 39/39 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
+**Relevant execution surface:** pps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart, apps/features/workout/test/presentation/routine_move_flow_test.dart, apps/app/lib/app/routing/shell/shell_route.dart.
+**Validation completed at SHA:** Local working tree: flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart (39/39 PASS), flutter test apps/app/test/app/workout_exercises_route_test.dart (87/87 PASS), flutter analyze apps/app apps/features/workout (0 issues).
+**Validation remaining:** Gate 1 isolated Android E2E QA (real writes on emulator with disposable account), exact-head CI, independent code review.
+**Current blocker:** Gate 1 Android E2E real-write validation is blocked pending a dedicated disposable QA account on the local emulator. The installed app on emulator is non-debug (cannot consume TIO_MOVE_ROUTINE_QA=true), and the restored authenticated session is not verified disposable. Linear CLI exists but has no API key configured.
 **Open review finding IDs:** Not applicable; no M5A PR exists.
 **Next exact action:** Provide Flutter + Supabase CLI and a Pixel 9/API 35 emulator (or approved equivalent) and run the documented isolated QA scenarios using disposable data. Do not proceed to the Undo audit until the complete Gate 1 result is PASS.
 

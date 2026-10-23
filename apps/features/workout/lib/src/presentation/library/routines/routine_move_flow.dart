@@ -8,6 +8,42 @@ import '../../../domain/repositories/routine_move_repository.dart';
 import 'routine_move_destination_controller.dart';
 import '../programs/programs_controller.dart';
 import '../programs/programs_surface.dart';
+/// Frozen receipt from a server-confirmed existing-Program Move.
+/// Provides exactly the identity needed to dispatch a protected reverse Move.
+/// Never carries credentials; login-cycle is re-validated at Undo dispatch.
+final class _MoveUndoReceipt {
+  const _MoveUndoReceipt({
+    required this.routineId,
+    required this.routineName,
+    required this.originalProgramId,
+    required this.originalProgramName,
+    required this.destinationProgramId,
+    required this.postMoveRevision,
+    required this.ownerId,
+    required this.loginCycleId,
+  });
+
+  /// The moved Routine; must match the server record at Undo time.
+  final RoutineId routineId;
+  final String routineName;
+
+  /// Program A — where the Routine was before the Move.
+  final ProgramId originalProgramId;
+  final String originalProgramName;
+
+  /// Program B — where the Routine currently resides after the confirmed Move.
+  final ProgramId destinationProgramId;
+
+  /// expectedRevision + 1 from the confirmed Move RPC response.
+  /// A fresh inspect at Undo time must observe exactly this revision; any
+  /// higher revision means an intervening write has occurred and Undo is unsafe.
+  final int postMoveRevision;
+
+  /// Frozen owner/cycle. A new login invalidates Undo silently; never use
+  /// stale identity to dispatch a reverse Move under a different session.
+  final String ownerId;
+  final String loginCycleId;
+}
 
 /// The future server-atomic Create+Move capability. This slice does not wire
 /// one into the app; the New Program action stays hidden without it.
@@ -59,6 +95,10 @@ final class RoutineMoveFlow {
     /// Development-only visual preview: never dispatch either Move RPC.
     bool previewOnly = false,
     Widget Function(BuildContext dialogContext, Widget content)? modalGuard,
+    /// Called after a server-confirmed existing-Program Move and again after a
+    /// server-confirmed Undo. Not called for Create & Move, UNKNOWN outcomes,
+    /// or Undo failures. The caller must guard with its own owner/session check.
+    VoidCallback? onMoveConfirmed,
   }) async {
     if (routine.programId != sourceProgram.id || !canWrite() ||
         !_opening.add(routine.id)) {
@@ -286,7 +326,25 @@ final class RoutineMoveFlow {
       // The existing-Program RPC has the same post-dispatch uncertainty.
       if (!context.mounted || !canWrite()) return attempted;
       if (result == RoutineMoveResult.confirmed) {
-        _show(context, 'Routine moved.', confirmed: true);
+        final receipt = _MoveUndoReceipt(
+          routineId: routine.id,
+          routineName: routine.name,
+          originalProgramId: target.sourceProgramId,
+          originalProgramName: sourceProgram.name,
+          destinationProgramId: destination.id,
+          postMoveRevision: target.expectedRevision + 1,
+          ownerId: target.ownerId,
+          loginCycleId: target.loginCycleId,
+        );
+        _showConfirmedWithUndo(
+          context,
+          'Moved to ${destination.name}',
+          receipt: receipt,
+          programs: programs,
+          repository: repository,
+          canWrite: canWrite,
+          onMoveConfirmed: onMoveConfirmed,
+        );
         return true;
       }
       return true;
@@ -349,6 +407,140 @@ final class RoutineMoveFlow {
     } finally {
       controller.abandon();
       _opening.remove(routine.id);
+    }
+  }
+
+  /// Shows a floating Undo pill after a server-confirmed existing-Program Move.
+  /// The pill auto-dismisses after 5 seconds even if the Undo action is visible.
+  /// Tapping Undo dispatches [_executeUndo] exactly once.
+  void _showConfirmedWithUndo(
+    BuildContext context,
+    String message, {
+    required _MoveUndoReceipt receipt,
+    required ProgramRepository programs,
+    required RoutineMoveRepository repository,
+    required bool Function() canWrite,
+    VoidCallback? onMoveConfirmed,
+  }) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.hideCurrentSnackBar();
+
+    var undoTapped = false;
+
+    final colors = Theme.of(context).colorScheme;
+    messenger.showSnackBar(SnackBar(
+      key: const ValueKey('routine-move-confirmed-feedback'),
+      duration: const Duration(seconds: 5),
+      // Auto-dismiss even when the Undo action is present.
+      persist: false,
+      behavior: SnackBarBehavior.floating,
+      shape: const StadiumBorder(),
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.swap_horiz_rounded,
+            color: colors.onInverseSurface,
+          ),
+          const SizedBox(width: TioSpacing.sm),
+          Flexible(child: Text(message)),
+        ],
+      ),
+      action: SnackBarAction(
+        label: 'Undo',
+        backgroundColor: colors.onInverseSurface,
+        textColor: colors.inverseSurface,
+        onPressed: () {
+          if (undoTapped) return;
+          undoTapped = true;
+          if (!canWrite()) return;
+          messenger.hideCurrentSnackBar();
+          if (context.mounted) {
+            _executeUndo(
+              context,
+              receipt: receipt,
+              programs: programs,
+              repository: repository,
+              canWrite: canWrite,
+              onMoveConfirmed: onMoveConfirmed,
+            );
+          }
+        },
+      ),
+    ));
+  }
+
+  /// Dispatches a reverse (Undo) Move from destination back to the original
+  /// source Program using repository.inspect() + repository.move().
+  Future<void> _executeUndo(
+    BuildContext context, {
+    required _MoveUndoReceipt receipt,
+    required ProgramRepository programs,
+    required RoutineMoveRepository repository,
+    required bool Function() canWrite,
+    VoidCallback? onMoveConfirmed,
+  }) async {
+    if (!canWrite()) return;
+
+    RoutineMoveTarget? target;
+    try {
+      target = await repository.inspect(
+        sourceProgramId: receipt.destinationProgramId,
+        routineId: receipt.routineId,
+      );
+    } catch (_) {
+      if (context.mounted && canWrite()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
+      return;
+    }
+
+    if (!context.mounted || !canWrite()) return;
+
+    // Validate the inspected target for safe Undo:
+    if (target == null ||
+        target.ownerId != receipt.ownerId ||
+        target.loginCycleId != receipt.loginCycleId ||
+        target.expectedRevision != receipt.postMoveRevision ||
+        target.sourceProgramId != receipt.destinationProgramId) {
+      // An intervening write occurred or the session changed — Undo is unsafe.
+      _show(context, 'Could not restore. Check your Programs.');
+      return;
+    }
+
+    RoutineMoveResult result;
+    try {
+      result = await repository.move(
+        target: target,
+        destinationProgramId: receipt.originalProgramId,
+        mutationId: _newMutationId(),
+      );
+    } on RoutineMoveOutcomeUnknown {
+      if (context.mounted && canWrite()) {
+        _show(context,
+            'Restore status unconfirmed. Check your Programs.');
+      }
+      return;
+    } on RoutineMoveException {
+      if (context.mounted && canWrite()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
+      return;
+    } catch (_) {
+      if (context.mounted && canWrite()) {
+        _show(context, 'Could not restore. Try again later.');
+      }
+      return;
+    }
+
+    if (!context.mounted || !canWrite()) return;
+
+    if (result == RoutineMoveResult.confirmed) {
+      _show(context, 'Restored to ${receipt.originalProgramName}');
+      onMoveConfirmed?.call();
+    } else {
+      _show(context, 'Could not restore. Check your Programs.');
     }
   }
 
