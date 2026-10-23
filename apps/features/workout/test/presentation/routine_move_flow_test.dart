@@ -1478,7 +1478,8 @@ void main() {
     expect(confirmCalls, 0);
   });
 
-  testWidgets('session revocation during reverse move suppresses onUndoWriteAttempted',
+  testWidgets(
+      'in-flight reverse Move fires onUndoWriteAttempted even when write eligibility becomes false (pending Create / toggle)',
       (tester) async {
     final g = _Move();
     g.targetForProgram = (pid) {
@@ -1502,32 +1503,273 @@ void main() {
       );
     };
 
-    var allowed = true;
+    var canWriteFlag = true;
     var writeCount = 0;
-    g.onMove = () async {
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
       writeCount++;
-      if (writeCount == 1) return RoutineMoveResult.confirmed;
-      allowed = false; // Session revoked while reverse move is executing
-      return RoutineMoveResult.confirmed;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
     };
 
     var undoAttemptCalls = 0;
-    await _pump(tester,
-        flow: RoutineMoveFlow(newMutationId: () => token),
-        move: g,
-        programs: _Programs(),
-        canWrite: () => allowed,
-        onResult: (_) {},
-        onUndoWriteAttempted: () => undoAttemptCalls++);
+    var confirmCalls = 0;
+    var callerRefreshCalls = 0;
+    const isSameAuthenticatedOwner = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => canWriteFlag,
+      onResult: (_) {},
+      onMoveConfirmed: () => confirmCalls++,
+      onUndoWriteAttempted: () {
+        undoAttemptCalls++;
+        if (isSameAuthenticatedOwner) {
+          callerRefreshCalls++;
+        }
+      },
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    expect(g.writes, 1);
+    expect(find.widgetWithText(SnackBarAction, 'Undo'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    expect(g.writes, 2);
+
+    // Write eligibility becomes false while RPC is in flight (e.g. pending create starts):
+    canWriteFlag = false;
+
+    reverseCompleter.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1,
+        reason: 'onUndoWriteAttempted must fire despite canWrite becoming false');
+    expect(callerRefreshCalls, 1,
+        reason: 'Owner-scoped refresh must occur for same authenticated owner');
+    expect(confirmCalls, 1,
+        reason: 'onMoveConfirmed called on confirmed reverse Move');
+    expect(find.text('Restored to Strength'), findsOneWidget);
+  });
+
+  testWidgets(
+      'in-flight reverse Move with UNKNOWN outcome fires onUndoWriteAttempted when write eligibility is false',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var canWriteFlag = true;
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    var confirmCalls = 0;
+    var callerRefreshCalls = 0;
+    const isSameAuthenticatedOwner = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => canWriteFlag,
+      onResult: (_) {},
+      onMoveConfirmed: () => confirmCalls++,
+      onUndoWriteAttempted: () {
+        undoAttemptCalls++;
+        if (isSameAuthenticatedOwner) {
+          callerRefreshCalls++;
+        }
+      },
+    );
+
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
 
     await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    expect(g.writes, 2);
+    canWriteFlag = false;
+
+    reverseCompleter.completeError(const RoutineMoveOutcomeUnknown());
     await tester.pumpAndSettle();
 
-    expect(undoAttemptCalls, 0,
-        reason: 'Revoked session during move must suppress onUndoWriteAttempted');
+    expect(undoAttemptCalls, 1,
+        reason: 'onUndoWriteAttempted fires on UNKNOWN outcome');
+    expect(callerRefreshCalls, 1,
+        reason: 'Caller invalidates cached lists on UNKNOWN outcome');
+    expect(confirmCalls, 0,
+        reason: 'UNKNOWN reverse Move must NOT fire onMoveConfirmed');
+    expect(find.text('Restore status unconfirmed. Check your Programs.'),
+        findsOneWidget);
+    expect(find.textContaining('Restored to'), findsNothing);
+  });
+
+  testWidgets(
+      'in-flight reverse Move cross-owner account switch suppresses caller refresh',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    var callerRefreshCalls = 0;
+    var isSameAuthenticatedOwner = true;
+
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => true,
+      onResult: (_) {},
+      onUndoWriteAttempted: () {
+        undoAttemptCalls++;
+        if (isSameAuthenticatedOwner) {
+          callerRefreshCalls++;
+        }
+      },
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    // Reverse move in flight: user logs out or switches accounts
+    isSameAuthenticatedOwner = false;
+
+    reverseCompleter.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1,
+        reason: 'Flow notifies onUndoWriteAttempted');
+    expect(callerRefreshCalls, 0,
+        reason: 'Caller suppresses refresh when authenticated owner changed');
+  });
+
+  testWidgets(
+      'widget unmount during in-flight reverse Move safely completes callback without crashing',
+      (tester) async {
+    final g = _Move();
+    g.targetForProgram = (pid) {
+      if (pid == source.id) {
+        return RoutineMoveTarget(
+          routineId: routine.id,
+          sourceProgramId: source.id,
+          name: routine.name,
+          expectedRevision: 4,
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
+        );
+      }
+      return RoutineMoveTarget(
+        routineId: routine.id,
+        sourceProgramId: destination.id,
+        name: routine.name,
+        expectedRevision: 5,
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+      );
+    };
+
+    var writeCount = 0;
+    final reverseCompleter = Completer<RoutineMoveResult>();
+    g.onMove = () {
+      writeCount++;
+      if (writeCount == 1) return Future.value(RoutineMoveResult.confirmed);
+      return reverseCompleter.future;
+    };
+
+    var undoAttemptCalls = 0;
+    await _pump(
+      tester,
+      flow: RoutineMoveFlow(newMutationId: () => token),
+      move: g,
+      programs: _Programs(),
+      canWrite: () => true,
+      onResult: (_) {},
+      onUndoWriteAttempted: () => undoAttemptCalls++,
+    );
+
+    await tester.tap(find.text('Open Move'));
+    await tester.pumpAndSettle();
+    await _choose(tester);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pump();
+
+    // Unmount widget while reverse move is in flight
+    await tester.pumpWidget(const SizedBox());
+
+    // Complete reverse move
+    reverseCompleter.complete(RoutineMoveResult.confirmed);
+    await tester.pumpAndSettle();
+
+    expect(undoAttemptCalls, 1,
+        reason: 'Callback executed in finally even after widget unmount');
   });
 
   testWidgets('auth revocation at Undo tap time denies reverse dispatch',

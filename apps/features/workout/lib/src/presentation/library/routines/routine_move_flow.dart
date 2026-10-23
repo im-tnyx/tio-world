@@ -530,32 +530,35 @@ final class RoutineMoveFlow {
         mutationId: _newMutationId(),
       );
     } on RoutineMoveOutcomeUnknown {
-      if (context.mounted && canWrite()) {
+      if (context.mounted) {
         _show(
           context,
           'Restore status unconfirmed. Check your Programs.',
         );
       }
     } on RoutineMoveException {
-      if (context.mounted && canWrite()) {
+      if (context.mounted) {
         _show(context, 'Could not restore. Check your Programs.');
       }
     } catch (_) {
-      if (context.mounted && canWrite()) {
+      if (context.mounted) {
         _show(context, 'Could not restore. Try again later.');
       }
     } finally {
       // The reverse write was dispatched across the network and may have
       // committed on the server. Signal the caller to invalidate and re-read
       // owner-scoped state (without interpreting this signal as confirmed success).
-      // Only fire if the session is still valid; a revoked session or account
-      // switch must never trigger stale-owner invalidations.
-      if (reverseWriteAttempted && canWrite()) {
+      // Decouple post-dispatch reconciliation from mutable new-write eligibility
+      // (e.g. pending-create in source program or QA toggle change).
+      // The reconciliation callback is invoked whenever the reverse write was
+      // attempted; the caller verifies frozen owner and login-cycle identity
+      // before requesting refresh, preventing cross-owner invalidation.
+      if (reverseWriteAttempted) {
         onUndoWriteAttempted?.call();
       }
     }
 
-    if (!context.mounted || !canWrite()) return;
+    if (!context.mounted) return;
 
     if (result == RoutineMoveResult.confirmed) {
       _show(context, 'Restored to ${receipt.originalProgramName}');
