@@ -25,17 +25,17 @@
 **Ownership transition:** Fresh implementation owner established under owner approval from clean `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Repository state last verified:** 2026-10-23, remote `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Branch:** `docs/issue-596-d1-measurement-plan`
-**HEAD SHA:** `75755a8a4746f387532a326ff14f2ea06efca668` (initial PR commit; this receipt update advances to new HEAD)
+**HEAD SHA:** `828dc92e3a5c25181742d4a962f1074d1afe0c49` (prior reviewed HEAD; this commit resolves remaining formula/receipt findings)
 **Observed working-tree state:** Clean working tree; PR #658 open
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596); no dedicated Linear mirror (TNYX-193 belongs to #250)
 **Current implementation state:** PR #658 opened; required and supplemental CI passed; independent review requested
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `beec9099`: GitHub-hosted Docs Hygiene CI run #39918674439 PASS (7s); Commit attribution guard run #39918672284 PASS (3s); Attribution guard runner PASS (7s); local `git diff --check` PASS (exit 0) on previous `75755a8a`
-**Validation remaining:** Exact-head checks on amended commit resolving D1-F01..D1-F06; re-review approval from `im-tio`
-**Current blocker:** Awaiting re-review approval on amended commit and explicit owner `Go merge` authorization; do not merge or close #596
-**Open review finding IDs:** D1-F01 (P2), D1-F02 (P2), D1-F03 (P2), D1-F04 (P2), D1-F05 (P2), D1-F06 (P3) addressed in this commit
-**Next exact action:** Push amended commit, verify CI, request re-review from `im-tio`, await explicit owner merge directive
+**Validation completed at SHA:** `828dc92e`: GitHub-hosted Docs Hygiene CI run #39925853978 PASS (7s); Commit attribution guard run #39925853111 PASS (4s); Attribution guard runner PASS (11s); historical `beec9099` and `75755a8a` receipts preserved
+**Validation remaining:** Exact-head checks on amended commit; re-review approval from `im-tio`
+**Current blocker:** Awaiting re-review approval from `im-tio` and explicit owner `Go merge` authorization; do not merge or close #596
+**Open review finding IDs:** D1-F01..D1-F06 resolved in this amendment
+**Next exact action:** Push amended commit, verify exact-HEAD CI, await re-review approval from `im-tio` and owner merge directive
 
 ---
 
@@ -179,17 +179,28 @@ For every eligible PR, the following fields must be recorded in the measurement 
 2. **Review Provenance Completeness Rate ($R_{provenance}$):**
    $$R_{provenance} = \frac{\sum \text{Eligible PRs with Full Reviewer Identity, SHA, and Relation Recorded}}{\text{Total Eligible Substantive PRs in Cohort (10)}}$$
 
-3. **Independent Review Coverage Rate ($R_{ind\_review}$):**
-   $$R_{ind\_review} = \frac{\sum \text{Substantive PRs with Verified Independent Review (Formal APPROVED)}}{\sum \text{Substantive PRs in Cohort Requiring Independent Review}}$$
+3. **Independent Review Metrics (Separated Activity vs Approval):**
+   - **Independent Review Activity Rate ($R_{ind\_reviewed}$):**
+     $$R_{ind\_reviewed} = \frac{\sum \text{Substantive PRs with Verified Independent Reviewer Activity (APPROVED, CHANGES\_REQUESTED, or Substantive COMMENTED)}}{\text{Total Eligible Substantive PRs in Cohort (10)}}$$
+   - **Independent Approval Rate ($R_{ind\_approved}$):**
+     $$R_{ind\_approved} = \frac{\sum \text{Substantive PRs Merged with Formal Independent APPROVED Review}}{\text{Total Merged Substantive PRs in Cohort (10)}}$$
+   *(Denominator is fixed to the full cohort of 10 eligible substantive PRs, preventing post-hoc denominator manipulation).*
 
 4. **Post-Review Exact-HEAD Revalidation Rate ($R_{revalidation}$):**
    $$R_{revalidation} = \frac{\sum \text{PRs with Rework that Re-Ran and Verified Exact-HEAD Checks}}{\sum \text{PRs with Review Findings Causing Code/Docs Rework}}$$
 
-5. **Review Finding Yield ($Y_{findings}$):**
-   $$Y_{findings} = \sum P1 + \sum P2 + \sum P3 \quad (\text{Categorized total findings caught pre-merge})$$
+5. **Review Finding Yield ($Y_{findings}$) and Density ($D_{findings}$):**
+   $$Y_{findings} = \sum P0 + \sum P1 + \sum P2 + \sum P3 \quad (\text{Categorized deduplicated findings caught pre-merge})$$
+   $$D_{findings} = \frac{Y_{findings}}{\text{Total Eligible Substantive PRs in Cohort (10)}}$$
+   *Comparison baseline rule:* Raw finding counts from 10 PRs cannot be directly compared with the 3-PR historical baseline; compare per-PR finding density ($D_{findings}$) and percentage severity distributions instead.
 
-6. **Downstream Regression Rate ($R_{regression}$):**
-   $$R_{regression} = \frac{\sum \text{Cohort PRs with Linked Reverts, Regressions, or Reopened Tasks}}{\text{Total Merged Cohort PRs (10)}}$$
+6. **Downstream Regression Rate ($R_{regression}$ across 7-Day Window):**
+   - **Provisional Reporting (at 10th PR Merge Checkpoint):**
+     At the merge of PR #10, report regression counts and rate only for cohort PRs whose 7-day (168h) observation window has completed ($N_{completed}$). PRs whose 7-day window remains open (e.g. PR #10) are explicitly reported as censored (`In observation (window open)`), not counted as zero regressions.
+     $$R_{regression\_provisional} = \frac{\sum \text{Cohort PRs with Linked Regressions in Completed Windows}}{N_{completed}}$$
+   - **Final Reporting (after all 10 PRs reach 7-day window):**
+     $$R_{regression\_final} = \frac{\sum \text{Cohort PRs with Linked Reverts, Regressions, or Reopened Tasks within 7-Day Window}}{\text{Total Merged Cohort PRs with Completed 7-Day Window (10)}}$$
+   *Attribution rules:* A regression is attributed if verifiably linked via: (a) a revert commit on `main`, (b) a reopened parent/child GitHub or Linear issue, or (c) a newly filed bug issue citing the PR or squash merge SHA.
 
 ### 5. Historical Comparison Baseline (Reference Only)
 
@@ -254,8 +265,8 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 ### Review Provenance
 - **Review source / link:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658)
 - **Reviewer / relation:** Independent review completed by `im-tio` (Collaborator, separate from author)
-- **Reviewed SHA:** `beec9099c0d388277259f9cb89c6cf26d30f4a86` (PR commit 2)
-- **Review verdict:** `CHANGES_REQUESTED` with 5 P2 data/measurement correctness findings and 1 P3 status/provenance finding (D1-F01..D1-F06). All 6 findings resolved in this commit. External tool notes:
+- **Reviewed SHA:** `828dc92e3a5c25181742d4a962f1074d1afe0c49` (PR commit 3, re-reviewing prior `beec9099170c61eb28b2a5b1297b5cc14e3fc77e`)
+- **Review verdict:** `CHANGES_REQUESTED` by `im-tio` on `828dc92e` (D1-F01/F03 verified; D1-F02/F04/F05/F06 remaining open formula/receipt items resolved in this amendment). External tool notes:
   - Codex code review: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
   - Cursor Bugbot: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
   - Copilot pull request reviewer: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
@@ -288,4 +299,4 @@ Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
-**`REVIEW`** (Implementation complete, PR #658 amended to resolve findings D1-F01..D1-F06 from `im-tio`; CI green on previous `beec9099` [Docs Hygiene #39918674439]; awaiting exact-HEAD CI and re-review approval from `im-tio` before owner `Go merge`. Not `PASS` until gates pass; do not merge).
+**`REVIEW`** (Implementation complete, PR #658 amended with exact formulas and verified SHAs resolving all D1-F01..D1-F06 items; CI green on `828dc92e` [Docs Hygiene #39925853978]; awaiting exact-HEAD CI and re-review approval from `im-tio` before owner `Go merge`. Not `PASS` until gates pass; do not merge).
