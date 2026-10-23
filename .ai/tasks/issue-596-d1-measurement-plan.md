@@ -25,17 +25,17 @@
 **Ownership transition:** Fresh implementation owner established under owner approval from clean `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Repository state last verified:** 2026-10-23, remote `main@21286e78fc3d899a739cc7abc658ffa765031806`
 **Branch:** `docs/issue-596-d1-measurement-plan`
-**HEAD SHA:** Pending commit at exact head
-**Observed working-tree state:** Clean working tree on newly created branch
+**HEAD SHA:** `75755a8a4746f387532a326ff14f2ea06efca668` (initial PR commit; this receipt update advances to new HEAD)
+**Observed working-tree state:** Clean working tree; PR #658 open
 **Observed uncommitted/dirty files:** None
-**PR / tracker:** [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596); no dedicated Linear mirror (TNYX-193 belongs to #250)
-**Current implementation state:** Authoring D1 prospective measurement plan, ledger schema, and parent AC-01..AC-09 reconciliation
+**PR / tracker:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596); no dedicated Linear mirror (TNYX-193 belongs to #250)
+**Current implementation state:** PR #658 opened; required and supplemental CI passed; independent review requested
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** Pending exact-head `git diff --check`
-**Validation remaining:** Exact-head `git diff --check`, Docs Hygiene CI, attribution checks, independent review findings disposition
-**Current blocker:** Final merge gate: independent review and required checks pending; do not merge or close #596
-**Open review finding IDs:** None observed yet
-**Next exact action:** Complete task brief and index update, validate with `git diff --check`, commit, push, and open PR linked to #596
+**Validation completed at SHA:** `75755a8a`: local `git diff --check` PASS (exit 0); Docs Hygiene CI run #39918254080 PASS (8s); Commit attribution guard run #39918254108 PASS (3s); Attribution guard runner PASS (7s)
+**Validation remaining:** Exact-head checks on amended PR commit; independent review disposition from `im-tio`
+**Current blocker:** Awaiting independent review disposition and explicit owner `Go merge` authorization; do not merge or close #596
+**Open review finding IDs:** None observed
+**Next exact action:** Push receipt update, verify CI on amended HEAD, await independent review from `im-tio` and owner merge directive
 
 ---
 
@@ -242,12 +242,14 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | D1-AC05 Parent AC Audit | `.ai/tasks/issue-596-d1-measurement-plan.md` | Fact-checked table for AC-01..AC-09 with corrected AC-03, 07, 08 | `21286e78` on Windows | None (Reflects verified reality) |
 
 ### Review Provenance
-- **Review source / link:** GitHub PR (to be created)
-- **Reviewer / relation:** Independent review requested (`im-tio` / Codex / human)
-- **Reviewed SHA:** PR HEAD
-- **Review result:** Pending PR review
-- **Limitations:** No independent review claimed until submitted on GitHub.
-
+- **Review source / link:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658)
+- **Reviewer / relation:** Independent review requested (`im-tio`); automated scanners noted
+- **Reviewed SHA:** `75755a8a` (initial PR HEAD)
+- **Review result:** Formal review pending from `im-tio`. External tool notes:
+  - Codex code review: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
+  - Cursor Bugbot: Failed due to usage limit exhaustion (infrastructure limit, no code finding).
+  - Concrete findings: 0 code defects or security vulnerabilities identified.
+- **Limitations:** Independent review pending; no formal `APPROVED` review claimed yet.
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -271,4 +273,4 @@ Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
-**`REVIEW`** (Implementation complete, local validation clean; awaiting GitHub PR creation, exact-head CI, independent review, and owner merge authorization. Not `PASS` until gates pass; do not merge).
+**`REVIEW`** (Implementation complete, PR #658 opened and CI green at exact HEAD `75755a8a`; awaiting independent review disposition and owner `Go merge` authorization. Not `PASS` until gates pass; do not merge).
