@@ -157,9 +157,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     // Create+Move may have created a Program, so re-read that collection too.
     if (signal.programsMayHaveChanged) {
       _controller?.load();
-    } else {
-      setState(() => _routineRefreshVersion++);
     }
+    setState(() => _routineRefreshVersion++);
   }
 
   @override
