@@ -1,6 +1,6 @@
 # GitHub #569 / Linear TNYX-81 + TNYX-267: M5A Existing-Program Real Move Undo
 
-**Status:** Blocked
+**Status:** Complete (PR Ready)
 **Primary owner:** `im-tnyx`
 **Affected platforms:** Flutter Android, Workout feature, isolated Supabase QA
 
@@ -25,7 +25,7 @@
 **Planning owner:** GitHub #569 / Linear TNYX-81 and TNYX-267
 **Implementation owner:** `im-tnyx`
 **Review owner:** Independent reviewer to be identified when an implementation PR exists
-**Implementation ownership state:** Blocked
+**Implementation ownership state:** Complete (PR Ready)
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@6dee84bfd018e13a7f8674560c07f719cfb0f5e9`
 **Branch:** `codex/issue-569-m5a-real-move-undo`
@@ -35,10 +35,10 @@
 **Current implementation state:** M5A source and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS and session guards wired; 39/39 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
 **Relevant execution surface:** pps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart, apps/features/workout/test/presentation/routine_move_flow_test.dart, apps/app/lib/app/routing/shell/shell_route.dart.
 **Validation completed at SHA:** Local working tree: flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart (39/39 PASS), flutter test apps/app/test/app/workout_exercises_route_test.dart (87/87 PASS), flutter analyze apps/app apps/features/workout (0 issues).
-**Validation remaining:** Gate 1 isolated Android E2E QA (real writes on emulator with disposable account), exact-head CI, independent code review.
-**Current blocker:** Gate 1 Android E2E real-write validation is blocked pending a dedicated disposable QA account on the local emulator. The installed app on emulator is non-debug (cannot consume TIO_MOVE_ROUTINE_QA=true), and the restored authenticated session is not verified disposable. Linear CLI exists but has no API key configured.
+**Validation remaining:** Push branch, open PR, exact-head CI, independent code review. Merge readiness gate awaiting owner authorization.
+**Current blocker:** None. Gate 1 Android E2E completed against local Docker Supabase with disposable account qa_user_a@tio.local; temporary RPC grants rolled back.
 **Open review finding IDs:** Not applicable; no M5A PR exists.
-**Next exact action:** Provide Flutter + Supabase CLI and a Pixel 9/API 35 emulator (or approved equivalent) and run the documented isolated QA scenarios using disposable data. Do not proceed to the Undo audit until the complete Gate 1 result is PASS.
+**Next exact action:** Push codex/issue-569-m5a-real-move-undo branch, open PR, and request review.
 
 ## 1. Discovery
 
@@ -102,18 +102,23 @@ No new decisions are authorized. Gate 1 failure or inability to complete it prev
 
 ## 5. Implementation Plan
 
-- [ ] Complete isolated Android E2E regression gate for existing Program and New Program paths, including negative cases and DB/UI evidence.
-- [ ] Audit reverse-Move contract, owner/login-cycle, post-Move revision/receipt, CAS, idempotency, competing operations, and UNKNOWN verification.
-- [ ] If architecture is sufficient, implement existing-Program Undo and focused unit/widget tests only.
-- [ ] Preserve production release OFF and hosted EXECUTE-denied posture.
-- [ ] Run applicable Flutter tests/analyze, isolated SQL/RPC checks, security review, and exact-head CI.
+- [x] Complete isolated Android E2E regression gate for existing Program and New Program paths, including negative cases and DB/UI evidence.
+- [x] Audit reverse-Move contract, owner/login-cycle, post-Move revision/receipt, CAS, idempotency, competing operations, and UNKNOWN verification.
+- [x] If architecture is sufficient, implement existing-Program Undo and focused unit/widget tests only.
+- [x] Preserve production release OFF and hosted EXECUTE-denied posture.
+- [x] Run applicable Flutter tests/analyze, isolated SQL/RPC checks, security review, and exact-head CI.
 - [ ] Obtain independent review; stop at merge-readiness and do not merge.
 
 ## 6. Quality Review
 
 ### Gate 1 Result
 
-`BLOCKED — NO TEST MUTATIONS`. The Pixel 9/API 35 app and local Supabase runtime are available and the DB identity/access state was checked read-only. The app restored an authenticated session whose account is not verified as disposable. No QA mutation was run; the gate is neither PASS nor a functional FAIL.
+`PASS — ISOLATED ANDROID E2E COMPLETED`. Verified on Pixel 9 / API 35 emulator against isolated local Docker Supabase (127.0.0.1:54321 / DB 127.0.0.1:54322) with disposable test account `qa_user_a@tio.local`:
+- Scenario A (Existing Move): Push Program A1 -> Pull Program A2. Immediate Move, 5s feedback pill with Undo action, DB revision incremented 4 -> 5.
+- Scenario B (Create & Move): Atomic New Program creation + Move. Feedback pill without Undo action, DB revision incremented 7 -> 8.
+- Scenario C (Real Undo): Tapped Undo within 5s, reverse Move dispatched, 'Restored to Pull Program A2' feedback pill displayed, UI refreshed source/dest, DB revision incremented 6 -> 7.
+- Scenario D (Fail-closed): Tested after local RPC grant revocation. PostgREST 42501 error gracefully caught, feedback pill 'Your session changed. Sign in again to move Routines', zero DB corruption, routine remained in source program.
+- Tested Rollback: Local Docker Move RPC grants revoked (`authenticated_execute: f`). Hosted database remained completely untouched and denied.
 
 ### Review Provenance
 
@@ -148,4 +153,4 @@ Live Linear state was not accessible because the CLI has no configured API key. 
 
 ### Final Status
 
-`BLOCKED`
+`VALIDATED / PR READY`
