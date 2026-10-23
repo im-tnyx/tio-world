@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and materialize client-safe Supabase defines for manual iOS QA."""
+"""Validate and materialize client-safe Supabase defines for manual mobile QA."""
 
 from __future__ import annotations
 
@@ -34,16 +34,10 @@ def _is_service_role_jwt(value: str) -> bool:
 
 
 def resolve_runtime_config(
-    mode: str,
     supabase_url: str = "",
     publishable_key: str = "",
-) -> dict[str, str] | None:
-    """Return compile-time defines for QA mode, or None for UI-only mode."""
-    if mode == "ui_only":
-        return None
-    if mode != "qa_login":
-        raise ConfigurationError("Unsupported iOS build mode.")
-
+) -> dict[str, str]:
+    """Return the two mandatory compile-time defines for QA login."""
     url = supabase_url.strip()
     key = publishable_key.strip()
     if not url or not key:
@@ -83,15 +77,11 @@ def resolve_runtime_config(
 
 
 def write_runtime_config(
-    mode: str,
     output_path: Path,
     supabase_url: str = "",
     publishable_key: str = "",
 ) -> None:
-    config = resolve_runtime_config(mode, supabase_url, publishable_key)
-    if config is None:
-        output_path.unlink(missing_ok=True)
-        return
+    config = resolve_runtime_config(supabase_url, publishable_key)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     file_descriptor = os.open(
@@ -111,16 +101,14 @@ def write_runtime_config(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("ui_only", "qa_login"), default="ui_only")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
 
     try:
         write_runtime_config(
-            args.mode,
             args.output,
-            os.environ.get("TIO_IOS_QA_SUPABASE_URL", ""),
-            os.environ.get("TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY", ""),
+            os.environ.get("TIO_QA_SUPABASE_URL", ""),
+            os.environ.get("TIO_QA_SUPABASE_PUBLISHABLE_KEY", ""),
         )
     except ConfigurationError as error:
         print(str(error), file=sys.stderr)

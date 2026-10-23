@@ -1,0 +1,241 @@
+name: Tio Mobile QA Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Phone platform to build with QA email/password login configuration
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Build QA Android debug APK
+    if: inputs.platform == 'android'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install pinned Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 3.44.6 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Record build toolchain
+        shell: bash
+        run: |
+          flutter --version
+          java -version
+
+      - name: Resolve phone app dependencies
+        working-directory: apps/app
+        run: flutter pub get
+
+      - name: Validate and write QA Supabase runtime config
+        shell: bash
+        env:
+          TIO_QA_SUPABASE_URL: ${{ secrets.TIO_IOS_QA_SUPABASE_URL }}
+          TIO_QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          python3 .github/scripts/mobile_qa_runtime_config.py \
+            --output "$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Build QA debug APK
+        working-directory: apps/app
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          trap 'rm -f "$RUNNER_TEMP/tio-mobile-qa-runtime.json"' EXIT
+          flutter build apk --debug --no-pub \
+            --dart-define-from-file="$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Remove temporary QA Supabase runtime config
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Package and verify Android artifact
+        working-directory: apps/app
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/tio-mobile-qa/android"
+          apk_path="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$apk_path"
+          mkdir -p "$artifact_dir"
+          cp "$apk_path" "$artifact_dir/Tio-qa-debug.apk"
+          (
+            cd "$artifact_dir"
+            sha256sum Tio-qa-debug.apk > Tio-qa-debug.apk.sha256
+            sha256sum -c Tio-qa-debug.apk.sha256
+            test -s Tio-qa-debug.apk.sha256
+          )
+          source_sha="$GITHUB_SHA"
+          build_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "$build_sha"
+          {
+            echo "platform=android"
+            echo "qa_mode=qa_login"
+            echo "source_sha=$source_sha"
+            echo "build_sha=$build_sha"
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "workflow_run_number=$GITHUB_RUN_NUMBER"
+            echo "workflow_run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "flutter=$(flutter --version | head -n 1)"
+            echo "java=$(java -version 2>&1 | head -n 1)"
+            echo "artifact_type=debug_apk"
+            echo "signing=ephemeral_android_debug"
+            echo "package_identifier=com.tnyx.tio"
+          } > "$artifact_dir/provenance.txt"
+          test -s "$artifact_dir/provenance.txt"
+
+      - name: Upload QA Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tio-android-qa-login-debug-apk-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/tio-mobile-qa/android/Tio-qa-debug.apk
+            ${{ runner.temp }}/tio-mobile-qa/android/Tio-qa-debug.apk.sha256
+            ${{ runner.temp }}/tio-mobile-qa/android/provenance.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  ios:
+    name: Build QA unsigned iOS profile IPA
+    if: inputs.platform == 'ios'
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 3.44.6 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Record build toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter --version
+          xcodebuild -version
+          sw_vers
+
+      - name: Keep iOS dependency resolution on CocoaPods
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Resolve Flutter packages
+        working-directory: apps/app
+        run: flutter pub get
+
+      - name: Validate and write QA Supabase runtime config
+        shell: bash
+        env:
+          TIO_QA_SUPABASE_URL: ${{ secrets.TIO_IOS_QA_SUPABASE_URL }}
+          TIO_QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          python3 .github/scripts/mobile_qa_runtime_config.py \
+            --output "$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Build unsigned profile device app
+        working-directory: apps/app
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          trap 'rm -f "$RUNNER_TEMP/tio-mobile-qa-runtime.json"' EXIT
+          flutter build ios --profile --no-codesign \
+            --build-name=0.0.0 \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --dart-define-from-file="$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Remove temporary QA Supabase runtime config
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/tio-mobile-qa-runtime.json"
+
+      - name: Package and verify iPhone artifact
+        shell: bash
+        working-directory: apps/app
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/tio-mobile-qa/ios"
+          app_path="build/ios/iphoneos/Runner.app"
+          test -d "$app_path"
+          test ! -e "$app_path/embedded.mobileprovision"
+          test -s ios/Podfile.lock
+          lipo -archs "$app_path/Runner" | tr ' ' '\n' | grep -Fx arm64
+          mkdir -p "$artifact_dir/Payload"
+          ditto "$app_path" "$artifact_dir/Payload/Runner.app"
+          cp ios/Podfile.lock "$artifact_dir/Podfile.lock"
+          (
+            cd "$artifact_dir"
+            ditto -c -k --sequesterRsrc --keepParent Payload Tio-unsigned-profile.ipa
+            test -s Tio-unsigned-profile.ipa
+            unzip -tq Tio-unsigned-profile.ipa > /dev/null
+            shasum -a 256 Tio-unsigned-profile.ipa > Tio-unsigned-profile.ipa.sha256
+            shasum -a 256 -c Tio-unsigned-profile.ipa.sha256
+            test -s Podfile.lock
+          )
+          source_sha="$GITHUB_SHA"
+          build_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "$build_sha"
+          {
+            echo "platform=ios"
+            echo "qa_mode=qa_login"
+            echo "source_sha=$source_sha"
+            echo "build_sha=$build_sha"
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "workflow_run_number=$GITHUB_RUN_NUMBER"
+            echo "workflow_run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "flutter=$(flutter --version | head -n 1)"
+            echo "xcode=$(xcodebuild -version | tr '\n' ' ')"
+            echo "artifact_type=unsigned_profile_ipa"
+            echo "signing=none"
+            echo "bundle_identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Info.plist")"
+          } > "$artifact_dir/provenance.txt"
+          test -s "$artifact_dir/provenance.txt"
+
+      - name: Upload QA unsigned iPhone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tio-ios-qa-login-unsigned-profile-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/tio-mobile-qa/ios/Tio-unsigned-profile.ipa
+            ${{ runner.temp }}/tio-mobile-qa/ios/Tio-unsigned-profile.ipa.sha256
+            ${{ runner.temp }}/tio-mobile-qa/ios/Podfile.lock
+            ${{ runner.temp }}/tio-mobile-qa/ios/provenance.txt
+          if-no-files-found: error
+          retention-days: 7
