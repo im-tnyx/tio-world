@@ -261,6 +261,45 @@ void main() {
     expect(routines.rows.single.id, id);
   });
 
+  testWidgets(
+      'atomic Create and Move reloads routines for expanded source Program',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final id = _routine(1, 101, 'Push').id;
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+      programRepository: programs, routineRepository: routines,
+      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a');
+
+    final first = ValueKey('library-routines-${_id(1).value}');
+    expect(find.byKey(first), findsOneWidget);
+    expect(find.descendant(of: find.byKey(first), matching: find.text('Push')),
+        findsOneWidget);
+
+    await programs.create(_program(3, 'New Program'));
+    routines.rows
+      ..clear()
+      ..add(Routine(id: id, programId: _id(3), name: 'Push'));
+    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+        programsMayHaveChanged: true);
+    await tester.pumpAndSettle();
+
+    expect(programs.listReads, 2);
+    expect(find.byKey(first), findsOneWidget);
+    expect(find.descendant(of: find.byKey(first), matching: find.text('Push')),
+        findsNothing);
+
+    final three = find.byKey(ValueKey('library-routines-${_id(3).value}'));
+    expect(three, findsOneWidget);
+    expect(find.descendant(of: three, matching: find.text('Push')),
+        findsOneWidget);
+  });
+
   testWidgets('rebind to a different owner cycle resets collapsed Program view',
       (tester) async {
     final signal = RoutineMoveRefreshSignal();

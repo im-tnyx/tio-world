@@ -1036,10 +1036,12 @@ void main() {
     expect(originalMessenger, isNotNull);
     // Dispose ONLY the origin route. A real app-level ScaffoldMessenger and
     // destination Scaffold must remain alive to expose a stale snackbar.
-    navigatorKey.currentState!.pushReplacement<void, void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const Scaffold(
-          body: Center(child: Text('Destination screen')),
+    unawaited(
+      navigatorKey.currentState!.pushReplacement<void, void>(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Destination screen')),
+          ),
         ),
       ),
     );
