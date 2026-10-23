@@ -42,17 +42,17 @@
 **Ownership transition:** Post-merge reconciliation established from clean `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
 **Repository state last verified:** 2026-10-23, remote `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
 **Branch:** `docs/issue-596-d1-post-merge-handoff-reconcile`
-**HEAD SHA:** `e84a7409fa2f1483e72e6bedd8a00c104b4b449e` (PR #659 commit 1; amended to resolve P3 finding D1-F09)
+**HEAD SHA:** Authoritative live HEAD is tracked dynamically by GitHub PR #659 tip; historical recorded checkpoint: `560513c5caf8a3c4d94423225b75ba8bbd126965` (commit 2, resolving D1-F09), prior commit: `e84a7409fa2f1483e72e6bedd8a00c104b4b449e`
 **Observed working-tree state:** Clean working tree on reconciliation branch
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** [GitHub PR #659](https://github.com/im-tnyx/tio-world/pull/659), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) (OPEN); merged plan [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658); no dedicated Linear mirror (TNYX-193 belongs to #250)
-**Current implementation state:** PR #658 merged; PR #659 post-merge handoff open; P3 finding D1-F09 resolved
+**Current implementation state:** PR #658 merged; PR #659 post-merge handoff open; P3 findings D1-F09 and D1-F10 resolved
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `e84a7409`: GitHub-hosted Docs Hygiene CI run #39931880702 PASS; Commit attribution guard run #39931880706 PASS; Attribution guard runner PASS; local `git diff --check` exit 0
-**Validation remaining:** Exact-head checks on amended PR #659 commit; re-review approval from `im-tio`
-**Current blocker:** Awaiting re-review from `im-tio` and owner `go merge` authorization on PR #659; do not close #596
-**Open review finding IDs:** D1-F09 resolved in this amendment
-**Next exact action:** Maintain measurement ledger in GitHub #596 comments for subsequent eligible PRs; do not close #596 or archive D1 task brief until 10th PR milestone audit is reached
+**Validation completed at SHA:** `560513c5caf8a3c4d94423225b75ba8bbd126965`: Docs Hygiene CI run #39932724588 PASS; Commit attribution guard run #39932722279 PASS; Attribution guard runner PASS; local `git diff --check` exit 0 (prior checkpoint `e84a7409`: Docs Hygiene #39931880702 PASS, attribution #39931880706 PASS; plan merge `d7d50bdf`: Docs Hygiene #39928984283 PASS, attribution #39928982511 PASS)
+**Validation remaining:** Exact-head checks on amended PR #659 commit; independent re-review from `im-tio`
+**Current blocker:** Owner conditional `go merge` authorized pending passing merge gates and independent `APPROVED` review on PR #659; do not close #596
+**Open review finding IDs:** D1-F09 and D1-F10 resolved in this amendment
+**Next exact action:** Obtain independent APPROVED review on PR #659, execute normal squash merge, fast-forward local main, post #596 receipt, and maintain prospective measurement ledger
 
 ---
 
@@ -312,6 +312,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | D1-F07 | P2 | Resolved | Undefined zero denominator for provisional regression and revalidation rates | `0ada08d6` | Explicit N/A semantics, raw count reporting, and open-window maturation tracking added to formulas 4 & 6 |
 | D1-F08 | P3 | Resolved | PR description and comment receipts cited imprecise commit SHAs | `0ada08d6` | Exact 40-character SHAs verified via `git rev-parse`; PR description synchronized |
 | D1-F09 | P3 | Resolved | Composite final status token `PASS / ACTIVE MEASUREMENT` used instead of canonical single token | `e84a7409` | Separated into canonical `PASS` for plan slice and `Measurement phase: ACTIVE` for ongoing lifecycle |
+| D1-F10 | P3 | Resolved | Active handoff HEAD SHA and validation language did not distinguish recorded checkpoint from live PR tip | `560513c5` | Distinguish historical recorded checkpoints (`e84a7409`, `560513c5`) from authoritative live PR tip and recorded exact-HEAD receipts |
 
 ---
 
