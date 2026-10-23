@@ -383,8 +383,7 @@ void main() {
       expect(find.text('Create Program'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('program-create-submit')));
       await tester.pumpAndSettle();
-      expect(find.text('Create Program & Move Routine?'), findsOneWidget);
-      await tester.tap(find.text('Create & Move'));
+      expect(find.text('Create Program & Move Routine?'), findsNothing);
       // Don't let pumpAndSettle jump past the five-second auto-dismissal.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
@@ -451,20 +450,17 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('program-create-submit')));
           await tester.pumpAndSettle();
-          expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+          expect(find.text('Create Program & Move Routine?'), findsNothing);
         } else {
           await tester.tap(find.byKey(const ValueKey(
               'routine-move-destination-20000000-0000-4000-8000-000000000002')));
           await tester.pumpAndSettle();
-          expect(find.text('Move Routine?'), findsOneWidget);
+          expect(find.text('Move Routine?'), findsNothing);
         }
-        expect(gateway.writes, 0,
-            reason: 'selector and confirmation must not dispatch a write');
-        await tester.tap(find.text(createNew ? 'Create & Move' : 'Move'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
         expect(gateway.writes, 1,
-            reason: 'exactly one RPC attempt after explicit confirmation');
+            reason: 'exactly one RPC attempt after direct selection');
         expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
             findsNothing,
             reason: 'a rejected write is never reported as success');
@@ -498,12 +494,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('routine-move-$rid')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey(
-          'routine-move-destination-20000000-0000-4000-8000-000000000002')));
-      await tester.pumpAndSettle();
-      expect(find.text('Move Routine?'), findsOneWidget);
+      expect(find.byKey(const ValueKey('routine-move-destinations-$rid')),
+          findsOneWidget);
       expect(gateway.writes, 0);
-      await tester.tap(find.text('Cancel'));
+      Navigator.of(tester.element(find.byKey(
+          const ValueKey('routine-move-destinations-$rid')))).pop();
       await tester.pumpAndSettle();
       expect(gateway.writes, 0);
       expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
@@ -542,15 +537,13 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('program-create-submit')));
         await tester.pumpAndSettle();
-        expect(find.text('Create Program & Move Routine?'), findsOneWidget);
+        expect(find.text('Create Program & Move Routine?'), findsNothing);
       } else {
         await tester.tap(find.byKey(const ValueKey(
             'routine-move-destination-20000000-0000-4000-8000-000000000002')));
         await tester.pumpAndSettle();
-        expect(find.text('Move Routine?'), findsOneWidget);
+        expect(find.text('Move Routine?'), findsNothing);
       }
-      expect(gateway.writes, 0);
-      await tester.tap(find.text(createNew ? 'Create & Move' : 'Move'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(gateway.writes, 0,

@@ -148,7 +148,10 @@ final class RoutineMoveFlow {
                 }
 
                 void choose(Object choice) {
-                  if (!canWrite()) return;
+                  if (!canWrite()) {
+                    Navigator.of(sheetContext).pop();
+                    return;
+                  }
                   final _MoveSheetChoice result =
                       (selection: selection, choice: choice);
                   Navigator.of(sheetContext).pop(result);
@@ -218,22 +221,14 @@ final class RoutineMoveFlow {
           id: ProgramId(_uuidV4()),
           name: proposedName,
         );
-        final confirmed = await _confirm(
-          context: context,
-          routineName: target.name,
-          destination: proposed,
-          modalGuard: modalGuard,
-          createProgram: true,
-        );
-        if (confirmed != true || !context.mounted || !canWrite()) return false;
         // Preview is a real owner-scoped, read-only UI flow. Never create a
-        // Program or send the atomic Create+Move command even after confirm.
+        // Program or send the atomic Create+Move command even after submit.
         if (previewOnly) {
           _show(context, 'Preview only · No changes', preview: true);
           return false;
         }
 
-        // Re-check the owner-scoped source after the confirmation; server CAS
+        // Re-check the owner-scoped source after the name sheet; server CAS
         // is still the final ownership, revision and atomicity authority.
         final current = await programs.list();
         if (!context.mounted || !canWrite()) return false;
@@ -273,13 +268,6 @@ final class RoutineMoveFlow {
         return false;
       }
 
-      final confirmed = await _confirm(
-        context: context,
-        routineName: target.name,
-        destination: destination,
-        modalGuard: modalGuard,
-      );
-      if (confirmed != true || !context.mounted || !canWrite()) return false;
       // Preview must not reach the existing Program Move RPC either. False
       // means no write occurred and no success/refresh may be reported.
       if (previewOnly) {
@@ -363,93 +351,6 @@ final class RoutineMoveFlow {
       _opening.remove(routine.id);
     }
   }
-
-  Future<bool?> _confirm({
-    required BuildContext context,
-    required String routineName,
-    required Program destination,
-    Widget Function(BuildContext, Widget)? modalGuard,
-    bool createProgram = false,
-  }) => showDialog<bool>(
-    context: context,
-    builder: (dialogContext) {
-      final theme = Theme.of(dialogContext);
-      // Only this confirmation card uses the owner-approved compact visual
-      // button height. Preserve Core button intent, colours, radius and padded
-      // accessible tap target; global TioButtonTokens.height stays 46dp.
-      const compactMinimum = WidgetStatePropertyAll<Size>(
-        Size(TioButtonTokens.minimumWidth, TioSize.dp42),
-      );
-      final compactButtonsTheme = theme.copyWith(
-        filledButtonTheme: FilledButtonThemeData(
-          style: theme.filledButtonTheme.style?.copyWith(
-            minimumSize: compactMinimum,
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: theme.outlinedButtonTheme.style?.copyWith(
-            minimumSize: compactMinimum,
-          ),
-        ),
-      );
-      final card = Dialog(
-        key: const ValueKey('routine-move-confirmation'),
-        backgroundColor: TioPalette.transparent,
-        elevation: TioElevation.none,
-        insetPadding: const EdgeInsets.all(TioSpacing.lg),
-        child: SizedBox(
-          width: TioSize.dp320,
-          child: SingleChildScrollView(
-            child: TioCard(
-              variant: TioCardVariant.elevated,
-              padding: const EdgeInsets.all(TioSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.swap_horiz_rounded,
-                      size: TioSize.dp24,
-                      color: dialogContext.tioColors.textPrimary),
-                  const SizedBox(height: TioSpacing.sm),
-                  Text(createProgram
-                      ? 'Create Program & Move Routine?' : 'Move Routine?',
-                      style: Theme.of(dialogContext).textTheme.titleLarge,
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: TioSpacing.sm),
-                  Text(createProgram
-                      ? 'Create "${destination.name}" and move "$routineName"?'
-                      : 'Move "$routineName" to "${destination.name}"?',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(dialogContext).textTheme.bodyMedium),
-                  const SizedBox(height: TioSpacing.lg),
-                  Theme(
-                    data: compactButtonsTheme,
-                    child: Row(
-                      children: [
-                        Expanded(child: TioButton.secondary(
-                          label: 'Cancel',
-                          expand: true,
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                        )),
-                        const SizedBox(width: TioSpacing.sm),
-                        Expanded(child: TioButton.primary(
-                          label: createProgram ? 'Create & Move' : 'Move',
-                          expand: true,
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(true),
-                        )),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      return modalGuard?.call(dialogContext, card) ?? card;
-    },
-  );
 
   void _show(BuildContext context, String message, {
     bool confirmed = false,

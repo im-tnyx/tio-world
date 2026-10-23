@@ -145,29 +145,7 @@ Future<void> _choose(WidgetTester tester) async {
   await tester.tap(find.byKey(
       ValueKey('routine-move-destination-${destination.id.value}')));
   await tester.pumpAndSettle();
-  expect(find.text('Move Routine?'), findsOneWidget);
-  expect(find.textContaining('Morning'), findsOneWidget);
-  expect(find.textContaining('Mobility'), findsOneWidget);
-}
-
-void _expectCompactConfirmationButtons(WidgetTester tester, {
-  required String primaryLabel,
-}) {
-  // Only this dialog gets the 42dp visual minimum; other Core buttons
-  // retain 46dp, and Material's padded touch target remains enabled.
-  final cancelTheme = Theme.of(tester.element(find.text('Cancel')));
-  final primaryTheme = Theme.of(tester.element(find.text(primaryLabel)));
-  const emptyStates = <WidgetState>{};
-  expect(cancelTheme.outlinedButtonTheme.style?.minimumSize
-      ?.resolve(emptyStates)?.height, TioSize.dp42);
-  expect(primaryTheme.filledButtonTheme.style?.minimumSize
-      ?.resolve(emptyStates)?.height, TioSize.dp42);
-  expect(primaryTheme.materialTapTargetSize, MaterialTapTargetSize.padded);
-  final globalTheme = Theme.of(tester.element(find.text('Open Move')));
-  expect(globalTheme.filledButtonTheme.style?.minimumSize
-      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
-  expect(globalTheme.outlinedButtonTheme.style?.minimumSize
-      ?.resolve(emptyStates)?.height, TioButtonTokens.height);
+  expect(find.text('Move Routine?'), findsNothing);
 }
 
 void main() {
@@ -270,8 +248,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    _expectCompactConfirmationButtons(tester, primaryLabel: 'Move');
-    await tester.tap(find.text('Move'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(move.writes, 0);
@@ -332,11 +308,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
     expect(find.text('Create Program'), findsOneWidget);
+    expect(find.widgetWithText(TioButton, 'Save & Move'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
-    _expectCompactConfirmationButtons(tester, primaryLabel: 'Create & Move');
-    await tester.tap(find.text('Create & Move'));
+    expect(find.text('Create Program & Move Routine?'), findsNothing);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(atomicCalls, 0);
@@ -395,8 +370,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create & Move'));
-    await tester.pumpAndSettle();
     expect(atomicCalls, 1);
     expect(needsRefresh, isNull);
     authorized = false;
@@ -431,8 +404,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create & Move'));
-    await tester.pumpAndSettle();
     expect(needsRefresh, isNull);
     authorized = false;
     completion.completeError(const RoutineMoveOutcomeUnknown(
@@ -459,8 +430,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(g.writes, 1);
     expect(needsRefresh, isNull);
     authorized = false;
@@ -531,15 +500,10 @@ void main() {
     expect(programs.creates, 0,
         reason: 'The name editor must not create a standalone Program');
 
+    expect(find.widgetWithText(TioButton, 'Save & Move'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
-    expect(find.textContaining('Cardio Focus'), findsOneWidget);
-    expect(find.textContaining('Morning'), findsOneWidget);
-    expect(createCalls, 0);
-    expect(programs.creates, 0);
-    await tester.tap(find.text('Create & Move'));
-    await tester.pumpAndSettle();
+    expect(find.text('Create Program & Move Routine?'), findsNothing);
     expect(createCalls, 1);
     expect(createdId, isNotNull);
     expect(createdName, 'Cardio Focus');
@@ -582,7 +546,7 @@ void main() {
     expect(moves.writes, 0);
   });
 
-  testWidgets('cancel Create & Move confirmation writes no Program or Move',
+  testWidgets('cancel Create & Move sheet writes no Program or Move',
       (tester) async {
     final programs = _Programs()..items = [source];
     final moves = _Move();
@@ -615,20 +579,13 @@ void main() {
       matching: find.byType(EditableText));
     await tester.enterText(editable, 'Evening Training');
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('program-create-submit')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Create Program & Move Routine?'), findsOneWidget);
-    expect(find.textContaining('Evening Training'), findsOneWidget);
-    expect(find.textContaining('Morning'), findsOneWidget);
-    expect(atomicCalls, 0);
-    expect(programs.creates, 0);
-    expect(moves.writes, 0);
-    await tester.tap(find.text('Cancel'));
+    expect(find.widgetWithText(TioButton, 'Save & Move'), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+        const ValueKey('program-name-field')))).pop();
     await tester.pumpAndSettle();
     expect(needsRefresh, false);
     expect(atomicCalls, 0,
-        reason: 'Final confirmation cancellation dispatches no atomic RPC');
+        reason: 'Sheet cancellation dispatches no atomic RPC');
     expect(programs.creates, 0,
         reason: 'Name-only editor must not persist a phantom Program');
     expect(moves.writes, 0);
@@ -654,9 +611,6 @@ void main() {
     expect(find.text('Strength'), findsNothing,
       reason: 'Current Program cannot be a Move destination');
     await _choose(tester);
-    expect(gateway.writes, 0);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(result, true);
     expect(gateway.writes, 1);
     expect(gateway.chosenDestination, destination.id);
@@ -684,7 +638,7 @@ void main() {
     expect(g.writes, 0);
   });
 
-  testWidgets('cancel confirmation does not dispatch', (tester) async {
+  testWidgets('cancel before destination selection dispatches zero writes', (tester) async {
     final g = _Move();
     bool? result;
     await _pump(tester,
@@ -694,8 +648,10 @@ void main() {
     );
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
-    await _choose(tester);
-    await tester.tap(find.text('Cancel'));
+    expect(find.text('Select Program'), findsOneWidget);
+    Navigator.of(tester.element(find.byKey(
+      ValueKey('routine-move-destinations-${routine.id.value}'),
+    ))).pop();
     await tester.pumpAndSettle();
     expect(result, false);
     expect(g.writes, 0);
@@ -739,7 +695,7 @@ void main() {
     expect(g.writes, 0);
   });
 
-  testWidgets('auth revocation between selection and confirmation denies RPC',
+  testWidgets('auth revocation before destination selection denies RPC',
       (tester) async {
     final g = _Move();
     var authorized = true;
@@ -749,15 +705,16 @@ void main() {
       canWrite: () => authorized, onResult: (v) => result = v);
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
-    await _choose(tester);
+    expect(find.text('Select Program'), findsOneWidget);
     authorized = false;
-    await tester.tap(find.text('Move'));
+    await tester.tap(find.byKey(
+        ValueKey('routine-move-destination-${destination.id.value}')));
     await tester.pumpAndSettle();
     expect(result, false);
     expect(g.writes, 0);
   });
 
-  testWidgets('destination removed during confirmation dispatches no RPC',
+  testWidgets('destination removed before selection dispatches no RPC',
       (tester) async {
     final moves = _Move();
     final programs = _Programs();
@@ -767,12 +724,13 @@ void main() {
       onResult: (v) => result = v);
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
-    await _choose(tester);
+    expect(find.text('Select Program'), findsOneWidget);
     programs.items = [source];
-    await tester.tap(find.text('Move'));
+    await tester.tap(find.byKey(
+        ValueKey('routine-move-destination-${destination.id.value}')));
     await tester.pumpAndSettle();
     expect(programs.reads, 2,
-        reason: 'Owner destinations must be re-read after confirmation');
+        reason: 'Owner destinations must be re-read after destination selection');
     expect(moves.writes, 0);
     expect(result, true, reason: 'A stale selection requests refresh');
     expect(find.textContaining('changed'), findsOneWidget);
@@ -792,8 +750,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(result, true, reason: 'Refresh, not a success ACK');
     expect(g.writes, 1);
     expect(find.textContaining('unconfirmed'), findsOneWidget);
@@ -819,8 +775,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(refresh, true, reason: 'Readback success is still a refresh request');
     expect(g.writes, 1, reason: 'Never retry the original Move RPC');
     expect(g.verifications, 1);
@@ -849,8 +803,6 @@ void main() {
       await tester.tap(find.text('Open Move'));
       await tester.pumpAndSettle();
       await _choose(tester);
-      await tester.tap(find.text('Move'));
-      await tester.pumpAndSettle();
       expect(g.writes, 1);
       expect(g.verifications, 1);
       expect(refresh, true);
@@ -873,8 +825,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(refresh, true);
     expect(g.writes, 1);
     expect(g.verifications, 1);
@@ -897,7 +847,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
     await tester.pump();
     await tester.pump();
     expect(g.verifications, 1);
@@ -938,8 +887,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Create & Move'));
-    await tester.pumpAndSettle();
     expect(refresh, true);
     expect(atomicWrites, 1);
     expect(g.writes, 0);
@@ -975,8 +922,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-move-new-program')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('program-create-submit')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Create & Move'));
     await tester.pumpAndSettle();
     expect(refresh, true, reason: 'UNKNOWN requests an owner-guarded refresh');
     expect(atomicWrites, 1, reason: 'No atomic retry when receipt is missing');
@@ -1027,7 +972,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
     await tester.pump();
     await tester.pump();
     expect(g.writes, 1);
@@ -1085,8 +1029,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(refresh, false);
     expect(g.writes, 0);
     expect(g.verifications, 0);
@@ -1106,8 +1048,6 @@ void main() {
     await tester.tap(find.text('Open Move'));
     await tester.pumpAndSettle();
     await _choose(tester);
-    await tester.tap(find.text('Move'));
-    await tester.pumpAndSettle();
     expect(result, true);
     expect(g.writes, 1);
     expect(find.textContaining('changed'), findsOneWidget);
