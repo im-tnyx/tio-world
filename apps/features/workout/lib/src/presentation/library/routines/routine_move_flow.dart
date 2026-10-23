@@ -99,6 +99,13 @@ final class RoutineMoveFlow {
     /// server-confirmed Undo. Not called for Create & Move, UNKNOWN outcomes,
     /// or Undo failures. The caller must guard with its own owner/session check.
     VoidCallback? onMoveConfirmed,
+    /// Called when an existing-Program Undo reverse Move write was dispatched
+    /// across the network (including confirmed, UNKNOWN outcome, or post-dispatch
+    /// exceptions).
+    /// Used by the caller to invalidate and reconcile owner-scoped Program and
+    /// Routine lists without treating the signal as confirmed success.
+    /// Never called if target inspection fails or the request is rejected before dispatch.
+    VoidCallback? onUndoWriteAttempted,
   }) async {
     if (routine.programId != sourceProgram.id || !canWrite() ||
         !_opening.add(routine.id)) {
@@ -344,6 +351,7 @@ final class RoutineMoveFlow {
           repository: repository,
           canWrite: canWrite,
           onMoveConfirmed: onMoveConfirmed,
+          onUndoWriteAttempted: onUndoWriteAttempted,
         );
         return true;
       }
@@ -421,6 +429,7 @@ final class RoutineMoveFlow {
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
     VoidCallback? onMoveConfirmed,
+    VoidCallback? onUndoWriteAttempted,
   }) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
@@ -464,6 +473,7 @@ final class RoutineMoveFlow {
               repository: repository,
               canWrite: canWrite,
               onMoveConfirmed: onMoveConfirmed,
+              onUndoWriteAttempted: onUndoWriteAttempted,
             );
           }
         },
@@ -480,6 +490,7 @@ final class RoutineMoveFlow {
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
     VoidCallback? onMoveConfirmed,
+    VoidCallback? onUndoWriteAttempted,
   }) async {
     if (!canWrite()) return;
 
@@ -509,8 +520,10 @@ final class RoutineMoveFlow {
       return;
     }
 
-    RoutineMoveResult result;
+    var reverseWriteAttempted = false;
+    RoutineMoveResult? result;
     try {
+      reverseWriteAttempted = true;
       result = await repository.move(
         target: target,
         destinationProgramId: receipt.originalProgramId,
@@ -518,20 +531,28 @@ final class RoutineMoveFlow {
       );
     } on RoutineMoveOutcomeUnknown {
       if (context.mounted && canWrite()) {
-        _show(context,
-            'Restore status unconfirmed. Check your Programs.');
+        _show(
+          context,
+          'Restore status unconfirmed. Check your Programs.',
+        );
       }
-      return;
     } on RoutineMoveException {
       if (context.mounted && canWrite()) {
         _show(context, 'Could not restore. Check your Programs.');
       }
-      return;
     } catch (_) {
       if (context.mounted && canWrite()) {
         _show(context, 'Could not restore. Try again later.');
       }
-      return;
+    } finally {
+      // The reverse write was dispatched across the network and may have
+      // committed on the server. Signal the caller to invalidate and re-read
+      // owner-scoped state (without interpreting this signal as confirmed success).
+      // Only fire if the session is still valid; a revoked session or account
+      // switch must never trigger stale-owner invalidations.
+      if (reverseWriteAttempted && canWrite()) {
+        onUndoWriteAttempted?.call();
+      }
     }
 
     if (!context.mounted || !canWrite()) return;
@@ -539,7 +560,7 @@ final class RoutineMoveFlow {
     if (result == RoutineMoveResult.confirmed) {
       _show(context, 'Restored to ${receipt.originalProgramName}');
       onMoveConfirmed?.call();
-    } else {
+    } else if (result != null) {
       _show(context, 'Could not restore. Check your Programs.');
     }
   }

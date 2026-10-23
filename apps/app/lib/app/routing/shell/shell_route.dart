@@ -481,7 +481,7 @@ List<RouteBase> _shellBranchChildRoutes(
                   _guardRoutineOptionsSheet(
                 content: content, ownerId: owner, loginCycleId: cycle,
               ),
-              onMoveConfirmed: () {
+              onUndoWriteAttempted: () {
                 if (sameAuthenticatedOwner()) {
                   moveRefresh.request(
                     ownerId: owner,

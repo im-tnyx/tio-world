@@ -32,13 +32,13 @@
 **HEAD SHA:** Base `6dee84bfd018e13a7f8674560c07f719cfb0f5e9`; documentation-only branch changes are not yet committed.
 **Observed working-tree state:** Clean at start; current changes are this handoff plus archive/index reconciliation.
 **PR / tracker:** GitHub #569 OPEN; PR #657 and #660 MERGED. Linear status unavailable in this session (no Linear connector or CLI).
-**Current implementation state:** M5A source and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS and session guards wired; 39/39 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
+**Current implementation state:** M5A source and widget/unit tests implemented. Real 5-second existing-Program Move Undo with revision-CAS and session guards wired; 42/42 workout move tests pass; 87/87 app route tests pass; flutter analyze 0 issues across apps/app and apps/features/workout.
 **Relevant execution surface:** pps/features/workout/lib/src/presentation/library/routines/routine_move_flow.dart, apps/features/workout/test/presentation/routine_move_flow_test.dart, apps/app/lib/app/routing/shell/shell_route.dart.
-**Validation completed at SHA:** Local working tree: flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart (39/39 PASS), flutter test apps/app/test/app/workout_exercises_route_test.dart (87/87 PASS), flutter analyze apps/app apps/features/workout (0 issues).
+**Validation completed at SHA:** Local working tree: flutter test apps/features/workout/test/presentation/routine_move_flow_test.dart (42/42 PASS), flutter test apps/app/test/app/workout_exercises_route_test.dart (87/87 PASS), flutter analyze apps/app apps/features/workout (0 issues).
 **Validation remaining:** Push branch, open PR, exact-head CI, independent code review. Merge readiness gate awaiting owner authorization.
 **Current blocker:** None. Gate 1 Android E2E completed against local Docker Supabase with disposable account qa_user_a@tio.local; temporary RPC grants rolled back.
-**Open review finding IDs:** Not applicable; no M5A PR exists.
-**Next exact action:** Push codex/issue-569-m5a-real-move-undo branch, open PR, and request review.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86voxAL` (Codex P2: owner-scoped refresh on UNKNOWN Undo; resolved in source with onUndoWriteAttempted).
+**Next exact action:** Push Codex P2 fix, reply to review thread PRRT_kwDOTOXwB86voxAL, verify exact-head CI, stop at merge readiness gate.
 
 ## 1. Discovery
 
@@ -122,7 +122,9 @@ No new decisions are authorized. Gate 1 failure or inability to complete it prev
 
 ### Review Provenance
 
-No M5A source diff or PR exists; no M5A Codex findings or independent review are available. PR #657/#660 approvals and CI apply only to those prerequisite PRs, not to M5A QA or Undo.
+- PR #661 created on branch `codex/issue-569-m5a-real-move-undo` against `main`.
+- ChatGPT-Codex review finding `PRRT_kwDOTOXwB86voxAL` (P2): UNKNOWN Undo must also trigger owner-scoped refresh signal without claiming success.
+- Resolution: Added `onUndoWriteAttempted` callback on `RoutineMoveFlow.run` and `_executeUndo` to signal `RoutineMoveRefreshSignal` upon any reverse Move write attempt (confirmed, UNKNOWN, or post-dispatch exceptions), guarded by `canWrite()` and `sameAuthenticatedOwner()`. Added 3 new regression tests (42/42 PASS).
 
 ### Acceptance Evidence
 
