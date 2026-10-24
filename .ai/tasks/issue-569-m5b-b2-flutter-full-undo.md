@@ -18,13 +18,13 @@
 **Implementation owner:** `im-tnyx`
 **Review owner:** Independent reviewer re-review pending
 **Implementation ownership state:** Active
-**Repository state last verified:** PR #665 head `0035df4647c3676f1b3aa368d14a0a39b8538fb6`; local Git fetch is unavailable because `.git/FETCH_HEAD` is permission denied. GitHub API confirms PR #665 remains OPEN and targets `main@9805ee1b58f38d04e5b692aa049ef9e280bcf850`.
+**Repository state last verified:** PR #665 head `c05cc00bd1f13f86ded5829f851afd97a73260ef`; local Git fetch is unavailable because `.git/FETCH_HEAD` is permission denied. GitHub API confirms PR #665 remains OPEN and targets `main@9805ee1b58f38d04e5b692aa049ef9e280bcf850`.
 **Branch:** `tnyx/m5b-b2-full-undo-flutter`
 **Base SHA:** `9805ee1b58f38d04e5b692aa049ef9e280bcf850`
 **PR / tracker:** [PR #665 OPEN](https://github.com/im-tnyx/tio-world/pull/665); GitHub #569 OPEN; PR #664 MERGED; Linear TNYX-81 and TNYX-267 remain Backlog; TNYX-78 In Progress; TNYX-80 In Progress.
-**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. P2 `PRRT_kwDOTOXwB86v1Wyr` is addressed in `0035df4647c3676f1b3aa368d14a0a39b8538fb6`: the receipt is frozen before Create & Move dispatch, and direct success plus exact original-mutation UNKNOWN confirmation share the actionable Undo presenter. Exact-head CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63` found a promoted-callback analyzer warning and five widget failures because Create & Move fixtures used invalid owner ID `owner-a`; the callback and fixture are corrected in the current worktree, pending retest. The P2 thread remains unresolved.
+**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. P2 `PRRT_kwDOTOXwB86v1Wyr` is fixed in `0035df4647c3676f1b3aa368d14a0a39b8538fb6`: the receipt is frozen before Create & Move dispatch, and direct success plus exact original-mutation UNKNOWN confirmation share the actionable Undo presenter. CI follow-up corrected the promoted-callback warning and five test-fixture failures in `c05cc00bd1f13f86ded5829f851afd97a73260ef`. All current-head CI checks pass. The inline P2 thread remains unresolved pending independent re-review.
 **Hosted evidence limitation:** No Supabase MCP or CLI is available in this session. Historical checked-in handoff says hosted is 68/68 through 20261021130000, with Move RPC EXECUTE denied; B1 migration and Undo RPC hosted status were not freshly verified.
-**Next exact action:** Commit and push the CI corrections, verify exact-head CI and new review feedback, then resolve the P2 only after those checks pass. Stop before merge.
+**Next exact action:** Obtain the requested independent re-review of `c05cc00bd1f13f86ded5829f851afd97a73260ef`; resolve the P2 thread after the reviewer confirms the fix. Stop before merge.
 
 ## 1. Discovery
 
@@ -107,8 +107,9 @@ PASS: apps/app flutter analyze lib/app/routing/shell/shell_route.dart (No issues
 PASS: git diff --check origin/main...HEAD.
 PASS: Docs Hygiene CI on PR head `5e1a892f`.
 PASS: Flutter CI and Docs Hygiene CI on prior PR head `7e9910dd`; these do not validate P2 fix `0035df46`.
-FAIL: Flutter CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63`: 943 tests passed, 5 failed in the workout package; analyzer flagged unnecessary null-aware call in `routine_move_flow.dart:357`. Failure cause was test target owner fixture `owner-a`, rejected when freezing the receipt before dispatch. Corrected locally; rerun pending.
-PASS: Docs Hygiene CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63` (run 40061134051).
+FAIL: Flutter CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63`: 943 tests passed, 5 failed in the workout package; analyzer flagged unnecessary null-aware call in `routine_move_flow.dart:357`. Failure cause was test target owner fixture `owner-a`, rejected when freezing the receipt before dispatch.
+PASS: Flutter CI on exact head `c05cc00bd1f13f86ded5829f851afd97a73260ef` (run 40061687901), including Analyze Flutter and Dart / test Dart and all Flutter shards.
+PASS: Docs Hygiene CI on exact head `c05cc00bd1f13f86ded5829f851afd97a73260ef` (run 40061687915).
 NOT RUN: `flutter test test/presentation/routine_move_flow_test.dart`; `flutter.bat` and `dart.bat` produced no output for over 30 seconds and were interrupted. Direct `dart.exe --version` passed (Dart SDK 3.12.2).
 PASS: staged `git diff --cached --check` for the two implementation files.
 BLOCKED: local `git fetch` could not write `.git/FETCH_HEAD` (`Permission denied`); current PR/base state was cross-checked through GitHub API.
@@ -130,7 +131,7 @@ REVIEW: dart format changed the touched Dart files, then exited 1 after attempti
 **Review source / link:** [PR #665](https://github.com/im-tnyx/tio-world/pull/665); GitHub finding `PRRT_kwDOTOXwB86v1Wyr`; Codex self-review
 **Reviewer / relation to implementer:** Codex self-review; not independent
 **Diff or commit SHA actually reviewed:** `0035df4647c3676f1b3aa368d14a0a39b8538fb6`
-**Review result and finding IDs/dispositions:** P2 path and focused regression match the requested behavior. Exact-head CI exposed the fixture/lint issues above; corrections are pending validation. Finding remains open.
+**Review result and finding IDs/dispositions:** Codex self-review found the P2 implementation and regression aligned with the requested behavior. The exact-head CI fixture/lint issues were corrected and all checks now pass. Independent re-review is still pending; finding remains open.
 **Independent review?** Unknown / unavailable
 **Limitations and unmet required gates:** No dedicated Codex review service is available in this session. Hosted Supabase state is not readable; do not deploy or enable grants. No merge.
 
@@ -142,7 +143,7 @@ REVIEW: dart format changed the touched Dart files, then exited 1 after attempti
 
 ### Actual Behavior
 
-An exact original Create & Move mutation readback now uses the same five-second actionable full-Undo presentation as direct RPC confirmation, backed by the receipt frozen before dispatch. Undo still calls only the protected full-Undo repository operation. Local regression execution and exact-head CI remain pending.
+An exact original Create & Move mutation readback now uses the same five-second actionable full-Undo presentation as direct RPC confirmation, backed by the receipt frozen before dispatch. Undo still calls only the protected full-Undo repository operation. Exact-head Flutter and Docs Hygiene CI pass; local regression command remains unavailable due Flutter/Dart batch entrypoint hang.
 
 ### Known Limitations
 
