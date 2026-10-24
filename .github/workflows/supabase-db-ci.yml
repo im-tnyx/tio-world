@@ -450,6 +450,13 @@ jobs:
           # is restored and fixture users are deleted on exit.
           bash supabase/tests/database/tnyx_567_atomic_program_delete_concurrency.sh
 
+      - name: Run #567 D1 real two-session Program Delete versus Edit races
+        shell: bash
+        run: |
+          # Exact disposable CI only. Proves opposite lock interleavings,
+          # revision bumps, stable Routine/Exercise/Set IDs, fixture cleanup.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_edit_concurrency.sh
+
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash
         run: |
