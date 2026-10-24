@@ -61,7 +61,7 @@ begin
 
   -- Do not allow ambiguous duplicate/unsorted caller membership to slip
   -- through a set comparison. Sorting is server-owned and deterministic.
-  select pg_catalog.coalesce(
+  select coalesce(
       pg_catalog.array_agg(ids.id order by ids.id), '{}'::uuid[])
     into v_expected_ids
   from pg_catalog.unnest(p_expected_routine_ids) as ids(id);
@@ -96,7 +96,7 @@ begin
     raise exception 'program_delete_default_forbidden' using errcode = 'P0001';
   end if;
 
-  select pg_catalog.coalesce(
+  select coalesce(
       pg_catalog.array_agg(routine.id order by routine.id), '{}'::uuid[])
     into v_probe_ids
   from public.user_workout_routines as routine
@@ -153,7 +153,7 @@ begin
   -- Create/Edit/Move/Delete lock it via KEY SHARE before Routine mutation;
   -- even FK checks for legacy inserts must wait. This is the authoritative
   -- stable membership snapshot against the user's confirmation.
-  select pg_catalog.coalesce(
+  select coalesce(
       pg_catalog.array_agg(routine.id order by routine.id), '{}'::uuid[])
     into v_actual_ids
   from public.user_workout_routines as routine
