@@ -118,6 +118,19 @@ def auth_fixture():
         raise RuntimeError("Expected Auth trigger/owner fixture rows were not created")
 
 
+
+def assert_no_workout_records():
+    # The HTTP fixture intentionally references no existing Routine/Program.
+    # Verify that the grant/revoke exercise never produced owner workout data.
+    if psql("""
+      select (select count(*) from public.user_workout_programs
+              where user_id in ('%s'::uuid,'%s'::uuid))=0
+         and (select count(*) from public.user_workout_routines
+              where user_id in ('%s'::uuid,'%s'::uuid))=0
+    """ % (PERMANENT_ID, GUEST_ID, PERMANENT_ID, GUEST_ID)) != "t":
+        raise AssertionError("R3 HTTP grant/revoke smoke mutated workout records")
+
+
 def b64(value):
     return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
 
@@ -231,6 +244,7 @@ def main():
         # even when a partial Auth-trigger insert raises mid-setup.
         fixture_created = True
         auth_fixture()
+        assert_no_workout_records()
         launch_postgrest()
         assert_stage("enabled", "owner", token(PERMANENT_ID))
         assert_stage("enabled", "guest", token(GUEST_ID))
@@ -239,6 +253,7 @@ def main():
         assert_stage("revoked", "owner", token(PERMANENT_ID))
         set_auth_exec(True)  # restore the reviewed R3 CI baseline
         assert_stage("enabled", "owner", token(PERMANENT_ID))
+        assert_no_workout_records()
         print("PASS: all three HTTP RPC ACL revocations + regrant, no Routine/Program writes")
     finally:
         try:
