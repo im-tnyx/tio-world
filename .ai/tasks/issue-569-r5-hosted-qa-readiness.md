@@ -1,6 +1,6 @@
 # GitHub #569 R5 — Hosted Move authorization QA readiness and current-gate reconciliation
 
-**Status:** In progress — documentation/readiness PR; hosted HTTP QA NOT performed
+**Status:** In review — [PR #677](https://github.com/im-tnyx/tio-world/pull/677) at merge gate; hosted HTTP QA NOT performed, DO NOT MERGE
 **Owner:** Workout release QA / developer experience (documentation only)
 **Tracking:** [#569](https://github.com/im-tnyx/tio-world/issues/569), [TNYX-81](https://linear.app/tnyx/issue/TNYX-81/w4-programs-and-routines-canonical-content-composition-and-builders), [#675](https://github.com/im-tnyx/tio-world/issues/675)
 **Base:** protected `main@74f3ebd42a0a388eb817d86de75a1db8b518f335` (R4 PR #676 merged)
@@ -32,15 +32,15 @@
 
 - [x] Main, R4 source, #569/Linear state, runbook, hosted migration and three ACLs examined through connected tools.
 - [x] Current hosted warning and least-privilege exposure distinguished from source-only activation.
-- [ ] PR change scope and parent ancestry audited using GitHub compare.
-- [ ] Docs Hygiene and required commit attribution on exact PR HEAD verified; connector-only work cannot claim local `git diff --check` execution.
-- [ ] Manual reviewer findings dispositioned; actual independent human security review deferred per #675, **not** treated as APPROVED.
+- [x] GitHub compare showed 6 task-only commits, 0 behind, exact 3 approved docs/task paths against base `74f3ebd4` before this handoff refresh; recheck final head.
+- [x] Docs Hygiene / required Commit attribution / Attribution runner SUCCESS on reviewed head `9b0cdbda` (runs `40115053244` / `40115051369`); recheck final handoff-commit HEAD CI. Connector-only work cannot claim local `git diff --check` execution.
+- [x] Assistant-operated self-review on PR #677 identified one P2 Option A historical/current ACL contradiction; corrected at `9b0cdbda`, replied and resolved GitHub inline thread `PRRT_kwDOTOXwB86v6FVT`. **Not independent review**. Human security review remains deferred via #675, not APPROVED.
 - [ ] Separate authorized hosted HTTP/JWT negative matrix completed (NOT part of this docs-only PR).
 - [ ] Device release-candidate Android/iOS and owner UI/public-release sign-off (NOT part of this PR).
 
 ## Active handoff
 
 **Planning / implementation:** Connected assistant, docs-only owner of this slice; no concurrent feature implementation claimed.
-**Implementation state:** Preparing one bounded PR against main. No local Windows worktree is mounted in this environment; GitHub API parent/ref/file audit is the available substitute.
+**Implementation state:** Draft PR #677 opened from `tnyx/569-r5-hosted-qa-readiness` against `main@74f3ebd4`, docs-only 3-path scope; reviewed P2 fixed. No local Windows worktree is mounted; GitHub API parent/ref/file audit is the available substitute.
 **Validation:** Supabase read-only migration/ACL/advisor evidence above; local Flutter and hosted HTTP JWT tests **not run**. PR checks to be read at exact HEAD after creation.
-**Next:** Open and audit documentation PR through merge gate, leave UNMERGED. Follow-on actual HTTP/device QA requires controlled accounts/consent and separate evidence and go/no-go.
+**Next:** Verify final exact-head checks and review state, leave PR #677 **UNMERGED** for explicit owner instruction. Separate hosted HTTP/device QA requires controlled accounts/consent, evidence and release go/no-go.
