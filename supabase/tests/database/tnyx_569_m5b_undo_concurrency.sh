@@ -75,12 +75,14 @@ psql "$database_url" --set=ON_ERROR_STOP=1 -q \
   --set=owner="$owner" --set=source="$source" --set=routine="$routine" \
   --set=created="$created" --set=move_mutation="$move_mutation" \
   >"$a_log" 2>&1 <<'SQL'
+begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.create_user_workout_program_and_move_routine(
   :'routine'::uuid, :'source'::uuid, :'created'::uuid,
   'Race Created Program', 0, :'move_mutation'::uuid
 );
+commit;
 SQL
 
 mkfifo "$fifo"
