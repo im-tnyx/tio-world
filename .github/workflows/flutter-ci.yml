@@ -112,6 +112,11 @@ jobs:
           CI_TEST_SHARD: ${{ matrix.shard }}
         run: bash scripts/ci/flutter-test-shards.sh run "$CI_TEST_SHARD"
 
+      - name: Verify opt-in R4 Move release gate
+        if: matrix.shard == 'app-workout'
+        working-directory: apps/app
+        run: flutter test --no-pub --dart-define=TIO_MOVE_ROUTINE_RELEASE=true --dart-define=TIO_TEST_EXPECT_MOVE_ON=true test/app/routine_move_release_gate_test.dart
+
   quality:
     # Preserve the existing job/check name for dashboards and potential rules.
     name: Analyze and test

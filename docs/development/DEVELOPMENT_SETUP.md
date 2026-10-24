@@ -70,6 +70,41 @@ flutter run
 
 A healthy dependency check can still show older transitive packages when they are pinned by Flutter SDK or test package constraints. Focus on direct and dev dependencies first.
 
+## Move Routine R4 internal release-candidate opt-in (default OFF)
+
+**Current source / backend (2026-10-24):** PR #674 is merged and the owner
+applied R3 migration `20261024120000` to the linked hosted Supabase project.
+Read-only verification recorded **70 applied migrations** and `authenticated`
+EXECUTE for three protected Move / Create+Move / Full Undo RPCs. This supersedes
+the older **69-migration / hosted EXECUTE-denied** checkpoints retained below
+as historical isolated-QA notes. The Flutter production Move capability is
+**still OFF in normal builds**.
+
+R4 can now prepare an **explicitly opted-in internal build** that exposes the
+existing owner-approved Move/Undo UI *without redesigning it*:
+
+```powershell
+Set-Location "G:\projects\Tio-World\apps\app"
+& "G:\dev\flutter-sdk\bin\flutter.bat" run --profile --dart-define=TIO_MOVE_ROUTINE_RELEASE=true
+```
+
+Only run against an **approved QA account/device** with known disposable
+Program/Routine records. This option can change workout records in the
+configured Supabase project. It is **not** a secret, account allowlist,
+server authorization control, remote kill switch, or approval to distribute
+a public release; hosted RPC endpoints are already separately reachable by
+eligible authenticated callers. A normal build with no define remains OFF.
+The older `TIO_MOVE_ROUTINE_QA` and `TIO_MOVE_ROUTINE_UI_PREVIEW` options
+remain debug-only and independent.
+
+Before a production/staged rollout, collect actual hosted negative owner/
+guest/cross-account HTTP evidence, run Move A→B / reverse Undo and atomic
+Save & Move / full Undo on isolated consenting QA data, exercise UNKNOWN and
+session switches, check Android/iOS devices, and obtain the owner's **final
+UI acceptance and release approval**. Deferred independent human security
+reviews remain listed in GitHub #675 for consolidated public-launch audit;
+known serious security problems still require immediate action.
+
 ## Move Routine debug UI preview (opt-in)
 
 The #569 Move Routine flow is intentionally release-OFF until protected backend
