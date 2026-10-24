@@ -22,9 +22,9 @@
 **Branch:** `tnyx/m5b-b2-full-undo-flutter`
 **Base SHA:** `9805ee1b58f38d04e5b692aa049ef9e280bcf850`
 **PR / tracker:** [PR #665 OPEN](https://github.com/im-tnyx/tio-world/pull/665); GitHub #569 OPEN; PR #664 MERGED; Linear TNYX-81 and TNYX-267 remain Backlog; TNYX-78 In Progress; TNYX-80 In Progress.
-**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. P2 `PRRT_kwDOTOXwB86v1Wyr` is fixed in `0035df4647c3676f1b3aa368d14a0a39b8538fb6`: the receipt is frozen before Create & Move dispatch, and direct success plus exact original-mutation UNKNOWN confirmation share the actionable Undo presenter. The focused widget regression verifies frozen IDs/revision and one full-Undo dispatch. Exact-head CI and re-review remain pending; the P2 thread remains unresolved.
+**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. P2 `PRRT_kwDOTOXwB86v1Wyr` is addressed in `0035df4647c3676f1b3aa368d14a0a39b8538fb6`: the receipt is frozen before Create & Move dispatch, and direct success plus exact original-mutation UNKNOWN confirmation share the actionable Undo presenter. Exact-head CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63` found a promoted-callback analyzer warning and five widget failures because Create & Move fixtures used invalid owner ID `owner-a`; the callback and fixture are corrected in the current worktree, pending retest. The P2 thread remains unresolved.
 **Hosted evidence limitation:** No Supabase MCP or CLI is available in this session. Historical checked-in handoff says hosted is 68/68 through 20261021130000, with Move RPC EXECUTE denied; B1 migration and Undo RPC hosted status were not freshly verified.
-**Next exact action:** Wait for exact-head CI, reply to the P2 thread with fix and test evidence, request/reconcile an independent re-review if an eligible reviewer is available, then resolve only after evidence. Stop before merge.
+**Next exact action:** Commit and push the CI corrections, verify exact-head CI and new review feedback, then resolve the P2 only after those checks pass. Stop before merge.
 
 ## 1. Discovery
 
@@ -107,7 +107,8 @@ PASS: apps/app flutter analyze lib/app/routing/shell/shell_route.dart (No issues
 PASS: git diff --check origin/main...HEAD.
 PASS: Docs Hygiene CI on PR head `5e1a892f`.
 PASS: Flutter CI and Docs Hygiene CI on prior PR head `7e9910dd`; these do not validate P2 fix `0035df46`.
-PENDING: exact-head Flutter CI and Docs Hygiene CI for `0035df4647c3676f1b3aa368d14a0a39b8538fb6`; Actions runs were not yet visible when checked.
+FAIL: Flutter CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63`: 943 tests passed, 5 failed in the workout package; analyzer flagged unnecessary null-aware call in `routine_move_flow.dart:357`. Failure cause was test target owner fixture `owner-a`, rejected when freezing the receipt before dispatch. Corrected locally; rerun pending.
+PASS: Docs Hygiene CI on `284bba367ddf6d65bf00efcaf97312fcccadaf63` (run 40061134051).
 NOT RUN: `flutter test test/presentation/routine_move_flow_test.dart`; `flutter.bat` and `dart.bat` produced no output for over 30 seconds and were interrupted. Direct `dart.exe --version` passed (Dart SDK 3.12.2).
 PASS: staged `git diff --cached --check` for the two implementation files.
 BLOCKED: local `git fetch` could not write `.git/FETCH_HEAD` (`Permission denied`); current PR/base state was cross-checked through GitHub API.
@@ -129,7 +130,7 @@ REVIEW: dart format changed the touched Dart files, then exited 1 after attempti
 **Review source / link:** [PR #665](https://github.com/im-tnyx/tio-world/pull/665); GitHub finding `PRRT_kwDOTOXwB86v1Wyr`; Codex self-review
 **Reviewer / relation to implementer:** Codex self-review; not independent
 **Diff or commit SHA actually reviewed:** `0035df4647c3676f1b3aa368d14a0a39b8538fb6`
-**Review result and finding IDs/dispositions:** P2 path and focused regression match the requested behavior; awaiting exact-head CI and independent re-review. Finding remains open.
+**Review result and finding IDs/dispositions:** P2 path and focused regression match the requested behavior. Exact-head CI exposed the fixture/lint issues above; corrections are pending validation. Finding remains open.
 **Independent review?** Unknown / unavailable
 **Limitations and unmet required gates:** No dedicated Codex review service is available in this session. Hosted Supabase state is not readable; do not deploy or enable grants. No merge.
 

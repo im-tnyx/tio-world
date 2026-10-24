@@ -354,7 +354,7 @@ final class RoutineMoveFlow {
           return attempted;
         }
         if (result == RoutineMoveResult.confirmed) {
-          showConfirmedCreateMoveUndo?.call();
+          showConfirmedCreateMoveUndo.call();
         }
         return true;
       }
