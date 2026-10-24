@@ -29,6 +29,31 @@ begin
 end;
 $$;
 
+create function pg_temp.expect_error(
+  p_sql text,
+  p_state text,
+  p_message text,
+  p_label text
+)
+returns void language plpgsql as $$
+declare
+  v_state text;
+  v_message text;
+begin
+  begin
+    execute p_sql;
+  exception when others then
+    get stacked diagnostics
+      v_state = returned_sqlstate,
+      v_message = message_text;
+    if v_state = p_state and v_message = p_message then return; end if;
+    raise exception 'assertion failed: %, expected %/% actual %/%',
+      p_label, p_state, p_message, v_state, v_message;
+  end;
+  raise exception 'assertion failed: % (unexpectedly committed)', p_label;
+end;
+$$;
+
 select pg_temp.assert_true(
   (select count(*) = 3
      from information_schema.columns
@@ -241,18 +266,26 @@ select pg_temp.assert_true(
               where id = 'b569b100-0000-4000-8000-000000000062'),
   'failed Undo leaves original Create & Move intact with no partial delete');
 
--- A rename is a newer Program mutation and fails closed.
+-- Remove the extra Routine so the rename guard is tested independently of the
+-- nonempty-Program guard.
+reset role;
+delete from public.user_workout_routines
+ where id = 'b569b100-0000-4000-8000-000000000032';
+set local role authenticated;
+
+-- A rename is a newer Program mutation and fails closed before reparent/delete.
 update public.user_workout_programs
    set name = 'Program B2 renamed'
  where id = 'b569b100-0000-4000-8000-000000000062';
-select pg_temp.expect_state(
+select pg_temp.expect_error(
   $$select public.undo_create_user_workout_program_and_move_routine(
     'b569b100-0000-4000-8000-000000000031',
     'b569b100-0000-4000-8000-000000000011',
     'b569b100-0000-4000-8000-000000000062',
     'b569b100-0000-4000-8000-000000000104',3,
     'b569b100-0000-4000-8000-000000000106')$$,
-  'P0001','renamed B rejects before reparent/delete');
+  'P0001','routine_create_move_undo_program_modified',
+  'renamed B rejects before reparent/delete');
 
 -- Cross-owner calls cannot use another owner\'s Routine or Program identity.
 select set_config(
