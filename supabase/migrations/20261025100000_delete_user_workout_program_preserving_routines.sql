@@ -149,10 +149,13 @@ begin
     raise exception 'program_delete_default_conflict' using errcode = 'P0001';
   end if;
 
-  -- While source Program FOR UPDATE is held, existing owner-scoped
-  -- Create/Edit/Move/Delete lock it via KEY SHARE before Routine mutation;
-  -- even FK checks for legacy inserts must wait. This is the authoritative
-  -- stable membership snapshot against the user's confirmation.
+  -- Source Program FOR UPDATE serializes existing owner-scoped Create,
+  -- Move and Routine Delete paths that acquire the source Program KEY SHARE,
+  -- plus FK validation for legacy Routine inserts. Protected Routine Edit
+  -- and legacy composition Save instead acquire only the Routine row lock.
+  -- Those edits serialize later on each Routine FOR UPDATE below; the
+  -- revision/hash update prevents stale edit replay after reparenting.
+  -- Source Program locking establishes stable membership, not Edit exclusion.
   select coalesce(
       pg_catalog.array_agg(routine.id order by routine.id), '{}'::uuid[])
     into v_actual_ids
