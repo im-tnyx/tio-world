@@ -1,6 +1,8 @@
 # GitHub #569 M5B-B2 — Flutter Full Create & Move Undo
 
-**Status:** In progress
+**Post-merge disposition (2026-10-24):** This bounded Flutter source slice is **Validated**. [PR #665](https://github.com/im-tnyx/tio-world/pull/665) exact head `80a62755e222a2eabf7a490355a9ceab0c085aad` passed [Flutter CI 40062024444](https://github.com/im-tnyx/tio-world/actions/runs/40062024444), [Docs Hygiene 40062024518](https://github.com/im-tnyx/tio-world/actions/runs/40062024518), and required Commit attribution guard. Distinct GitHub reviewer `im-tio` [APPROVED](https://github.com/im-tnyx/tio-world/pull/665#pullrequestreview-5637112942); P2 thread `PRRT_kwDOTOXwB86v1Wyr` was resolved. PR #665 squash-merged as `19703d794b9593a104ccd3cf2b8f86ea2b634dd8`. M5A existing-Program Undo and M5B full Create & Move Undo are both merged source. Read-only hosted verification shows 68 applied migrations through `20261021130000`; B1 migration `20261024090000` and Undo RPC are absent, both Move RPCs deny authenticated EXECUTE, and `routineMoveReleaseEnabledProvider=false`. Isolated real-write QA, hosted rollout/grants, Android/iOS acceptance, and production activation remain separate gates. GitHub #569 is OPEN; Linear TNYX-81/TNYX-267 remain Backlog. The handoff and review checkpoints below are historical pre-merge evidence.
+
+**Status:** Validated
 **Primary owner:** Flutter Workout feature implementation
 **Affected platforms:** Flutter phone app, Workout feature, task/docs handoff
 
@@ -12,7 +14,7 @@
 **Approved boundaries:** Add Flutter Workout domain/repository/presentation wiring and focused tests for the existing M5B-B1 RPC `undo_create_user_workout_program_and_move_routine`; preserve M5A, preview/debug gates, and `routineMoveReleaseEnabledProvider = false`.
 **Explicit non-changes:** No Supabase schema/migration/RLS/grant edits, hosted writes/deployment, release activation, #567 Delete Program work, merge, or unrelated visual redesign.
 
-## Active Handoff
+## Historical Pre-Merge Handoff
 
 **Planning owner:** GitHub #569 / Linear TNYX-81 and TNYX-267
 **Implementation owner:** `im-tnyx`
@@ -149,6 +151,6 @@ An exact original Create & Move mutation readback now uses the same five-second 
 
 Hosted B1 migration/RPC/grants and Security Advisor not freshly checked; production release remains OFF; no device validation until explicitly run in the isolated QA scope.
 
-### Final Status
+### Historical Pre-Merge Final Status
 
 `REVIEW`
