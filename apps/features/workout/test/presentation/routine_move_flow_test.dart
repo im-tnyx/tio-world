@@ -1011,20 +1011,26 @@ void main() {
     expect(find.textContaining('unconfirmed'), findsNothing);
   });
 
-  testWidgets('UNKNOWN atomic Create & Move uses same verifier once',
+  testWidgets(
+      'UNKNOWN atomic Create & Move exact receipt exposes frozen full Undo',
       (tester) async {
     var atomicWrites = 0;
+    var refreshSignals = 0;
+    var nextMutation = 0;
+    ProgramId? proposedProgramId;
     bool? refresh;
     final g = _VerifyingMove()
       ..onVerify = () async => const RoutineMoveReadback(
           kind: RoutineMoveReadbackKind.confirmedLatestMutation,
           observedRevision: 5);
     await _pump(tester,
-        flow: RoutineMoveFlow(newMutationId: () => token),
+        flow: RoutineMoveFlow(
+            newMutationId: () => nextMutation++ == 0 ? token : undoToken),
         move: g,
         programs: _Programs()..items = [source],
         canWrite: () => true,
         onResult: (value) => refresh = value,
+        onCreateMoveUndoWriteAttempted: () => refreshSignals++,
         createAndMove: ({
           required RoutineMoveTarget target,
           required ProgramId newProgramId,
@@ -1032,6 +1038,9 @@ void main() {
           required String mutationId,
         }) async {
           atomicWrites++;
+          proposedProgramId = newProgramId;
+          expect(newProgramName, isNotEmpty);
+          expect(mutationId, token);
           throw const RoutineMoveOutcomeUnknown();
         });
     await tester.tap(find.text('Open Move'));
@@ -1044,8 +1053,25 @@ void main() {
     expect(atomicWrites, 1);
     expect(g.writes, 0);
     expect(g.verifications, 1);
+    expect(find.widgetWithText(SnackBarAction, 'Undo'), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-move-confirmed-feedback')),
         findsOneWidget);
+
+    await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+    await tester.pumpAndSettle();
+
+    expect(g.createMoveUndoWrites, 1);
+    expect(g.writes, 0, reason: 'Undo uses only the protected full-Undo RPC');
+    expect(g.undoReceipt?.routineId, routine.id);
+    expect(g.undoReceipt?.originalProgramId, source.id);
+    expect(g.undoReceipt?.createdProgramId, proposedProgramId);
+    expect(g.undoReceipt?.originalMoveMutationId, token);
+    expect(g.undoReceipt?.expectedRevision, 5);
+    expect(g.undoReceipt?.ownerId, '30000000-0000-4000-8000-000000000001');
+    expect(g.undoReceipt?.loginCycleId, 'cycle-a');
+    expect(g.undoMutationId, undoToken);
+    expect(find.text('Restored to Strength'), findsOneWidget);
+    expect(refreshSignals, 1);
   });
 
   testWidgets('atomic UNKNOWN without exact receipt never claims success',

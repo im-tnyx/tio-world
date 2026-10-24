@@ -135,6 +135,7 @@ final class RoutineMoveFlow {
     );
     var attempted = false;
     String? dispatchedMutationId;
+    VoidCallback? showConfirmedCreateMoveUndo;
     try {
       // Push the sheet immediately. The authenticated owner-scoped reads
       // continue inside its content; no destination is shown/selectable until
@@ -316,6 +317,31 @@ final class RoutineMoveFlow {
               'Could not verify full Undo capability. Try again later.');
           return false;
         }
+        // Freeze the receipt before dispatch. A lost response can still be
+        // confirmed by the exact mutation readback, and that confirmation must
+        // retain the same identities and revision for the Undo action.
+        final receipt = RoutineCreateMoveUndoReceipt(
+          routineId: routine.id,
+          originalProgramId: target.sourceProgramId,
+          originalProgramName: sourceProgram.name,
+          createdProgramId: proposed.id,
+          originalMoveMutationId: mutationId.toLowerCase(),
+          expectedRevision: target.expectedRevision + 1,
+          ownerId: target.ownerId,
+          loginCycleId: target.loginCycleId,
+        );
+        showConfirmedCreateMoveUndo = () => _showConfirmedWithUndo(
+              context,
+              'Routine moved.',
+              onUndo: () => _executeCreateMoveUndo(
+                context,
+                receipt: receipt,
+                repository: fullUndoRepository,
+                canWrite: canWrite,
+                sameAuthenticatedOwner: sameAuthenticatedOwner,
+                onUndoWriteAttempted: onCreateMoveUndoWriteAttempted,
+              ),
+            );
         final result = await createAndMove(
           target: target,
           newProgramId: proposed.id,
@@ -328,28 +354,7 @@ final class RoutineMoveFlow {
           return attempted;
         }
         if (result == RoutineMoveResult.confirmed) {
-          final receipt = RoutineCreateMoveUndoReceipt(
-            routineId: routine.id,
-            originalProgramId: target.sourceProgramId,
-            originalProgramName: sourceProgram.name,
-            createdProgramId: proposed.id,
-            originalMoveMutationId: mutationId.toLowerCase(),
-            expectedRevision: target.expectedRevision + 1,
-            ownerId: target.ownerId,
-            loginCycleId: target.loginCycleId,
-          );
-          _showConfirmedWithUndo(
-            context,
-            'Routine moved.',
-            onUndo: () => _executeCreateMoveUndo(
-              context,
-              receipt: receipt,
-              repository: fullUndoRepository,
-              canWrite: canWrite,
-              sameAuthenticatedOwner: sameAuthenticatedOwner,
-              onUndoWriteAttempted: onCreateMoveUndoWriteAttempted,
-            ),
-          );
+          showConfirmedCreateMoveUndo?.call();
         }
         return true;
       }
@@ -439,9 +444,16 @@ final class RoutineMoveFlow {
         }
       }
       // A read may complete after widget disposal or account/cycle switch.
-      if (attempted && context.mounted && canWrite()) {
+      if (attempted &&
+          context.mounted &&
+          canWrite() &&
+          (sameAuthenticatedOwner ?? canWrite)()) {
         if (confirmedByReadback) {
-          _show(context, 'Routine moved.', confirmed: true);
+          if (showConfirmedCreateMoveUndo != null) {
+            showConfirmedCreateMoveUndo.call();
+          } else {
+            _show(context, 'Routine moved.', confirmed: true);
+          }
         } else {
           _show(context,
               'Move status is unconfirmed. Refresh Programs; do not retry.');
