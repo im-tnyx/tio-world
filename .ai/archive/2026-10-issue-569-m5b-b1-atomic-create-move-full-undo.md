@@ -1,5 +1,7 @@
 # M5B-B1 Atomic Create & Move Full Undo Backend
 
+**Post-merge disposition (2026-10-24):** This bounded backend source slice is **Validated**. [PR #664](https://github.com/im-tnyx/tio-world/pull/664) squash-merged as `9805ee1b58f38d04e5b692aa049ef9e280bcf850`. The checked-in `20261024090000_m5b_atomic_create_move_full_undo.sql` adds protected atomic full Undo; the read-only hosted ledger still ends at `20261021130000` (68 applied migrations), and the Undo RPC is absent. Deployment, client grants, isolated real-write QA, and release activation remain separate gates. GitHub #569 is OPEN; Linear TNYX-81 and TNYX-267 are Backlog. The handoff and review checkpoints below preserve their pre-merge historical context.
+
 **Status:** Validated
 **Primary owner:** Supabase/Postgres implementation owner
 **Affected platforms:** `supabase/*` database/RPC tests only
@@ -12,7 +14,7 @@
 **Approved product/UI/data-shape boundaries:** Add only `create_move_mutation_id`, `create_move_routine_id`, and `create_move_source_program_id` to `public.user_workout_programs`; update the existing atomic Create & Move RPC; add `undo_create_user_workout_program_and_move_routine(...) returns bigint`; keep all Move/Undo client EXECUTE grants revoked.
 **Explicit non-changes:** No new receipt table or additional column unless correctness proves it indispensable; no hosted migration/grant/deploy; no Flutter M5B UI/adapter; no general Program Delete; no M5A redesign; no feature-flag activation; no merge.
 
-## Active Handoff
+## Historical Pre-Merge Handoff
 
 **Planning owner:** Tio-world owner approval
 **Implementation owner:** Supabase/Postgres implementation owner
@@ -100,6 +102,6 @@ Exact replay succeeds only when B is absent, Routine is at A, revision is `p_exp
 `git diff --check` passed. Implementation checkpoint `e0733baa6138fb2beddba685b3d929daae529f6a` passed disposable Supabase Database CI run `40050837446`; handoff checkpoint `357aae2ec4215b82dd2aee6a4c956eb9352123cb` passed run `40051140062`. Exact feature checkpoint `7c57ab18799179bd175d8dca1deaff1e1631126d` passed Supabase Database CI run `40052108838` and Docs Hygiene CI run `40052108797`; the three review threads were replied to and resolved with those results. Local Supabase/psql not run due environment limitations. Any later commit requires fresh exact-head verification.
 ```
 
-### Final Status
+### Historical Pre-Merge Final Status
 
 `REVIEW`
