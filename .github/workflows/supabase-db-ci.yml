@@ -434,6 +434,29 @@ jobs:
           # contacts a hosted Supabase project or enables the Flutter feature.
           python3 supabase/tests/database/tnyx_569_r3_postgrest_revoke_smoke.py
 
+      - name: Run #567 D1 owner-safe atomic Program Delete SQL matrix
+        shell: bash
+        run: |
+          # Transaction-scoped fixture grant and writes are rolled back.
+          # Protected Program Delete stays client EXECUTE-denied on migrated CI.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_567_atomic_program_delete.test.sql
+
+      - name: Run #567 D1 real two-session Program Delete versus Move races
+        shell: bash
+        run: |
+          # Identity-guarded disposable CI: temporary authenticated RPC grant
+          # is restored and fixture users are deleted on exit.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_concurrency.sh
+
+      - name: Run #567 D1 real two-session Program Delete versus Edit races
+        shell: bash
+        run: |
+          # Exact disposable CI only. Proves opposite lock interleavings,
+          # revision bumps, stable Routine/Exercise/Set IDs, fixture cleanup.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_edit_concurrency.sh
+
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash
         run: |
