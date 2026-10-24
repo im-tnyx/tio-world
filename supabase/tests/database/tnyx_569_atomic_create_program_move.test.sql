@@ -30,9 +30,7 @@ end;
 $$;
 
 select pg_temp.assert_true(
-  not has_function_privilege('authenticated',
-    'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
-  and not has_function_privilege('anon',
+  not has_function_privilege('anon',
     'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('service_role',
     'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
@@ -52,7 +50,7 @@ select pg_temp.assert_true(
     'public.user_workout_programs','is_default','INSERT')
   and not has_column_privilege('authenticated',
     'public.user_workout_programs','is_default','UPDATE'),
-  'staged function dormant, direct Routine reparent denied, Program INSERT restricted to id/user_id/name, is_default frozen');
+  'anon/service_role denied; direct Routine reparent denied; Program INSERT restricted to id/user_id/name, is_default frozen');
 
 select pg_temp.assert_true(
   (select count(*) = 9

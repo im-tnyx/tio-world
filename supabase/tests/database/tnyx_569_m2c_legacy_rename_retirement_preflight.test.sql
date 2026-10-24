@@ -49,11 +49,8 @@ select pg_temp.assert_true(
     'EXECUTE')
   and has_function_privilege('authenticated',
     'public.save_user_workout_routine_composition(uuid,bigint,uuid,jsonb)',
-    'EXECUTE')
-  and not has_function_privilege('authenticated',
-    'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)',
     'EXECUTE'),
-  'client direct writes denied, Create/Read and protected RPCs remain, Move dormant'
+  'client direct writes denied; Create/Read and protected RPCs remain'
 );
 
 insert into auth.users (id, email) values

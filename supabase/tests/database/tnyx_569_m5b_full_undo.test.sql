@@ -65,11 +65,6 @@ select pg_temp.assert_true(
         'create_move_source_program_id'
       ))
   and not has_function_privilege(
-    'authenticated',
-    'public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)',
-    'EXECUTE'
-  )
-  and not has_function_privilege(
     'anon',
     'public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)',
     'EXECUTE'
@@ -85,10 +80,9 @@ select pg_temp.assert_true(
   and not has_table_privilege(
     'authenticated', 'public.user_workout_programs', 'DELETE'
   ),
-  'M5B provenance exists while Undo and direct parent mutation remain dormant');
+  'M5B provenance exists while anon/service_role and direct parent mutation stay denied');
 
--- CI-only access. The migration itself must keep all ordinary hosted roles
--- revoked; this grant is transaction-local test setup and is rolled back.
+-- Transaction-local test grants roll back to the migration's durable ACL.
 grant execute on function public.create_user_workout_program_and_move_routine(
   uuid, uuid, uuid, text, bigint, uuid
 ) to authenticated;

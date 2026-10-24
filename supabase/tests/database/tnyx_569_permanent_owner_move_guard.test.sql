@@ -31,15 +31,11 @@ begin
 end;
 $$;
 
--- This migration hardens the two dormant existing functions without changing
--- callable client access or the earlier #568 first-Routine permission.
+-- M4A hardens both functions; durable authenticated access is checked in the
+-- separate current-state ACL contract, while this matrix tests admission.
 select pg_temp.assert_true(
   (select count(*) = 1 from supabase_migrations.schema_migrations
    where version = '20261021130000')
-  and not has_function_privilege('authenticated',
-    'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
-  and not has_function_privilege('authenticated',
-    'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('anon',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('anon',
@@ -66,10 +62,10 @@ select pg_temp.assert_true(
        from pg_catalog.pg_proc as p
        where p.oid =
          'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'::regprocedure),
-  'both SECDEF Move APIs remain dormant and exact owner/grant boundaries intact'
+  'both SECDEF Move APIs retain owner, anon/service_role and direct-write boundaries'
 );
 
--- Only SQL transactional testing: leave permanent hosted permissions OFF.
+-- Transaction-local SQL access rolls back to the migrated ACL.
 grant execute on function public.move_user_workout_routine(
   uuid, uuid, uuid, bigint, uuid
 ) to authenticated;
@@ -140,8 +136,8 @@ select pg_temp.assert_true(
   'rejected guest preserves Routine revision and leaves no new Program'
 );
 
--- Revoke just the disposable grants and verify rollback readiness; no
--- unrelated API permission or default marker authority is affected.
+-- Verify test-local revoke behavior; the transaction rollback restores the
+-- migrated ACL, including any future authenticated grant.
 revoke execute on function public.move_user_workout_routine(
   uuid, uuid, uuid, bigint, uuid
 ) from authenticated;
