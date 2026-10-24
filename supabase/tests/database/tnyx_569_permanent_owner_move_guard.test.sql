@@ -134,12 +134,12 @@ select pg_temp.assert_raises(
 -- real anonymous Auth accounts before any provenance/row lookup, even if the
 -- JWT supplies a spoofed non-anonymous claim.
 select pg_temp.assert_raises(
-  $select public.undo_create_user_workout_program_and_move_routine(
+  $$select public.undo_create_user_workout_program_and_move_routine(
     'f5690000-0000-4000-8000-000000000021'::uuid,
     'f5690000-0000-4000-8000-000000000011'::uuid,
     'f5690000-0000-4000-8000-000000000013'::uuid,
     'f5690000-0000-4000-8000-000000000033'::uuid, 1,
-    'f5690000-0000-4000-8000-000000000034'::uuid)$,
+    'f5690000-0000-4000-8000-000000000034'::uuid)$$,
   '28000',
   'signed-in guest cannot invoke full atomic Undo'
 );
