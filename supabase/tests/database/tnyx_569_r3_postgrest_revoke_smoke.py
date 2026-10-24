@@ -219,6 +219,7 @@ def launch_postgrest():
             "-e", "PGRST_DB_URI=" + DB_URL,
             "-e", "PGRST_DB_ANON_ROLE=anon",
             "-e", "PGRST_DB_SCHEMAS=public",
+            "-e", "PGRST_SERVER_HOST=127.0.0.1",
             "-e", "PGRST_SERVER_PORT=3022",
             "-e", "PGRST_JWT_SECRET=" + TEST_JWT_SECRET,
             "postgrest/postgrest:v12.2.12",
