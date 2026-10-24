@@ -80,7 +80,7 @@ Add three nullable provenance UUIDs and a coherence CHECK. Stamp them in the exi
 
 ### Failure and Idempotency
 
-Exact replay succeeds only when B is absent, Routine is at A, revision is `p_expected_revision + 2`, and the stored mutation/hash exactly matches the same Undo token and parameters. Any different token, later write, stale revision, renamed/reused B, additional Routine, missing/ineligible A, ownership mismatch, or unknown state fails without a partial commit.
+Exact replay succeeds only when B is absent, Routine is at A, revision is `p_expected_revision + 1` (`p_expected_revision` is the existing post-Move receipt revision), and the stored mutation/hash exactly matches the same Undo token and parameters. Any different token, later write, stale revision, renamed/reused B, additional Routine, missing/ineligible A, ownership mismatch, or unknown state fails without a partial commit.
 
 ## 5. Implementation Plan
 

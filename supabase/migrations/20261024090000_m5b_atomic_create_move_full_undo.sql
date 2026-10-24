@@ -232,8 +232,8 @@ begin
       or p_original_move_mutation_id is null
       or p_undo_mutation_id is null
       or p_expected_revision is null
-      or p_expected_revision < 0
-      or p_expected_revision > 9223372036854775805
+      or p_expected_revision < 1
+      or p_expected_revision = 9223372036854775807
       or p_original_program_id = p_created_program_id
       or p_original_move_mutation_id = p_undo_mutation_id then
     raise exception 'invalid_routine_create_move_undo_request'
@@ -304,7 +304,7 @@ begin
   if not v_created_exists
       and v_original_exists
       and v_routine_program_id = p_original_program_id
-      and v_revision = p_expected_revision + 2
+      and v_revision = p_expected_revision + 1
       and v_last_mutation = p_undo_mutation_id
       and v_last_hash = v_undo_hash then
     return v_revision;
@@ -344,7 +344,7 @@ begin
     and routine.program_id = p_created_program_id;
   if v_routines_in_created <> 1
       or v_routine_program_id <> p_created_program_id
-      or v_revision <> p_expected_revision + 1
+      or v_revision <> p_expected_revision
       or v_last_mutation <> p_original_move_mutation_id then
     raise exception 'routine_create_move_undo_revision_conflict'
       using errcode = 'P0001';
@@ -357,7 +357,7 @@ begin
       'source_program_id', p_original_program_id::text,
       'new_program_id', p_created_program_id::text,
       'new_program_name', v_created_name,
-      'expected_revision', p_expected_revision,
+      'expected_revision', p_expected_revision - 1,
       'mutation_id', p_original_move_mutation_id::text
     )::text, 'UTF8'
   ));
@@ -374,7 +374,7 @@ begin
   where routine.id = p_routine_id
     and routine.user_id = v_user_id
     and routine.program_id = p_created_program_id
-    and routine.composition_revision = p_expected_revision + 1
+    and routine.composition_revision = p_expected_revision
     and routine.last_composition_mutation_id = p_original_move_mutation_id;
   get diagnostics v_updated = row_count;
   if v_updated <> 1 then
