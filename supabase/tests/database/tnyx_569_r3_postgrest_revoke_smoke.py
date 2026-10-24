@@ -161,8 +161,10 @@ def assert_stage(stage, who, jwt):
     for name, _, body, missing_error, guest_error in SPECS:
         status, code, message = request(name, body, jwt)
         if stage == "enabled" and who == "owner":
-            # A verified owner with a nonexistent Routine must REACH the RPC.
-            ok = status == 404 and message == missing_error
+            # P0002 is returned as HTTP 500 by this PostgREST v12 runtime.
+            # Match the exact PostgreSQL code AND function-origin message:
+            # a granted owner reaches its protected RPC without any writes.
+            ok = status == 500 and code == "P0002" and message == missing_error
         elif stage == "enabled" and who == "guest":
             # A real Auth anonymous account has the authenticated SQL role.
             ok = message == guest_error and status in (401, 403)
