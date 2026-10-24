@@ -224,12 +224,12 @@ def launch_postgrest():
 def main():
     require_disposable()
     fixture_created = False
-    container_started = False
     try:
-        auth_fixture()
+        # From this point cleanup owns these exact deterministic fixture IDs,
+        # even when a partial Auth-trigger insert raises mid-setup.
         fixture_created = True
+        auth_fixture()
         launch_postgrest()
-        container_started = True
         assert_stage("enabled", "owner", token(PERMANENT_ID))
         assert_stage("enabled", "guest", token(GUEST_ID))
         assert_stage("enabled", "anon", None)
@@ -252,9 +252,9 @@ def main():
                 if psql("select count(*) from auth.users where id in ('%s'::uuid,'%s'::uuid)" %
                         (PERMANENT_ID, GUEST_ID)) != "0":
                     raise AssertionError("Auth fixture cleanup left rows behind")
-            if container_started:
-                subprocess.run(["docker", "rm", "-f", CONTAINER],
-                               check=False, capture_output=True)
+            # Docker may have started even if HTTP readiness never completed.
+            subprocess.run(["docker", "rm", "-f", CONTAINER],
+                           check=False, capture_output=True)
 
 
 if __name__ == "__main__":
