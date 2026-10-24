@@ -105,6 +105,57 @@ UI acceptance and release approval**. Deferred independent human security
 reviews remain listed in GitHub #675 for consolidated public-launch audit;
 known serious security problems still require immediate action.
 
+## Move Routine R5 hosted API authorization QA gate (NOT YET PASSED)
+
+**Current hosted ACL, 2026-10-24 read-only:** project `oykupyiitspujzpwwvuj`
+has **70 applied migrations**, latest `20261024120000_grant_move_routine_rpc_execute_to_authenticated`.
+The three exact `move_user_workout_routine`,
+`create_user_workout_program_and_move_routine`, and
+`undo_create_user_workout_program_and_move_routine` RPCs are
+`postgres`-owned `SECURITY DEFINER` with empty `search_path`.
+All three have `authenticated EXECUTE=true`,
+`anon=false`, and `service_role=false`. This is live API exposure
+to signed-in permanent users even if the app feature flag is OFF.
+The Supabase Security Advisor's [authenticated-callable SECURITY DEFINER warning](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)
+requires evidence-based disposition, not suppression. SQL ACL checks do
+**not** prove cross-owner, guest or JWT HTTP authorization behavior.
+
+**QA prerequisites:** obtain separate authorization for any actual hosted
+test writes and use ONLY consenting/disposable QA accounts A and B and
+disposable Program/Routine records. Check the intended Supabase project and
+the tested client build, isolate relevant record IDs, confirm no real account
+or history is touched, and define a cleanup plan. Use test-account JWTs only
+in a secured local process/session; never paste tokens, raw HTTP headers,
+profile/health data or user identifiers into GitHub, Linear, logs or this
+runbook. Use the client-safe publishable key; never test with a
+`service_role` key as the client. A POST to these RPCs can commit a real
+write even when it is intended as a negative test. Without the prerequisites,
+**stop at read-only verification and record HTTP QA as NOT RUN**.
+
+| Gate | Test principal and action | Expected result / evidence to record |
+| --- | --- | --- |
+| R5-N1 | Unauthenticated request to all three Move RPCs | No callable write; redacted HTTP status/error category and unchanged fixture IDs |
+| R5-N2 | Anonymous Auth session, if supported, calls all three | Permanent-account guard denies all writes; no new Program or changed Routine |
+| R5-N3 | Account B attempts to move A's Routine into B's Program | Owner authorization denies, exact Routine identity/revision and A/B memberships unchanged |
+| R5-N4 | Account A attempts to move its Routine into B's Program | Destination owner check denies; no cross-account membership or leaked details |
+| R5-N5 | A uses a stale revision, stale source, replayed mutation or conflicting operation | Stale/conflicting operations fail closed, legitimate idempotent replay has one authoritative outcome; no overwrite or duplicate Program |
+| R5-P1 | A moves its own disposable Routine A→B, then reverses via 5-second Undo | Confirm committed destination Program membership, same Routine/Exercise/Set IDs and verified reverse, not just UI feedback |
+| R5-P2 | A runs `Save & Move` into a new disposable Program, then full Undo | Verify one atomic new Program+same Routine, then server-confirmed restoration and conditional deletion of only that new, still-empty Program |
+| R5-N6 | Switch account/login cycle or expire the Undo window, and exercise UNKNOWN/timeout on disposable fixtures | No stale-session action, no duplicate retry or false success; record actual final server state and UI behavior |
+
+For each gate, retain **restricted** request/response classifications,
+test environment, client/PR SHA, reversible fixture reference, before/after
+owner-scoped row counts/IDs, and an explicit PASS/FAIL/NOT RUN result.
+The table documents the **required tests**, not executed results.
+Unexpected authorized cross-owner write or privilege bypass is an immediate
+security stop and issue escalation, not a prelaunch human-review-debt deferral.
+Use [#569](https://github.com/im-tnyx/tio-world/issues/569) for the
+release gate, [#675](https://github.com/im-tnyx/tio-world/issues/675)
+for deferred human review, and TNYX-40 / TNYX-126 for final public-launch
+security and owner go/no-go. Android and iOS build/device/visual acceptance
+are additional independent gates. No public Move release or default ON build
+is authorized by this runbook.
+
 ## Move Routine debug UI preview (opt-in)
 
 The #569 Move Routine flow is intentionally release-OFF until protected backend
@@ -144,15 +195,20 @@ cd apps/app
 flutter run --debug --dart-define=TIO_MOVE_ROUTINE_QA=true
 ```
 
-**Architecture & Security Decision (Option A — Isolated QA Environment):**
-Per explicit owner approval on 2026-10-23 (Option A), real-write QA for Move
-Routine is restricted to **isolated Supabase environments** (local Docker-based
-Supabase CLI or a dedicated disposable staging project). Hosted Tio-world
-Move RPCs remain **EXECUTE-denied** (`authenticated = false`) to completely
-prevent exposure to ordinary users until an explicit owner exposure decision, three-RPC least-privilege grant/rollback security review, and production release gates are complete. M5A existing-Program Undo and M5B full Undo source are merged (PRs #661/#664/#665); M5B migration and protected Undo RPC are hosted at the verified 69/69 ledger. #567 Program Delete reparenting remains a separate pending lifecycle gate.
-A Flutter debug flag is a client UI gate, **not** a database security boundary;
-granting EXECUTE on hosted would expose PostgREST endpoints to all signed-in
-accounts.
+**Historical Architecture & Security Decision (Option A — Isolated QA):**
+On 2026-10-23, owner-approved real-write debug QA was restricted to isolated
+Supabase environments (local Docker-based Supabase CLI or a disposable staging
+project). At that checkpoint, hosted Move RPC EXECUTE was denied. The separate
+R3 grant migration on 2026-10-24 superseded **that hosted-denial snapshot**:
+all three RPCs now have `authenticated EXECUTE=true` (**70** applied
+migrations), and R4 supports explicitly approved internal hosted QA builds.
+The steps below remain an **isolated local** lab procedure, **not** a current
+hosted ACL report or an instruction to revoke the already-applied R3 grant.
+M5A and M5B Undo source are merged; #567 Program Delete remains separate.
+A Flutter debug flag is a client UI gate, **not** a database security
+boundary; the hosted R3 grant already exposes those RPC endpoints to all
+authenticated accounts, with permanent-account/ownership checks enforced
+server-side.
 
 ### Isolated Local Supabase QA Execution Runbook
 
@@ -196,19 +252,20 @@ accounts.
    PostgREST immediately returns SQLSTATE `42501` (`insufficient_privilege`)
    to any subsequent Move attempt while routine/program records remain unharmed.
 
-**Current hosted security prerequisite:** all three Move/Create+Move/full-Undo
-RPCs are present and remain EXECUTE-denied to `PUBLIC`, `anon`, `authenticated`,
-and `service_role` on hosted Tio-world. Do not work around it with direct
-`UPDATE(program_id)`, a service-role client, an unreviewed SQL GRANT, or a
-source-level production flag change. No deployable forward migration granting
-broad authenticated EXECUTE will be added to `supabase/migrations/` without
-a separate owner exposure decision.
+**Current hosted security prerequisite (supersedes historical denial):**
+all three Move/Create+Move/full-Undo RPCs have `authenticated EXECUTE=true`
+on hosted Tio-world after R3; `anon` and `service_role` remain denied.
+Do not work around authorization with direct `UPDATE(program_id)`, a
+service-role client, an ad hoc SQL grant, or a source-level production flag
+change. Follow the unexecuted R5 hosted HTTP negative-path gate above
+before any public rollout; do not mistake a client presentation flag for an
+API deny boundary.
 
 If `TIO_MOVE_ROUTINE_UI_PREVIEW=true` and `TIO_MOVE_ROUTINE_QA=true`
 are both supplied, the preview takes precedence and performs **zero writes**.
-Neither flag works in profile/release builds. Production Move release,
-three-RPC least-privilege client EXECUTE grants and rollback review, and #567
-Program Delete remain separate approval/release gates. M5A and M5B full Undo
+Neither flag works in profile/release builds. Public Move release, hosted HTTP owner/guest authorization acceptance,
+Android/iOS QA and #567 Program Delete remain separate gates. The three
+authenticated-only grants are **already hosted**, not a future prerequisite. M5A and M5B full Undo
 source are merged and the M5B migration/Undo RPC are hosted; none of that
 activates production Move.
 
