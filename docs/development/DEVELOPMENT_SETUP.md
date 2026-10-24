@@ -138,7 +138,7 @@ write even when it is intended as a negative test. Without the prerequisites,
 | R5-N2 | Anonymous Auth session, if supported, calls all three | Permanent-account guard denies all writes; no new Program or changed Routine |
 | R5-N3 | Account B attempts to move A's Routine into B's Program | Owner authorization denies, exact Routine identity/revision and A/B memberships unchanged |
 | R5-N4 | Account A attempts to move its Routine into B's Program | Destination owner check denies; no cross-account membership or leaked details |
-| R5-N5 | A uses a stale revision, stale source, replayed mutation or conflicting operation | Revision/idempotency contract fails closed; no overwrite or duplicate created Program |
+| R5-N5 | A uses a stale revision, stale source, replayed mutation or conflicting operation | Stale/conflicting operations fail closed, legitimate idempotent replay has one authoritative outcome; no overwrite or duplicate Program |
 | R5-P1 | A moves its own disposable Routine A→B, then reverses via 5-second Undo | Confirm committed destination Program membership, same Routine/Exercise/Set IDs and verified reverse, not just UI feedback |
 | R5-P2 | A runs `Save & Move` into a new disposable Program, then full Undo | Verify one atomic new Program+same Routine, then server-confirmed restoration and conditional deletion of only that new, still-empty Program |
 | R5-N6 | Switch account/login cycle or expire the Undo window, and exercise UNKNOWN/timeout on disposable fixtures | No stale-session action, no duplicate retry or false success; record actual final server state and UI behavior |
@@ -195,18 +195,20 @@ cd apps/app
 flutter run --debug --dart-define=TIO_MOVE_ROUTINE_QA=true
 ```
 
-**Architecture & Security Decision (Option A — Isolated QA Environment):**
-Per explicit owner approval on 2026-10-23 (Option A), real-write QA for Move
-Routine is restricted to **isolated Supabase environments** (local Docker-based
-Supabase CLI or a dedicated disposable staging project). At the historical Option A decision point, hosted Tio-world Move RPCs
-were **EXECUTE-denied**; this permission hold was superseded by R3's
-authenticated-only hosted grant migration on 2026-10-24 (**70** applied
-migrations). Treat this section strictly as the **isolated local** lab
-procedure, not a current hosted ACL report or instruction to undo hosted R3.
+**Historical Architecture & Security Decision (Option A — Isolated QA):**
+On 2026-10-23, owner-approved real-write debug QA was restricted to isolated
+Supabase environments (local Docker-based Supabase CLI or a disposable staging
+project). At that checkpoint, hosted Move RPC EXECUTE was denied. The separate
+R3 grant migration on 2026-10-24 superseded **that hosted-denial snapshot**:
+all three RPCs now have `authenticated EXECUTE=true` (**70** applied
+migrations), and R4 supports explicitly approved internal hosted QA builds.
+The steps below remain an **isolated local** lab procedure, **not** a current
+hosted ACL report or an instruction to revoke the already-applied R3 grant.
 M5A and M5B Undo source are merged; #567 Program Delete remains separate.
-A Flutter debug flag is a client UI gate, **not** a database security boundary;
-granting EXECUTE on hosted would expose PostgREST endpoints to all signed-in
-accounts.
+A Flutter debug flag is a client UI gate, **not** a database security
+boundary; the hosted R3 grant already exposes those RPC endpoints to all
+authenticated accounts, with permanent-account/ownership checks enforced
+server-side.
 
 ### Isolated Local Supabase QA Execution Runbook
 
