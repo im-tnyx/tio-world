@@ -21,17 +21,20 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `2026-10-24`; local `main` and `origin/main` at `9811086ed05db877ffc619fddea4fde284299f42`; `git fetch origin --prune` blocked by `.git/FETCH_HEAD` permission denied; live GitHub main independently matched.
 **Branch:** `codex/issue-569-m5b-b1-backend`
-**HEAD SHA:** `9811086ed05db877ffc619fddea4fde284299f42`
-**Observed working-tree state:** Clean at implementation head before this handoff refresh
-**Observed uncommitted/dirty files:** None at `e0733baa6138fb2beddba685b3d929daae529f6a`; this handoff refresh is the only pending documentation update
+**Base/main SHA at branch creation:** `9811086ed05db877ffc619fddea4fde284299f42`
+**Feature-branch verification checkpoint:** `357aae2ec4215b82dd2aee6a4c956eb9352123cb` (handoff metadata checkpoint; current live PR head is authoritative)
+**Current live PR head authority:** GitHub PR #664 `headRefOid`; do not treat this handoff field as a self-referential immutable `HEAD` claim.
+**Observed working-tree state:** Clean at feature verification checkpoint `357aae2ec4215b82dd2aee6a4c956eb9352123cb`; later documentation corrections require fresh exact-head verification.
+**Observed uncommitted/dirty files:** None at the recorded checkpoint; this P3 correction is the only approved documentation change.
 **PR / tracker:** GitHub #569, PR #664; Linear `TNYX-81`, `TNYX-267`, `TNYX-78`
 **Current implementation state:** Approved M5B-B1 backend implemented; hosted deployment and client activation remain disabled
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`
-**Validation completed at SHA:** `e0733baa6138fb2beddba685b3d929daae529f6a`; disposable GitHub Supabase DB CI run `40050837446` passed migration replay, M5B SQL/RLS/idempotency matrix, two-session Undo race and lint workflow; `git diff --check` passed; local Supabase/psql was unavailable because Docker named pipe access was denied and `psql` was absent.
-**Validation remaining:** Current-head Codex review completion; hosted deployment is not permitted in this slice
-**Current blocker:** PR #664 current-head Codex review is running; Cursor/Copilot review services were skipped or quota-limited
+**Implementation validation checkpoint:** `e0733baa6138fb2beddba685b3d929daae529f6a`; disposable GitHub Supabase DB CI run `40050837446` passed migration replay, M5B SQL/RLS/idempotency matrix, two-session Undo race and lint workflow.
+**Handoff validation checkpoint:** `357aae2ec4215b82dd2aee6a4c956eb9352123cb`; CI run `40051140062` passed the then-current handoff content. Neither run is evidence for commits made afterward; current live PR head and its CI are authoritative.
+**Validation remaining:** Fresh exact-head CI and current-head review after this P3 correction; hosted deployment is not permitted in this slice.
+**Current blocker:** P3 handoff correction requires a new exact-head CI/review check; Cursor/Copilot review services were skipped or quota-limited.
 **Open review finding IDs:** None at current head; older Codex receipt reviewed `23734f28` and is superseded by later commits
-**Next exact action:** Wait for current-head review, disposition findings if any, then stop before merge/deploy/grant activation.
+**Next exact action:** Push this documentation-only P3 correction, verify exact-head CI/review, reply to and resolve the three verified threads, then stop before merge/deploy/grant activation.
 
 ## 1. Discovery
 
