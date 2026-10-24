@@ -273,7 +273,8 @@ delete from public.user_workout_routines
  where id = 'b569b100-0000-4000-8000-000000000032';
 set local role authenticated;
 
--- A rename is a newer Program mutation and fails closed before reparent/delete.
+-- A rename changes the immutable Create & Move request hash and fails closed
+-- before reparent/delete, independently of the nonempty-Program guard.
 update public.user_workout_programs
    set name = 'Program B2 renamed'
  where id = 'b569b100-0000-4000-8000-000000000062';
@@ -284,7 +285,7 @@ select pg_temp.expect_error(
     'b569b100-0000-4000-8000-000000000062',
     'b569b100-0000-4000-8000-000000000104',3,
     'b569b100-0000-4000-8000-000000000106')$$,
-  'P0001','routine_create_move_undo_program_modified',
+  'P0001','routine_create_move_undo_mutation_conflict',
   'renamed B rejects before reparent/delete');
 
 -- Cross-owner calls cannot use another owner\'s Routine or Program identity.
