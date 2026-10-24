@@ -12,9 +12,9 @@
 **Repository state last verified:** Clean `main@86f0afa8711dec28a57e513f33031e779516fa10`; GitHub `main` matched through connected GitHub read.
 **Branch:** `tnyx/569-r2-db-ci-access-contract`
 **Observed uncommitted/dirty files:** None before this slice.
-**Current implementation state:** PR #673 head `57b71fb32caf8e22e8006495b0a686b6f250c9bc` passed denied-baseline CI; P2 granted-baseline/failure cleanup coverage and P3 handoff freshness remain open.
-**Validation remaining:** New exact-head disposable DB CI, Codex re-review, `im-tio` re-review and separate independent human security sign-off.
-**Next exact action:** Exercise the shared ACL restore path for all three signatures from both denied and granted baselines, including simulated fixture failure, then refresh exact-head evidence.
+**Current implementation state:** Source head `bc68089917ff15806f1a02153bac0015b2db6e13` shares the three-RPC ACL cleanup between races and the denied/granted success/failure regression; disposable DB CI passed. This handoff is a later docs-only PR amendment, so its final-head receipts must be checked separately.
+**Validation remaining:** Verify checks on the final PR head, request Codex and `im-tio` re-review, close verified threads, and obtain separate independent human security sign-off before merge.
+**Next exact action:** Verify final-head CI and review results; keep hosted access and the production flag OFF.
 
 ## 1. Discovery
 
@@ -62,20 +62,21 @@ Release sequence: CI compatibility PR -> owner exposure decision -> single grant
 - [x] Centralize current dormant three-RPC ACL assertions.
 - [x] Remove the durable-dormant premise from operation matrices while preserving `anon`/`service_role`/direct-write denial.
 - [x] Restore initial authenticated ACL in race cleanup and verify exact post-test state. The P2 correction shares this cleanup with a disposable denied/granted success/failure regression.
-- [ ] Run focused validation and exact-head disposable DB CI if available.
-- [ ] P2: run denied/granted ACL restore regression and failure cleanup for all three signatures in disposable CI.
-- [ ] P3: record exact new-head CI, review findings and handoff status.
+- [x] Run focused validation and disposable DB CI on source head `bc68089917ff15806f1a02153bac0015b2db6e13`.
+- [x] P2: run denied/granted ACL restore regression and failure cleanup for all three signatures in disposable CI (step 49).
+- [x] P3: record the source-head CI, review findings and pending final-head/review gates below.
+- [ ] Verify checks on the final docs-amended PR head and obtain fresh reviews.
 
 ## 6. Quality review
 
-**Validation run:** Prior head `57b71fb32caf8e22e8006495b0a686b6f250c9bc` passed Supabase Database CI [40089433584](https://github.com/im-tnyx/tio-world/actions/runs/40089433584), Docs Hygiene [40089433574](https://github.com/im-tnyx/tio-world/actions/runs/40089433574), and required Commit attribution guard. These runs covered denied-baseline restoration only. New-head checks are pending.
-**Review provenance:** `im-tio` GitHub review [CHANGES_REQUESTED](https://github.com/im-tnyx/tio-world/pull/673#pullrequestreview-5638092222) at prior head; P2 and P3 inline threads open. This connected-account review does not establish independent human security sign-off.
+**Validation run:** Source head `bc68089917ff15806f1a02153bac0015b2db6e13`: [Supabase Database CI 40091047752](https://github.com/im-tnyx/tio-world/actions/runs/40091047752) SUCCESS, including migration replay, existing Move/Create+Move/Undo matrices and races, step 49 denied/granted ACL success/failure cleanup for all three exact signatures, and step 50 dormant three-RPC reassertion; [Docs Hygiene 40091047728](https://github.com/im-tnyx/tio-world/actions/runs/40091047728) SUCCESS. Local PyYAML workflow parse and `git diff --check` passed; local Bash syntax execution was unavailable because the Windows sandbox denied MSYS named-object creation (`0xC0000022`). Required Commit attribution guard and final docs-amended-head checks remain to verify. Prior head `57b71fb3` passed DB CI 40089433584 and Docs Hygiene 40089433574 but covered only the denied baseline.
+**Review provenance:** `im-tio` GitHub review [CHANGES_REQUESTED](https://github.com/im-tnyx/tio-world/pull/673#pullrequestreview-5638092222) at prior head; P2 and P3 inline threads await evidence replies and re-review. This connected-account review does not establish independent human security sign-off.
 
 | Finding | Severity | Status | Required resolution |
 |---|---|---|---|
-| P2 ACL granted-baseline cleanup untested | P2 | Open | Exercise success and failure cleanup under denied and granted starting ACL for all three signatures in disposable CI. |
-| P3 handoff stale | P3 | Open | Record implementation, exact-head validation, review state and next merge gate. |
+| P2 ACL granted-baseline cleanup untested | P2 | Fixed in `bc680899`; review pending | Step 49 passed denied/granted success/failure cleanup for all three signatures; step 50 reasserted migrated ACL. |
+| P3 handoff stale | P3 | Corrected in this amendment; review pending | Source-head CI, implementation and next merge gates are recorded here; final-head receipts belong in PR replies after this amendment is pushed. |
 
 ## 7. Handoff
 
-**Status:** REVIEW until exact-head CI and independent security review are complete. Future grant migration and exposure decision are separate R2 gates.
+**Status:** REVIEW. Final-head checks, Codex re-review, distinct-account re-review, resolved threads and independent human security review remain before merge. Future grant migration and all-signed-in exposure decision are separate R2 gates.
