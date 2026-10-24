@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tio_app/app/app.dart';
+import 'package:tio_app/app/composition/workout_providers.dart';
 
 void main() {
   // Run in ordinary CI (default OFF) and also with
