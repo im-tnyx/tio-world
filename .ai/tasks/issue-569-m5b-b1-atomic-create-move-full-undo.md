@@ -1,6 +1,6 @@
 # M5B-B1 Atomic Create & Move Full Undo Backend
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** Supabase/Postgres implementation owner
 **Affected platforms:** `supabase/*` database/RPC tests only
 
@@ -22,16 +22,16 @@
 **Repository state last verified:** `2026-10-24`; local `main` and `origin/main` at `9811086ed05db877ffc619fddea4fde284299f42`; `git fetch origin --prune` blocked by `.git/FETCH_HEAD` permission denied; live GitHub main independently matched.
 **Branch:** `codex/issue-569-m5b-b1-backend`
 **HEAD SHA:** `9811086ed05db877ffc619fddea4fde284299f42`
-**Observed working-tree state:** Clean before this task brief
-**Observed uncommitted/dirty files:** This task brief only
-**PR / tracker:** GitHub #569; Linear `TNYX-81`, `TNYX-267`, `TNYX-78`
-**Current implementation state:** Fresh reconciliation complete; M5B backend implementation pending
+**Observed working-tree state:** Clean at implementation head before this handoff refresh
+**Observed uncommitted/dirty files:** None at `e0733baa6138fb2beddba685b3d929daae529f6a`; this handoff refresh is the only pending documentation update
+**PR / tracker:** GitHub #569, PR #664; Linear `TNYX-81`, `TNYX-267`, `TNYX-78`
+**Current implementation state:** Approved M5B-B1 backend implemented; hosted deployment and client activation remain disabled
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`
-**Validation completed at SHA:** Not run for M5B
-**Validation remaining:** Migration replay, SQL/RLS/security matrix, disposable concurrency/rollback QA, lint, GitHub CI and review
-**Current blocker:** None after owner approval; hosted deployment remains explicitly out of scope
-**Open review finding IDs:** None
-**Next exact action:** Add the approved migration and focused database tests.
+**Validation completed at SHA:** `e0733baa6138fb2beddba685b3d929daae529f6a`; disposable GitHub Supabase DB CI run `40050837446` passed migration replay, M5B SQL/RLS/idempotency matrix, two-session Undo race and lint workflow; `git diff --check` passed; local Supabase/psql was unavailable because Docker named pipe access was denied and `psql` was absent.
+**Validation remaining:** Current-head Codex review completion; hosted deployment is not permitted in this slice
+**Current blocker:** PR #664 current-head Codex review is running; Cursor/Copilot review services were skipped or quota-limited
+**Open review finding IDs:** None at current head; older Codex receipt reviewed `23734f28` and is superseded by later commits
+**Next exact action:** Wait for current-head review, disposition findings if any, then stop before merge/deploy/grant activation.
 
 ## 1. Discovery
 
@@ -84,17 +84,17 @@ Exact replay succeeds only when B is absent, Routine is at A, revision is `p_exp
 
 ## 5. Implementation Plan
 
-- [ ] Add approved migration and protected RPC.
-- [ ] Add focused SQL/RLS/idempotency/rollback tests.
-- [ ] Run disposable local/CI database validation and lint.
-- [ ] Run diff/security review and prepare one focused PR; stop before merge/deploy.
+- [x] Add approved migration and protected RPC.
+- [x] Add focused SQL/RLS/idempotency/rollback tests.
+- [x] Run disposable CI database validation and lint; local execution unavailable.
+- [ ] Complete current-head independent review; stop before merge/deploy.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+`git diff --check` passed. Disposable GitHub Supabase DB CI run `40050837446` passed. Local Supabase/psql not run due environment limitations. Current-head Codex review is still running.
 ```
 
 ### Final Status
