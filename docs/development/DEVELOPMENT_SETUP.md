@@ -139,7 +139,7 @@ write even when it is intended as a negative test. Without the prerequisites,
 | R5-N3 | Account B attempts to move A's Routine into B's Program | Owner authorization denies, exact Routine identity/revision and A/B memberships unchanged |
 | R5-N4 | Account A attempts to move its Routine into B's Program | Destination owner check denies; no cross-account membership or leaked details |
 | R5-N5 | A uses a stale revision, stale source, replayed mutation or conflicting operation | Revision/idempotency contract fails closed; no overwrite or duplicate created Program |
-| R5-P1 | A moves its own disposable Routine A→B, then reverses via 5-second Undo | Confirm committed new owner Program, same Routine/Exercise/Set IDs and verified reverse, not just UI feedback |
+| R5-P1 | A moves its own disposable Routine A→B, then reverses via 5-second Undo | Confirm committed destination Program membership, same Routine/Exercise/Set IDs and verified reverse, not just UI feedback |
 | R5-P2 | A runs `Save & Move` into a new disposable Program, then full Undo | Verify one atomic new Program+same Routine, then server-confirmed restoration and conditional deletion of only that new, still-empty Program |
 | R5-N6 | Switch account/login cycle or expire the Undo window, and exercise UNKNOWN/timeout on disposable fixtures | No stale-session action, no duplicate retry or false success; record actual final server state and UI behavior |
 
