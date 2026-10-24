@@ -43,7 +43,7 @@ begin
       or pg_catalog.has_function_privilege('service_role',fn,'EXECUTE')
       or exists (
         select 1 from pg_catalog.pg_proc as p,
-          pg_catalog.aclexplode(pg_catalog.coalesce(
+          pg_catalog.aclexplode(coalesce(
             p.proacl,pg_catalog.acldefault('f',p.proowner))) as a
         where p.oid=fn and a.grantee=0 and a.privilege_type='EXECUTE'
       ) then

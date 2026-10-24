@@ -2,7 +2,7 @@
 -- This migration is source/review ONLY until a separate explicit hosted apply GO.
 -- Once applied, every permanent signed-in account can invoke these RPCs through
 -- PostgREST; the server's owner/identity/CAS guards—not Flutter—are authority.
--- Revoke in an separately approved operational rollback; do NOT place rollback
+-- Revoke in a separately approved operational rollback; do NOT place rollback
 -- in the normal forward migration sequence.
 
 do $r3_preflight$
@@ -94,7 +94,7 @@ begin
        or pg_catalog.has_function_privilege('service_role', v_function, 'EXECUTE')
        or exists (
          select 1 from pg_catalog.pg_proc as p,
-           pg_catalog.aclexplode(pg_catalog.coalesce(
+           pg_catalog.aclexplode(coalesce(
              p.proacl, pg_catalog.acldefault('f', p.proowner))) as acl
          where p.oid = v_function
            and acl.grantee = 0
