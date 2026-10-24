@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+[#569 R2 database CI access-contract preparation](issue-569-r2-db-ci-access-contract.md) is a tests/CI-only review slice. It centralizes the current denied three-RPC ACL gate and makes disposable race fixtures restore their starting authenticated ACL, so a later separately approved grant migration can change the contract deliberately. No hosted grant, migration, Flutter activation or #567 work is included.
+
 [GitHub #250 pre-P9 M5B current-state correction](issue-250-pre-p9-m5b-current-drift.md) is an **active docs-only merge-gate slice**: correct `routine-library.md` hosted Undo/current gates and `DEVELOPMENT_SETUP.md` isolated QA/runtime truth against live 69/69 Supabase metadata; production RPC grants and release flag stay OFF. No P9 start or parent closure.
 
 Validated [#250 hosted Supabase 69/69 schema/strategy reconciliation](../archive/2026-10-issue-250-supabase-69-live-reconciliation.md) is **archived** after [PR #670](https://github.com/im-tnyx/tio-world/pull/670) normal squash-merged at protected `main@76f693e757ebab2fe2e01b4dd3653582ba73d502` (2026-10-24). Exact PR head `35f3ebed`: required attribution guard, runner and Docs Hygiene SUCCESS; GitHub `im-tio` assistant-operated APPROVED, 0 threads. Canonical docs reflect 69/69 hosted migrations, 194 columns, 130 constraints and hosted protected Undo with client EXECUTE denied. #250 Open / TNYX-193 In Progress; P9 and whole-catalog acceptance remain separate.

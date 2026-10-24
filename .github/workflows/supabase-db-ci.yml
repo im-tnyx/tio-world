@@ -308,10 +308,17 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_m2c_legacy_rename_retirement_preflight.test.sql
 
+      - name: Assert #569 migrated three-RPC access contract
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
+
       - name: Reject #569 anonymous signed-in owners in both Move RPCs
         shell: bash
         run: |
-          # Migration remains client EXECUTE-revoked; test grants roll back.
+          # Transaction-local test grants roll back to the migrated ACL.
           psql "$DATABASE_URL" \
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_permanent_owner_move_guard.test.sql
@@ -334,8 +341,7 @@ jobs:
       - name: Run #569 M5B full Undo SQL/RLS/idempotency matrix
         shell: bash
         run: |
-          # Fixture grants are transaction-local and rolled back; the staged
-          # Undo RPC must remain EXECUTE-revoked after this test.
+          # Fixture grants are transaction-local and roll back to migrated ACL.
           psql "$DATABASE_URL" \
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_m5b_full_undo.test.sql
@@ -351,9 +357,20 @@ jobs:
           fi
           undo_signature='public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)'
           create_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select case when has_function_privilege('authenticated','$undo_signature','EXECUTE') then 't' else 'f' end
+              || '|' || case when has_function_privilege('authenticated','$create_signature','EXECUTE') then 't' else 'f' end
+          " | tr -d '[:space:]')"
+          IFS='|' read -r initial_undo initial_create <<< "$initial_acl"
           cleanup_m5b_grants() {
             psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $undo_signature from public,anon,authenticated,service_role"
             psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $create_signature from public,anon,authenticated,service_role"
+            if [[ "$initial_undo" == t ]]; then
+              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
+            fi
+            if [[ "$initial_create" == t ]]; then
+              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $create_signature to authenticated"
+            fi
           }
           trap cleanup_m5b_grants EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
@@ -361,16 +378,12 @@ jobs:
           bash supabase/tests/database/tnyx_569_m5b_undo_concurrency.sh
           cleanup_m5b_grants
           trap - EXIT
-          dormant="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$undo_signature','EXECUTE')
-              or has_function_privilege('anon','$undo_signature','EXECUTE')
-              or has_function_privilege('service_role','$undo_signature','EXECUTE')
-              or has_function_privilege('authenticated','$create_signature','EXECUTE')
-              or has_function_privilege('anon','$create_signature','EXECUTE')
-              or has_function_privilege('service_role','$create_signature','EXECUTE')
+          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select case when has_function_privilege('authenticated','$undo_signature','EXECUTE') then 't' else 'f' end
+              || '|' || case when has_function_privilege('authenticated','$create_signature','EXECUTE') then 't' else 'f' end
           " | tr -d '[:space:]')"
-          if [[ "$dormant" != "f" ]]; then
-            echo 'M5B Create+Move and Undo RPCs must remain dormant after race fixture.' >&2
+          if [[ "$restored_acl" != "$initial_acl" ]]; then
+            echo 'M5B race fixture failed to restore migrated authenticated ACL.' >&2
             exit 1
           fi
 
@@ -385,8 +398,15 @@ jobs:
           fi
           sql_grant='grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) to authenticated'
           sql_revoke='revoke all on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) from public,anon,authenticated,service_role'
+          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select has_function_privilege('authenticated',
+              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
+          " | tr -d '[:space:]')"
           cleanup_move_grant() {
             psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_revoke"
+            if [[ "$initial_acl" == t ]]; then
+              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
+            fi
           }
           trap cleanup_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
@@ -394,16 +414,12 @@ jobs:
           bash supabase/tests/database/tnyx_569_routine_move_cross_races.sh
           cleanup_move_grant
           trap - EXIT
-          grant_visible="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
             select has_function_privilege('authenticated',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
-              or has_function_privilege('anon',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
-              or has_function_privilege('service_role',
               'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')" |
             tr -d '[:space:]')"
-          if [[ "$grant_visible" != f ]]; then
-            echo 'M1 Move RPC must remain dormant after disposable race tests' >&2
+          if [[ "$restored_acl" != "$initial_acl" ]]; then
+            echo 'M1 race fixture failed to restore migrated authenticated ACL.' >&2
             exit 1
           fi
 
@@ -417,8 +433,14 @@ jobs:
             exit 1
           fi
           sql_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
+          " | tr -d '[:space:]')"
           cleanup_atomic_move_grant() {
             psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
+            if [[ "$initial_acl" == t ]]; then
+              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
+            fi
           }
           trap cleanup_atomic_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
@@ -428,15 +450,20 @@ jobs:
           bash supabase/tests/database/tnyx_569_atomic_create_move_vs_delete_concurrency.sh
           cleanup_atomic_move_grant
           trap - EXIT
-          can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
             select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-              or has_function_privilege('anon','$sql_signature','EXECUTE')
-              or has_function_privilege('service_role','$sql_signature','EXECUTE')
           " | tr -d '[:space:]')"
-          if [[ "$can_execute" != f ]]; then
-            echo 'Atomic Create+Move must remain dormant after race fixture.' >&2
+          if [[ "$restored_acl" != "$initial_acl" ]]; then
+            echo 'Atomic Create+Move race fixture failed to restore migrated authenticated ACL.' >&2
             exit 1
           fi
+
+      - name: Reassert #569 migrated three-RPC access after races
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
 
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash

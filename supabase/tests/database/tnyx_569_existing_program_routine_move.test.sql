@@ -28,9 +28,7 @@ end;
 $$;
 
 select pg_temp.assert_true(
-  not has_function_privilege('authenticated',
-    'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
-  and not has_function_privilege('anon',
+  not has_function_privilege('anon',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('service_role',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
@@ -44,11 +42,11 @@ select pg_temp.assert_true(
     'public.update_user_workout_routine_with_composition(uuid,uuid,bigint,text,uuid,text,jsonb)', 'EXECUTE')
   and has_function_privilege('authenticated',
     'public.delete_user_workout_routine(uuid,uuid,bigint)', 'EXECUTE'),
-  'Move stays dormant to authenticated clients; no direct program_id UPDATE; old RPCs preserved'
+  'Move denies anon/service_role and direct program_id UPDATE; old RPCs preserved'
 );
 
--- SQL testing only: the surrounding transaction rolls back the temporary
--- grant. Production migration leaves Move EXECUTE denied to all client roles.
+-- SQL testing only: the surrounding transaction rolls back the test grant.
+-- Durable authenticated access is asserted by the separate ACL contract.
 grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)
   to authenticated;
 select pg_temp.assert_true(
