@@ -22,7 +22,7 @@
 **Branch:** `tnyx/m5b-b2-full-undo-flutter`
 **Base SHA:** `9805ee1b58f38d04e5b692aa049ef9e280bcf850`
 **PR / tracker:** [PR #665 OPEN](https://github.com/im-tnyx/tio-world/pull/665); GitHub #569 OPEN; PR #664 MERGED; Linear TNYX-81 and TNYX-267 remain Backlog; TNYX-78 In Progress; TNYX-80 In Progress.
-**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. Exact-head Docs Hygiene CI passed; Flutter CI is in progress; no independent review is recorded yet.
+**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. At head `5e1a892f`, Docs Hygiene CI passed and Flutter CI is pending; no independent review is recorded yet.
 **Hosted evidence limitation:** No Supabase MCP or CLI is available in this session. Historical checked-in handoff says hosted is 68/68 through 20261021130000, with Move RPC EXECUTE denied; B1 migration and Undo RPC hosted status were not freshly verified.
 **Next exact action:** Monitor exact-head Flutter CI/review, reconcile any findings, and stop before merge.
 
@@ -101,10 +101,12 @@ Ignore duplicate/late taps and stale sessions; report conflict/forbidden/UNKNOWN
 ### Validation Run
 
 ```text
-PASS: flutter test test/presentation/routine_move_flow_test.dart test/data/supabase_routine_move_repository_test.dart test/data/routine_move_delete_attempt_gate_test.dart (170 tests).
-PASS: Workout package flutter analyze (No issues found).
-PASS: apps/app flutter analyze lib/app/routing/shell/shell_route.dart (No issues found; 59.2s).
-PASS: git diff --check.
+PASS: flutter test test/presentation/routine_move_flow_test.dart test/data/supabase_routine_move_repository_test.dart test/data/routine_move_delete_attempt_gate_test.dart (170 tests; source commit `65177c75`).
+PASS: Workout package flutter analyze (No issues found; source commit `65177c75`).
+PASS: apps/app flutter analyze lib/app/routing/shell/shell_route.dart (No issues found; 59.2s; source commit `65177c75`).
+PASS: git diff --check origin/main...HEAD.
+PASS: Docs Hygiene CI on PR head `5e1a892f`.
+PENDING: Flutter CI on PR head `5e1a892f`.
 REVIEW: dart format changed the touched Dart files, then exited 1 after attempting a protected user telemetry write; no repository telemetry file was touched.
 ```
 
@@ -112,11 +114,11 @@ REVIEW: dart format changed the touched Dart files, then exited 1 after attempti
 
 | Criterion | Changed behavior / file | Test or manual evidence + result | SHA / environment | Remaining risk |
 |---|---|---|---|---|
-| Real New Program Undo | Implemented in branch | Confirmed actionable snackbar, one Undo dispatch, and five-second expiry tests pass | local Windows Flutter 3.x; branch uncommitted | Hosted RPC remains unverified and release dormant |
-| Atomic RPC params and frozen revision | Implemented in branch | Exact six-argument RPC payload and post-Move revision tests pass | local Windows Flutter 3.x; branch uncommitted | B1 hosted state was not freshly verified |
-| UNKNOWN receipt and no false success | Implemented in branch | Exact token/revision confirmation and unconfirmed readback tests pass | local Windows Flutter 3.x; branch uncommitted | Session-local gate is process-local |
-| Refresh both surfaces safely | Implemented in app shell | `shell_route.dart` targeted analyze passed; refresh callback is owner/cycle guarded | local Windows Flutter 3.x; branch uncommitted | Device QA not run |
-| M5A and preview unchanged | Regression coverage passes | Existing M5A and preview cases pass in the focused widget suite | local Windows Flutter 3.x; branch uncommitted | Hosted/runtime release remains OFF |
+| Real New Program Undo | Implemented in PR #665 | Confirmed actionable snackbar, one Undo dispatch, and five-second expiry tests pass | local Windows Flutter; source commit `65177c75` | Hosted RPC remains unverified and release dormant |
+| Atomic RPC params and frozen revision | Implemented in PR #665 | Exact six-argument RPC payload and post-Move revision tests pass | local Windows Flutter; source commit `65177c75` | B1 hosted state was not freshly verified |
+| UNKNOWN receipt and no false success | Implemented in PR #665 | Exact token/revision confirmation and unconfirmed readback tests pass | local Windows Flutter; source commit `65177c75` | Session-local gate is process-local |
+| Refresh both surfaces safely | Implemented in app shell | `shell_route.dart` targeted analyze passed; refresh callback is owner/cycle guarded | local Windows Flutter; source commit `65177c75` | Device QA not run |
+| M5A and preview unchanged | Regression coverage passes | Existing M5A and preview cases pass in the focused widget suite | local Windows Flutter; source commit `65177c75` | Hosted/runtime release remains OFF |
 
 ### Review Provenance
 
