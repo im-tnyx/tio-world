@@ -195,9 +195,10 @@ server authorization, a tester allowlist, a permission kill switch, or proof
 of a staging backend. The hosted RPC remains directly callable by eligible
 permanent accounts. Do not point a QA build at real users' data.
 
-The checked-in iOS GitHub workflow currently produces an **unsigned profile**
-artifact, which does not enable this debug-only capability and does not prove
-installation on a physical iPhone. A signed, authorized debug-device workflow,
+The manual **Tio Mobile QA Build** iOS job produces an **unsigned profile**
+artifact with QA login configuration, which does not enable this debug-only
+capability and does not prove installation on a physical iPhone. A signed,
+authorized debug-device workflow,
 test-account consent, actual-write Android/iOS evidence, A/B isolation, race,
 UNKNOWN readback and rollback review remain separate pre-release gates.
 Do not enable #569 Move permissions or confuse its zero-write preview with

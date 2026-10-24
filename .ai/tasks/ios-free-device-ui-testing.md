@@ -1,8 +1,10 @@
 # iOS free physical-device UI testing foundation
 
-**Status:** In progress
+**Status:** Merged foundation; historical handoff
 **Primary owner:** Flutter phone platform / repository CI
 **Affected platforms:** iOS phone build tooling and GitHub Actions; existing Android runtime unchanged
+
+**Current reconciliation (2026-10-24):** [PR #608](https://github.com/im-tnyx/tio-world/pull/608) merged as `main@4dba419f8181cf739832ae556472f91fe87a92a4`. The old PR-open, branch, dirty-worktree, Linear-unavailable and pre-merge dispatch statements below are preserved as a dated 2026-10-19 execution snapshot, not current state. The repository now has a clean `main@0bc9dd0c85fd2d266f227256397e59c33ce059d0` baseline. Live Linear reads confirmed TNYX-126 Backlog, TNYX-231 Backlog and Mobile App In Progress. The new [Manual Mobile QA Build](mobile-qa-build.md) task owns workflow consolidation. Native `qa_login` build, Windows signing/install and physical iPhone login/UI smoke remain unverified; merging #608 did not complete device acceptance.
 
 ## Owner Approval and Scope Boundary
 

@@ -2,14 +2,14 @@
 
 Flutter Android and iOS phone app shell.
 
-## Free physical-iPhone UI testing
+## Manual Android and iPhone QA builds
 
-The repository can create an **unsigned** iPhone artifact for the first
-physical-device UI-testing lane. It is deliberately separate from production
-release, TestFlight, App Store, Apple Watch, provider activation, and Supabase
-deployment.
+The **Tio Mobile QA Build** GitHub Actions workflow creates a phone debug APK
+or unsigned profile IPA only when manually dispatched. Both builds include the
+existing Supabase email/password login configuration for the isolated QA
+project; neither build proves login or physical-device behavior until tested.
 
-1. For `qa_login`, configure these **repository Actions secrets** under
+1. Configure these **repository Actions secrets** under
    **Settings → Secrets and variables → Actions → Repository secrets**:
 
    - `TIO_IOS_QA_SUPABASE_URL`: the isolated QA project's HTTPS endpoint, such
@@ -17,44 +17,55 @@ deployment.
    - `TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY`: that QA project’s `sb_publishable_`
      client key.
 
-   Do not use production project values. The workflow reads these secrets only
-   when `qa_login` is selected, validates them before building, writes a
-   temporary file under `$RUNNER_TEMP` with restrictive permissions, and
-   removes it after the build. It does not log, cache, commit, or upload that
-   file. Never configure a `sb_secret_`, service-role, or other privileged
-   key. GitHub Secrets protect the build-time inputs; values compiled into the
-   client IPA remain extractable, so only client-safe QA values are allowed.
-   The workflow validates endpoint syntax but cannot identify whether a
-   project is QA or production; ensure the secret points to an isolated QA
-   project.
+   These historical iOS-prefixed secret names are shared by both platform
+   jobs, so no new secret values are required. The workflow validates them,
+   writes only `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` to a restricted
+   temporary file under `$RUNNER_TEMP`, and removes it after the build. It does
+   not log, cache, commit or upload that file. Never configure a production
+   project, `sb_secret_`, service-role key, or QA account password. GitHub
+   Secrets protect build-time inputs only: the URL and publishable key can be
+   extracted from the APK or IPA. The workflow checks syntax, not whether the
+   endpoint really belongs to the isolated QA project.
 
-   Skip this step for `ui_only`.
+2. In **GitHub → Actions → Tio Mobile QA Build → Run workflow**, select the
+   intended branch and choose `android` or `ios`. The workflow is available
+   after it is merged into the default branch. Only the selected platform job
+   runs; there is no automatic QA build trigger and no `ui_only` choice.
+3. Open that workflow run and download its seven-day artifact:
 
-2. Ensure the manual-only **iOS UI Build** workflow is available on the default
-   branch, then select the intended branch and manually dispatch it. Choose
-   `ui_only` (the default) or `qa_login`.
-3. Download the artifact named
-   `tio-ios-<build-mode>-unsigned-profile-<run number>`. On Windows, verify it
-   before use:
+   - Android: `tio-android-qa-login-debug-apk-<run number>-<attempt>`.
+   - iOS: `tio-ios-qa-login-unsigned-profile-<run number>-<attempt>`.
+
+   Check `provenance.txt` for the selected platform, `qa_mode=qa_login`, source
+   and build commit, run number, toolchain and signing status. Verify the
+   downloaded file against its `.sha256` before installation. On Windows:
 
    ```powershell
+   Get-FileHash .\Tio-qa-debug.apk -Algorithm SHA256
+   Get-Content .\Tio-qa-debug.apk.sha256
    Get-FileHash .\Tio-unsigned-profile.ipa -Algorithm SHA256
    Get-Content .\Tio-unsigned-profile.ipa.sha256
    Get-Content .\provenance.txt
-   Get-Content .\Podfile.lock
    ```
 
-4. Install a current trusted Windows sideloading tool that supports local free
+   Run only the hash pair for the platform you downloaded. The iOS artifact
+   also includes `Podfile.lock` as CocoaPods resolution evidence.
+4. For Android, enable normal test-device installation and use
+   `adb install .\Tio-qa-debug.apk` from the extracted artifact folder. A
+   GitHub-hosted runner creates an ephemeral debug-signing certificate. If a
+   previously installed APK has the same package ID but a different signing
+   certificate, Android will reject an over-the-top upgrade; preserve needed
+   local test data before replacing that installation.
+5. For iOS, install a current trusted Windows sideloading tool that supports local free
    Apple-ID provisioning, such as AltServer's **Sideload .ipa** action. Connect
    and trust the iPhone, enable Developer Mode when iOS requires it, and sign
    the IPA locally. Enter the Apple ID and any two-factor authentication only
    in that local tool; never put them in GitHub, repository files, workflow
    inputs, logs, or issue comments.
-5. Open the installed app and perform the UI smoke checks below. For `qa_login`,
-   use an existing QA account through the app's email/password form; type the
-   password on the iPhone and keep it out of workflow inputs, logs, artifacts,
-   chat, and repository files. Re-sign or refresh the app before free
-   provisioning expires (normally seven days).
+6. Open the installed phone app and use an existing QA account through its
+   email/password form. Enter the password on the device only; keep it out of
+   workflow inputs, logs, artifacts, chat and repository files. For iOS,
+   re-sign or refresh before free provisioning expires (normally seven days).
 
 The downloaded IPA is not installable by itself. GitHub's macOS runner compiles
 the iPhone `Runner.app` but intentionally does not sign it. The local
@@ -68,15 +79,14 @@ that build; it is provenance for the downloaded artifact, not a signing file.
 
 - This is a profile-mode AOT UI artifact. It can launch without a Flutter
   debugger, but it does not support the Windows-to-iPhone hot-reload workflow.
-- `ui_only` omits Supabase configuration and reaches the existing
-  unauthenticated UI path. `qa_login` supplies only the existing compile-time
-  `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` inputs, then uses the current
+- Both QA artifacts supply only the existing compile-time `SUPABASE_URL` and
+  `SUPABASE_PUBLISHABLE_KEY` inputs, then use the current
   Supabase client, email/password auth, session repository and router guards.
   It adds no login bypass or provider integration.
-- A `qa_login` build can exercise sign-in and reachable protected screens on
+- A QA build can exercise sign-in and reachable protected screens on
   the configured QA backend, but does not establish production auth/data
   parity, exhaustive RLS coverage, secure-storage durability, or physical-device
-  success until the iPhone test is actually performed. Use only test accounts
+  success until the selected phone test is actually performed. Use only test accounts
   and QA data.
 - A free Apple provisioning profile expires quickly and has Apple-imposed app,
   device and App-ID limits. Refreshing changes the signed artifact; compare the
@@ -93,15 +103,15 @@ that build; it is provenance for the downloaded artifact, not a signing file.
 ### Device smoke checklist
 
 - [ ] Artifact checksum and provenance match the selected GitHub run.
-- [ ] Local signing/install succeeds and the app appears on the Home Screen.
+- [ ] Android debug install or local iOS signing/install succeeds and the app appears on the Home Screen.
 - [ ] Cold launch reaches the expected existing session/auth flow without a
       crash.
-- [ ] For `qa_login`, email/password sign-in succeeds with an existing QA
+- [ ] Email/password sign-in succeeds with an existing QA
       account and reaches only screens allowed by the current session/router
       state; record the result without recording credentials.
 - [ ] Safe areas, keyboard, text input, scrolling, sheets and back navigation
       work on the physical device.
-- [ ] Light/dark appearance, larger text and VoiceOver receive a focused smoke
-      check for the reachable screens.
+- [ ] Light/dark appearance, larger text and TalkBack/VoiceOver receive a
+      focused smoke check for the reachable screens.
 - [ ] Kill/relaunch behavior is recorded separately; it is not proof that
-      secure storage or any authenticated session is valid on iOS.
+      secure storage or any authenticated session is valid on either platform.
