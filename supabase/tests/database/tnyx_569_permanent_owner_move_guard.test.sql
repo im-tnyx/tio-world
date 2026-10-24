@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP on
--- GitHub #569 / Linear TNYX-81: M4A permanent-account admission, both Move RPCs.
+-- GitHub #569 / Linear TNYX-81: R3 permanent-account admission for all three Move/Create+Move/Full-Undo RPCs.
 -- Disposable migrated CI only; guest fixtures and temporary grants ROLLBACK.
 begin;
 
@@ -31,7 +31,7 @@ begin
 end;
 $$;
 
--- M4A hardens both functions; durable authenticated access is checked in the
+-- M4A hardens Move/Create+Move; M5B also guards Full Undo. Durable ACL is checked in the
 -- separate current-state ACL contract, while this matrix tests admission.
 select pg_temp.assert_true(
   (select count(*) = 1 from supabase_migrations.schema_migrations
@@ -44,6 +44,10 @@ select pg_temp.assert_true(
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('service_role',
     'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
+  and not has_function_privilege('anon',
+    'public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
+  and not has_function_privilege('service_role',
+    'public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and has_function_privilege('authenticated',
     'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE')
   and not has_column_privilege('authenticated',
@@ -71,6 +75,9 @@ grant execute on function public.move_user_workout_routine(
 ) to authenticated;
 grant execute on function public.create_user_workout_program_and_move_routine(
   uuid, uuid, uuid, text, bigint, uuid
+) to authenticated;
+grant execute on function public.undo_create_user_workout_program_and_move_routine(
+  uuid, uuid, uuid, uuid, bigint, uuid
 ) to authenticated;
 
 -- A valid UID with Auth is_anonymous=true must still be rejected even though
@@ -122,6 +129,20 @@ select pg_temp.assert_raises(
   '28000',
   'signed-in guest cannot create a Program and Move'
 );
+
+-- R3 exposes Full Undo through the same authenticated role. It must reject
+-- real anonymous Auth accounts before any provenance/row lookup, even if the
+-- JWT supplies a spoofed non-anonymous claim.
+select pg_temp.assert_raises(
+  $select public.undo_create_user_workout_program_and_move_routine(
+    'f5690000-0000-4000-8000-000000000021'::uuid,
+    'f5690000-0000-4000-8000-000000000011'::uuid,
+    'f5690000-0000-4000-8000-000000000013'::uuid,
+    'f5690000-0000-4000-8000-000000000033'::uuid, 1,
+    'f5690000-0000-4000-8000-000000000034'::uuid)$,
+  '28000',
+  'signed-in guest cannot invoke full atomic Undo'
+);
 reset role;
 
 select pg_temp.assert_true(
@@ -144,11 +165,16 @@ revoke execute on function public.move_user_workout_routine(
 revoke execute on function public.create_user_workout_program_and_move_routine(
   uuid, uuid, uuid, text, bigint, uuid
 ) from authenticated;
+revoke execute on function public.undo_create_user_workout_program_and_move_routine(
+  uuid, uuid, uuid, uuid, bigint, uuid
+) from authenticated;
 select pg_temp.assert_true(
   not has_function_privilege('authenticated',
     'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and not has_function_privilege('authenticated',
     'public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)', 'EXECUTE')
+  and not has_function_privilege('authenticated',
+    'public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)', 'EXECUTE')
   and has_function_privilege('authenticated',
     'public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)', 'EXECUTE'),
   'transactional test grants fully revoked; W1 permission unchanged'
