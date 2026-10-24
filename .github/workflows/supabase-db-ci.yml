@@ -426,6 +426,14 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
 
+      - name: Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant
+        shell: bash
+        run: |
+          # Uses only the exact identity-guarded disposable CI database.
+          # Exercises JWT role switching + HTTP for all three Move RPCs; never
+          # contacts a hosted Supabase project or enables the Flutter feature.
+          python3 supabase/tests/database/tnyx_569_r3_postgrest_revoke_smoke.py
+
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash
         run: |
