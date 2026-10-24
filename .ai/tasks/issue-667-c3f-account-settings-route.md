@@ -1,6 +1,6 @@
 # GitHub #667 / #357 / #260 — C3f Account Settings Route Composition
 
-**Status:** In progress — source CI PASS; PR #668 Draft pending final-head gate
+**Status:** In progress — PR #668 Ready for Review, source checks and Codex clean; final docs-head recheck pending
 **Primary owner:** App routing/composition
 **Affected platforms:** Flutter Android and iOS app
 
@@ -14,22 +14,22 @@
 ## Active Handoff
 **Planning owner:** TNYX-201 / GitHub #260 and #357
 **Implementation owner:** ChatGPT GitHub-connector execution (single active owner for #667)
-**Review owner:** Separate independent reviewer requested at PR gate; implementation self-review is not independent.
+**Review owner:** Codex independent automated code review completed at `8dfa606b`, clean/no findings; formal GitHub APPROVED review not observed. Implementation-owner self-review is not independent.
 **Implementation ownership state:** Handoff pending (source complete; validation/review gate)
 **Ownership transition:** Not applicable (new, isolated slice)
 **Repository state last verified:** 2026-10-24 remote protected GitHub `main@92e9af122cf71b599ea066d33eee2cdfc5f403f0`
 **Branch:** `tnyx/issue-667-c3f-account-settings-routes`
-**HEAD SHA:** Source commit `d41da17c3647fad73c0ba62cc22775a07732c9a4`; branch will advance for handoff. Use live GitHub ref for final gate.
+**HEAD SHA:** Last fully reviewed/tested PR HEAD `8dfa606b0cfd9056a63602b8e809d877187e66aa`; this docs handoff update advances HEAD, so recheck live PR/CI before merge readiness.
 **Observed working-tree state:** GitHub API-only execution. Local `G:\projects\Tio-World` checkout and `git status -sb` unavailable, NOT verified or modified.
 **Observed uncommitted/dirty files:** Unknown in user Windows checkout; isolated GitHub branch contains only committed changes.
-**PR / tracker:** https://github.com/im-tnyx/tio-world/pull/668 (Draft at this checkpoint); child #667, parents #357/#260, Linear TNYX-201
+**PR / tracker:** https://github.com/im-tnyx/tio-world/pull/668 (Ready for Review on 2026-10-24 after green source-head CI); child #667, parents #357/#260, Linear TNYX-201
 **Current implementation state:** Source extraction committed; root router 612 → 398 lines, new account route module 239 lines. No runtime/test validation claimed.
 **Relevant execution surface:** GitHub connected owner account `im-tnyx`; Flutter tests/CI GitHub after PR.
-**Validation completed at SHA:** PR HEAD `43343f0acd7af903f157469b7b686d30710bc1c4`: hosted Flutter CI run `40078886038` SUCCESS, 5/5 Flutter/Dart jobs (analysis/Dart tests, app-workout, nutrition-onboarding, core-wear, aggregate). Required/supplemental classification pending direct branch-protection read. Commit attribution guard, attribution guard runner, and docs diff hygiene each SUCCESS (8/8 observed checks). GitHub compare: ahead 3/behind 0, exactly 3 owned paths.
+**Validation completed at SHA:** PR HEAD `8dfa606b0cfd9056a63602b8e809d877187e66aa`: hosted Flutter CI run `40079224657` SUCCESS 5/5 Flutter/Dart jobs (analysis/Dart tests, app-workout, nutrition-onboarding, core-wear, aggregate); Commit attribution guard, attribution runner, docs diff hygiene SUCCESS (8/8 check runs). Earlier PR HEAD `43343f0a` also full SUCCESS. GitHub compare: ahead 4/behind 0, exactly 3 owned paths. Codex review on `8dfa606b` completed with no findings and no unresolved threads; not a formal GitHub APPROVED review.
 **Validation remaining:** Recheck CI at final docs-only handoff HEAD; PR ready-review and bot/independent review, unresolved-thread gate and branch protection, user Windows local git diff and device parity unavailable. No Supabase/database changes applicable.
-**Current blocker:** No source/CI defect found at tested source HEAD. Branch protection GET responded 403 for this GitHub integration (cannot assert exact current required-check set); Codex/independent review not yet observed. Linear agent notes action returned `get_agent_context not found`; TNYX-201 read. Local Windows git/device parity not observed.
+**Current blocker:** No verified source or CI defect at `8dfa606b`; formal GitHub APPROVED review not observed. Branch protection GET 403 prevents independent read of exact required checks. Codex automated review clean at `8dfa606b` (not formal APPROVED). Linear agent notes action returned tool-not-found. Local Windows git/device parity not observed.
 **Open review finding IDs:** None yet.
-**Next exact action:** Verify final docs-head CI and live PR state, mark Ready for Review when checks permit, request/inspect Codex and independent findings; stop at merge gate, do not merge.
+**Next exact action:** Verify checks/review after this final docs-only update, inspect live PR merge status and report merge gate; remain Ready for Review, never merge without a separate owner instruction.
 
 ## 1. Discovery
 ### User Outcome
@@ -79,22 +79,22 @@ Preserve username availability failure and conflict messages, unavailable reposi
 - [x] Extracted Account Settings route/helpers to app-owned route module in source commit `d41da17c` and kept original order.
 - [x] GitHub source audit checked a single root `GoRouter`, one direct root Splash `GoRoute`, one new Account Settings `GoRoute`, unchanged OTP request/verify, save and post-delete callback sequence. Flutter compile/runtime checks pending.
 - [x] Existing focused Account Settings and routing tests executed inside hosted app-workout shard; that shard passed at `43343f0a`. No new test needed for the mechanical extraction; no device parity claim.
-- [ ] Source-head hosted Flutter CI PASS at `43343f0a`; re-verify after this docs-only change and complete Ready/review gates. Never confuse successful self-audit with formal independent approval.
+- [x] Source-head and handoff-head hosted Flutter CI PASS at `43343f0a` and `8dfa606b`; PR is Ready for Review, Codex clean/no threads. Recheck this final docs-only HEAD; Codex is not GitHub formal APPROVED.
 
 ## 6. Quality Review
 ### Validation Run
-Hosted [Flutter CI #40078886038](https://github.com/im-tnyx/tio-world/actions/runs/40078886038) succeeded at `43343f0a` (5/5 workflow jobs). [Documentation hygiene #40078886002](https://github.com/im-tnyx/tio-world/actions/runs/40078886002) and [Attribution guard runner #40078886003](https://github.com/im-tnyx/tio-world/actions/runs/40078886003), plus Commit attribution guard, succeeded at same source PR HEAD. GitHub compare verified 3-path exact scope; patch inspection found no added trailing whitespace. **No local `git diff --check`, Flutter SDK execution or visual/device parity was observed**. Final docs HEAD will require renewed checks.
+Hosted [Flutter CI #40079224657](https://github.com/im-tnyx/tio-world/actions/runs/40079224657) succeeded at exact `8dfa606b` (5/5 workflow jobs), as did the two attribution checks and docs hygiene (8/8 total). Prior [Flutter CI #40078886038](https://github.com/im-tnyx/tio-world/actions/runs/40078886038) likewise succeeded. GitHub compare verified 3-path scope, and patch inspection found no added trailing whitespace. Recheck CI after this docs-only handoff update. **No local `git diff --check`, Flutter SDK execution or visual/device parity was observed.**
 
 ### Review Provenance
-**Review source / link:** https://github.com/im-tnyx/tio-world/pull/668
+**Review source / link:** [Codex exact-head completed, no findings](https://github.com/im-tnyx/tio-world/pull/668#issuecomment-6382159580); [review receipt](https://github.com/im-tnyx/tio-world/pull/668#issuecomment-6382176724); GitHub PR #668
 **Reviewer / relation to implementer:** Pending independent review
 **Diff or commit SHA actually reviewed:** Source commit `d41da17c`; GitHub scope/patch static self-review at PR HEAD `43343f0a`.
-**Review result and finding IDs/dispositions:** Implementation-owner static patch self-review did not identify a concrete P1/P2/P3 source defect; **not independent approval**. Codex review pending.
-**Independent review?** Not yet
+**Review result and finding IDs/dispositions:** Codex at `8dfa606b` completed `has_any_findings=false`, `has_unresolved_findings=false`, with no major issue. No unresolved GitHub threads at Ready gate. Source mechanical comparison reconstructed original 7,165-character route block byte-for-byte after restoring indentation and bootstrap callback; all three helper functions byte-identical. Implementation-owner static review also found no concrete P1/P2/P3; **not formal independent GitHub APPROVED**.
+**Independent review?** Yes, Codex automated review at exact `8dfa606b` with no findings. Formal human/independent GitHub APPROVED review not observed.
 **Limitations and unmet required gates:** Local Windows checkout, device screenshots, Flutter SDK commands not available through this session. Use hosted CI for applicable checks; record any gaps accurately.
 
 ## 7. Final Handoff
 **Changed Files:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/account_settings_routes.dart`, this task brief.
 **Actual Behavior:** Source-equivalent refactor only. Behavioral parity still requires GitHub Flutter tests/review.
-**Known Limitations:** Connector-only checkout visibility.
+**Known Limitations:** Connector-only checkout visibility; branch protection direct read 403; formal GitHub APPROVED review and device parity not observed. Supabase/backend/schema untouched.
 **Final Status:** REVIEW pending implementation/CI/review. No merge authorized.
