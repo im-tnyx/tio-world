@@ -272,3 +272,12 @@ Agents should:
 - update docs when behavior or architecture changes
 - report exact commands and outcomes
 - ask only when genuinely blocked; otherwise make a safe, documented best effort
+
+## Cursor Cloud specific instructions
+
+Product setup stays in `docs/development/DEVELOPMENT_SETUP.md`. These notes are only the non-obvious Cloud Agent VM facts.
+
+- Flutter stable lives at `/opt/flutter`, with `flutter` and `dart` on the default `PATH`. Melos `2.9.0` is on the default `PATH` as `melos`. Prefix Melos with `CI=true` so its update prompt does not block a non-interactive shell.
+- Refresh dependencies with `melos bootstrap` from the repo root, then `melos exec -c 1 -- flutter pub get` if a package is missing `.dart_tool/package_graph.json`. Flutter 3.47 test/build reads that file, and a parallel bootstrap can leave it absent. On current Flutter stable, `flutter pub get` can also rewrite tracked `pubspec.lock` hashes for SDK-pinned transitive packages. Leave that churn uncommitted unless the task is an intentional dependency update.
+- This image has no Android SDK. Use `flutter analyze` and `flutter test`, or `melos analyze` and `melos test`, for phone, feature, core, and wear packages. A desktop UI smoke of `apps/app` can use the preinstalled Linux toolchain (`ninja`, GTK 3, `g++-14`): from `apps/app`, run `flutter create --platforms=linux .` and then `flutter run -d linux`. Do not commit the generated `linux/` runner. `flutter build web` fails today because a workout repository uses an integer literal JavaScript cannot represent.
+- Deno `2.9.6` and Supabase CLI `2.116.0` match the function and database workflows. Function checks: `deno test --allow-read=supabase/functions/nutrition-meal-text-parse supabase/functions/nutrition-meal-text-parse`. Docker is not installed, so `supabase db start` is not available here.
