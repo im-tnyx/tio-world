@@ -21,9 +21,9 @@
 **Branch:** `tnyx/569-r3-production-move-rpc-access`
 **Observed working-tree state:** Remote branch based exactly on main; local checkout not inspected.
 **PR / tracker:** #569 OPEN; #567 OPEN; Linear TNYX-81/TNYX-267 Backlog.
-**Current implementation state:** Migration, central R3 granted ACL contract, rollback drill, CI wiring prepared for review. Not hosted.
-**Validation completed at SHA:** None yet. Existing #673 Database CI previously passed for denied ACL baseline.
-**Validation remaining:** PR exact-head disposable migration replay, SQL and two-session tests, rollback drill, role matrix, Codex/independent review, security sign-off and explicit hosted apply GO.
+**Current implementation state:** PR #674 at source head `a37baef5a5d1676538f36b161c2456da049b6dc6` replayed the 70 migrations and passed the rollback drill, #569 ownership/idempotency/race matrices, security ACL assertions, DB lint check, Docs Hygiene, and attribution. Hosted grants unchanged. This handoff-only update creates a new final PR HEAD whose exact-head CI must be checked separately.
+**Validation completed at SHA:** Source/initial PR HEAD `a37baef5a5d1676538f36b161c2456da049b6dc6`: Database CI `40094780962` SUCCESS, Docs Hygiene `40094780964` SUCCESS, Attribution Guard `40094780950` SUCCESS. CI source-run test receipts are evidence for that SHA only.
+**Validation remaining:** Re-run/reverify all required checks on this new handoff-only HEAD; human security review and exact owner role-wide exposure authorization; Codex review was unavailable due to usage limits, not a PASS; owner-hosted apply GO is a separate gate. Device/release QA later.
 **Current blocker:** External human security review and hosted deployment release approval.
 **Next exact action:** Execute and review exact-head PR CI; resolve findings. Stop before merge/hosted apply.
 
@@ -77,18 +77,19 @@ Use a new imperative Supabase migration with preflight on exact three signatures
 - [x] Update central ACL current-state expectation to authenticated-only granted (after replay).
 - [x] Add disposable transactional rollback regression.
 - [x] Wire rollback test into DB CI.
-- [ ] Run exact-head Database CI migration/SQL/races/lint.
+- [x] Source HEAD `a37baef5` Database CI migration/SQL/races/lint PASS; final handoff-only HEAD CI pending.
 - [ ] Obtain Codex, independent review and genuine human security sign-off.
 - [ ] Reconcile owner exposure and staged hosted deploy decision.
 
 ## 6. Quality Review
 
-**Validation run:** Not run for R3 source at this checkpoint. Do not represent code prepared via GitHub remote as tested or compiled.
-**Review provenance:** None yet. Human security sign-off pending.
+**Validation run:** GitHub Actions source HEAD `a37baef5` passed [Supabase Database CI 40094780962](https://github.com/im-tnyx/tio-world/actions/runs/40094780962), including full migration replay (70 SQL versions), R3 revoked-in-transaction rollback drill, central authenticated-only ACL gate before/after existing #569 operations and two-session races, denied/granted fixture cleanup and DB lint. [Docs Hygiene 40094780964](https://github.com/im-tnyx/tio-world/actions/runs/40094780964) and [Attribution 40094780950](https://github.com/im-tnyx/tio-world/actions/runs/40094780950) succeeded. These are cloud CI results; local Windows Flutter/device or production writes were not performed. This documentation amendment requires new exact-head checks.
+
+**Review provenance:** GitHub Codex review at `a37baef5` FAILED due account quota limit (not a finding or security PASS). Cursor automated checks returned NEUTRAL due limits. Human security sign-off pending; connected distinct-account assistant review, if performed, must be labeled non-human. Do not merge/deploy based on green DB CI alone.
 
 ## 7. Final Handoff
 
 **Changed files:** One migration, one access-contract test, one rollback drill, workflow and this task/index.
 **Actual hosted behavior:** unchanged until explicit hosted apply. All 3 functions remain EXECUTE denied as of pre-PR read-only verification.
 **Known limitations:** No independent human sign-off, no Android/iOS release-build QA, no Flutter flag.
-**Final status:** REVIEW.
+**Final status:** REVIEW — source CI passed, but the final PR HEAD and independent human security/exposure/deployment authorization gates remain pending.
