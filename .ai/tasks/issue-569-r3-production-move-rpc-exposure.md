@@ -1,6 +1,6 @@
 # GitHub #569 R3 — Production Move RPC authenticated exposure PR
 
-**Status:** In progress — implementation source and database security verified at prior exact HEAD; API rollback acceptance and release approvals gated.
+**Status:** Source and disposable API-level revoke/rollback acceptance **VALIDATED**; human security, role-wide owner exposure, hosted deploy and Flutter release gates still **BLOCKED**.
 **Primary owner:** Supabase/PostgreSQL implementation `im-tnyx`.
 **Affected platforms:** Supabase function EXECUTE ACL, disposable Database CI/PostgREST test; Flutter production gate unchanged.
 **PR:** https://github.com/im-tnyx/tio-world/pull/674
@@ -18,11 +18,11 @@
 **Implementation owner:** `im-tnyx` R3 bounded PR.
 **Review owner:** Genuine independent human security reviewer required; `im-tio` connected-account review is assistant-operated COMMENT and **not human sign-off**.
 **Implementation ownership:** Active; branch `tnyx/569-r3-production-move-rpc-access`.
-**Repository state last verified:** GitHub `main@c0c90caa9a092ebd1572e7ad96f76aeac39eed34` (PR #673 squash merge). Remote source HEAD at the start of this handoff reconciliation: `2c71bf7b24869928db58c341aa19261ea37d4a7f`. This docs-only update changes the PR HEAD; always recheck the current remote SHA and exact-head CI before a gate decision. User's Windows checkout was not accessed from this remote session.
+**Repository state last verified:** GitHub `main@c0c90caa9a092ebd1572e7ad96f76aeac39eed34` (PR #673 squash merge). Latest verified **implementation-source** HEAD before this docs-only reconciliation: `72cc7543502106d999be9c5f7084434b36ce5eb5`. Its Database/Docs/Attribution CI succeeded, including the HTTP smoke. The PR HEAD changes with documentation commits; recheck exact HEAD and required branch checks at merge gate. User's Windows checkout was not accessed from this remote session.
 **PR / tracking:** https://github.com/im-tnyx/tio-world/pull/674; GitHub #569 OPEN.
 **Review threads:** Previous P2 fail-closed mutation body-drift finding **resolved**, zero unresolved review threads at last verified GitHub audit. Human review remains pending.
 **Current blocker:** No verified independent human security sign-off or exact role-wide production exposure approval. Explicit hosted migration deploy GO separately required.
-**Next exact action:** Verify the newly added disposable PostgREST API-level grant/revoke smoke on final PR HEAD, inspect any failures, and collect exact CI run/step evidence. Keep exposure blocked until successful.
+**Next exact action:** Obtain independent **human** security sign-off and explicit owner decision about role-wide permanent-account API exposure; final PR merge eligibility remains gated. Do not deploy hosted grants until a separate exact-project/migration approval and rollout/rollback authorization.
 
 ## 1. Discovery and Outcome
 
@@ -43,7 +43,7 @@ Verified `main` includes #569 Move/Create & Move and M5B full Undo backend funct
 
 **PostgREST acceptance gap found:** Existing `supabase/tests/database/tnyx_569_r3_grant_rollback.test.sql` uses `BEGIN ... ROLLBACK`. That verifies catalog privileges inside one transaction but not a committed revoke as observed through PostgREST HTTP. No prior GitHub evidence was found for that stronger acceptance.
 
-**New isolated acceptance implementation in PR #674:** `supabase/tests/database/tnyx_569_r3_postgrest_revoke_smoke.py`, run by `.github/workflows/supabase-db-ci.yml`. It requires `GITHUB_ACTIONS=true`, the **exact** local PostgreSQL URL `postgresql://postgres:postgres@127.0.0.1:54322/postgres`, full R3 migration ledger and a disposable empty fixture namespace. It boots a temporary PostgREST v12.2.12 container using CI-only JWT signing material and performs HTTP RPC calls for all three functions before revoke, after committed revoke and after restore. It verifies owner/guest/anon behavior, preserves Program/Routine data, and has cleanup for temporary Auth identities and the PostgREST container. The test is **not hosted production evidence** and **must not be marked PASS without the successful exact-head run**.
+**New isolated acceptance implementation in PR #674:** `supabase/tests/database/tnyx_569_r3_postgrest_revoke_smoke.py`, run by `.github/workflows/supabase-db-ci.yml`. It requires `GITHUB_ACTIONS=true`, the **exact** local PostgreSQL URL `postgresql://postgres:postgres@127.0.0.1:54322/postgres`, full R3 migration ledger and a disposable empty fixture namespace. It boots a temporary PostgREST v12.2.12 container using CI-only JWT signing material and performs HTTP RPC calls for all three functions before revoke, after committed revoke and after restore. It verifies owner/guest/anon behavior, preserves Program/Routine data, and has cleanup for temporary Auth identities and the PostgREST container. The isolated test is **not hosted production evidence**. It passed on implementation-source HEAD `72cc7543` in [Database CI #40099768691](https://github.com/im-tnyx/tio-world/actions/runs/40099768691), including explicit loopback-only PostgREST bind and checks for zero fixture-owned Workout records.
 
 ## 3. Architecture / Authority Decisions
 
@@ -58,30 +58,32 @@ Verified `main` includes #569 Move/Create & Move and M5B full Undo backend funct
 
 ## 4. Validation Evidence and Remaining Tests
 
-**Last fully verified database code checkpoint, BEFORE new API smoke addition:**
-- **Source HEAD `f44fa2d28cb5ad821159205d626257b993e532d3`**: [Supabase Database CI #40096935495](https://github.com/im-tnyx/tio-world/actions/runs/40096935495) **SUCCESS**, including complete 70-version disposable migration replay, SQL grant/rollback matrix, Move/Create/Full-Undo and two-session race tests, and lint.
-- [Docs Hygiene CI #40096935473](https://github.com/im-tnyx/tio-world/actions/runs/40096935473) **SUCCESS**; [attribution #40096934318](https://github.com/im-tnyx/tio-world/actions/runs/40096934318) **SUCCESS** at that SHA.
-- Prior CI failures and fixes are historical: Full Undo SQL-dollar-quoting corrected; initial body-fingerprint mismatch traced to CRLF/LF formatting and fixed with normalization. Do not present those runs as current failures.
-- Previous P2 inline thread source correction independently verified as code via connected-account COMMENT, then resolved. Human security sign-off is not established.
+**Verified current implementation-source checkpoint:**
+- **Source HEAD `72cc7543502106d999be9c5f7084434b36ce5eb5`:** [Supabase Database CI #40099768691](https://github.com/im-tnyx/tio-world/actions/runs/40099768691) **SUCCESS**, including 70-version disposable migration replay; existing owner/guest/RLS/CAS/idempotency, grant/rollback, full Undo, two-session race and lint matrices; and the **new real HTTP/PostgREST committed-revoke/regrant step SUCCESS**. [Docs Hygiene #40099768590](https://github.com/im-tnyx/tio-world/actions/runs/40099768590) and [Attribution #40099767615](https://github.com/im-tnyx/tio-world/actions/runs/40099767615) also reported SUCCESS on this SHA.
+- P2 full function-body fingerprint drift finding resolved with exact three normalized SHA-256 checks; zero unresolved inline threads at latest source review. GitHub `im-tio` account's reviews are assistant-operated COMMENT, **not** independent human approval.
+- Historical SQL test quoting and CRLF/LF fingerprint issues were corrected before this successful run; they are not current failures.
 
-**New API acceptance:** The first PostgREST HTTP smoke check is newly authored and wired at source HEAD `2c71bf7b24869928db58c341aa19261ea37d4a7f`; **result not verified yet**. Final exact-HEAD run must show SUCCESS for the named `Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant` step, with owner/guest/anon and post-revoke three-RPC response evidence. A failing run is a blocker and must be fixed rather than recorded as PASS. This documentation reconciliation itself changes the PR SHA; recheck latest GitHub checks.
+**API-level revoke/rollback acceptance: PASS (disposable, non-production).** Exact step `Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant` finished **SUCCESS** in GitHub run [#40099768691](https://github.com/im-tnyx/tio-world/actions/runs/40099768691) at `72cc7543`. All three RPCs: permanent owner JWT reached server RPC and received deliberate missing-routine **HTTP 500 / SQLSTATE P0002** (function executed, not a successful business mutation); real anonymous Auth user received **403/28000**; anon role received **401/42501**; after **committed** authenticated EXECUTE revoke, previously valid owner JWT received **403/42501**; after exact-grant restoration owner again reached the RPC (**500/P0002**). Test verified zero fixture-owned Routine/Program rows, Auth fixture cleanup and restored ACL, and removed the temporary loopback-only PostgREST container. It uses isolated CI-only JWT signing material, not hosted credentials.
+
+**Scope of this evidence:** Tests permission toggling and authenticated PostgREST fail-closed calls, **not** a successful production Move/Undo or a hosted grant rollback. The previously passing SQL/RLS/mutation/concurrency tests cover underlying business invariants. The hosted post-apply acceptance remains a later separately authorized gate.
 
 **Not yet evidenced:** Real hosted production PostgREST acceptance (forbidden before deploy approval), physical Android/iOS release-build QA, human security sign-off, owner policy approval, authorized hosted GRANT, or Flutter ON.
 
-### API-level revoke/rollback acceptance gate (hard BLOCKER)
+### API-level revoke/rollback gate — disposable evidence PASS; hosted activation remains BLOCKED
 
-Before production exposure require a successful, referenced **disposable** API run proving all three RPCs deny new permanent-account HTTP requests after **committed** revoke (not just SQL transaction rollback), with no Routine/Program mutation, fixture cleanup and regrant restoring legitimate access. Prior to any hosted apply, verify target project, reviewed SQL migration version/source hash, release/rollback plan, hosted 69-migration baseline, and owner plus human security approvals. After explicitly authorized hosted apply, do *read-only hosted* role/ACL verification and authorized bounded non-destructive smoke before turning Flutter Move ON. SQL catalog privilege checks alone do not close the HTTP gate.
+Disposable committed-revoke HTTP acceptance is **verified** by CI #40099768691 on source SHA `72cc7543`; a SQL-only transaction rollback result is no longer being substituted for HTTP evidence. This does **not** approve production exposure. Before any hosted apply, independently verify exact target project, migration source/hash and pending ledger, recovery/rollback procedure, the current 69-migration baseline, true independent human security sign-off and unambiguous owner approval for all permanent signed-in accounts. After **separately authorized** hosted apply, perform live read-only ACL/role verification plus separately authorized bounded non-destructive HTTP smoke **before** turning Flutter Move ON. Revoking EXECUTE blocks new API calls, not already-in-flight transactions; reconcile UNKNOWN receipts.
 
 ## 5. Implementation Plan / Release Sequence
 
 - [x] R2 merged access-contract groundwork (#673).
 - [x] Prepare reviewed exact three-signature grant migration and fail-closed body fingerprint preflight.
 - [x] Update current-state ACL migration test and add BEGIN/ROLLBACK revoke drill.
-- [x] Verify reviewed database code at `f44fa2d2` (Database/Docs/Attribution CI SUCCESS).
+- [x] Verify current implementation source `72cc7543` Database/Docs/Attribution CI SUCCESS.
 - [x] Address P2 finding; GitHub inline thread resolved.
-- [x] Add isolated HTTP PostgREST committed revoke/regrant test and wire into disposable CI (**code only; acceptance pending**).
-- [ ] Exact-current-HEAD CI success with explicit HTTP test step result.
-- [ ] Verify fixture cleanup and no data/role permission leaks; resolve any CI failures.
+- [x] Add isolated PostgREST committed revoke/regrant test with explicit zero-data-change assertions, loopback-only HTTP and disposable guards.
+- [x] Confirm GitHub CI #40099768691 PASS at source HEAD `72cc7543`, including named HTTP step.
+- [x] Verify three-RPC JWT owner/guest/anon matrix, committed revoke 403/42501, regrant recovery, no Routine/Program mutation and fixture/ACL/container cleanup.
+- [ ] Recheck branch-head required checks after this docs-only commit before any merge.
 - [ ] Genuine independent human security sign-off.
 - [ ] Explicit owner approval for all permanent signed-in users to access the three protected RPCs.
 - [ ] Separate hosted migration apply approval and post-apply verification.
@@ -92,5 +94,5 @@ Before production exposure require a successful, referenced **disposable** API r
 **Changed files (R3 PR):** Guarded grant migration, central ACL contract, transaction SQL rollback drill, permanent-owner/guest test, Database CI workflow, new PostgREST smoke, this handoff/index.
 **Actual hosted behavior:** R3 has **not** been deployed; last verified hosted count 69 through `20261024090000`, and three Move RPCs `authenticated EXECUTE=false`. Nothing in this PR documentation approves production grants.
 **Review provenance:** GitHub `im-tio` review is assistant-operated `COMMENTED`, not a human APPROVED review. P2 source finding closed. Codex review attempt was quota-limited and Cursor checks neutral.
-**Known limitations:** HTTP smoke CI proof pending at handoff update; no independent human sign-off; no hosted exposure/rollback drill; no device release QA.
+**Known limitations:** Disposable API-level revoke proof PASS; genuine independent human security sign-off, explicit role-wide exposure approval, hosted deploy/post-apply validation and device release QA remain outstanding.
 **Final status:** **REVIEW / SECURITY-GATED**. Never infer production readiness from a green SQL CI run or from PR being GitHub-mergeable.
