@@ -426,7 +426,7 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
 
-      - name: Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant
+      - name: 'Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant'
         shell: bash
         run: |
           # Uses only the exact identity-guarded disposable CI database.
