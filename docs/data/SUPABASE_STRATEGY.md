@@ -1,11 +1,13 @@
 # Supabase-First Platform Strategy
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-23 (post-merge reconciliation for #569 PR #657, #660, #661)
+Last Verified: 2026-10-24 (Flutter B2 source checkpoint; hosted Supabase not rechecked)
 Owner: Supabase data ownership + Backend & Platform
 Truth Boundary: Authoritative for current Supabase ownership and future protected-service boundaries; runtime source and verified live schema prove actual implementation.
 
 ## Status
+
+- **M5B-B2 Flutter source checkpoint (2026-10-24):** The active branch implements the New Program five-second Undo adapter and presentation using the already merged B1 six-argument RPC, shared Move gates, exact mutation-token readback and owner/login-cycle guarded list invalidation. Focused Flutter tests and Workout package analysis pass locally. This source work is awaiting PR review; it is not merged or released. Hosted B1 migration/RPC/grant state was not freshly verified, no grant or migration was changed, and `routineMoveReleaseEnabledProvider=false` remains unchanged. No device QA or production activation is claimed.
 
 **Active current Supabase foundation.**
 - The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
