@@ -315,6 +315,13 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
 
+      - name: Verify #569 R3 authenticated grant emergency rollback without persisting it
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_r3_grant_rollback.test.sql
+
       - name: Reject #569 anonymous signed-in owners in both Move RPCs
         shell: bash
         run: |

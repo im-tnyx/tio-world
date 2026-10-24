@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+[#569 R3 production Move RPC authenticated-exposure review](issue-569-r3-production-move-rpc-exposure.md) is an in-review gated Supabase ACL migration PR: exact three RPC EXECUTE grants only to `authenticated` after the migration is separately deployed, with preflight identity/security guards, disposable rollback test and CI. It does not deploy hosted grants or enable Flutter Move; distinct security review, owner exposure/deploy approval and mobile acceptance remain pending. #569 OPEN / #567 separate.
+
 [#569 R2 database CI access-contract preparation](issue-569-r2-db-ci-access-contract.md) is a tests/CI-only review slice. It centralizes the current denied three-RPC ACL gate and makes disposable race fixtures restore their starting authenticated ACL, so a later separately approved grant migration can change the contract deliberately. No hosted grant, migration, Flutter activation or #567 work is included.
 
 [GitHub #250 pre-P9 M5B current-state correction](issue-250-pre-p9-m5b-current-drift.md) is an **active docs-only merge-gate slice**: correct `routine-library.md` hosted Undo/current gates and `DEVELOPMENT_SETUP.md` isolated QA/runtime truth against live 69/69 Supabase metadata; production RPC grants and release flag stay OFF. No P9 start or parent closure.
