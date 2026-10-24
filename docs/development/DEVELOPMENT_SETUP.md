@@ -114,8 +114,7 @@ Per explicit owner approval on 2026-10-23 (Option A), real-write QA for Move
 Routine is restricted to **isolated Supabase environments** (local Docker-based
 Supabase CLI or a dedicated disposable staging project). Hosted Tio-world
 Move RPCs remain **EXECUTE-denied** (`authenticated = false`) to completely
-prevent exposure to ordinary users before M5B full Create & Move Undo and
-#567 Program Delete reparenting features are implemented and approved (M5A real five-second Undo for existing Program moves is merged in source via PR #661, while M5B full atomic Undo and #567 remain pending).
+prevent exposure to ordinary users until an explicit owner exposure decision, three-RPC least-privilege grant/rollback security review, and production release gates are complete. M5A existing-Program Undo and M5B full Undo source are merged (PRs #661/#664/#665); M5B migration and protected Undo RPC are hosted at the verified 69/69 ledger. #567 Program Delete reparenting remains a separate pending lifecycle gate.
 A Flutter debug flag is a client UI gate, **not** a database security boundary;
 granting EXECUTE on hosted would expose PostgREST endpoints to all signed-in
 accounts.
@@ -137,6 +136,11 @@ accounts.
      uuid, uuid, uuid, text, bigint, uuid
    ) to authenticated;
    ```
+   **Grant scope:** These two isolated-only grants cover existing-Program Move
+   and Create+Move, not the separate M5B full-Undo RPC. Full-Undo actual-write QA
+   requires separately reviewed isolated-only EXECUTE and rollback handling for
+   `undo_create_user_workout_program_and_move_routine`; do not copy these
+   grants into hosted Tio-world or mistake debug UI opt-in for authorization.
 3. **Run debug app against local Supabase runtime:**
    Launch the app with local runtime configuration and `--dart-define=TIO_MOVE_ROUTINE_QA=true`.
    Verify A→B, B→A, new Program atomicity, cancel, idempotency/UNKNOWN, stale
@@ -157,8 +161,9 @@ accounts.
    PostgREST immediately returns SQLSTATE `42501` (`insufficient_privilege`)
    to any subsequent Move attempt while routine/program records remain unharmed.
 
-**Current hosted security prerequisite:** both Move RPCs remain EXECUTE-denied
-to `authenticated` in hosted Tio-world. Do not work around it with direct
+**Current hosted security prerequisite:** all three Move/Create+Move/full-Undo
+RPCs are present and remain EXECUTE-denied to `PUBLIC`, `anon`, `authenticated`,
+and `service_role` on hosted Tio-world. Do not work around it with direct
 `UPDATE(program_id)`, a service-role client, an unreviewed SQL GRANT, or a
 source-level production flag change. No deployable forward migration granting
 broad authenticated EXECUTE will be added to `supabase/migrations/` without
@@ -166,8 +171,11 @@ a separate owner exposure decision.
 
 If `TIO_MOVE_ROUTINE_UI_PREVIEW=true` and `TIO_MOVE_ROUTINE_QA=true`
 are both supplied, the preview takes precedence and performs **zero writes**.
-Neither flag works in profile/release builds. Production Move release, M5B full Create & Move Undo,
-and #567 Program Delete remain separate review/release gates (M5A existing-Program Undo is merged in source via PR #661).
+Neither flag works in profile/release builds. Production Move release,
+three-RPC least-privilege client EXECUTE grants and rollback review, and #567
+Program Delete remain separate approval/release gates. M5A and M5B full Undo
+source are merged and the M5B migration/Undo RPC are hosted; none of that
+activates production Move.
 
 ## First-Routine debug-only hosted QA (opt-in, REAL writes)
 
