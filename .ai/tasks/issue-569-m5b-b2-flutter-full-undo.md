@@ -21,10 +21,10 @@
 **Repository state last verified:** `main@9805ee1b58f38d04e5b692aa049ef9e280bcf850`, clean; GitHub search confirms this is current `main` and PR #664 merge SHA.
 **Branch:** `tnyx/m5b-b2-full-undo-flutter`
 **Base SHA:** `9805ee1b58f38d04e5b692aa049ef9e280bcf850`
-**PR / tracker:** GitHub #569 OPEN; PR #664 MERGED; Linear TNYX-81 and TNYX-267 remain Backlog; TNYX-78 In Progress; TNYX-80 In Progress.
-**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on the active branch. PR is not open yet.
+**PR / tracker:** [PR #665 OPEN](https://github.com/im-tnyx/tio-world/pull/665); GitHub #569 OPEN; PR #664 MERGED; Linear TNYX-81 and TNYX-267 remain Backlog; TNYX-78 In Progress; TNYX-80 In Progress.
+**Current implementation state:** B1 SQL RPC exists in merged source; B2 Flutter receipt, one-RPC adapter, five-second Undo, exact UNKNOWN receipt verification, and owner-guarded refresh are implemented on PR #665. Exact-head Docs Hygiene CI passed; Flutter CI is in progress; no independent review is recorded yet.
 **Hosted evidence limitation:** No Supabase MCP or CLI is available in this session. Historical checked-in handoff says hosted is 68/68 through 20261021130000, with Move RPC EXECUTE denied; B1 migration and Undo RPC hosted status were not freshly verified.
-**Next exact action:** Finish validation and canonical docs, create one focused PR linked to #569, verify its current-head checks, and stop before merge.
+**Next exact action:** Monitor exact-head Flutter CI/review, reconcile any findings, and stop before merge.
 
 ## 1. Discovery
 
@@ -120,7 +120,7 @@ REVIEW: dart format changed the touched Dart files, then exited 1 after attempti
 
 ### Review Provenance
 
-**Review source / link:** Pending PR creation and focused PR review
+**Review source / link:** [PR #665](https://github.com/im-tnyx/tio-world/pull/665); independent review pending
 **Reviewer / relation to implementer:** Pending
 **Diff or commit SHA actually reviewed:** Pending
 **Review result and finding IDs/dispositions:** Pending

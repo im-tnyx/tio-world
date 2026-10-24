@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-[#569 M5B-B2 — Flutter full Create & Move Undo](issue-569-m5b-b2-flutter-full-undo.md) has implementation and focused validation complete on `tnyx/m5b-b2-full-undo-flutter` from `main@9805ee1b`; PR creation/review is pending. The owner-approved #569 correction requires one real five-second Undo that atomically restores the Routine and deletes only its own unchanged, eligible empty New Program. M5B-B1 protected RPC is merged in source. Hosted B1 migration/grants were not freshly verified in this session; production Move stays OFF and no hosted changes are authorized.
+[#569 M5B-B2 — Flutter full Create & Move Undo](issue-569-m5b-b2-flutter-full-undo.md) has implementation and focused validation complete on `tnyx/m5b-b2-full-undo-flutter` from `main@9805ee1b`; [PR #665](https://github.com/im-tnyx/tio-world/pull/665) is open, with Flutter CI in progress and independent review pending. The owner-approved #569 correction requires one real five-second Undo that atomically restores the Routine and deletes only its own unchanged, eligible empty New Program. M5B-B1 protected RPC is merged in source. Hosted B1 migration/grants were not freshly verified in this session; production Move stays OFF and no hosted changes are authorized.
 
 [#569 M5B-B1 — Atomic Create & Move Full Undo backend](issue-569-m5b-b1-atomic-create-move-full-undo.md) is **source MERGED** in [PR #664](https://github.com/im-tnyx/tio-world/pull/664), squash SHA `9805ee1b58f38d04e5b692aa049ef9e280bcf850`. The migration adds provenance and a protected atomic Undo RPC with EXECUTE revoked. This backend merge did not deploy the migration, activate grants, or implement Flutter B2.
 

@@ -7,7 +7,7 @@ Truth Boundary: Authoritative for current Supabase ownership and future protecte
 
 ## Status
 
-- **M5B-B2 Flutter source checkpoint (2026-10-24):** The active branch implements the New Program five-second Undo adapter and presentation using the already merged B1 six-argument RPC, shared Move gates, exact mutation-token readback and owner/login-cycle guarded list invalidation. Focused Flutter tests and Workout package analysis pass locally. This source work is awaiting PR review; it is not merged or released. Hosted B1 migration/RPC/grant state was not freshly verified, no grant or migration was changed, and `routineMoveReleaseEnabledProvider=false` remains unchanged. No device QA or production activation is claimed.
+- **M5B-B2 Flutter source checkpoint (2026-10-24):** [PR #665](https://github.com/im-tnyx/tio-world/pull/665) implements the New Program five-second Undo adapter and presentation using the already merged B1 six-argument RPC, shared Move gates, exact mutation-token readback and owner/login-cycle guarded list invalidation. Focused Flutter tests and Workout package analysis pass locally; Docs Hygiene CI passed and exact-head Flutter CI is in progress. This open source PR is not merged or released. Hosted B1 migration/RPC/grant state was not freshly verified, no grant or migration was changed, and `routineMoveReleaseEnabledProvider=false` remains unchanged. No device QA or production activation is claimed.
 
 **Active current Supabase foundation.**
 - The root `supabase/` workspace is the current schema/migration owner and contains the checked-in migration history.
