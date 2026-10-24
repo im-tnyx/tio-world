@@ -1,6 +1,6 @@
 # #567 D1 — Atomic owner-safe Delete Program backend (source only)
 
-**Status:** In review — [draft PR #678](https://github.com/im-tnyx/tio-world/pull/678); source-only, NOT deployed / NOT merged
+**Status:** In review — [PR #678](https://github.com/im-tnyx/tio-world/pull/678); source-only, NOT deployed / NOT merged
 **Primary owner:** Connected agent, backend/Supabase scoped implementation owner
 **Affected platforms:** Supabase migration and disposable database CI only
 **Tracking:** [GitHub #567](https://github.com/im-tnyx/tio-world/issues/567), [Linear TNYX-81](https://linear.app/tnyx/issue/TNYX-81), TNYX-267
@@ -39,13 +39,15 @@
 
 - [x] Source-only new migration with secure owned locking/atomic write/deny grants and no table/column changes.
 - [x] Disposable SQL: >1 Routine child UUID preservation, default rename, no default/empty source, source-without-default, owner A/B, guest, replay, wrong snapshot, direct client DELETE deny, rollback on forced failure.
-- [x] Actual disposable two-session Delete-first vs Move-first races: source delete and membership CAS prevent data loss. Additional Create/Edit races are not separately exercised and remain residual review scope.
+- [x] Actual disposable two-session Delete-first vs Move-first races: source delete and membership CAS prevent data loss.
+- [ ] Reviewer P2 fix at PR #678: corrected migration comment (protected Edit does NOT lock Program; row lock/revision is the serialization boundary), added real Delete-first / Edit-first two-session harness preserving Routine/Exercise/Set IDs and revision; exact-head CI outcome and reviewer disposition pending.
+- [ ] Additional direct Create-vs-Delete race evidence remains separate preactivation review scope.
 - [x] Supabase Database CI #40120111307 SUCCESS on source HEAD 521c4761 including SQL matrix, both two-session races and migration replay. Final handoff-only HEAD still requires green exact-head recheck.
-- [ ] GitHub exact-base compare: only scoped files; independent review/security findings disposition; do not merge or deploy on this instruction.
+- [ ] GitHub exact-base compare: 7 D1-only paths; independent P2 comment requires validation and disposition; do not merge or deploy on this instruction.
 
 ## Active handoff
 
 **Branch:** `tnyx/567-d1-atomic-program-delete`, based on `cf73c051e85b17d5e38c83569f4c164da5d60f02`.
 **Implementation state:** Active, one backend-only slice.
 **Validation:** GitHub [Supabase Database CI #40120111307](https://github.com/im-tnyx/tio-world/actions/runs/40120111307) SUCCESS at 521c476142497365fab3aa5572277174b813dddc; GitHub docs hygiene and required attribution SUCCESS there. Database CI includes rollback-only owner A/B, guest, two-Routine child-ID preservation, renamed default, empty/no-default, stale snapshot, revision overflow rollback, exact retry fail-closed, and two real Delete/Move order races. Hosted security advisor read-only: 13 existing authenticated SECDEF warnings (including #569) plus leaked-password WARN; this new RPC is not deployed and remains client-denied in disposable DB. No local Windows toolchain/diff was run.
-**Review provenance:** Connected assistant manually reviewed own branch (self-review, NOT independent); detected and corrected PostgreSQL COALESCE qualification at 521c4761. No formal independent review yet. Residual: D2 client UNKNOWN readback, source+new Create concurrency coverage before public activation, release rollout/security acceptance. **Next:** Verify CI at final documentation HEAD, request separate im-tio review, leave PR unmerged until explicit owner Go merge; hosted deployment remains separate.
+**Review provenance:** `im-tio` independently reviewed `5fec974f9742f4c13e32338671ade1357f59f86a` (COMMENTED, no approval), opened [P2 review thread](https://github.com/im-tnyx/tio-world/pull/678) on the incorrect Edit/Program-lock claim. Implementation owner fixed only the documentation of lock behavior and added explicit Edit-vs-Delete opposite-order, revision and child-preservation two-session CI tests; new commit `23f1a96d` before this handoff. P2 awaits exact-head CI and independent re-review. Self-review also corrected the earlier PostgreSQL COALESCE syntax at `521c4761`. Residual: D2 client UNKNOWN readback, direct Create concurrency coverage before hosted activation, release rollout/security acceptance. **Next:** Observe exact-head CI, respond to P2 with results, request `im-tio` rereview, keep PR unmerged until explicit owner Go merge; hosted deployment remains separate.
