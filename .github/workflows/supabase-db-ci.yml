@@ -443,6 +443,13 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_567_atomic_program_delete.test.sql
 
+      - name: Run #567 D1 real two-session Program Delete versus Move races
+        shell: bash
+        run: |
+          # Identity-guarded disposable CI: temporary authenticated RPC grant
+          # is restored and fixture users are deleted on exit.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_concurrency.sh
+
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash
         run: |
