@@ -15,18 +15,20 @@ begin
   -- Pin the complete, security-reviewed function bodies, not snippets of
   -- auth checks. This must fail closed if owner validation, revision CAS,
   -- mutation hashes, provenance, or lock ordering drift before deployment.
-  -- Digests are SHA-256(UTF8(pg_proc.prosrc)), checked against the existing
-  -- 69-migration hosted baseline; R3 does not replace these RPC bodies.
+  -- Digests are SHA-256(UTF8(pg_proc.prosrc)) after CRLF/CR -> LF
+  -- line-ending normalization only. Hosted pg_proc.prosrc uses CRLF whereas
+  -- disposable CI replays checked-in migrations with LF. Their normalized
+  -- bodies match byte-for-byte; R3 does not replace these RPC bodies.
   -- A later intentional body change requires a separate review of the new
   -- complete definition and a corresponding explicit digest update.
   for v_signature, v_expected_body_sha256 in
     select signature, expected_body_sha256 from (values
       ('public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)',
-       '54ef34da88a532f6117d4a10a2345a4329f0887eb25a08a3d432d76d6278a757'),
+       '2edb5fb14d63f5f1130009d18965df0b7ecd48fec1a2fd9ca603aa8036e66102'),
       ('public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)',
-       '6d52fb278798bc58073f2657ef310da37a191dc0e9c40e6360390f38e3956fbc'),
+       '1a98a23312df7a9042bb55e132194e7a8598196b05f77750f32de4f5f7702c5f'),
       ('public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)',
-       '68ed1c4bf4d06e3b9a88dfea9739be96f4176c5f1b6c26a41275c2ea2ace9038')
+       'dfe039559c0e67129682701fff8429f6101b0388c1bd1d7bd6244b7c20327c3f')
     ) as exact_move_rpc(signature, expected_body_sha256)
   loop
     v_function := pg_catalog.to_regprocedure(v_signature);
@@ -46,7 +48,10 @@ begin
     select p.prosrc into v_body
     from pg_catalog.pg_proc as p where p.oid = v_function;
     if pg_catalog.encode(pg_catalog.sha256(
-         pg_catalog.convert_to(v_body, 'UTF8')), 'hex')
+         pg_catalog.convert_to(
+           pg_catalog.replace(pg_catalog.replace(
+             v_body, E'\r\n', E'\n'), E'\r', E'\n'),
+           'UTF8')), 'hex')
        is distinct from v_expected_body_sha256 then
       raise exception 'R3 reviewed Move RPC body fingerprint drift: %',
         v_signature;
