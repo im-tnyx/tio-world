@@ -170,20 +170,41 @@ def request(name, payload, jwt=None):
     return status, str(obj.get("code", "")), str(obj.get("message", ""))
 
 
+def request_after_grant(name, body, jwt):
+    # NOTIFY is asynchronous. After (re-)GRANT, PostgREST may temporarily
+    # still serve an earlier schema-cache snapshot missing this RPC.
+    # Only PGRST202 is retryable: real auth/owner/SQL errors fail immediately.
+    for attempt in range(13):
+        result = request(name, body, jwt)
+        if result[0] != 404 or result[1] != "PGRST202":
+            return result
+        if attempt < 12:
+            time.sleep(0.25)  # bounded at three seconds
+    return result
+
+
 def assert_stage(stage, who, jwt):
     for name, _, body, missing_error, guest_error in SPECS:
-        status, code, message = request(name, body, jwt)
         if stage == "enabled" and who == "owner":
+            status, code, message = request_after_grant(name, body, jwt)
             # P0002 is returned as HTTP 500 by this PostgREST v12 runtime.
-            # Match the exact PostgreSQL code AND function-origin message:
-            # a granted owner reaches its protected RPC without any writes.
+            # The exact code + message prove the owner reached this RPC.
             ok = status == 500 and code == "P0002" and message == missing_error
-        elif stage == "enabled" and who == "guest":
-            # A real Auth anonymous account has the authenticated SQL role.
-            ok = message == guest_error and status in (401, 403)
         else:
-            # After committed REVOKE, JWT must no longer reach an RPC body.
-            ok = status in (401, 403, 404) and code in ("42501", "PGRST202")
+            status, code, message = request(name, body, jwt)
+            if stage == "enabled" and who == "guest":
+                # Guest has authenticated SQL role but must fail the Auth
+                # is_anonymous check in the protected function body.
+                ok = status == 403 and code == "28000" and message == guest_error
+            elif stage == "enabled" and who == "anon":
+                ok = status == 401 and code == "42501"
+            elif stage == "revoked" and who == "owner":
+                # Only a real permission denial proves rollback. A missing
+                # PostgREST schema-cache entry (PGRST202) is NOT sufficient.
+                ok = status == 403 and code == "42501"
+            else:
+                raise AssertionError("Unexpected R3 HTTP stage/identity: %s/%s" %
+                                     (stage, who))
         if not ok:
             raise AssertionError(
                 "%s/%s/%s: got HTTP %d code=%s message=%s" %
@@ -237,6 +258,16 @@ def launch_postgrest():
     raise RuntimeError("Disposable PostgREST HTTP readiness timeout")
 
 
+def stop_postgrest():
+    # This cleanup must run even when deleting test Auth identities fails.
+    result = subprocess.run(["docker", "rm", "-f", CONTAINER],
+                            check=False, capture_output=True, text=True)
+    # Container may not yet exist if docker run failed before creation.
+    if result.returncode and "No such container" not in result.stderr:
+        raise RuntimeError("Disposable PostgREST container cleanup failed: " +
+                           result.stderr.strip())
+
+
 def main():
     require_disposable()
     fixture_created = False
@@ -264,15 +295,16 @@ def main():
             print("CRITICAL: disposable ACL restore failed: %s" % exc, file=sys.stderr)
             raise
         finally:
-            if fixture_created:
-                psql("delete from auth.users where id in ('%s'::uuid,'%s'::uuid)" %
-                     (PERMANENT_ID, GUEST_ID))
-                if psql("select count(*) from auth.users where id in ('%s'::uuid,'%s'::uuid)" %
-                        (PERMANENT_ID, GUEST_ID)) != "0":
-                    raise AssertionError("Auth fixture cleanup left rows behind")
-            # Docker may have started even if HTTP readiness never completed.
-            subprocess.run(["docker", "rm", "-f", CONTAINER],
-                           check=False, capture_output=True)
+            try:
+                # Stop any HTTP callers first; always attempt DB fixture cleanup.
+                stop_postgrest()
+            finally:
+                if fixture_created:
+                    psql("delete from auth.users where id in ('%s'::uuid,'%s'::uuid)" %
+                         (PERMANENT_ID, GUEST_ID))
+                    if psql("select count(*) from auth.users where id in ('%s'::uuid,'%s'::uuid)" %
+                            (PERMANENT_ID, GUEST_ID)) != "0":
+                        raise AssertionError("Auth fixture cleanup left rows behind")
 
 
 if __name__ == "__main__":
