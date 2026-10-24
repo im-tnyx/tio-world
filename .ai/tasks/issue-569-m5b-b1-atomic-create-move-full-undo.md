@@ -31,10 +31,10 @@
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`
 **Implementation validation checkpoint:** `e0733baa6138fb2beddba685b3d929daae529f6a`; disposable GitHub Supabase DB CI run `40050837446` passed migration replay, M5B SQL/RLS/idempotency matrix, two-session Undo race and lint workflow.
 **Handoff validation checkpoint:** `357aae2ec4215b82dd2aee6a4c956eb9352123cb`; CI run `40051140062` passed the then-current handoff content. Neither run is evidence for commits made afterward; current live PR head and its CI are authoritative.
-**Validation remaining:** Fresh exact-head CI and current-head review after this P3 correction; hosted deployment is not permitted in this slice.
-**Current blocker:** P3 handoff correction requires a new exact-head CI/review check; Cursor/Copilot review services were skipped or quota-limited.
-**Open review finding IDs:** None at current head; older Codex receipt reviewed `23734f28` and is superseded by later commits
-**Next exact action:** Push this documentation-only P3 correction, verify exact-head CI/review, reply to and resolve the three verified threads, then stop before merge/deploy/grant activation.
+**Validation remaining:** Fresh current-head Codex review; hosted deployment is not permitted in this slice.
+**Current blocker:** Branch-protection required-check policy could not be independently read because GitHub returned HTTP 403; Cursor/Copilot review services were skipped or quota-limited.
+**Open review finding IDs:** None; P1/P2/P3 threads were replied to with evidence and resolved at the verified checkpoint.
+**Next exact action:** Obtain current-head Codex/independent review after the final handoff checkpoint, then stop before merge/deploy/grant activation.
 
 ## 1. Discovery
 
@@ -97,7 +97,7 @@ Exact replay succeeds only when B is absent, Routine is at A, revision is `p_exp
 ### Validation Run
 
 ```text
-`git diff --check` passed. Disposable GitHub Supabase DB CI run `40050837446` passed. Local Supabase/psql not run due environment limitations. Current-head Codex review is still running.
+`git diff --check` passed. Implementation checkpoint `e0733baa6138fb2beddba685b3d929daae529f6a` passed disposable Supabase Database CI run `40050837446`; handoff checkpoint `357aae2ec4215b82dd2aee6a4c956eb9352123cb` passed run `40051140062`. Exact feature checkpoint `7c57ab18799179bd175d8dca1deaff1e1631126d` passed Supabase Database CI run `40052108838` and Docs Hygiene CI run `40052108797`; the three review threads were replied to and resolved with those results. Local Supabase/psql not run due environment limitations. Any later commit requires fresh exact-head verification.
 ```
 
 ### Final Status
