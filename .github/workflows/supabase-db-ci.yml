@@ -331,6 +331,49 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql
 
+      - name: Run #569 M5B full Undo SQL/RLS/idempotency matrix
+        shell: bash
+        run: |
+          # Fixture grants are transaction-local and rolled back; the staged
+          # Undo RPC must remain EXECUTE-revoked after this test.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_m5b_full_undo.test.sql
+
+      - name: Run #569 M5B two-session exact Undo race
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
+            echo 'M5B Undo race grant must not run outside disposable CI database.' >&2
+            exit 1
+          fi
+          undo_signature='public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)'
+          create_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          cleanup_m5b_grants() {
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $undo_signature from public,anon,authenticated,service_role"
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $create_signature from public,anon,authenticated,service_role"
+          }
+          trap cleanup_m5b_grants EXIT
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $create_signature to authenticated"
+          bash supabase/tests/database/tnyx_569_m5b_undo_concurrency.sh
+          cleanup_m5b_grants
+          trap - EXIT
+          dormant="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+            select has_function_privilege('authenticated','$undo_signature','EXECUTE')
+              or has_function_privilege('anon','$undo_signature','EXECUTE')
+              or has_function_privilege('service_role','$undo_signature','EXECUTE')
+              or has_function_privilege('authenticated','$create_signature','EXECUTE')
+              or has_function_privilege('anon','$create_signature','EXECUTE')
+              or has_function_privilege('service_role','$create_signature','EXECUTE')
+          " | tr -d '[:space:]')"
+          if [[ "$dormant" != "f" ]]; then
+            echo 'M5B Create+Move and Undo RPCs must remain dormant after race fixture.' >&2
+            exit 1
+          fi
+
       - name: Run #569 two-session races with CI-only temporary Move EXECUTE
         shell: bash
         run: |

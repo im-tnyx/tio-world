@@ -55,7 +55,7 @@ select pg_temp.assert_true(
   'staged function dormant, direct Routine reparent denied, Program INSERT restricted to id/user_id/name, is_default frozen');
 
 select pg_temp.assert_true(
-  (select count(*) = 6
+  (select count(*) = 9
     from information_schema.columns
     where table_schema='public' and table_name='user_workout_programs')
   and exists (
@@ -64,7 +64,7 @@ select pg_temp.assert_true(
     where table_schema='public' and table_name='user_workout_programs'
       and column_name='is_default' and data_type='boolean'
   ),
-  'Program schema contains approved six columns including is_default');
+  'Program schema contains six baseline plus three M5B provenance columns');
 
 -- CI-only transactional grants. No production client capability is published.
 grant execute on function public.create_user_workout_program_and_move_routine(
