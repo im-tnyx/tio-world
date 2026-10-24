@@ -491,6 +491,15 @@ List<RouteBase> _shellBranchChildRoutes(
                   );
                 }
               },
+                onCreateMoveUndoWriteAttempted: () {
+                  if (sameAuthenticatedOwner()) {
+                    moveRefresh.request(
+                      ownerId: owner,
+                      loginCycleId: cycle,
+                      programsMayHaveChanged: true,
+                    );
+                  }
+                },
             );
             // An attempted write (including UNKNOWN or a late rejection)
             // invalidates live owner-scoped readers. The flow's boolean is
