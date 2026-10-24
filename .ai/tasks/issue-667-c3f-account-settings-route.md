@@ -19,17 +19,17 @@
 **Ownership transition:** Not applicable (new, isolated slice)
 **Repository state last verified:** 2026-10-24 remote protected GitHub `main@92e9af122cf71b599ea066d33eee2cdfc5f403f0`
 **Branch:** `tnyx/issue-667-c3f-account-settings-routes`
-**HEAD SHA:** Initial branch equals base (will update at PR checkpoint)
+**HEAD SHA:** Source commit `d41da17c3647fad73c0ba62cc22775a07732c9a4`; branch will advance for handoff. Use live GitHub ref for final gate.
 **Observed working-tree state:** GitHub API-only execution. Local `G:\projects\Tio-World` checkout and `git status -sb` unavailable, NOT verified or modified.
 **Observed uncommitted/dirty files:** Unknown in user Windows checkout; isolated GitHub branch contains only committed changes.
 **PR / tracker:** https://github.com/im-tnyx/tio-world/issues/667 ; parents #357/#260 ; Linear TNYX-201
-**Current implementation state:** Audit and task brief; code not yet changed.
+**Current implementation state:** Source extraction committed; root router 612 → 398 lines, new account route module 239 lines. No runtime/test validation claimed.
 **Relevant execution surface:** GitHub connected owner account `im-tnyx`; Flutter tests/CI GitHub after PR.
 **Validation completed at SHA:** Source and existing route tests inspected at main; no Flutter test commands executed yet.
 **Validation remaining:** exact-diff/ancestry, Flutter analyze/test CI, review threads, current branch/rulesets, reviewer provenance.
 **Current blocker:** None for source work. Linear agent field notes tool responded `get_agent_context not found`; live TNYX-201 itself was read. Local git/Flutter not available through GitHub connector.
 **Open review finding IDs:** None yet.
-**Next exact action:** Mechanical extraction with callback-order preservation, focused test selection, create Draft PR and inspect exact-head CI.
+**Next exact action:** Open Draft PR; inspect exact-head GitHub Flutter CI/review/security evidence, fix only verified findings; stop before merge.
 
 ## 1. Discovery
 ### User Outcome
@@ -76,8 +76,8 @@ Moving Account Settings controller/verification/delete workflow into an unrelate
 Preserve username availability failure and conflict messages, unavailable repository errors, canceled OTP/mounted guards, delete use-case failure, best-effort local sign-out semantics and existing unchanged Settings UI/accessibility.
 
 ## 5. Implementation Plan
-- [ ] Extract the exact route and helper code and keep the same route-list position.
-- [ ] Verify no second `GoRouter`, changed Auth/OTP/save/delete ordering, or unexpected imports.
+- [x] Extracted Account Settings route/helpers to app-owned route module in source commit `d41da17c` and kept original order.
+- [x] GitHub source audit checked a single root `GoRouter`, one direct root Splash `GoRoute`, one new Account Settings `GoRoute`, unchanged OTP request/verify, save and post-delete callback sequence. Flutter compile/runtime checks pending.
 - [ ] Existing focused tests remain green; add narrow regression only if a real coverage gap emerges.
 - [ ] Run hosted Flutter analysis/test CI and exact-parent code/review gates before Ready for Review.
 
@@ -94,7 +94,7 @@ Not run yet. GitHub-connected source audit is not equivalent to local Flutter va
 **Limitations and unmet required gates:** Local Windows checkout, device screenshots, Flutter SDK commands not available through this session. Use hosted CI for applicable checks; record any gaps accurately.
 
 ## 7. Final Handoff
-**Changed Files:** Not yet
-**Actual Behavior:** Not yet tested
+**Changed Files:** `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/routes/account_settings_routes.dart`, this task brief.
+**Actual Behavior:** Source-equivalent refactor only. Behavioral parity still requires GitHub Flutter tests/review.
 **Known Limitations:** Connector-only checkout visibility.
 **Final Status:** REVIEW pending implementation/CI/review. No merge authorized.
