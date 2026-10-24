@@ -350,27 +350,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'M5B Undo race grant must not run outside disposable CI database.' >&2
-            exit 1
-          fi
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
           undo_signature='public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)'
           create_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
-          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select case when has_function_privilege('authenticated','$undo_signature','EXECUTE') then 't' else 'f' end
-              || '|' || case when has_function_privilege('authenticated','$create_signature','EXECUTE') then 't' else 'f' end
-          " | tr -d '[:space:]')"
-          IFS='|' read -r initial_undo initial_create <<< "$initial_acl"
+          initial_undo="$(tnyx_569_auth_acl "$undo_signature")"
+          initial_create="$(tnyx_569_auth_acl "$create_signature")"
           cleanup_m5b_grants() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $undo_signature from public,anon,authenticated,service_role"
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $create_signature from public,anon,authenticated,service_role"
-            if [[ "$initial_undo" == t ]]; then
-              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
-            fi
-            if [[ "$initial_create" == t ]]; then
-              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $create_signature to authenticated"
-            fi
+            local failed=0
+            tnyx_569_restore_acl "$undo_signature" "$initial_undo" || failed=1
+            tnyx_569_restore_acl "$create_signature" "$initial_create" || failed=1
+            return "$failed"
           }
           trap cleanup_m5b_grants EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
@@ -378,35 +368,18 @@ jobs:
           bash supabase/tests/database/tnyx_569_m5b_undo_concurrency.sh
           cleanup_m5b_grants
           trap - EXIT
-          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select case when has_function_privilege('authenticated','$undo_signature','EXECUTE') then 't' else 'f' end
-              || '|' || case when has_function_privilege('authenticated','$create_signature','EXECUTE') then 't' else 'f' end
-          " | tr -d '[:space:]')"
-          if [[ "$restored_acl" != "$initial_acl" ]]; then
-            echo 'M5B race fixture failed to restore migrated authenticated ACL.' >&2
-            exit 1
-          fi
 
       - name: Run #569 two-session races with CI-only temporary Move EXECUTE
         shell: bash
         run: |
           set -euo pipefail
-          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Move test grant must not be issued outside disposable CI database.' >&2
-            exit 1
-          fi
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
+          sql_signature='public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)'
           sql_grant='grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) to authenticated'
-          sql_revoke='revoke all on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) from public,anon,authenticated,service_role'
-          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
-          " | tr -d '[:space:]')"
+          initial_acl="$(tnyx_569_auth_acl "$sql_signature")"
           cleanup_move_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_revoke"
-            if [[ "$initial_acl" == t ]]; then
-              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
-            fi
+            tnyx_569_restore_acl "$sql_signature" "$initial_acl"
           }
           trap cleanup_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
@@ -414,33 +387,17 @@ jobs:
           bash supabase/tests/database/tnyx_569_routine_move_cross_races.sh
           cleanup_move_grant
           trap - EXIT
-          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')" |
-            tr -d '[:space:]')"
-          if [[ "$restored_acl" != "$initial_acl" ]]; then
-            echo 'M1 race fixture failed to restore migrated authenticated ACL.' >&2
-            exit 1
-          fi
 
       - name: Run #569 atomic new-Program Move two-session no-orphan race
         shell: bash
         run: |
           set -euo pipefail
-          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Atomic Move grant must not run outside disposable CI database.' >&2
-            exit 1
-          fi
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
           sql_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
-          initial_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-          " | tr -d '[:space:]')"
+          initial_acl="$(tnyx_569_auth_acl "$sql_signature")"
           cleanup_atomic_move_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
-            if [[ "$initial_acl" == t ]]; then
-              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
-            fi
+            tnyx_569_restore_acl "$sql_signature" "$initial_acl"
           }
           trap cleanup_atomic_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
@@ -450,15 +407,12 @@ jobs:
           bash supabase/tests/database/tnyx_569_atomic_create_move_vs_delete_concurrency.sh
           cleanup_atomic_move_grant
           trap - EXIT
-          restored_acl="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-          " | tr -d '[:space:]')"
-          if [[ "$restored_acl" != "$initial_acl" ]]; then
-            echo 'Atomic Create+Move race fixture failed to restore migrated authenticated ACL.' >&2
-            exit 1
-          fi
 
-      - name: Reassert #569 migrated three-RPC access after races
+      - name: 'Regress #569 denied/granted ACL and failed-fixture cleanup'
+        shell: bash
+        run: bash supabase/tests/database/tnyx_569_move_acl_restore_regression.sh
+
+      - name: 'Reassert #569 migrated three-RPC access after races'
         shell: bash
         run: |
           psql "$DATABASE_URL" \
