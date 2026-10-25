@@ -1,9 +1,15 @@
 # #567 D1 — Atomic owner-safe Delete Program backend (source only)
 
-**Status:** In review — [PR #678](https://github.com/im-tnyx/tio-world/pull/678); source-only, NOT deployed / NOT merged
+**Status:** Validated source slice — [PR #678](https://github.com/im-tnyx/tio-world/pull/678) merged; source-only, NOT hosted-deployed / NOT activated
 **Primary owner:** Connected agent, backend/Supabase scoped implementation owner
 **Affected platforms:** Supabase migration and disposable database CI only
 **Tracking:** [GitHub #567](https://github.com/im-tnyx/tio-world/issues/567), [Linear TNYX-81](https://linear.app/tnyx/issue/TNYX-81), TNYX-267
+
+## Post-merge reconciliation (2026-10-25)
+
+- PR #678 merged at `main@37f738c4a6788e3e997f1ab3938a2f6541f3644c`; the older branch, pre-merge review state, and source-head references below are historical evidence, not current repository state.
+- Current `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582` contains the merged D1 source. The hosted Supabase migration has not been applied and client `EXECUTE` remains denied; no UI or production caller is activated.
+- The bounded Flutter follow-up is tracked in [D2A](issue-567-d2a-flutter-program-delete-repository.md). D2A is source-only and does not change this D1 migration, grants, hosted state, or #567 status.
 
 ## Owner approval and boundary
 
