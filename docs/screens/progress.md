@@ -1,52 +1,123 @@
 # Progress Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-10-25 (D0 documentation/read-only contract audit; not a UI release)
 Owner: `apps/features/progress`
-Truth Boundary: Authoritative for the Progress screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
+Truth Boundary: Authoritative for Progress screen product contract and intended ownership; runtime source wins for actual behavior, and Linear/GitHub own delivery status.
 
-**Surface:** Phone primary tab in every App Mode
+**Surface:** Phone primary tab in Workout, Nutrition, and Hybrid App Modes
 **Current route:** `/progress`
-**Primary owner:** `apps/features/progress`
-**Status:** Current route is a shared placeholder. The sections below are the target contract.
+**Primary owner:** `apps/features/progress`; `apps/app` owns shell/routing composition
+**Current runtime status:** Shared placeholder, not an implemented Weight dashboard or media flow.
 
 ## Purpose
 
-Show the user meaningful change over time without owning the source workout, nutrition, profile, or recovery calculations.
+Show meaningful, honest change over time without taking ownership of workout, nutrition, profile, Body Goal, or recovery truth. Progress reads the appropriate owning domains and must not fabricate missing or stale indicators.
 
-## Target Content
+## Progress information architecture (target, not current UI)
 
-- Goal progress and a concise period summary.
-- Weight and body-measurement trends when the user has recorded them.
-- Progress photos with explicit privacy-aware controls when that slice is approved.
-- Workout consistency, nutrition adherence, streaks, and achievements as summaries from their owning domains.
-- Date-range selection and a clear no-history state.
+The owner-directed structure is:
 
-Recovery information may appear as a labelled summary only after Recovery has an approved contract. It must link to the Recovery flow and must not be inferred from unsupported data.
+```text
+Progress
+├─ Weight             // first implementation lane
+├─ Body               // not activated by Weight Slice A
+├─ Health             // not activated by Weight Slice A
+└─ Photos             // separate Slice B
+```
 
-## Key Actions And Navigation
+Do not treat this structure as authorization to render inactive tabs, route into placeholder details, or redesign the existing shell. The supplied Weight references establish **content order and interactions**, not unverified pixel dimensions, fonts, colors, spacing, or a reusable component redesign. Preserve current Tio theme, navigation and component ownership. Product-visible changes require the relevant approved implementation slice.
 
-- Add or edit a Progress-owned measurement or photo through Progress flows.
-- Drill into a trend or streak through Progress-owned details.
-- Launch Workout or Nutrition only through public navigation contracts; do not embed their private UI.
-- The guided Progress tab remains visible for all three App Modes. A future custom layout may remove direct placement only if Progress remains reachable through Home, You, or an all-features entry.
+Future non-Weight Progress content can include workout consistency, nutrition adherence, achievements, and recovery summaries only once the source feature provides approved, dated, user-owned read contracts. A Recovery indicator must be identified as a summary, not inferred from unsupported data.
 
-## Data And State Boundaries
+## Weight Slice A: proposed phone flow
 
-- Progress consumes approved summaries, not feature presentation state or raw backend table shapes.
-- When Progress photos are approved, image files belong in the private Supabase `progress` bucket through Progress; measurements, trends, and achievements remain structured feature data.
-- Empty history explains which first action creates data and points to the correct feature.
-- Charts require accessible values, date labels, comparison text, and a non-visual alternative.
-- Data loading, error, no-permission, image-upload failure, and offline/stale states must be explicit once those capabilities are introduced.
+```text
+Progress → Weight
+  Weight summary
+    Current Weight
+    selected-range weight change (when comparable)
+    active Body Goal target reference (when present)
+  Selected-range weight trend/chart
+  History                       // below the chart, newest first
+    exact measurement entries
+    edit/delete the selected record
+  [ Log Weight ]
+    bottom sheet: weight + measured date/time
+```
 
-## Acceptance Criteria
+Weight is the first real post-onboarding Progress vertical slice, not a second weight source. A photo field or upload action must not be presented as working in Slice A; optional linked photos arrive with separately approved Slice B.
 
-- Each indicator identifies its source and date range.
-- No metric is shown as current when it is stale, unavailable, or derived from missing data.
-- Photos and health-related measurements remain protected by the repository privacy rules.
+### Summary and chart
+
+- `Current Weight` is derived from the latest **eligible** canonical `body_weight_logs` entry across the user's history, not the selected chart range or a Profile copy. Future-dated measurements must not silently masquerade as current. The precise future-date entry/eligibility policy must be validated in A1/A3 before it is shipped.
+- The selected range governs trend points and change. Calculate a range change only from real comparable measurements (the earliest and latest eligible actual points in the interval). Fewer than two comparable records means "not enough history", not a fabricated zero trend or percent.
+- Plot actual measurements at their real `measured_at` instants. Do not interpolate, average same-day values, fabricate smoothing or invent data on missing days. The chart must support readable dates, units, accessible point values and a nonvisual history/summary alternative.
+- An active `user_body_goals` target may be shown as a labelled reference. Any progress-to-goal percentage/ring requires a separately validated calculation and a usable starting-weight snapshot; do not hardcode illustrative percentages from references.
+- Range-selector choices, chart styling and exact component geometry are not frozen by this documentation audit. Confirm visible details under the approved A2 UI scope, using existing `tio_core` components and theme.
+
+### History (below the chart)
+
+- Show every owner-accessible measurement with its real date/time and globally selected weight display unit, newest-first. Multiple entries on the same date are valid and must remain individually addressable.
+- Stable read ordering uses `measured_at DESC` plus a unique identity tie-breaker such as `id DESC`; pagination and tie behavior are A1 repository responsibilities.
+- An entry action targets the exact `body_weight_logs.id`, never "that day", a position in a filtered list, or "the latest weight". Editing preserves the row identity; deleting requires explicit intent, removes only that measurement, and refreshes chart, summary and History.
+- No history: explain the first Log Weight action. A missing goal is not an error, and a missing measurement must not become an invented current value.
+
+### Log Weight bottom sheet
+
+- Enter a positive weight in the current global `WeightUnit` (`kg`/`lb`), with a user-selectable measurement date and time. Existing `TioWeightWheel`, `UnitConverters` and `UnitFormatters` are reusable implementation candidates; feature flows must consume public core contracts rather than replicate controls.
+- Convert input to canonical kilograms before persistence. The preference affects input/display only and does not alter stored `weight_kg` or existing historical values.
+- The selected local date/time resolves to one absolute `measured_at` instant; preserve precise instants and multiple logs per local day. Timezone/local-date provenance for travel and historical grouping is an **A1/A3 audit decision**, not permission to add columns in D0.
+- Saving a new manual entry creates a new log identity. A retry/double-tap must not create unintended duplicates; A3 must specify and test in-flight/idempotency behavior before shipping.
+- The existing source values `onboarding_setup`, `profile_settings` and `body_weight_settings` are live compatibility inputs. TNYX-119 proposes semantic `manual` provenance for new manually recorded entries. A1/A3 must reconcile this with existing consumers without overwriting legacy rows or confusing capture screen with measurement source.
+- New entry success refreshes owner-backed Weight state; errors preserve user input and allow controlled retry without optimistic fake history.
+
+### Edit / delete and error states
+
+- Edit the selected record's positive weight and intended measurement instant, preserving `id` and ownership checks. Do not alter active Body Goal snapshots or rewrite unrelated logs as a side effect.
+- Delete requires a clear confirmation tied to the exact record, then re-derive Current Weight and range indicators. No destructive cascade to media or other domains may be assumed.
+- Loading, save-in-progress, validation errors, offline/network failures, permission/auth failures, stale results after session/account changes, and empty history need distinct, honest presentation. Avoid showing another user's cached health data after account switch.
+
+## Canonical data, runtime evidence and privacy
+
+- `public.body_weight_logs` is the single owner of actual current/historical weight. Existing live columns (2026-10-25 read-only): `id`, `user_id`, `weight_kg`, `measured_at`, `source`, `metadata`, `created_at` and `updated_at`.
+- `public.user_body_goals` owns Body Goal lifecycle, starting-weight snapshot, target and pace. Settings and Profile read/write through approved owner contracts; Progress does not add a second `current_weight` column or own Body Goal lifecycle.
+- Existing live `body_weight_logs` owner-scoped authenticated SELECT/INSERT/UPDATE/DELETE RLS is enabled. A1 must retain record/user authorization, validate schema assumptions, and add focused repository tests; D0 does not prove a new feature works end-to-end.
+- Current Flutter `BodyRepository` supports `getBodyState()` and `recordCurrentWeight()` but not a history/list-by-id/edit/delete API. New contracts belong to Progress/Body domain/repository and are built in A1, not screens or `apps/app` routing glue.
+- Weight data and timestamps are health-context information: no raw values or images in analytics, error logs, crash data or AI-provider calls without an independently approved purpose. Follow [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md) for export/deletion, access and retention decisions.
+
+## Progress Photos: separately gated future Slice B
+
+WeightLog and ProgressPhoto are different identities. A photo may later be standalone or linked to one Weight Log, and one stored photo can appear in Weight and Photos contexts without duplicate upload. A future Workout association must be explicit, not automatic.
+
+**Live Storage reality (read-only audit 2026-10-25):** only the existing public `avatars` bucket is present. It is not suitable for private Progress images. The parent [TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence) currently proposes a private owner-scoped `user-media` bucket as a **candidate** for Slice B, not a bucket that exists or a permanently frozen name. The earlier `progress`/`progress-media` bucket assumptions are superseded planning language, not current Storage truth.
+
+Before Slice B, separately approve and audit exact schema/bucket/path/MIME/limits, authenticated object access, account deletion/export, optional attachment failure/retry, orphan cleanup and last-reference-safe unlink/delete behavior. A narrow physical-media registry (Slice C) is conditional on proven need, not part of Weight Slice A or D0.
+
+## Execution and approval boundaries
+
+- **D0 (GitHub #686):** docs-only contract reconciliation and compact execution handoff. No Flutter, RLS, Storage or migration changes.
+- **A1:** owner-backed Weight history/list/pagination and exact-ID edit/delete repository contracts with focused access/ordering tests. Reconcile measurement source and timezone-policy questions.
+- **A2:** approved Progress Weight summary, actual-data chart and History using existing theme/navigation; keep unsupported Body/Health/Photos surfaces inactive.
+- **A3:** approved Log Weight bottom sheet, date/time + `kg`/`lb` handling, manual persistence, duplicate-submit and error-state tests.
+- **A4:** exact-record Edit/Delete interactions and device/accessibility/regression QA.
+- **Slice B/C:** separately approved private Progress Photos and conditional physical-media identity, following new Storage/privacy audits.
+
+Each independently scoped product-visible implementation slice still follows [Owner Approval](../../.ai/FEATURE_DEVELOPMENT.md#owner-approval-gate); documentation does not authorize new UI or database shape. This D0 contract does not claim the Weight UI is implemented.
+
+## Acceptance for Weight Slice A (future implementation)
+
+- Actual, owner-scoped Weight data and valid current/goal/range provenance; no fabricated values or duplicated weight owner.
+- Individual same-day logs, stable History ordering, exact-ID update/delete, canonical `kg` storage and global-unit display.
+- User-directed measurement date/time, safe retries, session/permission isolation, explicit no-data/loading/error states.
+- Chart and History accessibility with range/source labelling; visual acceptance against approved Tio-owned references.
+- Zero private-photo schema/Storage or future Workout/Nutrition media platform bundled into Weight Slice A.
 
 ## Related
 
+- [GitHub #686 D0 docs/contract freeze](https://github.com/im-tnyx/tio-world/issues/686)
+- [Linear TNYX-119 Progress Weight/Photos parent](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence)
+- [Data & Privacy Governance](../security/DATA_PRIVACY_GOVERNANCE.md)
 - [Screen catalog](README.md)
 - [Workout](workout.md)
 - [Nutrition](nutrition.md)
