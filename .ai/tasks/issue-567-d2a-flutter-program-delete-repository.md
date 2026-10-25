@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `9b27613de0609308c261fa064858979f6018ea96`
-**Observed working-tree state:** Task handoff update pending; fsmonitor IPC warning only
-**Observed uncommitted/dirty files:** This task handoff file only
+**HEAD SHA:** `6a121e3ede4c5069ceca8c612b629576edf2be54`
+**Observed working-tree state:** Clean after 40003 fix and final CI verification; fsmonitor IPC warning only
+**Observed uncommitted/dirty files:** None before this handoff synchronization
 **PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
 **Current implementation state:** Dormant typed repository; the two requested PR #681 P2 fixes, same-gate follow-ups, and independent `40003` UNKNOWN fix are implemented in `9b27613de0609308c261fa064858979f6018ea96`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
 **Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 19-test suite, changed-area `test/data` suite (406 tests), and `git diff --check` passed for the `40003` fix at `9b27613de0609308c261fa064858979f6018ea96`
-**Validation remaining:** Final-head GitHub CI after this fix push and independent re-review remain pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
+**Validation remaining:** Independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
 **Open review finding IDs:** `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755` — fixes pushed; keep all related threads open pending independent re-review
-**Next exact action:** Push this `40003` fix and handoff, inspect final-head GitHub CI, reply to independent `im-tio` with evidence, request re-review, and do not merge or activate production capability.
+**Next exact action:** Await independent re-review; keep all related threads open and do not merge or activate production capability.
 
 ## 1. Discovery
 
@@ -119,9 +119,9 @@ Changed-area Flutter tests `test/data` — PASS, `All tests passed!` (406 tests 
 
 `git diff --check` — PASS before commit.
 
-Parent-to-head audit — pending this fix push; `origin/main` remains an ancestor and only the existing D2A branch is in scope.
+Parent-to-head audit — PASS at final verified PR HEAD `6a121e3ede4c5069ceca8c612b629576edf2be54`; `origin/main` remains an ancestor and only the existing D2A branch is in scope.
 
-Previous exact-head workflow `40172754583` at PR HEAD `b7906cff90a66e71604a87de67b933bd13e59d07` — PASS before this fix. Final fix-head CI remains to be inspected after push.
+Exact-head workflow `40173512028` at PR HEAD `6a121e3ede4c5069ceca8c612b629576edf2be54` — PASS for Analyze Flutter and Dart / test Dart, Analyze and test, app-workout, core-wear, and nutrition-onboarding. Attribution and documentation hygiene — PASS. Cursor review/security checks — skipped by GitHub/Cursor automation.
 ```
 
 ### Review Provenance
@@ -129,8 +129,8 @@ Previous exact-head workflow `40172754583` at PR HEAD `b7906cff90a66e71604a87de6
 **Review source / link:** [PR #681](https://github.com/im-tnyx/tio-world/pull/681), Codex findings `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755`
 **Reviewer / relation to implementer:** Independent reviewer `im-tio` requested changes on `b7906cff`; fix pushed in `9b27613de0609308c261fa064858979f6018ea96`
 **Diff or commit SHA actually reviewed:** Independent finding reviewed `b7906cff90a66e71604a87de67b933bd13e59d07`; latest fix commit is `9b27613de0609308c261fa064858979f6018ea96`
-**Independent review?:** Changes requested on prior HEAD; re-review pending; all related inline threads intentionally remain open
-**Limitations and unmet required gates:** Final fix-head GitHub CI and independent re-review are pending; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
+**Independent review?:** Changes requested on prior HEAD; fix evidence posted; re-review pending; all related inline threads intentionally remain open
+**Limitations and unmet required gates:** Exact-head GitHub CI is PASS. Independent re-review is pending and `reviewDecision` remains `CHANGES_REQUESTED` until a new review is submitted; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
 
 ## 7. Final Handoff
 
@@ -155,4 +155,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW` — source-only PR #681 remains open with independent `CHANGES_REQUESTED` addressed in source; all related P2 threads are open pending re-review and final merge-gate verification. No merge or production activation.
+`REVIEW` — source-only PR #681 remains open with independent `CHANGES_REQUESTED` addressed in source; all related P2 threads are open pending re-review. No merge or production activation.
