@@ -213,6 +213,8 @@ After a PR merge, follow `.github/POST_MERGE_SYNC.md` before starting the next b
 
 Use the smallest meaningful validation for the changed area.
 
+For changes to persisted data/identity, repository/DTO, Auth/RLS/RPC, protected integration, or phone↔watch sync contracts, apply the [future protected-API compatibility review](docs/development/TESTING_GUIDE.md#change-time-future-protected-api-compatibility-review-affected-contracts-only) and record its evidence. Unrelated UI/docs/mechanical changes are `N/A`.
+
 For Flutter mobile/package changes, prefer:
 
 ```bash
