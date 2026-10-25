@@ -17,7 +17,7 @@
 - **Review owner:** Separate reviewer to be requested on PR; formal review not claimed in this brief.
 - **Implementation ownership:** Active until review-gate handoff.
 - **Starting remote branch/base:** `docs/issue-596-c1g-root-agent-compatibility-pointer` from protected `main@bba5d59ded79e430ab59b238050224569e1f1c02`.
-- **Owner Windows checkout:** `G:\projects\Tio-World` is not accessible here. Working-tree cleanliness and local git commands are **NOT VERIFIED**.
+- **Owner local Windows checkout:** Not accessible through this connector. Working-tree cleanliness and local git commands are **NOT VERIFIED**.
 - **Primary tracker:** [#596](https://github.com/im-tnyx/tio-world/issues/596) is OPEN; C1F source merged [#679](https://github.com/im-tnyx/tio-world/pull/679), archive [#680](https://github.com/im-tnyx/tio-world/pull/680). D1 measurement remains independently active.
 - **Linear reconciliation:** Search found no dedicated #596 mirror. [TNYX-193](https://linear.app/tnyx/issue/TNYX-193) belongs to documentation-governance #250, [TNYX-50](https://linear.app/tnyx/issue/TNYX-50) is the completed API lifecycle policy. Advertised `get_agent_context` failed: `Tool get_agent_context not found`. No Linear mutation.
 - **Supabase:** Linked project `oykupyiitspujzpwwvuj` status `ACTIVE_HEALTHY` was read via connector; no SQL, migration, Auth or hosted QA was run.
