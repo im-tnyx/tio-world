@@ -20,11 +20,11 @@
 **Implementation ownership state:** P2 lifecycle remediation complete locally; source owner remains Codex through push/review handoff
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean branch from `origin/main@9e994b29b13e242ebcd6399cc32fecfd5ebe98ac`
 **Branch:** `tnyx/567-d2b-flutter-program-delete-controller-refresh`
-**HEAD SHA:** `94b9650d7e7b7ff53f25fb01f8c822e45e182afd`; branch is pushed and PR #688 is open for review
-**Observed working-tree state:** Clean before the current P2 remediation
+**HEAD SHA:** `9ffdf8681f1ea7916adf6805988aa8dd5544a4fd` (`fix(flutter): preserve Program Delete refresh after disposal`); branch is pushed and PR #688 is open for review
+**Observed working-tree state:** Clean after the P2 lifecycle source/test/handoff commit; a metadata-only CI/re-review evidence update follows this snapshot
 **PR / tracker:** GitHub #567 OPEN; D1 #678 merged; D2A #681 merged; D2B PR #688 OPEN; Linear TNYX-81 and TNYX-267 remain Backlog/dependency trackers
 **Current implementation state:** D2A repository is merged and dormant. D2B controller, focused tests, feature export and dormant owner/session provider composition are implemented; Codex P2 findings for dispatch-time arbitration, recoverable in-flight conflict and Program-scoped lifecycle remain intact; no production surface injects the controller. Independent `im-tio` P2 `PRRT_kwDOTOXwB86wBReu` found that the auto-disposed Program-scoped provider's post-RPC refresh closure reads its own disposed `Ref`, so confirmed/UNKNOWN write-attempt invalidation can be dropped after the last UI listener unmounts. The P2 remediation replaces that captured provider `Ref` access with an ordinary app-scoped live-session delivery adapter over the existing `RoutineMoveRefreshSignal`; it creates no new signal, event bus or write capability.
-**Next exact action:** Commit/push the P2 remediation, verify GitHub CI at that exact head, reply to the review thread with the proof and request independent `im-tio` re-review. Do not merge without explicit owner authorization.
+**Next exact action:** Verify the metadata handoff commit's exact-head CI and await independent `im-tio` re-review. Do not merge without explicit owner authorization.
 
 ## 1. Discovery and Codebase Evidence
 
@@ -68,17 +68,18 @@ Rejected alternative: extending `ProgramRepository` or making `ProgramsControlle
 - P2 lifecycle focused regression: PASS, `apps/app/test/app/program_delete_controller_provider_lifecycle_test.dart`, `4` tests covering unmount-before-ACK, unmount-before-UNKNOWN, account switch, old-cycle suppression and no duplicate RPC.
 - P2 static analysis: PASS, `apps/app` and `apps/features/workout` both reported `No issues found!`.
 - P2 changed-area regression: PASS, app lifecycle plus `workout_exercises_route_test.dart`, `91` tests; Workout Program Delete/Programs/Routines/Program Detail/Library/refresh-signal suite, `123` tests. The pre-existing `uses-material-design` package warning remained non-failing.
-- P2 final exact-head GitHub CI and independent `im-tio` re-review: pending until this local remediation is committed and pushed.
+- P2 exact-head GitHub CI at `9ffdf868`: PASS — Docs Hygiene run `40203344380` and Flutter CI run `40203344373` both succeeded; Flutter's nutrition-onboarding, core-wear, app-workout, analysis/Dart, and aggregate jobs all passed.
+- P2 review evidence: replied to `PRRT_kwDOTOXwB86wBReu` at `9ffdf868` and requested independent `im-tio` re-review. The thread remains unresolved by this author; the prior `im-tio` `CHANGES_REQUESTED` is not superseded yet.
 - Existing `uses-material-design` package warning appeared during Flutter tests; it predates this slice and did not fail the suite.
 - Hosted migration, EXECUTE grant, Supabase write QA, Docker-backed local DB tests and device QA: not run; explicitly out of scope.
 
 ## 5. Review and Final Handoff
 
-Source commit: `10806e55`; handoff commit: `3cd18faa`; P2-remediation commit: `4395fa7e`; review-evidence commit: `24322d53`; prior source-scope head: `e0ea8ff6`; current pre-remediation head: `94b9650d`; P2 lifecycle commit/CI/re-review evidence is pending the current push; PR: `https://github.com/im-tnyx/tio-world/pull/688`.
+Source commit: `10806e55`; handoff commit: `3cd18faa`; P2-remediation commit: `4395fa7e`; review-evidence commit: `24322d53`; prior source-scope head: `e0ea8ff6`; P2 lifecycle commit: `9ffdf868`; its exact-head CI passed and `im-tio` re-review is requested/pending; PR: `https://github.com/im-tnyx/tio-world/pull/688`.
 
 Changed source paths are limited to `apps/app/lib/app/composition/workout_providers.dart`, `apps/features/workout/lib/src/presentation/library/programs/program_delete_controller.dart`, `apps/features/workout/lib/src/presentation/library/programs/programs.dart`, and `apps/features/workout/test/presentation/program_delete_controller_test.dart`. The controller requires a complete versioned owner snapshot, stable non-default `ProgramId`, live owner/login-cycle match, pending-operation clearance, explicit confirmation and a caller-supplied mutation UUID. D2A owns RPC classification and sticky UNKNOWN; D2B never infers success from a missing source and only emits owner/cycle-scoped refresh invalidation.
 
-Production Delete Program remains dormant: no Program UI, confirmation action, shell caller, public flag, hosted migration, client `EXECUTE`, direct table DELETE or #569/#675 change. The local P2 fix is independently re-reviewable; current exact-head GitHub CI, `im-tio` approval and explicit merge authorization remain pending.
+Production Delete Program remains dormant: no Program UI, confirmation action, shell caller, public flag, hosted migration, client `EXECUTE`, direct table DELETE or #569/#675 change. The P2 source/test commit passed exact-head CI and is independently re-reviewable; `im-tio` approval and explicit merge authorization remain pending.
 
 ## 6. Handoff Risks
 
@@ -88,4 +89,4 @@ Production Delete Program remains dormant: no Program UI, confirmation action, s
 
 ## 7. Final Handoff
 
-Implementation and local P2 lifecycle validation are complete for this slice; push, exact-head CI, independent review and owner merge gate are pending. #569 hosted R5 QA and #675 human security review remain separate and untouched.
+Implementation, local lifecycle validation and exact-head CI are complete for the P2 source/test commit; independent review and owner merge gate are pending. #569 hosted R5 QA and #675 human security review remain separate and untouched.
