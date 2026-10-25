@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
+import 'package:tio_shared/shared.dart';
 
 import 'auth_providers.dart';
 
@@ -44,8 +45,10 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
   final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null : sessionAsync.valueOrNull;
-  if (client == null || auth is! AuthSessionAuthenticated ||
+      ? null
+      : sessionAsync.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id) {
     return null;
   }
@@ -55,8 +58,8 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
     currentLoginCycleId: () {
       try {
         final current = ref.read(authSessionStateProvider);
-        final auth = current.isLoading || current.hasError
-            ? null : current.valueOrNull;
+        final auth =
+            current.isLoading || current.hasError ? null : current.valueOrNull;
         if (auth is AuthSessionAuthenticated &&
             auth.session.userId == client.auth.currentUser?.id) {
           return auth.session.loginCycleId;
@@ -85,8 +88,7 @@ final routineCompositionRepositoryProvider =
 ///
 /// Null means durable user Exercise persistence is unavailable. There is no
 /// in-memory production success fallback for user-created Exercises.
-final userExerciseRepositoryProvider =
-    Provider<UserExerciseRepository?>((ref) {
+final userExerciseRepositoryProvider = Provider<UserExerciseRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient == null) return null;
   return SupabaseUserExerciseRepository(client: supabaseClient);
@@ -94,7 +96,8 @@ final userExerciseRepositoryProvider =
 
 /// Atomic nonempty Routine creation (#535/#536). A null production client is
 /// NOT permission to fall back to the legacy metadata-only CREATE route.
-final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref) {
+final routineCreateRepositoryProvider =
+    Provider<RoutineCreateRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
   return SupabaseRoutineCreateRepository(client: client);
@@ -116,12 +119,12 @@ bool firstRoutineQaOptInAllowed({
 }) =>
     debugMode && optedIn;
 
-final myProgramRoutineCreateQaEnabledProvider = Provider<bool>((ref) =>
-    firstRoutineQaOptInAllowed(
-      debugMode: kDebugMode,
-      optedIn: const bool.fromEnvironment('TIO_FIRST_ROUTINE_QA',
-          defaultValue: false),
-    ));
+final myProgramRoutineCreateQaEnabledProvider =
+    Provider<bool>((ref) => firstRoutineQaOptInAllowed(
+          debugMode: kDebugMode,
+          optedIn: const bool.fromEnvironment('TIO_FIRST_ROUTINE_QA',
+              defaultValue: false),
+        ));
 
 /// The staged atomic adapter is owner/login-cycle bound, with no local Program
 /// INSERT or metadata-only fallback. A captured prior-session adapter loses
@@ -130,9 +133,10 @@ final myProgramRoutineCreateRepositoryProvider =
     Provider<MyProgramRoutineCreateRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final session = ref.watch(authSessionStateProvider);
-  final auth = session.isLoading || session.hasError
-      ? null : session.valueOrNull;
-  if (client == null || auth is! AuthSessionAuthenticated ||
+  final auth =
+      session.isLoading || session.hasError ? null : session.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id ||
       (auth.session.loginCycleId?.trim().isEmpty ?? true)) {
     return null;
@@ -144,8 +148,8 @@ final myProgramRoutineCreateRepositoryProvider =
     currentUserId: () {
       try {
         final current = ref.read(authSessionStateProvider);
-        final state = current.isLoading || current.hasError
-            ? null : current.valueOrNull;
+        final state =
+            current.isLoading || current.hasError ? null : current.valueOrNull;
         if (state is AuthSessionAuthenticated &&
             state.session.userId == owner &&
             state.session.loginCycleId == cycle &&
@@ -190,12 +194,12 @@ bool moveRoutineQaOptInAllowed({
 }) =>
     debugMode && optedIn;
 
-final routineMoveQaEnabledProvider = Provider<bool>((ref) =>
-    moveRoutineQaOptInAllowed(
-      debugMode: kDebugMode,
-      optedIn: const bool.fromEnvironment('TIO_MOVE_ROUTINE_QA',
-          defaultValue: false),
-    ));
+final routineMoveQaEnabledProvider =
+    Provider<bool>((ref) => moveRoutineQaOptInAllowed(
+          debugMode: kDebugMode,
+          optedIn: const bool.fromEnvironment('TIO_MOVE_ROUTINE_QA',
+              defaultValue: false),
+        ));
 
 /// Opt-in visual QA of the existing Move selector on an Android/iOS DEBUG APK.
 /// Neither profile/release builds nor ordinary debug builds expose it.
@@ -226,8 +230,10 @@ final programDeleteRepositoryProvider =
   final client = ref.watch(supabaseClientProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
   final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null : sessionAsync.valueOrNull;
-  if (client == null || auth is! AuthSessionAuthenticated ||
+      ? null
+      : sessionAsync.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id ||
       (auth.session.loginCycleId?.trim().isEmpty ?? true)) {
     return null;
@@ -240,8 +246,8 @@ final programDeleteRepositoryProvider =
     currentLoginCycleId: () {
       try {
         final current = ref.read(authSessionStateProvider);
-        final currentAuth = current.isLoading || current.hasError
-            ? null : current.valueOrNull;
+        final currentAuth =
+            current.isLoading || current.hasError ? null : current.valueOrNull;
         if (currentAuth is AuthSessionAuthenticated &&
             currentAuth.session.userId == owner &&
             currentAuth.session.loginCycleId == cycle &&
@@ -257,11 +263,13 @@ final programDeleteRepositoryProvider =
 });
 
 /// Dormant D2B controller composition. No current Program surface injects this
-/// provider; a future confirmed action must opt in explicitly. Refresh is
-/// delegated to the existing owner/cycle-scoped signal so ProgramsController
-/// and ProgramRoutinesController remain the authoritative readers.
-final programDeleteControllerProvider =
-    Provider<ProgramDeleteController?>((ref) {
+/// provider; a future confirmed action must opt in explicitly. ProgramId
+/// scopes the controller lifecycle, while the process-scoped attempt gate
+/// preserves sticky per-Program UNKNOWN protection. Refresh is delegated to
+/// the existing owner/cycle-scoped signal so ProgramsController and
+/// ProgramRoutinesController remain the authoritative readers.
+final programDeleteControllerProvider = Provider.autoDispose
+    .family<ProgramDeleteController?, ProgramId>((ref, sourceProgramId) {
   final programs = ref.watch(programRepositoryProvider);
   final routineRepository = ref.watch(routineRepositoryProvider);
   final deleteRepository = ref.watch(programDeleteRepositoryProvider);
@@ -282,7 +290,8 @@ final programDeleteControllerProvider =
     refresh: (request) async {
       final sessionAsync = ref.read(authSessionStateProvider);
       final auth = sessionAsync.isLoading || sessionAsync.hasError
-          ? null : sessionAsync.valueOrNull;
+          ? null
+          : sessionAsync.valueOrNull;
       if (auth is AuthSessionAuthenticated &&
           auth.session.userId == request.ownerId &&
           auth.session.loginCycleId == request.loginCycleId) {
@@ -310,7 +319,8 @@ final routineMoveFlowProvider = Provider<RoutineMoveFlow>(
 
 /// Read-only cross-surface Program/Routine invalidation after a Move attempt.
 /// One owner/login-cycle event; never proof of a committed Move or a retry.
-final routineMoveRefreshSignalProvider = Provider<RoutineMoveRefreshSignal>((ref) {
+final routineMoveRefreshSignalProvider =
+    Provider<RoutineMoveRefreshSignal>((ref) {
   final signal = RoutineMoveRefreshSignal();
   ref.onDispose(signal.dispose);
   return signal;
@@ -323,8 +333,10 @@ final routineMoveRepositoryProvider =
   final client = ref.watch(supabaseClientProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
   final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null : sessionAsync.valueOrNull;
-  if (client == null || auth is! AuthSessionAuthenticated ||
+      ? null
+      : sessionAsync.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id) {
     return null;
   }
@@ -336,14 +348,13 @@ final routineMoveRepositoryProvider =
     attemptGate: ref.watch(routineMoveAttemptGateProvider),
     crossOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
     // Share only the owner-scoped pending bit, never a Create draft.
-    pendingCreateForProgram: (owner, programId) =>
-        ref.read(routinePendingCreateGateProvider)
-            .hasPendingForOwnerProgram(owner: owner, programId: programId),
+    pendingCreateForProgram: (owner, programId) => ref
+        .read(routinePendingCreateGateProvider)
+        .hasPendingForOwnerProgram(owner: owner, programId: programId),
     currentLoginCycleId: () {
       try {
         final live = ref.read(authSessionStateProvider);
-        final state = live.isLoading || live.hasError
-            ? null : live.valueOrNull;
+        final state = live.isLoading || live.hasError ? null : live.valueOrNull;
         if (state is AuthSessionAuthenticated &&
             state.session.userId == owner &&
             state.session.loginCycleId == cycle &&
@@ -378,12 +389,15 @@ final routineDeleteFlowProvider = Provider<RoutineDeleteFlow>(
 /// Owner-scoped destructive capability, never an in-memory fallback.
 /// Refreshing auth can rebuild this adapter, but the caller-owned attempt
 /// gate remains stable for the lifetime of the ProviderContainer.
-final routineDeleteRepositoryProvider = Provider<RoutineDeleteRepository?>((ref) {
+final routineDeleteRepositoryProvider =
+    Provider<RoutineDeleteRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
   final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null : sessionAsync.valueOrNull;
-  if (client == null || auth is! AuthSessionAuthenticated ||
+      ? null
+      : sessionAsync.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
       auth.session.userId != client.auth.currentUser?.id) {
     return null;
   }
@@ -395,8 +409,8 @@ final routineDeleteRepositoryProvider = Provider<RoutineDeleteRepository?>((ref)
       // Re-read the LIVE auth cycle; never close over the opening JWT.
       try {
         final value = ref.read(authSessionStateProvider);
-        final state = value.isLoading || value.hasError
-            ? null : value.valueOrNull;
+        final state =
+            value.isLoading || value.hasError ? null : value.valueOrNull;
         if (state is AuthSessionAuthenticated &&
             state.session.userId == client.auth.currentUser?.id) {
           return state.session.loginCycleId;

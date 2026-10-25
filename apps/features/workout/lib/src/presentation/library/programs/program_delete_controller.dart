@@ -132,8 +132,8 @@ final class ProgramDeleteController extends ChangeNotifier {
       return false;
     }
     if (_attemptGate.isInFlight(session.owner, sourceProgramId)) {
-      _publish(const ProgramDeleteControllerState(
-        status: ProgramDeleteOperationStatus.inFlight,
+      _reject(const ProgramDeleteException(
+        ProgramDeleteFailureKind.inProgress,
       ));
       return false;
     }
@@ -263,6 +263,16 @@ final class ProgramDeleteController extends ChangeNotifier {
       ));
       return _state;
     }
+    if (_hasPendingConflict(preparedSession, target)) {
+      _reject(
+        const ProgramDeleteException(
+          ProgramDeleteFailureKind.staleMembership,
+        ),
+        program: current.program,
+        target: target,
+      );
+      return _state;
+    }
 
     _publish(ProgramDeleteControllerState(
       status: ProgramDeleteOperationStatus.inFlight,
@@ -309,12 +319,7 @@ final class ProgramDeleteController extends ChangeNotifier {
       return _state;
     } on ProgramDeleteException catch (error) {
       if (error.kind == ProgramDeleteFailureKind.inProgress) {
-        _publish(ProgramDeleteControllerState(
-          status: ProgramDeleteOperationStatus.inFlight,
-          program: current.program,
-          target: target,
-          failure: error,
-        ));
+        _reject(error, program: current.program, target: target);
         return _state;
       }
       _reject(error, program: current.program, target: target);
@@ -375,6 +380,23 @@ final class ProgramDeleteController extends ChangeNotifier {
       return null;
     }
     return (owner: owner, cycle: cycle);
+  }
+
+  bool _hasPendingConflict(
+    ({String owner, String cycle}) session,
+    ProgramDeleteTarget target,
+  ) {
+    if (_pendingCreateGate.hasPendingForOwnerProgram(
+      owner: session.owner,
+      programId: target.sourceProgramId,
+    )) {
+      return true;
+    }
+    return target.expectedRoutineIds.any(
+      (routineId) =>
+          _routineOperationGate.inFlight(session.owner, routineId) ||
+          _routineOperationGate.uncertain(session.owner, routineId),
+    );
   }
 
   bool _sameSession(({String owner, String cycle}) session) {

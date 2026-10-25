@@ -182,7 +182,8 @@ void main() {
         ProgramDeleteFailureKind.unauthorized);
   });
 
-  test('account switch during dispatch becomes UNKNOWN without old-owner refresh',
+  test(
+      'account switch during dispatch becomes UNKNOWN without old-owner refresh',
       () async {
     late final _FakeVersionedRoutines routines;
     final gate = ProgramDeleteAttemptGate();
@@ -257,6 +258,103 @@ void main() {
         second.state.failure!.kind, ProgramDeleteFailureKind.staleMembership);
   });
 
+  test('pending Create or Routine operation after preparation blocks dispatch',
+      () async {
+    final pending = RoutinePendingCreateGate()
+      ..bindSession(owner: _owner, loginCycle: _cycle);
+    addTearDown(pending.dispose);
+    final operations = RoutineMoveDeleteAttemptGate();
+    final gate = ProgramDeleteAttemptGate();
+    final repository = _FakeDeleteRepository(attemptGate: gate);
+    final controller = _controller(
+      programs: _FakePrograms([_program()]),
+      routines: _FakeVersionedRoutines([_snapshot(_routineOne)]),
+      deleteRepository: repository,
+      attemptGate: gate,
+      pendingCreateGate: pending,
+      routineOperationGate: operations,
+    );
+    addTearDown(controller.dispose);
+
+    expect(await controller.prepare(_source), isTrue);
+    final command = _createCommand();
+    pending.retain(
+      owner: _owner,
+      loginCycle: _cycle,
+      command: command,
+    );
+    expect(
+      (await controller.confirm(clientMutationId: _mutationOne)).failure!.kind,
+      ProgramDeleteFailureKind.staleMembership,
+    );
+    expect(repository.writes, 0);
+
+    pending.releaseDefiniteForOwner(owner: _owner, command: command);
+    final second = _controller(
+      programs: _FakePrograms([_program()]),
+      routines: _FakeVersionedRoutines([_snapshot(_routineOne)]),
+      deleteRepository: repository,
+      attemptGate: gate,
+      pendingCreateGate: pending,
+      routineOperationGate: operations,
+    );
+    addTearDown(second.dispose);
+    expect(await second.prepare(_source), isTrue);
+    expect(operations.tryStart(_owner, _routineOne), isTrue);
+    expect(
+      (await second.confirm(clientMutationId: _mutationTwo)).failure!.kind,
+      ProgramDeleteFailureKind.staleMembership,
+    );
+    expect(repository.writes, 0);
+  });
+
+  test('in-flight conflict is recoverable after the owning attempt rejects',
+      () async {
+    final gate = ProgramDeleteAttemptGate();
+    var calls = 0;
+    final repository = _FakeDeleteRepository(
+      attemptGate: gate,
+      onDelete: () {
+        calls++;
+        return calls == 1
+            ? Future<ProgramDeleteResult>.error(
+                const ProgramDeleteException(
+                  ProgramDeleteFailureKind.staleMembership,
+                ),
+              )
+            : Future<ProgramDeleteResult>.value(_success(moved: 1));
+      },
+    );
+    final first = _controller(
+      programs: _FakePrograms([_program()]),
+      routines: _FakeVersionedRoutines([_snapshot(_routineOne)]),
+      deleteRepository: repository,
+      attemptGate: gate,
+    );
+    final second = _controller(
+      programs: _FakePrograms([_program()]),
+      routines: _FakeVersionedRoutines([_snapshot(_routineOne)]),
+      deleteRepository: repository,
+      attemptGate: gate,
+    );
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+
+    expect(await first.prepare(_source), isTrue);
+    expect(await second.prepare(_source), isTrue);
+    final firstAttempt = first.confirm(clientMutationId: _mutationOne);
+    final secondState = await second.confirm(clientMutationId: _mutationTwo);
+    expect(secondState.status, ProgramDeleteOperationStatus.definitelyRejected);
+    expect(secondState.failure!.kind, ProgramDeleteFailureKind.inProgress);
+    expect((await firstAttempt).status,
+        ProgramDeleteOperationStatus.definitelyRejected);
+
+    expect(await second.prepare(_source), isTrue);
+    expect((await second.confirm(clientMutationId: _mutationTwo)).status,
+        ProgramDeleteOperationStatus.confirmed);
+    expect(repository.writes, 2);
+  });
+
   test('definite stale rejection requires a fresh snapshot and UUID', () async {
     final gate = ProgramDeleteAttemptGate();
     final deleteRepository = _FakeDeleteRepository(
@@ -288,7 +386,10 @@ void main() {
   });
 
   for (final entry in <(String, ProgramDeleteUncertainty)>[
-    ('40003 statement_completion_unknown', ProgramDeleteUncertainty.unconfirmed),
+    (
+      '40003 statement_completion_unknown',
+      ProgramDeleteUncertainty.unconfirmed
+    ),
     ('timeout', ProgramDeleteUncertainty.unconfirmed),
     ('lost ACK', ProgramDeleteUncertainty.unconfirmed),
     ('malformed response', ProgramDeleteUncertainty.malformedResponse),
