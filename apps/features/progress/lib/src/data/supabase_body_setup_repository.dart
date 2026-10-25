@@ -12,11 +12,22 @@ class SupabaseBodySetupRepository implements BodyRepository {
   const SupabaseBodySetupRepository({
     required SupabaseClient client,
     BodyStateRowMapper stateMapper = const BodyStateRowMapper(),
+    String? weightLoginCycleId,
+    String? Function()? currentWeightLoginCycleId,
   })  : _client = client,
-        _stateMapper = stateMapper;
+        _stateMapper = stateMapper,
+        _weightLoginCycleId = weightLoginCycleId,
+        _currentWeightLoginCycleId = currentWeightLoginCycleId;
 
   final SupabaseClient _client;
   final BodyStateRowMapper _stateMapper;
+
+  // These guards protect A1 History/Edit/Delete only. Existing Settings,
+  // onboarding and Body Goal contracts are unchanged by this source slice.
+  // App composition pins an authoritative login cycle to each repository and
+  // supplies a *live* getter; a UID alone cannot detect A -> B -> A re-login.
+  final String? _weightLoginCycleId;
+  final String? Function()? _currentWeightLoginCycleId;
 
   String _requireUserId() {
     final userId = _client.auth.currentUser?.id;
@@ -103,6 +114,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
       return const BodyWeightHistoryPage(entries: <BodyWeightEntry>[]);
     }
 
+    final cycle = _requireWeightSession(userId);
     final from = query.fromInclusive.toUtc().toIso8601String();
     final to = query.toExclusive.toUtc().toIso8601String();
     var rowsQuery = _client
@@ -126,7 +138,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
         .order('measured_at', ascending: false)
         .order('id', ascending: false)
         .limit(query.limit + 1);
-    _requireSameUser(userId);
+    _requireWeightSession(userId, expectedCycle: cycle);
 
     final hasMore = rows.length > query.limit;
     final entries = List<BodyWeightEntry>.unmodifiable(
@@ -145,6 +157,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
   Future<bool> updateWeightLog(BodyWeightLogEdit edit) async {
     final userId = _requireUserId();
     edit.validate();
+    final cycle = _requireWeightSession(userId);
     final updated = await _client
         .from('body_weight_logs')
         .update({
@@ -155,7 +168,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
         .eq('id', edit.id)
         .select('id')
         .maybeSingle();
-    _requireSameUser(userId);
+    _requireWeightSession(userId, expectedCycle: cycle);
     return updated != null;
   }
 
@@ -163,6 +176,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
   Future<bool> deleteWeightLog(String id) async {
     final userId = _requireUserId();
     BodyWeightLogIds.requireValid(id);
+    final cycle = _requireWeightSession(userId);
     final deleted = await _client
         .from('body_weight_logs')
         .delete()
@@ -170,14 +184,20 @@ class SupabaseBodySetupRepository implements BodyRepository {
         .eq('id', id)
         .select('id')
         .maybeSingle();
-    _requireSameUser(userId);
+    _requireWeightSession(userId, expectedCycle: cycle);
     return deleted != null;
   }
 
-  void _requireSameUser(String userId) {
-    if (_client.auth.currentUser?.id != userId) {
-      throw StateError('Body data session changed during the request.');
+  String _requireWeightSession(String userId, {String? expectedCycle}) {
+    final pinned = _weightLoginCycleId?.trim();
+    final live = _currentWeightLoginCycleId?.call()?.trim();
+    if (pinned == null || pinned.isEmpty ||
+        live == null || live.isEmpty || pinned != live ||
+        (expectedCycle != null && expectedCycle != live) ||
+        _client.auth.currentUser?.id != userId) {
+      throw StateError('Body data session changed or is unavailable.');
     }
+    return live;
   }
 
   /// Delegates the entire same-goal/changed-goal lifecycle to the atomic

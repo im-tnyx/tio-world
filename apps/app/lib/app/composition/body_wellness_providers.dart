@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 
 import 'runtime_providers.dart';
 
@@ -44,7 +45,35 @@ final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
 final bodyRepositoryProvider = Provider<BodyRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
-    return SupabaseBodySetupRepository(client: supabaseClient);
+    // Watch authoritative session state so a new login cycle creates a new
+    // repository. The old instance remains pinned to its original cycle.
+    final sessionAsync = ref.watch(authSessionStateProvider);
+    final auth = sessionAsync.isLoading || sessionAsync.hasError
+        ? null : sessionAsync.valueOrNull;
+    final owner = supabaseClient.auth.currentUser?.id;
+    final cycle = auth is AuthSessionAuthenticated &&
+            auth.session.userId == owner
+        ? auth.session.loginCycleId
+        : null;
+    return SupabaseBodySetupRepository(
+      client: supabaseClient,
+      weightLoginCycleId: cycle,
+      currentWeightLoginCycleId: () {
+        try {
+          final live = ref.read(authSessionStateProvider);
+          final state = live.isLoading || live.hasError
+              ? null : live.valueOrNull;
+          if (state is AuthSessionAuthenticated &&
+              state.session.userId == owner &&
+              supabaseClient.auth.currentUser?.id == owner) {
+            return state.session.loginCycleId;
+          }
+        } catch (_) {
+          // Disposed providers or revoked sessions invalidate old adapters.
+        }
+        return null;
+      },
+    );
   }
   return InMemoryBodySetupRepository();
 });
