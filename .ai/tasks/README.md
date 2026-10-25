@@ -4,7 +4,9 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-[Progress Weight D0 contract freeze](progress-weight-d0-contract-freeze.md) is the **active docs-only review-gate slice** for [GitHub #686](https://github.com/im-tnyx/tio-world/issues/686) / Linear TNYX-119: reconcile the current `/progress` placeholder, Weight summary/chart/History/Log Weight structural flow, canonical `body_weight_logs` and private media Storage truth. Supabase currently has only public `avatars`; private `user-media` is a separate Photos Slice B candidate, not a deployed bucket. No Flutter/UI/RLS/Storage/migration changes; A1–A4 are separate implementation gates; no merge without owner instruction.
+[Progress Weight A1 owner-backed repository](progress-weight-a1-repository.md) is the approved source-only implementation slice of [Linear TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence): stable WeightLog IDs, UTC date-window keyset History and exact-ID owner-checked edit/delete across Supabase/InMemory, with focused tests and no UI/schema/Storage. PR independent-review and CI gate; **no merge without owner authorization**.
+
+[Progress Weight D0 contract freeze](progress-weight-d0-contract-freeze.md) was merged in [PR #687](https://github.com/im-tnyx/tio-world/pull/687). Its old handoff still says OPEN and requires a separately scoped archive; implementation truth follows merged D0 docs.
 
 [#596 C1G root `AGENTS.md` compatibility review pointer](issue-596-c1g-root-agent-compatibility-pointer.md) is an **active docs-only review-gate slice** following validated [#596 C1F](../archive/2026-10-issue-596-c1f-future-api-compatibility.md): add one short root navigation link to the existing canonical [affected-contract review](../../docs/development/TESTING_GUIDE.md#change-time-future-protected-api-compatibility-review-affected-contracts-only), with unrelated UI/docs/mechanical changes expressly exempt. No app, Supabase, service, CI, or runtime change; parent #596 remains OPEN for D1.
 
