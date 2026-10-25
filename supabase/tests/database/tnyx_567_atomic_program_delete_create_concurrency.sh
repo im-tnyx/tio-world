@@ -11,9 +11,11 @@ default='d5673000-0000-4000-8000-000000000011'
 create_first='d5673000-0000-4000-8000-000000000012'
 delete_first='d5673000-0000-4000-8000-000000000013'
 legacy_source='d5673000-0000-4000-8000-000000000014'
+legacy_create_first='d5673000-0000-4000-8000-000000000015'
 created_routine='d5673000-0000-4000-8000-000000000021'
 denied_routine='d5673000-0000-4000-8000-000000000022'
 legacy_routine='d5673000-0000-4000-8000-000000000023'
+legacy_create_routine='d5673000-0000-4000-8000-000000000024'
 exercise='d5673000-0000-4000-8000-000000000031'
 set_id='d5673000-0000-4000-8000-000000000041'
 create_mutation='d5673000-0000-4000-8000-000000000101'
@@ -125,7 +127,8 @@ values
  ('$default'::uuid,'$owner'::uuid,'My Program',true),
  ('$create_first'::uuid,'$owner'::uuid,'Create wins',false),
  ('$delete_first'::uuid,'$owner'::uuid,'Delete wins',false),
- ('$legacy_source'::uuid,'$owner'::uuid,'Old client source',false);
+ ('$legacy_source'::uuid,'$owner'::uuid,'Old client source',false),
+ ('$legacy_create_first'::uuid,'$owner'::uuid,'Old client wins',false);
 SQL
 psql "$db" --set=ON_ERROR_STOP=1 -q \
   --command="grant execute on function $signature to authenticated"
@@ -308,4 +311,58 @@ if [[ "$check" != t ]]; then
   exit 1
 fi
 
-echo '#567 real two-session Create/Delete both orders + legacy INSERT FK safety passed.'
+# Race 4: legacy metadata INSERT commits first and holds Program KEY SHARE.
+# Stale Delete expecting no children must block, then reject after seeing
+# the newly committed metadata Routine. The old client owns only its row.
+open_fifo
+psql "$db" --set=ON_ERROR_STOP=1 \
+  --set=owner="$owner" --set=source="$legacy_create_first" \
+  --set=routine="$legacy_create_routine" <"$fifo" >"$a_log" 2>&1 &
+pid_a=$!
+exec 3>"$fifo"; writer_open=1
+cat >&3 <<'SQL'
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'owner', true);
+insert into public.user_workout_routines(id,user_id,program_id,name)
+values (:'routine'::uuid, :'owner'::uuid, :'source'::uuid, 'Legacy first');
+\echo LEGACY_INSERT_A_UNCOMMITTED
+SQL
+wait_log 'LEGACY_INSERT_A_UNCOMMITTED' "$a_log" "$pid_a"
+psql "$db" --set=ON_ERROR_STOP=1 \
+  --set=owner="$owner" --set=source="$legacy_create_first" \
+  --set=mutation="$delete_mutation" >"$b_log" 2>&1 <<'SQL' &
+begin;
+set local application_name='tnyx_567_delete_after_legacy_insert';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'owner', true);
+\echo DELETE_B_ATTEMPT
+select public.delete_user_workout_program_preserving_routines(
+  :'source'::uuid, '{}'::uuid[], :'mutation'::uuid
+);
+commit;
+SQL
+pid_b=$!
+wait_log 'DELETE_B_ATTEMPT' "$b_log" "$pid_b"
+wait_blocked 'tnyx_567_delete_after_legacy_insert' "$pid_b"
+finish_a
+if wait "$pid_b"; then
+  echo 'Stale Delete succeeded after old-client metadata INSERT' >&2
+  exit 1
+fi
+pid_b=''
+grep -Fq 'program_delete_membership_conflict' "$b_log"
+check="$(psql "$db" --set=ON_ERROR_STOP=1 -At --command="
+  select exists(select 1 from public.user_workout_programs
+     where id='$legacy_create_first'::uuid)
+    and (select program_id='$legacy_create_first'::uuid and name='Legacy first'
+     from public.user_workout_routines where id='$legacy_create_routine'::uuid)
+    and (select count(*)=1 from public.user_workout_routines
+     where id='$created_routine'::uuid and program_id='$create_first'::uuid)
+" | tr -d '[:space:]')"
+if [[ "$check" != t ]]; then
+  echo 'Legacy first winner lost Routine or unrelated source data' >&2
+  exit 1
+fi
+
+echo '#567 direct Create/Delete and legacy INSERT: both orders, no loss or orphan.'
