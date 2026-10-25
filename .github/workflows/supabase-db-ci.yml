@@ -457,6 +457,13 @@ jobs:
           # revision bumps, stable Routine/Exercise/Set IDs, fixture cleanup.
           bash supabase/tests/database/tnyx_567_atomic_program_delete_edit_concurrency.sh
 
+      - name: Run #567 D1 Create versus Delete and legacy insert two-session races
+        shell: bash
+        run: |
+          # Verify old/new-client source Program lock and FK serialization.
+          # Strict disposable GitHub CI database identity and cleanup guards.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_create_concurrency.sh
+
       - name: Run #568 authenticated-only grant and transactional rollback matrix
         shell: bash
         run: |
