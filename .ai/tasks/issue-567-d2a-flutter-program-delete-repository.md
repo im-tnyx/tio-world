@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `7000fd3e326e2ea13f660d74eebb831ef4fb6bae`
-**Observed working-tree state:** Task handoff update pending; fsmonitor IPC warning only
-**Observed uncommitted/dirty files:** This task handoff file only
+**HEAD SHA:** `a41af4bcaaf6ae2ab0a2e50568163eab3292320c`
+**Observed working-tree state:** Clean after fresh-confirmation source push; fsmonitor IPC warning only
+**Observed uncommitted/dirty files:** None before this handoff synchronization
 **PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
 **Current implementation state:** Dormant typed repository; the two requested PR #681 P2 fixes plus same-gate follow-ups are implemented in `7000fd3e326e2ea13f660d74eebb831ef4fb6bae`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
 **Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 18-test suite, changed-area `test/data` suite (405 tests), and `git diff --check` passed for the lifecycle follow-up at `7000fd3e326e2ea13f660d74eebb831ef4fb6bae`
-**Validation remaining:** Final-head GitHub CI after this follow-up push and independent re-review remain pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
+**Validation remaining:** Independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
 **Open review finding IDs:** `4369947937`, `4369947940`, follow-up `4369975166`, and same-gate follow-up `4370003751` — fixes pushed; keep all related threads open pending independent re-review
-**Next exact action:** Push this same-gate follow-up, inspect final-head GitHub CI, reply to the new review finding with evidence, and await independent re-review; do not merge or activate production capability.
+**Next exact action:** Await independent re-review; keep all related threads open and do not merge or activate production capability.
 
 ## 1. Discovery
 
@@ -119,9 +119,9 @@ Changed-area Flutter tests `test/data` — PASS, `All tests passed!` (405 tests 
 
 `git diff --check` — PASS before commit.
 
-Parent-to-head audit — pending this follow-up push; `origin/main` remains an ancestor and only the existing D2A branch is in scope.
+Parent-to-head audit — PASS at source/CI SHA `a41af4bcaaf6ae2ab0a2e50568163eab3292320c`; `origin/main` remains an ancestor and only the existing D2A branch is in scope.
 
-Previous exact-head workflow `40172088110` at PR HEAD `0ffacc8eed77303d667376f6a652f9d75b8c5baf` — PASS for Analyze Flutter and Dart / test Dart, Analyze and test, app-workout, core-wear, and nutrition-onboarding. Attribution and documentation hygiene — PASS. Cursor review/security checks — skipped by GitHub/Cursor automation. Final follow-up HEAD CI remains to be inspected after push.
+Exact-head workflow `40172444300` at PR HEAD `a41af4bcaaf6ae2ab0a2e50568163eab3292320c` — PASS for Analyze Flutter and Dart / test Dart, Analyze and test, app-workout, core-wear, and nutrition-onboarding. Attribution and documentation hygiene — PASS. Cursor review/security checks — skipped by GitHub/Cursor automation.
 ```
 
 ### Review Provenance
@@ -130,7 +130,7 @@ Previous exact-head workflow `40172088110` at PR HEAD `0ffacc8eed77303d667376f6a
 **Reviewer / relation to implementer:** Codex review findings; independent reviewer re-review requested after `7000fd3e326e2ea13f660d74eebb831ef4fb6bae`
 **Diff or commit SHA actually reviewed:** Original findings were on prior PR HEAD `41565597`; follow-ups were on `8ae61bf1c4f6a1cc86ec0729002849589e8b4962` and `0ffacc8eed77303d667376f6a652f9d75b8c5baf`; latest fix commit is `7000fd3e326e2ea13f660d74eebb831ef4fb6bae`
 **Independent review?:** Pending; all related inline threads intentionally remain open
-**Limitations and unmet required gates:** Previous exact-head GitHub CI is PASS; final follow-up-head CI is pending. Independent re-review is still pending, and `reviewDecision` remains empty; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
+**Limitations and unmet required gates:** Exact-head GitHub CI is PASS. Independent re-review is still pending, and `reviewDecision` remains empty; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
 
 ## 7. Final Handoff
 
@@ -155,4 +155,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW` — source-only PR #681 remains open; all related P2 threads are open pending final-head GitHub CI and independent re-review. No merge or production activation.
+`REVIEW` — source-only PR #681 remains open; all related P2 threads are open pending independent re-review. No merge or production activation.
