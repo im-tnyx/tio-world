@@ -41,7 +41,7 @@
 - [x] Disposable SQL: >1 Routine child UUID preservation, default rename, no default/empty source, source-without-default, owner A/B, guest, replay, wrong snapshot, direct client DELETE deny, rollback on forced failure.
 - [x] Actual disposable two-session Delete-first vs Move-first races: source delete and membership CAS prevent data loss.
 - [ ] Reviewer P2 fix at PR #678: corrected migration comment (protected Edit does NOT lock Program; row lock/revision is the serialization boundary), added real Delete-first / Edit-first two-session harness preserving Routine/Exercise/Set IDs and revision; exact-head CI outcome and reviewer disposition pending.
-- [ ] Direct Create-vs-Delete 2-session CI script added: atomic Create-first -> stale Delete denied, Delete-first -> atomic Create not-found, and old-client direct metadata INSERT -> FK denial; verifies Exercise/Set identity, no orphans and surviving source. Exact-head CI and independent reviewer disposition pending.
+- [ ] Direct Create-vs-Delete 2-session CI script added: atomic Create-first -> stale Delete denied, Delete-first -> atomic Create not-found, plus old-client direct metadata INSERT in both commit orders -> stale Delete denial or FK denial; verifies Exercise/Set identity, no orphans and surviving source. Exact-head CI and independent reviewer disposition pending.
 - [x] Supabase Database CI #40120111307 SUCCESS on source HEAD 521c4761 including SQL matrix, both two-session races and migration replay. Final handoff-only HEAD still requires green exact-head recheck.
 - [ ] GitHub exact-base compare: 7 D1-only paths; independent P2 comment requires validation and disposition; do not merge or deploy on this instruction.
 
