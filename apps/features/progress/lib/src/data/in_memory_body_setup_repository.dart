@@ -12,8 +12,7 @@ class InMemoryBodySetupRepository implements BodyRepository {
 
   String _newWeightLogId() {
     _nextWeightLogId++;
-    return '00000000-0000-4000-8000-' +
-        _nextWeightLogId.toString().padLeft(12, '0');
+    return '00000000-0000-4000-8000-${_nextWeightLogId.toString().padLeft(12, '0')}';
   }
 
   BodySetupData? _data;
