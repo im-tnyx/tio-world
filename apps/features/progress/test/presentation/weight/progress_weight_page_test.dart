@@ -76,6 +76,74 @@ void main() {
     expect(find.text('No measurements in this range'), findsOneWidget);
   });
 
+  testWidgets('range menu compares two actual records in the selected window',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 66,
+        measuredAt: now.subtract(const Duration(days: 61)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 67,
+        measuredAt: now.subtract(const Duration(days: 20)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    expect(find.text('Not enough history'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-range')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Last 90 days').last);
+    await tester.pumpAndSettle();
+    expect(find.text('+1 kg'), findsOneWidget);
+  });
+
+  testWidgets('Load more appends History without duplicate pagination',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    for (var day = 0; day < 32; day++) {
+      await repository.recordCurrentWeight(
+        BodyWeightRecord(
+          weightKg: 70 + day / 10,
+          measuredAt: now.subtract(Duration(days: day + 1)),
+          source: BodyWeightSources.manual,
+        ),
+      );
+    }
+    await pumpPage(tester, repository);
+    final loadMore = find.byKey(const ValueKey('progress-weight-load-more'));
+    await tester.scrollUntilVisible(loadMore, 300);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+    expect(loadMore, findsNothing);
+  });
+
+  testWidgets('shows active canonical goal as a target reference',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 70,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repository.setActiveBodyGoal(
+      const BodyGoalUpdate(
+        goalType: BodyGoalType.loseWeight,
+        targetWeightKg: 65,
+        weeklyWeightChangeKg: 0.5,
+      ),
+    );
+    await pumpPage(tester, repository);
+    expect(find.text('Your target: 65 kg'), findsOneWidget);
+    expect(find.textContaining('%'), findsNothing);
+  });
+
   testWidgets('load failure offers retry without exposing stale weights',
       (tester) async {
     await pumpPage(tester, _FailingWeightRepository());

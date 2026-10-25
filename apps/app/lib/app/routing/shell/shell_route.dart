@@ -96,6 +96,14 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         final bootstrap =
             ref.watch(appSessionBootstrapControllerProvider).state;
         final client = ref.watch(supabaseClientProvider);
+        if (authAsync.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (authAsync.hasError) {
+          return const Center(
+            child: Text('Weight is temporarily unavailable.'),
+          );
+        }
         final cycle = auth is AuthSessionAuthenticated
             ? auth.session.loginCycleId
             : null;
