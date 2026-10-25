@@ -340,7 +340,7 @@ void main() {
     );
     await expectLater(
       repository.delete(
-        target: _target(routines: [_routineOne]),
+        target: firstTarget,
         clientMutationId: _mutation,
       ),
       throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
@@ -352,6 +352,37 @@ void main() {
     );
     expect(result.movedRoutineCount, 0);
     expect(gateway.writes, 3);
+  });
+
+  test('transaction rejection allows a fresh confirmation with same membership',
+      () async {
+    var calls = 0;
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async {
+        if (calls++ == 0) {
+          throw const PostgrestException(
+            message: 'serialization failure',
+            code: '40001',
+          );
+        }
+        return _success(moved: 1, destination: _destination);
+      };
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne]),
+        clientMutationId: _mutation,
+      ),
+      throwsA(_failure(ProgramDeleteFailureKind.transactionAborted)),
+    );
+
+    final result = await repository.delete(
+      target: _target(routines: [_routineOne]),
+      clientMutationId: '77777777-7777-4777-8777-777777777777',
+    );
+    expect(result.movedRoutineCount, 1);
+    expect(gateway.writes, 2);
   });
 
   test('timeout stays UNKNOWN without a missing-source read or retry',

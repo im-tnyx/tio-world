@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
@@ -42,13 +41,13 @@ typedef _Session = ({String owner, String cycle});
 /// An ambiguous Program Delete has no client-side release path because a
 /// later missing-source read cannot prove that this mutation committed.
 typedef _ProgramDeleteAttempt = ({
-  String targetKey,
+  ProgramDeleteTarget target,
   String mutationId,
 });
 
 final class ProgramDeleteAttemptGate {
   final Map<String, _ProgramDeleteAttempt> _inFlight = {};
-  final Map<String, Set<String>> _definiteRejectionTargets = {};
+  final Map<String, Set<ProgramDeleteTarget>> _definiteRejectionTargets = {};
   final Map<String, Set<String>> _definiteRejectionMutations = {};
   final Set<String> _committed = {};
   final Set<String> _unknown = {};
@@ -77,12 +76,11 @@ final class ProgramDeleteAttemptGate {
         _unknown.contains(key)) {
       return false;
     }
-    final targetKey = _targetKey(target);
-    if (_definiteRejectionTargets[key]?.contains(targetKey) == true ||
+    if (_definiteRejectionTargets[key]?.contains(target) == true ||
         _definiteRejectionMutations[key]?.contains(mutationId) == true) {
       return false;
     }
-    _inFlight[key] = (targetKey: targetKey, mutationId: mutationId);
+    _inFlight[key] = (target: target, mutationId: mutationId);
     return true;
   }
 
@@ -96,10 +94,10 @@ final class ProgramDeleteAttemptGate {
     if (_inFlight.containsKey(key)) {
       final attempt = _inFlight[key]!;
       assert(attempt.mutationId == mutationId);
-      assert(attempt.targetKey == _targetKey(target));
+      assert(identical(attempt.target, target));
       _definiteRejectionTargets
-          .putIfAbsent(key, () => <String>{})
-          .add(attempt.targetKey);
+          .putIfAbsent(key, () => <ProgramDeleteTarget>{})
+          .add(attempt.target);
       _definiteRejectionMutations
           .putIfAbsent(key, () => <String>{})
           .add(attempt.mutationId);
@@ -122,16 +120,6 @@ final class ProgramDeleteAttemptGate {
 
   static String _key(String owner, ProgramId sourceProgramId) =>
       '$owner/${sourceProgramId.value}';
-
-  static String _targetKey(ProgramDeleteTarget target) => jsonEncode({
-        'owner_id': target.ownerId,
-        'login_cycle_id': target.loginCycleId,
-        'source_program_id': target.sourceProgramId.value,
-        'expected_routine_ids': (target.expectedRoutineIds
-            .map((routineId) => routineId.value)
-            .toList()
-          ..sort()),
-      });
 }
 
 final class SupabaseProgramDeleteRepository implements ProgramDeleteRepository {
