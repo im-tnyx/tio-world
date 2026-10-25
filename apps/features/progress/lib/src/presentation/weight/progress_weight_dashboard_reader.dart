@@ -32,7 +32,12 @@ class ProgressWeightSnapshot {
   final DateTime capturedAt;
 
   double? get rangeChangeKg {
-    if (chartEntries.length < 2) return null;
+    if (chartEntries.length < 2 ||
+        chartEntries.first.measuredAt.isAtSameMomentAs(
+          chartEntries.last.measuredAt,
+        )) {
+      return null;
+    }
     return chartEntries.first.weightKg - chartEntries.last.weightKg;
   }
 

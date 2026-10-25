@@ -280,11 +280,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 )
               else ...[
                 Semantics(
-                  label: 'Weight trend with ' +
-                      chart.length.toString() +
-                      ' actual measurements in ' +
-                      _range.label +
-                      '. Individual values are available in History.',
+                  label: 'Weight trend with ${chart.length} actual measurements '
+                      'in ${_range.label}. Individual values are available in History.',
                   child: SizedBox(
                     height: TioSize.dp200,
                     width: double.infinity,
@@ -318,8 +315,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               if (target != null) ...[
                 const SizedBox(height: TioSpacing.md),
                 Text(
-                  'Your target: ' +
-                      UnitFormatters.formatWeight(target, widget.unit),
+                  'Your target: ${UnitFormatters.formatWeight(target, widget.unit)}',
                   style: typography.bodyMedium?.copyWith(
                     color: colors.textSecondary,
                   ),
@@ -363,7 +359,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   String _formatChange(double kilograms) {
     if (kilograms == 0) return 'No change';
     final value = UnitFormatters.formatWeight(kilograms, widget.unit);
-    return kilograms > 0 ? '+' + value : value;
+    return kilograms > 0 ? '+$value' : value;
   }
 
   Widget _historyEntry(BuildContext context, BodyWeightEntry entry) {
@@ -371,7 +367,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final colors = context.tioColors;
     final local = entry.measuredAt.toLocal();
     return TioCard(
-      key: ValueKey('progress-weight-history-' + entry.id!),
+      key: ValueKey('progress-weight-history-${entry.id!}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -383,9 +379,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           ),
           const SizedBox(height: TioSpacing.xs),
           Text(
-            _dateLabel(context, local) +
-                ' at ' +
-                TimeOfDay.fromDateTime(local).format(context),
+            '${_dateLabel(context, local)} at '
+                '${TimeOfDay.fromDateTime(local).format(context)}',
             style: typography.bodySmall?.copyWith(
               color: colors.textSecondary,
             ),
@@ -438,9 +433,9 @@ class _RecordedWeightPainter extends CustomPainter {
     low -= pad;
     high += pad;
 
-    final left = TioSize.dp8;
+    const left = TioSize.dp8;
     final right = size.width - TioSize.dp8;
-    final top = TioSize.dp8;
+    const top = TioSize.dp8;
     final bottom = size.height - TioSize.dp8;
     final oldestUs = ordered.first.measuredAt.microsecondsSinceEpoch;
     final newestUs = ordered.last.measuredAt.microsecondsSinceEpoch;

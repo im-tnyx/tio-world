@@ -46,6 +46,7 @@ void main() {
     final reader = ProgressWeightDashboardReader(repo, now: () => now);
     final first = await reader.load(ProgressWeightRange.days30);
     expect(first.chartEntries.length, 35);
+    expect(first.rangeChangeKg, isNull); // Same instant is not a time trend.
     expect(first.current?.weightKg, 73.4);
     expect(first.history.entries.length, 30);
     final cursor = first.history.nextCursor;

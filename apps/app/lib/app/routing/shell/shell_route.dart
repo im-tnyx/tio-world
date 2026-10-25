@@ -96,8 +96,13 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         final bootstrap =
             ref.watch(appSessionBootstrapControllerProvider).state;
         final client = ref.watch(supabaseClientProvider);
+        final cycle = auth is AuthSessionAuthenticated
+            ? auth.session.loginCycleId
+            : null;
         if (auth is! AuthSessionAuthenticated ||
             bootstrap is! AppSessionBootstrapReady ||
+            cycle == null ||
+            cycle.isEmpty ||
             bootstrap.userId != auth.session.userId ||
             client?.auth.currentUser?.id != auth.session.userId) {
           // Fail closed while a session is loading, stale or signed out.
@@ -111,8 +116,8 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
                 .weightUnit ??
             WeightUnit.kg;
         return ProgressWeightPage(
-          key: ValueKey(auth.session.loginCycleId),
-          sessionKey: auth.session.loginCycleId,
+          key: ValueKey(cycle),
+          sessionKey: cycle,
           repository: ref.watch(bodyRepositoryProvider),
           unit: unit,
         );
