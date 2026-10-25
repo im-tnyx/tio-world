@@ -1,6 +1,6 @@
 # Feature Task: GitHub #596 Slice D1 — Quality Measurement Plan (Option 1)
 
-**Status:** In progress (Plan merged; prospective measurement active)
+**Status:** In progress (Plan merged; fixed first 10-PR cohort selected, evidence normalization and seven-day observation active)
 **Primary owner:** Repository AI Governance
 **Affected platforms:** Documentation/process only (Multi-agent quality measurement across all platforms)
 
@@ -29,30 +29,30 @@
   - Cursor Bugbot / Security / Approval Agent: NEUTRAL (quota/integration limit; no code defect).
   - Copilot / Codex: Quota limit noted; no unverified passes claimed.
 - **Local Synchronization:** Owner local `main` synchronized clean via fast-forward merge to `6a4e113b06bc714039199f94d38ce59e4e0515b7`; local `git diff --check` passed with exit 0.
-- **Current Lifecycle State:** Plan specification is validated and merged. Prospective measurement across the next 10 consecutive eligible substantive PRs is **ACTIVE**. Parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) remains **OPEN**.
+- **Current Lifecycle State:** Plan specification is validated and merged. The first 10 consecutive eligible substantive PRs are **SELECTED** in GitHub #596; evidence normalization and 168-hour post-merge observation are **ACTIVE**. Parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) remains **OPEN**.
 
 ---
 
 ## Active Handoff
 
-**Planning owner:** GitHub #596
-**Implementation owner:** Repository AI Governance (Cohort measurement ledger tracking on GitHub #596)
-**Review owner:** Independent review via GitHub (`im-tio` / Collaborators)
-**Implementation ownership state:** Active (Tracking prospective cohort entries and maintaining ledger)
-**Ownership transition:** Post-merge reconciliation established from clean `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
-**Repository state last verified:** 2026-10-23, remote `main@6a4e113b06bc714039199f94d38ce59e4e0515b7`
-**Branch:** `docs/issue-596-d1-post-merge-handoff-reconcile`
-**HEAD SHA:** Authoritative live HEAD is tracked dynamically by GitHub PR #659 tip; historical recorded checkpoint: `560513c5caf8a3c4d94423225b75ba8bbd126965` (commit 2, resolving D1-F09), prior commit: `e84a7409fa2f1483e72e6bedd8a00c104b4b449e`
-**Observed working-tree state:** Clean working tree on reconciliation branch
-**Observed uncommitted/dirty files:** None
-**PR / tracker:** [GitHub PR #659](https://github.com/im-tnyx/tio-world/pull/659), parent [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) (OPEN); merged plan [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658); no dedicated Linear mirror (TNYX-193 belongs to #250)
-**Current implementation state:** PR #658 merged; PR #659 post-merge handoff open; P3 findings D1-F09 and D1-F10 resolved
-**Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`
-**Validation completed at SHA:** `560513c5caf8a3c4d94423225b75ba8bbd126965`: Docs Hygiene CI run #39932724588 PASS; Commit attribution guard run #39932722279 PASS; Attribution guard runner PASS; local `git diff --check` exit 0 (prior checkpoint `e84a7409`: Docs Hygiene #39931880702 PASS, attribution #39931880706 PASS; plan merge `d7d50bdf`: Docs Hygiene #39928984283 PASS, attribution #39928982511 PASS)
-**Validation remaining:** Exact-head checks on amended PR #659 commit; independent re-review from `im-tio`
-**Current blocker:** Owner conditional `go merge` authorized pending passing merge gates and independent `APPROVED` review on PR #659; do not close #596
-**Open review finding IDs:** D1-F09 and D1-F10 resolved in this amendment
-**Next exact action:** Obtain independent APPROVED review on PR #659, execute normal squash merge, fast-forward local main, post #596 receipt, and maintain prospective measurement ledger
+**Planning owner:** GitHub #596 / Repository AI Governance (original Option 1 preserved)
+**Implementation owner:** Repository AI Governance, bounded D1 cohort evidence docs reconciliation
+**Review owner:** Separate connected reviewer identity when available; distinguish assistant-operated account review from independent human security sign-off
+**Implementation ownership state:** Active (GitHub-only docs branch; no local source/runtime ownership claimed)
+**Ownership transition:** PR #658/#659 historical implementation validated/merged; current work resumes pre-existing D1 measurement, not a replacement product slice
+**Repository state last verified:** 2026-10-25, protected remote `main@aff044c97e4a4ca7806656b9aab483ba521fa124` at branch creation (PR #681 merged)
+**Branch:** `docs/issue-596-d1-cohort-evidence-20261025`
+**HEAD SHA:** Resolve live branch/PR source HEAD; `aff044c97e4a4ca7806656b9aab483ba521fa124` is branch **base**, not an edited PR tip
+**Observed working-tree state:** Windows checkout `G:\projects\Tio-World` unavailable to this connector; state `Unknown`. GitHub branch was created from verified remote main.
+**Observed uncommitted/dirty files:** `Unknown` (no local working-tree access)
+**PR / tracker:** [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) (OPEN); [first 10-PR checkpoint](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6393903470); historical merged PRs [#658](https://github.com/im-tnyx/tio-world/pull/658) and [#659](https://github.com/im-tnyx/tio-world/pull/659); no verified dedicated Linear mirror
+**Current implementation state:** First 10 eligible cohort PRs selected/merged; 8/10 distinct-account formal GitHub approvals; 20 severity-tagged *inline-only* root findings marked resolved. Exact reviewer-person independence, exhaustive AC mappings, all-channel finding totals, review-caused rework denominator and final regression metrics remain Unknown.
+**Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md`, GitHub issue comment ledger (not Flutter, CI, SQL, Supabase)
+**Validation completed at SHA:** Historical PR #658/#659 receipts remain valid for their own SHAs only; 2026-10-25 connector read-only audit inspected current GitHub PR review threads/reviews/changed paths and hosted Supabase metadata/security advisors. This current docs branch still requires its **own** exact-head CI.
+**Validation remaining:** GitHub Docs Hygiene `git diff --check`, attribution checks, scope/ancestry audit and distinct-account review on the final docs PR HEAD; 10-PR full AC-to-files-to-tests-to-SHA normalization; post-merge 168h observation.
+**Current blocker:** Final regression/uplift claims wait until *all* 10 windows mature. Latest window ends 2026-10-31T17:31:09Z (2026-10-31 23:01:09 IST); no local/hosted authorization QA or human launch security signoff asserted.
+**Open review finding IDs:** No current D1 docs-PR review yet; historical D1-F01 through D1-F10 resolved in previously merged PRs. Cohort P0/P1/P2/P3 inline-root counts are observational, not this PR's defects.
+**Next exact action:** Complete scoped GitHub-only documentation PR quality/review gate; leave #596 OPEN. After 7-day observation expires, reconcile linked regressions/reopened tasks and compute final cohort metrics without inferring zeros.
 
 ---
 
@@ -231,20 +231,20 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 
 ### 6. Prospective Cohort Tracking Ledger (Slots 1 to 10)
 
-| Slot | PR # | Title & Platform | Change Class | Merged SHA | AC Evidence | Review Provenance | Verdict | Findings (P0/P1/P2/P3) | Rework & Revalidation | Check Results | Downstream Regression |
-|:---:|:---:|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **PR 01** | *Pending* | *Awaiting next eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 02** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 03** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 04** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 05** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 06** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 07** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 08** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 09** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
-| **PR 10** | *Pending* | *Awaiting eligible PR* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
+| Slot | PR # | Title & Platform | Change Class | Merged SHA | Reviewed source HEAD | AC Evidence | Review Provenance | Verdict | Findings (P0/P1/P2/P3) | Rework & Revalidation | Check Results | Downstream Regression |
+|:---:|:---:|---|---|:---:|:---:|---|---|:---:|---|---|---|---|
+| **PR 01** | [#660](https://github.com/im-tnyx/tio-world/pull/660) | Flutter direct Move UX | UI / Routing | `6dee84bfd018e13a7f8674560c07f719cfb0f5e9` | `b0c9cd13d98cfff383921f26f3c0c74fbfa21f7a` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/1/0 (inline only, resolved) | P2 app-route test fix; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 02** | [#661](https://github.com/im-tnyx/tio-world/pull/661) | Existing Program Undo | UI / Routing | `16dbb6dbee51035280bfa8dec97153273cd764be` | `07b86b4f33736810e3bc7960b352015472868e32` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/5/1 (inline only, resolved) | 6 inline fixes; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 03** | [#663](https://github.com/im-tnyx/tio-world/pull/663) | Manual mobile QA build | CI / Tooling | `9811086ed05db877ffc619fddea4fde284299f42` | `19ccf3f5ccd77feb24d27bcb6b274d5fc3dc261c` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/0/1 (inline only, resolved) | P3 handoff fix; artifact QA unrun; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 04** | [#664](https://github.com/im-tnyx/tio-world/pull/664) | Atomic Create+Move full Undo | Supabase / RPC | `9805ee1b58f38d04e5b692aa049ef9e280bcf850` | `72ddd28168c15c415c63c8e641242fee6b8c4420` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/2/1/2 (inline only, resolved) | 5 resolved threads; hosted QA unrun; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 05** | [#665](https://github.com/im-tnyx/tio-world/pull/665) | Flutter full Undo integration | UI / Repository | `19703d794b9593a104ccd3cf2b8f86ea2b634dd8` | `80a62755e222a2eabf7a490355a9ceab0c085aad` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/1/0 (inline only, resolved) | P2 UNKNOWN receipt fix; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 06** | [#668](https://github.com/im-tnyx/tio-world/pull/668) | Account Settings route extraction | UI / Routing | `69f4e8643e22a9c96c47e0b99ed4c525a119f99e` | `f8527b699c12ca931b11fb02445d6b3cec64f1df` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/0/0 (inline only, resolved) | No inline root; other channels not zero-certified; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 07** | [#673](https://github.com/im-tnyx/tio-world/pull/673) | Move RPC ACL CI tests | CI / Supabase tests | `c0c90caa9a092ebd1572e7ad96f76aeac39eed34` | `734ca15cc8f74e8e705a38a8cb9478fe71e8d67a` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/1/1 (inline only, resolved) | P2/P3 fixes; disposable DB CI; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 08** | [#674](https://github.com/im-tnyx/tio-world/pull/674) | Protected Move RPC grant | Supabase / Security | `9e883c690fc5ca84f2f00e32c0b1489664dd1d1c` | `6c782981f3d076dc1a615b7399017f2d8be5679a` | **Partial / not exhaustively mapped** | im-tio | APPROVED | 0/0/1/0 (inline only, resolved) | P2 preflight fix; hosted JWT QA unrun; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 09** | [#676](https://github.com/im-tnyx/tio-world/pull/676) | Opt-in release-candidate gate | UI / CI | `74f3ebd42a0a388eb817d86de75a1db8b518f335` | `9a51d213f8d720e1b146249e3295e0ce921d2e63` | **Partial / not exhaustively mapped** | author self-review | COMMENTED | 0/0/1/1 (inline only, resolved) | P2/P3 fixes; no independent APPROVED; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
+| **PR 10** | [#677](https://github.com/im-tnyx/tio-world/pull/677) | Hosted QA authorization runbook | Governance Process | `cf73c051e85b17d5e38c83569f4c164da5d60f02` | `968d1f252c304d77b5f0568d384569e342ffcbd4` | **Partial / not exhaustively mapped** | author self-review | COMMENTED | 0/0/1/0 (inline only, resolved) | P2 historical-status fix; hosted QA unrun; rework-commit count Unknown | Prior #596 ledger: attribution + docs hygiene SUCCESS at HEAD; requiredness not independently verified here | In observation (7-day window open) |
 
-*Note on dynamic tracking:* Each slot will be populated dynamically in the GitHub #596 issue tracker thread as PRs merge.
+*Evidence boundary:* This is a bounded 2026-10-25 snapshot of the [GitHub #596 first 10-PR cohort audit](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6393903470), cross-checked against the 10 actual GitHub review/inline-thread sets and changed-path lists. Counts are **deduplicated severity-tagged inline roots only**; all-channel findings and post-review rework-commit counts are not yet normalized. Source HEAD means reviewed PR tip, not squash merge SHA. Different GitHub account is **not** proof of a different human reviewer. None of the 10 168-hour post-merge windows had matured as of this snapshot; no final regression or quality-uplift rate may be computed.
 
 ### 7. Post-Boundary PR Audit & Cohort Entry Log
 
@@ -252,7 +252,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 |:---:|:---:|---|:---:|---|
 | [PR #658](https://github.com/im-tnyx/tio-world/pull/658) | 2026-10-23T09:14:18Z<br>`6a4e113b` | `.ai/tasks/issue-596-d1-measurement-plan.md`<br>`.ai/tasks/README.md` | **EXCLUDED**<br>(Measurement Framework Setup) | PR #658 introduced the D1 measurement framework itself under #596. Touched paths are limited to `.ai/tasks/**` task brief setup. It does not alter production runtime code, shared architecture contracts (`docs/architecture/**`), testing guides (`TESTING_GUIDE.md`), or repository rules (`AGENTS.md`, `.ai/FEATURE_DEVELOPMENT.md`). Including the measurement setup PR within its own observed cohort of measured engineering PRs would introduce self-measurement circularity. |
 
-*Cohort Status:* Slots 1 through 10 remain pending for subsequent eligible substantive PRs merged after boundary `21286e78`.
+*Cohort Status:* All 10 consecutive substantive slots were filled with PRs #660, #661, #663, #664, #665, #668, #673, #674, #676 and #677 (2026-10-23 through 2026-10-24 UTC). Subsequent #678/#679/#680 and newer PRs are outside the **fixed** first cohort. The earliest 168-hour window closes 2026-10-30T12:16:57Z and the latest closes 2026-10-31T17:31:09Z. Unknown evidence must remain Unknown.
 
 ---
 
@@ -268,7 +268,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | **AC-06** | Existing approved owner gates, visual preservation, source-of-truth precedence, strict tenant/privacy controls, required CI and attribution guard are preserved. | **Verified** | Verified across B1 and C1 PRs; no security, UI, or owner approval gates were weakened or bypassed. | None. Core guardrails preserved. |
 | **AC-07** | Any needed CI automation, tests, tooling or ruleset changes are tracked as separate approved child work and linked here. | **Verified (Separate Scope Preserved)** | No dedicated child CI automation was required or introduced for #596. Docs Hygiene CI (PR #652/#653) belongs to separate Issue #250. Separate scopes (#250, #571, #580) were strictly preserved. | None. No conflated child work. |
 | **AC-08** | Applicable docs-only checks (at minimum `git diff --check`) actually run for the eventual process-doc PR; its PR contains changed-file audit, independent review findings, evidence and limitations. | **Verified for #596 PRs** | PRs #631, #632, #633, #634, and #658 executed exact-HEAD `git diff --check` (exit 0), included scope audits, and recorded review provenance (`im-tio`). (PR #652 excluded as it belongs to #250). | None for merged PRs; will apply to this post-merge reconciliation PR as well. |
-| **AC-09** | 10-PR measurement plan is documented with observable sources and an explicit point of review; do not claim uplift until observed. | **Plan: Verified / Cohort: In Progress** | D1 prospective measurement plan is established and merged in PR #658 (`main@6a4e113b`). The 10 PR cohort is awaiting prospective observation. | **Gap:** Observation of the 10 prospective PRs and subsequent uplift analysis must occur before criterion is fully completed; parent #596 remains OPEN. |
+| **AC-09** | 10-PR measurement plan is documented with observable sources and an explicit point of review; do not claim uplift until observed. | **Plan: Verified / Cohort: In Progress** | D1 prospective measurement plan is established and merged in PR #658 (`main@6a4e113b`). The 10 eligible substantive PRs are selected and recorded; their 7-day observation windows and exhaustive evidence normalization are unfinished. | **Gap:** Observation of the 10 prospective PRs and subsequent uplift analysis must occur before criterion is fully completed; parent #596 remains OPEN. |
 
 ---
 
@@ -326,10 +326,10 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 Establishes the canonical execution contract for GitHub #596 Slice D1: Option 1 Strict Prospective Cohort. Defines cohort boundaries, eligibility, ledger schema, metric formulas, review checkpoint at PR #10, and reconciles parent acceptance criteria AC-01 through AC-09.
 
 ### Known Limitations
-- The 10 PR cohort is prospective; actual metrics cannot be computed until 10 eligible substantive PRs merge.
+- All 10 eligible substantive PRs have merged and are fixed. 8/10 distinct-GitHub-account APPROVED verdicts and 20 resolved inline severity-tagged roots (P0=0, P1=2, P2=12, P3=6) are a preliminary **partial** checkpoint only; no all-channel finding yield, review-caused revalidation rate, exact independent-person rate or final regression rate is supported yet.
 - Multi-agent handoff edge scenarios (C0-S01..S06) are observed only as they naturally occur in the cohort, not as a synthetic stress drill.
 - Parent #596 remains OPEN and acceptance checkboxes remain unchecked until live measurement completes.
 
 ### Final Status
 **`PASS`** (D1 measurement plan implementation merged into `main@6a4e113b06bc714039199f94d38ce59e4e0515b7` via PR #658 with `im-tio` APPROVED review and all CI green; post-merge synchronization complete).
-**Measurement phase:** **`ACTIVE`** (Prospective measurement active for next 10 consecutive eligible PRs; parent #596 remains OPEN).
+**Measurement phase:** **`ACTIVE`** (first 10 consecutive eligible PRs selected; evidence normalization and all 10 seven-day regression windows remain in progress; parent #596 stays OPEN). Historical **`PASS`** above certifies the original *plan PR #658* only, not the final cohort outcome.
