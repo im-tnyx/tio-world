@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -82,6 +83,41 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         mealCategoriesRepository: ref.watch(mealCategoriesRepositoryProvider),
         mealTextParseRepository: ref.watch(mealTextParseRepositoryProvider),
       ),
+    );
+  }
+
+  if (branch.tab == ShellTab.progress) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final authAsync = ref.watch(authSessionStateProvider);
+        final auth = authAsync.isLoading || authAsync.hasError
+            ? null
+            : authAsync.valueOrNull;
+        final bootstrap =
+            ref.watch(appSessionBootstrapControllerProvider).state;
+        final client = ref.watch(supabaseClientProvider);
+        final valid = auth is AuthSessionAuthenticated &&
+            bootstrap is AppSessionBootstrapReady &&
+            bootstrap.userId == auth.session.userId &&
+            client?.auth.currentUser?.id == auth.session.userId;
+        if (!valid) {
+          // Fail closed while a session is loading, stale or signed out.
+          return const Center(
+            child: Text('Sign in to see your Weight progress.'),
+          );
+        }
+        final unit = ref.watch(profileDataProvider)
+                .valueOrNull
+                ?.unitPreferences
+                .weightUnit ??
+            WeightUnit.kg;
+        return ProgressWeightPage(
+          key: ValueKey(auth.session.loginCycleId),
+          sessionKey: auth.session.loginCycleId,
+          repository: ref.watch(bodyRepositoryProvider),
+          unit: unit,
+        );
+      },
     );
   }
 
