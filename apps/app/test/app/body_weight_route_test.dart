@@ -294,6 +294,19 @@ class _FakeBodyRepository implements BodyRepository {
   }
 
   @override
+  Future<BodyWeightHistoryPage> getWeightHistory(
+    BodyWeightHistoryQuery query,
+  ) async => throw UnsupportedError('Not used by this test.');
+
+  @override
+  Future<bool> updateWeightLog(BodyWeightLogEdit edit) async =>
+      throw UnsupportedError('Not used by this test.');
+
+  @override
+  Future<bool> deleteWeightLog(String id) async =>
+      throw UnsupportedError('Not used by this test.');
+
+  @override
   Future<void> setActiveBodyGoal(BodyGoalUpdate update) async {
     writes.add(update);
   }
