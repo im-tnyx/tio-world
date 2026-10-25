@@ -182,6 +182,37 @@ void main() {
         ProgramDeleteFailureKind.unauthorized);
   });
 
+  test('account switch during dispatch becomes UNKNOWN without old-owner refresh',
+      () async {
+    late final _FakeVersionedRoutines routines;
+    final gate = ProgramDeleteAttemptGate();
+    final deleteRepository = _FakeDeleteRepository(
+      attemptGate: gate,
+      onDelete: () async {
+        routines.switchSession(owner: _otherOwner, cycle: _otherCycle);
+        return _success(moved: 1);
+      },
+    );
+    routines = _FakeVersionedRoutines([_snapshot(_routineOne)]);
+    final refreshes = <ProgramDeleteRefreshRequest>[];
+    final controller = _controller(
+      programs: _FakePrograms([_program()]),
+      routines: routines,
+      deleteRepository: deleteRepository,
+      attemptGate: gate,
+      refreshes: refreshes,
+    );
+    addTearDown(controller.dispose);
+
+    expect(await controller.prepare(_source), isTrue);
+    final state = await controller.confirm(clientMutationId: _mutationOne);
+    expect(state.status, ProgramDeleteOperationStatus.unknown);
+    expect(state.unknown?.reason, ProgramDeleteUncertainty.sessionChanged);
+    expect(refreshes, isEmpty);
+    expect(deleteRepository.writes, 1);
+    expect(await controller.prepare(_source), isFalse);
+  });
+
   test('pending Create and pending Edit/Move block preparation', () async {
     final pendingCommand = _createCommand();
     final pending = RoutinePendingCreateGate()
