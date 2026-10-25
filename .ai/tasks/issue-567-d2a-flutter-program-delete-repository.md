@@ -17,21 +17,21 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Review owner:** Independent reviewer after PR creation
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
-**Observed working-tree state:** Clean at branch creation, fsmonitor IPC warning only
-**Observed uncommitted/dirty files:** None at branch creation
-**PR / tracker:** GitHub #567 OPEN; merged D1 PR #678; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
-**Current implementation state:** Architecture audit complete; D1 brief reconciled as stale; source implementation pending
+**HEAD SHA:** `065ca306aa83cab84730c430bec5dcf13aa65ea6`
+**Observed working-tree state:** Clean after commit/push; fsmonitor IPC warning only
+**Observed uncommitted/dirty files:** None
+**PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
+**Current implementation state:** Dormant typed repository, gateway, exports and focused tests implemented; D1 brief reconciled
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
-**Validation completed at SHA:** Historical D1 SQL/ACL evidence is at merged PR #678 and is not current D2A validation
-**Validation remaining:** `dart format`, focused `flutter test`, `flutter analyze`, `git diff --check`
+**Validation completed at SHA:** D2A local formatter, Flutter package analyzer, focused 11-test suite, and `git diff --check` passed at `065ca306aa83cab84730c430bec5dcf13aa65ea6`
+**Validation remaining:** GitHub PR #681 checks and independent review; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
 **Open review finding IDs:** None yet
-**Next exact action:** Implement dormant typed repository and focused security/UNKNOWN tests without production wiring.
+**Next exact action:** Await independent review and current PR checks; do not merge or activate production capability.
 
 ## 1. Discovery
 
@@ -97,19 +97,27 @@ This is a non-UI capability. `unauthorized`, `forbidden`, `notFound`, `defaultPr
 
 ## 5. Implementation Plan
 
-- [ ] Add typed domain target/result/failure/UNKNOWN contract.
-- [ ] Add non-retrying Supabase RPC gateway and owner/login-cycle adapter.
-- [ ] Keep capability absent from production composition and feature activation paths.
-- [ ] Add focused mock-gateway and SDK-shape tests.
-- [ ] Run formatter, analyzer, focused tests, and diff checks.
-- [ ] Update this handoff with exact validation SHA and review state.
+- [x] Add typed domain target/result/failure/UNKNOWN contract.
+- [x] Add non-retrying Supabase RPC gateway and owner/login-cycle adapter.
+- [x] Keep capability absent from production composition and feature activation paths.
+- [x] Add focused mock-gateway and SDK-shape tests.
+- [x] Run formatter, analyzer, focused tests, and diff checks.
+- [x] Update this handoff with exact validation SHA and review state.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+`G:\dev\flutter-sdk\bin\cache\dart-sdk\bin\dart.exe format --output=none --set-exit-if-changed ...` — PASS.
+
+Flutter tool `analyze` for `apps/features/workout` — PASS, `No issues found!`.
+
+Focused Flutter test `test/data/supabase_program_delete_repository_test.dart` — PASS, 11/11.
+
+`git diff --check origin/main...HEAD` — PASS.
+
+Parent-to-head audit — PASS: `origin/main` is an ancestor; one task commit; eight owned files.
 ```
 
 ### Review Provenance
@@ -124,11 +132,18 @@ Not run yet.
 
 ### Changed Files
 
-To be populated after implementation.
+- `.ai/tasks/README.md`
+- `.ai/tasks/issue-567-d1-atomic-program-delete.md`
+- `.ai/tasks/issue-567-d2a-flutter-program-delete-repository.md`
+- `apps/features/workout/lib/src/data/data.dart`
+- `apps/features/workout/lib/src/data/repositories/supabase_program_delete_repository.dart`
+- `apps/features/workout/lib/src/domain/repositories/program_delete_repository.dart`
+- `apps/features/workout/lib/src/domain/repositories/repositories.dart`
+- `apps/features/workout/test/data/supabase_program_delete_repository_test.dart`
 
 ### Actual Behavior
 
-To be populated after implementation and tests.
+The repository accepts only an explicit owner/login-cycle-bound Program target and complete Routine-ID snapshot, sends the exact D1 RPC once with SDK retry disabled, validates the three-field JSONB receipt, maps known rejection/permission errors, and freezes definite/ambiguous attempts. A timeout, session change, or malformed success response remains `UNKNOWN`; no source read is treated as proof and no destructive retry is issued.
 
 ### Known Limitations
 
@@ -136,4 +151,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW`
+`REVIEW` — source-only PR #681 is open for independent review and merge-gate evaluation; no merge or production activation.
