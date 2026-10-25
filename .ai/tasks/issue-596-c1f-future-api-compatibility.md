@@ -1,6 +1,6 @@
 # GitHub #596 C1F — Change-Time Future API Compatibility Review
 
-**Status:** In progress (docs-only branch, merge not authorized)
+**Status:** In review ([PR #679](https://github.com/im-tnyx/tio-world/pull/679) OPEN, merge not authorized)
 **Owner:** Repository AI Governance (single Implementation owner for this slice)
 **Affected platforms:** Engineering process only; current Flutter/Supabase runtime unchanged
 
@@ -21,7 +21,7 @@
 **Branch:** `docs/issue-596-c1f-compatibility-review-20261025`
 **Source base:** GitHub protected `main@37f738c4a6788e3e997f1ab3938a2f6541f3644c` (2026-10-25, PR #678 already merged). GitHub compare returned identical with current main before branch creation.
 **Local worktree:** Not available in this connector runtime; `git status --short --branch` cannot be run on the owner's Windows checkout. GitHub branch/commit/file-set audit plus actual Docs Hygiene CI are required substitutes, not a claim of local validation.
-**Validation status:** Pending scoped diff + exact-HEAD required checks and review. No completed validation claimed by this brief.
+**Validation checkpoint:** PR #679 source HEAD `f69e5e4e3b42e4ef7819e732f3b5724b8a8831ec` (before this handoff refresh) passed exact-HEAD GitHub Docs Hygiene [run #40165731060](https://github.com/im-tnyx/tio-world/actions/runs/40165731060), required Commit attribution guard and Attribution guard runner. Docs Hygiene job #121086271352 log explicitly ran `git diff --check "$BASE_SHA...$PR_HEAD_SHA" -- .ai/ docs/ .github/workflows/docs-hygiene-ci.yml` and printed `PASS: documentation diff hygiene`, with verified base `37f738c4...` and PR head `f69e5e4...`. This handoff refresh creates a **new** source HEAD, so fresh exact-HEAD checks and review must be reverified; the earlier checkpoint is historical, not transferable.
 
 ## 1. Discovery
 
@@ -60,9 +60,9 @@ In-scope planned files:
 
 ## 5. Quality Review and Final Handoff
 
-- Verify exact changed-file set and branch relation to main using GitHub API.
+- GitHub compared PR #679 to `main`: 3 ahead / 0 behind and exactly the 3 listed Markdown paths (verified at checkpoint `f69e5e4...`). Source/merged status on GitHub remains OPEN and not merged.
 - Require actual scoped `git diff --check` evidence from Docs Hygiene CI on the *final PR HEAD*; local Windows Git/Flutter/database checks were not executed by this assistant.
 - Applicable acceptance: policy wording and examples mapped to the source references above; no runtime behavior to device-test in this docs-only PR.
-- Record exact final-HEAD checks, review relationship/state, findings and any unavailable evidence in PR/tracker before any completion claim.
+- Reverify new final-HEAD checks following this handoff update; then record exact HEAD, review relationship/state, findings and any unavailable evidence in PR/tracker before any completion claim.
 - Do not merge, close #596, or assert production API/hosted JWT coverage.
 - **Current final status:** `REVIEW` (implementation/CI/review pending, no validation completion claimed).
