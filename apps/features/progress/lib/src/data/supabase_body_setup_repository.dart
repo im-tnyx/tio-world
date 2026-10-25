@@ -3,6 +3,96 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/body_setup.dart';
 import 'body_state_row_mapper.dart';
 
+
+/// Narrow, injectable transport for auth-cycle races in A1. Production still
+/// queries the canonical body_weight_logs table, never a second data owner.
+/// No custom HTTP backend, privileged key, or Storage access is introduced.
+abstract interface class BodyWeightLogTransport {
+  Future<List<Map<String, dynamic>>> list({
+    required String userId,
+    required BodyWeightHistoryQuery query,
+  });
+
+  Future<bool> update({
+    required String userId,
+    required BodyWeightLogEdit edit,
+  });
+
+  Future<bool> delete({
+    required String userId,
+    required String id,
+  });
+}
+
+final class _SupabaseBodyWeightLogTransport implements BodyWeightLogTransport {
+  const _SupabaseBodyWeightLogTransport(this._client);
+
+  final SupabaseClient _client;
+
+  @override
+  Future<List<Map<String, dynamic>>> list({
+    required String userId,
+    required BodyWeightHistoryQuery query,
+  }) async {
+    final from = query.fromInclusive.toUtc().toIso8601String();
+    final to = query.toExclusive.toUtc().toIso8601String();
+    var rowsQuery = _client
+        .from('body_weight_logs')
+        .select('id, weight_kg, measured_at, source')
+        .eq('user_id', userId)
+        .gte('measured_at', from)
+        .lt('measured_at', to);
+
+    final cursor = query.before;
+    if (cursor != null) {
+      // UUID validation disallows filter injection; UTC ISO has no commas.
+      final instant = cursor.measuredAt.toUtc().toIso8601String();
+      rowsQuery = rowsQuery.or(
+        'measured_at.lt.$instant,'
+        'and(measured_at.eq.$instant,id.lt.${cursor.id})',
+      );
+    }
+
+    return await rowsQuery
+        .order('measured_at', ascending: false)
+        .order('id', ascending: false)
+        .limit(query.limit + 1);
+  }
+
+  @override
+  Future<bool> update({
+    required String userId,
+    required BodyWeightLogEdit edit,
+  }) async {
+    final updated = await _client
+        .from('body_weight_logs')
+        .update({
+          'weight_kg': edit.weightKg,
+          'measured_at': edit.measuredAt.toUtc().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('id', edit.id)
+        .select('id')
+        .maybeSingle();
+    return updated != null;
+  }
+
+  @override
+  Future<bool> delete({
+    required String userId,
+    required String id,
+  }) async {
+    final deleted = await _client
+        .from('body_weight_logs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    return deleted != null;
+  }
+}
+
 /// Supabase implementation of the canonical Body owner.
 ///
 /// `body_weight_logs` owns current-weight history and `user_body_goals` owns
@@ -14,10 +104,12 @@ class SupabaseBodySetupRepository implements BodyRepository {
     BodyStateRowMapper stateMapper = const BodyStateRowMapper(),
     String? weightLoginCycleId,
     String? Function()? currentWeightLoginCycleId,
+    BodyWeightLogTransport? weightLogTransport,
   })  : _client = client,
         _stateMapper = stateMapper,
         _weightLoginCycleId = weightLoginCycleId,
-        _currentWeightLoginCycleId = currentWeightLoginCycleId;
+        _currentWeightLoginCycleId = currentWeightLoginCycleId,
+        _weightLogTransport = weightLogTransport;
 
   final SupabaseClient _client;
   final BodyStateRowMapper _stateMapper;
@@ -28,6 +120,10 @@ class SupabaseBodySetupRepository implements BodyRepository {
   // supplies a *live* getter; a UID alone cannot detect A -> B -> A re-login.
   final String? _weightLoginCycleId;
   final String? Function()? _currentWeightLoginCycleId;
+  final BodyWeightLogTransport? _weightLogTransport;
+
+  BodyWeightLogTransport get _historyTransport =>
+      _weightLogTransport ?? _SupabaseBodyWeightLogTransport(_client);
 
   String _requireUserId() {
     final userId = _client.auth.currentUser?.id;
@@ -115,29 +211,10 @@ class SupabaseBodySetupRepository implements BodyRepository {
     }
 
     final cycle = _requireWeightSession(userId);
-    final from = query.fromInclusive.toUtc().toIso8601String();
-    final to = query.toExclusive.toUtc().toIso8601String();
-    var rowsQuery = _client
-        .from('body_weight_logs')
-        .select('id, weight_kg, measured_at, source')
-        .eq('user_id', userId)
-        .gte('measured_at', from)
-        .lt('measured_at', to);
-
-    final cursor = query.before;
-    if (cursor != null) {
-      // UUID validation disallows filter injection; UTC ISO has no commas.
-      final instant = cursor.measuredAt.toUtc().toIso8601String();
-      rowsQuery = rowsQuery.or(
-        'measured_at.lt.$instant,'
-        'and(measured_at.eq.$instant,id.lt.${cursor.id})',
-      );
-    }
-
-    final rows = await rowsQuery
-        .order('measured_at', ascending: false)
-        .order('id', ascending: false)
-        .limit(query.limit + 1);
+    final rows = await _historyTransport.list(
+      userId: userId,
+      query: query,
+    );
     _requireWeightSession(userId, expectedCycle: cycle);
 
     final hasMore = rows.length > query.limit;
@@ -158,18 +235,9 @@ class SupabaseBodySetupRepository implements BodyRepository {
     final userId = _requireUserId();
     edit.validate();
     final cycle = _requireWeightSession(userId);
-    final updated = await _client
-        .from('body_weight_logs')
-        .update({
-          'weight_kg': edit.weightKg,
-          'measured_at': edit.measuredAt.toUtc().toIso8601String(),
-        })
-        .eq('user_id', userId)
-        .eq('id', edit.id)
-        .select('id')
-        .maybeSingle();
+    final updated = await _historyTransport.update(userId: userId, edit: edit);
     _requireWeightSession(userId, expectedCycle: cycle);
-    return updated != null;
+    return updated;
   }
 
   @override
@@ -177,15 +245,9 @@ class SupabaseBodySetupRepository implements BodyRepository {
     final userId = _requireUserId();
     BodyWeightLogIds.requireValid(id);
     final cycle = _requireWeightSession(userId);
-    final deleted = await _client
-        .from('body_weight_logs')
-        .delete()
-        .eq('user_id', userId)
-        .eq('id', id)
-        .select('id')
-        .maybeSingle();
+    final deleted = await _historyTransport.delete(userId: userId, id: id);
     _requireWeightSession(userId, expectedCycle: cycle);
-    return deleted != null;
+    return deleted;
   }
 
   String _requireWeightSession(String userId, {String? expectedCycle}) {
