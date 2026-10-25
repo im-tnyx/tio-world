@@ -212,6 +212,92 @@ final routineMoveDeleteAttemptGateProvider =
   (ref) => RoutineMoveDeleteAttemptGate(),
 );
 
+/// Shared D2A Program Delete attempt gate. The controller/repository remain
+/// dormant: no production Program surface reads the controller provider yet.
+final programDeleteAttemptGateProvider = Provider<ProgramDeleteAttemptGate>(
+  (ref) => ProgramDeleteAttemptGate(),
+);
+
+/// Owner/login-cycle-bound D2A Program Delete adapter. Hosted D1 deployment
+/// and client EXECUTE permission are separate release gates; this provider is
+/// not injected into a production action or UI in D2B.
+final programDeleteRepositoryProvider =
+    Provider<SupabaseProgramDeleteRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null : sessionAsync.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id ||
+      (auth.session.loginCycleId?.trim().isEmpty ?? true)) {
+    return null;
+  }
+  final owner = auth.session.userId;
+  final cycle = auth.session.loginCycleId!;
+  return SupabaseProgramDeleteRepository.fromClient(
+    client: client,
+    attemptGate: ref.watch(programDeleteAttemptGateProvider),
+    currentLoginCycleId: () {
+      try {
+        final current = ref.read(authSessionStateProvider);
+        final currentAuth = current.isLoading || current.hasError
+            ? null : current.valueOrNull;
+        if (currentAuth is AuthSessionAuthenticated &&
+            currentAuth.session.userId == owner &&
+            currentAuth.session.loginCycleId == cycle &&
+            client.auth.currentUser?.id == owner) {
+          return cycle;
+        }
+      } catch (_) {
+        // Revoked/disposed auth must revoke the captured adapter.
+      }
+      return null;
+    },
+  );
+});
+
+/// Dormant D2B controller composition. No current Program surface injects this
+/// provider; a future confirmed action must opt in explicitly. Refresh is
+/// delegated to the existing owner/cycle-scoped signal so ProgramsController
+/// and ProgramRoutinesController remain the authoritative readers.
+final programDeleteControllerProvider =
+    Provider<ProgramDeleteController?>((ref) {
+  final programs = ref.watch(programRepositoryProvider);
+  final routineRepository = ref.watch(routineRepositoryProvider);
+  final deleteRepository = ref.watch(programDeleteRepositoryProvider);
+  if (programs == null ||
+      routineRepository is! RoutineVersionedRenameRepository ||
+      deleteRepository == null) {
+    return null;
+  }
+  final routines = routineRepository as RoutineVersionedRenameRepository;
+  final signal = ref.read(routineMoveRefreshSignalProvider);
+  final controller = ProgramDeleteController(
+    programs: programs,
+    routines: routines,
+    deleteRepository: deleteRepository,
+    attemptGate: ref.watch(programDeleteAttemptGateProvider),
+    pendingCreateGate: ref.watch(routinePendingCreateGateProvider),
+    routineOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
+    refresh: (request) async {
+      final sessionAsync = ref.read(authSessionStateProvider);
+      final auth = sessionAsync.isLoading || sessionAsync.hasError
+          ? null : sessionAsync.valueOrNull;
+      if (auth is AuthSessionAuthenticated &&
+          auth.session.userId == request.ownerId &&
+          auth.session.loginCycleId == request.loginCycleId) {
+        signal.request(
+          ownerId: request.ownerId,
+          loginCycleId: request.loginCycleId,
+          programsMayHaveChanged: true,
+        );
+      }
+    },
+  );
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
 /// Shared across all Routine Move routes, owners and login cycles.
 final routineMoveAttemptGateProvider = Provider<RoutineMoveAttemptGate>(
   (ref) => RoutineMoveAttemptGate(),
