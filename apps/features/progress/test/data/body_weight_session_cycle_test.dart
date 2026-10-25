@@ -228,8 +228,10 @@ void main() {
 
     liveCycle = 'C1';
     client.authState.user = null;
-    await expectLater(() => repo.getWeightHistory(_range()),
-        completion(isA<BodyWeightHistoryPage>()));
+    await expectLater(
+      repo.getWeightHistory(_range()),
+      completion(isA<BodyWeightHistoryPage>()),
+    );
     await expectLater(() => repo.updateWeightLog(_edit()), throwsStateError);
   });
 
