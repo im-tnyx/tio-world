@@ -73,6 +73,23 @@ void main() {
     });
   }
 
+  testWidgets(
+    'Progress root retains shell and fails closed without Supabase owner identity',
+    (tester) async {
+      final fixture = await _pumpSettingsRoute(
+        tester,
+        initialPath: FeatureRoutes.progress.path,
+      );
+      expect(
+        fixture.router.routeInformationProvider.value.uri.path,
+        FeatureRoutes.progress.path,
+      );
+      expect(find.byType(TioShellPlaceholder), findsNothing);
+      expect(find.text('Sign in to see your Weight progress.'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    },
+  );
+
   test('bottom navigation is limited to main tab root routes', () {
     for (final branch in shellBranchRegistry) {
       expect(

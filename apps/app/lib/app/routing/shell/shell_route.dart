@@ -96,11 +96,10 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         final bootstrap =
             ref.watch(appSessionBootstrapControllerProvider).state;
         final client = ref.watch(supabaseClientProvider);
-        final valid = auth is AuthSessionAuthenticated &&
-            bootstrap is AppSessionBootstrapReady &&
-            bootstrap.userId == auth.session.userId &&
-            client?.auth.currentUser?.id == auth.session.userId;
-        if (!valid) {
+        if (auth is! AuthSessionAuthenticated ||
+            bootstrap is! AppSessionBootstrapReady ||
+            bootstrap.userId != auth.session.userId ||
+            client?.auth.currentUser?.id != auth.session.userId) {
           // Fail closed while a session is loading, stale or signed out.
           return const Center(
             child: Text('Sign in to see your Weight progress.'),

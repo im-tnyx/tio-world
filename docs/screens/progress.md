@@ -8,13 +8,13 @@ Truth Boundary: Authoritative for Progress screen product contract and intended 
 **Surface:** Phone primary tab in Workout, Nutrition, and Hybrid App Modes
 **Current route:** `/progress`
 **Primary owner:** `apps/features/progress`; `apps/app` owns shell/routing composition
-**Current runtime status:** Shared placeholder, not an implemented Weight dashboard or media flow.
+**Runtime in this A2 revision:** Read-only owner-backed Weight summary, actual-data selected-range chart and paginated History. Log Weight and Edit/Delete UI are deferred; Body/Health/Photos are not activated.
 
 ## Purpose
 
 Show meaningful, honest change over time without taking ownership of workout, nutrition, profile, Body Goal, or recovery truth. Progress reads the appropriate owning domains and must not fabricate missing or stale indicators.
 
-## Progress information architecture (target, not current UI)
+## Progress information architecture (Weight active; other lanes future)
 
 The owner-directed structure is:
 
@@ -26,7 +26,7 @@ Progress
 └─ Photos             // separate Slice B
 ```
 
-Do not treat this structure as authorization to render inactive tabs, route into placeholder details, or redesign the existing shell. The supplied Weight references establish **content order and interactions**, not unverified pixel dimensions, fonts, colors, spacing, or a reusable component redesign. Preserve current Tio theme, navigation and component ownership. Product-visible changes require the relevant approved implementation slice.
+Do not treat this structure as authorization to render inactive tabs, route into placeholder details, or redesign the existing shell. A2 activates only Weight content at the existing /progress branch root. The supplied Weight references establish **content order and interactions**, not unverified pixel dimensions, fonts, colors, spacing, or a reusable component redesign. Preserve current Tio theme, navigation and component ownership. Product-visible changes require the relevant approved implementation slice.
 
 Future non-Weight Progress content can include workout consistency, nutrition adherence, achievements, and recovery summaries only once the source feature provides approved, dated, user-owned read contracts. A Recovery indicator must be identified as a summary, not inferred from unsupported data.
 
@@ -98,7 +98,7 @@ Before Slice B, separately approve and audit exact schema/bucket/path/MIME/limit
 
 - **D0 (GitHub #686):** docs-only contract reconciliation and compact execution handoff. No Flutter, RLS, Storage or migration changes.
 - **A1:** owner-backed Weight history/list/pagination and exact-ID edit/delete repository contracts with focused access/ordering tests. Reconcile measurement source and timezone-policy questions.
-- **A2:** approved Progress Weight summary, actual-data chart and History using existing theme/navigation; keep unsupported Body/Health/Photos surfaces inactive.
+- **A2:** read-only Progress Weight summary, actual-data range chart and paginated History at /progress, with session/owner gate in app composition and no active Log/Edit actions. Current Weight is derived from A1 History up to captured UTC now; goal is read from the existing BodyState active goal only. Scoped tests and PR review gate apply.
 - **A3:** approved Log Weight bottom sheet, date/time + `kg`/`lb` handling, manual persistence, duplicate-submit and error-state tests.
 - **A4:** exact-record Edit/Delete interactions and device/accessibility/regression QA.
 - **Slice B/C:** separately approved private Progress Photos and conditional physical-media identity, following new Storage/privacy audits.
