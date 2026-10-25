@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 
+import 'auth_providers.dart';
 import 'runtime_providers.dart';
 
 /// Canonical Wellness owner. Production writes only `user_wellness_targets`;

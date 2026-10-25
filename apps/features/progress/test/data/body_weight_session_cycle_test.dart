@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_progress/progress.dart';
-import 'package:tio_feature_progress/src/data/supabase_body_setup_repository.dart';
 
 const _owner = '11111111-1111-4111-8111-111111111111';
 const _other = '22222222-2222-4222-8222-222222222222';
