@@ -21,21 +21,26 @@ ProgramDeleteTarget _target({
   String owner = _owner,
   String cycle = _cycle,
   Iterable<RoutineId> routines = const [],
-}) => ProgramDeleteTarget(
+}) =>
+    ProgramDeleteTarget(
       sourceProgramId: _source,
       expectedRoutineIds: routines,
       ownerId: owner,
       loginCycleId: cycle,
     );
 
-Map<String, dynamic> _success({int moved = 0}) => {
+Map<String, dynamic> _success({
+  int moved = 0,
+  ProgramId? destination,
+}) =>
+    {
       'deleted_program_id': _source.value,
-      'destination_program_id': moved == 0 ? null : _destination.value,
+      'destination_program_id': destination?.value,
       'moved_routine_count': moved,
     };
 
-Matcher _failure(ProgramDeleteFailureKind kind) => isA<ProgramDeleteException>()
-    .having((error) => error.kind, 'kind', kind);
+Matcher _failure(ProgramDeleteFailureKind kind) =>
+    isA<ProgramDeleteException>().having((error) => error.kind, 'kind', kind);
 
 Matcher _unknown(ProgramDeleteUncertainty reason) =>
     isA<ProgramDeleteOutcomeUnknown>()
@@ -65,7 +70,7 @@ void main() {
       httpClient: MockClient((request) async {
         requests.add(request);
         return http.Response(
-          jsonEncode(_success(moved: 2)),
+          jsonEncode(_success(moved: 2, destination: _destination)),
           200,
           headers: {'content-type': 'application/json'},
           request: request,
@@ -167,14 +172,26 @@ void main() {
   });
 
   for (final entry in <(String, String, ProgramDeleteFailureKind)>[
-    ('42501', 'permission denied',
-        ProgramDeleteFailureKind.permissionUnavailable),
-    ('PGRST202', 'function not found',
-        ProgramDeleteFailureKind.permissionUnavailable),
-    ('P0001', 'program_delete_default_forbidden',
-        ProgramDeleteFailureKind.defaultProtected),
-    ('P0001', 'program_delete_membership_conflict',
-        ProgramDeleteFailureKind.staleMembership),
+    (
+      '42501',
+      'permission denied',
+      ProgramDeleteFailureKind.permissionUnavailable
+    ),
+    (
+      'PGRST202',
+      'function not found',
+      ProgramDeleteFailureKind.permissionUnavailable
+    ),
+    (
+      'P0001',
+      'program_delete_default_forbidden',
+      ProgramDeleteFailureKind.defaultProtected
+    ),
+    (
+      'P0001',
+      'program_delete_membership_conflict',
+      ProgramDeleteFailureKind.staleMembership
+    ),
   ]) {
     test('${entry.$2} is definite and never retried', () async {
       final gateway = _FakeProgramDeleteGateway()
@@ -197,7 +214,8 @@ void main() {
     });
   }
 
-  test('successful response with wrong identity/count is UNKNOWN, not rejection',
+  test(
+      'successful response with wrong identity/count is UNKNOWN, not rejection',
       () async {
     final gateway = _FakeProgramDeleteGateway()
       ..onDelete = () async => {
@@ -219,7 +237,81 @@ void main() {
     expect(gateway.writes, 1);
   });
 
-  test('timeout stays UNKNOWN without a missing-source read or retry', () async {
+  test('empty Program accepts an existing canonical default destination',
+      () async {
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async => _success(destination: _destination);
+    final repository = _repository(gateway);
+
+    final result = await repository.delete(
+      target: _target(),
+      clientMutationId: _mutation,
+    );
+
+    expect(result.deletedProgramId, _source);
+    expect(result.destinationProgramId, _destination);
+    expect(result.movedRoutineCount, 0);
+    expect(gateway.writes, 1);
+  });
+
+  test('empty Program accepts a null destination when no default exists',
+      () async {
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async => _success();
+    final repository = _repository(gateway);
+
+    final result = await repository.delete(
+      target: _target(),
+      clientMutationId: _mutation,
+    );
+
+    expect(result.destinationProgramId, isNull);
+    expect(result.movedRoutineCount, 0);
+    expect(gateway.writes, 1);
+  });
+
+  test('definite rejection allows only a fresh target and mutation', () async {
+    var calls = 0;
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async {
+        if (calls++ == 0) {
+          throw const PostgrestException(
+            message: 'program_delete_membership_conflict',
+            code: 'P0001',
+          );
+        }
+        return _success(moved: 2, destination: _destination);
+      };
+    final repository = _repository(gateway);
+    final firstTarget = _target(routines: [_routineOne]);
+
+    await expectLater(
+      repository.delete(target: firstTarget, clientMutationId: _mutation),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+    await expectLater(
+      repository.delete(target: firstTarget, clientMutationId: _mutation),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+    await expectLater(
+      repository.delete(
+        target: firstTarget,
+        clientMutationId: '77777777-7777-4777-8777-777777777777',
+      ),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+
+    final refreshedTarget = _target(routines: [_routineOne, _routineTwo]);
+    final result = await repository.delete(
+      target: refreshedTarget,
+      clientMutationId: '88888888-8888-4888-8888-888888888888',
+    );
+    expect(result.movedRoutineCount, 2);
+    expect(gateway.writes, 2);
+  });
+
+  test('timeout stays UNKNOWN without a missing-source read or retry',
+      () async {
     final gateway = _FakeProgramDeleteGateway()
       ..onDelete = () async => throw TimeoutException('lost ACK');
     final repository = _repository(gateway);
@@ -231,6 +323,28 @@ void main() {
     );
     await expectLater(
       repository.delete(target: target, clientMutationId: _mutation),
+      throwsA(_unknown(ProgramDeleteUncertainty.unconfirmed)),
+    );
+    expect(gateway.writes, 1);
+  });
+
+  test('UNKNOWN blocks a fresh target and mutation without retry', () async {
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async => throw TimeoutException('lost ACK');
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne]),
+        clientMutationId: _mutation,
+      ),
+      throwsA(_unknown(ProgramDeleteUncertainty.unconfirmed)),
+    );
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne, _routineTwo]),
+        clientMutationId: '77777777-7777-4777-8777-777777777777',
+      ),
       throwsA(_unknown(ProgramDeleteUncertainty.unconfirmed)),
     );
     expect(gateway.writes, 1);
@@ -271,6 +385,30 @@ void main() {
     // The adapter sends stable identity only; it never uses a Program name as
     // deletion authority. Server-side default protection is covered above.
     expect(gateway.lastSourceProgramId, _source.value);
+  });
+
+  test('concurrent requests for one Program are single-flight', () async {
+    final server = Completer<Object?>();
+    final gateway = _FakeProgramDeleteGateway()..onDelete = () => server.future;
+    final repository = _repository(gateway);
+    final target = _target(routines: [_routineOne]);
+
+    final first = repository.delete(
+      target: target,
+      clientMutationId: _mutation,
+    );
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineTwo]),
+        clientMutationId: '77777777-7777-4777-8777-777777777777',
+      ),
+      throwsA(_failure(ProgramDeleteFailureKind.inProgress)),
+    );
+    expect(gateway.writes, 1);
+
+    server.complete(_success(moved: 1, destination: _destination));
+    await first;
+    expect(gateway.writes, 1);
   });
 }
 

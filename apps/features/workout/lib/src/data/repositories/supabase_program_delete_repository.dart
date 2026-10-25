@@ -24,16 +24,14 @@ final class SupabaseProgramDeleteGateway implements ProgramDeleteGateway {
     required List<String> expectedRoutineIds,
     required String clientMutationId,
   }) =>
-      _client
-          .rpc<Object?>(
-            'delete_user_workout_program_preserving_routines',
-            params: {
-              'p_source_program_id': sourceProgramId,
-              'p_expected_routine_ids': expectedRoutineIds,
-              'p_client_mutation_id': clientMutationId,
-            },
-          )
-          .retry(enabled: false);
+      _client.rpc<Object?>(
+        'delete_user_workout_program_preserving_routines',
+        params: {
+          'p_source_program_id': sourceProgramId,
+          'p_expected_routine_ids': expectedRoutineIds,
+          'p_client_mutation_id': clientMutationId,
+        },
+      ).retry(enabled: false);
 }
 
 typedef ProgramDeleteCurrentValue = String? Function();
@@ -42,35 +40,71 @@ typedef _Session = ({String owner, String cycle});
 /// Process-local one-use/UNKNOWN guard shared by the app composition owner.
 /// An ambiguous Program Delete has no client-side release path because a
 /// later missing-source read cannot prove that this mutation committed.
+typedef _ProgramDeleteAttempt = ({
+  ProgramDeleteTarget target,
+  String mutationId,
+});
+
 final class ProgramDeleteAttemptGate {
-  final Set<String> _inFlight = {};
-  final Set<String> _consumed = {};
+  final Map<String, _ProgramDeleteAttempt> _inFlight = {};
+  final Map<String, _ProgramDeleteAttempt> _definiteRejections = {};
+  final Set<String> _committed = {};
   final Set<String> _unknown = {};
 
   bool isUnknown(String owner, ProgramId sourceProgramId) =>
       _unknown.contains(_key(owner, sourceProgramId));
 
   bool isInFlight(String owner, ProgramId sourceProgramId) =>
-      _inFlight.contains(_key(owner, sourceProgramId));
+      _inFlight.containsKey(_key(owner, sourceProgramId));
 
-  bool isConsumed(String owner, ProgramId sourceProgramId) =>
-      _consumed.contains(_key(owner, sourceProgramId));
+  bool isCommitted(String owner, ProgramId sourceProgramId) =>
+      _committed.contains(_key(owner, sourceProgramId));
 
-  bool tryStart(String owner, ProgramId sourceProgramId) {
+  /// Starts only a fresh target/mutation pair after a definite rollback.
+  /// Reusing the same target or mutation remains forbidden. UNKNOWN and a
+  /// confirmed commit remain blocked for the owner/Program key.
+  bool tryStart({
+    required String owner,
+    required ProgramId sourceProgramId,
+    required ProgramDeleteTarget target,
+    required String mutationId,
+  }) {
     final key = _key(owner, sourceProgramId);
-    if (_inFlight.contains(key) ||
-        _consumed.contains(key) ||
+    if (_inFlight.containsKey(key) ||
+        _committed.contains(key) ||
         _unknown.contains(key)) {
       return false;
     }
-    _inFlight.add(key);
-    _consumed.add(key);
+    final previous = _definiteRejections[key];
+    if (previous != null &&
+        (identical(previous.target, target) ||
+            previous.mutationId == mutationId)) {
+      return false;
+    }
+    _inFlight[key] = (target: target, mutationId: mutationId);
     return true;
+  }
+
+  void markDefiniteRejection(
+    String owner,
+    ProgramId sourceProgramId,
+    ProgramDeleteTarget target,
+    String mutationId,
+  ) {
+    final key = _key(owner, sourceProgramId);
+    if (_inFlight.containsKey(key)) {
+      _definiteRejections[key] = (target: target, mutationId: mutationId);
+    }
+  }
+
+  void markCommitted(String owner, ProgramId sourceProgramId) {
+    final key = _key(owner, sourceProgramId);
+    if (_inFlight.containsKey(key)) _committed.add(key);
   }
 
   void markUnknown(String owner, ProgramId sourceProgramId) {
     final key = _key(owner, sourceProgramId);
-    if (_inFlight.contains(key)) _unknown.add(key);
+    if (_inFlight.containsKey(key)) _unknown.add(key);
   }
 
   void finish(String owner, ProgramId sourceProgramId) {
@@ -81,8 +115,7 @@ final class ProgramDeleteAttemptGate {
       '$owner/${sourceProgramId.value}';
 }
 
-final class SupabaseProgramDeleteRepository
-    implements ProgramDeleteRepository {
+final class SupabaseProgramDeleteRepository implements ProgramDeleteRepository {
   SupabaseProgramDeleteRepository({
     required ProgramDeleteGateway gateway,
     required ProgramDeleteAttemptGate attemptGate,
@@ -143,8 +176,13 @@ final class SupabaseProgramDeleteRepository
     if (_attemptGate.isInFlight(session.owner, target.sourceProgramId)) {
       throw const ProgramDeleteException(ProgramDeleteFailureKind.inProgress);
     }
-    if (_attemptGate.isConsumed(session.owner, target.sourceProgramId) ||
-        !_attemptGate.tryStart(session.owner, target.sourceProgramId)) {
+    if (_attemptGate.isCommitted(session.owner, target.sourceProgramId) ||
+        !_attemptGate.tryStart(
+          owner: session.owner,
+          sourceProgramId: target.sourceProgramId,
+          target: target,
+          mutationId: mutationId,
+        )) {
       throw const ProgramDeleteException(
         ProgramDeleteFailureKind.staleMembership,
       );
@@ -164,7 +202,15 @@ final class SupabaseProgramDeleteRepository
             .timeout(_timeout);
       } on PostgrestException catch (error) {
         final failure = _definite(error);
-        if (failure != null) throw failure;
+        if (failure != null) {
+          _attemptGate.markDefiniteRejection(
+            session.owner,
+            target.sourceProgramId,
+            target,
+            mutationId,
+          );
+          throw failure;
+        }
         throw _unknown(session);
       } catch (_) {
         throw _unknown(session);
@@ -176,7 +222,9 @@ final class SupabaseProgramDeleteRepository
         );
       }
       try {
-        return _decodeResult(response, target);
+        final result = _decodeResult(response, target);
+        _attemptGate.markCommitted(session.owner, target.sourceProgramId);
+        return result;
       } on FormatException {
         throw const ProgramDeleteOutcomeUnknown(
           reason: ProgramDeleteUncertainty.malformedResponse,
@@ -228,9 +276,8 @@ final class SupabaseProgramDeleteRepository
     final destinationId = destinationValue == null
         ? null
         : _parseProgramId(destinationValue as String);
-    if (movedValue == 0 && destinationId != null ||
-        movedValue > 0 &&
-            (destinationId == null || destinationId == target.sourceProgramId)) {
+    if (destinationId == target.sourceProgramId ||
+        movedValue > 0 && destinationId == null) {
       throw const FormatException('Invalid Program Delete destination.');
     }
 
@@ -252,10 +299,7 @@ final class SupabaseProgramDeleteRepository
   _Session _session() {
     final owner = _currentUserId()?.trim().toLowerCase();
     final cycle = _currentLoginCycleId()?.trim();
-    if (owner == null ||
-        !_isUuid(owner) ||
-        cycle == null ||
-        cycle.isEmpty) {
+    if (owner == null || !_isUuid(owner) || cycle == null || cycle.isEmpty) {
       throw const ProgramDeleteException(
         ProgramDeleteFailureKind.unauthorized,
       );
@@ -274,9 +318,8 @@ final class SupabaseProgramDeleteRepository
   static ProgramDeleteException? _definite(PostgrestException error) {
     final code = error.code;
     final parsed = int.tryParse(code ?? '');
-    final status = parsed != null && parsed >= 100 && parsed <= 599
-        ? parsed
-        : null;
+    final status =
+        parsed != null && parsed >= 100 && parsed <= 599 ? parsed : null;
     if (code == null ||
         code.isEmpty ||
         code.startsWith('08') ||
@@ -296,22 +339,32 @@ final class SupabaseProgramDeleteRepository
       );
     }
     return switch (code) {
-      '28000' || '28P01' || '401' || 'PGRST301' || 'PGRST302' || 'PGRST303' =>
+      '28000' ||
+      '28P01' ||
+      '401' ||
+      'PGRST301' ||
+      'PGRST302' ||
+      'PGRST303' =>
         const ProgramDeleteException(ProgramDeleteFailureKind.unauthorized),
-      '42501' || '403' || 'PGRST202' || 'PGRST203' =>
+      '42501' ||
+      '403' ||
+      'PGRST202' ||
+      'PGRST203' =>
         const ProgramDeleteException(
           ProgramDeleteFailureKind.permissionUnavailable,
         ),
       'P0002' when error.message == 'program_delete_not_found' =>
         const ProgramDeleteException(ProgramDeleteFailureKind.notFound),
-      'P0001' when error.message == 'program_delete_default_forbidden' ||
-          error.message == 'program_delete_default_conflict' =>
+      'P0001'
+          when error.message == 'program_delete_default_forbidden' ||
+              error.message == 'program_delete_default_conflict' =>
         const ProgramDeleteException(
           ProgramDeleteFailureKind.defaultProtected,
         ),
-      'P0001' when error.message == 'program_delete_membership_conflict' ||
-          error.message == 'program_delete_revision_conflict' ||
-          error.message == 'program_delete_source_conflict' =>
+      'P0001'
+          when error.message == 'program_delete_membership_conflict' ||
+              error.message == 'program_delete_revision_conflict' ||
+              error.message == 'program_delete_source_conflict' =>
         const ProgramDeleteException(
           ProgramDeleteFailureKind.staleMembership,
         ),
@@ -319,9 +372,13 @@ final class SupabaseProgramDeleteRepository
         const ProgramDeleteException(
           ProgramDeleteFailureKind.invalidRequest,
         ),
-      '22023' || '25001' =>
+      '22023' ||
+      '25001' =>
         const ProgramDeleteException(ProgramDeleteFailureKind.invalidRequest),
-      'PGRST000' || 'PGRST001' || 'PGRST002' || 'PGRST003' =>
+      'PGRST000' ||
+      'PGRST001' ||
+      'PGRST002' ||
+      'PGRST003' =>
         const ProgramDeleteException(ProgramDeleteFailureKind.unavailable),
       _ when status != null && status >= 400 && status < 500 =>
         const ProgramDeleteException(ProgramDeleteFailureKind.invalidRequest),
