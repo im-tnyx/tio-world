@@ -16,8 +16,26 @@ class BodyStateRowMapper {
     );
   }
 
-  BodyWeightEntry? _mapWeight(Map<String, dynamic>? row) {
+  BodyWeightEntry mapHistoryWeight(Map<String, dynamic> row) =>
+      _mapWeight(row, requireId: true)!;
+
+  BodyWeightEntry? _mapWeight(
+    Map<String, dynamic>? row, {
+    bool requireId = false,
+  }) {
     if (row == null) return null;
+
+    final rawId = row['id'];
+    if (requireId || rawId != null) {
+      if (rawId is! String) {
+        throw const FormatException('Missing canonical weight history ID.');
+      }
+      try {
+        BodyWeightLogIds.requireValid(rawId);
+      } on ArgumentError {
+        throw const FormatException('Invalid canonical weight history ID.');
+      }
+    }
 
     final rawWeight = row['weight_kg'];
     if (rawWeight is! num || rawWeight <= 0) {
@@ -47,6 +65,7 @@ class BodyStateRowMapper {
     }
 
     return BodyWeightEntry(
+      id: rawId as String?,
       weightKg: rawWeight.toDouble(),
       measuredAt: measuredAt,
       source: rawSource as String?,

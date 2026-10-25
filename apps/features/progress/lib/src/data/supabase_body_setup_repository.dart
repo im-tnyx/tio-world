@@ -57,7 +57,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
 
     final latestWeightRow = await _client
         .from('body_weight_logs')
-        .select('weight_kg, measured_at, source')
+        .select('id, weight_kg, measured_at, source')
         .eq('user_id', userId)
         .order('measured_at', ascending: false)
         .limit(1)
@@ -90,6 +90,94 @@ class SupabaseBodySetupRepository implements BodyRepository {
       'measured_at': record.measuredAt.toUtc().toIso8601String(),
       'source': record.source.trim(),
     });
+  }
+
+
+  @override
+  Future<BodyWeightHistoryPage> getWeightHistory(
+    BodyWeightHistoryQuery query,
+  ) async {
+    query.validate();
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return const BodyWeightHistoryPage(entries: <BodyWeightEntry>[]);
+    }
+
+    final from = query.fromInclusive.toUtc().toIso8601String();
+    final to = query.toExclusive.toUtc().toIso8601String();
+    var rowsQuery = _client
+        .from('body_weight_logs')
+        .select('id, weight_kg, measured_at, source')
+        .eq('user_id', userId)
+        .gte('measured_at', from)
+        .lt('measured_at', to);
+
+    final cursor = query.before;
+    if (cursor != null) {
+      // UUID validation disallows filter injection; UTC ISO has no commas.
+      final instant = cursor.measuredAt.toUtc().toIso8601String();
+      rowsQuery = rowsQuery.or(
+        'measured_at.lt.$instant,'
+        'and(measured_at.eq.$instant,id.lt.${cursor.id})',
+      );
+    }
+
+    final rows = await rowsQuery
+        .order('measured_at', ascending: false)
+        .order('id', ascending: false)
+        .limit(query.limit + 1);
+    _requireSameUser(userId);
+
+    final hasMore = rows.length > query.limit;
+    final entries = List<BodyWeightEntry>.unmodifiable(
+      rows.take(query.limit).map(_stateMapper.mapHistoryWeight),
+    );
+    final last = entries.isEmpty ? null : entries.last;
+    return BodyWeightHistoryPage(
+      entries: entries,
+      nextCursor: hasMore && last != null
+          ? BodyWeightHistoryCursor(measuredAt: last.measuredAt, id: last.id!)
+          : null,
+    );
+  }
+
+  @override
+  Future<bool> updateWeightLog(BodyWeightLogEdit edit) async {
+    final userId = _requireUserId();
+    edit.validate();
+    final updated = await _client
+        .from('body_weight_logs')
+        .update({
+          'weight_kg': edit.weightKg,
+          'measured_at': edit.measuredAt.toUtc().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('id', edit.id)
+        .select('id')
+        .maybeSingle();
+    _requireSameUser(userId);
+    return updated != null;
+  }
+
+  @override
+  Future<bool> deleteWeightLog(String id) async {
+    final userId = _requireUserId();
+    BodyWeightLogIds.requireValid(id);
+    final deleted = await _client
+        .from('body_weight_logs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    _requireSameUser(userId);
+    return deleted != null;
+  }
+
+  void _requireSameUser(String userId) {
+    if (_client.auth.currentUser?.id != userId) {
+      throw StateError('Body data session changed during the request.');
+    }
   }
 
   /// Delegates the entire same-goal/changed-goal lifecycle to the atomic
