@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub remote `main` SHA `516faa298e2437e07f89f156187afd231325679c`; 2026-10-25
 **Branch:** `docs/686-progress-weight-d0-contract`
-**HEAD SHA:** Record via linked GitHub #686 and PR after push; do not substitute base SHA
+**HEAD SHA:** Consult the live [PR #687](https://github.com/im-tnyx/tio-world/pull/687) for the final exact head; first review-gate evidence was collected at `b635afffa50c61b86b96cb9550e7d375782c111c`.
 **Observed working-tree state:** Not available; GitHub-connector execution, no Windows local checkout access
 **Observed uncommitted/dirty files:** Not inspectable locally; use parent-to-head GitHub API scope audit
-**PR / tracker:** [GitHub #686](https://github.com/im-tnyx/tio-world/issues/686); [Linear TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence)
+**PR / tracker:** [PR #687](https://github.com/im-tnyx/tio-world/pull/687) (OPEN/unmerged), [GitHub #686](https://github.com/im-tnyx/tio-world/issues/686); [Linear TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence)
 **Current implementation state:** Canonical specification proposal only, Weight screen still placeholder
 **Relevant execution surface:** `docs/screens/progress.md`, `.ai/tasks/progress-weight-d0-contract-freeze.md`, task index
-**Validation completed at SHA:** Pending exact-head CI/review evidence
-**Validation remaining:** Diff whitespace/scope, Docs Hygiene, any required GitHub checks, independent review
-**Current blocker:** Merge intentionally requires new owner instruction; exact implementation/UI sign-off deferred to A1/A2
+**Validation completed at SHA:** First PR head `b635afffa50c61b86b96cb9550e7d375782c111c`: [Docs Hygiene run 40183434680](https://github.com/im-tnyx/tio-world/actions/runs/40183434680) SUCCESS and its job log ran `git diff --check` on exact base/head; attribution guard and runner SUCCESS; GitHub compare ahead 1, behind 0, exactly three intended docs files. These are first-head, not new-head claims.
+**Validation remaining:** Refresh exact final-head checks after this handoff-only amendment; formal distinct-reviewer `im-tio` review was requested and is pending; branch protection read returned GitHub 403 and requiredness is unverified.
+**Current blocker:** Explicit owner merge authorization not given; formal reviewer pending. GitHub branch-protection endpoint returned `403 Resource not accessible by integration`, so rule-requiredness cannot be asserted.
 **Open review finding IDs:** Pending
-**Next exact action:** Inspect exact branch diff/checks/reviews; keep PR open, do not merge.
+**Next exact action:** Check current PR head, Docs Hygiene/Attribution and review threads/verdict; leave PR open, do not merge.
 
 ## 1. Discovery
 
@@ -92,7 +92,8 @@ Keep route wiring in `apps/app` and business/data logic in Progress. Reuse publi
 
 - [x] Audit current canonical docs, runtime, Linear and live Supabase read-only.
 - [x] Write docs-only D0 contract and handoff.
-- [ ] Validate exact PR files/scope/CI/review; do not merge without instruction.
+- [x] Inspect first PR head `b635afff` files/scope/Docs Hygiene (`git diff --check`)/Attribution.
+- [ ] Refresh final exact-head CI and await real distinct GitHub reviewer verdict; do not merge without instruction.
 - [ ] A1: BodyRepository history and identity/ordering/edit-delete contracts.
 - [ ] A2: approved Weight summary/chart/History UI.
 - [ ] A3: approved Log Weight bottom sheet and persistence.
@@ -101,11 +102,11 @@ Keep route wiring in `apps/app` and business/data logic in Progress. Reuse publi
 
 ## 6. Quality Review
 
-**Validation:** Docs-only. `git diff --check` must be verified locally or by an evidenced equivalent; GitHub API alone cannot assert the local command ran. Review exact parent-to-head diff, CI and required checks before merge.
+**Validation:** Docs-only. Exact-head [Docs Hygiene run 40183434680](https://github.com/im-tnyx/tio-world/actions/runs/40183434680) SUCCESS at first head `b635afff`; job log shows `git diff --check "$BASE_SHA...$PR_HEAD_SHA" -- .ai/ docs/ .github/workflows/docs-hygiene-ci.yml` and `PASS: documentation diff hygiene`. Direct local checkout not accessed; reverify if PR head changes. Commit attribution guard and runner also SUCCESS at first head.
 
 **Acceptance evidence:** D0 spec and tracking only; user-visible Weight behavior, real-device validation, Supabase new-schema validation and production acceptance are `Not applicable` to this docs PR.
 
-**Review provenance:** Pending GitHub PR review and exact-head CI; no automatic APPROVED claim.
+**Review provenance:** PR #687; `im-tio` formal reviewer request verified, no review yet at first-head audit. Cursor security/bug/approval checks returned `neutral`, not review approval. Branch-protection endpoint denied (403), required-check/review policy not verified. No independent APPROVED claim.
 **Review findings:** None claimed before review.
 
 ## 7. Final Handoff
