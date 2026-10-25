@@ -385,6 +385,31 @@ void main() {
     expect(gateway.writes, 2);
   });
 
+  test('statement completion unknown stays sticky and never retries', () async {
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async => throw const PostgrestException(
+            message: 'statement completion unknown',
+            code: '40003',
+          );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne]),
+        clientMutationId: _mutation,
+      ),
+      throwsA(_unknown(ProgramDeleteUncertainty.unconfirmed)),
+    );
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne, _routineTwo]),
+        clientMutationId: '77777777-7777-4777-8777-777777777777',
+      ),
+      throwsA(_unknown(ProgramDeleteUncertainty.unconfirmed)),
+    );
+    expect(gateway.writes, 1);
+  });
+
   test('timeout stays UNKNOWN without a missing-source read or retry',
       () async {
     final gateway = _FakeProgramDeleteGateway()

@@ -335,6 +335,9 @@ final class SupabaseProgramDeleteRepository implements ProgramDeleteRepository {
         status != null && (status >= 500 || status >= 200 && status < 300)) {
       return null;
     }
+    // SQLSTATE 40003 means statement_completion_unknown; a destructive write
+    // may already have committed, so retain the sticky UNKNOWN gate.
+    if (code == '40003') return null;
     if (RegExp(r'^40[0-9A-Z]{3}$').hasMatch(code)) {
       return const ProgramDeleteException(
         ProgramDeleteFailureKind.transactionAborted,
