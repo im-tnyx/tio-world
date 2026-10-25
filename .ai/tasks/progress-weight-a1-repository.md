@@ -39,3 +39,13 @@
 
 ## Handoff
 Review the exact PR diff for UUID/cursor injection safety, `updated_at` trigger semantics, same-moment pagination, RLS on UPDATE/DELETE, session switch, no-goal/empty-state integrity and legacy caller compatibility. If CI or independent review finds a problem, fix in this branch and repeat exact-head checks. D0 task file/index historical `unmerged` wording predates verified [PR #687](https://github.com/im-tnyx/tio-world/pull/687) squash merge and must not be treated as active ownership.
+
+
+## Independent REQUEST_CHANGES P2 remediation checkpoint (2026-10-25)
+
+- Independent reviewer `im-tio` submitted `CHANGES_REQUESTED` on PR #689 at reviewed HEAD `b20ab4a144f03fcf70d1e5e86edcb41372aa05ed`, identifying old-C1 response acceptance after same-owner re-login (and A→B→A) when the post-await guard only checked `currentUser.id`.
+- Bounded code remediation: `SupabaseBodySetupRepository` pins `weightLoginCycleId`, reads a live cycle callback before dispatch and after awaited History/Update/Delete; `apps/app` composition watches authoritative `authSessionStateProvider`, remakes the repository on session changes and revokes old callbacks. No change to existing `getBodyState`, post-onboarding Settings/Body Goal methods, database shape or RLS.
+- A narrowly injected `BodyWeightLogTransport` preserves the same Supabase query and owner-ID filters while enabling controlled `Completer` response races. Nine focused tests cover same-owner C1→C2 History/Edit/Delete, A→B→A History, cross-owner Edit, stale dispatch, missing-cycle deny, logout and unchanged-cycle acceptance; app provider test covers same-user cycle transition.
+- Exact code HEAD `ea7768d2a1c2eb91b3fc3cb7b21b16ded465d5c0`, [Flutter CI #40215288643](https://github.com/im-tnyx/tio-world/actions/runs/40215288643): **SUCCESS 5/5**, including Flutter/Dart analyzer and all three Flutter test shards. Previous intermediate analyzer import and test matcher failures were corrected; passing result belongs to that precise code HEAD.
+- Reviewer [P2 thread](https://github.com/im-tnyx/tio-world/pull/689) replied to, intentionally **unresolved until independent re-review**. Prior independent formal `CHANGES_REQUESTED` remains active. Do not claim that a late response guard cancels a network-dispatched mutation; it rejects stale completion in a new session.
+- This handoff-only amendment advances the PR head; verify final exact-head CI again and request formal re-review. No admin override or merge without explicit owner instruction.
