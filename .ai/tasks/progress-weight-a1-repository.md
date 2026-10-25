@@ -7,7 +7,7 @@
 **Source baseline:** `main@03c544356d03f9a6e6ee9a7e59565c2663a5a1bb`, GitHub connector; Windows local `G:\projects\Tio-World` not mountable in this environment. Local git status, Dart, Flutter and device evidence **NOT RUN**.
 **Branch:** `feat/tnyx-119-progress-weight-a1-repository`
 **Planning:** Linear [TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence); D0 [GitHub #686](https://github.com/im-tnyx/tio-world/issues/686), [PR #687](https://github.com/im-tnyx/tio-world/pull/687) already merged.
-**Current checkpoint:** A1 source and tests authored for CI verification; no signed-off CI/review claim before exact-head proof.
+**Current checkpoint:** Source and focused tests implemented in [PR #689](https://github.com/im-tnyx/tio-world/pull/689). Code HEAD `54296ccf6d7d17cac18fa58d3760d5d228349cc0` passed exact-head Flutter CI [run 40206916282](https://github.com/im-tnyx/tio-world/actions/runs/40206916282), **SUCCESS 5/5** (Analyzer/test Dart, three Flutter test shards, aggregate), plus Docs Hygiene and Attribution. Awaiting independent formal `im-tio` review; Codex re-review at latest head was unavailable due to quota. No merge authorized.
 
 ## Discovery and source evidence
 - `AGENTS.md`, `apps/features/AGENTS.md`, root/docs/architecture/ownership/privacy/source guide and `.ai/FEATURE_DEVELOPMENT.md` read before source modification.
@@ -30,7 +30,9 @@
 
 ## Validation and review gate
 - Focused History/mapper/auth/in-memory tests added under `apps/features/progress/test/data`.
-- GitHub exact HEAD CI and independent review are **pending** until observed, not assumed.
+- Code HEAD `54296ccf6d7d17cac18fa58d3760d5d228349cc0`: full Flutter CI 40206916282 **SUCCESS 5/5**. Docs Hygiene and Commit Attribution **SUCCESS** at this code HEAD. Previous heads failed on a malformed generated domain splice and then an extra 4-character UUID group; these were corrected before the passing run.
+- Codex independent review found P1 malformed UUID regex on earlier head `0081bcf`; corrected at `54296ccf`, focused Progress tests passed, and old finding thread `PRRT_kwDOTOXwB86wCbUj` was replied to and resolved. Latest Codex re-review attempt failed solely from usage limits; this is **not** approval. Distinct `im-tio` GitHub review is requested but **no formal APPROVED** yet.
+- This final task-handoff-only commit advances the PR HEAD after the above code validation. Recheck CI and docs hygiene at the new exact HEAD; do **not** transfer previous-head success to an unverified final head.
 - Verify `dart format --output=none --set-exit-if-changed` on touched Dart; `flutter analyze`, Progress tests and affected app regression tests via Flutter CI.
 - Before merge: inspect diff/changed-file list, CI conclusion on exact HEAD, GitHub reviews and unresolved threads. **Owner must explicitly authorize merge; do not auto-merge.**
 - Reconcile Linear on meaningful state transitions; parent TNYX-119 includes future A2–A4 and Photos, so completing A1 does not close the parent.
