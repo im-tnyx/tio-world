@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `be0d5b0a24b93488b0e29b338b40aedcb386a51d`
-**Observed working-tree state:** Clean after commit/push; fsmonitor IPC warning only
-**Observed uncommitted/dirty files:** None
+**HEAD SHA:** `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**Observed working-tree state:** Task handoff update pending; fsmonitor IPC warning only
+**Observed uncommitted/dirty files:** This task handoff file only
 **PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
-**Current implementation state:** Dormant typed repository, gateway, exports and focused tests implemented; D1 brief reconciled
+**Current implementation state:** Dormant typed repository; both PR #681 P2 findings fixed in `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
-**Validation completed at SHA:** D2A local formatter, Flutter package analyzer, focused 11-test suite, and `git diff --check` passed at `065ca306aa83cab84730c430bec5dcf13aa65ea6`
-**Validation remaining:** Final-head GitHub Flutter CI is in progress; independent review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
+**Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 16-test suite, changed-area `test/data` suite, and `git diff --check` passed for the P2 fix work at `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**Validation remaining:** Final-head GitHub Flutter CI will be inspected after push; independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
-**Open review finding IDs:** None yet
-**Next exact action:** Await independent review and current PR checks; do not merge or activate production capability.
+**Open review finding IDs:** `4369947937` and `4369947940` — fixes pushed; keep both threads open pending independent re-review
+**Next exact action:** Push this bounded fix and handoff, inspect exact-head CI, reply to both open threads with evidence, and request independent re-review; do not merge or activate production capability.
 
 ## 1. Discovery
 
@@ -102,31 +102,33 @@ This is a non-UI capability. `unauthorized`, `forbidden`, `notFound`, `defaultPr
 - [x] Keep capability absent from production composition and feature activation paths.
 - [x] Add focused mock-gateway and SDK-shape tests.
 - [x] Run formatter, analyzer, focused tests, and diff checks.
-- [x] Update this handoff with exact validation SHA and review state.
+- [x] Update this handoff with exact fix SHA, validation evidence, and open review state.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-`G:\dev\flutter-sdk\bin\cache\dart-sdk\bin\dart.exe format --output=none --set-exit-if-changed ...` — PASS.
+`G:\dev\flutter-sdk\bin\cache\dart-sdk\bin\dart.exe format --output=none --set-exit-if-changed apps/features/workout/lib/src/data/repositories/supabase_program_delete_repository.dart apps/features/workout/test/data/supabase_program_delete_repository_test.dart` — PASS, 0 changed.
 
 Flutter tool `analyze` for `apps/features/workout` — PASS, `No issues found!`.
 
-Focused Flutter test `test/data/supabase_program_delete_repository_test.dart` — PASS, 11/11.
+Focused Flutter test `test/data/supabase_program_delete_repository_test.dart` — PASS, 16/16.
 
-`git diff --check origin/main...HEAD` — PASS.
+Changed-area Flutter tests `test/data` — PASS, `All tests passed!` (403 tests reported by the runner).
 
-Parent-to-head audit — PASS: `origin/main` is an ancestor; one task commit; eight owned files.
+`git diff --check` — PASS before commit.
+
+Parent-to-head audit — pending final push; `origin/main` remains an ancestor and only the existing D2A branch is in scope.
 ```
 
 ### Review Provenance
 
-**Review source / link:** Not available yet
-**Reviewer / relation to implementer:** Independent review requested through bounded PR handoff
-**Diff or commit SHA actually reviewed:** Not available yet
-**Independent review?:** Unknown / unavailable
-**Limitations and unmet required gates:** Hosted migration/EXECUTE and device/UI gates remain intentionally unmet.
+**Review source / link:** [PR #681](https://github.com/im-tnyx/tio-world/pull/681), Codex inline findings `4369947937` and `4369947940`
+**Reviewer / relation to implementer:** Codex review findings; independent reviewer re-review requested after `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**Diff or commit SHA actually reviewed:** Findings were on prior PR HEAD `41565597`; fix commit is `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**Independent review?:** Pending; both inline threads intentionally remain open
+**Limitations and unmet required gates:** Final-head GitHub CI and independent re-review are pending; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
 
 ## 7. Final Handoff
 
@@ -143,7 +145,7 @@ Parent-to-head audit — PASS: `origin/main` is an ancestor; one task commit; ei
 
 ### Actual Behavior
 
-The repository accepts only an explicit owner/login-cycle-bound Program target and complete Routine-ID snapshot, sends the exact D1 RPC once with SDK retry disabled, validates the three-field JSONB receipt, maps known rejection/permission errors, and freezes definite/ambiguous attempts. A timeout, session change, or malformed success response remains `UNKNOWN`; no source read is treated as proof and no destructive retry is issued.
+The repository accepts only an explicit owner/login-cycle-bound Program target and complete Routine-ID snapshot, sends the exact D1 RPC once with SDK retry disabled, validates the three-field JSONB receipt, and maps known rejection/permission errors. Empty Programs now accept either a null destination (no default) or a valid existing canonical default destination, while invalid IDs and counts remain rejected as malformed/`UNKNOWN`. A definite server rejection permits only a newly confirmed target and new mutation UUID; the same attempt remains consumed, while timeout, lost ACK, malformed response, session change, or any other ambiguous outcome stays `UNKNOWN` and blocks destructive retry. No source read is treated as proof and no automatic retry is issued.
 
 ### Known Limitations
 
@@ -151,4 +153,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW` — source-only PR #681 is open for independent review and merge-gate evaluation; no merge or production activation.
+`REVIEW` — source-only PR #681 remains open; both P2 threads are open pending independent re-review and exact-head GitHub CI. No merge or production activation.
