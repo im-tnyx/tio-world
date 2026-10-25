@@ -223,7 +223,7 @@ final programDeleteAttemptGateProvider = Provider<ProgramDeleteAttemptGate>(
 /// and client EXECUTE permission are separate release gates; this provider is
 /// not injected into a production action or UI in D2B.
 final programDeleteRepositoryProvider =
-    Provider<SupabaseProgramDeleteRepository?>((ref) {
+    Provider<ProgramDeleteRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
   final auth = sessionAsync.isLoading || sessionAsync.hasError
@@ -274,7 +274,6 @@ final programDeleteControllerProvider = Provider.autoDispose
     return null;
   }
   final routines = routineRepository as RoutineVersionedRenameRepository;
-  final signal = ref.read(routineMoveRefreshSignalProvider);
   final controller = ProgramDeleteController(
     programs: programs,
     routines: routines,
@@ -282,20 +281,10 @@ final programDeleteControllerProvider = Provider.autoDispose
     attemptGate: ref.watch(programDeleteAttemptGateProvider),
     pendingCreateGate: ref.watch(routinePendingCreateGateProvider),
     routineOperationGate: ref.watch(routineMoveDeleteAttemptGateProvider),
-    refresh: (request) async {
-      final sessionAsync = ref.read(authSessionStateProvider);
-      final auth = sessionAsync.isLoading || sessionAsync.hasError
-          ? null : sessionAsync.valueOrNull;
-      if (auth is AuthSessionAuthenticated &&
-          auth.session.userId == request.ownerId &&
-          auth.session.loginCycleId == request.loginCycleId) {
-        signal.request(
-          ownerId: request.ownerId,
-          loginCycleId: request.loginCycleId,
-          programsMayHaveChanged: true,
-        );
-      }
-    },
+    // This closure belongs to the durable app-level refresh adapter, not this
+    // auto-disposed Program controller. A write can settle after its last UI
+    // listener unmounts, but it must still invalidate only the live owner/cycle.
+    refresh: ref.read(programDeleteRefreshProvider),
   );
   ref.onDispose(controller.dispose);
   return controller;
@@ -317,6 +306,31 @@ final routineMoveRefreshSignalProvider = Provider<RoutineMoveRefreshSignal>((ref
   final signal = RoutineMoveRefreshSignal();
   ref.onDispose(signal.dispose);
   return signal;
+});
+
+/// Durable delivery for Program Delete's existing Workout read invalidation.
+///
+/// This creates no new event source: [routineMoveRefreshSignalProvider] stays
+/// the sole process-local signal. Keeping the live Auth check in this ordinary
+/// app-scoped provider means a disposed Program-scoped controller never reads
+/// its own [Ref] after an in-flight write settles.
+final programDeleteRefreshProvider = Provider<ProgramDeleteRefresh>((ref) {
+  final signal = ref.watch(routineMoveRefreshSignalProvider);
+  return (request) async {
+    final sessionAsync = ref.read(authSessionStateProvider);
+    final auth = sessionAsync.isLoading || sessionAsync.hasError
+        ? null
+        : sessionAsync.valueOrNull;
+    if (auth is AuthSessionAuthenticated &&
+        auth.session.userId == request.ownerId &&
+        auth.session.loginCycleId == request.loginCycleId) {
+      signal.request(
+        ownerId: request.ownerId,
+        loginCycleId: request.loginCycleId,
+        programsMayHaveChanged: true,
+      );
+    }
+  };
 });
 
 /// Dormant owner/login-cycle-bound Move and atomic Create+Move adapter.
