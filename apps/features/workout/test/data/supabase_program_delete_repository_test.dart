@@ -310,6 +310,50 @@ void main() {
     expect(gateway.writes, 2);
   });
 
+  test('all definite rejection attempts remain consumed', () async {
+    var calls = 0;
+    final gateway = _FakeProgramDeleteGateway()
+      ..onDelete = () async {
+        calls++;
+        if (calls <= 2) {
+          throw const PostgrestException(
+            message: 'program_delete_membership_conflict',
+            code: 'P0001',
+          );
+        }
+        return _success();
+      };
+    final repository = _repository(gateway);
+    final firstTarget = _target(routines: [_routineOne]);
+    final secondTarget = _target(routines: [_routineOne, _routineTwo]);
+
+    await expectLater(
+      repository.delete(target: firstTarget, clientMutationId: _mutation),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+    await expectLater(
+      repository.delete(
+        target: secondTarget,
+        clientMutationId: '77777777-7777-4777-8777-777777777777',
+      ),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+    await expectLater(
+      repository.delete(
+        target: _target(routines: [_routineOne]),
+        clientMutationId: _mutation,
+      ),
+      throwsA(_failure(ProgramDeleteFailureKind.staleMembership)),
+    );
+
+    final result = await repository.delete(
+      target: _target(),
+      clientMutationId: '88888888-8888-4888-8888-888888888888',
+    );
+    expect(result.movedRoutineCount, 0);
+    expect(gateway.writes, 3);
+  });
+
   test('timeout stays UNKNOWN without a missing-source read or retry',
       () async {
     final gateway = _FakeProgramDeleteGateway()
