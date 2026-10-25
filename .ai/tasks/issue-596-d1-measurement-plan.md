@@ -45,7 +45,7 @@
 **HEAD SHA:** Resolve the live feature branch/PR tip on GitHub; `920873b55ea8bbd5b7c46dba07e6a31dd6f3dfe0` is the branch *base*, not the updated docs HEAD
 **Observed working-tree state:** Owner reported Windows `G:\projects\Tio-World` sync complete; inaccessible from connector, so local cleanliness is Unknown
 **Observed uncommitted/dirty files:** Unknown (not inspected)
-**PR / tracker:** [Issue #596](https://github.com/im-tnyx/tio-world/issues/596) OPEN, [previous docs PR #682](https://github.com/im-tnyx/tio-world/pull/682) merged, active D1-E1 branch; no verified #596 Linear mirror (TNYX-193 belongs to #250)
+**PR / tracker:** [Issue #596](https://github.com/im-tnyx/tio-world/issues/596) OPEN, [D1-E1 docs PR #683](https://github.com/im-tnyx/tio-world/pull/683) OPEN (live PR HEAD authoritative), [previous docs PR #682](https://github.com/im-tnyx/tio-world/pull/682) merged; no verified #596 Linear mirror (TNYX-193 belongs to #250)
 **Current implementation state:** First 5 fixed-cohort entries have review-root/commit/AC-to-file/test/HEAD evidence checked in GitHub; initial lower bound 14 resolved severity-tagged inline roots across them. Review-related code/docs follow-up is source-linked where shown; exhaustive all-channel findings and precise rework denominator remain Partial.
 **Relevant execution surface:** Only `.ai/tasks/issue-596-d1-measurement-plan.md` and `.ai/tasks/README.md`; historical PR GitHub metadata and hosted Supabase catalog/advisors read-only
 **Validation completed at SHA:** Historical exact-HEAD checks for each of the five PRs were re-read (4 Flutter matrix PASS; #664 Database CI PASS; attribution and Docs Hygiene PASS). These are *historical PR checks*, **not** validation of this new docs branch.
