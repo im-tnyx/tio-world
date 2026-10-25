@@ -25,6 +25,47 @@ ProviderContainer _moveContainer(
 ]);
 
 void main() {
+  test('Body A1 repo pins original login cycle and blocks old adapter', () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    final c = _moveContainer(
+      _MoveAuth(_moveUser(owner)),
+      const AuthSessionAuthenticated(
+        AuthSession(userId: owner, loginCycleId: 'cycle-a'),
+      ),
+    );
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final stale = c.read(bodyRepositoryProvider);
+    expect(stale, isA<SupabaseBodySetupRepository>());
+
+    // Same user ID, distinct new interactive sign-in cycle.
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: 'cycle-b'),
+        );
+    await c.read(authSessionStateProvider.future);
+    final current = c.read(bodyRepositoryProvider);
+    expect(identical(current, stale), isFalse);
+    expect(current, isA<SupabaseBodySetupRepository>());
+
+    // Old adapter must reject before accessing the Supabase query builder.
+    await expectLater(
+      () => stale.getWeightHistory(
+        BodyWeightHistoryQuery(
+          fromInclusive: DateTime.utc(2026, 10, 25),
+          toExclusive: DateTime.utc(2026, 10, 26),
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('session'),
+        ),
+      ),
+    );
+  });
+
   test('Move denies missing, mismatched or incomplete authenticated sessions',
       () async {
     const owner = '11111111-1111-4111-8111-111111111111';
