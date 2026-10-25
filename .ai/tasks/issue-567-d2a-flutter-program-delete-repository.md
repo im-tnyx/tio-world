@@ -21,14 +21,14 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `065ca306aa83cab84730c430bec5dcf13aa65ea6`
+**HEAD SHA:** `be0d5b0a24b93488b0e29b338b40aedcb386a51d`
 **Observed working-tree state:** Clean after commit/push; fsmonitor IPC warning only
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
 **Current implementation state:** Dormant typed repository, gateway, exports and focused tests implemented; D1 brief reconciled
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
 **Validation completed at SHA:** D2A local formatter, Flutter package analyzer, focused 11-test suite, and `git diff --check` passed at `065ca306aa83cab84730c430bec5dcf13aa65ea6`
-**Validation remaining:** GitHub PR #681 checks and independent review; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
+**Validation remaining:** Final-head GitHub Flutter CI is in progress; independent review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
 **Open review finding IDs:** None yet
 **Next exact action:** Await independent review and current PR checks; do not merge or activate production capability.
