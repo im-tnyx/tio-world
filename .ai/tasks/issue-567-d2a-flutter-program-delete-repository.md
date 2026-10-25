@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
 **Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**HEAD SHA:** `88ecbd0065cd26d53eeb1758c27135c45a567cd8`
 **Observed working-tree state:** Task handoff update pending; fsmonitor IPC warning only
 **Observed uncommitted/dirty files:** This task handoff file only
 **PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
-**Current implementation state:** Dormant typed repository; both PR #681 P2 findings fixed in `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`; no production caller or activation path added
+**Current implementation state:** Dormant typed repository; the two requested PR #681 P2 fixes plus the same-gate follow-up are implemented in `88ecbd0065cd26d53eeb1758c27135c45a567cd8`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
-**Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 16-test suite, changed-area `test/data` suite, and `git diff --check` passed for the P2 fix work at `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
+**Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 17-test suite, changed-area `test/data` suite (404 tests), and `git diff --check` passed for the lifecycle follow-up at `88ecbd0065cd26d53eeb1758c27135c45a567cd8`
 **Validation remaining:** Final-head GitHub Flutter CI will be inspected after push; independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
-**Open review finding IDs:** `4369947937` and `4369947940` — fixes pushed; keep both threads open pending independent re-review
-**Next exact action:** Push this bounded fix and handoff, inspect exact-head CI, reply to both open threads with evidence, and request independent re-review; do not merge or activate production capability.
+**Open review finding IDs:** `4369947937`, `4369947940`, and follow-up `4369975166` — fixes pushed; keep all related threads open pending independent re-review
+**Next exact action:** Push this bounded lifecycle follow-up and handoff, inspect exact-head CI, reply to all open related threads with evidence, and request independent re-review; do not merge or activate production capability.
 
 ## 1. Discovery
 
@@ -113,9 +113,9 @@ This is a non-UI capability. `unauthorized`, `forbidden`, `notFound`, `defaultPr
 
 Flutter tool `analyze` for `apps/features/workout` — PASS, `No issues found!`.
 
-Focused Flutter test `test/data/supabase_program_delete_repository_test.dart` — PASS, 16/16.
+Focused Flutter test `test/data/supabase_program_delete_repository_test.dart` — PASS, 17/17.
 
-Changed-area Flutter tests `test/data` — PASS, `All tests passed!` (403 tests reported by the runner).
+Changed-area Flutter tests `test/data` — PASS, `All tests passed!` (404 tests reported by the runner).
 
 `git diff --check` — PASS before commit.
 
@@ -124,10 +124,10 @@ Parent-to-head audit — pending final push; `origin/main` remains an ancestor a
 
 ### Review Provenance
 
-**Review source / link:** [PR #681](https://github.com/im-tnyx/tio-world/pull/681), Codex inline findings `4369947937` and `4369947940`
-**Reviewer / relation to implementer:** Codex review findings; independent reviewer re-review requested after `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
-**Diff or commit SHA actually reviewed:** Findings were on prior PR HEAD `41565597`; fix commit is `63b22040444bc1c3ffb5e780f74a33d26ef9f3fc`
-**Independent review?:** Pending; both inline threads intentionally remain open
+**Review source / link:** [PR #681](https://github.com/im-tnyx/tio-world/pull/681), Codex inline findings `4369947937`, `4369947940`, and follow-up `4369975166`
+**Reviewer / relation to implementer:** Codex review findings; independent reviewer re-review requested after `88ecbd0065cd26d53eeb1758c27135c45a567cd8`
+**Diff or commit SHA actually reviewed:** Original findings were on prior PR HEAD `41565597`; the follow-up was on `8ae61bf1c4f6a1cc86ec0729002849589e8b4962`; latest fix commit is `88ecbd0065cd26d53eeb1758c27135c45a567cd8`
+**Independent review?:** Pending; all related inline threads intentionally remain open
 **Limitations and unmet required gates:** Final-head GitHub CI and independent re-review are pending; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
 
 ## 7. Final Handoff
@@ -145,7 +145,7 @@ Parent-to-head audit — pending final push; `origin/main` remains an ancestor a
 
 ### Actual Behavior
 
-The repository accepts only an explicit owner/login-cycle-bound Program target and complete Routine-ID snapshot, sends the exact D1 RPC once with SDK retry disabled, validates the three-field JSONB receipt, and maps known rejection/permission errors. Empty Programs now accept either a null destination (no default) or a valid existing canonical default destination, while invalid IDs and counts remain rejected as malformed/`UNKNOWN`. A definite server rejection permits only a newly confirmed target and new mutation UUID; the same attempt remains consumed, while timeout, lost ACK, malformed response, session change, or any other ambiguous outcome stays `UNKNOWN` and blocks destructive retry. No source read is treated as proof and no automatic retry is issued.
+The repository accepts only an explicit owner/login-cycle-bound Program target and complete Routine-ID snapshot, sends the exact D1 RPC once with SDK retry disabled, validates the three-field JSONB receipt, and maps known rejection/permission errors. Empty Programs now accept either a null destination (no default) or a valid existing canonical default destination, while invalid IDs and counts remain rejected as malformed/`UNKNOWN`. A definite server rejection permits only a newly confirmed target and new mutation UUID; every previously rejected target fingerprint and mutation UUID remains consumed, while timeout, lost ACK, malformed response, session change, or any other ambiguous outcome stays `UNKNOWN` and blocks destructive retry. No source read is treated as proof and no automatic retry is issued.
 
 ### Known Limitations
 
@@ -153,4 +153,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW` — source-only PR #681 remains open; both P2 threads are open pending independent re-review and exact-head GitHub CI. No merge or production activation.
+`REVIEW` — source-only PR #681 remains open; all related P2 threads are open pending independent re-review and exact-head GitHub CI. No merge or production activation.
