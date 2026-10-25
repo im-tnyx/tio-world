@@ -45,14 +45,14 @@
 **HEAD SHA:** Live GitHub branch / PR HEAD is authoritative. `29cf8656d20d253bc981d4bd1a4d19e6334efe28` is the immutable branch-creation **base**, not a current edited-head claim
 **Observed working-tree state:** Local `G:\projects\Tio-World` state Unknown; no access or sync claim from GitHub connector
 **Observed uncommitted/dirty files:** Unknown (not inspected)
-**PR / tracker:** [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) OPEN. D1-E1 PR #683 MERGED; D1-E2 GitHub-only branch pending current source CI/review. No positively identified dedicated #596 Linear mirror; TNYX-193 tracks separate GitHub #250, TNYX-201 app-shell and TNYX-81/TNYX-267 Workout
+**PR / tracker:** [GitHub Issue #596](https://github.com/im-tnyx/tio-world/issues/596) OPEN. D1-E1 PR #683 MERGED; [D1-E2 PR #685](https://github.com/im-tnyx/tio-world/pull/685) OPEN; current PR source HEAD is GitHub authority (CI/review gate). No positively identified dedicated #596 Linear mirror; TNYX-193 tracks separate GitHub #250, TNYX-201 app-shell and TNYX-81/TNYX-267 Workout
 **Current implementation state:** First five E1 [§6A](#6a-d1-e1--first-five-cohort-pr-evidence-normalization-2026-10-25), last five E2 [§6B](#6b-d1-e2--last-five-cohort-pr-evidence-normalization-2026-10-25) documented as Partial representative evidence with exact historical source heads, review roots, fix commits and original-HEAD checks. Known inline-only roots: 20/20 resolved severity-tagged (P0=0/P1=2/P2=12/P3=6). Not an all-review-channel total
 **Relevant execution surface:** `.ai/tasks/issue-596-d1-measurement-plan.md`, `.ai/tasks/README.md` only. Historical PRs, canonical docs, GitHub check runs and hosted Supabase catalog read-only; no runtime modifications
 **Validation completed at SHA:** Historical original-HEAD checks for all ten cohort PRs were independently inspected from GitHub; E2 #668/#676 Flutter, #673/#674 disposable DB, #677 Docs Hygiene, plus final-head attribution/Docs Hygiene PASS across all five. These are **historical checks, not** current D1-E2 docs-branch validation
 **Validation remaining:** D1-E2 new PR exact-HEAD docs diff/hygiene and attribution + technical review; complete all-channel root census and review-rework/revalidation denominators where source access allows; full 168h linked-regression observation and final evaluation
 **Current blocker:** No numeric quality uplift, complete review coverage, valid revalidation ratio or downstream regression rate until evidence fully reconciled; latest 168h observation ends `2026-10-31T17:31:09Z` (23:01:09 IST). Hosted cross-owner/guest/JWT QA, device release acceptance and independent human security review are separate #569/#675 boundaries, not D1 evidence PASS
 **Open review finding IDs:** All twenty known inline-root threads in cohort resolved; any new D1-E2 docs-PR findings must be separately dispositioned on the current head
-**Next exact action:** Create and inspect scoped docs-only D1-E2 PR, verify its exact-head CI/review, STOP for owner `Go merge`; do not close parent #596.
+**Next exact action:** Inspect live [PR #685](https://github.com/im-tnyx/tio-world/pull/685) changed-file scope and exact-head docs CI, attribution and review; STOP for owner `Go merge`; do not close parent #596.
 
 ---
 
