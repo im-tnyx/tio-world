@@ -20,10 +20,10 @@
 **Implementation ownership state:** Source implementation complete; validation/review handoff
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean fresh branch from `origin/main@9e994b29b13e242ebcd6399cc32fecfd5ebe98ac`
 **Branch:** `tnyx/567-d2b-flutter-program-delete-controller-refresh`
-**HEAD SHA:** `d65fbb05` (`test(flutter): cover Program Delete account switch`); branch is pushed and PR #688 is open for review
-**Observed working-tree state:** Clean; source, handoff and regression-test commits are pushed to the tracked branch
+**HEAD SHA:** `4395fa7e` (`fix(flutter): harden Program Delete dispatch lifecycle`); branch is pushed and PR #688 is open for review
+**Observed working-tree state:** Clean; source, handoff and P2-remediation commits are pushed to the tracked branch
 **PR / tracker:** GitHub #567 OPEN; D1 #678 merged; D2A #681 merged; D2B PR #688 OPEN; Linear TNYX-81 and TNYX-267 remain Backlog/dependency trackers
-**Current implementation state:** D2A repository is merged and dormant. D2B controller, focused tests, feature export and dormant owner/session provider composition are implemented; no production surface injects the controller.
+**Current implementation state:** D2A repository is merged and dormant. D2B controller, focused tests, feature export and dormant owner/session provider composition are implemented; Codex P2 findings for dispatch-time arbitration, recoverable in-flight conflict and Program-scoped lifecycle are fixed; no production surface injects the controller.
 **Next exact action:** Complete independent review of PR #688 at the current exact head; merge only after owner authorization and a clean review gate
 
 ## 1. Discovery and Codebase Evidence
@@ -60,19 +60,20 @@ Rejected alternative: extending `ProgramRepository` or making `ProgramsControlle
 - Workout package `analyze --no-pub`: PASS, `No issues found!`, exit `0`.
 - App package `analyze --no-pub`: PASS, `No issues found!`, exit `0`.
 - Focused D2B plus changed-area regression tests (`program_delete_controller_test.dart`, Program/Routine controllers, Program Detail, Library, and D2A repository tests): PASS, `136` tests.
-- `git diff --check`: PASS on the pushed branch, including `origin/main...HEAD`.
-- Focused D2B-only regression suite after the final account-switch test: PASS, `13` tests.
-- Exact-head Flutter CI run `40190171530`: PASS at `d65fbb05`; app-workout, core-wear, nutrition-onboarding, Dart analysis/tests and documentation/attribution checks passed.
+- `git diff --check`: PASS before the P2-remediation commit; changed-area scope remains limited to the six approved paths.
+- Focused D2B-only regression suite after P2 remediation: PASS, `15` tests.
+- Focused D2B plus changed-area regression tests after P2 remediation: PASS, `139` tests.
+- Exact-head Flutter CI run `40191214904`: PASS at `4395fa7e`; app-workout, core-wear, nutrition-onboarding, Dart analysis/tests and the aggregate gate passed.
 - Existing `uses-material-design` package warning appeared during Flutter tests; it predates this slice and did not fail the suite.
 - Hosted migration, EXECUTE grant, Supabase write QA, Docker-backed local DB tests and device QA: not run; explicitly out of scope.
 
 ## 5. Review and Final Handoff
 
-Source commit: `10806e55`; final regression-test commit/head: `d65fbb05`; PR: `https://github.com/im-tnyx/tio-world/pull/688`.
+Source commit: `10806e55`; handoff commit: `3cd18faa`; P2-remediation commit/final source head: `4395fa7e`; PR: `https://github.com/im-tnyx/tio-world/pull/688`.
 
 Changed source paths are limited to `apps/app/lib/app/composition/workout_providers.dart`, `apps/features/workout/lib/src/presentation/library/programs/program_delete_controller.dart`, `apps/features/workout/lib/src/presentation/library/programs/programs.dart`, and `apps/features/workout/test/presentation/program_delete_controller_test.dart`. The controller requires a complete versioned owner snapshot, stable non-default `ProgramId`, live owner/login-cycle match, pending-operation clearance, explicit confirmation and a caller-supplied mutation UUID. D2A owns RPC classification and sticky UNKNOWN; D2B never infers success from a missing source and only emits owner/cycle-scoped refresh invalidation.
 
-Production Delete Program remains dormant: no Program UI, confirmation action, shell caller, public flag, hosted migration, client `EXECUTE`, direct table DELETE or #569/#675 change. Exact-head CI is passing; independent review and explicit merge authorization remain pending.
+Production Delete Program remains dormant: no Program UI, confirmation action, shell caller, public flag, hosted migration, client `EXECUTE`, direct table DELETE or #569/#675 change. Exact-head CI is passing. Codex P2 findings are fixed and independently re-reviewable; `im-tio` approval and explicit merge authorization remain pending.
 
 ## 6. Handoff Risks
 
@@ -82,4 +83,4 @@ Production Delete Program remains dormant: no Program UI, confirmation action, s
 
 ## 7. Final Handoff
 
-Implementation and exact-head validation are complete for this slice; review/owner merge gate is pending. #569 hosted R5 QA and #675 human security review remain separate and untouched.
+Implementation, P2 remediation and exact-head validation are complete for this slice; review/owner merge gate is pending. #569 hosted R5 QA and #675 human security review remain separate and untouched.
