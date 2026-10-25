@@ -451,7 +451,7 @@ class _RecordedWeightPainter extends CustomPainter {
         bottom - (weight - low) / (high - low) * (bottom - top);
 
     final grid = Paint()
-      ..color = gridColor.withValues(alpha: 0.3)
+      ..color = gridColor.withValues(alpha: TioOpacity.opacity30)
       ..strokeWidth = TioStroke.width1;
     for (final fraction in [0.0, 0.5, 1.0]) {
       final height = top + (bottom - top) * fraction;
