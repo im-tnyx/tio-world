@@ -1015,17 +1015,25 @@ void main() {
     await pumpPage(tester, repository);
     expect(find.text('76 kg'), findsOneWidget);
     final newestId = repository.weightEntries.last.id!;
-    final delete = find.byKey(ValueKey('progress-weight-delete-$newestId'));
-    await tester.ensureVisible(delete);
-    await tester.tap(delete);
+    final edit = find.byKey(ValueKey('progress-weight-edit-$newestId'));
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-edit-delete')), findsOneWidget);
+    expect(find.text('Save Changes'), findsOneWidget);
+    expect(find.byKey(ValueKey('progress-weight-delete-$newestId')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
     await tester.pumpAndSettle();
     expect(find.text('Delete weight log?'), findsOneWidget);
     expect(repository.weightEntries, hasLength(2));
     await tester.tap(find.text('Cancel').last);
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(2));
+    expect(find.text('Edit Weight'), findsOneWidget);
 
-    await tester.tap(delete);
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();
@@ -1033,6 +1041,49 @@ void main() {
     expect(repository.weightEntries.single.weightKg, 72);
     expect(find.text('72 kg'), findsWidgets);
     expect(find.text('76 kg'), findsNothing);
+  });
+
+  testWidgets('pencil edits only selected record and preserves row identity',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 2)),
+      source: BodyWeightSources.manual,
+      note: 'Keep existing note',
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final oldest = repository.weightEntries.first;
+    final selected = repository.weightEntries.last;
+    final pencil = find.byKey(ValueKey('progress-weight-edit-${selected.id}'));
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-note-toggle')), findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('progress-log-weight-mode-toggle')));
+    await tester.pumpAndSettle();
+    final editor = find.byKey(
+      const ValueKey('progress-log-manual-weight'));
+    expect(editor, findsOneWidget);
+    await tester.enterText(find.descendant(
+      of: editor, matching: find.byType(EditableText)), '77.0');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(2));
+    expect(repository.weightEntries.last.id, selected.id);
+    expect(repository.weightEntries.last.weightKg, 77);
+    expect(repository.weightEntries.first.id, oldest.id);
+    expect(repository.weightEntries.first.note, 'Keep existing note');
+    expect(find.text('Edit Weight'), findsNothing);
   });
 
   testWidgets('Timeline groups months and uses real older-record changes',

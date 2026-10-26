@@ -45,7 +45,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Object? _historyError;
   bool _loading = true;
   bool _loadingMore = false;
-  String? _deletingWeightId;
+  String? _editingWeightId;
   int _generation = 0;
   ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
 
@@ -65,7 +65,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         !identical(oldWidget.repository, widget.repository)) {
       _sessionActive.value = false;
       _sessionActive = ValueNotifier<bool>(true);
-      _deletingWeightId = null;
+      _editingWeightId = null;
       // A new owner starts with a fresh, non-user-selected chart range.
       _range = ProgressWeightRange.days30;
       _rangeSelectedByUser = false;
@@ -104,46 +104,45 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     await _reload();
   }
 
-  Future<void> _deleteWeightEntry(BodyWeightEntry entry) async {
+  Future<void> _openWeightEditor(BodyWeightEntry entry) async {
     final id = entry.id;
-    if (id == null || _deletingWeightId != null || _loading) return;
+    if (id == null || _editingWeightId != null || _loading) return;
     final active = _sessionActive;
-    final repository = widget.repository;
     final generation = _generation;
-    final approved = await showTioConfirmationBottomSheet(
-      context: context,
-      title: 'Delete weight log?',
-      message: 'Delete only this measurement? Weight summary, graph and '
-          'Timeline will refresh. This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      intent: TioConfirmationIntent.destructive,
-    );
-    if (approved != true ||
-        !mounted || !active.value || generation != _generation) {
+    final repository = widget.repository;
+    setState(() => _editingWeightId = id);
+    bool? changed;
+    try {
+      changed = await showProgressWeightEditSheet(
+        context: context,
+        unit: widget.unit,
+        entry: entry,
+        sessionActive: active,
+        now: widget.now,
+        onUpdate: (edit) {
+          if (!mounted || !active.value || generation != _generation) {
+            throw StateError('Weight session is no longer active.');
+          }
+          return repository.updateWeightLog(edit);
+        },
+        onDelete: (rowId) {
+          if (!mounted || !active.value || generation != _generation) {
+            throw StateError('Weight session is no longer active.');
+          }
+          return repository.deleteWeightLog(rowId);
+        },
+      );
+    } finally {
+      if (mounted && active.value && generation == _generation) {
+        setState(() => _editingWeightId = null);
+      }
+    }
+    if (!mounted || !active.value ||
+        generation != _generation || changed != true) {
       return;
     }
-    setState(() => _deletingWeightId = id);
-    try {
-      final deleted = await repository.deleteWeightLog(id);
-      if (!mounted || !active.value || generation != _generation) return;
-      setState(() => _deletingWeightId = null);
-      if (!deleted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Weight log no longer available.')),
-        );
-        return;
-      }
-      // Existing app composition invalidates owner-scoped Body caches.
-      widget.onWeightLogged?.call();
-      await _reload();
-    } catch (_) {
-      if (!mounted || !active.value || generation != _generation) return;
-      setState(() => _deletingWeightId = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete weight log. Try again.')),
-      );
-    }
+    widget.onWeightLogged?.call();
+    await _reload();
   }
 
   Future<void> _reload() async {
@@ -873,18 +872,18 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       ],
     );
     final hasBadges = item.deltaKg != null;
-    final deleteAction = IconButton(
-      key: ValueKey('progress-weight-delete-${entry.id}'),
-      tooltip: 'Delete weight log',
-      onPressed: _deletingWeightId == null
-          ? () => _deleteWeightEntry(entry)
+    final editAction = IconButton(
+      key: ValueKey('progress-weight-edit-${entry.id}'),
+      tooltip: 'Edit weight log',
+      onPressed: _editingWeightId == null
+          ? () => _openWeightEditor(entry)
           : null,
       constraints: const BoxConstraints(
         minWidth: TioSize.dp32,
         minHeight: TioSize.dp40,
       ),
       padding: EdgeInsets.zero,
-      icon: const Icon(Icons.delete_outline_rounded, size: TioSize.dp20),
+      icon: const Icon(Icons.edit_outlined, size: TioSize.dp20),
     );
     final card = TioCard(
       variant: TioCardVariant.normal,
@@ -908,7 +907,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     dateColumn,
                     const SizedBox(width: TioSpacing.sm),
                     Expanded(child: weightWithRecord),
-                    deleteAction,
+                    editAction,
                   ],
                 ),
                 if (hasBadges) ...[
@@ -931,7 +930,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 _timelineChangeBadge(context, item, goalType),
               ],
               const SizedBox(width: TioSpacing.xxs),
-              deleteAction,
+              editAction,
             ],
           );
         },

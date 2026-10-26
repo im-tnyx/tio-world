@@ -102,3 +102,9 @@ Flutter Analyze on `696b8f27` found one `curly_braces_in_flow_control_structures
 ## Latest CI diagnostic corrections
 
 Flutter Analyzer on `696b8f27` flagged one missing block-brace lint (fixed at `ba59d5fb`). The core-wear shard had 144/145 Progress tests successful; the only failure was a new goal marker test fixture missing mandatory `weeklyWeightChangeKg` for Lose Weight, not a production failure. Added the required test goal pace. Reduced timeline badge horizontal/vertical padding and date-to-weight gap to preserve full kg/lb text next to status and delete affordance. Exact-HEAD CI pending; no merge/review bypass.
+
+## 2026-10-26 owner correction — pencil on Timeline, Delete inside Edit sheet
+
+- Owner explicitly replaced per-card delete with an accessible pencil that opens an Edit Weight bottom sheet, and moved Delete to that sheet's pinned footer. Preserve same-PR scope and do not merge.
+- Reuse the existing Progress-owned composition of `TioEditorSheet`, `TioWeightWheel`, Core DateTime picker and pinned footer rather than building a duplicate editor. Editing is addressed by the exact canonical UUID: `BodyWeightLogEdit(id, weightKg, measuredAt)`, with no new record or changed source/metadata. Existing private notes are displayed read-only: the current backend edit contract does not write note metadata, so Notes/Photo inputs are not enabled for edit.
+- Deletion remains a separate Core destructive confirmation within the editor, invoking existing `BodyRepository.deleteWeightLog(id)` with caller session-generation checks; refreshing real owner-backed state on success/known absence. Validate cancellation, update identity, session invalidation and load/graph/Timeline refresh. Latest CI/re-review/device QA mandatory; not approved or merged.
