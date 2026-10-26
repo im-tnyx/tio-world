@@ -1329,8 +1329,8 @@ class _WeightEmptyAuth extends Fake implements GoTrueClient {
   @override
   User? get currentUser => const User(
         id: 'test-user',
-        appMetadata: const {},
-        userMetadata: const {},
+        appMetadata: {},
+        userMetadata: {},
         aud: 'authenticated',
         createdAt: '2026-10-26T00:00:00Z',
       );
