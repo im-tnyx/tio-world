@@ -53,6 +53,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+    expect(find.text('Weight (kg)'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
     final photo = tester.widget<IconButton>(
       find.byKey(const ValueKey('progress-log-photo-later')),
@@ -200,6 +201,7 @@ void main() {
     );
     expect(wheel.unit, WeightUnit.lb);
     expect(wheel.showUnitSwitcher, isFalse);
+    expect(find.text('Weight (lb)'), findsOneWidget);
     final drums = find.descendant(
       of: find.byKey(const ValueKey('progress-log-wheel')),
       matching: find.byType(ListWheelScrollView),
