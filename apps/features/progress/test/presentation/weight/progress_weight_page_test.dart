@@ -825,11 +825,16 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
       TioSize.dp120,
     );
-    // The chart date can be below the viewport after the fixed action is
-    // added. Bring the date into view before asserting the single label.
-    final date = find.text('Oct 25, 2026', skipOffstage: false);
-    await tester.ensureVisible(date);
-    await tester.pumpAndSettle();
+    // The chart date is below the plot inside the lazily built scroll view.
+    // Scroll the actual page until it is built and visible.
+    await tester.scrollUntilVisible(
+      find.text('Oct 25, 2026'),
+      150,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
     expect(find.text('Oct 25, 2026'), findsOneWidget);
   });
 

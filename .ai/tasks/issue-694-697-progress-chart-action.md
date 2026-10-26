@@ -1,10 +1,10 @@
 # Progress root UI correction — GitHub #694 and #697
 
-**Date:** 2026-10-26  
-**Status:** Implementation on an isolated dependent PR; no merge.  
-**Approval:** Owner screenshot and explicit request to fix missing-looking chart, excessive chart height and incorrect Log Weight button position.  
-**Ownership:** `apps/features/progress` presentation only. `im-tnyx` writes, not `im-tio`.  
-**Source base:** exact PR #695 head `f9cecdbd40df15332dd450a0056f5a6b9e8ffda4` because it already fixes the root Progress top bar and editor footer. New PR should target #695 branch as a dependent review so none of its work is copied or silently lost. `main` remains `80db18965fdba53745d96e9bb97c0cc9ea465caa`.  
+**Date:** 2026-10-26
+**Status:** Implementation on an isolated dependent PR; no merge.
+**Approval:** Owner screenshot and explicit request to fix missing-looking chart, excessive chart height and incorrect Log Weight button position.
+**Ownership:** `apps/features/progress` presentation only. `im-tnyx` writes, not `im-tio`.
+**Source base:** exact PR #695 head `f9cecdbd40df15332dd450a0056f5a6b9e8ffda4` because it already fixes the root Progress top bar and editor footer. New PR should target #695 branch as a dependent review so none of its work is copied or silently lost. `main` remains `80db18965fdba53745d96e9bb97c0cc9ea465caa`.
 **Tracking:** GitHub #694 (bottom action, Timeline, top-bar parity already implemented in #695) and #697 (selected-range fallback and compact plot); parent Linear TNYX-119 In Progress. Scope #692 remains existing sheet; #693 UNKNOWN across restart remains separate.
 
 ## Verified diagnosis
