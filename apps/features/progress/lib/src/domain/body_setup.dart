@@ -83,6 +83,7 @@ class BodyWeightEntry {
     required this.measuredAt,
     this.id,
     this.source,
+    this.note,
   });
 
   /// Stable row identity; older current-state consumers may omit it.
@@ -95,6 +96,9 @@ class BodyWeightEntry {
   /// backend/device source. Null is preserved for legacy rows rather than
   /// inventing provenance.
   final String? source;
+
+  /// Optional private note on this measurement, not a photo caption.
+  final String? note;
 }
 
 /// Explicit command payload for recording a new post-onboarding weight row.
@@ -103,11 +107,29 @@ class BodyWeightRecord {
     required this.weightKg,
     required this.measuredAt,
     required this.source,
+    this.note,
+    this.submissionId,
   });
 
   final double weightKg;
   final DateTime measuredAt;
   final String source;
+
+  /// Optional note persisted in this row's existing metadata JSON.
+  final String? note;
+
+  /// Stable client UUID for a single manual draft's safe retries. Null keeps
+  /// existing Settings and onboarding create semantics unchanged.
+  final String? submissionId;
+
+  void validateNoteAndSubmission() {
+    final value = note?.trim();
+    if (value != null && value.length > 500) {
+      throw ArgumentError.value(value.length, 'note', 'Maximum 500 characters.');
+    }
+    final id = submissionId;
+    if (id != null) BodyWeightLogIds.requireValid(id);
+  }
 }
 
 
