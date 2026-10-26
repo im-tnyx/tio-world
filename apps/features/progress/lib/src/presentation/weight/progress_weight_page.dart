@@ -149,7 +149,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       return;
     }
     widget.onWeightLogged?.call();
-    if (!mounted || !active.value || generation != _generation) return;
+    if (!mounted || !active.value || generation != _generation) {
+      return;
+    }
     await _reconcileWeightMutation();
   }
 

@@ -176,3 +176,7 @@ Audit found successful Log Weight and Edit/Delete still invoked hard `_reload()`
 ## 2026-10-26 mutation soft-reload gate tests
 
 Added deferred canonical-read widget regressions for Log, Edit and Delete: confirmed backend mutation must never unmount chart/Current/Log Weight while its History read is pending. Log/Edit tests verify historical ID integrity, nonblank graph, action lock and successful reenable; Delete simulates a confirmed deletion followed by failed read and validates stale pencil remains disabled until inline Retry reconciles the true remaining History. No optimistic deletion and no extra API. Exact-HEAD Flutter CI, independent review and physical UI QA remain mandatory; do not merge.
+
+## 2026-10-26 post-write lint gate
+
+Exact HEAD `4ffc4c56` Flutter Analyze failed a single existing-repo strict Dart lint: `curly_braces_in_flow_control_structures` in the new session-generation guard immediately before Edit/Delete post-write soft refresh. Wrapped that guard in braces. No behavior or scope change; rerun new exact-head CI.
