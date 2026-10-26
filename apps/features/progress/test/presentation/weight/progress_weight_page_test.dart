@@ -1712,6 +1712,135 @@ void main() {
   });
 
 
+  testWidgets('Log Weight keeps existing screen while post-save read is pending',
+      (tester) async {
+    final repository = _ControlledRefreshWeightRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 2)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final graph = find.byKey(const ValueKey('progress-weight-graph-card'));
+    final log = find.byKey(const ValueKey('progress-weight-log-action'));
+    final held = repository.holdNextRefresh();
+    await tester.tap(log);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(repository.refreshReadStarted, isTrue);
+    expect(repository.weightEntries, hasLength(2));
+    expect(graph, findsOneWidget);
+    expect(find.text('72 kg'), findsWidgets);
+    expect(log, findsOneWidget);
+    expect(tester.widget<TioButton>(log).onPressed, isNull);
+    expect(find.text('Weight could not be loaded.'), findsNothing);
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(graph, findsOneWidget);
+    expect(repository.weightEntries, hasLength(2));
+    expect(tester.widget<TioButton>(log).onPressed, isNotNull);
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Edit Weight preserves graph until its exact-record read completes',
+      (tester) async {
+    final repository = _ControlledRefreshWeightRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final latest = repository.weightEntries.last;
+    final edit = find.byKey(ValueKey('progress-weight-edit-${latest.id}'));
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('progress-log-weight-mode-toggle')));
+    await tester.pumpAndSettle();
+    final manual = find.byKey(
+      const ValueKey('progress-log-manual-weight'));
+    await tester.enterText(find.descendant(
+      of: manual, matching: find.byType(EditableText)), '77.0');
+    await tester.pumpAndSettle();
+    final held = repository.holdNextRefresh();
+    await tester.tap(find.text('Save Changes'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(repository.refreshReadStarted, isTrue);
+    expect(repository.weightEntries, hasLength(2));
+    expect(repository.weightEntries.last.id, latest.id);
+    expect(repository.weightEntries.last.weightKg, 77);
+    // An in-flight canonical read must not blank the old verified chart.
+    expect(find.text('76 kg'), findsWidgets);
+    expect(find.byKey(const ValueKey('progress-weight-graph-card')),
+        findsOneWidget);
+    final log = find.byKey(const ValueKey('progress-weight-log-action'));
+    expect(tester.widget<TioButton>(log).onPressed, isNull);
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('77 kg'), findsWidgets);
+    expect(repository.weightEntries, hasLength(2));
+    expect(tester.widget<TioButton>(log).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Delete keeps UI but locks stale row until Retry reconciles',
+      (tester) async {
+    final repository = _ControlledRefreshWeightRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final newest = repository.weightEntries.last.id!;
+    final pencil = find.byKey(ValueKey('progress-weight-edit-$newest'));
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
+    await tester.pumpAndSettle();
+    final held = repository.holdNextRefresh(fail: true);
+    await tester.tap(find.text('Delete').last);
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(repository.refreshReadStarted, isTrue);
+    expect(repository.weightEntries, hasLength(1));
+    expect(pencil, findsOneWidget);
+    expect(tester.widget<IconButton>(pencil).onPressed, isNull);
+    expect(find.text('76 kg'), findsWidgets);
+    expect(find.byKey(const ValueKey('progress-weight-graph-card')),
+        findsOneWidget);
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsOneWidget);
+    expect(tester.widget<IconButton>(pencil).onPressed, isNull);
+    await tester.tap(find.descendant(
+      of: find.byKey(const ValueKey('progress-weight-refresh-failed')),
+      matching: find.text('Retry'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('76 kg'), findsNothing);
+    expect(find.text('72 kg'), findsWidgets);
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('pull-to-refresh works with empty short History', (tester) async {
     final repo = _CountingProgressHistoryRepository();
     await pumpPage(tester, repo);

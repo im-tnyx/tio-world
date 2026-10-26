@@ -172,3 +172,7 @@ Owner clarified Github iOS screenshot is only reference: dragging Progress conte
 ## 2026-10-26 owner correction: no blank-screen Log/Edit/Delete writes
 
 Audit found successful Log Weight and Edit/Delete still invoked hard `_reload()` and wiped `_snapshot`. Added the same-owner `_reconcileWeightMutation` with soft canonical reload and a stale-action interlock: chart/Timeline remain visible while read pending, but logging/edit/delete/long-press/history pagination are disabled until successful real fresh read. If the read fails, show inline Retry without implying server data were refreshed; prevent repeating a mutation on stale Timeline records. Cold/range/session hard reload and previous session guards remain intact. Reconciled 3 prior SliverList CI widget failures caused by lazy unbuilt offscreen Timeline and idle sliver control. CI and device touch QA required before merge.
+
+## 2026-10-26 mutation soft-reload gate tests
+
+Added deferred canonical-read widget regressions for Log, Edit and Delete: confirmed backend mutation must never unmount chart/Current/Log Weight while its History read is pending. Log/Edit tests verify historical ID integrity, nonblank graph, action lock and successful reenable; Delete simulates a confirmed deletion followed by failed read and validates stale pencil remains disabled until inline Retry reconciles the true remaining History. No optimistic deletion and no extra API. Exact-HEAD Flutter CI, independent review and physical UI QA remain mandatory; do not merge.
