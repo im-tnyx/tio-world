@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
+import 'progress_weight_log_sheet.dart';
 
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
@@ -34,6 +35,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   bool _loading = true;
   bool _loadingMore = false;
   int _generation = 0;
+  ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
 
   ProgressWeightDashboardReader get _reader =>
       ProgressWeightDashboardReader(widget.repository, now: widget.now);
@@ -49,6 +51,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.sessionKey != widget.sessionKey ||
         !identical(oldWidget.repository, widget.repository)) {
+      _sessionActive.value = false;
+      _sessionActive = ValueNotifier<bool>(true);
       // Invalidate all prior async completions, including page fetches.
       _reload();
     }
@@ -57,6 +61,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   @override
   void dispose() {
     _generation++;
+    _sessionActive.value = false;
     super.dispose();
   }
 
