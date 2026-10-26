@@ -125,3 +125,8 @@ Each independently scoped product-visible implementation slice still follows [Ow
 - [Workout](workout.md)
 - [Nutrition](nutrition.md)
 - [Recovery](recovery.md)
+
+
+### A3-F footer integration (review slice #692)
+
+The approved Weight Log editor places Notes (optional) and a disabled/future Photo icon at the left of a pinned editor action strip, with one right-aligned Date/Time control and Save Weight below. It reuses the Core pinned footer and DateTime popup while leaving body weight data, kg/UTC storage and owner/session protections unchanged. This section describes the targeted review slice, **not a merged or released feature**.

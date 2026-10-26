@@ -637,3 +637,7 @@ theme/
 
 Keep this map and the rules above current whenever the theme system evolves.
 The owner-approved Workout Routine Delete centered confirmation caps its reusable `TioCard.elevated` surface at `TioSize.dp320` (320dp) rather than the former 480dp. The physical value belongs to the common `TioSize` registry; it does not introduce a Routine-specific Core token or change Core Card, generic confirmation presenters or global button geometry. The scoped actions use the existing 38dp visual minimum and retain padded accessible Material touch targets.
+
+## Pinned editor action footer (A3-F)
+
+`TioEditorActionFooter` composes a generic full-width 1dp separator, a bounded leading slot, right-aligned trailing slot, optional caller-owned note, and primary action, without feature domain rules. Supply it as `TioEditorSheet.actions` with `flushActions: true`. `TioEditorFooterAction` preserves the compact 44dp interactive treatment, key-controlled semantics and disabled opacity used by Nutrition's Meal footer. Nutrition still owns meal category selection, stable identities and DateTime policy; Progress owns Notes/Photo and Weight history logic. For anchored date-time use existing `TioDateTimePickerPopup`, not a second wheel.
