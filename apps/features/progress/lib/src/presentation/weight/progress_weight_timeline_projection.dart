@@ -7,6 +7,7 @@ class ProgressWeightTimelineItem {
     required this.entry,
     required this.localMeasuredAt,
     required this.isToday,
+    required this.isLatestEligible,
     required this.deltaKg,
     required this.isNewLow,
     required this.isNewHigh,
@@ -15,6 +16,8 @@ class ProgressWeightTimelineItem {
   final BodyWeightEntry entry;
   final DateTime localMeasuredAt;
   final bool isToday;
+  /// Only the newest nonfuture entry receives the highlighted outline.
+  final bool isLatestEligible;
   final double? deltaKg;
   final bool isNewLow;
   final bool isNewHigh;
@@ -85,6 +88,7 @@ abstract final class ProgressWeightTimelineProjection {
               local.year == localNow.year &&
               local.month == localNow.month &&
               local.day == localNow.day,
+          isLatestEligible: eligible && i == latestEligibleIndex,
           // Never compare two records from the same instant as before/after.
           deltaKg: eligible && nearestOlder != null
               ? entry.weightKg - nearestOlder.weightKg

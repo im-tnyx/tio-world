@@ -1310,6 +1310,56 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('latest eligible entry alone has highlighted outline',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repo = InMemoryBodySetupRepository();
+    for (final record in [
+      BodyWeightRecord(
+        weightKg: 75, measuredAt: now.subtract(const Duration(days: 3)),
+        source: BodyWeightSources.manual,
+      ),
+      BodyWeightRecord(
+        weightKg: 74, measuredAt: now.subtract(const Duration(hours: 2)),
+        source: BodyWeightSources.manual,
+      ),
+      BodyWeightRecord(
+        weightKg: 73, measuredAt: now.subtract(const Duration(minutes: 10)),
+        source: BodyWeightSources.manual,
+      ),
+    ]) {
+      await repo.recordCurrentWeight(record);
+    }
+    await pumpPage(tester, repo);
+    final entries = repo.weightEntries;
+    expect(entries, hasLength(3));
+    final latest = find.byKey(
+      ValueKey('progress-weight-history-${entries.last.id}'),
+    );
+    await tester.ensureVisible(latest);
+    await tester.pumpAndSettle();
+    for (final record in entries) {
+      final card = find.byKey(
+        ValueKey('progress-weight-history-${record.id}'),
+      );
+      expect(card, findsOneWidget);
+      final style = tester.widget<DecoratedBox>(card).decoration
+          as BoxDecoration;
+      if (record.id == entries.last.id) {
+        expect((style.border! as Border).top.width, TioStroke.width05);
+      } else {
+        expect(style.border, isNull);
+      }
+    }
+    expect(find.text('Today'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Today inset keeps narrow Timeline cards the same height',
       (tester) async {
     tester.view.physicalSize = const Size(337, 1300);

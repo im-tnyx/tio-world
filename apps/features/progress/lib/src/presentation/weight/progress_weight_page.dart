@@ -882,7 +882,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               Icon(
                 Icons.circle,
                 size: TioSize.dp8,
-                color: item.isToday ? colors.progress : colors.textMuted,
+                color: item.isLatestEligible ? colors.progress : colors.textMuted,
               ),
               const SizedBox(width: TioSpacing.xs),
               Expanded(
@@ -894,7 +894,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: typography.labelMedium?.copyWith(
-                    color: item.isToday
+                    color: item.isLatestEligible
                         ? colors.progress
                         : colors.textSecondary,
                   ),
@@ -1043,7 +1043,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         // irrespective of notes, Today border or one/two change badges.
         // Expand the shared height at narrow widths or accessibility scales
         // instead of clipping the weight value or its unit.
-        // Reserve the Today outline inset for every row so Today and
+        // Reserve the latest-entry outline inset so highlighted and
         // non-Today entries always share the same height breakpoint.
         final stackBadges = stackTimelineBadges(
           constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width05,
@@ -1057,13 +1057,13 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             key: ValueKey('progress-weight-history-${entry.id!}'),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
-              border: item.isToday
+              border: item.isLatestEligible
                   ? Border.all(color: colors.progress, width: TioStroke.width05)
                   : null,
             ),
             // Outline does not increase overall card height for Today.
             child: Padding(
-              padding: item.isToday
+              padding: item.isLatestEligible
                   ? const EdgeInsets.all(TioStroke.width05)
                   : EdgeInsets.zero,
               child: card,

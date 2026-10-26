@@ -181,3 +181,7 @@ Timeline weight stays in its middle column. The trailing action group follows `N
 ### 2026-10-26 Edit Weight header/footer parity
 
 Edit Weight header shows **red Delete → Keyboard → X**, with the existing Core destructive confirmation for Delete. The pinned footer restores its original Notes, disabled Image placeholder, Date/Time and Save Changes controls. Edit Notes toggles a read-only original note or an empty-note explanation, not an unsupported metadata editor; existing notes longer than creation limits must not block weight/time updates. Log Weight continues to allow new Notes and retains its original validations. The Timeline weight uses the governed titleMedium style rather than titleLarge. Timeline size, 0.5dp Today outline, and trailing record/delta/pencil position remain unchanged.
+
+### 2026-10-26 Timeline highlight: latest entry only
+
+The 0.5dp progress-coloured outline, status dot and date text tint now highlight **only the newest eligible nonfuture measurement** under canonical `measuredAt DESC, id DESC` History ordering. Month heading is not a highlighted group, and older records in the same month or on the same day stay neutral—even though multiple legitimate entries may still display the truthful `Today` date label. No future record is highlighted. Goal-directed New low/high, change badges, 56dp/100dp Timeline heights, rounded pencil/Edit sheet and owner/session policies remain unchanged.

@@ -132,6 +132,24 @@ void main() {
     expect(noGoal.any((r) => r.isNewLow || r.isNewHigh), isFalse);
   });
 
+  test('only latest eligible measurement gets highlighted, not entire day',
+      () {
+    final rows = [
+      row('future', 70, now.add(const Duration(minutes: 5))),
+      row('latest', 73, now.subtract(const Duration(minutes: 10))),
+      row('earlier-today', 74, now.subtract(const Duration(hours: 1))),
+      row('earlier-this-month', 75, now.subtract(const Duration(days: 2))),
+    ];
+    final items = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+    );
+    expect(items.map((item) => item.isLatestEligible).toList(),
+        [false, true, false, false]);
+    expect(items[1].isToday, isTrue);
+    expect(items[2].isToday, isTrue);
+    expect(items[0].isToday, isFalse);
+  });
+
   test('Today cannot be inferred for a future-dated measurement', () {
     final rows = [
       row('future', 68, now.add(const Duration(minutes: 5))),
