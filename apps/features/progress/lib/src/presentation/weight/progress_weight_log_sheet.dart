@@ -64,6 +64,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   bool _attempted = false;
   bool _dismissQueued = false;
   Route<dynamic>? _activePickerRoute;
+  ModalRoute<dynamic>? _sheetRoute;
+  NavigatorState? _sheetNavigator;
   String? _error;
 
   @override
@@ -76,6 +78,15 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     widget.sessionActive.addListener(_onSessionChanged);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Session invalidation can arrive while this element is deactivating.
+    // Resolve route and navigator while the inherited context is still safe.
+    _sheetRoute = ModalRoute.of(context);
+    _sheetNavigator = Navigator.of(context);
+  }
+
   void _onSessionChanged() {
     if (widget.sessionActive.value || _dismissQueued) return;
     _dismissQueued = true;
@@ -84,11 +95,11 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     // an unrelated top route or leave a blank barrier covering the app.
     // Date/time pickers are independent DialogRoutes above this bottom sheet.
     // Remove only routes opened by this draft; never pop an unrelated screen.
-    final sheetRoute = ModalRoute.of(context);
+    final sheetRoute = _sheetRoute;
     final pickerRoute = _activePickerRoute;
+    final navigator = _sheetNavigator;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final navigator = Navigator.of(context);
+      if (!mounted || navigator == null || !navigator.mounted) return;
       if (pickerRoute != null && pickerRoute.isActive) {
         navigator.removeRoute(pickerRoute);
       }
