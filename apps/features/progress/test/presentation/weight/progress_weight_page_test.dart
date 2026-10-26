@@ -929,7 +929,17 @@ void main() {
     );
     await pumpPage(tester, repo, unit: WeightUnit.lb);
     expect(find.text('Today'), findsOneWidget);
-    expect(find.text('160.9 lb'), findsOneWidget);
+    // Summary and Timeline may both show the current reading; assert that
+    // the Timeline card itself displays the global lb conversion.
+    final timelineLb = find.descendant(
+      of: find.byWidgetPredicate((widget) =>
+          widget is DecoratedBox &&
+          widget.key is ValueKey<String> &&
+          (widget.key! as ValueKey<String>).value
+              .startsWith('progress-weight-history-')),
+      matching: find.text('160.9 lb'),
+    );
+    expect(timelineLb, findsOneWidget);
     expect(find.text('New low'), findsNothing);
     expect(find.text('0.0'), findsNothing);
   });

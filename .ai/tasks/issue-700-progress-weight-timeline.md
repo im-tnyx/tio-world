@@ -35,3 +35,9 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 - Codex reviewed `99328c8` and found one P2 unit-test failure: fractional `-0.8` delta equality; replace only the matcher with `closeTo(-0.8, 0.001)`. Do not round production weight deltas to satisfy a test.
 - Compact cards: Core `TioCard` retained, vertical padding `lg → sm`, Today dot aligned inline with date, recorded time remains below, inter-card gap `sm → xs`. Keep notes untruncated, Change/New low badges, global kg/lb, Today border, pagination, and pinned Log Weight. Add baseline widget geometry regression (<80dp), preserving text/weight and action visibility.
 - Validation: GitHub read/review/source audit only before this patch; Flutter CI, reviewer disposition, and device screenshots pending. Older base/stack statements in prior checkpoints are historic, not live planning.
+
+## Exact-head CI repair (following `370811e`)
+
+- GitHub Flutter analyze (on `370811e`) flagged one `unnecessary_non_null_assertion` in the strictly-older delta projection. Removed redundant `!`; nonnull guard is retained.
+- Progress widget shard exposed a pre-existing brittle expectation: Current summary **and** Timeline now both display `160.9 lb`. Replaced global single-text assertion with Timeline-card descendant assertion so the test checks the intended owner UI, not a duplicate count.
+- Docs hygiene failure on `370811e` traced to markdown trailing spaces; corrected at `56ffabe`, whose docs hygiene check passed. All Flutter CI gates must re-run on the latest code HEAD; neither this note nor earlier runs count as validation.
