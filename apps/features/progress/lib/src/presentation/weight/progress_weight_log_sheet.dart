@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:characters/characters.dart';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
@@ -158,8 +160,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
       setState(() => _error = 'Measurement time cannot be in the future.');
       return;
     }
-    final rawNote = _noteVisible ? _noteController.text.trim() : '';
-    if (rawNote.length > 500) {
+    final rawNote = _noteController.text.trim();
+    if (rawNote.characters.length > 500) {
       setState(() => _error = 'Notes must be 500 characters or fewer.');
       return;
     }

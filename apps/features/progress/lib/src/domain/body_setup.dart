@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 /// Canonical Body Goal values shared across app modes.
 enum BodyGoalType {
   loseWeight,
@@ -124,7 +126,7 @@ class BodyWeightRecord {
 
   void validateNoteAndSubmission() {
     final value = note?.trim();
-    if (value != null && value.length > 500) {
+    if (value != null && value.characters.length > 500) {
       throw ArgumentError.value(value.length, 'note', 'Maximum 500 characters.');
     }
     final id = submissionId;
