@@ -48,6 +48,12 @@ Progress → Weight
 
 Weight is the first real post-onboarding Progress vertical slice, not a second weight source. A photo field or upload action must not be presented as working in Slice A; optional linked photos arrive with separately approved Slice B.
 
+### Chart range and compact root action (2026-10-26 follow-up)
+
+With the default 30-day range and no in-window measurements, the initial Progress screen may choose the first wider supported range (90 or 365 days) with **real owner-owned recorded measurements**; the selected range label must match the chart. A user's explicit 30/90/365-day selection is never silently overridden. All-empty and future-only windows remain honest empty states; changing a Body Goal never invents a measurement or extends a trend line. The plot uses a more compact **120dp** height and a right-side numeric Y-axis in the global kg/lb preference; empty state consumes only its text. Single-point plots use one centered date label, not duplicated start/end dates. The selected-range change requires comparable recorded instants.
+
+The `Log Weight` action is an always-visible Core-standard **46dp** labelled bottom-end pill over the root Progress body, outside its scrolling Timeline, with Nutrition's action location/safe-area and scroll-clearance semantics but deliberately shorter than its 56dp circular FAB per the owner's latest screenshot, while retaining Progress-owned save/auth/unknown handling and Core primary colors. The visible heading is `Timeline`; underlying History repository names/pagination are unchanged. PR #695 separately owns the shell top-bar and pinned **editor-sheet** footer.
+
 ### Summary and chart
 
 - `Current Weight` is derived from the latest **eligible** canonical `body_weight_logs` entry across the user's history, not the selected chart range or a Profile copy. Future-dated measurements must not silently masquerade as current. The precise future-date entry/eligibility policy must be validated in A1/A3 before it is shipped.
@@ -136,3 +142,8 @@ The same approved review additionally aligns the Progress root Top Bar with cano
 ### Progress header and Weight DateTime layering (PR #695, review only)
 
 With the root shell now owning the `Progress` title, the Weight dashboard body begins at `Weight summary` and no longer repeats `Weight` just under the top bar. On the Weight editor only, the anchored Core DateTime popup uses its new flat-card option to avoid an apparent second elevated layer over the sheet. The shared Food DateTime popup retains its previous elevated surface and behavior. The date/time wheel's existing centered selection pill remains within the single popup, not a separate card. These changes are in an open, unmerged PR.
+
+
+### Reconciled status — 2026-10-26
+
+PR #695 and PR #696 are merged into `main`. The canonical Progress top bar is already owned by #695. The fixed `Log Weight` action and `Timeline` heading are owned by merged #696: explicit `TioButtonTokens.height` (46dp), no extra save icon, 24dp inset and safe-area/scroll clearance. PR #698 only contributes the truthful range fallback and 120dp chart/axis presentation; it does not reimplement the action. Older “review only/unmerged” text above is historical and superseded for #695/#696.
