@@ -36,6 +36,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> confirmInitialWeight(WidgetTester tester) async {
+    final button = find.byKey(const ValueKey('progress-log-confirm-weight'));
+    // An actual in-range History weight is already a valid known prefill.
+    if (button.evaluate().isEmpty) return;
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('empty Weight shows truthful first-entry help, no active edit',
       (tester) async {
     await pumpPage(tester, InMemoryBodySetupRepository());
@@ -46,6 +55,64 @@ void main() {
     expect(find.byIcon(Icons.edit), findsNothing);
   });
 
+
+  testWidgets('empty History never submits an unacknowledged 70 kg',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('progress-log-confirm-weight')),
+        findsOneWidget);
+    final save = tester.widget<TioButton>(
+      find.byKey(const ValueKey('progress-log-save')),
+    );
+    expect(save.onPressed, isNull);
+    expect(repository.weightEntries, isEmpty);
+
+    // Explicitly acknowledging the visible wheel value is a deliberate
+    // measurement, unlike opening and immediately saving the placeholder.
+    await confirmInitialWeight(tester);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-log-save')),
+      ).onPressed,
+      isNotNull,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.weightKg, closeTo(70, 0.001));
+  });
+
+  testWidgets('out-of-range historical weight cannot silently save clamp',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 250,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('progress-log-confirm-weight')),
+        findsOneWidget);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-log-save')),
+      ).onPressed,
+      isNull,
+    );
+    expect(repository.weightEntries, hasLength(1));
+    await tester.tap(find.byKey(const ValueKey('progress-log-close')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries.single.weightKg, 250);
+  });
 
   testWidgets('Log sheet reuses wheel; Notes icon alone expands text field',
       (tester) async {
@@ -93,6 +160,7 @@ void main() {
     );
     await tester.enterText(field, 'Morning check-in');
     await tester.ensureVisible(find.byKey(const ValueKey('progress-log-save')));
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
@@ -120,6 +188,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries.single.note, 'After the run');
@@ -142,6 +211,7 @@ void main() {
       ),
       message,
     );
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
@@ -154,11 +224,23 @@ void main() {
     await pumpPage(tester, repository);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
     expect(find.textContaining('Save not confirmed'), findsOneWidget);
     expect(find.textContaining('Details are locked'), findsOneWidget);
+    expect(
+      tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-close')),
+      ).onPressed,
+      isNull,
+    );
+    // An UNKNOWN result must not be dismissed and reopened with a new UUID.
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
+    expect(repository.weightEntries, hasLength(1));
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
@@ -173,6 +255,7 @@ void main() {
     await pumpPage(tester, repository);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pump();
     // A pending save has a stable operation ID and must retain its modal.
@@ -199,6 +282,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(invalidations, 1);
@@ -228,6 +312,7 @@ void main() {
         as FixedExtentScrollController;
     expect(whole.selectedItem, 154 - 66);
     expect(decimal.selectedItem, 3);
+    await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
