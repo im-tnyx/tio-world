@@ -871,10 +871,15 @@ void main() {
         closeTo(axisRect.right, 0.001),
       );
     }
-    expect(
-      axisRect.width,
-      lessThan(TioSize.dp48),
-    );
+    // Actual theme fonts can make legitimate numeric labels wider than
+    // 48dp; intrinsic axis width must match rendered labels, not a cap.
+    final labelWidths = labels.evaluate().map((element) =>
+        tester.getRect(find.byElementPredicate(
+          (candidate) => identical(candidate, element),
+        )).width);
+    expect(axisRect.width, closeTo(
+      labelWidths.reduce((a, b) => a > b ? a : b), 0.001,
+    ));
     final locale = MaterialLocalizations.of(tester.element(plot));
     final shortStart = locale.formatShortMonthDay(
       now.subtract(const Duration(days: 10)).toLocal(),
@@ -1721,6 +1726,81 @@ void main() {
     expect(find.textContaining('No weight measurements yet'), findsOneWidget);
   });
 
+  testWidgets('pull refresh keeps graph Timeline and Log Weight visible until swap',
+      (tester) async {
+    final repo = _ControlledRefreshWeightRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(days: 2)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    expect(find.text('73 kg'), findsWidgets);
+    expect(find.text('Timeline'), findsOneWidget);
+    final graph = find.byKey(const ValueKey('progress-weight-chart'));
+    final log = find.byKey(const ValueKey('progress-weight-log-action'));
+    expect(graph, findsOneWidget);
+    expect(log, findsOneWidget);
+    final gate = repo.holdNextRefresh();
+    final scroll = find.byKey(const ValueKey('progress-weight-scroll'));
+    await tester.drag(scroll, const Offset(0, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(repo.refreshReadStarted, isTrue);
+    expect(find.text('73 kg'), findsWidgets);
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(graph, findsOneWidget);
+    expect(log, findsOneWidget);
+    expect(find.text('Weight could not be loaded.'), findsNothing);
+
+    // The next canonical snapshot replaces the previous one only on success.
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74,
+      measuredAt: now.subtract(const Duration(hours: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('74 kg'), findsWidgets);
+    expect(find.text('73 kg'), findsWidgets);
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsNothing);
+    expect(log, findsOneWidget);
+  });
+
+  testWidgets('pull refresh failure retains content and offers inline Retry',
+      (tester) async {
+    final repo = _ControlledRefreshWeightRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final gate = repo.holdNextRefresh(fail: true);
+    final scroll = find.byKey(const ValueKey('progress-weight-scroll'));
+    await tester.drag(scroll, const Offset(0, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('74 kg'), findsWidgets);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsOneWidget);
+    expect(find.text('74 kg'), findsWidgets);
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-chart')),
+        findsOneWidget);
+    expect(find.text('Weight could not be loaded.'), findsNothing);
+
+    await tester.tap(find.descendant(
+      of: find.byKey(const ValueKey('progress-weight-refresh-failed')),
+      matching: find.text('Retry'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsNothing);
+    expect(find.text('74 kg'), findsWidgets);
+  });
+
   testWidgets('optional chart fallback failure keeps valid baseline data',
       (tester) async {
     final repository = _FailingFallbackWeightRepository();
@@ -1749,6 +1829,34 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-chart')), findsNothing);
   });
+}
+
+class _ControlledRefreshWeightRepository extends InMemoryBodySetupRepository {
+  Completer<void>? _gate;
+  bool _fail = false;
+  bool refreshReadStarted = false;
+
+  Completer<void> holdNextRefresh({bool fail = false}) {
+    if (_gate != null) throw StateError('Refresh already blocked');
+    _fail = fail;
+    refreshReadStarted = false;
+    return _gate = Completer<void>();
+  }
+
+  @override
+  Future<BodyState> getBodyState() async {
+    final gate = _gate;
+    if (gate != null) {
+      refreshReadStarted = true;
+      await gate.future;
+      _gate = null;
+      if (_fail) {
+        _fail = false;
+        throw StateError('Transient refresh transport failure');
+      }
+    }
+    return super.getBodyState();
+  }
 }
 
 class _FailingFallbackWeightRepository extends InMemoryBodySetupRepository {

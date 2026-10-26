@@ -45,6 +45,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Object? _historyError;
   bool _loading = true;
   bool _loadingMore = false;
+  bool _refreshFailed = false;
   String? _editingWeightId;
   int _generation = 0;
   ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
@@ -145,14 +146,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     await _reload();
   }
 
-  Future<void> _reload() async {
+  Future<void> _reload({bool preserveContent = false}) async {
+    // Pull-to-refresh retains the current owner-scoped screen and the native
+    // indicator owns the visible progress. Initial load, filter changes,
+    // writes, and account/session changes still use a hard fresh read.
+    final keepExisting = preserveContent && _snapshot != null && !_loading;
     final generation = ++_generation;
     setState(() {
-      _loading = true;
+      _loading = !keepExisting;
       _loadingMore = false;
-      _snapshot = null;
+      if (!keepExisting) _snapshot = null;
       _error = null;
       _historyError = null;
+      _refreshFailed = false;
     });
     try {
       var selectedRange = _range;
@@ -195,12 +201,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         _range = selectedRange;
         _snapshot = snapshot;
         _loading = false;
+        _refreshFailed = false;
       });
     } catch (_) {
       // Never log health measurements, tokens or user-owned row identifiers.
       if (!mounted || generation != _generation) return;
       setState(() {
-        _error = const _WeightLoadFailure();
+        if (keepExisting) {
+          // A transient refresh failure must not wipe previously verified
+          // same-owner health data or replace it with a full-page spinner.
+          _refreshFailed = true;
+        } else {
+          _error = const _WeightLoadFailure();
+        }
         _loading = false;
       });
     }
@@ -245,8 +258,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        RefreshIndicator(
-      onRefresh: _reload,
+        RefreshIndicator.adaptive(
+      onRefresh: () => _reload(preserveContent: true),
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
@@ -278,6 +291,26 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               ),
             )
           else if (_snapshot != null) ...[
+            if (_refreshFailed) ...[
+              Row(
+                key: const ValueKey('progress-weight-refresh-failed'),
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Could not refresh. Showing the last loaded weights.',
+                      style: typography.bodySmall?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  TioButton.supporting(
+                    label: 'Retry',
+                    onPressed: () => _reload(preserveContent: true),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TioSpacing.sm),
+            ],
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
             Text('Timeline', style: typography.titleLarge),
