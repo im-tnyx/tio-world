@@ -1,10 +1,10 @@
 # Progress root UI correction — GitHub #694 and #697
 
-**Date:** 2026-10-26  
-**Status:** Implementation on an isolated dependent PR; no merge.  
-**Approval:** Owner screenshot and explicit request to fix missing-looking chart, excessive chart height and incorrect Log Weight button position.  
-**Ownership:** `apps/features/progress` presentation only. `im-tnyx` writes, not `im-tio`.  
-**Source base:** exact PR #695 head `f9cecdbd40df15332dd450a0056f5a6b9e8ffda4` because it already fixes the root Progress top bar and editor footer. New PR should target #695 branch as a dependent review so none of its work is copied or silently lost. `main` remains `80db18965fdba53745d96e9bb97c0cc9ea465caa`.  
+**Date:** 2026-10-26
+**Status:** Implementation on an isolated dependent PR; no merge.
+**Approval:** Owner screenshot and explicit request to fix missing-looking chart, excessive chart height and incorrect Log Weight button position.
+**Ownership:** `apps/features/progress` presentation only. `im-tnyx` writes, not `im-tio`.
+**Source base:** exact PR #695 head `f9cecdbd40df15332dd450a0056f5a6b9e8ffda4` because it already fixes the root Progress top bar and editor footer. New PR should target #695 branch as a dependent review so none of its work is copied or silently lost. `main` remains `80db18965fdba53745d96e9bb97c0cc9ea465caa`.
 **Tracking:** GitHub #694 (bottom action, Timeline, top-bar parity already implemented in #695) and #697 (selected-range fallback and compact plot); parent Linear TNYX-119 In Progress. Scope #692 remains existing sheet; #693 UNKNOWN across restart remains separate.
 
 ## Verified diagnosis
@@ -37,3 +37,11 @@ At proposed head `5fcd255f28b1e54aee2ff7b18b6f89a866afd3ec`, GitHub PR #698 is O
 ## Owner refinement (2026-10-26, latest Android screenshot)
 
 The screenshot now actually shows the **new** fixed button / Timeline presentation, so the earlier screenshot was the older build; do not claim the new layout has not reached Android. The owner explicitly requests the chart lower than 160dp and the root Log Weight pill shorter than its 56dp minimum. Updated scoped implementation: 120dp plot, numeric Y-axis labels on the right using global kg/lb units from a single shared kg-domain scale (real rows + optional goal), center date once when there is only one point, reduce the root action to the existing Core primary-button standard 46dp, and adjust bottom clearance accordingly. Preserve bottom-end anchored position, theme colors and real-data chart-only semantics. This owner refinement supersedes #694's earlier 56dp height target; none of the editor-sheet footer or Nutrition FAB geometry changes. Extend widget tests for kg/lb scale, chart and button heights. Independent visual device QA and exact-code CI remain unverified.
+
+
+## Post-merge reconciliation — 2026-10-26
+
+- #695 and #696 merged into main. Earlier base/56dp/standalone fixed-action instructions above are superseded.
+- #698 is reconciled with main via a non-destructive two-parent commit preserving #701 ancestry. Current page uses the exact #696 fixed action (explicit 46dp Core token, no save icon) and keeps #698's real-data fallback/120dp chart changes.
+- #698's remaining ownership is chart/range presentation only. #694 is already completed by #695/#696 and must not be closed again by #698.
+- Recheck exact-head CI, review and documentation before a separate owner-authorized merge. No physical-device QA claimed.

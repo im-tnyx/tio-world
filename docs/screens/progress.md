@@ -148,3 +148,8 @@ The same approved review additionally aligns the Progress root Top Bar with cano
 ### Progress header and Weight DateTime layering (PR #695, review only)
 
 With the root shell now owning the `Progress` title, the Weight dashboard body begins at `Weight summary` and no longer repeats `Weight` just under the top bar. On the Weight editor only, the anchored Core DateTime popup uses its new flat-card option to avoid an apparent second elevated layer over the sheet. The shared Food DateTime popup retains its previous elevated surface and behavior. The date/time wheel's existing centered selection pill remains within the single popup, not a separate card. These changes are in an open, unmerged PR.
+
+
+### Reconciled status — 2026-10-26
+
+PR #695 and PR #696 are merged into `main`. The canonical Progress top bar is already owned by #695. The fixed `Log Weight` action and `Timeline` heading are owned by merged #696: explicit `TioButtonTokens.height` (46dp), no extra save icon, 24dp inset and safe-area/scroll clearance. PR #698 only contributes the truthful range fallback and 120dp chart/axis presentation; it does not reimplement the action. Older “review only/unmerged” text above is historical and superseded for #695/#696.
