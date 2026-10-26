@@ -79,7 +79,7 @@ void main() {
       expect(bar!.preferredSize.height, TioNavigationTokens.topBarHeight);
       final y = tester.getRect(find.byKey(const ValueKey('root-tab-body'))).top;
       bodyTop ??= y;
-      expect(y, closeTo(bodyTop!, 1),
+      expect(y, closeTo(bodyTop, 1),
           reason: 'Switching tabs cannot shift the top of the body');
       if (tab == ShellTab.progress) {
         final progressBar = tester.widget<AppBar>(find.byType(AppBar));
