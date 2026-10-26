@@ -157,7 +157,22 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
-    expect(find.text('Weight (kg)'), findsOneWidget);
+    expect(find.text('Weight (kg)'), findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-weight-unit-label')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-weight-mode-toggle')),
+        findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('progress-log-wheel'))).height,
+      TioWheelPickerTokens.viewportHeight,
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('progress-log-weight-mode-toggle')))
+          .right,
+      lessThanOrEqualTo(
+        tester.getRect(find.byKey(const ValueKey('progress-log-close'))).left,
+      ),
+    );
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
     final photo = tester.widget<IconButton>(
       find.byKey(const ValueKey('progress-log-photo-later')),
@@ -165,6 +180,101 @@ void main() {
     expect(photo.onPressed, isNull);
     await tapNoteToggle(tester);
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
+  });
+
+  testWidgets('reusable Notes starts one line and grows to two without count',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
+    final input = tester.widget<TioInput>(
+      find.byKey(const ValueKey('progress-log-note-field')),
+    );
+    expect(input.minLines, 1);
+    expect(input.maxLines, 2);
+    expect(input.maxLength, isNull);
+    expect(find.text('0/500'), findsNothing);
+    final editor = find.descendant(
+      of: find.byKey(const ValueKey('progress-log-note-field')),
+      matching: find.byType(EditableText),
+    );
+    final hundred = List.filled(100, 'a').join(' ');
+    await tester.enterText(editor, hundred);
+    expect(tester.widget<EditableText>(editor).controller.text, hundred);
+    await tester.enterText(editor, '$hundred extra');
+    expect(tester.widget<EditableText>(editor).controller.text, hundred);
+    await tester.enterText(editor, 'First line\nSecond line');
+    expect(tester.widget<EditableText>(editor).controller.text,
+        'First line\nSecond line');
+  });
+
+  testWidgets('pencil allows bounded manual kg entry then restores full wheel',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    final pencil = find.byKey(
+      const ValueKey('progress-log-weight-mode-toggle'),
+    );
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-manual-weight')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsNothing);
+    final manual = find.descendant(
+      of: find.byKey(const ValueKey('progress-log-manual-weight')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(manual, '5');
+    expect(
+      tester.widget<TioButton>(find.byKey(const ValueKey('progress-log-save')))
+          .onPressed,
+      isNull,
+    );
+    await tester.enterText(manual, '72.5');
+    expect(
+      tester.widget<TioButton>(find.byKey(const ValueKey('progress-log-save')))
+          .onPressed,
+      isNotNull,
+    );
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('progress-log-wheel'))).height,
+      TioWheelPickerTokens.viewportHeight,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries.single.weightKg, closeTo(72.5, 0.01));
+  });
+
+  testWidgets('manual entry honors lb preference but stores kg',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository, unit: WeightUnit.lb);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('progress-log-weight-mode-toggle'),
+    ));
+    await tester.pumpAndSettle();
+    final manualInput = tester.widget<TioInput>(
+      find.byKey(const ValueKey('progress-log-manual-weight')),
+    );
+    expect(manualInput.suffixText, 'lb');
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-log-manual-weight')),
+        matching: find.byType(EditableText),
+      ),
+      '154.3',
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries.single.weightKg, closeTo(70, 0.1));
   });
 
   testWidgets('opening DateTime from Notes dismisses keyboard, keeps note',
