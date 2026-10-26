@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:characters/characters.dart';
-
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
