@@ -923,6 +923,147 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('left-flipped tooltip touches cursor gap with measured width',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository(
+      now: () => DateTime.utc(2026, 10, 1, 10),
+    );
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74,
+      measuredAt: now.subtract(const Duration(days: 20)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 72.2,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final plot = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final gesture = await tester.startGesture(Offset(
+      plot.right - TioSize.dp8, plot.center.dy,
+    ));
+    await tester.pump(const Duration(milliseconds: 650));
+    final cursor = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-cursor')),
+    );
+    final recorded = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-recorded')),
+    );
+    final target = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-target')),
+    );
+    // Both pills must be anchored using their ACTUAL widths, not the
+    // old 200dp maximum box. Their right edges meet the same 8dp gap.
+    expect(cursor.left - recorded.right, closeTo(TioSpacing.sm, 0.01));
+    expect(cursor.left - target.right, closeTo(TioSpacing.sm, 0.01));
+    expect(recorded.left, greaterThanOrEqualTo(plot.left));
+    expect(target.left, greaterThanOrEqualTo(plot.left));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('weight and target pills follow separate Y points without collision',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository(
+      now: () => DateTime.utc(2026, 10, 1, 10),
+    );
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 68,
+      measuredAt: now.subtract(const Duration(days: 20)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.gainWeight,
+      targetWeightKg: 74,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 78,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final plot = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final touch = await tester.startGesture(
+      Offset(plot.right - TioSize.dp8, plot.center.dy),
+    );
+    await tester.pump(const Duration(milliseconds: 650));
+    final measured = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-recorded')),
+    );
+    final goal = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-target')),
+    );
+    final point = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-selected-marker')),
+    );
+    expect(measured.center.dy, lessThan(goal.center.dy));
+    expect(measured.center.dy, closeTo(point.center.dy, 2));
+    expect(measured.bottom + TioSpacing.xxs, lessThanOrEqualTo(goal.top));
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('coincident target and weight pills separate without overlap',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository(
+      now: () => DateTime.utc(2026, 10, 1, 10),
+    );
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 70,
+      measuredAt: now.subtract(const Duration(days: 20)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.gainWeight,
+      targetWeightKg: 72,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final plot = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final touch = await tester.startGesture(
+      Offset(plot.right - TioSize.dp8, plot.center.dy),
+    );
+    await tester.pump(const Duration(milliseconds: 650));
+    final measured = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-recorded')),
+    );
+    final goal = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart-tooltip-target')),
+    );
+    expect(
+      measured.bottom + TioSpacing.xxs <= goal.top ||
+          goal.bottom + TioSpacing.xxs <= measured.top,
+      isTrue,
+    );
+    expect(measured.top, greaterThanOrEqualTo(plot.top));
+    expect(goal.top, greaterThanOrEqualTo(plot.top));
+    expect(measured.bottom, lessThanOrEqualTo(plot.bottom));
+    expect(goal.bottom, lessThanOrEqualTo(plot.bottom));
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('one-point lb tooltip has no invented Target reference',
       (tester) async {
     final repo = InMemoryBodySetupRepository();

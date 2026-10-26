@@ -1454,13 +1454,13 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
       final panelWidth = math.min(
         TioSize.dp200, math.max(0.0, width - 2 * TioSpacing.xs),
       );
-      final panelX = x + panelWidth + TioSpacing.sm <= width
-          ? x + TioSpacing.sm
-          : math.max(TioSpacing.xs, x - panelWidth - TioSpacing.sm);
-      final panelY = math.max(
-        TioSpacing.xs,
-        math.min(y - TioSize.dp40, height - TioSize.dp80),
-      );
+      // Actual goal guide geometry matches _RecordedWeightPainter.
+      final targetY = widget.targetKg == null
+          ? null
+          : bottom -
+              (widget.targetKg! - widget.scale.low) /
+                  (widget.scale.high - widget.scale.low) *
+                  (bottom - topInset);
       // Both references share the selected real measurement's date.
       final date = picked == null
           ? ''
@@ -1505,6 +1505,7 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
                 top: y - TioSize.dp4,
                 child: IgnorePointer(
                   child: Container(
+                    key: const ValueKey('progress-weight-chart-selected-marker'),
                     width: TioSize.dp8,
                     height: TioSize.dp8,
                     decoration: BoxDecoration(
@@ -1514,43 +1515,52 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
                   ),
                 ),
               ),
-              Positioned(
-                left: panelX,
-                top: panelY,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: panelWidth),
-                  child: IntrinsicWidth(
-                    child: IgnorePointer(
-                      child: Semantics(
-                        liveRegion: true,
-                        label: '$date recorded '
-                            '${UnitFormatters.formatWeight(picked.weightKg, widget.unit)}'
-                            '${widget.targetKg == null ? "" : ", target reference at $date: ${UnitFormatters.formatWeight(widget.targetKg!, widget.unit)}"}',
-                        child: Column(
-                          key: const ValueKey('progress-weight-chart-tooltip'),
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                        _detailChip(
-                          context,
-                          key: 'progress-weight-chart-tooltip-recorded',
-                          dateLabel: date,
-                          valueKg: picked.weightKg,
-                          dotColor: widget.lineColor,
-                        ),
-                        if (widget.targetKg != null) ...[
-                          const SizedBox(height: TioSpacing.xxs),
-                          _detailChip(
-                            context,
-                            key: 'progress-weight-chart-tooltip-target',
-                            dateLabel: date,
-                            valueKg: widget.targetKg!,
-                            dotColor: widget.targetColor,
-                          ),
-                        ],
-                          ],
-                        ),
+              // Two independently anchored pills: recorded weight at its
+              // exact measured point and target at the dashed target guide.
+              // Layout uses their real rendered sizes, so the left-flipped
+              // pills remain just 8dp from the cursor rather than 200dp.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Semantics(
+                    liveRegion: true,
+                    label: '$date recorded '
+                        '${UnitFormatters.formatWeight(picked.weightKg, widget.unit)}'
+                        '${widget.targetKg == null ? "" : ", target reference at $date: ${UnitFormatters.formatWeight(widget.targetKg!, widget.unit)}"}',
+                    child: CustomMultiChildLayout(
+                      delegate: _WeightTooltipLayoutDelegate(
+                        cursorX: x,
+                        recordedY: y,
+                        targetY: targetY,
+                        maxWidth: panelWidth,
                       ),
+                      children: [
+                        LayoutId(
+                          id: 'recorded',
+                          child: IntrinsicWidth(
+                            key: const ValueKey('progress-weight-chart-tooltip'),
+                            child: _detailChip(
+                              context,
+                              key: 'progress-weight-chart-tooltip-recorded',
+                              dateLabel: date,
+                              valueKg: picked.weightKg,
+                              dotColor: widget.lineColor,
+                            ),
+                          ),
+                        ),
+                        if (widget.targetKg != null)
+                          LayoutId(
+                            id: 'target',
+                            child: IntrinsicWidth(
+                              child: _detailChip(
+                                context,
+                                key: 'progress-weight-chart-tooltip-target',
+                                dateLabel: date,
+                                valueKg: widget.targetKg!,
+                                dotColor: widget.targetColor,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -1561,6 +1571,104 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
       );
     },
   );
+}
+
+/// Positions tooltip chips against their own actual chart Y coordinates.
+/// Exact child widths place either side 8dp from the selected cursor.
+/// Closely spaced weight/goal points shift minimally to avoid chip overlap.
+class _WeightTooltipLayoutDelegate extends MultiChildLayoutDelegate {
+  _WeightTooltipLayoutDelegate({
+    required this.cursorX,
+    required this.recordedY,
+    required this.targetY,
+    required this.maxWidth,
+  });
+
+  final double cursorX;
+  final double recordedY;
+  final double? targetY;
+  final double maxWidth;
+
+  @override
+  void performLayout(Size size) {
+    final availableWidth = math.max(
+      0.0, math.min(maxWidth, size.width - 2 * TioSpacing.xs),
+    );
+    final chipConstraints = BoxConstraints.loose(
+      Size(availableWidth, size.height),
+    );
+    final recorded = layoutChild('recorded', chipConstraints);
+    final target = hasChild('target')
+        ? layoutChild('target', chipConstraints)
+        : null;
+
+    double topFor(double center, Size chip) => math.max(
+      0.0,
+      math.min(center - chip.height / 2, size.height - chip.height),
+    );
+    var recordedTop = topFor(recordedY, recorded);
+    var targetTop = target == null
+        ? 0.0
+        : topFor(targetY!, target);
+
+    if (target != null) {
+      // Keep both centered on their own points when there is room.
+      // Otherwise move each by half the collision and translate the pair
+      // back into the 120dp plot without swapping their vertical order.
+      final recordedAbove = recordedY <= targetY!;
+      var firstTop = recordedAbove ? recordedTop : targetTop;
+      var secondTop = recordedAbove ? targetTop : recordedTop;
+      final first = recordedAbove ? recorded : target;
+      final second = recordedAbove ? target : recorded;
+      final overlap =
+          firstTop + first.height + TioSpacing.xxs - secondTop;
+      if (overlap > 0) {
+        firstTop -= overlap / 2;
+        secondTop += overlap / 2;
+        final moveDown = math.max(0.0, -firstTop);
+        firstTop += moveDown;
+        secondTop += moveDown;
+        final moveUp = math.max(
+          0.0, secondTop + second.height - size.height,
+        );
+        firstTop -= moveUp;
+        secondTop -= moveUp;
+      }
+      recordedTop = recordedAbove ? firstTop : secondTop;
+      targetTop = recordedAbove ? secondTop : firstTop;
+    }
+
+    final widest = math.max(
+      recorded.width, target?.width ?? 0,
+    );
+    final canFitRight =
+        cursorX + TioSpacing.sm + widest <= size.width - TioSpacing.xs;
+    final canFitLeft =
+        cursorX - TioSpacing.sm - widest >= TioSpacing.xs;
+    final putRight = canFitRight || !canFitLeft;
+
+    double leftFor(Size child) {
+      final desired = putRight
+          ? cursorX + TioSpacing.sm
+          : cursorX - TioSpacing.sm - child.width;
+      return math.max(
+        TioSpacing.xs,
+        math.min(desired, size.width - child.width - TioSpacing.xs),
+      );
+    }
+
+    positionChild('recorded', Offset(leftFor(recorded), recordedTop));
+    if (target != null) {
+      positionChild('target', Offset(leftFor(target), targetTop));
+    }
+  }
+
+  @override
+  bool shouldRelayout(covariant _WeightTooltipLayoutDelegate old) =>
+      old.cursorX != cursorX ||
+      old.recordedY != recordedY ||
+      old.targetY != targetY ||
+      old.maxWidth != maxWidth;
 }
 
 class _RecordedWeightPainter extends CustomPainter {
