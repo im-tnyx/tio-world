@@ -91,12 +91,27 @@ class InMemoryBodySetupRepository implements BodyRepository {
   @override
   Future<void> recordCurrentWeight(BodyWeightRecord record) async {
     _validateWeightRecord(record);
+    final id = record.submissionId;
+    final note = record.note?.trim();
+    final normalizedNote = note == null || note.isEmpty ? null : note;
+    if (id != null) {
+      for (final saved in _weightEntries.where((entry) => entry.id == id)) {
+        if (saved.weightKg != record.weightKg ||
+            !saved.measuredAt.isAtSameMomentAs(record.measuredAt) ||
+            saved.source != record.source.trim() ||
+            saved.note != normalizedNote) {
+          throw StateError('Weight submission ID belongs to another record.');
+        }
+        return;
+      }
+    }
     _weightEntries.add(
       BodyWeightEntry(
-        id: _newWeightLogId(),
+        id: id ?? _newWeightLogId(),
         weightKg: record.weightKg,
         measuredAt: record.measuredAt.toUtc(),
         source: record.source.trim(),
+        note: normalizedNote,
       ),
     );
   }
@@ -149,6 +164,7 @@ class InMemoryBodySetupRepository implements BodyRepository {
       weightKg: edit.weightKg,
       measuredAt: edit.measuredAt.toUtc(),
       source: previous.source,
+      note: previous.note,
     );
     return true;
   }
@@ -290,7 +306,8 @@ class InMemoryBodySetupRepository implements BodyRepository {
   }
 
   void _validateWeightRecord(BodyWeightRecord record) {
-    if (record.weightKg <= 0) {
+    record.validateNoteAndSubmission();
+    if (!record.weightKg.isFinite || record.weightKg <= 0) {
       throw ArgumentError.value(
         record.weightKg,
         'weightKg',
