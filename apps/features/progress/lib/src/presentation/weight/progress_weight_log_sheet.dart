@@ -410,7 +410,10 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
               key: _dateTimeAnchorKey,
               child: TioEditorFooterAction(
                 controlKey: const ValueKey('progress-log-date-time'),
-                semanticLabel: 'Change measurement date and time',
+                semanticLabel:
+                    'Measurement date and time: '
+                    '${MaterialLocalizations.of(context).formatMediumDate(_measuredLocal)}, '
+                    '${TimeOfDay.fromDateTime(_measuredLocal).format(context)}',
                 onTap: _attempted || _saving ? null : _openDateTimePicker,
                 builder: (context, textStyle, iconColor) {
                   final localizations = MaterialLocalizations.of(context);
