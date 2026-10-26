@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/body_setup.dart';
@@ -59,6 +60,10 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   late DateTime _measuredLocal;
   late String _submissionId;
   late final TextEditingController _noteController;
+  late final TextEditingController _weightController;
+  bool _manualMode = false;
+  bool _manualValid = true;
+  static final _wordPattern = RegExp(r'\S+');
 
   final _dateTimeAnchorKey = GlobalKey();
   late DateTime _maximumLocal;
@@ -94,6 +99,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
     WidgetsBinding.instance.addObserver(this);
     _submissionId = _newUuid();
     _noteController = TextEditingController();
+    _weightController = TextEditingController(text: _weightDisplayValue());
     widget.sessionActive.addListener(_onSessionChanged);
   }
 
@@ -143,6 +149,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
     widget.sessionActive.removeListener(_onSessionChanged);
     WidgetsBinding.instance.removeObserver(this);
     _noteController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -197,10 +204,54 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
     });
   }
 
+  double _displayWeightKg(double displayValue) =>
+      widget.unit == WeightUnit.kg
+          ? displayValue
+          : UnitConverters.lbToKg(displayValue);
+
+  String _weightDisplayValue() {
+    final display = widget.unit == WeightUnit.kg
+        ? _weightKg
+        : UnitConverters.kgToLb(_weightKg);
+    return display.toStringAsFixed(1);
+  }
+
+  void _toggleWeightInputMode() {
+    if (_attempted || _saving || !widget.sessionActive.value) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _manualMode = !_manualMode;
+      _manualValid = true;
+      _weightController.text = _weightDisplayValue();
+      _error = null;
+    });
+  }
+
+  void _handleManualWeightChanged(String value) {
+    if (_attempted || _saving || !widget.sessionActive.value) return;
+    final display = double.tryParse(value.trim());
+    final kg = display == null ? null : _displayWeightKg(display);
+    final valid = kg != null &&
+        kg.isFinite &&
+        kg >= _minKg &&
+        kg <= _maxKg;
+    setState(() {
+      _manualValid = valid;
+      if (valid) {
+        _weightKg = kg;
+        _weightConfirmed = true;
+      }
+      _error = null;
+    });
+  }
+
+  static int _wordCount(String value) =>
+      _wordPattern.allMatches(value.trim()).length;
+
   Future<void> _save() async {
     if (_saving || !widget.sessionActive.value) return;
-    if (!_weightConfirmed) {
-      setState(() => _error = 'Confirm your weight before saving.');
+    if (!_weightConfirmed || (_manualMode && !_manualValid)) {
+      setState(() => _error = 'Confirm a valid weight before saving.');
       return;
     }
     final now = widget.now().toUtc();
@@ -215,8 +266,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
       return;
     }
     final rawNote = _noteController.text.trim();
-    if (rawNote.characters.length > 500) {
-      setState(() => _error = 'Notes must be 500 characters or fewer.');
+    if (_wordCount(rawNote) > 100 || rawNote.characters.length > 500) {
+      setState(() => _error = 'Note is too long.');
       return;
     }
 
@@ -293,44 +344,65 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
           title: 'Log Weight',
           flushActions: true,
           canDismiss: !_attempted && !_saving,
-          titleTrailing: IconButton(
-            key: const ValueKey('progress-log-close'),
-            tooltip: 'Close Log Weight',
-            onPressed: (_saving || _attempted)
-                 ? null
-                 : () => Navigator.of(context).pop(false),
-            icon: const Icon(Icons.close),
+          titleTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: const ValueKey('progress-log-weight-mode-toggle'),
+                tooltip: _manualMode ? 'Use weight wheel' : 'Type weight',
+                onPressed: _saving || _attempted
+                    ? null
+                    : _toggleWeightInputMode,
+                icon: Icon(_manualMode ? Icons.tune : Icons.edit_outlined),
+              ),
+              IconButton(
+                key: const ValueKey('progress-log-close'),
+                tooltip: 'Close Log Weight',
+                onPressed: (_saving || _attempted)
+                    ? null
+                    : () => Navigator.of(context).pop(false),
+                icon: const Icon(Icons.close),
+              ),
+            ],
           ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Unit selection is global, not another mutable option here.
-              Text(
-                widget.unit == WeightUnit.lb ? 'Weight (lb)' : 'Weight (kg)',
-                key: const ValueKey('progress-log-weight-unit-label'),
-                style: typography.labelLarge?.copyWith(
-                  color: colors.textSecondary,
+              // The canonical wheel is the default full-height editor.
+              // The header pencil switches only the input mode, not the
+              // global kg/lb preference or the canonical storage unit.
+              if (_manualMode)
+                TioInput.numericEditor(
+                  key: const ValueKey('progress-log-manual-weight'),
+                  controller: _weightController,
+                  autofocus: true,
+                  enabled: !_attempted && !_saving,
+                  suffixText: widget.unit == WeightUnit.lb ? 'lb' : 'kg',
+                  onChanged: _handleManualWeightChanged,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                )
+              else
+                IgnorePointer(
+                  ignoring: _attempted,
+                  child: TioWeightWheel(
+                    key: const ValueKey('progress-log-wheel'),
+                    valueKg: _weightKg,
+                    unit: widget.unit,
+                    showUnitSwitcher: false,
+                    minKg: _minKg,
+                    maxKg: _maxKg,
+                    onChanged: (kg) {
+                      if (_attempted) return;
+                      setState(() {
+                        _weightKg = kg;
+                        _weightController.text = _weightDisplayValue();
+                        _error = null;
+                      });
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: TioSpacing.sm),
-              IgnorePointer(
-                ignoring: _attempted,
-                child: TioWeightWheel(
-                key: const ValueKey('progress-log-wheel'),
-                valueKg: _weightKg,
-                unit: widget.unit,
-                showUnitSwitcher: false,
-                minKg: _minKg,
-                maxKg: _maxKg,
-                onChanged: (kg) {
-                  if (_attempted) return;
-                  setState(() {
-                    _weightKg = kg;
-                    _error = null;
-                  });
-                },
-                ),
-              ),
               if (!_weightConfirmed) ...[
                 const SizedBox(height: TioSpacing.sm),
                 Text(
@@ -357,9 +429,15 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   key: const ValueKey('progress-log-note-field'),
                   controller: _noteController,
                   onChanged: (_) {},
-                  minLines: 2,
-                  maxLines: 4,
-                  maxLength: 500,
+                  minLines: 1,
+                  maxLines: 2,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(500),
+                    TextInputFormatter.withFunction((oldValue, newValue) =>
+                        _wordCount(newValue.text) <= 100
+                            ? newValue
+                            : oldValue),
+                  ],
                   enabled: !_attempted,
                   hint: 'Add a note about this measurement',
                 ),
@@ -451,7 +529,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             primary: TioButton.primary(
               key: const ValueKey('progress-log-save'),
               label: _attempted ? 'Retry Log Weight' : 'Save Weight',
-              onPressed: (_saving || (!_attempted && !_weightConfirmed))
+              onPressed: (_saving || (!_attempted &&
+                  (!_weightConfirmed || (_manualMode && !_manualValid))))
                   ? null
                   : _save,
               loading: _saving,
