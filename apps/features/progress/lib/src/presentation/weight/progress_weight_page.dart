@@ -14,6 +14,7 @@ class ProgressWeightPage extends StatefulWidget {
     required this.repository,
     required this.unit,
     required this.sessionKey,
+    this.onWeightLogged,
     this.now,
     super.key,
   });
@@ -21,6 +22,11 @@ class ProgressWeightPage extends StatefulWidget {
   final BodyRepository repository;
   final WeightUnit unit;
   final String sessionKey;
+
+  /// App-composition invalidation of the existing Settings/Body read caches.
+  /// Progress never imports app providers or owns Body Goal semantics.
+  final VoidCallback? onWeightLogged;
+
   final DateTime Function()? now;
 
   @override
@@ -84,6 +90,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       },
     );
     if (!mounted || !active.value || result != true) return;
+    widget.onWeightLogged?.call();
     await _reload();
   }
 
