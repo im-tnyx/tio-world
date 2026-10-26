@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for Progress screen product contract and intended 
 **Surface:** Phone primary tab in Workout, Nutrition, and Hybrid App Modes
 **Current route:** `/progress`
 **Primary owner:** `apps/features/progress`; `apps/app` owns shell/routing composition
-**Runtime in this A2 revision:** Read-only owner-backed Weight summary, actual-data selected-range chart and paginated History. Log Weight and Edit/Delete UI are deferred; Body/Health/Photos are not activated.
+**Runtime in this A3 revision:** A2 owner-backed Weight summary, chart and paginated History are merged. A3 adds the Log Weight sheet using the existing Core wheel, selected date/time and icon-revealed optional note. Exact Edit/Delete and private Photos remain separate.
 
 ## Purpose
 
@@ -71,6 +71,9 @@ Weight is the first real post-onboarding Progress vertical slice, not a second w
 - Saving a new manual entry creates a new log identity. A retry/double-tap must not create unintended duplicates; A3 must specify and test in-flight/idempotency behavior before shipping.
 - The existing source values `onboarding_setup`, `profile_settings` and `body_weight_settings` are live compatibility inputs. TNYX-119 proposes semantic `manual` provenance for new manually recorded entries. A1/A3 must reconcile this with existing consumers without overwriting legacy rows or confusing capture screen with measurement source.
 - New entry success refreshes owner-backed Weight state; errors preserve user input and allow controlled retry without optimistic fake history.
+- **A3 note:** The Notes icon expands the optional Core multiline input, hidden until pressed. Notes use existing `body_weight_logs.metadata.note` (max 500 characters), not a new table/column; older rows remain readable and History shows a saved note.
+- **A3 retry safety:** The draft retains one generated client UUID for every save/retry, owner-side duplicate recovery verifies exact payload and session, and failed/ambiguous attempts freeze the draft pending controlled retry.
+- **A3 Photo icon:** Present only as explicitly disabled, with a future-private-media label; **no live photo picker, upload, file persistence or Photo relation** before Slice B.
 
 ### Edit / delete and error states
 
@@ -99,7 +102,7 @@ Before Slice B, separately approve and audit exact schema/bucket/path/MIME/limit
 - **D0 (GitHub #686):** docs-only contract reconciliation and compact execution handoff. No Flutter, RLS, Storage or migration changes.
 - **A1:** owner-backed Weight history/list/pagination and exact-ID edit/delete repository contracts with focused access/ordering tests. Reconcile measurement source and timezone-policy questions.
 - **A2:** read-only Progress Weight summary, actual-data range chart and paginated History at /progress, with session/owner gate in app composition and no active Log/Edit actions. Current Weight is derived from A1 History up to captured UTC now; goal is read from the existing BodyState active goal only. Scoped tests and PR review gate apply.
-- **A3:** approved Log Weight bottom sheet, date/time + `kg`/`lb` handling, manual persistence, duplicate-submit and error-state tests.
+- **A3:** Core Weight Wheel in Log Weight sheet with date/time, canonical-kg manual save, optional note revealed by Notes icon, stable retry identity, and disabled Photo icon until separately approved private Slice B.
 - **A4:** exact-record Edit/Delete interactions and device/accessibility/regression QA.
 - **Slice B/C:** separately approved private Progress Photos and conditional physical-media identity, following new Storage/privacy audits.
 
