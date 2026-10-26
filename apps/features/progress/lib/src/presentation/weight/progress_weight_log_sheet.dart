@@ -456,6 +456,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             ),
           ),
           ),
+          ),
         );
       },
     );
