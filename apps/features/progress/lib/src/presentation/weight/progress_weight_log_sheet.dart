@@ -191,6 +191,12 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
           child: TioEditorSheet(
           title: 'Log Weight',
           canDismiss: !_saving,
+          titleTrailing: IconButton(
+            key: const ValueKey('progress-log-close'),
+            tooltip: 'Close Log Weight',
+            onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+            icon: const Icon(Icons.close),
+          ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
