@@ -1006,7 +1006,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           // Narrow layouts place the whole ordered action group on one
           // trailing line, retaining the complete weight and kg/lb units.
           if (stackTimelineBadges(
-            constraints.maxWidth - 2 * TioStroke.width075,
+            constraints.maxWidth - 2 * TioStroke.width05,
           )) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1046,7 +1046,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         // Reserve the Today outline inset for every row so Today and
         // non-Today entries always share the same height breakpoint.
         final stackBadges = stackTimelineBadges(
-          constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width075,
+          constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width05,
         );
         final height = TioSize.dp56 +
             (stackBadges ? TioSize.dp32 : 0) +
@@ -1058,13 +1058,13 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: item.isToday
-                  ? Border.all(color: colors.progress, width: TioStroke.width075)
+                  ? Border.all(color: colors.progress, width: TioStroke.width05)
                   : null,
             ),
             // Outline does not increase overall card height for Today.
             child: Padding(
               padding: item.isToday
-                  ? const EdgeInsets.all(TioStroke.width075)
+                  ? const EdgeInsets.all(TioStroke.width05)
                   : EdgeInsets.zero,
               child: card,
             ),

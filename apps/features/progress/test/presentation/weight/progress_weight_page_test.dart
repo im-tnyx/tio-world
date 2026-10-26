@@ -1343,6 +1343,16 @@ void main() {
         TioSize.dp56 + TioSize.dp32,
       );
     }
+    final todayCard = find.ancestor(
+      of: find.text('Today'),
+      matching: cards,
+    );
+    expect(todayCard, findsOneWidget);
+    final todayDecoration =
+        tester.widget<DecoratedBox>(todayCard).decoration as BoxDecoration;
+    final todayBorder = todayDecoration.border! as Border;
+    expect(todayBorder.top.width, TioStroke.width05);
+    expect(todayBorder.bottom.width, TioStroke.width05);
     expect(find.text('New low'), findsNothing);
     expect(find.text('-2.0'), findsOneWidget);
     expect(tester.takeException(), isNull);
