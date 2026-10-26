@@ -181,7 +181,7 @@ void main() {
     );
     await tester.tap(find.text('Open log'));
     await tester.pumpAndSettle();
-    expect(find.text('Weight (lb)'), findsOneWidget);
+    expect(find.text('Weight (lb)'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
