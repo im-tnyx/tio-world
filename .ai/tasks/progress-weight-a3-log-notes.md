@@ -1,6 +1,6 @@
 # A3 — Progress Weight Log Sheet + optional Note
 
-**Status:** In progress; implementation authorized 2026-10-26, review/CI pending.
+**Status:** In review; A3 code HEAD Flutter CI SUCCESS 5/5; distinct independent formal review pending.
 **Primary owner:** `apps/features/progress` (domain, UI, repository) with `apps/app` composition only.
 **Planning:** Linear TNYX-119 In Progress, TNYX-154 Settings ↔ Progress ownership boundary; merged D0 #687, A1 #689 and A2 #690 (`main@b255ef4095cb23192e72e308c93cf5d020cda255`).
 **Implementation owner:** GitHub `im-tnyx` connector, isolated branch `feat/tnyx-119-progress-weight-a3-log-notes`.
@@ -30,4 +30,12 @@ Owner approved start and explicit icon behavior 2026-10-26: Log Weight sheet reu
 
 ## Verification
 
-No new Flutter/CI/device validation yet. Hosted Supabase queried read-only: owner RLS/metadata and Storage buckets; no DB or Storage changes. Exact-head checks and changed-file list must be documented at review checkpoint.
+Code HEAD `5d0defa2266b9550c1e571eef030f081bda161de` verified against [Flutter CI #40263113491](https://github.com/im-tnyx/tio-world/actions/runs/40263113491) **SUCCESS 5/5** (Analyzer/Dart, core-wear/Progress, app-workout, nutrition-onboarding and aggregate), Docs Hygiene and Attribution **SUCCESS**. Prior `c34e6e70` analyzer failure (unnecessary Flutter reexported `characters` import) corrected; never claim prior head passed. Current head will advance for this handoff-only update and must be revalidated. Hosted Supabase queried read-only: own-row RLS/metadata and public avatar-only Storage, **no database/storage mutations**. Local Windows checkout/device QA NOT VERIFIED.
+
+### Codex findings (7 total)
+
+- First review `0a7fcbcf`: P2 prevent barrier/Back dismissal during save; P2 invalidate Settings cached Body/Profile state after confirmed write. Fixed by Core `showTioEditorSheet(isDismissible:false)`, A3 `PopScope(canPop: !saving)` + idle Close and app-composition `onWeightLogged` invalidation; focused widget tests.
+- Second review `ba111be3`: P2 when old owner/session invalidated, remove the *exact* A3 modal route, not only its content. Fixed post-frame `Navigator.removeRoute`, listener cleanup, widget regression verifying no lingering root modal.
+- Third review `e09a3444`: P2 preserve same-owner unsaved draft during realtime Profile unit refresh; P1 update Core theme README for new editor dismissal contract; P2 hidden note retains content; P2 match Flutter grapheme counting for emojis. Fixed with scope-keyed `progressWeightUnitProvider(owner:cycle)` and prior resolved AsyncValue only inside same owner cycle, test pausing canonical preference re-read; Core README; note save reading controller regardless of expansion; direct `characters` dependency/domain + UI .characters.length, and 300-emoji + collapsed note regressions. All seven Codex threads replied, **open pending formal independent review/disposition**.
+
+**Review:** `im-tio` distinct account requested, no formal APPROVED as of this checkpoint. PR [#691](https://github.com/im-tnyx/tio-world/pull/691) OPEN/unmerged; owner `Go merge` not supplied. A4 Edit/Delete and private media/photos Slice B remain deferred. Branch compare was 31 task commits ahead, 0 behind, exactly 18 A3-owned paths before this docs checkpoint. Do not treat bot neutral status as approval.
