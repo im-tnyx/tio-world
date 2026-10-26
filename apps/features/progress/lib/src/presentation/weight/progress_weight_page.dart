@@ -165,14 +165,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           vertical: TioSpacing.md,
         ),
         children: [
-          Text(
-            'Weight',
-            key: const ValueKey('progress-weight-heading'),
-            style: typography.headlineSmall?.copyWith(
-              color: colors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.lg),
+          // The shell owns the Progress title. The body begins with the
+          // actual Weight summary instead of repeating a page heading.
           if (_loading)
             const Center(
               child: Padding(
