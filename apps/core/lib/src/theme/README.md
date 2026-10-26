@@ -637,3 +637,15 @@ theme/
 
 Keep this map and the rules above current whenever the theme system evolves.
 The owner-approved Workout Routine Delete centered confirmation caps its reusable `TioCard.elevated` surface at `TioSize.dp320` (320dp) rather than the former 480dp. The physical value belongs to the common `TioSize` registry; it does not introduce a Routine-specific Core token or change Core Card, generic confirmation presenters or global button geometry. The scoped actions use the existing 38dp visual minimum and retain padded accessible Material touch targets.
+
+## Pinned editor action footer (A3-F)
+
+`TioEditorActionFooter` composes a generic full-width 1dp separator, a bounded leading slot, right-aligned trailing slot, optional caller-owned note, and primary action, without feature domain rules. Supply it as `TioEditorSheet.actions` with `flushActions: true`. `TioEditorFooterAction` preserves the compact 44dp interactive treatment, key-controlled semantics and disabled opacity used by Nutrition's Meal footer. Nutrition still owns meal category selection, stable identities and DateTime policy; Progress owns Notes/Photo and Weight history logic. For anchored date-time use existing `TioDateTimePickerPopup`, not a second wheel.
+
+### Optional status for shell root top bar
+
+`TioShellStatusTopBar` accepts `statusLabel`, `statusKey` and `days` as optional: when the status label/key are absent together, it paints the same governed AppBar geometry without a fabricated status icon or count. Progress root uses this status-absent variant; Workout and Nutrition retain their status labels and streak semantics unchanged. `TioShell.state.isRootTopBarVisible` still gates the header for nested destinations.
+
+### DateTime popup elevation options
+
+`TioDateTimePickerPopup.elevatedCard` defaults to `true`, preserving existing Food editor's `TioCardVariant.elevated` and its shadow. A screen already presenting the anchored wheel over a raised sheet (e.g. Progress Log Weight) may pass `elevatedCard: false` to use one `TioCardVariant.surface` without an extra projected shadow. Only the paint treatment differs: the popup position, wheel, selection highlight, bounds, barrier and semantics are unchanged.
