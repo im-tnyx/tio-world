@@ -1761,7 +1761,9 @@ void main() {
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.text('74 kg'), findsWidgets);
-    expect(find.text('73 kg'), findsWidgets);
+    // The prior reading stays in History, which uses 1-decimal weight
+    // formatting; the header now truthfully shows the new Current.
+    expect(find.text('73.0 kg'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
         findsNothing);
     expect(log, findsOneWidget);
@@ -1799,6 +1801,60 @@ void main() {
     expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
         findsNothing);
     expect(find.text('74 kg'), findsWidgets);
+  });
+
+  testWidgets('owner switch during a pending refresh clears old weights',
+      (tester) async {
+    final first = _ControlledRefreshWeightRepository();
+    await first.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 99,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    final second = InMemoryBodySetupRepository();
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ProgressWeightPage(
+        key: const ValueKey('same-progress-state'),
+        repository: first,
+        unit: WeightUnit.kg,
+        sessionKey: 'owner-a',
+        now: () => now,
+      )),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('99 kg'), findsWidgets);
+    final pending = first.holdNextRefresh();
+    await tester.drag(find.byKey(const ValueKey('progress-weight-scroll')),
+        const Offset(0, 400));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(first.refreshReadStarted, isTrue);
+    expect(find.text('99 kg'), findsWidgets);
+
+    // Preserve State identity deliberately, forcing didUpdateWidget to
+    // invalidate the original request and clear the old owner snapshot.
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: ProgressWeightPage(
+        key: const ValueKey('same-progress-state'),
+        repository: second,
+        unit: WeightUnit.kg,
+        sessionKey: 'owner-b',
+        now: () => now,
+      )),
+    ));
+    await tester.pump();
+    expect(find.text('99 kg'), findsNothing);
+    pending.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('99 kg'), findsNothing);
+    expect(find.text('No measurements in this range'), findsOneWidget);
   });
 
   testWidgets('optional chart fallback failure keeps valid baseline data',
