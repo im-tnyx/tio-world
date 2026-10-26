@@ -45,5 +45,9 @@ void main() {
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
     expect(find.text('Private old-owner note'), findsNothing);
     expect(find.text('Open log'), findsOneWidget);
+    // A blank root modal would also hide its content. Assert the route itself
+    // has been removed and no longer blocks the underlying application.
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    expect(navigator.canPop(), isFalse);
   });
 }
