@@ -953,6 +953,7 @@ void main() {
     expect(metrics[1].height, metrics[2].height);
     expect(metrics[0].width, closeTo(metrics[1].width, 0.001));
     expect(metrics[1].width, closeTo(metrics[2].width, 0.001));
+    expect(metrics[0].height, lessThan(TioSize.dp120));
     expect(find.text('On track to target'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -1054,6 +1055,71 @@ void main() {
     expect(find.byKey(const ValueKey('progress-weight-target-card')), findsOneWidget);
     final chart = find.byKey(const ValueKey('progress-weight-graph-card'));
     expect(find.descendant(of: chart, matching: find.textContaining('to go')), findsNothing);
+  });
+
+  testWidgets('latest record precedes delta and Settings-style round pencil',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 75,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(minutes: 10)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 70,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await pumpPage(tester, repository);
+    final newestId = repository.weightEntries.last.id!;
+    final edit = find.byKey(ValueKey('progress-weight-edit-$newestId'));
+    await tester.scrollUntilVisible(
+      edit, TioSize.dp120,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.pumpAndSettle();
+    final badge = find.byKey(
+        ValueKey('progress-weight-timeline-record-$newestId'));
+    final change = find.byKey(
+        ValueKey('progress-weight-timeline-change-$newestId'));
+    final circle = find.byKey(
+        ValueKey('progress-weight-edit-circle-$newestId'));
+    expect(badge, findsOneWidget);
+    expect(change, findsOneWidget);
+    expect(circle, findsOneWidget);
+    expect(tester.getTopLeft(badge).dx,
+        lessThan(tester.getTopLeft(change).dx));
+    expect(tester.getTopLeft(change).dx,
+        lessThan(tester.getTopLeft(circle).dx));
+    final circleWidget = tester.widget<Container>(circle);
+    expect((circleWidget.decoration! as BoxDecoration).shape,
+        BoxShape.circle);
+    expect(circleWidget.constraints?.maxWidth, TioSize.dp36);
+    expect(circleWidget.constraints?.maxHeight, TioSize.dp36);
+    final entries = find.byWidgetPredicate((widget) =>
+        widget is DecoratedBox && widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('progress-weight-history-'));
+    expect(entries, findsNWidgets(2));
+    expect(tester.getSize(entries.first).height,
+        TioSize.dp56 + TioSize.dp32);
+    expect(tester.getSize(entries.last).height,
+        TioSize.dp56 + TioSize.dp32);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('deleting exact Timeline entry requires confirmation and reloads',
@@ -1189,7 +1255,7 @@ void main() {
     expect(cards, findsOneWidget);
     // A two-line date/time replaces the previous three-line dot/date/time
     // column; the no-note baseline must fit below the old tall-card footprint.
-    expect(tester.getSize(cards).height, TioSize.dp72);
+    expect(tester.getSize(cards).height, TioSize.dp56);
     expect(find.text('73.0 kg'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-log-action')),
         findsOneWidget);
@@ -1232,7 +1298,7 @@ void main() {
             .startsWith('progress-weight-history-'));
     expect(cards, findsNWidgets(3));
     for (var i = 0; i < 3; i++) {
-      expect(tester.getSize(cards.at(i)).height, TioSize.dp72);
+      expect(tester.getSize(cards.at(i)).height, TioSize.dp56 + TioSize.dp32);
     }
     expect(find.text('New low'), findsNothing);
     expect(find.textContaining('Saved note that can be much longer'),
@@ -1274,7 +1340,7 @@ void main() {
     for (var i = 0; i < 2; i++) {
       expect(
         tester.getSize(cards.at(i)).height,
-        TioSize.dp72 + TioSize.dp40,
+        TioSize.dp56 + TioSize.dp32,
       );
     }
     expect(find.text('New low'), findsNothing);
@@ -1351,7 +1417,7 @@ void main() {
     );
     expect(todayCard, findsOneWidget);
     final todayHeight = tester.getSize(todayCard).height;
-    expect(todayHeight, greaterThan(TioSize.dp72));
+    expect(todayHeight, greaterThan(TioSize.dp56));
     final timelineLb = find.descendant(
       of: todayCard,
       matching: find.text('160.9 lb'),

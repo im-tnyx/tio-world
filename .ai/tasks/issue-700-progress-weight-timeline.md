@@ -124,3 +124,7 @@ Flutter Analyze on `e1f25c5b` found two undefined feature token symbols introduc
 ## 2026-10-26 canonical doc convergence
 
 Reconciled earlier historical Weight summary text stating 2+1 stats and N DAY CHANGE below graph: the owner-approved current architecture is Current+N Day Change inside chart, exactly three aligned goal-baseline Starting/Change and measured weekly Rate below, and separate goal-distance card. No app source behavior changed by this docs-only follow-up. Fresh exact-HEAD CI and independent review remain gating; do not merge.
+
+## 2026-10-26 owner correction: Timeline trailing order and compactness
+
+Owner clarified that the right side (not beside the weight) must be `New low → -1.0 → pencil`, with a Settings-style round background behind the pencil, and smaller Timeline and three Summary stat cards. Reused Core Settings visual recipe (36dp circular surfaceVariant and 16dp icon, 40dp action hit area). The status+delta+edit group stays ordered horizontally and moves together to a trailing row when content width or text scale requires it; never clip the actual weight/unit and keep all Timeline heights identical for viewport. The 56dp standard/88dp stacked Timeline and 48dp stat content minimum reduce unused vertical space without introducing a new token/component. Tests assert order/round shape/geometry. Exact-head Flutter CI and independent review are mandatory; do not merge or approve without gates.

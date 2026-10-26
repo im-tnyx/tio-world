@@ -758,9 +758,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       TioCard(
         key: ValueKey(key),
         variant: TioCardVariant.normal,
-        padding: const EdgeInsets.all(TioSpacing.sm),
+        padding: const EdgeInsets.all(TioSpacing.xs),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: TioSize.dp72),
+          constraints: const BoxConstraints(minHeight: TioSize.dp48),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -773,7 +773,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   color: valueColor ?? context.tioColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: TioSpacing.xs),
+              const SizedBox(height: TioSpacing.xxs),
               Text(
                 label,
                 textAlign: TextAlign.center,
@@ -866,7 +866,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final largerText = textScale > 1.15;
     bool stackTimelineBadges(double effectiveContentWidth) =>
-        largerText || effectiveContentWidth < TioSize.dp320;
+        largerText ||
+        effectiveContentWidth < (TioSize.dp320 + TioSize.dp32);
 
     final dateColumn = SizedBox(
       width: largerText ? TioSize.dp110 : TioSize.dp76,
@@ -944,7 +945,36 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     );
     final recordLabel =
         item.isNewLow ? 'New low' : item.isNewHigh ? 'New high' : null;
-    final weightWithRecord = Row(
+    final editAction = IconButton(
+      key: ValueKey('progress-weight-edit-${entry.id}'),
+      tooltip: 'Edit weight log',
+      onPressed: _editingWeightId == null
+          ? () => _openWeightEditor(entry)
+          : null,
+      constraints: const BoxConstraints(
+        minWidth: TioSize.dp40,
+        minHeight: TioSize.dp40,
+      ),
+      padding: EdgeInsets.zero,
+      icon: Container(
+        key: ValueKey('progress-weight-edit-circle-${entry.id}'),
+        width: TioSize.dp36,
+        height: TioSize.dp36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.edit_outlined,
+          size: TioSize.dp16,
+          color: colors.textSecondary,
+        ),
+      ),
+    );
+    // Trailing group must read: New low/high → delta → circular pencil.
+    // No status badge is placed before the recorded weight.
+    final trailingActions = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (recordLabel != null) ...[
@@ -958,36 +988,25 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           ),
           const SizedBox(width: TioSpacing.xs),
         ],
-        Flexible(child: weightColumn),
+        if (item.deltaKg != null) ...[
+          _timelineChangeBadge(context, item, goalType),
+          const SizedBox(width: TioSpacing.xs),
+        ],
+        editAction,
       ],
-    );
-    final hasBadges = item.deltaKg != null;
-    final editAction = IconButton(
-      key: ValueKey('progress-weight-edit-${entry.id}'),
-      tooltip: 'Edit weight log',
-      onPressed: _editingWeightId == null
-          ? () => _openWeightEditor(entry)
-          : null,
-      constraints: const BoxConstraints(
-        minWidth: TioSize.dp32,
-        minHeight: TioSize.dp40,
-      ),
-      padding: EdgeInsets.zero,
-      icon: const Icon(Icons.edit_outlined, size: TioSize.dp20),
     );
     final card = TioCard(
       variant: TioCardVariant.normal,
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.sm,
-        vertical: TioSpacing.xs,
+        vertical: TioSpacing.xxs,
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // On compact screens put badges on their own row rather than
-          // squeezing dates, units, or accessibility-scaled weight text.
+          // Narrow layouts place the whole ordered action group on one
+          // trailing line, retaining the complete weight and kg/lb units.
           if (stackTimelineBadges(
-            constraints.maxWidth -
-                (item.isToday ? 0 : 2 * TioStroke.width1),
+            constraints.maxWidth - 2 * TioStroke.width075,
           )) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -996,17 +1015,14 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   children: [
                     dateColumn,
                     const SizedBox(width: TioSpacing.sm),
-                    Expanded(child: weightWithRecord),
-                    editAction,
+                    Expanded(child: weightColumn),
                   ],
                 ),
-                if (hasBadges) ...[
-                  const SizedBox(height: TioSpacing.sm),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: _timelineChangeBadge(context, item, goalType),
-                  ),
-                ],
+                const SizedBox(height: TioSpacing.xxs),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: trailingActions,
+                ),
               ],
             );
           }
@@ -1014,13 +1030,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             children: [
               dateColumn,
               const SizedBox(width: TioSpacing.sm),
-              Expanded(child: weightWithRecord),
-              if (hasBadges) ...[
-                const SizedBox(width: TioSpacing.xs),
-                _timelineChangeBadge(context, item, goalType),
-              ],
-              const SizedBox(width: TioSpacing.xxs),
-              editAction,
+              Expanded(child: weightColumn),
+              trailingActions,
             ],
           );
         },
@@ -1035,10 +1046,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         // Reserve the Today outline inset for every row so Today and
         // non-Today entries always share the same height breakpoint.
         final stackBadges = stackTimelineBadges(
-          constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width1,
+          constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width075,
         );
-        final height = TioSize.dp72 +
-            (stackBadges ? TioSize.dp40 : 0) +
+        final height = TioSize.dp56 +
+            (stackBadges ? TioSize.dp32 : 0) +
             math.max(0.0, textScale - 1.0) * TioSize.dp80;
         return SizedBox(
           height: height,
