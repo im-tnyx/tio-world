@@ -136,10 +136,13 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     } finally {
       _activePickerRoute = null;
     }
-    if (date == null || !mounted || !widget.sessionActive.value) return;
+    // Snapshot the dialog result into a final local before the setState closure
+    // so Dart can promote it after the null guard.
+    final selectedDate = date;
+    if (selectedDate == null || !mounted || !widget.sessionActive.value) return;
     setState(() {
       _measuredLocal = DateTime(
-        date.year, date.month, date.day,
+        selectedDate.year, selectedDate.month, selectedDate.day,
         _measuredLocal.hour, _measuredLocal.minute,
       );
       _error = null;
@@ -161,11 +164,12 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     } finally {
       _activePickerRoute = null;
     }
-    if (time == null || !mounted || !widget.sessionActive.value) return;
+    final selectedTime = time;
+    if (selectedTime == null || !mounted || !widget.sessionActive.value) return;
     setState(() {
       _measuredLocal = DateTime(
         _measuredLocal.year, _measuredLocal.month, _measuredLocal.day,
-        time.hour, time.minute,
+        selectedTime.hour, selectedTime.minute,
       );
       _error = null;
     });
