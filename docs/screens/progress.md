@@ -130,3 +130,5 @@ Each independently scoped product-visible implementation slice still follows [Ow
 ### A3-F footer integration (review slice #692)
 
 The approved Weight Log editor places Notes (optional) and a disabled/future Photo icon at the left of a pinned editor action strip, with one right-aligned Date/Time control and Save Weight below. It reuses the Core pinned footer and DateTime popup while leaving body weight data, kg/UTC storage and owner/session protections unchanged. This section describes the targeted review slice, **not a merged or released feature**.
+
+The same approved review additionally aligns the Progress root Top Bar with canonical shell sizing/placement (no fabricated streak), keeps the full Weight wheel without a redundant external kg/lb label, offers Settings-pattern pencil/manual numeric entry left of Close, and shows a one-to-two-line reusable Notes input with 100-word formatting limit and no visible character counter. The A3 500-grapheme backend guard stays unchanged.
