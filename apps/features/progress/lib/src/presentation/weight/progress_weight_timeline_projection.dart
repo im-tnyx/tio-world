@@ -49,7 +49,7 @@ abstract final class ProgressWeightTimelineProjection {
               local.month == localNow.month &&
               local.day == localNow.day,
           deltaKg: eligible && comparable
-              ? entry.weightKg - earlier.weightKg
+              ? entry.weightKg - earlier!.weightKg
               : null,
           // An all-history badge is only warranted after pagination ends.
           isNewLow: eligible &&
