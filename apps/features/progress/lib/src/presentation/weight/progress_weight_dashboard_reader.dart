@@ -41,6 +41,18 @@ class ProgressWeightSnapshot {
     return chartEntries.first.weightKg - chartEntries.last.weightKg;
   }
 
+  /// Signed real change per seven elapsed days, never a prediction or goal pace.
+  /// The first and last in-range instants must be distinct, as for rangeChange.
+  double? get weeklyRateOfChangeKg {
+    final change = rangeChangeKg;
+    if (change == null) return null;
+    final elapsed = chartEntries.first.measuredAt
+        .difference(chartEntries.last.measuredAt)
+        .inMicroseconds;
+    if (elapsed <= 0) return null;
+    return change * (Duration.microsecondsPerDay * 7) / elapsed;
+  }
+
   ProgressWeightSnapshot appendHistory(BodyWeightHistoryPage next) {
     return ProgressWeightSnapshot(
       current: current,

@@ -48,6 +48,12 @@ Progress → Weight
 
 Weight is the first real post-onboarding Progress vertical slice, not a second weight source. A photo field or upload action must not be presented as working in Slice A; optional linked photos arrive with separately approved Slice B.
 
+### Weight graph, range menu and separated stats (owner-approved 2026-10-26)
+
+The Progress Weight summary now places the selected-range chart, axes, actual-date labels and optional target reference in one focused `TioCard`. The current eligible owner-backed weight, signed `N DAY CHANGE` and measured `RATE OF CHANGE` appear in three separate `TioCard` summaries **below** the graph, with responsive two-plus-one or single-column arrangement on narrow phones and three columns on wider screens. The change and weekly rate are derived only from the first and last distinct real timestamps in the selected range; the rate equals signed kg change divided by actual elapsed days times seven, converted for global kg/lb preference and labelled `kg/week` or `lb/week`. Insufficient comparable data is unknown, not zero; equal weights at distinct instants may truthfully yield zero.
+
+The `Last 30/90/365 days` chooser reuses the existing Nutrition-proven `MenuAnchor + TioCard.elevated + MenuItemButton` popup contract, with a checked current selection, dismiss-on-outside, and original user-selected range/fallback behavior. No new Core component, custom color/token system, data source, schema or backend changes. This user-approved UI extension is appended to existing PR #701 rather than creating another PR; reopened exact-HEAD CI, independent review and mobile visual gates remain mandatory before merge.
+
 ### Chart range and compact root action (2026-10-26 follow-up)
 
 With the default 30-day range and no in-window measurements, the initial Progress screen may choose the first wider supported range (90 or 365 days) with **real owner-owned recorded measurements**; the selected range label must match the chart. A user's explicit 30/90/365-day selection is never silently overridden. All-empty and future-only windows remain honest empty states; changing a Body Goal never invents a measurement or extends a trend line. The plot uses a more compact **120dp** height and a right-side numeric Y-axis in the global kg/lb preference; empty state consumes only its text. Single-point plots use one centered date label, not duplicated start/end dates. The selected-range change requires comparable recorded instants.

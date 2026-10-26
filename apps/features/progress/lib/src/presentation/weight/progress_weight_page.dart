@@ -297,40 +297,106 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final typography = Theme.of(context).textTheme;
     final current = snapshot.current;
     final delta = snapshot.rangeChangeKg;
+    final weeklyRate = snapshot.weeklyRateOfChangeKg;
     final target = snapshot.goal?.targetWeightKg;
     final chart = snapshot.chartEntries;
     final scale = chart.isEmpty
         ? null
         : _WeightChartScale.fromEntries(chart, target);
+
+    final statistics = <Widget>[
+      _summaryStatCard(
+        context,
+        'progress-weight-stat-current',
+        'CURRENT',
+        current == null
+            ? '—'
+            : UnitFormatters.formatWeight(current.weightKg, widget.unit),
+      ),
+      _summaryStatCard(
+        context,
+        'progress-weight-stat-change',
+        '${_range.days} DAY CHANGE',
+        delta == null ? 'Not enough history' : _formatChange(delta),
+      ),
+      _summaryStatCard(
+        context,
+        'progress-weight-stat-rate',
+        'RATE OF CHANGE',
+        weeklyRate == null ? '—' : _formatWeeklyRate(weeklyRate),
+      ),
+    ];
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Weight summary',
-                style: typography.titleLarge,
-              ),
+              child: Text('Weight summary', style: typography.titleLarge),
             ),
-            PopupMenuButton<ProgressWeightRange>(
-              key: const ValueKey('progress-weight-range'),
-              tooltip: 'Select weight chart range',
-              initialValue: _range,
-              onSelected: _setRange,
-              itemBuilder: (context) => [
-                for (final range in ProgressWeightRange.values)
-                  PopupMenuItem(value: range, child: Text(range.label)),
+            MenuAnchor(
+              consumeOutsideTap: true,
+              style: const MenuStyle(
+                backgroundColor:
+                    WidgetStatePropertyAll(TioPalette.transparent),
+                elevation: WidgetStatePropertyAll(TioElevation.none),
+                shadowColor:
+                    WidgetStatePropertyAll(TioPalette.transparent),
+                surfaceTintColor:
+                    WidgetStatePropertyAll(TioPalette.transparent),
+                padding: WidgetStatePropertyAll(
+                  EdgeInsets.symmetric(
+                    horizontal: TioSpacing.sm,
+                    vertical: TioSpacing.xs,
+                  ),
+                ),
+              ),
+              menuChildren: [
+                TioCard(
+                  key: const ValueKey('progress-weight-range-menu-card'),
+                  variant: TioCardVariant.elevated,
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final range in ProgressWeightRange.values)
+                        MenuItemButton(
+                          key: ValueKey('progress-weight-range-option-${range.days}'),
+                          trailingIcon: range == _range
+                              ? const Icon(Icons.check_rounded,
+                                  size: TioSize.dp20)
+                              : const SizedBox(width: TioSize.dp20),
+                          onPressed: () => _setRange(range),
+                          child: Text(range.label),
+                        ),
+                    ],
+                  ),
+                ),
               ],
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.xs),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_range.label, style: typography.labelMedium),
-                    const SizedBox(width: TioSpacing.xs),
-                    const Icon(Icons.keyboard_arrow_down_rounded),
-                  ],
+              builder: (context, controller, child) => MergeSemantics(
+                child: Semantics(
+                  button: true,
+                  expanded: controller.isOpen,
+                  label: 'Select weight chart range',
+                  child: InkWell(
+                    key: const ValueKey('progress-weight-range'),
+                    borderRadius: BorderRadius.circular(TioRadius.md),
+                    onTap: controller.isOpen
+                        ? controller.close
+                        : controller.open,
+                    child: Padding(
+                      padding: const EdgeInsets.all(TioSpacing.xs),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_range.label, style: typography.labelMedium),
+                          const SizedBox(width: TioSpacing.xs),
+                          const Icon(Icons.keyboard_arrow_down_rounded),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -338,38 +404,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ),
         const SizedBox(height: TioSpacing.md),
         TioCard(
+          key: const ValueKey('progress-weight-graph-card'),
           variant: TioCardVariant.normal,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _stat(
-                      context,
-                      'CURRENT',
-                      current == null
-                          ? '—'
-                          : UnitFormatters.formatWeight(
-                              current.weightKg,
-                              widget.unit,
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: TioSpacing.sm),
-                  Expanded(
-                    child: _stat(
-                      context,
-                      'RANGE CHANGE',
-                      delta == null
-                          ? 'Not enough history'
-                          : _formatChange(delta),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.md),
               if (chart.isEmpty)
                 Padding(
                   key: const ValueKey('progress-weight-chart-empty'),
@@ -487,21 +526,72 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   ),
                 ),
               ],
-              if (delta == null && chart.isNotEmpty) ...[
-                const SizedBox(height: TioSpacing.xs),
-                Text(
-                  'Two measurements are needed to compare this range.',
-                  style: typography.bodySmall?.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
             ],
           ),
+        ),
+        const SizedBox(height: TioSpacing.sm),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Two compact cards + a full-width third on phones. One column
+            // for narrow/text-scaled screens; three columns on wide layouts.
+            final scale = MediaQuery.textScalerOf(context).scale(1);
+            final singleColumn =
+                constraints.maxWidth < TioSize.dp320 || scale > 1.5;
+            if (singleColumn) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < statistics.length; i++) ...[
+                    if (i > 0) const SizedBox(height: TioSpacing.sm),
+                    statistics[i],
+                  ],
+                ],
+              );
+            }
+            final showThreeColumns = constraints.maxWidth >=
+                TioSize.dp480 + TioSize.dp120;
+            return Column(
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: statistics[0]),
+                      const SizedBox(width: TioSpacing.sm),
+                      Expanded(child: statistics[1]),
+                      if (showThreeColumns) ...[
+                        const SizedBox(width: TioSpacing.sm),
+                        Expanded(child: statistics[2]),
+                      ],
+                    ],
+                  ),
+                ),
+                if (!showThreeColumns) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  statistics[2],
+                ],
+              ],
+            );
+          },
         ),
       ],
     );
   }
+
+  Widget _summaryStatCard(
+    BuildContext context,
+    String key,
+    String label,
+    String value,
+  ) =>
+      TioCard(
+        key: ValueKey(key),
+        variant: TioCardVariant.normal,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: TioSize.dp56),
+          child: _stat(context, label, value),
+        ),
+      );
 
   Widget _stat(BuildContext context, String label, String value) {
     final colors = context.tioColors;
@@ -527,6 +617,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final value = UnitFormatters.formatWeight(kilograms, widget.unit);
     return kilograms > 0 ? '+$value' : value;
   }
+
+  String _formatWeeklyRate(double kilogramsPerWeek) {
+    final displayValue = widget.unit == WeightUnit.kg
+        ? kilogramsPerWeek
+        : UnitConverters.kgToLb(kilogramsPerWeek);
+    final unit = widget.unit == WeightUnit.kg ? 'kg' : 'lb';
+    // Sign the rounded visible number, not a tiny value displayed as zero.
+    if (displayValue.abs() < 0.05) return '0 $unit/week';
+    final magnitude =
+        UnitFormatters.formatWeight(kilogramsPerWeek.abs(), widget.unit);
+    return '${kilogramsPerWeek > 0 ? '+' : '-'}$magnitude/week';
+  }
+
 
 
   List<Widget> _timelineEntries(

@@ -863,6 +863,122 @@ void main() {
     expect(find.text('+1 kg'), findsOneWidget);
   });
 
+  testWidgets('Weight graph card is separate from three summary stat cards',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 20)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 75,
+        measuredAt: now.subtract(const Duration(days: 6)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    final graph = find.byKey(const ValueKey('progress-weight-graph-card'));
+    expect(graph, findsOneWidget);
+    expect(
+      find.descendant(of: graph, matching: find.text('CURRENT')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: graph, matching: find.text('RATE OF CHANGE')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('progress-weight-stat-current')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-stat-change')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-stat-rate')),
+        findsOneWidget);
+    expect(find.text('30 DAY CHANGE'), findsOneWidget);
+    expect(find.text('+1 kg'), findsOneWidget);
+    expect(find.text('+0.5 kg/week'), findsOneWidget);
+  });
+
+  testWidgets('chart range menu reuses elevated TioCard and marks selection',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    expect(find.byType(PopupMenuButton<ProgressWeightRange>), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-range')));
+    await tester.pumpAndSettle();
+    final popup = find.byKey(
+      const ValueKey('progress-weight-range-menu-card'),
+    );
+    expect(popup, findsOneWidget);
+    expect(tester.widget<TioCard>(popup).variant,
+        TioCardVariant.elevated);
+    expect(
+      find.descendant(of: popup, matching: find.byType(MenuItemButton)),
+      findsNWidgets(3),
+    );
+    expect(
+      find.byKey(const ValueKey('progress-weight-range-option-30')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('progress-weight-range-option-90')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Last 90 days'), findsOneWidget);
+    expect(find.text('90 DAY CHANGE'), findsOneWidget);
+    expect(popup, findsNothing);
+  });
+
+  testWidgets('weekly change is truthful in lb and unavailable for one point',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 70,
+        measuredAt: now.subtract(const Duration(days: 14)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 71,
+        measuredAt: now.subtract(const Duration(days: 7)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository, unit: WeightUnit.lb);
+    expect(find.text('+2.2 lb/week'), findsOneWidget);
+    expect(find.text('30 DAY CHANGE'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-graph-card')),
+        findsOneWidget);
+  });
+
+  testWidgets('small viewport and accessible text keep stats readable',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 1350);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 3)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    final stat = find.byKey(const ValueKey('progress-weight-stat-rate'));
+    expect(stat, findsOneWidget);
+    expect(find.text('RATE OF CHANGE'), findsOneWidget);
+    expect(find.text('Not enough history'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Timeline groups months and uses real older-record changes',
       (tester) async {
     final repo = InMemoryBodySetupRepository();

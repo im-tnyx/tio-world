@@ -36,6 +36,35 @@ void main() {
     expect(snapshot.current?.weightKg, 70);
   });
 
+  test('weekly rate uses real elapsed instants, not selected range length',
+      () async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(
+      weight(74, now.subtract(const Duration(days: 20))),
+    );
+    await repo.recordCurrentWeight(
+      weight(75, now.subtract(const Duration(days: 6))),
+    );
+    final snapshot =
+        await ProgressWeightDashboardReader(repo, now: () => now)
+            .load(ProgressWeightRange.days30);
+    expect(snapshot.rangeChangeKg, 1);
+    expect(snapshot.weeklyRateOfChangeKg, closeTo(0.5, 0.000001));
+  });
+
+  test('same-time or single record cannot produce a weekly rate', () async {
+    final repo = InMemoryBodySetupRepository();
+    final stamp = now.subtract(const Duration(days: 3));
+    await repo.recordCurrentWeight(weight(70, stamp));
+    var snapshot = await ProgressWeightDashboardReader(repo, now: () => now)
+        .load(ProgressWeightRange.days30);
+    expect(snapshot.weeklyRateOfChangeKg, isNull);
+    await repo.recordCurrentWeight(weight(71, stamp));
+    snapshot = await ProgressWeightDashboardReader(repo, now: () => now)
+        .load(ProgressWeightRange.days30);
+    expect(snapshot.weeklyRateOfChangeKg, isNull);
+  });
+
   test('same-instant records survive and History pages by stable ID',
       () async {
     final repo = InMemoryBodySetupRepository();
