@@ -18,7 +18,7 @@ void main() {
       entries: rows, hasMore: false, capturedAt: now,
     );
     expect(items[0].deltaKg, -1);
-    expect(items[1].deltaKg, isNull); // Same timestamp, no temporal trend.
+    expect(items[1].deltaKg, 0); // Compare to strictly older timestamp.
     expect(items[2].deltaKg, 0);
     expect(items[3].deltaKg, isNull); // No earlier record available.
     expect(items[0].isNewLow, isTrue);
@@ -51,7 +51,7 @@ void main() {
     final items = ProgressWeightTimelineProjection.project(
       entries: rows, hasMore: false, capturedAt: now,
     );
-    expect(items[0].deltaKg, isNull);
+    expect(items[0].deltaKg, -0.8);
     expect(items[0].isNewLow, isFalse);
     expect(items[1].isNewLow, isTrue);
     expect(items[1].deltaKg, -1);

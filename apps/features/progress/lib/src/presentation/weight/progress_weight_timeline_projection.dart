@@ -30,10 +30,17 @@ abstract final class ProgressWeightTimelineProjection {
       final entry = entries[i];
       final local = entry.measuredAt.toLocal();
       final eligible = !entry.measuredAt.isAfter(capturedAt);
-      final earlier = i + 1 < entries.length ? entries[i + 1] : null;
-      final comparable = earlier != null &&
-          earlier.measuredAt.isBefore(entry.measuredAt) &&
-          !earlier.measuredAt.isAfter(capturedAt);
+      // Same-instant siblings are not a temporal comparison. Find the first
+      // strictly older actual measurement, skipping equal timestamps.
+      BodyWeightEntry? earlier;
+      for (var j = i + 1; j < entries.length; j++) {
+        final candidate = entries[j];
+        if (candidate.measuredAt.isBefore(entry.measuredAt) &&
+            !candidate.measuredAt.isAfter(capturedAt)) {
+          earlier = candidate;
+          break;
+        }
+      }
       // A same-instant sibling cannot be ordered temporally, but it does
       // compete for an all-history minimum. Compare it without inventing a
       // before/after sequence; exclude only this exact row by list index.
@@ -59,7 +66,7 @@ abstract final class ProgressWeightTimelineProjection {
               local.year == localNow.year &&
               local.month == localNow.month &&
               local.day == localNow.day,
-          deltaKg: eligible && comparable
+          deltaKg: eligible && earlier != null
               ? entry.weightKg - earlier!.weightKg
               : null,
           // An all-history badge is only warranted after pagination ends.
