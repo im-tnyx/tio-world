@@ -244,6 +244,15 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Unit selection is global, not another mutable option here.
+              Text(
+                widget.unit == WeightUnit.lb ? 'Weight (lb)' : 'Weight (kg)',
+                key: const ValueKey('progress-log-weight-unit-label'),
+                style: typography.labelLarge?.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: TioSpacing.sm),
               IgnorePointer(
                 ignoring: _attempted,
                 child: TioWeightWheel(
