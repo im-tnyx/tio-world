@@ -275,8 +275,14 @@ void main() {
       '154.3',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    final save = find.byKey(const ValueKey('progress-log-save'));
+    expect(tester.widget<TioButton>(save).onPressed, isNotNull);
+    FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
     expect(repository.weightEntries.single.weightKg, closeTo(70, 0.1));
   });
 
