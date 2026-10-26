@@ -83,6 +83,7 @@ class TioEditorFooterAction extends StatelessWidget {
     required this.semanticLabel,
     required this.builder,
     this.onTap,
+    super.key,
   });
 
   final Key controlKey;
