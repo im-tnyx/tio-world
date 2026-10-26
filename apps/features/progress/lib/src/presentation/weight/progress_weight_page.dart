@@ -7,6 +7,10 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
+// Matches Nutrition's bottom action footprint: 56dp control and 24dp
+// breathing room on each side, plus the current safe bottom inset.
+const double _logWeightClearance = TioSize.dp56 + TioSpacing.xl * 2;
+
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
 class ProgressWeightPage extends StatefulWidget {
@@ -155,14 +159,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final typography = Theme.of(context).textTheme;
-    return RefreshIndicator(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md,
+        padding: EdgeInsets.fromLTRB(
+          TioSpacing.lg,
+          TioSpacing.md,
+          TioSpacing.lg,
+          _logWeightClearance + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           Text(
@@ -194,16 +203,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           else if (_snapshot != null) ...[
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
-            Row(
-              children: [
-                Expanded(child: Text('History', style: typography.titleLarge)),
-                TioButton.supporting(
-                  key: const ValueKey('progress-weight-log-action'),
-                  label: 'Log Weight',
-                  onPressed: _openLogWeight,
-                ),
-              ],
-            ),
+            Text('Timeline', style: typography.titleLarge),
             const SizedBox(height: TioSpacing.sm),
             if (_snapshot!.history.entries.isEmpty)
               const TioCard(
@@ -237,6 +237,30 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           const SizedBox(height: TioSpacing.xl),
         ],
       ),
+        ),
+        // The button is attached to the viewport, not the Timeline list.
+        // Preserve its Nutrition-equivalent SafeArea and 24dp inset while
+        // keeping the labelled Tio pill rather than switching to a '+' FAB.
+        if (!_loading && _error == null && _snapshot != null)
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: SizedBox(
+                    height: TioSize.dp56,
+                    child: TioButton.primary(
+                      key: const ValueKey('progress-weight-log-action'),
+                      label: 'Log Weight',
+                      onPressed: _openLogWeight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
