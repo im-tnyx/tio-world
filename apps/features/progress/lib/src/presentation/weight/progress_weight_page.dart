@@ -1049,7 +1049,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width05,
         );
         final height = TioSize.dp56 +
-            (stackBadges ? TioSize.dp32 : 0) +
+            (stackBadges ? TioSize.dp44 : 0) +
             math.max(0.0, textScale - 1.0) * TioSize.dp80;
         return SizedBox(
           height: height,
@@ -1258,7 +1258,7 @@ class _RecordedWeightPainter extends CustomPainter {
           style: TextStyle(
             color: targetColor,
             fontSize: TioFontSize.size10_5,
-            fontWeight: FontWeight.w600,
+            fontWeight: TioFontWeight.w600,
           ),
         ),
         textDirection: TextDirection.ltr,

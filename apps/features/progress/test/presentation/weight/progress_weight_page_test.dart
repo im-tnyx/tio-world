@@ -1116,9 +1116,9 @@ void main() {
             .startsWith('progress-weight-history-'));
     expect(entries, findsNWidgets(2));
     expect(tester.getSize(entries.first).height,
-        TioSize.dp56 + TioSize.dp32);
+        TioSize.dp56 + TioSize.dp44);
     expect(tester.getSize(entries.last).height,
-        TioSize.dp56 + TioSize.dp32);
+        TioSize.dp56 + TioSize.dp44);
     expect(tester.takeException(), isNull);
   });
 
@@ -1298,7 +1298,7 @@ void main() {
             .startsWith('progress-weight-history-'));
     expect(cards, findsNWidgets(3));
     for (var i = 0; i < 3; i++) {
-      expect(tester.getSize(cards.at(i)).height, TioSize.dp56 + TioSize.dp32);
+      expect(tester.getSize(cards.at(i)).height, TioSize.dp56 + TioSize.dp44);
     }
     expect(find.text('New low'), findsNothing);
     expect(find.textContaining('Saved note that can be much longer'),
@@ -1340,7 +1340,7 @@ void main() {
     for (var i = 0; i < 2; i++) {
       expect(
         tester.getSize(cards.at(i)).height,
-        TioSize.dp56 + TioSize.dp32,
+        TioSize.dp56 + TioSize.dp44,
       );
     }
     final todayCard = find.ancestor(
