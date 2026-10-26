@@ -120,3 +120,7 @@ Owner clarified that "30 DAY CHANGE" belongs only inside chart (beside CURRENT),
 ## 2026-10-26 latest head analyzer correction
 
 Flutter Analyze on `e1f25c5b` found two undefined feature token symbols introduced by the screenshot refactor: `TioSize.dp280` and `TioFontSize.size10`. Replaced with documented existing governed values (`TioSize.dp320 - TioSize.dp40`, `TioFontSize.size10_5`) without adding Core tokens or changing layout intent. All checks must be rerun at the new exact head, no approval/merge.
+
+## 2026-10-26 canonical doc convergence
+
+Reconciled earlier historical Weight summary text stating 2+1 stats and N DAY CHANGE below graph: the owner-approved current architecture is Current+N Day Change inside chart, exactly three aligned goal-baseline Starting/Change and measured weekly Rate below, and separate goal-distance card. No app source behavior changed by this docs-only follow-up. Fresh exact-HEAD CI and independent review remain gating; do not merge.
