@@ -34,12 +34,23 @@ abstract final class ProgressWeightTimelineProjection {
       final comparable = earlier != null &&
           earlier.measuredAt.isBefore(entry.measuredAt) &&
           !earlier.measuredAt.isAfter(capturedAt);
-      final olderWeights = entries
-          .skip(i + 1)
-          .where((e) =>
-              e.measuredAt.isBefore(entry.measuredAt) &&
-              !e.measuredAt.isAfter(capturedAt))
-          .map((e) => e.weightKg);
+      // A same-instant sibling cannot be ordered temporally, but it does
+      // compete for an all-history minimum. Compare it without inventing a
+      // before/after sequence; exclude only this exact row by list index.
+      final priorOrConcurrentWeights = <double>[];
+      var hasStrictlyOlder = false;
+      for (var j = 0; j < entries.length; j++) {
+        if (j == i) continue;
+        final other = entries[j];
+        if (other.measuredAt.isAfter(entry.measuredAt) ||
+            other.measuredAt.isAfter(capturedAt)) {
+          continue;
+        }
+        if (other.measuredAt.isBefore(entry.measuredAt)) {
+          hasStrictlyOlder = true;
+        }
+        priorOrConcurrentWeights.add(other.weightKg);
+      }
       result.add(
         ProgressWeightTimelineItem(
           entry: entry,
@@ -54,8 +65,8 @@ abstract final class ProgressWeightTimelineProjection {
           // An all-history badge is only warranted after pagination ends.
           isNewLow: eligible &&
               !hasMore &&
-              olderWeights.isNotEmpty &&
-              olderWeights.every((kg) => entry.weightKg < kg),
+              hasStrictlyOlder &&
+              priorOrConcurrentWeights.every((kg) => entry.weightKg < kg),
         ),
       );
     }
