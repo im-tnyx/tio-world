@@ -116,3 +116,7 @@ On `0c39c74e`, Dart Analyze of production Progress code passed; the newly added 
 ## 2026-10-26 final screenshot alignment correction
 
 Owner clarified that "30 DAY CHANGE" belongs only inside chart (beside CURRENT), and below there must not be another N-day-change card. Retain three equal-width cards beneath chart as in reference: STARTING and CHANGE are active goal baseline and signed lifetime goal change, while RATE OF CHANGE is selected-window pace. They are distinct from selected-range N DAY CHANGE. Chart has target guide label and separate compact target-distance horizontal card. Avoid fabricating baseline; missing data displays —. Keep Core theme/tokens and 320–390dp/large-text behavior, with fresh exact-head CI and independent review before merge.
+
+## 2026-10-26 latest head analyzer correction
+
+Flutter Analyze on `e1f25c5b` found two undefined feature token symbols introduced by the screenshot refactor: `TioSize.dp280` and `TioFontSize.size10`. Replaced with documented existing governed values (`TioSize.dp320 - TioSize.dp40`, `TioFontSize.size10_5`) without adding Core tokens or changing layout intent. All checks must be rerun at the new exact head, no approval/merge.

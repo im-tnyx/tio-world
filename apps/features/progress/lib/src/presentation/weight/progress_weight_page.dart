@@ -614,7 +614,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             // Same-size three-column cards at ordinary phone widths. Only
             // narrow accessibility layouts stack to retain complete units.
             final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.5;
-            if (enlarged || constraints.maxWidth < TioSize.dp280) {
+            if (enlarged || constraints.maxWidth < (TioSize.dp320 - TioSize.dp40)) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1246,7 +1246,7 @@ class _RecordedWeightPainter extends CustomPainter {
           text: 'YOUR TARGET',
           style: TextStyle(
             color: targetColor,
-            fontSize: TioFontSize.size10,
+            fontSize: TioFontSize.size10_5,
             fontWeight: FontWeight.w600,
           ),
         ),
