@@ -118,11 +118,28 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
             child: Text('Sign in to see your Weight progress.'),
           );
         }
-        final unit = ref.watch(profileDataProvider)
-                .valueOrNull
-                ?.unitPreferences
-                .weightUnit ??
-            WeightUnit.kg;
+        final profileAsync = ref.watch(profileDataProvider);
+        if (profileAsync.isLoading) {
+          // The previous login cycle's units must not label this owner's
+          // weight while the current Profile preference is being refreshed.
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (profileAsync.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Weight preferences could not be loaded.'),
+                TioButton.secondary(
+                  label: 'Retry',
+                  onPressed: () => ref.invalidate(profileDataProvider),
+                ),
+              ],
+            ),
+          );
+        }
+        final unit =
+            profileAsync.valueOrNull?.unitPreferences.weightUnit ?? WeightUnit.kg;
         return ProgressWeightPage(
           key: ValueKey(cycle),
           sessionKey: cycle,
