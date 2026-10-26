@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../domain/body_setup.dart';
 
 /// The chart window is relative to an instant, not a synthetic calendar series.
@@ -10,6 +12,21 @@ enum ProgressWeightRange {
 
   final int days;
   final String label;
+}
+
+/// A display-independent projection of the canonical active Body Goal.
+enum ProgressWeightTargetStatus { reached, onTrack, progress }
+
+class ProgressWeightTargetProgress {
+  const ProgressWeightTargetProgress({
+    required this.targetKg,
+    required this.remainingKg,
+    required this.status,
+  });
+
+  final double targetKg;
+  final double? remainingKg;
+  final ProgressWeightTargetStatus status;
 }
 
 /// Immutable owner-scoped read model. History and chart have different windows.
@@ -30,6 +47,37 @@ class ProgressWeightSnapshot {
   final BodyWeightHistoryPage history;
   final ProgressWeightRange range;
   final DateTime capturedAt;
+
+  /// Goal status is a domain projection, not a decision made by the widget.
+  /// A missing real measurement remains unknown even with a valid target.
+  ProgressWeightTargetProgress? get targetProgress {
+    final activeGoal = goal;
+    final target = activeGoal?.targetWeightKg;
+    if (activeGoal == null || target == null) return null;
+
+    final weight = current?.weightKg;
+    final remaining = weight == null
+        ? null
+        : switch (activeGoal.goalType) {
+            BodyGoalType.loseWeight => math.max(0.0, weight - target),
+            BodyGoalType.gainWeight => math.max(0.0, target - weight),
+            _ => (weight - target).abs(),
+          };
+    final baseline = activeGoal.startingWeightKg;
+    final movedCloser = remaining != null &&
+        baseline != null &&
+        remaining < (baseline - target).abs();
+    final status = remaining != null && remaining < 0.0001
+        ? ProgressWeightTargetStatus.reached
+        : movedCloser
+            ? ProgressWeightTargetStatus.onTrack
+            : ProgressWeightTargetStatus.progress;
+    return ProgressWeightTargetProgress(
+      targetKg: target,
+      remainingKg: remaining,
+      status: status,
+    );
+  }
 
   double? get rangeChangeKg {
     if (chartEntries.length < 2 ||
