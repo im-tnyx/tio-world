@@ -645,3 +645,7 @@ The owner-approved Workout Routine Delete centered confirmation caps its reusabl
 ### Optional status for shell root top bar
 
 `TioShellStatusTopBar` accepts `statusLabel`, `statusKey` and `days` as optional: when the status label/key are absent together, it paints the same governed AppBar geometry without a fabricated status icon or count. Progress root uses this status-absent variant; Workout and Nutrition retain their status labels and streak semantics unchanged. `TioShell.state.isRootTopBarVisible` still gates the header for nested destinations.
+
+### DateTime popup elevation options
+
+`TioDateTimePickerPopup.elevatedCard` defaults to `true`, preserving existing Food editor's `TioCardVariant.elevated` and its shadow. A screen already presenting the anchored wheel over a raised sheet (e.g. Progress Log Weight) may pass `elevatedCard: false` to use one `TioCardVariant.surface` without an extra projected shadow. Only the paint treatment differs: the popup position, wheel, selection highlight, bounds, barrier and semantics are unchanged.

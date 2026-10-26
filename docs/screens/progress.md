@@ -132,3 +132,7 @@ Each independently scoped product-visible implementation slice still follows [Ow
 The approved Weight Log editor places Notes (optional) and a disabled/future Photo icon at the left of a pinned editor action strip, with one right-aligned Date/Time control and Save Weight below. It reuses the Core pinned footer and DateTime popup while leaving body weight data, kg/UTC storage and owner/session protections unchanged. This section describes the targeted review slice, **not a merged or released feature**.
 
 The same approved review additionally aligns the Progress root Top Bar with canonical shell sizing/placement (no fabricated streak), keeps the full Weight wheel without a redundant external kg/lb label, offers Settings-pattern pencil/manual numeric entry left of Close, and shows a one-to-two-line reusable Notes input with 100-word formatting limit and no visible character counter. The A3 500-grapheme backend guard stays unchanged.
+
+### Progress header and Weight DateTime layering (PR #695, review only)
+
+With the root shell now owning the `Progress` title, the Weight dashboard body begins at `Weight summary` and no longer repeats `Weight` just under the top bar. On the Weight editor only, the anchored Core DateTime popup uses its new flat-card option to avoid an apparent second elevated layer over the sheet. The shared Food DateTime popup retains its previous elevated surface and behavior. The date/time wheel's existing centered selection pill remains within the single popup, not a separate card. These changes are in an open, unmerged PR.
