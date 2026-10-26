@@ -930,6 +930,27 @@ void main() {
     expect(find.textContaining('No weight measurements yet'), findsOneWidget);
   });
 
+  testWidgets('optional chart fallback failure keeps valid baseline data',
+      (tester) async {
+    final repository = _FailingFallbackWeightRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 60)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    expect(repository.fallbackFailed, isTrue);
+    expect(find.text('Weight could not be loaded.'), findsNothing);
+    expect(find.text('Last 30 days'), findsOneWidget);
+    expect(find.text('74 kg'), findsWidgets);
+    expect(find.text('No measurements in this range'), findsOneWidget);
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-log-action')),
+        findsOneWidget);
+  });
+
   testWidgets('load failure offers retry without exposing stale weights',
       (tester) async {
     await pumpPage(tester, _FailingWeightRepository());
@@ -937,6 +958,24 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-chart')), findsNothing);
   });
+}
+
+class _FailingFallbackWeightRepository extends InMemoryBodySetupRepository {
+  bool fallbackFailed = false;
+
+  @override
+  Future<BodyWeightHistoryPage> getWeightHistory(
+    BodyWeightHistoryQuery query,
+  ) {
+    // The optional 90-day chart query starts 90 days before the fixed clock.
+    // Current, 30-day chart and Timeline queries still succeed.
+    if (query.fromInclusive ==
+        DateTime.utc(2026, 10, 26, 10).subtract(const Duration(days: 90))) {
+      fallbackFailed = true;
+      return Future.error(StateError('transient chart transport failure'));
+    }
+    return super.getWeightHistory(query);
+  }
 }
 
 class _FailingWeightRepository extends InMemoryBodySetupRepository {

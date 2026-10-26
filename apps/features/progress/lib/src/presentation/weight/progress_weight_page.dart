@@ -127,7 +127,16 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           ProgressWeightRange.days90,
           ProgressWeightRange.days365,
         ]) {
-          final extended = await _reader.load(fallback);
+          ProgressWeightSnapshot extended;
+          try {
+            extended = await _reader.load(fallback);
+          } catch (_) {
+            // Widening is optional: retain the valid baseline summary,
+            // Timeline and Log Weight action on a transient read failure.
+            // Never expose owner-owned data or transport details in logs.
+            if (!mounted || generation != _generation) return;
+            break;
+          }
           if (!mounted || generation != _generation) return;
           if (extended.chartEntries.isNotEmpty) {
             selectedRange = fallback;
