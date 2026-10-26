@@ -64,6 +64,21 @@ void main() {
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
   });
 
+  testWidgets('disposing Weight page with open Log sheet is lifecycle-safe',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+
+    // Regression: the page invalidates its session as Flutter unmounts the
+    // navigator tree. The sheet listener must not ask its deactivated BuildContext
+    // for ModalRoute/Navigator ancestors during that notification.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('A3 optional note persists on Save and History refreshes',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
