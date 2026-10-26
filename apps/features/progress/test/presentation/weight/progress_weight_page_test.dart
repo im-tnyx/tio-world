@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -11,6 +13,7 @@ void main() {
     BodyRepository repository, {
     WeightUnit unit = WeightUnit.kg,
     String cycle = 'cycle-one',
+    VoidCallback? onWeightLogged,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -24,6 +27,7 @@ void main() {
             repository: repository,
             unit: unit,
             sessionKey: cycle,
+            onWeightLogged: onWeightLogged,
             now: () => now,
           ),
         ),
@@ -97,6 +101,45 @@ void main() {
     expect(repository.weightEntries, hasLength(1));
     expect(repository.attempts, 2);
     expect(find.byKey(const ValueKey('progress-log-wheel')), findsNothing);
+  });
+
+
+  testWidgets('Back and barrier cannot close while weight save is in flight',
+      (tester) async {
+    final repository = _DelayedSaveRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pump();
+    // A pending save has a stable operation ID and must retain its modal.
+    await tester.tapAt(const Offset(1, 1));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
+    repository.release.complete();
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsNothing);
+  });
+
+  testWidgets('confirmed save notifies owning app composition exactly once',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    var invalidations = 0;
+    await pumpPage(
+      tester,
+      repository,
+      onWeightLogged: () => invalidations++,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(invalidations, 1);
+    expect(repository.weightEntries, hasLength(1));
   });
 
   testWidgets('new log uses the existing global lb input preference',
@@ -276,5 +319,15 @@ class _AmbiguousSaveWeightRepository extends InMemoryBodySetupRepository {
     if (attempts == 1) {
       throw StateError('Response lost after write committed');
     }
+  }
+}
+
+class _DelayedSaveRepository extends InMemoryBodySetupRepository {
+  final Completer<void> release = Completer<void>();
+
+  @override
+  Future<void> recordCurrentWeight(BodyWeightRecord record) async {
+    await release.future;
+    return super.recordCurrentWeight(record);
   }
 }
