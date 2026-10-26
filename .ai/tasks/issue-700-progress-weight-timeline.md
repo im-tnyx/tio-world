@@ -208,3 +208,7 @@ The current canonical `BodyRepository.setActiveBodyGoal` correctly requires both
 ## 2026-10-26 final owner tooltip override
 
 The latest owner instruction supersedes the interim full-date and estimated-goal tooltip design. Reference means two compact **one-line** inverse-contrast pills with the *same selected historical date*: `4 Oct: 76 kg` / `4 Oct: 72 kg`, blue/green dots retained. No Goal Pace future date inside the chart (onboarding calculator left intact). The previous interim full-date+Est. layout actually failed latest CI with 12–62px RenderFlex overflows and 200dp wide bubble. Replaced it with a compact single Row per chip, a date that can safely ellipsize at accessibility widths, localized day-before-abbreviated-month format using already-Core-aligned `intl ^0.20.2`, Core primary/onPrimary inverse surfaces, and no extra future line. Tests target Light 337dp and Dark styling, 2 matching dates, no estimated date, and no overflow. Requires exact new HEAD CI and physical QA, no merge.
+
+## 2026-10-26 exact HEAD analyzer conflict resolution
+
+Flutter Analyze of `05c2ce1b` exposed `TextDirection.ltr` resolving to the unrelated public `intl` TextDirection class after adding a blanket `intl.dart` import. The feature uses only date formatting, so restrict the direct import to `show DateFormat`; this restores Flutter's own TextDirection enum without modifying painter geometry or UI. Re-run exact HEAD CI/review. No approval/merge.
