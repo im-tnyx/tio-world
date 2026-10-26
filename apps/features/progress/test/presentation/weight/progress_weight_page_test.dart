@@ -954,7 +954,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('goal with no pace keeps real target but no estimated date',
+  testWidgets('goal with zero pace keeps real target but no estimated date',
       (tester) async {
     final repo = InMemoryBodySetupRepository(
       now: () => DateTime.utc(2026, 10, 1, 10),
@@ -966,6 +966,7 @@ void main() {
     await repo.setActiveBodyGoal(const BodyGoalUpdate(
       goalType: BodyGoalType.loseWeight,
       targetWeightKg: 70,
+      weeklyWeightChangeKg: 0,
     ));
     await pumpPage(tester, repo);
     final chart = tester.getRect(
