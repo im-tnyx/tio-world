@@ -1954,7 +1954,19 @@ void main() {
         widget.key is ValueKey<String> &&
         (widget.key! as ValueKey<String>).value
             .startsWith('progress-weight-history-'));
-    // Extra graph-summary cards put the Timeline below the initial viewport
+    final graph = find.byKey(const ValueKey('progress-weight-graph-card'));
+    for (final key in [
+      'progress-weight-stat-starting',
+      'progress-weight-stat-overall-change',
+      'progress-weight-stat-rate',
+    ]) {
+      expect(
+        find.descendant(of: graph, matching: find.byKey(ValueKey(key))),
+        findsOneWidget,
+      );
+    }
+    expect(tester.takeException(), isNull);
+    // Even with compact metrics, Timeline may be below the initial viewport
     // at 1.8x text scale. Scroll to the real Today row before measuring it;
     // neither Timeline card needs to be initially mounted by the ListView.
     final scrollable = find.descendant(
