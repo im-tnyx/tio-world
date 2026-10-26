@@ -924,7 +924,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           return Row(
             children: [
               dateColumn,
-              const SizedBox(width: TioSpacing.md),
+              const SizedBox(width: TioSpacing.sm),
               Expanded(child: weightWithRecord),
               if (hasBadges) ...[
                 const SizedBox(width: TioSpacing.xs),
@@ -1032,8 +1032,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.sm,
-            vertical: TioSpacing.xs,
+            horizontal: TioSpacing.xs,
+            vertical: TioSpacing.xxs,
           ),
           child: Text(
             label,

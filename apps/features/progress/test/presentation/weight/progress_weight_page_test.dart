@@ -989,7 +989,9 @@ void main() {
       ));
     }
     await repo.setActiveBodyGoal(const BodyGoalUpdate(
-      goalType: BodyGoalType.loseWeight, targetWeightKg: 70,
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 70,
+      weeklyWeightChangeKg: 0.5,
     ));
     await pumpPage(tester, repo);
     expect(find.text('New low'), findsOneWidget);

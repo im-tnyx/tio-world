@@ -98,3 +98,7 @@ Owner-reported Android QA: weight wheel lacks the original kg/lbs drum; restore 
 ## 2026-10-26 CI lint gate
 
 Flutter Analyze on `696b8f27` found one `curly_braces_in_flow_control_structures` info in the delete-confirmation handler. Corrected braces only. The prior check is not a PASS and new exact-head Flutter CI is required; review/merge still pending.
+
+## Latest CI diagnostic corrections
+
+Flutter Analyzer on `696b8f27` flagged one missing block-brace lint (fixed at `ba59d5fb`). The core-wear shard had 144/145 Progress tests successful; the only failure was a new goal marker test fixture missing mandatory `weeklyWeightChangeKg` for Lose Weight, not a production failure. Added the required test goal pace. Reduced timeline badge horizontal/vertical padding and date-to-weight gap to preserve full kg/lb text next to status and delete affordance. Exact-HEAD CI pending; no merge/review bypass.
