@@ -81,10 +81,17 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     _selectedKg = widget.valueKg ?? ((_minKg + _maxKg) / 2).roundToDouble();
     _isLbs = widget.unit == WeightUnit.lb;
 
-    final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
-    final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
+    final display = _isLbs ? _selectedKg * _kgToLbsFactor : _selectedKg;
+    final minimum = _isLbs ? _minLbs : _minKg;
+    final maximum = _isLbs ? _maxLbs : _maxKg;
+    final whole = display.truncate().clamp(minimum, maximum);
+    final decimal = ((display - whole) * 10).round().clamp(0, 9);
 
-    _wholeController = FixedExtentScrollController(initialItem: whole - _minKg);
+    // Initial drum indices are in DISPLAY units, not canonical kilograms.
+    // Without this, lb can visibly show a different number from the kg value
+    // that A3 saves when the wheel is untouched.
+    _wholeController =
+        FixedExtentScrollController(initialItem: whole - minimum);
     _decimalController = FixedExtentScrollController(initialItem: decimal);
     if (widget.showUnitSwitcher) {
       _unitController =
@@ -96,20 +103,25 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
   void didUpdateWidget(covariant TioWeightWheel oldWidget) {
     super.didUpdateWidget(oldWidget);
     _applyBounds();
-    if (widget.valueKg != null && widget.valueKg != oldWidget.valueKg) {
-      final newKg = widget.valueKg!.clamp(_minKg.toDouble(), _maxKg.toDouble());
-      if (newKg != _selectedKg) {
-        _syncToKg(newKg, notify: false);
-      }
-    }
     final newIsLbs = widget.unit == WeightUnit.lb;
-    if (newIsLbs != _isLbs) {
-      setState(() => _isLbs = newIsLbs);
+    final unitChanged = newIsLbs != _isLbs;
+    if (unitChanged) {
+      _isLbs = newIsLbs;
       if (_unitController?.hasClients ?? false) {
         _runProgrammaticSync(
           () => _unitController!.jumpToItem(newIsLbs ? 1 : 0),
         );
       }
+    }
+    // Resynchronize BOTH numeric drums when the external unit changes, even
+    // if canonical valueKg itself stays identical.
+    final nextKg = widget.valueKg ?? _selectedKg;
+    if (unitChanged || (widget.valueKg != null &&
+        widget.valueKg != oldWidget.valueKg)) {
+      _syncToKg(
+        nextKg.clamp(_minKg.toDouble(), _maxKg.toDouble()),
+        notify: false,
+      );
     }
   }
 
