@@ -27,6 +27,51 @@ void main() {
     expect(result.goal, isNull);
   });
 
+  test('target status is a read-model decision, never guessed by the widget',
+      () {
+    ProgressWeightSnapshot snapshot(BodyGoalState? goal, double? currentKg) =>
+        ProgressWeightSnapshot(
+          current: currentKg == null
+              ? null
+              : BodyWeightEntry(weightKg: currentKg, measuredAt: now),
+          goal: goal,
+          chartEntries: const [],
+          history: const BodyWeightHistoryPage(entries: []),
+          range: ProgressWeightRange.days30,
+          capturedAt: now,
+        );
+
+    const loseGoal = BodyGoalState(
+      goalType: BodyGoalType.loseWeight,
+      startingWeightKg: 74,
+      targetWeightKg: 72,
+    );
+    expect(snapshot(loseGoal, 75).targetProgress?.status,
+        ProgressWeightTargetStatus.progress);
+    expect(snapshot(loseGoal, 73).targetProgress?.remainingKg, 1);
+    expect(snapshot(loseGoal, 73).targetProgress?.status,
+        ProgressWeightTargetStatus.onTrack);
+    expect(snapshot(loseGoal, 71).targetProgress?.remainingKg, 0);
+    expect(snapshot(loseGoal, 71).targetProgress?.status,
+        ProgressWeightTargetStatus.reached);
+    expect(snapshot(loseGoal, null).targetProgress?.remainingKg, isNull);
+    expect(snapshot(loseGoal, null).targetProgress?.status,
+        ProgressWeightTargetStatus.progress);
+
+    const gainGoal = BodyGoalState(
+      goalType: BodyGoalType.gainWeight,
+      startingWeightKg: 70,
+      targetWeightKg: 75,
+    );
+    expect(snapshot(gainGoal, 76).targetProgress?.status,
+        ProgressWeightTargetStatus.reached);
+    expect(snapshot(null, 73).targetProgress, isNull);
+    expect(
+        snapshot(const BodyGoalState(goalType: BodyGoalType.maintainWeight), 73)
+            .targetProgress,
+        isNull);
+  });
+
   test('no comparable points gives unknown change, not zero', () async {
     final repo = InMemoryBodySetupRepository();
     await repo.recordCurrentWeight(weight(70, now.subtract(const Duration(days: 3))));
