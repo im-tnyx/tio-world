@@ -53,7 +53,7 @@ void main() {
     );
     expect(items[0].deltaKg, closeTo(-0.8, 0.001));
     expect(items[0].isNewLow, isFalse);
-    expect(items[1].isNewLow, isTrue);
+    expect(items[1].isNewLow, isFalse);
     expect(items[1].deltaKg, -1);
   });
 

@@ -84,3 +84,8 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 ## Device QA correction: wheel and record calculation
 
 Owner-reported Android QA: weight wheel lacks the original kg/lbs drum; restore existing Core three-drum `TioWeightWheel` with sheet-local unit selection, without changing global preference or canonical kg writes. Goal-directed record marker requires the newest eligible row, strict all-history proof and direction (`loseWeight` New low / `gainWeight` New high), none for Maintain/unknown. Approved further UI corrections and exact-ID History Delete will follow under same PR and must be revalidated before merge. Status REVIEW, not approved.
+
+## 2026-10-26 same-PR device QA layout correction
+
+- Graph target sentence removed and goal distance moved to independent horizontal TioCard; the value is derived from canonical current/target, never hard-coded from reference imagery. Smaller aligned stat cards (third spans full width on narrow phones), reduced chart padding. Weekly rate suppressed for intervals below seven elapsed days; actual range change retained. Timeline uniform baseline 72dp (narrow stack +40dp), Today border 0.75dp Core stroke, goal record beside the weight and not stacked into the delta badge; no markers when no active Lose/Gain goal.
+- Pending: exact-ID History Delete action + security/session tests, CI, independent review/visual QA. No merge.

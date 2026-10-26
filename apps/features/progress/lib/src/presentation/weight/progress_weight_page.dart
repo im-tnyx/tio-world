@@ -406,6 +406,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         TioCard(
           key: const ValueKey('progress-weight-graph-card'),
           variant: TioCardVariant.normal,
+          padding: const EdgeInsets.all(TioSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -517,15 +518,6 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     ],
                   ),
               ],
-              if (target != null) ...[
-                const SizedBox(height: TioSpacing.md),
-                Text(
-                  'Your target: ${UnitFormatters.formatWeight(target, widget.unit)}',
-                  style: typography.bodyMedium?.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -568,13 +560,61 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 ),
                 if (!showThreeColumns) ...[
                   const SizedBox(height: TioSpacing.sm),
-                  statistics[2],
+                  SizedBox(width: double.infinity, child: statistics[2]),
                 ],
               ],
             );
           },
-        ),
+        if (target != null && snapshot.goal != null) ...[
+          const SizedBox(height: TioSpacing.sm),
+          _targetProgressCard(context, current, snapshot.goal!),
+        ],
       ],
+    );
+  }
+
+  Widget _targetProgressCard(
+    BuildContext context,
+    BodyWeightEntry? current,
+    BodyGoalState goal,
+  ) {
+    final colors = context.tioColors;
+    final targetKg = goal.targetWeightKg!;
+    final remaining = current == null ? null : switch (goal.goalType) {
+      BodyGoalType.loseWeight => math.max(0.0, current.weightKg - targetKg),
+      BodyGoalType.gainWeight => math.max(0.0, targetKg - current.weightKg),
+      _ => (current.weightKg - targetKg).abs(),
+    };
+    return TioCard(
+      key: const ValueKey('progress-weight-target-card'),
+      variant: TioCardVariant.normal,
+      padding: const EdgeInsets.all(TioSpacing.sm),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Target progress',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: TioSpacing.xs),
+          Flexible(
+            child: Text(
+              remaining == null
+                  ? 'Target: ${UnitFormatters.formatWeight(targetKg, widget.unit)}'
+                  : remaining < 0.0001
+                      ? 'Target reached'
+                      : '${UnitFormatters.formatWeight(remaining, widget.unit)} to go',
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -587,8 +627,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       TioCard(
         key: ValueKey(key),
         variant: TioCardVariant.normal,
+        padding: const EdgeInsets.all(TioSpacing.sm),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: TioSize.dp56),
+          constraints: const BoxConstraints(minHeight: TioSize.dp48),
           child: _stat(context, label, value),
         ),
       );
@@ -603,7 +644,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           label,
           style: typography.labelSmall?.copyWith(color: colors.textSecondary),
         ),
-        const SizedBox(height: TioSpacing.xs),
+        const SizedBox(height: TioSpacing.xxs),
         Text(
           value,
           style: typography.titleMedium?.copyWith(color: colors.textPrimary),
@@ -640,6 +681,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       entries: snapshot.history.entries,
       hasMore: snapshot.history.nextCursor != null,
       capturedAt: snapshot.capturedAt,
+      goalType: snapshot.goal?.goalType,
     );
     final colors = context.tioColors;
     final typography = Theme.of(context).textTheme;
@@ -767,27 +809,26 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ],
       ],
     );
-    final badges = Column(
+    final recordLabel =
+        item.isNewLow ? 'New low' : item.isNewHigh ? 'New high' : null;
+    final weightWithRecord = Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        if (item.isNewLow) ...[
+        if (recordLabel != null) ...[
           _timelineBadge(
             context,
-            label: 'New low',
-            key: ValueKey('progress-weight-timeline-new-low-${entry.id}'),
+            label: recordLabel,
+            key: ValueKey('progress-weight-timeline-record-${entry.id}'),
             foreground: colors.success,
             background: colors.success.withValues(alpha: TioOpacity.opacity12),
-            semantics: 'New lowest weight compared with all older measurements',
+            semantics: 'Latest goal-directed weight record: $recordLabel',
           ),
-          if (item.deltaKg != null)
-            const SizedBox(height: TioSpacing.xs),
+          const SizedBox(width: TioSpacing.xs),
         ],
-        if (item.deltaKg != null)
-          _timelineChangeBadge(context, item, goalType),
+        Flexible(child: weightColumn),
       ],
     );
-    final hasBadges = item.isNewLow || item.deltaKg != null;
+    final hasBadges = item.deltaKg != null;
     final card = TioCard(
       variant: TioCardVariant.normal,
       padding: const EdgeInsets.symmetric(
@@ -809,14 +850,14 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   children: [
                     dateColumn,
                     const SizedBox(width: TioSpacing.sm),
-                    Expanded(child: weightColumn),
+                    Expanded(child: weightWithRecord),
                   ],
                 ),
                 if (hasBadges) ...[
                   const SizedBox(height: TioSpacing.sm),
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
-                    child: badges,
+                    child: _timelineChangeBadge(context, item, goalType),
                   ),
                 ],
               ],
@@ -826,10 +867,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             children: [
               dateColumn,
               const SizedBox(width: TioSpacing.md),
-              Expanded(child: weightColumn),
+              Expanded(child: weightWithRecord),
               if (hasBadges) ...[
                 const SizedBox(width: TioSpacing.sm),
-                badges,
+                _timelineChangeBadge(context, item, goalType),
               ],
             ],
           );
@@ -847,8 +888,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         final stackBadges = stackTimelineBadges(
           constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width1,
         );
-        final height = TioSize.dp80 +
-            (stackBadges ? TioSize.dp54 : 0) +
+        final height = TioSize.dp72 +
+            (stackBadges ? TioSize.dp40 : 0) +
             math.max(0.0, textScale - 1.0) * TioSize.dp80;
         return SizedBox(
           height: height,
@@ -857,13 +898,13 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: item.isToday
-                  ? Border.all(color: colors.progress, width: TioStroke.width1)
+                  ? Border.all(color: colors.progress, width: TioStroke.width075)
                   : null,
             ),
             // Outline does not increase overall card height for Today.
             child: Padding(
               padding: item.isToday
-                  ? const EdgeInsets.all(TioStroke.width1)
+                  ? const EdgeInsets.all(TioStroke.width075)
                   : EdgeInsets.zero,
               child: card,
             ),

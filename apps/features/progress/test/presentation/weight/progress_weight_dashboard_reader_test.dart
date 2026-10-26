@@ -36,6 +36,18 @@ void main() {
     expect(snapshot.current?.weightKg, 70);
   });
 
+  test('same-day deltas do not extrapolate into weekly pace', () async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(
+        weight(72, now.subtract(const Duration(hours: 5))));
+    await repo.recordCurrentWeight(
+        weight(76, now.subtract(const Duration(hours: 1))));
+    final snapshot = await ProgressWeightDashboardReader(repo, now: () => now)
+        .load(ProgressWeightRange.days30);
+    expect(snapshot.rangeChangeKg, 4);
+    expect(snapshot.weeklyRateOfChangeKg, isNull);
+  });
+
   test('weekly rate uses real elapsed instants, not selected range length',
       () async {
     final repo = InMemoryBodySetupRepository();

@@ -49,7 +49,8 @@ class ProgressWeightSnapshot {
     final elapsed = chartEntries.first.measuredAt
         .difference(chartEntries.last.measuredAt)
         .inMicroseconds;
-    if (elapsed <= 0) return null;
+    // A few hours of entries do not establish an honest weekly pace.
+    if (elapsed < Duration.microsecondsPerDay * 7) return null;
     return change * (Duration.microsecondsPerDay * 7) / elapsed;
   }
 

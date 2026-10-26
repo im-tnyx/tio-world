@@ -766,7 +766,7 @@ void main() {
       ).height,
       lessThan(TioSize.dp160),
     );
-    expect(find.text('Your target: 72 kg'), findsOneWidget);
+    expect(find.text('2 kg to go'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-chart')), findsNothing);
   });
 
@@ -978,6 +978,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('goal marker is exclusive to the latest row, with target below graph',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    for (final weight in [74.0, 73.0, 72.0]) {
+      await repo.recordCurrentWeight(BodyWeightRecord(
+        weightKg: weight,
+        measuredAt: now.subtract(Duration(days: 75 - weight.toInt())),
+        source: BodyWeightSources.manual,
+      ));
+    }
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight, targetWeightKg: 70,
+    ));
+    await pumpPage(tester, repo);
+    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('New high'), findsNothing);
+    expect(find.byKey(const ValueKey('progress-weight-target-card')), findsOneWidget);
+    final chart = find.byKey(const ValueKey('progress-weight-graph-card'));
+    expect(find.descendant(of: chart, matching: find.textContaining('to go')), findsNothing);
+  });
+
   testWidgets('Timeline groups months and uses real older-record changes',
       (tester) async {
     final repo = InMemoryBodySetupRepository();
@@ -1002,7 +1023,7 @@ void main() {
     expect(find.byKey(const ValueKey('progress-weight-timeline-month-2026-9')),
         findsOneWidget);
     expect(find.text('-1.0'), findsOneWidget);
-    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('New low'), findsNothing);
     expect(find.text('Morning check-in'), findsOneWidget);
     expect(find.text('0.0'), findsNothing);
   });
@@ -1026,7 +1047,7 @@ void main() {
     expect(cards, findsOneWidget);
     // A two-line date/time replaces the previous three-line dot/date/time
     // column; the no-note baseline must fit below the old tall-card footprint.
-    expect(tester.getSize(cards).height, TioSize.dp80);
+    expect(tester.getSize(cards).height, TioSize.dp72);
     expect(find.text('73.0 kg'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-log-action')),
         findsOneWidget);
@@ -1069,9 +1090,9 @@ void main() {
             .startsWith('progress-weight-history-'));
     expect(cards, findsNWidgets(3));
     for (var i = 0; i < 3; i++) {
-      expect(tester.getSize(cards.at(i)).height, TioSize.dp80);
+      expect(tester.getSize(cards.at(i)).height, TioSize.dp72);
     }
-    expect(find.text('New low'), findsNWidgets(2));
+    expect(find.text('New low'), findsNothing);
     expect(find.textContaining('Saved note that can be much longer'),
         findsOneWidget);
     expect(find.text('Today'), findsOneWidget);
@@ -1111,10 +1132,10 @@ void main() {
     for (var i = 0; i < 2; i++) {
       expect(
         tester.getSize(cards.at(i)).height,
-        TioSize.dp80 + TioSize.dp54,
+        TioSize.dp72 + TioSize.dp40,
       );
     }
-    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('New low'), findsNothing);
     expect(find.text('-2.0'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -1188,14 +1209,14 @@ void main() {
     );
     expect(todayCard, findsOneWidget);
     final todayHeight = tester.getSize(todayCard).height;
-    expect(todayHeight, greaterThan(TioSize.dp80));
+    expect(todayHeight, greaterThan(TioSize.dp72));
     final timelineLb = find.descendant(
       of: todayCard,
       matching: find.text('160.9 lb'),
     );
     expect(timelineLb, findsOneWidget);
     expect(tester.widget<Text>(timelineLb).overflow, TextOverflow.visible);
-    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('New low'), findsNothing);
     await tester.scrollUntilVisible(
       find.text('165.3 lb'),
       TioSize.dp120,
@@ -1288,7 +1309,7 @@ void main() {
       ),
     );
     await pumpPage(tester, repository);
-    expect(find.text('Your target: 65 kg'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-target-card')), findsOneWidget);
     expect(find.textContaining('%'), findsNothing);
   });
 
