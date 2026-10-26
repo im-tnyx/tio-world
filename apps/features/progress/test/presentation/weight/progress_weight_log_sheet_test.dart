@@ -152,6 +152,66 @@ void main() {
     );
   });
 
+  testWidgets('Weight date-time uses one flat popup card and one wheel',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showProgressWeightLogSheet(
+                context: context,
+                unit: WeightUnit.kg,
+                currentWeightKg: 70,
+                sessionActive: active,
+                now: () => DateTime(2026, 10, 26, 13, 30),
+                onSubmit: (_) async {},
+              ),
+              child: const Text('Open log'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open log'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TioDateTimePickerPopup), findsOneWidget);
+    expect(
+      tester.widget<TioDateTimePickerPopup>(
+        find.byType(TioDateTimePickerPopup),
+      ).elevatedCard,
+      isFalse,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
+    await tester.pumpAndSettle();
+    final popup = find.byKey(const ValueKey('tio-date-time-picker-popup'));
+    expect(popup, findsOneWidget);
+    final cards = find.descendant(of: popup, matching: find.byType(TioCard));
+    expect(cards, findsOneWidget);
+    expect(tester.widget<TioCard>(cards).variant, TioCardVariant.surface);
+    expect(
+      find.descendant(
+        of: popup,
+        matching: find.byType(TioDateTimeWheelPicker),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('tio-date-time-wheel-selection-pill')),
+        findsOneWidget);
+    final cardRect = tester.getRect(popup);
+    final footerRect = tester.getRect(
+      find.byKey(const ValueKey('progress-log-date-time')),
+    );
+    expect(cardRect.bottom, lessThan(footerRect.top));
+  });
+
   testWidgets('DateTime popup Back dismisses only the picker and retains sheet',
       (tester) async {
     final active = ValueNotifier<bool>(true);
