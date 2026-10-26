@@ -86,6 +86,34 @@ void main() {
     expect(repository.weightEntries.single.weightKg, closeTo(70, 0.001));
   });
 
+  testWidgets('real in-range History weight prefill remains ready to log',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 73.5,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('progress-log-confirm-weight')),
+        findsNothing);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-log-save')),
+      ).onPressed,
+      isNotNull,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(2));
+    expect(repository.weightEntries.last.weightKg, closeTo(73.5, 0.001));
+  });
+
   testWidgets('out-of-range historical weight cannot silently save clamp',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
