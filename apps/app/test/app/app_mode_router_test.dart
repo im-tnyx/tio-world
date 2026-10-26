@@ -1327,7 +1327,7 @@ class _WeightEmptyClient extends Fake implements SupabaseClient {
 
 class _WeightEmptyAuth extends Fake implements GoTrueClient {
   @override
-  User? get currentUser => User(
+  User? get currentUser => const User(
         id: 'test-user',
         appMetadata: const {},
         userMetadata: const {},
