@@ -615,7 +615,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                             textColor: colors.textPrimary,
                             painter: _RecordedWeightPainter(
                               entries: chart,
-                              scale: scale!,
+                              scale: scale,
                               targetKg: target,
                               lineColor: colors.progress,
                               gridColor: colors.outlineStrong,
