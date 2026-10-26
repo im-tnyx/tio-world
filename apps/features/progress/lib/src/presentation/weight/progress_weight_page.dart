@@ -543,16 +543,18 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                             ),
                           ),
                         ),
-                        SizedBox(
+                        const SizedBox(width: TioSpacing.xxs),
+                        // Size the axis to its actual labels, avoiding a
+                        // phantom left inset from a fixed 48dp column.
+                        IntrinsicWidth(
                           key: const ValueKey('progress-weight-chart-axis'),
-                          width: TioSize.dp48,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               vertical: TioSpacing.xxs,
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 for (final value in [
                                   scale.high,

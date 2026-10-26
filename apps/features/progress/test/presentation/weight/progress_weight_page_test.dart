@@ -837,7 +837,7 @@ void main() {
     expect(label.data, expectedDate);
   });
 
-  testWidgets('graph grid meets left-aligned weight axis without a gutter',
+  testWidgets('chart guides end 2dp before right-aligned weight axis',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
     await repository.recordCurrentWeight(BodyWeightRecord(
@@ -855,16 +855,26 @@ void main() {
     final axis = find.byKey(const ValueKey('progress-weight-chart-axis'));
     expect(plot, findsOneWidget);
     expect(axis, findsOneWidget);
-    // The guide strokes reach the plot's right edge. Layout must not add
-    // a horizontal spacer between the painter and weight labels.
-    expect(tester.getRect(plot).right, closeTo(tester.getRect(axis).left, 0.001));
+    // The plot's horizontal guides reach its edge, with a governed 2dp
+    // gutter before the axis. Labels line up on their RIGHT edge, and the
+    // intrinsic axis width avoids the former blank 48dp label column.
+    final axisRect = tester.getRect(axis);
+    expect(axisRect.left - tester.getRect(plot).right,
+        closeTo(TioSpacing.xxs, 0.001));
     final labels = find.descendant(of: axis, matching: find.byType(Text));
     expect(labels, findsNWidgets(3));
     for (final label in labels.evaluate()) {
-      expect(tester.getRect(find.byElementPredicate(
-        (element) => identical(element, label),
-      )).left, closeTo(tester.getRect(axis).left, 0.001));
+      expect(
+        tester.getRect(find.byElementPredicate(
+          (element) => identical(element, label),
+        )).right,
+        closeTo(axisRect.right, 0.001),
+      );
     }
+    expect(
+      axisRect.width,
+      lessThan(TioSize.dp48),
+    );
     final locale = MaterialLocalizations.of(tester.element(plot));
     final shortStart = locale.formatShortMonthDay(
       now.subtract(const Duration(days: 10)).toLocal(),
@@ -872,8 +882,17 @@ void main() {
     final shortEnd = locale.formatShortMonthDay(
       now.subtract(const Duration(days: 1)).toLocal(),
     );
-    expect(find.text(shortStart), findsOneWidget);
-    expect(find.text(shortEnd), findsOneWidget);
+    final graphCard = find.byKey(
+      const ValueKey('progress-weight-graph-card'),
+    );
+    // Timeline may contain the same abbreviated date: constrain this
+    // assertion to the Weight summary graph rather than the whole page.
+    expect(find.descendant(
+      of: graphCard, matching: find.text(shortStart),
+    ), findsOneWidget);
+    expect(find.descendant(
+      of: graphCard, matching: find.text(shortEnd),
+    ), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
