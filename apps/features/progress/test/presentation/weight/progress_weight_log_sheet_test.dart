@@ -49,6 +49,67 @@ void main() {
     expect(updates, 0);
   });
 
+  testWidgets('Edit header and footer preserve note actions and icon order',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    final note = List.filled(105, 'recorded').join(' ');
+    BodyWeightLogEdit? saved;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: Builder(builder: (context) => ElevatedButton(
+        onPressed: () => showProgressWeightEditSheet(
+          context: context,
+          unit: WeightUnit.kg,
+          entry: BodyWeightEntry(
+            id: '11111111-1111-4111-8111-111111111111',
+            weightKg: 74,
+            measuredAt: DateTime.utc(2026, 10, 20, 10),
+            note: note,
+          ),
+          sessionActive: active,
+          onUpdate: (edit) async { saved = edit; return true; },
+          onDelete: (_) async => true,
+          now: () => DateTime.utc(2026, 10, 26, 10),
+        ),
+        child: const Text('Open edit'),
+      ))),
+    ));
+    await tester.tap(find.text('Open edit'));
+    await tester.pumpAndSettle();
+    final del = find.byKey(const ValueKey('progress-edit-delete'));
+    final keyboard = find.byKey(
+        const ValueKey('progress-log-weight-mode-toggle'));
+    final close = find.byKey(const ValueKey('progress-log-close'));
+    expect(tester.getTopLeft(del).dx,
+        lessThan(tester.getTopLeft(keyboard).dx));
+    expect(tester.getTopLeft(keyboard).dx,
+        lessThan(tester.getTopLeft(close).dx));
+    final icon = tester.widget<IconButton>(keyboard).icon as Icon;
+    expect(icon.icon, Icons.keyboard_outlined);
+    final noteAction = find.byKey(const ValueKey('progress-log-note-toggle'));
+    expect(noteAction, findsOneWidget);
+    final photo = tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-photo-later')));
+    expect(photo.onPressed, isNull);
+    expect(find.byKey(const ValueKey('progress-log-date-time')),
+        findsOneWidget);
+    await tester.tap(noteAction);
+    await tester.pumpAndSettle();
+    expect(find.text(note), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-note-field')),
+        findsNothing);
+    await tester.tap(noteAction);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(saved?.id, '11111111-1111-4111-8111-111111111111');
+    expect(saved?.weightKg, 74);
+  });
+
   testWidgets('owner deactivation removes root modal and private draft',
       (tester) async {
     final active = ValueNotifier<bool>(true);

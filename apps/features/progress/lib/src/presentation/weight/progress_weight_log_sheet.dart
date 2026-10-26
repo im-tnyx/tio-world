@@ -352,7 +352,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
       return;
     }
     final rawNote = _noteController.text.trim();
-    if (_wordCount(rawNote) > 100 || rawNote.characters.length > 500) {
+    if (widget.editingEntry == null &&
+        (_wordCount(rawNote) > 100 || rawNote.characters.length > 500)) {
       setState(() => _error = 'Note is too long.');
       return;
     }
@@ -446,13 +447,22 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
           titleTrailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.editingEntry != null)
+                IconButton(
+                  key: const ValueKey('progress-edit-delete'),
+                  tooltip: 'Delete weight log',
+                  onPressed: (_saving || _attempted)
+                      ? null : _confirmDelete,
+                  icon: Icon(Icons.delete_outline_rounded,
+                      color: colors.danger),
+                ),
               IconButton(
                 key: const ValueKey('progress-log-weight-mode-toggle'),
                 tooltip: _manualMode ? 'Use weight wheel' : 'Type weight',
                 onPressed: _saving || _attempted
                     ? null
                     : _toggleWeightInputMode,
-                icon: Icon(_manualMode ? Icons.tune : Icons.edit_outlined),
+                icon: Icon(_manualMode ? Icons.tune : Icons.keyboard_outlined),
               ),
               IconButton(
                 key: const ValueKey('progress-log-close'),
@@ -470,7 +480,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // The canonical wheel is the default full-height editor.
-              // The header pencil switches only the input mode, not the
+              // The header keyboard action switches only input mode, not the
               // global kg/lb preference or the canonical storage unit.
               if (_manualMode)
                 TioInput.numericEditor(
@@ -544,10 +554,14 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   hint: 'Add a note about this measurement',
                 ),
               ],
-              if (widget.editingEntry?.note != null) ...[
+              // Existing note is read-only on edit, never a new input.
+              if (widget.editingEntry != null && _noteVisible) ...[
                 const SizedBox(height: TioSpacing.sm),
                 Text(
-                  widget.editingEntry!.note!,
+                  widget.editingEntry!.note?.isNotEmpty == true
+                      ? widget.editingEntry!.note!
+                      : 'No note on this measurement.',
+                  key: const ValueKey('progress-edit-note-readonly'),
                   style: typography.bodySmall?.copyWith(
                     color: colors.textSecondary,
                   ),
@@ -571,13 +585,14 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             ],
           ),
           actions: TioEditorActionFooter(
-            leading: widget.editingEntry == null
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 IconButton(
                   key: const ValueKey('progress-log-note-toggle'),
-                  tooltip: _noteVisible ? 'Hide note' : 'Add note',
+                  tooltip: widget.editingEntry == null
+                      ? (_noteVisible ? 'Hide note' : 'Add note')
+                      : (_noteVisible ? 'Hide saved note' : 'View saved note'),
                   onPressed: _attempted || _saving
                       ? null
                       : () => setState(() => _noteVisible = !_noteVisible),
@@ -595,13 +610,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   ),
                 ),
               ],
-            )
-                : IconButton(
-                    key: const ValueKey('progress-edit-delete'),
-                    tooltip: 'Delete weight log',
-                    onPressed: (_saving || _attempted) ? null : _confirmDelete,
-                    icon: const Icon(Icons.delete_outline_rounded),
-                  ),
+            ),
             trailing: KeyedSubtree(
               key: _dateTimeAnchorKey,
               child: TioEditorFooterAction(

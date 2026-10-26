@@ -1186,7 +1186,10 @@ void main() {
     await tester.tap(pencil);
     await tester.pumpAndSettle();
     expect(find.text('Edit Weight'), findsOneWidget);
-    expect(find.byKey(const ValueKey('progress-log-note-toggle')), findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-note-toggle')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-photo-later')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
     await tester.tap(find.byKey(
       const ValueKey('progress-log-weight-mode-toggle')));

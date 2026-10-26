@@ -923,7 +923,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           '${displayedWeight.toStringAsFixed(1)} $unitText',
           maxLines: largerText ? 2 : 1,
           overflow: largerText ? TextOverflow.visible : TextOverflow.ellipsis,
-          style: typography.titleLarge?.copyWith(
+          style: typography.titleMedium?.copyWith(
             color: colors.textPrimary,
           ),
         ),
