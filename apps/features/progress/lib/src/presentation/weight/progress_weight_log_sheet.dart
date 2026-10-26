@@ -244,7 +244,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
       if (!mounted || !widget.sessionActive.value) return;
       setState(() {
         _saving = false;
-        _error = 'Save not confirmed. Retry this same entry; no duplicate will be created.';
+        _error = 'Save not confirmed. Retry this same entry before closing.';
       });
     }
   }
