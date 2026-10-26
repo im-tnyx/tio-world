@@ -51,9 +51,15 @@ void main() {
     expect(snapshot(loseGoal, 73).targetProgress?.remainingKg, 1);
     expect(snapshot(loseGoal, 73).targetProgress?.status,
         ProgressWeightTargetStatus.onTrack);
-    expect(snapshot(loseGoal, 71).targetProgress?.remainingKg, 0);
-    expect(snapshot(loseGoal, 71).targetProgress?.status,
+    expect(snapshot(loseGoal, 72).targetProgress?.remainingKg, 0);
+    expect(snapshot(loseGoal, 72).targetProgress?.status,
         ProgressWeightTargetStatus.reached);
+    expect(snapshot(loseGoal, 71.5).targetProgress?.remainingKg, 0.5);
+    expect(snapshot(loseGoal, 71.5).targetProgress?.status,
+        ProgressWeightTargetStatus.belowTarget);
+    expect(snapshot(loseGoal, 71).targetProgress?.remainingKg, 1);
+    expect(snapshot(loseGoal, 71).targetProgress?.status,
+        ProgressWeightTargetStatus.belowTarget);
     expect(snapshot(loseGoal, null).targetProgress?.remainingKg, isNull);
     expect(snapshot(loseGoal, null).targetProgress?.status,
         ProgressWeightTargetStatus.progress);
@@ -63,8 +69,24 @@ void main() {
       startingWeightKg: 70,
       targetWeightKg: 75,
     );
-    expect(snapshot(gainGoal, 76).targetProgress?.status,
+    expect(snapshot(gainGoal, 74).targetProgress?.remainingKg, 1);
+    expect(snapshot(gainGoal, 74).targetProgress?.status,
+        ProgressWeightTargetStatus.onTrack);
+    expect(snapshot(gainGoal, 75).targetProgress?.status,
         ProgressWeightTargetStatus.reached);
+    expect(snapshot(gainGoal, 76).targetProgress?.remainingKg, 1);
+    expect(snapshot(gainGoal, 76).targetProgress?.status,
+        ProgressWeightTargetStatus.aboveTarget);
+    // A maintain target is not a direction and must not show a
+    // directional overshoot even if historical goal data contains a target.
+    expect(
+        snapshot(
+            const BodyGoalState(
+              goalType: BodyGoalType.maintainWeight,
+              targetWeightKg: 70,
+            ),
+            69).targetProgress?.status,
+        ProgressWeightTargetStatus.progress);
     expect(snapshot(null, 73).targetProgress, isNull);
     expect(
         snapshot(const BodyGoalState(goalType: BodyGoalType.maintainWeight), 73)
