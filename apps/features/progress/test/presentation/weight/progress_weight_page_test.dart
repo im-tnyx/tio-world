@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -1717,13 +1718,51 @@ void main() {
     final callsBefore = repo.historyCalls;
     expect(find.text('No measurements in this range'), findsOneWidget);
     final scroll = find.byKey(const ValueKey('progress-weight-scroll'));
-    final widget = tester.widget<ListView>(scroll);
-    expect(widget.physics, isA<AlwaysScrollableScrollPhysics>());
+    final widget = tester.widget<CustomScrollView>(scroll);
+    expect(widget.physics, isA<BouncingScrollPhysics>());
+    expect(widget.physics?.parent, isA<AlwaysScrollableScrollPhysics>());
+    expect(find.byKey(const ValueKey('progress-weight-pull-space')),
+        findsOneWidget);
     await tester.drag(scroll, const Offset(0, 350));
     await tester.pump();
     await tester.pumpAndSettle();
     expect(repo.historyCalls, greaterThan(callsBefore));
     expect(find.textContaining('No weight measurements yet'), findsOneWidget);
+  });
+
+  testWidgets('pull opens real space below top bar while graph moves down',
+      (tester) async {
+    final repository = _ControlledRefreshWeightRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final chart = find.byKey(const ValueKey('progress-weight-graph-card'));
+    final list = find.byKey(const ValueKey('progress-weight-scroll'));
+    final before = tester.getTopLeft(chart).dy;
+    final pending = repository.holdNextRefresh();
+    final touch = await tester.startGesture(tester.getCenter(chart));
+    await touch.moveBy(const Offset(0, 190));
+    await tester.pump();
+    expect(find.byType(CupertinoSliverRefreshControl), findsOneWidget);
+    expect(tester.getTopLeft(chart).dy, greaterThan(before + TioSpacing.lg));
+    expect(find.byKey(const ValueKey('progress-weight-pull-space')),
+        findsOneWidget);
+    expect(tester.getRect(list).top, lessThan(tester.getTopLeft(chart).dy));
+    await touch.moveBy(const Offset(0, 230));
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(repository.refreshReadStarted, isTrue);
+    expect(find.byKey(const ValueKey('progress-weight-log-action')),
+        findsOneWidget);
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(find.text('73 kg'), findsWidgets);
+    pending.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('73 kg'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('pull refresh keeps graph Timeline and Log Weight visible until swap',

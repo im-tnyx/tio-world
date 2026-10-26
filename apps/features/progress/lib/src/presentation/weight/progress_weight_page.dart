@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
@@ -258,18 +259,29 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        RefreshIndicator.adaptive(
-      onRefresh: () => _reload(preserveContent: true),
-      child: ListView(
-        key: const ValueKey('progress-weight-scroll'),
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          TioSpacing.lg,
-          TioSpacing.md,
-          TioSpacing.lg,
-          _logWeightActionClearance + MediaQuery.paddingOf(context).bottom,
-        ),
-        children: [
+        CustomScrollView(
+          key: const ValueKey('progress-weight-scroll'),
+          // The refresh sliver occupies real top overscroll space, moving
+          // the graph and Timeline beneath the shell's stationary top bar.
+          // Bounce physics enables this on Android and short History too.
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            CupertinoSliverRefreshControl(
+              key: const ValueKey('progress-weight-pull-space'),
+              onRefresh: () => _reload(preserveContent: true),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                TioSpacing.lg,
+                TioSpacing.md,
+                TioSpacing.lg,
+                _logWeightActionClearance + MediaQuery.paddingOf(context).bottom,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+
           // The shell owns the Progress title. The body begins with the
           // actual Weight summary instead of repeating a page heading.
           if (_loading)
@@ -342,8 +354,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               ),
           ],
           const SizedBox(height: TioSpacing.xl),
-        ],
-      ),
+                ]),
+              ),
+            ),
+          ],
         ),
         if (!_loading && _error == null && _snapshot != null)
           Positioned.fill(
