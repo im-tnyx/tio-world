@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
@@ -241,13 +243,13 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
                   ),
                   const Text('Note (optional)'),
                   const Spacer(),
-                  Tooltip(
+                  const Tooltip(
                     message: 'Photos available in a later private-media update',
                     child: IconButton(
-                      key: const ValueKey('progress-log-photo-later'),
+                      key: ValueKey('progress-log-photo-later'),
                       tooltip: 'Photos coming later',
                       onPressed: null,
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
+                      icon: Icon(Icons.add_photo_alternate_outlined),
                     ),
                   ),
                 ],
