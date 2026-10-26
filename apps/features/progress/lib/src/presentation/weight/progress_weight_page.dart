@@ -745,6 +745,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final remaining = progress.remainingKg;
     final status = switch (progress.status) {
       ProgressWeightTargetStatus.reached => 'Target reached',
+      ProgressWeightTargetStatus.belowTarget => 'Below target',
+      ProgressWeightTargetStatus.aboveTarget => 'Above target',
       ProgressWeightTargetStatus.onTrack => 'On track to target',
       ProgressWeightTargetStatus.progress => 'Target progress',
     };
@@ -784,9 +786,15 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 Text(
                   remaining == null
                       ? 'Target: ${UnitFormatters.formatWeight(targetKg, widget.unit)}'
-                      : remaining < 0.0001
-                          ? ''
-                          : '${UnitFormatters.formatWeight(remaining, widget.unit)} to go',
+                      : switch (progress.status) {
+                          ProgressWeightTargetStatus.reached => '',
+                          ProgressWeightTargetStatus.belowTarget =>
+                            '${UnitFormatters.formatWeight(remaining, widget.unit)} below target',
+                          ProgressWeightTargetStatus.aboveTarget =>
+                            '${UnitFormatters.formatWeight(remaining, widget.unit)} above target',
+                          _ =>
+                            '${UnitFormatters.formatWeight(remaining, widget.unit)} to go',
+                        },
                   key: const ValueKey('progress-weight-target-distance'),
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: colors.textPrimary,
