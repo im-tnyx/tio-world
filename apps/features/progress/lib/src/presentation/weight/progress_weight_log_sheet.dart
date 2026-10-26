@@ -60,6 +60,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   late final TextEditingController _noteController;
 
   bool _noteVisible = false;
+  // A wheel placeholder is not a user-entered measurement. History-derived
+  // values are trusted only if they fit this wheel's supported range.
+  bool _weightConfirmed = false;
   bool _saving = false;
   bool _attempted = false;
   bool _dismissQueued = false;
@@ -71,7 +74,15 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   @override
   void initState() {
     super.initState();
-    _weightKg = (widget.initialKg ?? 70.0).clamp(_minKg, _maxKg).toDouble();
+    final initial = widget.initialKg;
+    _weightConfirmed = initial != null &&
+        initial.isFinite &&
+        initial >= _minKg &&
+        initial <= _maxKg;
+    // Keep a visible wheel position without treating it as the first log.
+    // Out-of-range historical measurements are not silently re-recorded as
+    // the nearest wheel bound, either.
+    _weightKg = _weightConfirmed ? initial : 70.0;
     _measuredLocal = widget.now().toLocal();
     _submissionId = _newUuid();
     _noteController = TextEditingController();
@@ -188,6 +199,10 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
 
   Future<void> _save() async {
     if (_saving || !widget.sessionActive.value) return;
+    if (!_weightConfirmed) {
+      setState(() => _error = 'Confirm your weight before saving.');
+      return;
+    }
     final now = widget.now().toUtc();
     if (!_weightKg.isFinite ||
         _weightKg < _minKg ||
@@ -246,14 +261,18 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
         final colors = context.tioColors;
         final typography = Theme.of(context).textTheme;
         return PopScope(
-          canPop: !_saving,
+          // Unknown writes must retain the same UUID for a safe retry.
+          // Never let Close/Back create a fresh draft with a new UUID.
+          canPop: !_attempted && !_saving,
           child: TioEditorSheet(
           title: 'Log Weight',
-          canDismiss: !_saving,
+          canDismiss: !_attempted && !_saving,
           titleTrailing: IconButton(
             key: const ValueKey('progress-log-close'),
             tooltip: 'Close Log Weight',
-            onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+            onPressed: (_saving || _attempted)
+                 ? null
+                 : () => Navigator.of(context).pop(false),
             icon: const Icon(Icons.close),
           ),
           content: Column(
@@ -286,6 +305,26 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
                 },
                 ),
               ),
+              if (!_weightConfirmed) ...[
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  'Confirm the wheel value to use it as your measurement.',
+                  style: typography.bodySmall?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                TioButton.supporting(
+                  key: const ValueKey('progress-log-confirm-weight'),
+                  label: 'Use selected weight',
+                  onPressed: _attempted
+                      ? null
+                      : () => setState(() {
+                          _weightConfirmed = true;
+                          _error = null;
+                        }),
+                ),
+              ],
               const SizedBox(height: TioSpacing.md),
               Row(
                 children: [
@@ -347,7 +386,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
               if (_attempted && !_saving) ...[
                 const SizedBox(height: TioSpacing.sm),
                 Text(
-                  'Details are locked until this submission is confirmed.',
+                  'Details are locked until this submission is confirmed. '
+                  'Keep this sheet open and retry; the entry ID is unchanged.',
                   style: typography.bodySmall?.copyWith(color: colors.textSecondary),
                 ),
               ],
@@ -363,7 +403,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
           actions: TioButton.primary(
             key: const ValueKey('progress-log-save'),
             label: _attempted ? 'Retry Log Weight' : 'Save Weight',
-            onPressed: _saving ? null : _save,
+            onPressed: (_saving || (!_attempted && !_weightConfirmed))
+                 ? null
+                 : _save,
             loading: _saving,
             expand: true,
           ),
