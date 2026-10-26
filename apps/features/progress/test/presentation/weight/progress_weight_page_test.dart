@@ -892,6 +892,31 @@ void main() {
     expect(find.text('0.0'), findsNothing);
   });
 
+  testWidgets('compact Timeline card keeps recorded date and weight visible',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    final cards = find.byWidgetPredicate((widget) =>
+        widget is DecoratedBox &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('progress-weight-history-'));
+    expect(cards, findsOneWidget);
+    // A two-line date/time replaces the previous three-line dot/date/time
+    // column; the no-note baseline must fit below the old tall-card footprint.
+    expect(tester.getSize(cards).height, lessThan(TioSize.dp80));
+    expect(find.text('73.0 kg'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-log-action')),
+        findsOneWidget);
+  });
+
   testWidgets('Today row and units follow actual reading date and global lb',
       (tester) async {
     final repo = InMemoryBodySetupRepository();

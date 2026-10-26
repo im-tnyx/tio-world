@@ -557,7 +557,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         result.add(const SizedBox(height: TioSpacing.sm));
       }
       result.add(_historyEntry(context, row, snapshot.goal?.goalType));
-      result.add(const SizedBox(height: TioSpacing.sm));
+      result.add(const SizedBox(height: TioSpacing.xs));
     }
     return result;
   }
@@ -583,30 +583,44 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       width: TioSize.dp76,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.circle,
-            size: TioSize.dp10,
-            color: item.isToday ? colors.progress : colors.textMuted,
+          // One date line instead of a separate dot row keeps the card
+          // compact without dropping the Today indicator or recorded time.
+          Row(
+            children: [
+              Icon(
+                Icons.circle,
+                size: TioSize.dp8,
+                color: item.isToday ? colors.progress : colors.textMuted,
+              ),
+              const SizedBox(width: TioSpacing.xs),
+              Expanded(
+                child: Text(
+                  date,
+                  key: item.isToday
+                      ? ValueKey('progress-weight-timeline-today-${entry.id}')
+                      : null,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: typography.labelMedium?.copyWith(
+                    color: item.isToday
+                        ? colors.progress
+                        : colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: TioSpacing.xs),
-          Text(
-            date,
-            key: item.isToday
-                ? ValueKey('progress-weight-timeline-today-${entry.id}')
-                : null,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: typography.labelMedium?.copyWith(
-              color: item.isToday ? colors.progress : colors.textSecondary,
+          const SizedBox(height: TioSpacing.xxs),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: TioSpacing.md),
+            child: Text(
+              TimeOfDay.fromDateTime(local).format(context),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: typography.bodySmall?.copyWith(color: colors.textMuted),
             ),
-          ),
-          const SizedBox(height: TioSpacing.xs),
-          Text(
-            TimeOfDay.fromDateTime(local).format(context),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: typography.bodySmall?.copyWith(color: colors.textMuted),
           ),
         ],
       ),
@@ -659,7 +673,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       variant: TioCardVariant.normal,
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.md,
-        vertical: TioSpacing.lg,
+        vertical: TioSpacing.sm,
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
