@@ -85,6 +85,53 @@ void main() {
     expect(find.text('Morning check-in'), findsOneWidget);
   });
 
+
+  testWidgets('collapsing notes field preserves its typed text on Save',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-log-note-field')),
+        matching: find.byType(EditableText),
+      ),
+      '  After the run  ',
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries.single.note, 'After the run');
+    expect(find.text('After the run'), findsOneWidget);
+  });
+
+  testWidgets('300 emoji graphemes save as 300 visible characters',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    final message = List.filled(300, '😀').join();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-log-note-field')),
+        matching: find.byType(EditableText),
+      ),
+      message,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.note, message);
+  });
+
   testWidgets('ambiguous failed submission retries same ID exactly once',
       (tester) async {
     final repository = _AmbiguousSaveWeightRepository();
