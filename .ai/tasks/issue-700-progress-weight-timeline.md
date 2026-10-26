@@ -204,3 +204,7 @@ After audit, canonical BodyGoalState contains goal start timestamp, starting/tar
 ## 2026-10-26 target estimate test contract hardening
 
 The current canonical `BodyRepository.setActiveBodyGoal` correctly requires both Target Weight and weekly pace for directional goals; the first missing-pace test fixture had erroneously omitted the pace entirely and could not represent a valid edited goal. Replaced that invalid fixture with a real accepted **0 kg/week** pace, which must show existing Target weight but suppress estimated date rather than divide by zero. Canonical contract remains unchanged; re-run CI at new exact HEAD.
+
+## 2026-10-26 final owner tooltip override
+
+The latest owner instruction supersedes the interim full-date and estimated-goal tooltip design. Reference means two compact **one-line** inverse-contrast pills with the *same selected historical date*: `4 Oct: 76 kg` / `4 Oct: 72 kg`, blue/green dots retained. No Goal Pace future date inside the chart (onboarding calculator left intact). The previous interim full-date+Est. layout actually failed latest CI with 12–62px RenderFlex overflows and 200dp wide bubble. Replaced it with a compact single Row per chip, a date that can safely ellipsize at accessibility widths, localized day-before-abbreviated-month format using already-Core-aligned `intl ^0.20.2`, Core primary/onPrimary inverse surfaces, and no extra future line. Tests target Light 337dp and Dark styling, 2 matching dates, no estimated date, and no overflow. Requires exact new HEAD CI and physical QA, no merge.

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/body_setup.dart';
@@ -607,14 +608,12 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                             entries: chart,
                             scale: scale!,
                             targetKg: target,
-                            estimatedTargetDate:
-                                _estimatedBodyGoalTargetDate(snapshot.goal),
                             unit: widget.unit,
                             lineColor: colors.progress,
                             targetColor: colors.success,
                             cursorColor: colors.textPrimary,
-                            surfaceColor: colors.surfaceVariant,
-                            textColor: colors.textPrimary,
+                            surfaceColor: colors.primary,
+                            textColor: colors.onPrimary,
                             painter: _RecordedWeightPainter(
                               entries: chart,
                               scale: scale,
@@ -1288,37 +1287,6 @@ class _WeightChartScale {
   }
 }
 
-/// Display-only original Body Goal completion estimate, following the
-/// onboarding pace rule (absolute weight difference / kg per week * 7).
-/// Target dates are NOT persisted in BodyGoalState; never call this a saved
-/// deadline or infer a date when baseline/pace/start are incomplete.
-DateTime? _estimatedBodyGoalTargetDate(BodyGoalState? goal) {
-  if (goal == null ||
-      (goal.goalType != BodyGoalType.loseWeight &&
-          goal.goalType != BodyGoalType.gainWeight)) {
-    return null;
-  }
-  final started = goal.startedAt?.toLocal();
-  final baseline = goal.startingWeightKg;
-  final target = goal.targetWeightKg;
-  final pace = goal.weeklyWeightChangeKg;
-  if (started == null ||
-      baseline == null ||
-      target == null ||
-      pace == null ||
-      !baseline.isFinite ||
-      !target.isFinite ||
-      !pace.isFinite ||
-      pace <= 0) {
-    return null;
-  }
-  final days = (baseline - target).abs() / pace * 7;
-  // Prevent overflows from pathological but finite legacy pace values.
-  if (!days.isFinite || days > 365 * 100) return null;
-  final calendarStart = DateTime(started.year, started.month, started.day);
-  return calendarStart.add(Duration(days: days.round()));
-}
-
 /// Chart-local, touch-held inspection of canonical recorded measurements.
 /// The selected position is never interpreted as a new/interpolated weight.
 class _WeightChartInspector extends StatefulWidget {
@@ -1326,7 +1294,6 @@ class _WeightChartInspector extends StatefulWidget {
     required this.entries,
     required this.scale,
     required this.targetKg,
-    required this.estimatedTargetDate,
     required this.unit,
     required this.lineColor,
     required this.targetColor,
@@ -1340,7 +1307,6 @@ class _WeightChartInspector extends StatefulWidget {
   final List<BodyWeightEntry> entries; // measuredAt descending
   final _WeightChartScale scale;
   final double? targetKg;
-  final DateTime? estimatedTargetDate;
   final WeightUnit unit;
   final Color lineColor;
   final Color targetColor;
@@ -1361,8 +1327,7 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.entries, widget.entries) ||
         oldWidget.unit != widget.unit ||
-        oldWidget.targetKg != widget.targetKg ||
-        oldWidget.estimatedTargetDate != widget.estimatedTargetDate) {
+        oldWidget.targetKg != widget.targetKg) {
       _selection = null;
     }
   }
@@ -1420,17 +1385,16 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
   Widget _detailChip(
     BuildContext context, {
     required String key,
-    required String label,
+    required String dateLabel,
     required double valueKg,
     required Color dotColor,
-    String? subtitle,
   }) {
     final type = Theme.of(context).textTheme.labelSmall;
     return Container(
       key: ValueKey(key),
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.xs,
-        vertical: TioSpacing.xs,
+        vertical: TioSpacing.xxs,
       ),
       decoration: BoxDecoration(
         color: widget.surfaceColor,
@@ -1443,41 +1407,27 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
             width: TioSize.dp8,
             height: TioSize.dp8,
             decoration: BoxDecoration(
-              color: dotColor, shape: BoxShape.circle,
+              color: dotColor,
+              shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: TioSpacing.xs),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    maxLines: 1,
-                    style: type?.copyWith(color: widget.textColor),
-                  ),
-                  const SizedBox(width: TioSpacing.xs),
-                  Text(
-                    UnitFormatters.formatWeight(valueKg, widget.unit),
-                    maxLines: 1,
-                    style: type?.copyWith(
-                      color: widget.textColor,
-                      fontWeight: TioFontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              if (subtitle != null)
-                Text(
-                  subtitle,
-                  key: const ValueKey('progress-weight-target-estimated-date'),
-                  maxLines: 1,
-                  style: type?.copyWith(color: widget.textColor),
-                ),
-            ],
+          Flexible(
+            child: Text(
+              '$dateLabel:',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: type?.copyWith(color: widget.textColor),
+            ),
+          ),
+          const SizedBox(width: TioSpacing.xs),
+          Text(
+            UnitFormatters.formatWeight(valueKg, widget.unit),
+            maxLines: 1,
+            style: type?.copyWith(
+              color: widget.textColor,
+              fontWeight: TioFontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -1511,13 +1461,11 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
         TioSpacing.xs,
         math.min(y - TioSize.dp40, height - TioSize.dp80),
       );
-      final materialDates = MaterialLocalizations.of(context);
+      // Both references share the selected real measurement's date.
       final date = picked == null
           ? ''
-          : materialDates.formatMediumDate(picked.measuredAt.toLocal());
-      final estimatedDate = widget.estimatedTargetDate == null
-          ? null
-          : 'Est. ${materialDates.formatMediumDate(widget.estimatedTargetDate!)}';
+          : DateFormat('d MMM', Localizations.localeOf(context).toString())
+              .format(picked.measuredAt.toLocal());
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (event) => _inspect(event.localPosition.dx, width),
@@ -1577,7 +1525,7 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
                         liveRegion: true,
                         label: '$date recorded '
                             '${UnitFormatters.formatWeight(picked.weightKg, widget.unit)}'
-                            '${widget.targetKg != null && estimatedDate != null ? ", target estimated for $estimatedDate" : ""}',
+                            '${widget.targetKg == null ? "" : ", target reference at $date: ${UnitFormatters.formatWeight(widget.targetKg!, widget.unit)}"}',
                         child: Column(
                           key: const ValueKey('progress-weight-chart-tooltip'),
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1586,7 +1534,7 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
                         _detailChip(
                           context,
                           key: 'progress-weight-chart-tooltip-recorded',
-                          label: date,
+                          dateLabel: date,
                           valueKg: picked.weightKg,
                           dotColor: widget.lineColor,
                         ),
@@ -1595,10 +1543,9 @@ class _WeightChartInspectorState extends State<_WeightChartInspector> {
                           _detailChip(
                             context,
                             key: 'progress-weight-chart-tooltip-target',
-                            label: 'Target',
+                            dateLabel: date,
                             valueKg: widget.targetKg!,
                             dotColor: widget.targetColor,
-                            subtitle: estimatedDate,
                           ),
                         ],
                           ],

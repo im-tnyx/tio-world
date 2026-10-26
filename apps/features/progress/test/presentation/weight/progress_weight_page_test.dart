@@ -15,11 +15,12 @@ void main() {
     WeightUnit unit = WeightUnit.kg,
     String cycle = 'cycle-one',
     VoidCallback? onWeightLogged,
+    TioThemeMode mode = TioThemeMode.dark,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          config: TioThemeConfig(mode: mode),
           child: child ?? const SizedBox.shrink(),
         ),
         home: Scaffold(
@@ -882,26 +883,26 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: goalChip, matching: find.text('72.2 kg')),
         findsOneWidget);
-    final locale = MaterialLocalizations.of(tester.element(goalChip));
     expect(find.descendant(
-      of: weightChip,
-      matching: find.text(locale.formatMediumDate(
-        now.subtract(const Duration(days: 20)).toLocal(),
-      )),
+      of: weightChip, matching: find.text('6 Oct:'),
     ), findsOneWidget);
-    // Baseline 74 → target 72.2 at 0.5 kg/week = rounded 25 days
-    // from the canonical 1 Oct 2026 goal start. It is estimated, not
-    // a persisted deadline or a date assigned to the selected reading.
-    expect(find.byKey(
-      const ValueKey('progress-weight-target-estimated-date'),
+    expect(find.descendant(
+      of: goalChip, matching: find.text('6 Oct:'),
     ), findsOneWidget);
-    expect(find.text(
-      'Est. ${locale.formatMediumDate(DateTime(2026, 10, 26))}',
-    ), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-target-estimated-date')),
+        findsNothing);
+    expect(tester.getSize(popup).width, lessThan(TioSize.dp200));
+    final recordedStyle = tester.widget<Container>(weightChip);
     expect(
-      tester.getSize(popup).width,
-      lessThan(TioSize.dp200),
+      (recordedStyle.decoration! as BoxDecoration).color,
+      TioColors.oled.primary,
     );
+    final targetStyle = tester.widget<Container>(goalChip);
+    expect(
+      (targetStyle.decoration! as BoxDecoration).color,
+      TioColors.oled.primary,
+    );
+    expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('progress-weight-chart-cursor')),
         findsOneWidget);
     await finger.moveTo(Offset(rect.center.dx, rect.center.dy));
@@ -954,7 +955,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('goal with zero pace keeps real target but no estimated date',
+  testWidgets('zero pace keeps target at selected date without future estimate',
       (tester) async {
     final repo = InMemoryBodySetupRepository(
       now: () => DateTime.utc(2026, 10, 1, 10),
@@ -980,9 +981,64 @@ void main() {
     expect(find.byKey(
       const ValueKey('progress-weight-target-estimated-date'),
     ), findsNothing);
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('progress-weight-chart-tooltip-target')),
+      matching: find.text('22 Oct:'),
+    ), findsOneWidget);
     await finger.up();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('light tooltip has dark single-line same-date pills at 337dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(337, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 2)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 72,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await pumpPage(tester, repo, mode: TioThemeMode.light);
+    final rect = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final touch = await tester.startGesture(rect.center);
+    await tester.pump(const Duration(milliseconds: 650));
+    final recorded = find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-recorded'));
+    final target = find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-target'));
+    for (final chip in [recorded, target]) {
+      expect(chip, findsOneWidget);
+      final container = tester.widget<Container>(chip);
+      expect(
+        (container.decoration! as BoxDecoration).color,
+        TioColors.light.primary,
+      );
+      expect(find.descendant(
+        of: chip, matching: find.text('24 Oct:'),
+      ), findsOneWidget);
+    }
+    expect(find.byKey(
+      const ValueKey('progress-weight-target-estimated-date'),
+    ), findsNothing);
+    expect(tester.takeException(), isNull);
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(find.byKey(
+      const ValueKey('progress-weight-chart-tooltip'),
+    ), findsNothing);
   });
 
   testWidgets('chart guides end 2dp before right-aligned weight axis',
