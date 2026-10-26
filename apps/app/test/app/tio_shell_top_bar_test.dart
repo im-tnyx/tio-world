@@ -45,6 +45,82 @@ void main() {
     expect(find.byTooltip('Settings'), findsNothing);
   });
 
+  testWidgets('Progress reserves the same root shell bar height as peer tabs',
+      (tester) async {
+    final rootTabs = <ShellTab>[
+      ShellTab.home,
+      ShellTab.workout,
+      ShellTab.nutrition,
+      ShellTab.progress,
+    ];
+    double? bodyTop;
+    for (final tab in rootTabs) {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: TioShell(
+            state: ShellUiState(
+              selectedTab: tab,
+              visibleTabs: rootTabs,
+            ),
+            onAction: (_) {},
+            child: const SizedBox.expand(
+              key: ValueKey('root-tab-body'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final bar = tester.widget<Scaffold>(find.byType(Scaffold)).appBar;
+      expect(bar, isNotNull, reason: '${tab.name} must own the root top bar');
+      expect(bar!.preferredSize.height, TioNavigationTokens.topBarHeight);
+      final y = tester.getRect(find.byKey(const ValueKey('root-tab-body'))).top;
+      bodyTop ??= y;
+      expect(y, closeTo(bodyTop!, 1),
+          reason: 'Switching tabs cannot shift the top of the body');
+      if (tab == ShellTab.progress) {
+        final progressBar = tester.widget<AppBar>(find.byType(AppBar));
+        expect(progressBar.toolbarHeight, TioNavigationTokens.topBarHeight);
+        expect((progressBar.title! as Text).data, ShellTab.progress.label);
+        // Progress has no approved streak state. No fake Workout/Meal count.
+        expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
+        expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsNothing);
+        expect(find.byKey(const ValueKey('shell-status-streak-icon')), findsNothing);
+      }
+    }
+  });
+
+  testWidgets('Progress toolbar keeps 56dp on compact large-text viewport',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 560));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.8),
+          ),
+          child: TioTheme(child: child ?? const SizedBox.shrink()),
+        ),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.progress,
+            visibleTabs: [ShellTab.home, ShellTab.nutrition, ShellTab.progress],
+          ),
+          onAction: (_) {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<AppBar>(find.byType(AppBar)).toolbarHeight,
+        TioNavigationTokens.topBarHeight);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final testCase in <(ShellPlanTier, String)>[
     (ShellPlanTier.free, 'Get Pro'),
     (ShellPlanTier.plus, 'Plus'),
