@@ -4,6 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+[Progress Weight A2 read-only Weight summary/chart/History](progress-weight-a2-screen.md) is the active approved Flutter screen slice of [Linear TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence): replace only /progress placeholder, derive eligible Current Weight from A1 History, render actual selected-range chart and paginated History with session-safe state, and preserve Tio shell/unit/theme. A3 Log Weight and A4 Edit/Delete, Photos, schema and merge are excluded.
 [Progress Weight A1 owner-backed repository](progress-weight-a1-repository.md) is the approved source-only implementation slice of [Linear TNYX-119](https://linear.app/tnyx/issue/TNYX-119/progress-weight-logging-photos-and-private-user-media-persistence): stable WeightLog IDs, UTC date-window keyset History and exact-ID owner-checked edit/delete across Supabase/InMemory, with focused tests and no UI/schema/Storage. PR independent-review and CI gate; **no merge without owner authorization**.
 
 [Progress Weight D0 contract freeze](progress-weight-d0-contract-freeze.md) was merged in [PR #687](https://github.com/im-tnyx/tio-world/pull/687). Its old handoff still says OPEN and requires a separately scoped archive; implementation truth follows merged D0 docs.

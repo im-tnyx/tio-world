@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,6 +24,7 @@ import 'package:tio_feature_onboarding/onboarding.dart'
         ProfileActivityLevel,
         ProfileHealthCondition;
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -72,6 +74,51 @@ void main() {
       );
     });
   }
+
+  testWidgets(
+    'Progress root retains shell and fails closed without Supabase owner identity',
+    (tester) async {
+      final fixture = await _pumpSettingsRoute(
+        tester,
+        initialPath: FeatureRoutes.progress.path,
+      );
+      expect(
+        fixture.router.routeInformationProvider.value.uri.path,
+        FeatureRoutes.progress.path,
+      );
+      expect(find.byType(TioShellPlaceholder), findsNothing);
+      expect(find.text('Sign in to see your Weight progress.'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    },
+  );
+
+
+  testWidgets(
+    'Progress no-weight account uses canonical lb preference, not composite DTO',
+    (tester) async {
+      final fixture = await _pumpSettingsRoute(
+        tester,
+        initialPath: FeatureRoutes.progress.path,
+        progressEmptyWithCanonicalProfile: true,
+      );
+      expect(
+        fixture.router.routeInformationProvider.value.uri.path,
+        FeatureRoutes.progress.path,
+      );
+      expect(find.text('Weight summary'), findsOneWidget);
+      expect(
+        tester.widget<ProgressWeightPage>(
+          find.byType(ProgressWeightPage),
+        ).unit,
+        WeightUnit.lb,
+      );
+      expect(find.text('No measurements in this range'), findsOneWidget);
+      expect(find.textContaining('No weight measurements yet'), findsOneWidget);
+      expect(find.text('Weight preferences could not be loaded.'), findsNothing);
+      expect(find.byType(TioShellPlaceholder), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    },
+  );
 
   test('bottom navigation is limited to main tab root routes', () {
     for (final branch in shellBranchRegistry) {
@@ -1174,6 +1221,7 @@ Future<
     })> _pumpSettingsRoute(
   WidgetTester tester, {
   String initialPath = '/settings',
+  bool progressEmptyWithCanonicalProfile = false,
   CalendarPreferencesRepository? calendarRepository,
   TioThemeMode themeMode = TioThemeMode.system,
   double textScale = 1,
@@ -1207,7 +1255,15 @@ Future<
   await calendar.load();
   addTearDown(auth.dispose);
   final container = ProviderContainer(overrides: [
-    supabaseClientProvider.overrideWithValue(null),
+    supabaseClientProvider.overrideWithValue(
+      progressEmptyWithCanonicalProfile ? _WeightEmptyClient() : null,
+    ),
+    if (progressEmptyWithCanonicalProfile)
+      userProfileRepositoryProvider.overrideWithValue(
+        _WeightUnitOnlyProfileRepository(),
+      ),
+    if (progressEmptyWithCanonicalProfile)
+      bodyRepositoryProvider.overrideWithValue(InMemoryBodySetupRepository()),
     appModeControllerProvider.overrideWith((ref) => mode),
     onboardingStatusControllerProvider.overrideWith((ref) => onboarding),
     onboardingStatusRepositoryProvider
@@ -1216,9 +1272,24 @@ Future<
     calendarPreferencesControllerProvider.overrideWith((ref) => calendar),
     appSessionBootstrapControllerProvider.overrideWith((ref) => bootstrap),
     authSessionRepositoryProvider.overrideWithValue(auth),
+    if (initialPath == FeatureRoutes.progress.path)
+      authSessionStateProvider.overrideWith(
+        (ref) => Stream.value(
+          const AuthSessionAuthenticated(
+            AuthSession(
+              userId: 'test-user',
+              loginCycleId: 'progress-test-cycle',
+            ),
+          ),
+        ),
+      ),
     measurementUnitPreferencesRepositoryProvider.overrideWithValue(units),
     hydrationPreferencesRepositoryProvider.overrideWithValue(hydration),
-    profileDataProvider.overrideWith((ref) => Stream.value(ProfileSetupData(
+    profileDataProvider.overrideWith((ref) => progressEmptyWithCanonicalProfile
+        ? Stream<ProfileSetupData?>.error(
+            StateError('Canonical Current Weight is not initialized'),
+          )
+        : Stream.value(ProfileSetupData(
           name: 'Test Member',
           username: 'test_member',
           gender: ProfileGender.other,
@@ -1246,6 +1317,37 @@ Future<
     theme: theme,
     calendar: calendar,
   );
+}
+
+
+class _WeightEmptyClient extends Fake implements SupabaseClient {
+  @override
+  GoTrueClient get auth => _WeightEmptyAuth();
+}
+
+class _WeightEmptyAuth extends Fake implements GoTrueClient {
+  @override
+  User? get currentUser => const User(
+        id: 'test-user',
+        appMetadata: {},
+        userMetadata: {},
+        aud: 'authenticated',
+        createdAt: '2026-10-26T00:00:00Z',
+      );
+}
+
+class _WeightUnitOnlyProfileRepository extends Fake
+    implements UserProfileRepository {
+  @override
+  Future<UserProfileData?> read() async => UserProfileData(
+        name: 'Unit Only',
+        gender: ProfileGender.other,
+        dateOfBirth: DateTime(2000, 1, 1),
+        unitPreferences: UnitPreferences.imperial,
+        heightCm: 170,
+        activityLevel: ProfileActivityLevel.active,
+        healthConditions: <ProfileHealthCondition>{},
+      );
 }
 
 class _SettingsUnitsRepository implements MeasurementUnitPreferencesRepository {

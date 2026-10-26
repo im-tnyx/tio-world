@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -82,6 +83,72 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
         mealCategoriesRepository: ref.watch(mealCategoriesRepositoryProvider),
         mealTextParseRepository: ref.watch(mealTextParseRepositoryProvider),
       ),
+    );
+  }
+
+  if (branch.tab == ShellTab.progress) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final authAsync = ref.watch(authSessionStateProvider);
+        final auth = authAsync.isLoading || authAsync.hasError
+            ? null
+            : authAsync.valueOrNull;
+        final bootstrap =
+            ref.watch(appSessionBootstrapControllerProvider).state;
+        final client = ref.watch(supabaseClientProvider);
+        if (authAsync.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (authAsync.hasError) {
+          return const Center(
+            child: Text('Weight is temporarily unavailable.'),
+          );
+        }
+        final cycle = auth is AuthSessionAuthenticated
+            ? auth.session.loginCycleId
+            : null;
+        if (auth is! AuthSessionAuthenticated ||
+            bootstrap is! AppSessionBootstrapReady ||
+            cycle == null ||
+            cycle.isEmpty ||
+            bootstrap.userId != auth.session.userId ||
+            client?.auth.currentUser?.id != auth.session.userId) {
+          // Fail closed while a session is loading, stale or signed out.
+          return const Center(
+            child: Text('Sign in to see your Weight progress.'),
+          );
+        }
+        final profileAsync = ref.watch(progressWeightUnitProvider);
+        if (profileAsync.isLoading) {
+          // The previous login cycle's units must not label this owner's
+          // weight while the current Profile preference is being refreshed.
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (profileAsync.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Weight preferences could not be loaded.'),
+                TioButton.secondary(
+                  label: 'Retry',
+                  onPressed: () => ref.invalidate(progressWeightUnitProvider),
+                ),
+              ],
+            ),
+          );
+        }
+        final unit = profileAsync.valueOrNull;
+        if (unit == null) {
+          return const Center(child: Text('Weight preferences are unavailable.'));
+        }
+        return ProgressWeightPage(
+          key: ValueKey(cycle),
+          sessionKey: cycle,
+          repository: ref.watch(bodyRepositoryProvider),
+          unit: unit,
+        );
+      },
     );
   }
 
