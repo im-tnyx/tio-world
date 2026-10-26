@@ -80,3 +80,7 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 
 - On `b1adc7a5`, exact-head Flutter Analyze/Dart succeeded. The core-wear shard's 140/141 Progress tests showed one existing large-text Timeline test assumed its first card was mounted at initial scroll offset. The newly approved three cards correctly push Timeline below the fold at 390dp/1.8x; this is an invalid test visibility assumption, not license to reduce/change the approved cards.
 - Adjusted the test to `scrollUntilVisible('Today')`, then measure that card's own full lb value and later the strictly older card; preserves accessibility and equal-height assertions. New exact-head CI is required; **no claim of PASS until it completes**.
+
+## Device QA correction: wheel and record calculation
+
+Owner-reported Android QA: weight wheel lacks the original kg/lbs drum; restore existing Core three-drum `TioWeightWheel` with sheet-local unit selection, without changing global preference or canonical kg writes. Goal-directed record marker requires the newest eligible row, strict all-history proof and direction (`loseWeight` New low / `gainWeight` New high), none for Maintain/unknown. Approved further UI corrections and exact-ID History Delete will follow under same PR and must be revalidated before merge. Status REVIEW, not approved.

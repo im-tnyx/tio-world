@@ -57,6 +57,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   static const _maxKg = 200.0;
 
   late double _weightKg;
+  late WeightUnit _displayUnit;
   late DateTime _measuredLocal;
   late String _submissionId;
   late final TextEditingController _noteController;
@@ -85,6 +86,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   @override
   void initState() {
     super.initState();
+    _displayUnit = widget.unit;
     final initial = widget.initialKg;
     _weightConfirmed = initial != null &&
         initial.isFinite &&
@@ -205,15 +207,23 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   }
 
   double _displayWeightKg(double displayValue) =>
-      widget.unit == WeightUnit.kg
+      _displayUnit == WeightUnit.kg
           ? displayValue
           : UnitConverters.lbToKg(displayValue);
 
   String _weightDisplayValue() {
-    final display = widget.unit == WeightUnit.kg
+    final display = _displayUnit == WeightUnit.kg
         ? _weightKg
         : UnitConverters.kgToLb(_weightKg);
     return display.toStringAsFixed(1);
+  }
+
+  void _onWheelUnitChanged(WeightUnit unit) {
+    if (_saving || _attempted || !widget.sessionActive.value) return;
+    setState(() {
+      _displayUnit = unit;
+      _weightController.text = _weightDisplayValue();
+    });
   }
 
   void _toggleWeightInputMode() {
@@ -381,7 +391,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   controller: _weightController,
                   autofocus: true,
                   enabled: !_attempted && !_saving,
-                  suffixText: widget.unit == WeightUnit.lb ? 'lb' : 'kg',
+                  suffixText: _displayUnit == WeightUnit.lb ? 'lb' : 'kg',
                   onChanged: _handleManualWeightChanged,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -393,8 +403,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   child: TioWeightWheel(
                     key: const ValueKey('progress-log-wheel'),
                     valueKg: _weightKg,
-                    unit: widget.unit,
-                    showUnitSwitcher: false,
+                    unit: _displayUnit,
+                    showUnitSwitcher: true,
+                    onUnitChanged: _onWheelUnitChanged,
                     minKg: _minKg,
                     maxKg: _maxKg,
                     onChanged: (kg) {

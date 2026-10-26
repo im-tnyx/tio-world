@@ -9,6 +9,7 @@ class ProgressWeightTimelineItem {
     required this.isToday,
     required this.deltaKg,
     required this.isNewLow,
+    required this.isNewHigh,
   });
 
   final BodyWeightEntry entry;
@@ -16,6 +17,7 @@ class ProgressWeightTimelineItem {
   final bool isToday;
   final double? deltaKg;
   final bool isNewLow;
+  final bool isNewHigh;
 }
 
 abstract final class ProgressWeightTimelineProjection {
@@ -23,8 +25,12 @@ abstract final class ProgressWeightTimelineProjection {
     required List<BodyWeightEntry> entries,
     required bool hasMore,
     required DateTime capturedAt,
+    BodyGoalType? goalType,
   }) {
     final localNow = capturedAt.toLocal();
+    final latestEligibleIndex = entries.indexWhere(
+      (entry) => !entry.measuredAt.isAfter(capturedAt),
+    );
     final result = List<ProgressWeightTimelineItem?>.filled(
       entries.length,
       null,
@@ -35,6 +41,7 @@ abstract final class ProgressWeightTimelineProjection {
     // of times, even after many pages have been loaded.
     BodyWeightEntry? nearestOlder;
     double? minimumOlderKg;
+    double? maximumOlderKg;
     var groupEnd = entries.length;
     while (groupEnd > 0) {
       final instant = entries[groupEnd - 1].measuredAt;
@@ -49,8 +56,16 @@ abstract final class ProgressWeightTimelineProjection {
       // as every eligible older measurement.
       double? groupMinimumKg;
       var groupMinimumCount = 0;
+      double? groupMaximumKg;
+      var groupMaximumCount = 0;
       for (var i = groupStart; i < groupEnd; i++) {
         final kg = entries[i].weightKg;
+        if (groupMaximumKg == null || kg > groupMaximumKg) {
+          groupMaximumKg = kg;
+          groupMaximumCount = 1;
+        } else if (kg == groupMaximumKg) {
+          groupMaximumCount++;
+        }
         if (groupMinimumKg == null || kg < groupMinimumKg) {
           groupMinimumKg = kg;
           groupMinimumCount = 1;
@@ -76,13 +91,24 @@ abstract final class ProgressWeightTimelineProjection {
               : null,
           // Incomplete pagination or a future measurement cannot establish
           // an all-history low. The oldest timestamp has no older baseline.
-          isNewLow: eligible &&
+          isNewLow: goalType == BodyGoalType.loseWeight &&
+              i == latestEligibleIndex &&
+              eligible &&
               !hasMore &&
               nearestOlder != null &&
               minimumOlderKg != null &&
               entry.weightKg < minimumOlderKg &&
               groupMinimumCount == 1 &&
               entry.weightKg == groupMinimumKg,
+          isNewHigh: goalType == BodyGoalType.gainWeight &&
+              i == latestEligibleIndex &&
+              eligible &&
+              !hasMore &&
+              nearestOlder != null &&
+              maximumOlderKg != null &&
+              entry.weightKg > maximumOlderKg &&
+              groupMaximumCount == 1 &&
+              entry.weightKg == groupMaximumKg,
         );
       }
 
@@ -93,6 +119,9 @@ abstract final class ProgressWeightTimelineProjection {
         if (minimumOlderKg == null ||
             groupMinimumKg! < minimumOlderKg) {
           minimumOlderKg = groupMinimumKg;
+        }
+        if (maximumOlderKg == null || groupMaximumKg! > maximumOlderKg) {
+          maximumOlderKg = groupMaximumKg;
         }
       }
       groupEnd = groupStart;

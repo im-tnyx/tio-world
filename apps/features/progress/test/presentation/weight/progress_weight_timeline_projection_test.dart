@@ -15,7 +15,7 @@ void main() {
       row('d', 74, now.subtract(const Duration(days: 10))),
     ];
     final items = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(items[0].deltaKg, -1);
     expect(items[1].deltaKg, 0); // Compare to strictly older timestamp.
@@ -31,12 +31,12 @@ void main() {
       row('b', 74, now.subtract(const Duration(days: 4))),
     ];
     final pending = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: true, capturedAt: now,
+      entries: rows, hasMore: true, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(pending[0].isNewLow, isFalse);
     expect(pending[0].deltaKg, -2);
     final complete = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(complete[0].isNewLow, isTrue);
   });
@@ -49,7 +49,7 @@ void main() {
       row('c', 74, now.subtract(const Duration(days: 2))),
     ];
     final items = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(items[0].deltaKg, closeTo(-0.8, 0.001));
     expect(items[0].isNewLow, isFalse);
@@ -65,7 +65,7 @@ void main() {
       row('older', 74, now.subtract(const Duration(days: 2))),
     ];
     final items = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(items[0].deltaKg, -1);
     expect(items[1].deltaKg, -1);
@@ -87,7 +87,7 @@ void main() {
       ],
     ];
     final items = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(items, hasLength(1 + groupCount * 2));
     expect(items.first.entry.id, 'future');
@@ -103,11 +103,33 @@ void main() {
     expect(items.last.isNewLow, isFalse);
 
     final pending = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: true, capturedAt: now,
+      entries: rows, hasMore: true, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(pending, hasLength(items.length));
     expect(pending[1].isNewLow, isFalse);
     expect(pending[1].deltaKg, closeTo(-0.01, 0.000001));
+  });
+
+  test('only latest eligible row gets a goal-directed record badge', () {
+    final rows = [
+      row('latest', 76, now.subtract(const Duration(hours: 1))),
+      row('older-low', 72, now.subtract(const Duration(hours: 2))),
+      row('oldest', 74, now.subtract(const Duration(days: 3))),
+    ];
+    final lose = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+      goalType: BodyGoalType.loseWeight,
+    );
+    expect(lose.where((r) => r.isNewLow), isEmpty);
+    final gain = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+      goalType: BodyGoalType.gainWeight,
+    );
+    expect(gain.where((r) => r.isNewHigh).map((r) => r.entry.id), ['latest']);
+    final noGoal = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+    );
+    expect(noGoal.any((r) => r.isNewLow || r.isNewHigh), isFalse);
   });
 
   test('Today cannot be inferred for a future-dated measurement', () {
@@ -116,7 +138,7 @@ void main() {
       row('current', 70, now.subtract(const Duration(minutes: 5))),
     ];
     final result = ProgressWeightTimelineProjection.project(
-      entries: rows, hasMore: false, capturedAt: now,
+      entries: rows, hasMore: false, capturedAt: now, goalType: BodyGoalType.loseWeight,
     );
     expect(result[0].isToday, isFalse);
     expect(result[0].deltaKg, isNull);
