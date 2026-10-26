@@ -65,6 +65,28 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     super.dispose();
   }
 
+  Future<void> _openLogWeight() async {
+    final snapshot = _snapshot;
+    if (snapshot == null || _loading) return;
+    final active = _sessionActive;
+    final repository = widget.repository;
+    final result = await showProgressWeightLogSheet(
+      context: context,
+      unit: widget.unit,
+      currentWeightKg: snapshot.current?.weightKg,
+      sessionActive: active,
+      now: widget.now,
+      onSubmit: (record) {
+        if (!mounted || !active.value) {
+          throw StateError('Weight session is no longer active.');
+        }
+        return repository.recordCurrentWeight(record);
+      },
+    );
+    if (!mounted || !active.value || result != true) return;
+    await _reload();
+  }
+
   Future<void> _reload() async {
     final generation = ++_generation;
     setState(() {
