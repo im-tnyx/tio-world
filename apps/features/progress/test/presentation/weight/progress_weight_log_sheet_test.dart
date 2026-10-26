@@ -33,7 +33,10 @@ void main() {
     await tester.tap(find.text('Open log'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    final noteToggle = find.byKey(const ValueKey('progress-log-note-toggle'));
+    await tester.ensureVisible(noteToggle);
+    await tester.pumpAndSettle();
+    await tester.tap(noteToggle);
     await tester.pumpAndSettle();
     final note = find.descendant(
       of: find.byKey(const ValueKey('progress-log-note-field')),
