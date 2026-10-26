@@ -2075,6 +2075,82 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Lose goal past target shows real below-target distance in kg/lb',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 70,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 69.5,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final card = find.byKey(const ValueKey('progress-weight-target-card'));
+    expect(find.descendant(of: card, matching: find.text('Below target')),
+        findsOneWidget);
+    expect(find.descendant(
+        of: card, matching: find.text('0.5 kg below target')),
+        findsOneWidget);
+    expect(find.text('Target reached'), findsNothing);
+    expect((await repository.getBodyState()).activeGoal?.targetWeightKg, 70);
+
+    await pumpPage(tester, repository, unit: WeightUnit.lb);
+    expect(find.descendant(
+        of: card, matching: find.text('1.1 lb below target')),
+        findsOneWidget);
+
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 70,
+      measuredAt: now.subtract(const Duration(hours: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    expect(find.descendant(
+        of: card, matching: find.text('Target reached')),
+        findsOneWidget);
+    expect(find.textContaining('below target'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Gain goal past target shows excess instead of Target reached',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 70,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.gainWeight,
+      targetWeightKg: 75,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76.3,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final card = find.byKey(const ValueKey('progress-weight-target-card'));
+    expect(find.descendant(of: card, matching: find.text('Above target')),
+        findsOneWidget);
+    expect(find.descendant(
+        of: card, matching: find.text('1.3 kg above target')),
+        findsOneWidget);
+    expect(find.text('Target reached'), findsNothing);
+    expect((await repository.getBodyState()).activeGoal?.targetWeightKg, 75);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shows active canonical goal as a target reference',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
