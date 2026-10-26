@@ -25,58 +25,81 @@ abstract final class ProgressWeightTimelineProjection {
     required DateTime capturedAt,
   }) {
     final localNow = capturedAt.toLocal();
-    final result = <ProgressWeightTimelineItem>[];
-    for (var i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final local = entry.measuredAt.toLocal();
-      final eligible = !entry.measuredAt.isAfter(capturedAt);
-      // Same-instant siblings are not a temporal comparison. Find the first
-      // strictly older actual measurement, skipping equal timestamps.
-      BodyWeightEntry? earlier;
-      for (var j = i + 1; j < entries.length; j++) {
-        final candidate = entries[j];
-        if (candidate.measuredAt.isBefore(entry.measuredAt) &&
-            !candidate.measuredAt.isAfter(capturedAt)) {
-          earlier = candidate;
-          break;
+    final result = List<ProgressWeightTimelineItem?>.filled(
+      entries.length,
+      null,
+    );
+
+    // History is canonically ordered measuredAt DESC, id DESC. Traverse
+    // timestamp groups oldest-first: each entry is visited a constant number
+    // of times, even after many pages have been loaded.
+    BodyWeightEntry? nearestOlder;
+    double? minimumOlderKg;
+    var groupEnd = entries.length;
+    while (groupEnd > 0) {
+      final instant = entries[groupEnd - 1].measuredAt;
+      var groupStart = groupEnd - 1;
+      while (groupStart > 0 &&
+          entries[groupStart - 1].measuredAt.isAtSameMomentAs(instant)) {
+        groupStart--;
+      }
+
+      // Treat all same-instant siblings as one unordered group. A New low
+      // requires the current row to be strictly below every sibling as well
+      // as every eligible older measurement.
+      double? groupMinimumKg;
+      var groupMinimumCount = 0;
+      for (var i = groupStart; i < groupEnd; i++) {
+        final kg = entries[i].weightKg;
+        if (groupMinimumKg == null || kg < groupMinimumKg) {
+          groupMinimumKg = kg;
+          groupMinimumCount = 1;
+        } else if (kg == groupMinimumKg) {
+          groupMinimumCount++;
         }
       }
-      // A same-instant sibling cannot be ordered temporally, but it does
-      // compete for an all-history minimum. Compare it without inventing a
-      // before/after sequence; exclude only this exact row by list index.
-      final priorOrConcurrentWeights = <double>[];
-      var hasStrictlyOlder = false;
-      for (var j = 0; j < entries.length; j++) {
-        if (j == i) continue;
-        final other = entries[j];
-        if (other.measuredAt.isAfter(entry.measuredAt) ||
-            other.measuredAt.isAfter(capturedAt)) {
-          continue;
-        }
-        if (other.measuredAt.isBefore(entry.measuredAt)) {
-          hasStrictlyOlder = true;
-        }
-        priorOrConcurrentWeights.add(other.weightKg);
-      }
-      result.add(
-        ProgressWeightTimelineItem(
+
+      final eligible = !instant.isAfter(capturedAt);
+      for (var i = groupStart; i < groupEnd; i++) {
+        final entry = entries[i];
+        final local = instant.toLocal();
+        result[i] = ProgressWeightTimelineItem(
           entry: entry,
           localMeasuredAt: local,
           isToday: eligible &&
               local.year == localNow.year &&
               local.month == localNow.month &&
               local.day == localNow.day,
-          deltaKg: eligible && earlier != null
-              ? entry.weightKg - earlier.weightKg
+          // Never compare two records from the same instant as before/after.
+          deltaKg: eligible && nearestOlder != null
+              ? entry.weightKg - nearestOlder.weightKg
               : null,
-          // An all-history badge is only warranted after pagination ends.
+          // Incomplete pagination or a future measurement cannot establish
+          // an all-history low. The oldest timestamp has no older baseline.
           isNewLow: eligible &&
               !hasMore &&
-              hasStrictlyOlder &&
-              priorOrConcurrentWeights.every((kg) => entry.weightKg < kg),
-        ),
-      );
+              nearestOlder != null &&
+              minimumOlderKg != null &&
+              entry.weightKg < minimumOlderKg &&
+              groupMinimumCount == 1 &&
+              entry.weightKg == groupMinimumKg,
+        );
+      }
+
+      if (eligible) {
+        // The canonical first entry in this group is the closest strictly
+        // older predecessor for every measurement in the next newer group.
+        nearestOlder = entries[groupStart];
+        if (minimumOlderKg == null ||
+            groupMinimumKg! < minimumOlderKg) {
+          minimumOlderKg = groupMinimumKg;
+        }
+      }
+      groupEnd = groupStart;
     }
-    return List<ProgressWeightTimelineItem>.unmodifiable(result);
+
+    return List<ProgressWeightTimelineItem>.unmodifiable(
+      result.cast<ProgressWeightTimelineItem>(),
+    );
   }
 }

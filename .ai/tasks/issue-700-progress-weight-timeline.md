@@ -56,3 +56,10 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 - Latest Codex P2 identified a Today-border 2dp width mismatch between Timeline badge stacking and fixed-height decisions near 337dp. Use a shared width predicate, reserve that inset consistently for every card, and add a narrow Today/non-Today equal-height/overflow regression. At standard 390dp/1x, 80dp same-height contract remains untouched.
 - Scoped to existing approved #700 Progress UI/test repair. No schema/Auth/RLS/Storage change; TNYX-119 remains In Progress. GitHub source edits are committed by existing `im-tnyx` implementation owner only. Linear `get_agent_context` was unavailable (tool not found), while `get_issue(TNYX-119)` succeeded.
 - Exact new commit Flutter CI, independent review, and physical Android/iOS screenshot QA still require verification; **do not merge** without separate owner instruction.
+
+## 2026-10-26 independent review P2 performance fix
+
+- Independent `im-tio` review on exact HEAD `92a1ba59` reported a real P2: the synchronous Timeline projection used nested full-History scans per row, `O(n²)`, while pagination can grow indefinitely. This is a code-performance issue, not an infrastructure problem.
+- Replaced per-row suffix search and `priorOrConcurrentWeights` allocations with a reverse `O(n)` pass over canonical `measuredAt DESC, id DESC` History, grouped by the exact measurement instant. The closest strictly older eligible entry is used for delta; older eligible minima and equal-time minimum/tie count govern the conservative `New low` badge. Future records and incomplete pagination never create phantom lows.
+- Added 6,000 timestamp-group/12,001-row regression covering ordering, sibling differences, earlier delta, future exclusion and incomplete pagination, plus a tied same-instant minimum negative-path regression.
+- Previous exact-head Flutter run `40323286661` on `92a1ba59` was SUCCESS in all Flutter analysis/shards and Docs Hygiene; that success does **not** validate this new commit. Exact-new-HEAD checks and independent re-review remain required. Do not merge without an explicit owner merge instruction.

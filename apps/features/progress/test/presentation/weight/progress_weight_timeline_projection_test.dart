@@ -57,6 +57,59 @@ void main() {
     expect(items[1].deltaKg, -1);
   });
 
+  test('tied same-instant minima cannot claim a strict new low', () {
+    final stamp = now.subtract(const Duration(days: 1));
+    final rows = [
+      row('a', 73, stamp),
+      row('b', 73, stamp),
+      row('older', 74, now.subtract(const Duration(days: 2))),
+    ];
+    final items = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+    );
+    expect(items[0].deltaKg, -1);
+    expect(items[1].deltaKg, -1);
+    expect(items[0].isNewLow, isFalse);
+    expect(items[1].isNewLow, isFalse);
+  });
+
+  test('large grouped History preserves order, low and future semantics', () {
+    // 6,000 timestamp groups and same-instant siblings guard the linear
+    // projection path used after repeated History pagination.
+    const groupCount = 6000;
+    final rows = <BodyWeightEntry>[
+      row('future', 1, now.add(const Duration(minutes: 1))),
+      for (var i = 0; i < groupCount; i++) ...[
+        row('first-$i', 70 + i * 0.01,
+            now.subtract(Duration(minutes: i + 1))),
+        row('sibling-$i', 70.1 + i * 0.01,
+            now.subtract(Duration(minutes: i + 1))),
+      ],
+    ];
+    final items = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+    );
+    expect(items, hasLength(1 + groupCount * 2));
+    expect(items.first.entry.id, 'future');
+    expect(items.first.deltaKg, isNull);
+    expect(items.first.isNewLow, isFalse);
+    expect(items[1].entry.id, 'first-0');
+    expect(items[1].deltaKg, closeTo(-0.01, 0.000001));
+    expect(items[1].isNewLow, isTrue);
+    expect(items[2].entry.id, 'sibling-0');
+    expect(items[2].deltaKg, closeTo(0.09, 0.000001));
+    expect(items[2].isNewLow, isFalse);
+    expect(items.last.deltaKg, isNull);
+    expect(items.last.isNewLow, isFalse);
+
+    final pending = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: true, capturedAt: now,
+    );
+    expect(pending, hasLength(items.length));
+    expect(pending[1].isNewLow, isFalse);
+    expect(pending[1].deltaKg, closeTo(-0.01, 0.000001));
+  });
+
   test('Today cannot be inferred for a future-dated measurement', () {
     final rows = [
       row('future', 68, now.add(const Duration(minutes: 5))),
