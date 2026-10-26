@@ -2226,7 +2226,12 @@ void main() {
     final before = tester.getTopLeft(chart).dy;
     final pending = repository.holdNextRefresh();
     final touch = await tester.startGesture(tester.getCenter(chart));
+    // The first pointer delta may only win the vertical drag gesture arena;
+    // measure after a second delta has driven actual overscroll. The total
+    // displacement and the in-flow geometry assertion are unchanged.
     await touch.moveBy(const Offset(0, 190));
+    await tester.pump();
+    await touch.moveBy(const Offset(0, 230));
     await tester.pump();
     // The refresh sliver is permitted to be lazily unmounted while
     // overscroll animates; verify declared placement and visible motion.
@@ -2234,7 +2239,6 @@ void main() {
     expect(scrollView.slivers.first, isA<CupertinoSliverRefreshControl>());
     expect(tester.getTopLeft(chart).dy, greaterThan(before + TioSpacing.lg));
     expect(tester.getRect(list).top, lessThan(tester.getTopLeft(chart).dy));
-    await touch.moveBy(const Offset(0, 230));
     await touch.up();
     await tester.pump(const Duration(milliseconds: 100));
     expect(repository.refreshReadStarted, isTrue);
