@@ -397,15 +397,17 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: CustomPaint(
-                            key: const ValueKey('progress-weight-chart'),
-                            painter: _RecordedWeightPainter(
-                              entries: chart,
-                              scale: scale!,
-                              targetKg: target,
-                              lineColor: colors.progress,
-                              gridColor: colors.outlineStrong,
-                              targetColor: colors.success,
+                          child: SizedBox.expand(
+                            child: CustomPaint(
+                              key: const ValueKey('progress-weight-chart'),
+                              painter: _RecordedWeightPainter(
+                                entries: chart,
+                                scale: scale!,
+                                targetKg: target,
+                                lineColor: colors.progress,
+                                gridColor: colors.outlineStrong,
+                                targetColor: colors.success,
+                              ),
                             ),
                           ),
                         ),
