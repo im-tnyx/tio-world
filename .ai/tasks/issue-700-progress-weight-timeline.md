@@ -148,3 +148,7 @@ Actual PR source showed `isToday` driving purple border/dot/date tint for every 
 ## 2026-10-26 owner-approved Timeline card long press
 
 Added card-surface `GestureDetector.onLongPress` as an alternate path to the existing exact-row, session-guarded `_openWeightEditor(entry)`. Keep the pencil and normal short tap/scroll interactions; a long press never deletes without the separate confirmation inside the editor. Same PR and no new UI, source of truth, backend, RLS or token. Targeted widget regression tests single-tap no-op, older selected-record update, no duplicate/current-row mutation and pencil functionality. Exact-head CI and independent review/physical Android/iOS gesture QA remain required; do not merge.
+
+## 2026-10-26 owner Weight chart QA: axis gap and weekday removal
+
+User reported unnecessary space between right Y-axis weights and horizontal graph lines, plus redundant weekday in chart bottom dates. Audited current painter: 8dp guide-right inset + 4dp Row spacer + end-aligned labels in 48dp Y-axis column. Removed spacer, start-aligned numeric labels, and extended horizontal grid/target guides to plot edge while keeping actual measurement-dot right inset (prevents clipping). Replaced chart date-only formatter from `formatMediumDate` to locale-aware `formatShortMonthDay` for single/multi-point labels, e.g. `Oct 26` without weekday. Added layout/locale tests; existing timeline, edit, long-press, session and backend unchanged. Require new exact-head Flutter CI/review and physical visual QA, no approval/merge.

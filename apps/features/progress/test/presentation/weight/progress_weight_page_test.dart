@@ -833,8 +833,48 @@ void main() {
     );
     final expectedDate = MaterialLocalizations.of(
       tester.element(find.byKey(const ValueKey('progress-weight-chart'))),
-    ).formatMediumDate(now.subtract(const Duration(days: 1)).toLocal());
+    ).formatShortMonthDay(now.subtract(const Duration(days: 1)).toLocal());
     expect(label.data, expectedDate);
+  });
+
+  testWidgets('graph grid meets left-aligned weight axis without a gutter',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 70,
+      measuredAt: now.subtract(const Duration(days: 10)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final plot = find.byKey(const ValueKey('progress-weight-chart'));
+    final axis = find.byKey(const ValueKey('progress-weight-chart-axis'));
+    expect(plot, findsOneWidget);
+    expect(axis, findsOneWidget);
+    // The guide strokes reach the plot's right edge. Layout must not add
+    // a horizontal spacer between the painter and weight labels.
+    expect(tester.getRect(plot).right, closeTo(tester.getRect(axis).left, 0.001));
+    final labels = find.descendant(of: axis, matching: find.byType(Text));
+    expect(labels, findsNWidgets(3));
+    for (final label in labels.evaluate()) {
+      expect(tester.getRect(find.byElementPredicate(
+        (element) => identical(element, label),
+      )).left, closeTo(tester.getRect(axis).left, 0.001));
+    }
+    final locale = MaterialLocalizations.of(tester.element(plot));
+    final shortStart = locale.formatShortMonthDay(
+      now.subtract(const Duration(days: 10)).toLocal(),
+    );
+    final shortEnd = locale.formatShortMonthDay(
+      now.subtract(const Duration(days: 1)).toLocal(),
+    );
+    expect(find.text(shortStart), findsOneWidget);
+    expect(find.text(shortEnd), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('range menu compares two actual records in the selected window',

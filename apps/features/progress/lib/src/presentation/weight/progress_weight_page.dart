@@ -543,7 +543,6 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: TioSpacing.xs),
                         SizedBox(
                           key: const ValueKey('progress-weight-chart-axis'),
                           width: TioSize.dp48,
@@ -553,7 +552,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 for (final value in [
                                   scale.high,
@@ -1156,8 +1155,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     );
   }
 
+  // Compact, locale-aware axis dates (e.g. Oct 26, not Mon, Oct 26).
   String _dateLabel(BuildContext context, DateTime date) =>
-      MaterialLocalizations.of(context).formatMediumDate(date.toLocal());
+      MaterialLocalizations.of(context).formatShortMonthDay(date.toLocal());
 }
 
 class _WeightLoadFailure {
@@ -1226,7 +1226,10 @@ class _RecordedWeightPainter extends CustomPainter {
     final ordered = entries.reversed.toList(growable: false);
 
     const left = TioSize.dp8;
+    // Leave the last measurement dot inset, but extend horizontal guides
+    // flush to the numeric Y-axis; points must not be clipped at the edge.
     final right = size.width - TioSize.dp8;
+    final guideRight = size.width;
     const top = TioSize.dp8;
     final bottom = size.height - TioSize.dp8;
     final oldestUs = ordered.first.measuredAt.microsecondsSinceEpoch;
@@ -1248,17 +1251,21 @@ class _RecordedWeightPainter extends CustomPainter {
       ..strokeWidth = TioStroke.width1;
     for (final fraction in [0.0, 0.5, 1.0]) {
       final height = top + (bottom - top) * fraction;
-      canvas.drawLine(Offset(left, height), Offset(right, height), grid);
+      canvas.drawLine(
+        Offset(left, height), Offset(guideRight, height), grid,
+      );
     }
     if (targetKg != null) {
       final goalY = y(targetKg!);
       final goalPaint = Paint()
         ..color = targetColor
         ..strokeWidth = TioStroke.width2;
-      for (var position = left; position < right; position += TioSize.dp12) {
+      for (var position = left;
+          position < guideRight;
+          position += TioSize.dp12) {
         canvas.drawLine(
           Offset(position, goalY),
-          Offset(math.min(position + TioSize.dp8, right), goalY),
+          Offset(math.min(position + TioSize.dp8, guideRight), goalY),
           goalPaint,
         );
       }
