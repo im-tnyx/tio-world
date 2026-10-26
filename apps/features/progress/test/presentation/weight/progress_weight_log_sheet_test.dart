@@ -103,6 +103,55 @@ void main() {
     expect(find.text('Open log'), findsOneWidget);
   });
 
+  testWidgets('popup maximum refreshes on app resume and remains owner-bound',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    var clock = DateTime(2026, 10, 26, 13, 30);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showProgressWeightLogSheet(
+                context: context,
+                unit: WeightUnit.kg,
+                currentWeightKg: 70,
+                sessionActive: active,
+                onSubmit: (_) async {},
+                now: () => clock,
+              ),
+              child: const Text('Open log'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open log'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioDateTimeWheelPicker>(
+        find.byType(TioDateTimeWheelPicker),
+      ).maximumDate,
+      clock,
+    );
+    clock = clock.add(const Duration(minutes: 30));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioDateTimeWheelPicker>(
+        find.byType(TioDateTimeWheelPicker),
+      ).maximumDate,
+      clock,
+    );
+  });
+
   testWidgets('DateTime popup Back dismisses only the picker and retains sheet',
       (tester) async {
     final active = ValueNotifier<bool>(true);
