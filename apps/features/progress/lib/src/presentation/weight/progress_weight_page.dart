@@ -120,7 +120,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       intent: TioConfirmationIntent.destructive,
     );
     if (approved != true ||
-        !mounted || !active.value || generation != _generation) return;
+        !mounted || !active.value || generation != _generation) {
+      return;
+    }
     setState(() => _deletingWeightId = id);
     try {
       final deleted = await repository.deleteWeightLog(id);

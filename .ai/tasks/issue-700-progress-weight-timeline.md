@@ -94,3 +94,7 @@ Owner-reported Android QA: weight wheel lacks the original kg/lbs drum; restore 
 
 - Each Timeline card now has an explicit small delete icon for its immutable `BodyWeightEntry.id` and uses Core `showTioConfirmationBottomSheet` with destructive intent. Cancel/no-answer never touches data; confirmed calls existing owner/session-pinned `BodyRepository.deleteWeightLog(id)` once and refreshes real current/chart/History and app-owned Body caches. Missing/deleted row or exception is non-optimistic and shows a generic result without identifying the owner/weight in logs. Session and async generation checks suppress stale UI update. No direct Flutter-to-privileged API, new schema/RLS/Storage or delete-by-row-position.
 - Device QA checkpoint: latest commit CI and independent review required; do not merge.
+
+## 2026-10-26 CI lint gate
+
+Flutter Analyze on `696b8f27` found one `curly_braces_in_flow_control_structures` info in the delete-confirmation handler. Corrected braces only. The prior check is not a PASS and new exact-head Flutter CI is required; review/merge still pending.
