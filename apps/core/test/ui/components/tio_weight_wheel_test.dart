@@ -82,6 +82,59 @@ void main() {
     );
   });
 
+  testWidgets('lb controlled echo preserves the selected 117.0 drums',
+      (tester) async {
+    double canonicalKg = 70;
+    late StateSetter setParentState;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              setParentState = setState;
+              return TioWeightWheel(
+                valueKg: canonicalKg,
+                unit: WeightUnit.lb,
+                showUnitSwitcher: false,
+                onChanged: (kg) => setState(() => canonicalKg = kg),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final drums = find.byType(ListWheelScrollView);
+    final whole = tester.widget<ListWheelScrollView>(drums.at(0)).controller!
+        as FixedExtentScrollController;
+    final decimal = tester.widget<ListWheelScrollView>(drums.at(1)).controller!
+        as FixedExtentScrollController;
+
+    // Simulate the user's whole/decimal choices; each detent notifies its
+    // controlled parent, which echoes the exact canonical kg back.
+    whole.jumpToItem(117 - 66);
+    await tester.pumpAndSettle();
+    decimal.jumpToItem(0);
+    await tester.pumpAndSettle();
+
+    expect(canonicalKg, closeTo(117 / 2.20462, 0.0000001));
+    expect(whole.selectedItem, 117 - 66);
+    expect(decimal.selectedItem, 0);
+    expect(find.text('117'), findsOneWidget);
+
+    // An actual external value update must still reposition both drums,
+    // using rounded tenths even across lb/kg floating-point conversion.
+    setParentState(() => canonicalKg = 154.3 / 2.20462);
+    await tester.pumpAndSettle();
+    expect(whole.selectedItem, 154 - 66);
+    expect(decimal.selectedItem, 3);
+  });
+
   testWidgets('light theme selection pill uses a contrasting surface role',
       (tester) async {
     await tester.pumpWidget(
