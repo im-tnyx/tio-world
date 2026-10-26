@@ -29,3 +29,7 @@
 ## Validation / handoff
 
 Source patch prepared against PR #695 head. Verify exact commit through GitHub CI and independent review; external Android/iOS physical-device QA, Windows worktree and locale/large-text manual visual checks unavailable here and must not be claimed as PASS.
+
+## Verified remote CI limitation and next gate
+
+At proposed head `5fcd255f28b1e54aee2ff7b18b6f89a866afd3ec`, GitHub PR #698 is OPEN, based on #695's feature branch, and no Flutter/Docs/attribution Action run appeared on the new head. Verified workflow source `.github/workflows/flutter-ci.yml`, `docs-hygiene-ci.yml` and `commit-attribution-guard.yml` triggers restrict automatic pull-request runs to base `main`. Cursor's neutral checks are not equivalent to CI or independent approval. A manual `workflow_dispatch` of Flutter CI on the exact branch, or merging #695 first and safely retargeting #698 to `main`, is required before claiming tested/merge-ready. No Flutter binary or Windows worktree available here; test code added but not executed. No CI pass claimed and no merge attempted.
