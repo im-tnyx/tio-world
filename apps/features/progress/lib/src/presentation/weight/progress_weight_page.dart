@@ -7,9 +7,9 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
-// Matches Nutrition's bottom action footprint: 56dp control and 24dp
+// Matches the approved compact bottom action footprint: 46dp control and 24dp
 // breathing room on each side, plus the current safe bottom inset.
-const double _logWeightClearance = TioSize.dp56 + TioSpacing.xl * 2;
+const double _logWeightClearance = TioSize.dp46 + TioSpacing.xl * 2;
 
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
@@ -249,7 +249,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(TioSpacing.xl),
                   child: SizedBox(
-                    height: TioSize.dp56,
+                    height: TioSize.dp46,
                     child: TioButton.primary(
                       key: const ValueKey('progress-weight-log-action'),
                       label: 'Log Weight',
