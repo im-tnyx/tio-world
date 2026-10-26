@@ -21,6 +21,7 @@ Future<bool?> showProgressWeightLogSheet({
       context: context,
       useRootNavigator: true,
       useSafeArea: true,
+      isDismissible: false,
       builder: (context) => _ProgressWeightLogSheet(
         unit: unit,
         initialKg: currentWeightKg,
