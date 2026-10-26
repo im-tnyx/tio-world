@@ -445,21 +445,21 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           : worsening ? colors.danger : colors.textPrimary;
     }
     final statistics = <Widget>[
-      _summaryStatCard(
+      _summaryInlineStat(
         context,
         'progress-weight-stat-starting',
         'STARTING',
         startingKg == null
             ? '—' : UnitFormatters.formatWeight(startingKg, widget.unit),
       ),
-      _summaryStatCard(
+      _summaryInlineStat(
         context,
         'progress-weight-stat-overall-change',
         'CHANGE',
         goalChangeKg == null ? '—' : _formatChange(goalChangeKg),
         valueColor: trendColor(goalChangeKg),
       ),
-      _summaryStatCard(
+      _summaryInlineStat(
         context,
         'progress-weight-stat-rate',
         'RATE OF CHANGE',
@@ -694,39 +694,44 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     ],
                   ),
               ],
+              const SizedBox(height: TioSpacing.sm),
+              Divider(
+                color: colors.outlineStrong,
+                height: TioSpacing.sm,
+                thickness: TioStroke.width075,
+              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Equal-width inline metrics at ordinary phone widths. Only
+                  // narrow accessibility layouts stack to retain complete units.
+                  final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.5;
+                  if (enlarged || constraints.maxWidth < (TioSize.dp320 - TioSize.dp40)) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < statistics.length; i++) ...[
+                          if (i > 0) const SizedBox(height: TioSpacing.sm),
+                          statistics[i],
+                        ],
+                      ],
+                    );
+                  }
+                  return IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: statistics[0]),
+                        const SizedBox(width: TioSpacing.sm),
+                        Expanded(child: statistics[1]),
+                        const SizedBox(width: TioSpacing.sm),
+                        Expanded(child: statistics[2]),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: TioSpacing.sm),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Same-size three-column cards at ordinary phone widths. Only
-            // narrow accessibility layouts stack to retain complete units.
-            final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.5;
-            if (enlarged || constraints.maxWidth < (TioSize.dp320 - TioSize.dp40)) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < statistics.length; i++) ...[
-                    if (i > 0) const SizedBox(height: TioSpacing.sm),
-                    statistics[i],
-                  ],
-                ],
-              );
-            }
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: statistics[0]),
-                  const SizedBox(width: TioSpacing.sm),
-                  Expanded(child: statistics[1]),
-                  const SizedBox(width: TioSpacing.sm),
-                  Expanded(child: statistics[2]),
-                ],
-              ),
-            );
-          },
         ),
         if (targetProgress != null) ...[
           const SizedBox(height: TioSpacing.sm),
@@ -839,44 +844,47 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     );
   }
 
-  Widget _summaryStatCard(
+  Widget _summaryInlineStat(
     BuildContext context,
     String key,
     String label,
     String value, {
     Color? valueColor,
-  }) =>
-      TioCard(
-        key: ValueKey(key),
-        variant: TioCardVariant.normal,
-        padding: const EdgeInsets.all(TioSpacing.xs),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: TioSize.dp48),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value,
-                textAlign: TextAlign.center,
-                softWrap: true,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: valueColor ?? context.tioColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: TioSpacing.xxs),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                softWrap: true,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: context.tioColors.textSecondary,
-                ),
-              ),
-            ],
+  }) {
+    final typography = Theme.of(context).textTheme;
+    final colors = context.tioColors;
+    return Padding(
+      key: ValueKey(key),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.xxs,
+        vertical: TioSpacing.xs,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            softWrap: true,
+            style: typography.bodySmall?.copyWith(
+              fontWeight: typography.titleSmall?.fontWeight,
+              color: valueColor ?? colors.textPrimary,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: TioSpacing.xxs),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            softWrap: true,
+            style: typography.labelSmall?.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _formatChange(double kilograms) {
     if (kilograms == 0) return 'No change';
