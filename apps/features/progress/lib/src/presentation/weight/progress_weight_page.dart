@@ -727,9 +727,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             );
           },
         ),
-        if (target != null && snapshot.goal != null) ...[
+        if (snapshot.targetProgress case final progress?) ...[
           const SizedBox(height: TioSpacing.sm),
-          _targetProgressCard(context, current, snapshot.goal!),
+          _targetProgressCard(context, progress),
         ],
       ],
     );
@@ -737,22 +737,16 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
 
   Widget _targetProgressCard(
     BuildContext context,
-    BodyWeightEntry? current,
-    BodyGoalState goal,
+    ProgressWeightTargetProgress progress,
   ) {
     final colors = context.tioColors;
-    final targetKg = goal.targetWeightKg!;
-    final remaining = current == null ? null : switch (goal.goalType) {
-      BodyGoalType.loseWeight => math.max(0.0, current.weightKg - targetKg),
-      BodyGoalType.gainWeight => math.max(0.0, targetKg - current.weightKg),
-      _ => (current.weightKg - targetKg).abs(),
+    final targetKg = progress.targetKg;
+    final remaining = progress.remainingKg;
+    final status = switch (progress.status) {
+      ProgressWeightTargetStatus.reached => 'Target reached',
+      ProgressWeightTargetStatus.onTrack => 'On track to target',
+      ProgressWeightTargetStatus.progress => 'Target progress',
     };
-    final beginning = goal.startingWeightKg;
-    final movedCloser = remaining != null && beginning != null &&
-        remaining < (beginning - targetKg).abs();
-    final status = remaining != null && remaining < 0.0001
-        ? 'Target reached'
-        : movedCloser ? 'On track to target' : 'Target progress';
     return TioCard(
       key: const ValueKey('progress-weight-target-card'),
       variant: TioCardVariant.normal,
