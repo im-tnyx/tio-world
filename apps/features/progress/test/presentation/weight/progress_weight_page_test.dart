@@ -267,12 +267,20 @@ void main() {
       find.byKey(const ValueKey('progress-log-manual-weight')),
     );
     expect(manualInput.suffixText, 'lb');
+    // Initial 70 kg placeholder formats as 154.3 lb. Unchanged placeholder
+    // must not silently count as a first measurement; edit a real value.
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-log-save')),
+      ).onPressed,
+      isNull,
+    );
     await tester.enterText(
       find.descendant(
         of: find.byKey(const ValueKey('progress-log-manual-weight')),
         matching: find.byType(EditableText),
       ),
-      '154.3',
+      '155.0',
     );
     await tester.pumpAndSettle();
     final save = find.byKey(const ValueKey('progress-log-save'));
@@ -283,7 +291,7 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     expect(repository.weightEntries, hasLength(1));
-    expect(repository.weightEntries.single.weightKg, closeTo(70, 0.1));
+    expect(repository.weightEntries.single.weightKg, closeTo(UnitConverters.lbToKg(155), 0.01));
   });
 
   testWidgets('opening DateTime from Notes dismisses keyboard, keeps note',
