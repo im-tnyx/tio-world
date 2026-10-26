@@ -188,3 +188,7 @@ CI `9515e010` still failed one `curly_braces_in_flow_control_structures` at line
 ## 2026-10-26 mutation Delete Retry lazy viewport assertion
 
 The last completed test job for `9515e010` passed 160 Progress tests, including newly added Log and Edit live-read regressions, but the Delete failure/Retry test expected the inline error row to be mounted while the lazy SliverList viewport remained scrolled down to the deleted row's pencil. That widget is intentionally offscreen/not built. Keep validating the disabled stale pencil where visible; then jump the actual scroll position to zero and assert/tap the Retry row at the top. No production behavior change; rerun CI on exact HEAD.
+
+## 2026-10-26 owner-approved chart hold detail
+
+User supplied a reference showing recorded weight on a date, vertical guide and separate target value, and explicitly wants press-and-hold details on the Weight graph. Added a feature-owned chart StatefulWidget around the unchanged canonical painter with touch hold/drag cursor, nearest **actual** recorded timestamp by O(log n) binary search, deterministic same-time sibling, chart-clamped UI chips and optional canonical goal Target reference. Release/cancel removes tooltip; current graph, axes, units, data, goal and runtime boundaries unchanged. Tests press/drag across three real values including optional goal, dismiss, and single-point lb without invented goal. Refresh/owner changes clear chart-local selection. Exact-head tests, CI, Android/iOS touch and accessibility QA and independent review pending; no approval or merge.

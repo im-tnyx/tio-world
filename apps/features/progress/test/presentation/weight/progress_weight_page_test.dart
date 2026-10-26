@@ -838,6 +838,97 @@ void main() {
     expect(label.data, expectedDate);
   });
 
+  testWidgets('press and drag charts shows only actual recorded readings',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74,
+      measuredAt: now.subtract(const Duration(days: 20)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 72.2,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 10)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final rect = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final finger = await tester.startGesture(
+      Offset(rect.left + TioSize.dp8, rect.center.dy),
+    );
+    await tester.pump(const Duration(milliseconds: 650));
+    final popup = find.byKey(
+      const ValueKey('progress-weight-chart-tooltip'));
+    final weightChip = find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-recorded'));
+    final goalChip = find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-target'));
+    expect(popup, findsOneWidget);
+    expect(find.descendant(of: weightChip, matching: find.text('74 kg')),
+        findsOneWidget);
+    expect(find.descendant(of: goalChip, matching: find.text('72.2 kg')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-chart-cursor')),
+        findsOneWidget);
+    await finger.moveTo(Offset(rect.center.dx, rect.center.dy));
+    await tester.pump();
+    expect(find.descendant(of: weightChip, matching: find.text('76 kg')),
+        findsOneWidget);
+    await finger.moveTo(
+      Offset(rect.right - TioSize.dp8, rect.center.dy),
+    );
+    await tester.pump();
+    expect(find.descendant(of: weightChip, matching: find.text('73 kg')),
+        findsOneWidget);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(popup, findsNothing);
+    expect(find.byKey(const ValueKey('progress-weight-chart-cursor')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('one-point lb tooltip has no invented Target reference',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 70,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo, unit: WeightUnit.lb);
+    final plot = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final finger = await tester.startGesture(plot.center);
+    await tester.pump(const Duration(milliseconds: 650));
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('progress-weight-chart-tooltip-recorded')),
+      matching: find.text('154.3 lb'),
+    ), findsOneWidget);
+    expect(find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-target'),
+    ), findsNothing);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(find.byKey(
+      const ValueKey('progress-weight-chart-tooltip'),
+    ), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('chart guides end 2dp before right-aligned weight axis',
       (tester) async {
     final repository = InMemoryBodySetupRepository();

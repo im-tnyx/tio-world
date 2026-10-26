@@ -602,17 +602,24 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: SizedBox.expand(
-                            child: CustomPaint(
-                              key: const ValueKey('progress-weight-chart'),
-                              painter: _RecordedWeightPainter(
-                                entries: chart,
-                                scale: scale!,
-                                targetKg: target,
-                                lineColor: colors.progress,
-                                gridColor: colors.outlineStrong,
-                                targetColor: colors.success,
-                              ),
+                          child: _WeightChartInspector(
+                            key: ValueKey('weight-chart-inspect-${widget.sessionKey}-${_range.days}'),
+                            entries: chart,
+                            scale: scale!,
+                            targetKg: target,
+                            unit: widget.unit,
+                            lineColor: colors.progress,
+                            targetColor: colors.success,
+                            cursorColor: colors.textPrimary,
+                            surfaceColor: colors.surfaceVariant,
+                            textColor: colors.textPrimary,
+                            painter: _RecordedWeightPainter(
+                              entries: chart,
+                              scale: scale!,
+                              targetKg: target,
+                              lineColor: colors.progress,
+                              gridColor: colors.outlineStrong,
+                              targetColor: colors.success,
                             ),
                           ),
                         ),
@@ -1277,6 +1284,272 @@ class _WeightChartScale {
         ? rounded.substring(0, rounded.length - 2)
         : rounded;
   }
+}
+
+/// Chart-local, touch-held inspection of canonical recorded measurements.
+/// The selected position is never interpreted as a new/interpolated weight.
+class _WeightChartInspector extends StatefulWidget {
+  const _WeightChartInspector({
+    required this.entries,
+    required this.scale,
+    required this.targetKg,
+    required this.unit,
+    required this.lineColor,
+    required this.targetColor,
+    required this.cursorColor,
+    required this.surfaceColor,
+    required this.textColor,
+    required this.painter,
+    super.key,
+  });
+
+  final List<BodyWeightEntry> entries; // measuredAt descending
+  final _WeightChartScale scale;
+  final double? targetKg;
+  final WeightUnit unit;
+  final Color lineColor;
+  final Color targetColor;
+  final Color cursorColor;
+  final Color surfaceColor;
+  final Color textColor;
+  final _RecordedWeightPainter painter;
+
+  @override
+  State<_WeightChartInspector> createState() => _WeightChartInspectorState();
+}
+
+class _WeightChartInspectorState extends State<_WeightChartInspector> {
+  int? _selection;
+
+  @override
+  void didUpdateWidget(covariant _WeightChartInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.entries, widget.entries) ||
+        oldWidget.unit != widget.unit ||
+        oldWidget.targetKg != widget.targetKg) {
+      _selection = null;
+    }
+  }
+
+  double _xFor(BodyWeightEntry entry, double width) {
+    const left = TioSize.dp8;
+    final right = width - TioSize.dp8;
+    final oldUs = widget.entries.last.measuredAt.microsecondsSinceEpoch;
+    final newUs = widget.entries.first.measuredAt.microsecondsSinceEpoch;
+    final interval = newUs - oldUs;
+    if (interval <= 0 || right <= left) return (left + right) / 2;
+    return left +
+        (entry.measuredAt.microsecondsSinceEpoch - oldUs) /
+            interval * (right - left);
+  }
+
+  void _inspect(double localX, double width) {
+    final entries = widget.entries;
+    if (entries.isEmpty || width <= 2 * TioSize.dp8) return;
+    final oldest = entries.last.measuredAt.microsecondsSinceEpoch;
+    final newest = entries.first.measuredAt.microsecondsSinceEpoch;
+    final fraction = ((localX - TioSize.dp8) /
+        (width - 2 * TioSize.dp8)).clamp(0.0, 1.0);
+    final us = oldest + ((newest - oldest) * fraction).round();
+    // Binary search over descending actual timestamps, O(log n) per move.
+    var lo = 0, hi = entries.length;
+    while (lo < hi) {
+      final mid = lo + (hi - lo) ~/ 2;
+      if (entries[mid].measuredAt.microsecondsSinceEpoch > us) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    var closest = lo == 0
+        ? 0 : lo == entries.length
+            ? entries.length - 1
+            : entries[lo - 1].measuredAt.microsecondsSinceEpoch - us <=
+                    us - entries[lo].measuredAt.microsecondsSinceEpoch
+                ? lo - 1 : lo;
+    // Same-instant entries share the same x; prefer canonical newer ID.
+    while (closest > 0 &&
+        entries[closest - 1].measuredAt.isAtSameMomentAs(
+          entries[closest].measuredAt,
+        )) {
+      closest--;
+    }
+    if (_selection != closest) setState(() => _selection = closest);
+  }
+
+  void _dismiss() {
+    if (_selection != null) setState(() => _selection = null);
+  }
+
+  Widget _detailChip(
+    BuildContext context, {
+    required String key,
+    required String label,
+    required double valueKg,
+    required Color dotColor,
+  }) {
+    final type = Theme.of(context).textTheme.labelSmall;
+    return Container(
+      key: ValueKey(key),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.xs,
+        vertical: TioSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: widget.surfaceColor,
+        borderRadius: BorderRadius.circular(TioRadius.sm),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: TioSize.dp8,
+            height: TioSize.dp8,
+            decoration: BoxDecoration(
+              color: dotColor, shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: TioSpacing.xs),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: type?.copyWith(color: widget.textColor),
+            ),
+          ),
+          const SizedBox(width: TioSpacing.xxs),
+          Text(
+            UnitFormatters.formatWeight(valueKg, widget.unit),
+            maxLines: 1,
+            style: type?.copyWith(
+              color: widget.textColor,
+              fontWeight: TioFontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final height = constraints.maxHeight;
+      final picked = _selection != null && _selection! < widget.entries.length
+          ? widget.entries[_selection!]
+          : null;
+      final x = picked == null ? 0.0 : _xFor(picked, width);
+      const topInset = TioSize.dp8;
+      final bottom = height - topInset;
+      final y = picked == null
+          ? 0.0
+          : bottom - (picked.weightKg - widget.scale.low) /
+                (widget.scale.high - widget.scale.low) * (bottom - topInset);
+      final panelWidth = math.min(
+        TioSize.dp200, math.max(0.0, width - 2 * TioSpacing.xs),
+      );
+      final panelX = x + panelWidth + TioSpacing.sm <= width
+          ? x + TioSpacing.sm
+          : math.max(TioSpacing.xs, x - panelWidth - TioSpacing.sm);
+      final panelY = math.max(
+        TioSpacing.xs,
+        math.min(y - TioSize.dp40, height - TioSize.dp80),
+      );
+      final date = picked == null
+          ? ''
+          : MaterialLocalizations.of(context).formatShortMonthDay(
+              picked.measuredAt.toLocal(),
+            );
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (event) => _inspect(event.localPosition.dx, width),
+        onTapUp: (_) => _dismiss(),
+        onTapCancel: _dismiss,
+        onLongPressStart: (event) =>
+            _inspect(event.localPosition.dx, width),
+        onLongPressMoveUpdate: (event) =>
+            _inspect(event.localPosition.dx, width),
+        onLongPressEnd: (_) => _dismiss(),
+        onLongPressCancel: _dismiss,
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
+          children: [
+            CustomPaint(
+              key: const ValueKey('progress-weight-chart'),
+              painter: widget.painter,
+            ),
+            if (picked != null) ...[
+              Positioned(
+                top: topInset,
+                bottom: topInset,
+                left: x,
+                child: IgnorePointer(
+                  child: Container(
+                    key: const ValueKey('progress-weight-chart-cursor'),
+                    width: TioStroke.width1,
+                    color: widget.cursorColor.withValues(
+                      alpha: TioOpacity.opacity70,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: x - TioSize.dp4,
+                top: y - TioSize.dp4,
+                child: IgnorePointer(
+                  child: Container(
+                    width: TioSize.dp8,
+                    height: TioSize.dp8,
+                    decoration: BoxDecoration(
+                      color: widget.lineColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: panelX,
+                top: panelY,
+                width: panelWidth,
+                child: IgnorePointer(
+                  child: Semantics(
+                    liveRegion: true,
+                    label: '$date recorded '
+                        '${UnitFormatters.formatWeight(picked.weightKg, widget.unit)}',
+                    child: Column(
+                      key: const ValueKey('progress-weight-chart-tooltip'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _detailChip(
+                          context,
+                          key: 'progress-weight-chart-tooltip-recorded',
+                          label: date,
+                          valueKg: picked.weightKg,
+                          dotColor: widget.lineColor,
+                        ),
+                        if (widget.targetKg != null) ...[
+                          const SizedBox(height: TioSpacing.xxs),
+                          _detailChip(
+                            context,
+                            key: 'progress-weight-chart-tooltip-target',
+                            label: 'Target',
+                            valueKg: widget.targetKg!,
+                            dotColor: widget.targetColor,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
 }
 
 class _RecordedWeightPainter extends CustomPainter {
