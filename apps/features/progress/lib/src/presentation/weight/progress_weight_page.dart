@@ -686,7 +686,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         builder: (context, constraints) {
           // On compact screens put badges on their own row rather than
           // squeezing dates, units, or accessibility-scaled weight text.
-          if (constraints.maxWidth < TioSize.dp280 || largerText) {
+          if (constraints.maxWidth < (TioSize.dp320 - TioSize.dp40) || largerText) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -728,7 +728,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         // Expand the shared height at narrow widths or accessibility scales
         // instead of clipping the weight value or its unit.
         final stackBadges = largerText ||
-            constraints.maxWidth - 2 * TioSpacing.md < TioSize.dp280;
+            constraints.maxWidth - 2 * TioSpacing.md < (TioSize.dp320 - TioSize.dp40);
         final height = TioSize.dp80 +
             (stackBadges ? TioSize.dp54 : 0) +
             math.max(0.0, textScale - 1.0) * TioSize.dp80;
