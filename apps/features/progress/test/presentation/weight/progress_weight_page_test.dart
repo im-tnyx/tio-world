@@ -1272,7 +1272,7 @@ void main() {
     expect(find.text('+1 kg'), findsOneWidget);
   });
 
-  testWidgets('Weight graph card is separate from three summary stat cards',
+  testWidgets('Weight graph card integrates three compact summary metrics',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
     await repository.recordCurrentWeight(
@@ -1300,8 +1300,14 @@ void main() {
       find.descendant(of: graph, matching: find.text('30 DAY CHANGE')),
       findsOneWidget,
     );
+    for (final label in ['STARTING', 'CHANGE', 'RATE OF CHANGE']) {
+      expect(
+        find.descendant(of: graph, matching: find.text(label)),
+        findsOneWidget,
+      );
+    }
     expect(
-      find.descendant(of: graph, matching: find.text('RATE OF CHANGE')),
+      find.descendant(of: graph, matching: find.byType(TioCard)),
       findsNothing,
     );
     expect(find.text('STARTING'), findsOneWidget);
@@ -1321,7 +1327,7 @@ void main() {
     expect(find.text('+0.5 kg/week'), findsOneWidget);
   });
 
-  testWidgets('reference summary has equal phone cards and distinct changes',
+  testWidgets('reference summary has equal inline footer metrics and distinct changes',
       (tester) async {
     tester.view.physicalSize = const Size(390, 1300);
     tester.view.devicePixelRatio = 1;
@@ -1353,11 +1359,20 @@ void main() {
     expect(find.text('RATE OF CHANGE'), findsOneWidget);
     expect(find.text('74 kg'), findsWidgets);
     expect(find.text('-1 kg'), findsWidgets);
-    final metrics = [
+    final metricKeys = [
       'progress-weight-stat-starting',
       'progress-weight-stat-overall-change',
       'progress-weight-stat-rate',
-    ].map((k) => tester.getSize(find.byKey(ValueKey(k)))).toList();
+    ];
+    for (final key in metricKeys) {
+      expect(
+        find.descendant(of: graph, matching: find.byKey(ValueKey(key))),
+        findsOneWidget,
+      );
+    }
+    final metrics = metricKeys
+        .map((key) => tester.getSize(find.byKey(ValueKey(key))))
+        .toList();
     expect(metrics[0].height, metrics[1].height);
     expect(metrics[1].height, metrics[2].height);
     expect(metrics[0].width, closeTo(metrics[1].width, 0.001));
@@ -1439,6 +1454,13 @@ void main() {
     final stat = find.byKey(const ValueKey('progress-weight-stat-rate'));
     expect(stat, findsOneWidget);
     expect(find.text('RATE OF CHANGE'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-graph-card')),
+        matching: find.byKey(const ValueKey('progress-weight-stat-rate')),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Not enough history'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
