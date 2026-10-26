@@ -21,3 +21,11 @@
 
 ## Validation and gates
 Focused projection tests for same-time/missing comparison, future Today, partial history low, plus widget checks for month groups, note, global lb, genuine New low. Require exact-HEAD Flutter tests/analyze, independent review, phone visual/compact/text-scale checks; cannot claim these until run. GitHub Actions PR workflows target base main only, so stacked child PR does not auto-run Flutter CI. **No merge** until owner explicit Go merge and all applicable gates pass.
+
+## Review handoff checkpoint
+
+- Dependent **draft PR [#701](https://github.com/im-tnyx/tio-world/pull/701)** created on 2026-10-26, initial code head `34753b2c8c819bf8ef2b8dee3dd867b38a154840`.
+- GitHub compare against immediate parent #698 `8b168879ad3a7c1684d7cc1d6b93fa544356febb`: ahead 3 / behind 0, merge-base equals parent, six Progress-owned paths only. Parent #698 and grandparent #695 remain open and unmerged.
+- Existing Core card used, no new design-system tokens; Today highlight now rendered outside the opaque card. Minimal nullable-record guard was hardened after initial push.
+- **Actual validation:** Source/branch/PR/diff inspection through GitHub API. No Flutter/Dart SDK in this execution container (`command -v flutter`, `command -v dart` produced none), no mounted Windows checkout, no device visual QA. Exact-head GitHub Action runs: 0, because existing Flutter workflow only auto-triggers pull requests against `main`. No reviewer approval or independent completed review verified.
+- **Final status:** `PARTIAL` — proposed code and test cases exist, execution/CI, independent review and device acceptance remain unavailable. Do not merge or declare PASS. After #695 then #698 merge, reconcile this child branch to `main` and rerun exact-head gates.
