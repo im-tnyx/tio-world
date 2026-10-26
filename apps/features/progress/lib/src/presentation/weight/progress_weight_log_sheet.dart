@@ -82,7 +82,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     // Keep a visible wheel position without treating it as the first log.
     // Out-of-range historical measurements are not silently re-recorded as
     // the nearest wheel bound, either.
-    _weightKg = _weightConfirmed ? initial : 70.0;
+    _weightKg = _weightConfirmed ? initial! : 70.0;
     _measuredLocal = widget.now().toLocal();
     _submissionId = _newUuid();
     _noteController = TextEditingController();
