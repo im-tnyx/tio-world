@@ -70,3 +70,8 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 - No new design system component. Changed only Progress page, read-only dashboard projection, focused widget/model tests, canonical Progress doc and handoff. Existing `TioCard`, `MenuAnchor`, theme tokens and fixed Log Weight action are preserved.
 - Rate = signed actual newest-minus-oldest eligible selected-window kg change multiplied by seven and divided by elapsed measured days. Require two distinct instants; `null` shows unknown instead of fabricating rate. Unit follows global kg/lb. A real equal-weight interval yields zero, not unknown.
 - Verification gates: latest HEAD Flutter CI, menu selection/dismissal, chart/stat separation, narrow/accessibility, exact range semantics, independent re-review and Android/iOS light/dark layout. Physical QA and formal independent approval remain **unverified**. No merge.
+
+## 2026-10-26 exact-head CI test-only correction
+
+- HEAD `f061034c` Docs Hygiene passed; Flutter Analyze failed only because the new widget test referred to unexported `ProgressWeightRange` as a generic type argument while asserting absence of `PopupMenuButton`. The reusable elevated `TioCard`, three `MenuItemButton` options and selected range behavior are already asserted. Removed this redundant compile-time assertion rather than importing a private presentation type solely for a negative test.
+- All Flutter CI checks must rerun on the resulting HEAD. No approval or merge.

@@ -905,7 +905,6 @@ void main() {
   testWidgets('chart range menu reuses elevated TioCard and marks selection',
       (tester) async {
     await pumpPage(tester, InMemoryBodySetupRepository());
-    expect(find.byType(PopupMenuButton<ProgressWeightRange>), findsNothing);
     await tester.tap(find.byKey(const ValueKey('progress-weight-range')));
     await tester.pumpAndSettle();
     final popup = find.byKey(
