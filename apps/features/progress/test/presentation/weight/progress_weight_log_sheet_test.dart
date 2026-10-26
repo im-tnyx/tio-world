@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_progress/src/presentation/weight/progress_weight_log_sheet.dart';
 
 void main() {
