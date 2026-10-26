@@ -2033,6 +2033,48 @@ void main() {
     expect(loadMore, findsNothing);
   });
 
+  testWidgets('soft refresh gates pagination until the fresh snapshot arrives',
+      (tester) async {
+    final repository = _ControlledRefreshWeightRepository();
+    for (var day = 0; day < 32; day++) {
+      await repository.recordCurrentWeight(BodyWeightRecord(
+        weightKg: 70 + day / 10,
+        measuredAt: now.subtract(Duration(days: day + 1)),
+        source: BodyWeightSources.manual,
+      ));
+    }
+    await pumpPage(tester, repository);
+
+    final list = find.byKey(const ValueKey('progress-weight-scroll'));
+    final scroll = tester.state<ScrollableState>(
+      find.descendant(of: list, matching: find.byType(Scrollable)).first,
+    );
+    scroll.position.jumpTo(scroll.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    final loadMore = find.byKey(const ValueKey('progress-weight-load-more'));
+    expect(loadMore, findsOneWidget);
+    expect(tester.widget<TioButton>(loadMore).onPressed, isNotNull);
+
+    final heldRead = repository.holdNextRefresh();
+    final refreshControl = tester.widget<CustomScrollView>(list).slivers.first
+        as CupertinoSliverRefreshControl;
+    final refresh = refreshControl.onRefresh!();
+    await tester.pump();
+    expect(repository.refreshReadStarted, isTrue);
+    // Retained History is visible, but cannot paginate a stale snapshot.
+    expect(loadMore, findsOneWidget);
+    expect(tester.widget<TioButton>(loadMore).onPressed, isNull);
+
+    heldRead.complete();
+    await refresh;
+    await tester.pumpAndSettle();
+    expect(tester.widget<TioButton>(loadMore).onPressed, isNotNull);
+    await tester.tap(loadMore);
+    await tester.pumpAndSettle();
+    expect(loadMore, findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shows active canonical goal as a target reference',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
