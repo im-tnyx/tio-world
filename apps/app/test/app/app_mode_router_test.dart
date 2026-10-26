@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
@@ -119,6 +121,43 @@ void main() {
       expect(find.byType(NavigationBar), findsOneWidget);
     },
   );
+
+
+  testWidgets('same-owner unit revalidation retains unsaved notes draft',
+      (tester) async {
+    final profile = _PausedWeightUnitProfileRepository();
+    ProviderContainer? container;
+    await _pumpSettingsRoute(
+      tester,
+      initialPath: FeatureRoutes.progress.path,
+      progressEmptyWithCanonicalProfile: true,
+      progressRepository: profile,
+      onContainerReady: (value) => container = value,
+    );
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-log-note-field')),
+        matching: find.byType(EditableText),
+      ),
+      'Unsent same-owner measurement',
+    );
+    final paused = Completer<void>();
+    profile.pauseNextRead = paused;
+    container!.invalidate(
+      progressWeightUnitProvider('test-user:progress-test-cycle'),
+    );
+    await tester.pump();
+    expect(find.text('Unsent same-owner measurement'), findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    paused.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Unsent same-owner measurement'), findsOneWidget);
+    expect(find.byType(ProgressWeightPage), findsOneWidget);
+  });
 
   test('bottom navigation is limited to main tab root routes', () {
     for (final branch in shellBranchRegistry) {
@@ -1222,6 +1261,8 @@ Future<
   WidgetTester tester, {
   String initialPath = '/settings',
   bool progressEmptyWithCanonicalProfile = false,
+  UserProfileRepository? progressRepository,
+  void Function(ProviderContainer)? onContainerReady,
   CalendarPreferencesRepository? calendarRepository,
   TioThemeMode themeMode = TioThemeMode.system,
   double textScale = 1,
@@ -1260,7 +1301,7 @@ Future<
     ),
     if (progressEmptyWithCanonicalProfile)
       userProfileRepositoryProvider.overrideWithValue(
-        _WeightUnitOnlyProfileRepository(),
+        progressRepository ?? _WeightUnitOnlyProfileRepository(),
       ),
     if (progressEmptyWithCanonicalProfile)
       bodyRepositoryProvider.overrideWithValue(InMemoryBodySetupRepository()),
@@ -1303,6 +1344,7 @@ Future<
         ))),
   ]);
   addTearDown(container.dispose);
+  onContainerReady?.call(container);
   final router = container.read(goRouterProvider)..go(initialPath);
   await tester.pumpWidget(UncontrolledProviderScope(
     container: container,
@@ -1348,6 +1390,19 @@ class _WeightUnitOnlyProfileRepository extends Fake
         activityLevel: ProfileActivityLevel.active,
         healthConditions: <ProfileHealthCondition>{},
       );
+}
+
+class _PausedWeightUnitProfileRepository
+    extends _WeightUnitOnlyProfileRepository {
+  Completer<void>? pauseNextRead;
+
+  @override
+  Future<UserProfileData?> read() async {
+    final waiting = pauseNextRead;
+    pauseNextRead = null;
+    if (waiting != null) await waiting.future;
+    return super.read();
+  }
 }
 
 class _SettingsUnitsRepository implements MeasurementUnitPreferencesRepository {
