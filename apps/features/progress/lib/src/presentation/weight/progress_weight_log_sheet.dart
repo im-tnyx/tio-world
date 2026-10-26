@@ -63,6 +63,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   bool _saving = false;
   bool _attempted = false;
   bool _dismissQueued = false;
+  Route<dynamic>? _activePickerRoute;
   String? _error;
 
   @override
@@ -81,11 +82,18 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     // Deactivation can be triggered by disposal while Flutter builds a new
     // owner/login cycle. Remove this exact modal after the frame; do not pop
     // an unrelated top route or leave a blank barrier covering the app.
+    // Date/time pickers are independent DialogRoutes above this bottom sheet.
+    // Remove only routes opened by this draft; never pop an unrelated screen.
+    final sheetRoute = ModalRoute.of(context);
+    final pickerRoute = _activePickerRoute;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final route = ModalRoute.of(context);
-      if (route != null && route.isActive) {
-        Navigator.of(context).removeRoute(route);
+      final navigator = Navigator.of(context);
+      if (pickerRoute != null && pickerRoute.isActive) {
+        navigator.removeRoute(pickerRoute);
+      }
+      if (sheetRoute != null && sheetRoute.isActive) {
+        navigator.removeRoute(sheetRoute);
       }
     });
   }
@@ -113,12 +121,21 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   Future<void> _pickDate() async {
     if (_attempted || _saving || !widget.sessionActive.value) return;
     final today = widget.now().toLocal();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _measuredLocal,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(today.year, today.month, today.day),
-    );
+    DateTime? date;
+    try {
+      date = await showDatePicker(
+        context: context,
+        initialDate: _measuredLocal,
+        firstDate: DateTime(1900),
+        lastDate: DateTime(today.year, today.month, today.day),
+        builder: (dialogContext, child) {
+          _activePickerRoute = ModalRoute.of(dialogContext);
+          return child!;
+        },
+      );
+    } finally {
+      _activePickerRoute = null;
+    }
     if (date == null || !mounted || !widget.sessionActive.value) return;
     setState(() {
       _measuredLocal = DateTime(
@@ -131,10 +148,19 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
 
   Future<void> _pickTime() async {
     if (_attempted || _saving || !widget.sessionActive.value) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_measuredLocal),
-    );
+    TimeOfDay? time;
+    try {
+      time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_measuredLocal),
+        builder: (dialogContext, child) {
+          _activePickerRoute = ModalRoute.of(dialogContext);
+          return child!;
+        },
+      );
+    } finally {
+      _activePickerRoute = null;
+    }
     if (time == null || !mounted || !widget.sessionActive.value) return;
     setState(() {
       _measuredLocal = DateTime(
