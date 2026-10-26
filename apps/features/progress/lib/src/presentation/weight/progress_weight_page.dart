@@ -578,9 +578,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ? entry.weightKg
         : UnitConverters.kgToLb(entry.weightKg);
     final unitText = widget.unit == WeightUnit.kg ? 'kg' : 'lb';
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final largerText = textScale > 1.15;
 
     final dateColumn = SizedBox(
-      width: TioSize.dp76,
+      width: largerText ? TioSize.dp110 : TioSize.dp76,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,18 +633,23 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       children: [
         Text(
           '${displayedWeight.toStringAsFixed(1)} $unitText',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          maxLines: largerText ? 2 : 1,
+          overflow: largerText ? TextOverflow.visible : TextOverflow.ellipsis,
           style: typography.titleLarge?.copyWith(
             color: colors.textPrimary,
           ),
         ),
         if (entry.note != null) ...[
           const SizedBox(height: TioSpacing.xs),
-          Text(
-            entry.note!,
-            style: typography.bodySmall?.copyWith(
-              color: colors.textSecondary,
+          Tooltip(
+            message: entry.note!,
+            child: Text(
+              entry.note!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: typography.bodySmall?.copyWith(
+                color: colors.textSecondary,
+              ),
             ),
           ),
         ],
@@ -679,7 +686,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         builder: (context, constraints) {
           // On compact screens put badges on their own row rather than
           // squeezing dates, units, or accessibility-scaled weight text.
-          if (constraints.maxWidth < TioSize.dp320) {
+          if (constraints.maxWidth < TioSize.dp280 || largerText) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -714,21 +721,37 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         },
       ),
     );
-    return DecoratedBox(
-      key: ValueKey('progress-weight-history-${entry.id!}'),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(TioCardTokens.radius),
-        border: item.isToday
-            ? Border.all(color: colors.progress, width: TioStroke.width1)
-            : null,
-      ),
-      // The outline sits outside the opaque Core card, not behind its fill.
-      child: Padding(
-        padding: item.isToday
-            ? const EdgeInsets.all(TioStroke.width1)
-            : EdgeInsets.zero,
-        child: card,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Every row uses one fixed height for the same viewport/text scale,
+        // irrespective of notes, Today border or one/two change badges.
+        // Expand the shared height at narrow widths or accessibility scales
+        // instead of clipping the weight value or its unit.
+        final stackBadges = largerText ||
+            constraints.maxWidth - 2 * TioSpacing.md < TioSize.dp280;
+        final height = TioSize.dp80 +
+            (stackBadges ? TioSize.dp54 : 0) +
+            math.max(0.0, textScale - 1.0) * TioSize.dp80;
+        return SizedBox(
+          height: height,
+          child: DecoratedBox(
+            key: ValueKey('progress-weight-history-${entry.id!}'),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(TioCardTokens.radius),
+              border: item.isToday
+                  ? Border.all(color: colors.progress, width: TioStroke.width1)
+                  : null,
+            ),
+            // Outline does not increase overall card height for Today.
+            child: Padding(
+              padding: item.isToday
+                  ? const EdgeInsets.all(TioStroke.width1)
+                  : EdgeInsets.zero,
+              child: card,
+            ),
+          ),
+        );
+      },
     );
   }
 

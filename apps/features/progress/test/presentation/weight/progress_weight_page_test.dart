@@ -911,10 +911,119 @@ void main() {
     expect(cards, findsOneWidget);
     // A two-line date/time replaces the previous three-line dot/date/time
     // column; the no-note baseline must fit below the old tall-card footprint.
-    expect(tester.getSize(cards).height, lessThan(TioSize.dp80));
+    expect(tester.getSize(cards).height, TioSize.dp80);
     expect(find.text('73.0 kg'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-log-action')),
         findsOneWidget);
+  });
+
+  testWidgets('Timeline cards keep the same height with notes and badges',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = InMemoryBodySetupRepository();
+    for (final record in [
+      BodyWeightRecord(
+        weightKg: 76,
+        measuredAt: now.subtract(const Duration(days: 3)),
+        source: BodyWeightSources.manual,
+      ),
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 2)),
+        source: BodyWeightSources.manual,
+        note: 'Saved note that can be much longer than one preview line',
+      ),
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(minutes: 10)),
+        source: BodyWeightSources.manual,
+      ),
+    ]) {
+      await repository.recordCurrentWeight(record);
+    }
+    await pumpPage(tester, repository);
+    final cards = find.byWidgetPredicate((widget) =>
+        widget is DecoratedBox &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('progress-weight-history-'));
+    expect(cards, findsNWidgets(3));
+    for (var i = 0; i < 3; i++) {
+      expect(tester.getSize(cards.at(i)).height, TioSize.dp80);
+    }
+    expect(find.text('New low'), findsNWidgets(2));
+    expect(find.textContaining('Saved note that can be much longer'),
+        findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('large text preserves full lb value and equal Timeline rows',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 75,
+        measuredAt: now.subtract(const Duration(days: 2)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(minutes: 10)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.8),
+          ),
+          child: TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.dark),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
+        home: Scaffold(
+          body: ProgressWeightPage(
+            repository: repository,
+            unit: WeightUnit.lb,
+            sessionKey: 'large-text',
+            now: () => now,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final cards = find.byWidgetPredicate((widget) =>
+        widget is DecoratedBox &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('progress-weight-history-'));
+    expect(cards, findsNWidgets(2));
+    expect(tester.getSize(cards.at(0)).height,
+        tester.getSize(cards.at(1)).height);
+    final timelineLb = find.descendant(
+      of: cards,
+      matching: find.text('160.9 lb'),
+    );
+    expect(timelineLb, findsOneWidget);
+    expect(tester.widget<Text>(timelineLb).overflow, TextOverflow.visible);
+    expect(find.text('New low'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Today row and units follow actual reading date and global lb',

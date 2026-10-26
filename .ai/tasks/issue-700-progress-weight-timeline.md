@@ -41,3 +41,9 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 - GitHub Flutter analyze (on `370811e`) flagged one `unnecessary_non_null_assertion` in the strictly-older delta projection. Removed redundant `!`; nonnull guard is retained.
 - Progress widget shard exposed a pre-existing brittle expectation: Current summary **and** Timeline now both display `160.9 lb`. Replaced global single-text assertion with Timeline-card descendant assertion so the test checks the intended owner UI, not a duplicate count.
 - Docs hygiene failure on `370811e` traced to markdown trailing spaces; corrected at `56ffabe`, whose docs hygiene check passed. All Flutter CI gates must re-run on the latest code HEAD; neither this note nor earlier runs count as validation.
+
+## Owner card-height correction + Codex accessibility guard (2026-10-26)
+
+- Owner observed variable Timeline card heights; corrected within the approved Timeline UI slice. All rows use a consistent 80dp height at the normal 390dp/1x viewport, irrespective of Today, badge or note. Longer notes have a one-line preview with the full saved note retained via Tooltip (no data loss).
+- For narrow widths/accessibility text sizes, all cards in that viewport grow to the same taller shared height. Badge actions relocate below measurements rather than truncating lb/kg and user-entered weights. Small-screen/large-text physical layout remains to be QA-tested.
+- Added widget regressions covering equal-height mixed cards and larger text with New low + lb; prior baseline height test now asserts exact 80dp. Continue exact-HEAD Flutter CI and independent Codex review; no merge.
