@@ -1826,9 +1826,19 @@ void main() {
         findsOneWidget);
     held.complete();
     await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(pencil).onPressed, isNull);
+    // Retry renders ahead of the Summary; the lazy SliverList doesn't
+    // instantiate it when the user is still scrolled down at the pencil.
+    final scrolling = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    scrolling.position.jumpTo(0);
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
         findsOneWidget);
-    expect(tester.widget<IconButton>(pencil).onPressed, isNull);
     await tester.tap(find.descendant(
       of: find.byKey(const ValueKey('progress-weight-refresh-failed')),
       matching: find.text('Retry'),
