@@ -112,8 +112,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
     // Deactivation can be triggered by disposal while Flutter builds a new
     // owner/login cycle. Remove this exact modal after the frame; do not pop
     // an unrelated top route or leave a blank barrier covering the app.
-    // Date/time pickers are independent DialogRoutes above this bottom sheet.
-    // Remove only routes opened by this draft; never pop an unrelated screen.
+    // Core's anchored DateTime picker is an OverlayPortal descendant of
+    // this sheet, not a separate route. Removing only the sheet route also
+    // disposes the draft-owned overlay without touching unrelated routes.
     final sheetRoute = _sheetRoute;
     final navigator = _sheetNavigator;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -147,6 +148,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
 
   void _openDateTimePicker() {
     if (_attempted || _saving || !widget.sessionActive.value) return;
+    // Closing the editing keyboard first gives the popup the usable viewport
+    // above the pinned footer, as in Nutrition's Quick Add editor.
+    FocusScope.of(context).unfocus();
     final current = widget.now().toLocal();
     setState(() {
       _maximumLocal = current;
