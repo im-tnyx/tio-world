@@ -187,35 +187,12 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final typography = Theme.of(context).textTheme;
     return Stack(
       fit: StackFit.expand,
       children: [
-        _weightBody(context),
-        if (!_loading && _error == null && _snapshot != null)
-          Positioned.fill(
-            child: SafeArea(
-              child: Align(
-                alignment: AlignmentDirectional.bottomEnd,
-                child: Padding(
-                  padding: const EdgeInsets.all(TioSpacing.xl),
-                  child: TioButton.primary(
-                    key: const ValueKey('progress-weight-log-action'),
-                    label: 'Log Weight',
-                    trailing: const Icon(Icons.save_outlined),
-                    onPressed: _openLogWeight,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _weightBody(BuildContext context) {
-    final colors = context.tioColors;
-    final typography = Theme.of(context).textTheme;
-    return RefreshIndicator(
+        RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
@@ -284,6 +261,27 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           const SizedBox(height: TioSpacing.xl),
         ],
       ),
+        ),
+        if (!_loading && _error == null && _snapshot != null)
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: SizedBox(
+                    height: TioButtonTokens.height,
+                    child: TioButton.primary(
+                      key: const ValueKey('progress-weight-log-action'),
+                      label: 'Log Weight',
+                      onPressed: _openLogWeight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
