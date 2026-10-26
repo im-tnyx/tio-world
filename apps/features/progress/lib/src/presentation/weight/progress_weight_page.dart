@@ -187,12 +187,21 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           else if (_snapshot != null) ...[
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
-            Text('History', style: typography.titleLarge),
+            Row(
+              children: [
+                Expanded(child: Text('History', style: typography.titleLarge)),
+                TioButton.supporting(
+                  key: const ValueKey('progress-weight-log-action'),
+                  label: 'Log Weight',
+                  onPressed: _openLogWeight,
+                ),
+              ],
+            ),
             const SizedBox(height: TioSpacing.sm),
             if (_snapshot!.history.entries.isEmpty)
               const TioCard(
                 child: Text(
-                  'No weight measurements yet. You can record Current Weight in Body & Weight Settings.',
+                  'No weight measurements yet. Use Log Weight to add your first measurement.',
                 ),
               )
             else
