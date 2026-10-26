@@ -641,3 +641,7 @@ The owner-approved Workout Routine Delete centered confirmation caps its reusabl
 ## Pinned editor action footer (A3-F)
 
 `TioEditorActionFooter` composes a generic full-width 1dp separator, a bounded leading slot, right-aligned trailing slot, optional caller-owned note, and primary action, without feature domain rules. Supply it as `TioEditorSheet.actions` with `flushActions: true`. `TioEditorFooterAction` preserves the compact 44dp interactive treatment, key-controlled semantics and disabled opacity used by Nutrition's Meal footer. Nutrition still owns meal category selection, stable identities and DateTime policy; Progress owns Notes/Photo and Weight history logic. For anchored date-time use existing `TioDateTimePickerPopup`, not a second wheel.
+
+### Optional status for shell root top bar
+
+`TioShellStatusTopBar` accepts `statusLabel`, `statusKey` and `days` as optional: when the status label/key are absent together, it paints the same governed AppBar geometry without a fabricated status icon or count. Progress root uses this status-absent variant; Workout and Nutrition retain their status labels and streak semantics unchanged. `TioShell.state.isRootTopBarVisible` still gates the header for nested destinations.
