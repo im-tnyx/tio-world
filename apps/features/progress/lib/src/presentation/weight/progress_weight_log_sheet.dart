@@ -186,7 +186,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
         }
         final colors = context.tioColors;
         final typography = Theme.of(context).textTheme;
-        return TioEditorSheet(
+        return PopScope(
+          canPop: !_saving,
+          child: TioEditorSheet(
           title: 'Log Weight',
           canDismiss: !_saving,
           content: Column(
@@ -290,6 +292,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
             onPressed: _saving ? null : _save,
             loading: _saving,
             expand: true,
+          ),
           ),
         );
       },
