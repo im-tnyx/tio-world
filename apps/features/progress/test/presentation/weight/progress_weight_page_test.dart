@@ -825,7 +825,11 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
       TioSize.dp120,
     );
-    // Avoid printing the same date at both ends for just one measurement.
+    // The chart date can be below the viewport after the fixed action is
+    // added. Bring the date into view before asserting the single label.
+    final date = find.text('Oct 25, 2026', skipOffstage: false);
+    await tester.ensureVisible(date);
+    await tester.pumpAndSettle();
     expect(find.text('Oct 25, 2026'), findsOneWidget);
   });
 
