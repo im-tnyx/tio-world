@@ -41,6 +41,22 @@ void main() {
     expect(complete[0].isNewLow, isTrue);
   });
 
+  test('same-instant siblings cannot both claim a strict new low', () {
+    final stamp = now.subtract(const Duration(days: 1));
+    final rows = [
+      row('a', 73.2, stamp),
+      row('b', 73, stamp),
+      row('c', 74, now.subtract(const Duration(days: 2))),
+    ];
+    final items = ProgressWeightTimelineProjection.project(
+      entries: rows, hasMore: false, capturedAt: now,
+    );
+    expect(items[0].deltaKg, isNull);
+    expect(items[0].isNewLow, isFalse);
+    expect(items[1].isNewLow, isTrue);
+    expect(items[1].deltaKg, -1);
+  });
+
   test('Today cannot be inferred for a future-dated measurement', () {
     final rows = [
       row('future', 68, now.add(const Duration(minutes: 5))),
