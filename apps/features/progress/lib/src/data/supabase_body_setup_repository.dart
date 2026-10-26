@@ -38,7 +38,7 @@ final class _SupabaseBodyWeightLogTransport implements BodyWeightLogTransport {
     final to = query.toExclusive.toUtc().toIso8601String();
     var rowsQuery = _client
         .from('body_weight_logs')
-        .select('id, weight_kg, measured_at, source')
+        .select('id, weight_kg, measured_at, source, metadata')
         .eq('user_id', userId)
         .gte('measured_at', from)
         .lt('measured_at', to);
@@ -164,7 +164,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
 
     final latestWeightRow = await _client
         .from('body_weight_logs')
-        .select('id, weight_kg, measured_at, source')
+        .select('id, weight_kg, measured_at, source, metadata')
         .eq('user_id', userId)
         .order('measured_at', ascending: false)
         .limit(1)
@@ -191,12 +191,51 @@ class SupabaseBodySetupRepository implements BodyRepository {
     final userId = _requireUserId();
     _validateWeightRecord(record);
 
-    await _client.from('body_weight_logs').insert({
+    // The A3 sheet supplies one stable UUID across attempts; legacy Settings
+    // calls without a submissionId retain server-generated row identity.
+    final cycle =
+        record.submissionId == null ? null : _requireWeightSession(userId);
+    final payload = <String, dynamic>{
       'user_id': userId,
       'weight_kg': record.weightKg,
       'measured_at': record.measuredAt.toUtc().toIso8601String(),
       'source': record.source.trim(),
-    });
+      if (record.submissionId != null) 'id': record.submissionId,
+      if (record.note?.trim().isNotEmpty == true)
+        'metadata': <String, dynamic>{'note': record.note!.trim()},
+    };
+    try {
+      await _client.from('body_weight_logs').insert(payload);
+    } catch (_) {
+      final id = record.submissionId;
+      if (id == null) rethrow;
+
+      // An ambiguous timeout may have already committed the insert. Verify
+      // the exact owner row and payload before accepting a retry as saved.
+      // Reusing the UUID makes duplicate committed measurements impossible.
+      final existing = await _client
+          .from('body_weight_logs')
+          .select('weight_kg, measured_at, source, metadata')
+          .eq('user_id', userId)
+          .eq('id', id)
+          .maybeSingle();
+      _requireWeightSession(userId, expectedCycle: cycle);
+      if (existing == null) rethrow;
+      final mapped = _stateMapper.mapHistoryWeight({...existing, 'id': id});
+      if (mapped.weightKg != record.weightKg ||
+          !mapped.measuredAt.isAtSameMomentAs(record.measuredAt) ||
+          mapped.source != record.source.trim() ||
+          mapped.note != _normalizedNote(record.note)) {
+        throw StateError('Weight submission ID belongs to another record.');
+      }
+      return;
+    }
+    if (cycle != null) _requireWeightSession(userId, expectedCycle: cycle);
+  }
+
+  String? _normalizedNote(String? value) {
+    final note = value?.trim();
+    return note == null || note.isEmpty ? null : note;
   }
 
 
@@ -462,7 +501,8 @@ class SupabaseBodySetupRepository implements BodyRepository {
   }
 
   void _validateWeightRecord(BodyWeightRecord record) {
-    if (record.weightKg <= 0) {
+    record.validateNoteAndSubmission();
+    if (!record.weightKg.isFinite || record.weightKg <= 0) {
       throw ArgumentError.value(
         record.weightKg,
         'weightKg',
