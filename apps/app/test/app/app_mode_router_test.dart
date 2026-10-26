@@ -1233,6 +1233,17 @@ Future<
     calendarPreferencesControllerProvider.overrideWith((ref) => calendar),
     appSessionBootstrapControllerProvider.overrideWith((ref) => bootstrap),
     authSessionRepositoryProvider.overrideWithValue(auth),
+    if (initialPath == FeatureRoutes.progress.path)
+      authSessionStateProvider.overrideWith(
+        (ref) => Stream.value(
+          const AuthSessionAuthenticated(
+            AuthSession(
+              userId: 'test-user',
+              loginCycleId: 'progress-test-cycle',
+            ),
+          ),
+        ),
+      ),
     measurementUnitPreferencesRepositoryProvider.overrideWithValue(units),
     hydrationPreferencesRepositoryProvider.overrideWithValue(hydration),
     profileDataProvider.overrideWith((ref) => Stream.value(ProfileSetupData(

@@ -116,7 +116,16 @@ void main() {
     }
     await pumpPage(tester, repository);
     final loadMore = find.byKey(const ValueKey('progress-weight-load-more'));
-    await tester.scrollUntilVisible(loadMore, 300);
+    // Jump to the bottom, not merely until the widget is built:
+    // a lazily rendered button can still have its tap centre off-screen.
+    final scroll = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    scroll.position.jumpTo(scroll.position.maxScrollExtent);
+    await tester.pumpAndSettle();
     await tester.tap(loadMore);
     await tester.pumpAndSettle();
     expect(loadMore, findsNothing);
