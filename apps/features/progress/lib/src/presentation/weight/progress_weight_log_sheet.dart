@@ -340,6 +340,10 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             resolveDateTime: _resolveDateTime,
             onChanged: _onDateTimeChanged,
             onPickerInteractionStart: _refreshDateTimeMaximum,
+            // The raised Weight editor surface is already visible below
+            // this overlay. Suppress only the popup shadow's extra layer;
+            // preserve the single Core DateTime card and native wheel.
+            elevatedCard: false,
             child: TioEditorSheet(
           title: 'Log Weight',
           flushActions: true,
