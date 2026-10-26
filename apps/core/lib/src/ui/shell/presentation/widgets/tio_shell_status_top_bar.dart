@@ -10,7 +10,7 @@ class TioShellStatusTopBar extends StatelessWidget
     required this.title,
     this.statusLabel,
     this.statusKey,
-    required this.days,
+    this.days,
     required this.scrollOpacity,
     this.leadingAction,
     this.trailingAction,
@@ -45,7 +45,7 @@ class TioShellStatusTopBar extends StatelessWidget
     final semanticsLabel = statusLabel == null
         ? null
         : visibleDays == null
-            ? statusLabel!
+            ? statusLabel
             : '$statusLabel, $visibleDays day${visibleDays == 1 ? '' : 's'}';
 
     return AppBar(
