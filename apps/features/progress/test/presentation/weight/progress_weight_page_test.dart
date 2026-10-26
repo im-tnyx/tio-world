@@ -189,9 +189,10 @@ void main() {
     expect(repository.weightEntries, hasLength(1));
   });
 
-  testWidgets('new log uses the existing global lb input preference',
+  testWidgets('lb wheel displays 154.3 then saves matching canonical 70 kg',
       (tester) async {
-    await pumpPage(tester, InMemoryBodySetupRepository(), unit: WeightUnit.lb);
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository, unit: WeightUnit.lb);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
     final wheel = tester.widget<TioWeightWheel>(
@@ -199,6 +200,21 @@ void main() {
     );
     expect(wheel.unit, WeightUnit.lb);
     expect(wheel.showUnitSwitcher, isFalse);
+    final drums = find.descendant(
+      of: find.byKey(const ValueKey('progress-log-wheel')),
+      matching: find.byType(ListWheelScrollView),
+    );
+    expect(drums, findsNWidgets(2));
+    final whole = tester.widget<ListWheelScrollView>(drums.at(0)).controller!
+        as FixedExtentScrollController;
+    final decimal = tester.widget<ListWheelScrollView>(drums.at(1)).controller!
+        as FixedExtentScrollController;
+    expect(whole.selectedItem, 154 - 66);
+    expect(decimal.selectedItem, 3);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.weightKg, closeTo(70, 0.001));
   });
 
   testWidgets('shows measured Current Weight and global pounds preference',
