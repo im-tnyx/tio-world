@@ -8,19 +8,22 @@ class TioShellStatusTopBar extends StatelessWidget
     implements PreferredSizeWidget {
   const TioShellStatusTopBar({
     required this.title,
-    required this.statusLabel,
-    required this.statusKey,
-    required this.days,
+    this.statusLabel,
+    this.statusKey,
+    this.days,
     required this.scrollOpacity,
     this.leadingAction,
     this.trailingAction,
     this.center,
     super.key,
-  }) : assert(days == null || days >= 0);
+  }) : assert(days == null || days >= 0),
+       assert((statusLabel == null) == (statusKey == null)),
+       assert(days == null || statusLabel != null);
 
   final String title;
-  final String statusLabel;
-  final Key statusKey;
+  /// Null with [statusKey] for screens that have no real streak/status.
+  final String? statusLabel;
+  final Key? statusKey;
   final int? days;
   final double scrollOpacity;
   final Widget? leadingAction;
@@ -39,9 +42,11 @@ class TioShellStatusTopBar extends StatelessWidget
     final opacity = scrollOpacity.clamp(0, 1).toDouble();
     final colorScheme = Theme.of(context).colorScheme;
     final visibleDays = days != null && days! > 0 ? days : null;
-    final semanticsLabel = visibleDays == null
-        ? statusLabel
-        : '$statusLabel, $visibleDays day${visibleDays == 1 ? '' : 's'}';
+    final semanticsLabel = statusLabel == null
+        ? null
+        : visibleDays == null
+            ? statusLabel
+            : '$statusLabel, $visibleDays day${visibleDays == 1 ? '' : 's'}';
 
     return AppBar(
       toolbarHeight: TioNavigationTokens.topBarHeight,
@@ -63,7 +68,8 @@ class TioShellStatusTopBar extends StatelessWidget
             ),
       actions: [
         if (leadingAction case final action?) action,
-        Tooltip(
+        if (semanticsLabel != null)
+          Tooltip(
           message: semanticsLabel,
           child: Semantics(
             key: statusKey,

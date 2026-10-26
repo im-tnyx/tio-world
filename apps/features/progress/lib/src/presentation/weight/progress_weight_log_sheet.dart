@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/body_setup.dart';
@@ -50,7 +51,8 @@ class _ProgressWeightLogSheet extends StatefulWidget {
   State<_ProgressWeightLogSheet> createState() => _ProgressWeightLogSheetState();
 }
 
-class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
+class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
+    with WidgetsBindingObserver {
   static const _minKg = 30.0;
   static const _maxKg = 200.0;
 
@@ -58,7 +60,14 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   late DateTime _measuredLocal;
   late String _submissionId;
   late final TextEditingController _noteController;
+  late final TextEditingController _weightController;
+  bool _manualMode = false;
+  bool _manualValid = true;
+  static final _wordPattern = RegExp(r'\S+');
 
+  final _dateTimeAnchorKey = GlobalKey();
+  late DateTime _maximumLocal;
+  bool _dateTimePickerOpen = false;
   bool _noteVisible = false;
   // A wheel placeholder is not a user-entered measurement. History-derived
   // values are trusted only if they fit this wheel's supported range.
@@ -69,7 +78,6 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   // retry cannot prove the earlier request did not commit.
   bool _hasUnknownOutcome = false;
   bool _dismissQueued = false;
-  Route<dynamic>? _activePickerRoute;
   ModalRoute<dynamic>? _sheetRoute;
   NavigatorState? _sheetNavigator;
   String? _error;
@@ -87,8 +95,11 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     // the nearest wheel bound, either.
     _weightKg = _weightConfirmed ? initial! : 70.0;
     _measuredLocal = widget.now().toLocal();
+    _maximumLocal = widget.now().toLocal();
+    WidgetsBinding.instance.addObserver(this);
     _submissionId = _newUuid();
     _noteController = TextEditingController();
+    _weightController = TextEditingController(text: _weightDisplayValue());
     widget.sessionActive.addListener(_onSessionChanged);
   }
 
@@ -107,16 +118,13 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     // Deactivation can be triggered by disposal while Flutter builds a new
     // owner/login cycle. Remove this exact modal after the frame; do not pop
     // an unrelated top route or leave a blank barrier covering the app.
-    // Date/time pickers are independent DialogRoutes above this bottom sheet.
-    // Remove only routes opened by this draft; never pop an unrelated screen.
+    // Core's anchored DateTime picker is an OverlayPortal descendant of
+    // this sheet, not a separate route. Removing only the sheet route also
+    // disposes the draft-owned overlay without touching unrelated routes.
     final sheetRoute = _sheetRoute;
-    final pickerRoute = _activePickerRoute;
     final navigator = _sheetNavigator;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || navigator == null || !navigator.mounted) return;
-      if (pickerRoute != null && pickerRoute.isActive) {
-        navigator.removeRoute(pickerRoute);
-      }
       if (sheetRoute != null && sheetRoute.isActive) {
         navigator.removeRoute(sheetRoute);
       }
@@ -139,71 +147,111 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   @override
   void dispose() {
     widget.sessionActive.removeListener(_onSessionChanged);
+    WidgetsBinding.instance.removeObserver(this);
     _noteController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
+  void _openDateTimePicker() {
     if (_attempted || _saving || !widget.sessionActive.value) return;
-    final today = widget.now().toLocal();
-    DateTime? date;
-    try {
-      date = await showDatePicker(
-        context: context,
-        initialDate: _measuredLocal,
-        firstDate: DateTime(1900),
-        lastDate: DateTime(today.year, today.month, today.day),
-        builder: (dialogContext, child) {
-          _activePickerRoute = ModalRoute.of(dialogContext);
-          return child!;
-        },
-      );
-    } finally {
-      _activePickerRoute = null;
-    }
-    // Snapshot the dialog result into a final local before the setState closure
-    // so Dart can promote it after the null guard.
-    final selectedDate = date;
-    if (selectedDate == null || !mounted || !widget.sessionActive.value) return;
+    // Closing the editing keyboard first gives the popup the usable viewport
+    // above the pinned footer, as in Nutrition's Quick Add editor.
+    FocusScope.of(context).unfocus();
+    final current = widget.now().toLocal();
     setState(() {
-      _measuredLocal = DateTime(
-        selectedDate.year, selectedDate.month, selectedDate.day,
-        _measuredLocal.hour, _measuredLocal.minute,
-      );
+      _maximumLocal = current;
+      if (_measuredLocal.isAfter(current)) _measuredLocal = current;
+      _dateTimePickerOpen = true;
       _error = null;
     });
   }
 
-  Future<void> _pickTime() async {
-    if (_attempted || _saving || !widget.sessionActive.value) return;
-    TimeOfDay? time;
-    try {
-      time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_measuredLocal),
-        builder: (dialogContext, child) {
-          _activePickerRoute = ModalRoute.of(dialogContext);
-          return child!;
-        },
-      );
-    } finally {
-      _activePickerRoute = null;
+  void _closeDateTimePicker() {
+    if (!_dateTimePickerOpen || !mounted) return;
+    setState(() => _dateTimePickerOpen = false);
+  }
+
+  void _refreshDateTimeMaximum() {
+    if (!mounted || !_dateTimePickerOpen || !widget.sessionActive.value) {
+      return;
     }
-    final selectedTime = time;
-    if (selectedTime == null || !mounted || !widget.sessionActive.value) return;
+    final current = widget.now().toLocal();
     setState(() {
-      _measuredLocal = DateTime(
-        _measuredLocal.year, _measuredLocal.month, _measuredLocal.day,
-        selectedTime.hour, selectedTime.minute,
-      );
+      _maximumLocal = current;
+      if (_measuredLocal.isAfter(current)) _measuredLocal = current;
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshDateTimeMaximum();
+  }
+
+  DateTime _resolveDateTime(DateTime candidate) {
+    final current = widget.now().toLocal();
+    return candidate.isAfter(current) ? current : candidate;
+  }
+
+  void _onDateTimeChanged(DateTime selected) {
+    if (!mounted || _saving || _attempted || !widget.sessionActive.value) {
+      return;
+    }
+    setState(() {
+      _measuredLocal = _resolveDateTime(selected);
+      _maximumLocal = widget.now().toLocal();
       _error = null;
     });
   }
+
+  double _displayWeightKg(double displayValue) =>
+      widget.unit == WeightUnit.kg
+          ? displayValue
+          : UnitConverters.lbToKg(displayValue);
+
+  String _weightDisplayValue() {
+    final display = widget.unit == WeightUnit.kg
+        ? _weightKg
+        : UnitConverters.kgToLb(_weightKg);
+    return display.toStringAsFixed(1);
+  }
+
+  void _toggleWeightInputMode() {
+    if (_attempted || _saving || !widget.sessionActive.value) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _manualMode = !_manualMode;
+      _manualValid = true;
+      _weightController.text = _weightDisplayValue();
+      _error = null;
+    });
+  }
+
+  void _handleManualWeightChanged(String value) {
+    if (_attempted || _saving || !widget.sessionActive.value) return;
+    final display = double.tryParse(value.trim());
+    final kg = display == null ? null : _displayWeightKg(display);
+    final valid = kg != null &&
+        kg.isFinite &&
+        kg >= _minKg &&
+        kg <= _maxKg;
+    setState(() {
+      _manualValid = valid;
+      if (valid) {
+        _weightKg = kg;
+        _weightConfirmed = true;
+      }
+      _error = null;
+    });
+  }
+
+  static int _wordCount(String value) =>
+      _wordPattern.allMatches(value.trim()).length;
 
   Future<void> _save() async {
     if (_saving || !widget.sessionActive.value) return;
-    if (!_weightConfirmed) {
-      setState(() => _error = 'Confirm your weight before saving.');
+    if (!_weightConfirmed || (_manualMode && !_manualValid)) {
+      setState(() => _error = 'Confirm a valid weight before saving.');
       return;
     }
     final now = widget.now().toUtc();
@@ -218,8 +266,8 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
       return;
     }
     final rawNote = _noteController.text.trim();
-    if (rawNote.characters.length > 500) {
-      setState(() => _error = 'Notes must be 500 characters or fewer.');
+    if (_wordCount(rawNote) > 100 || rawNote.characters.length > 500) {
+      setState(() => _error = 'Note is too long.');
       return;
     }
 
@@ -278,48 +326,87 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
         return PopScope(
           // Unknown writes must retain the same UUID for a safe retry.
           // Never let Close/Back create a fresh draft with a new UUID.
-          canPop: !_attempted && !_saving,
-          child: TioEditorSheet(
+          canPop: !_attempted && !_saving && !_dateTimePickerOpen,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && _dateTimePickerOpen) _closeDateTimePicker();
+          },
+          child: TioDateTimePickerPopup(
+            anchorKey: _dateTimeAnchorKey,
+            isOpen: _dateTimePickerOpen,
+            onDismiss: _closeDateTimePicker,
+            value: _measuredLocal,
+            minimumDate: DateTime(1900),
+            maximumDate: _maximumLocal,
+            resolveDateTime: _resolveDateTime,
+            onChanged: _onDateTimeChanged,
+            onPickerInteractionStart: _refreshDateTimeMaximum,
+            // The raised Weight editor surface is already visible below
+            // this overlay. Suppress only the popup shadow's extra layer;
+            // preserve the single Core DateTime card and native wheel.
+            elevatedCard: false,
+            child: TioEditorSheet(
           title: 'Log Weight',
+          flushActions: true,
           canDismiss: !_attempted && !_saving,
-          titleTrailing: IconButton(
-            key: const ValueKey('progress-log-close'),
-            tooltip: 'Close Log Weight',
-            onPressed: (_saving || _attempted)
-                 ? null
-                 : () => Navigator.of(context).pop(false),
-            icon: const Icon(Icons.close),
+          titleTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: const ValueKey('progress-log-weight-mode-toggle'),
+                tooltip: _manualMode ? 'Use weight wheel' : 'Type weight',
+                onPressed: _saving || _attempted
+                    ? null
+                    : _toggleWeightInputMode,
+                icon: Icon(_manualMode ? Icons.tune : Icons.edit_outlined),
+              ),
+              IconButton(
+                key: const ValueKey('progress-log-close'),
+                tooltip: 'Close Log Weight',
+                onPressed: (_saving || _attempted)
+                    ? null
+                    : () => Navigator.of(context).pop(false),
+                icon: const Icon(Icons.close),
+              ),
+            ],
           ),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Unit selection is global, not another mutable option here.
-              Text(
-                widget.unit == WeightUnit.lb ? 'Weight (lb)' : 'Weight (kg)',
-                key: const ValueKey('progress-log-weight-unit-label'),
-                style: typography.labelLarge?.copyWith(
-                  color: colors.textSecondary,
+              // The canonical wheel is the default full-height editor.
+              // The header pencil switches only the input mode, not the
+              // global kg/lb preference or the canonical storage unit.
+              if (_manualMode)
+                TioInput.numericEditor(
+                  key: const ValueKey('progress-log-manual-weight'),
+                  controller: _weightController,
+                  autofocus: true,
+                  enabled: !_attempted && !_saving,
+                  suffixText: widget.unit == WeightUnit.lb ? 'lb' : 'kg',
+                  onChanged: _handleManualWeightChanged,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  ],
+                )
+              else
+                IgnorePointer(
+                  ignoring: _attempted,
+                  child: TioWeightWheel(
+                    key: const ValueKey('progress-log-wheel'),
+                    valueKg: _weightKg,
+                    unit: widget.unit,
+                    showUnitSwitcher: false,
+                    minKg: _minKg,
+                    maxKg: _maxKg,
+                    onChanged: (kg) {
+                      if (_attempted) return;
+                      setState(() {
+                        _weightKg = kg;
+                        _weightController.text = _weightDisplayValue();
+                        _error = null;
+                      });
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: TioSpacing.sm),
-              IgnorePointer(
-                ignoring: _attempted,
-                child: TioWeightWheel(
-                key: const ValueKey('progress-log-wheel'),
-                valueKg: _weightKg,
-                unit: widget.unit,
-                showUnitSwitcher: false,
-                minKg: _minKg,
-                maxKg: _maxKg,
-                onChanged: (kg) {
-                  if (_attempted) return;
-                  setState(() {
-                    _weightKg = kg;
-                    _error = null;
-                  });
-                },
-                ),
-              ),
               if (!_weightConfirmed) ...[
                 const SizedBox(height: TioSpacing.sm),
                 Text(
@@ -340,60 +427,21 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
                         }),
                 ),
               ],
-              const SizedBox(height: TioSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: TioButton.supporting(
-                      key: const ValueKey('progress-log-date'),
-                      label: MaterialLocalizations.of(context)
-                          .formatMediumDate(_measuredLocal),
-                      onPressed: _attempted ? null : _pickDate,
-                    ),
-                  ),
-                  const SizedBox(width: TioSpacing.sm),
-                  Expanded(
-                    child: TioButton.supporting(
-                      key: const ValueKey('progress-log-time'),
-                      label: TimeOfDay.fromDateTime(_measuredLocal).format(context),
-                      onPressed: _attempted ? null : _pickTime,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.md),
-              Row(
-                children: [
-                  IconButton(
-                    key: const ValueKey('progress-log-note-toggle'),
-                    tooltip: _noteVisible ? 'Hide note' : 'Add note',
-                    onPressed: _attempted
-                        ? null
-                        : () => setState(() => _noteVisible = !_noteVisible),
-                    icon: Icon(_noteVisible ? Icons.edit_note : Icons.notes_outlined),
-                  ),
-                  const Text('Note (optional)'),
-                  const Spacer(),
-                  const Tooltip(
-                    message: 'Photos available in a later private-media update',
-                    child: IconButton(
-                      key: ValueKey('progress-log-photo-later'),
-                      tooltip: 'Photos coming later',
-                      onPressed: null,
-                      icon: Icon(Icons.add_photo_alternate_outlined),
-                    ),
-                  ),
-                ],
-              ),
               if (_noteVisible) ...[
                 const SizedBox(height: TioSpacing.sm),
                 TioInput.multiline(
                   key: const ValueKey('progress-log-note-field'),
                   controller: _noteController,
                   onChanged: (_) {},
-                  minLines: 2,
-                  maxLines: 4,
-                  maxLength: 500,
+                  minLines: 1,
+                  maxLines: 2,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(500),
+                    TextInputFormatter.withFunction((oldValue, newValue) =>
+                        _wordCount(newValue.text) <= 100
+                            ? newValue
+                            : oldValue),
+                  ],
                   enabled: !_attempted,
                   hint: 'Add a note about this measurement',
                 ),
@@ -415,14 +463,84 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
               ],
             ],
           ),
-          actions: TioButton.primary(
-            key: const ValueKey('progress-log-save'),
-            label: _attempted ? 'Retry Log Weight' : 'Save Weight',
-            onPressed: (_saving || (!_attempted && !_weightConfirmed))
-                 ? null
-                 : _save,
-            loading: _saving,
-            expand: true,
+          actions: TioEditorActionFooter(
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: const ValueKey('progress-log-note-toggle'),
+                  tooltip: _noteVisible ? 'Hide note' : 'Add note',
+                  onPressed: _attempted || _saving
+                      ? null
+                      : () => setState(() => _noteVisible = !_noteVisible),
+                  icon: Icon(
+                    _noteVisible ? Icons.edit_note : Icons.notes_outlined,
+                  ),
+                ),
+                const Tooltip(
+                  message: 'Photos available in a later private-media update',
+                  child: IconButton(
+                    key: ValueKey('progress-log-photo-later'),
+                    tooltip: 'Photos coming later',
+                    onPressed: null,
+                    icon: Icon(Icons.add_photo_alternate_outlined),
+                  ),
+                ),
+              ],
+            ),
+            trailing: KeyedSubtree(
+              key: _dateTimeAnchorKey,
+              child: TioEditorFooterAction(
+                controlKey: const ValueKey('progress-log-date-time'),
+                semanticLabel:
+                    'Measurement date and time: '
+                    '${MaterialLocalizations.of(context).formatMediumDate(_measuredLocal)}, '
+                    '${TimeOfDay.fromDateTime(_measuredLocal).format(context)}',
+                onTap: _attempted || _saving ? null : _openDateTimePicker,
+                builder: (context, textStyle, iconColor) {
+                  final localizations = MaterialLocalizations.of(context);
+                  final dateTimeLabel =
+                      '${localizations.formatShortMonthDay(_measuredLocal)}, '
+                      '${_measuredLocal.hour.toString().padLeft(2, '0')}:'
+                      '${_measuredLocal.minute.toString().padLeft(2, '0')}';
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/svg_icon/ic_calendar_1.svg',
+                        package: 'tio_core',
+                        width: TioSize.dp20,
+                        height: TioSize.dp20,
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                      const SizedBox(width: TioSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          dateTimeLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textStyle,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            primary: TioButton.primary(
+              key: const ValueKey('progress-log-save'),
+              label: _attempted ? 'Retry Log Weight' : 'Save Weight',
+              onPressed: (_saving || (!_attempted &&
+                  (!_weightConfirmed || (_manualMode && !_manualValid))))
+                  ? null
+                  : _save,
+              loading: _saving,
+              expand: true,
+            ),
+          ),
           ),
           ),
         );

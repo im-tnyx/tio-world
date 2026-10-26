@@ -13,3 +13,10 @@
 - **Security:** No Auth/data changes. Preserve existing `_openLogWeight` session ownership and error gating. No SQL, Storage/RLS, watch, services/api, AI or navigation redesign.
 - **Ownership/sequence:** PR #695 owns editor sheet and editor tests. This slice must not edit those files or depend on #695 and will be reviewed independently. Do not merge or enable auto-merge.
 - **Validation remaining:** Flutter analyze/test exact HEAD, shell top-bar geometry across tabs/compact/large text, fixed button same viewport rect after scrolling, 56dp height and content clearance; independent reviewer and CI. Local device QA unavailable/not claimed.
+
+
+## Reconciliation after #695 merge (2026-10-26)
+- #695 merged into main at `63b2853`; retain its canonical `TioShellStatusTopBar` and no duplicate Weight heading. The previous #696 standalone AppBar is superseded.
+- Fixed Log Weight action now uses `TioButtonTokens.height` (46dp), with safe-area and 24dp insets, Timeline label and scroll clearance. No changes to Weight editor, Nutrition, Supabase or shared shell.
+- Tests updated to assert 46dp, stable viewport rect, bottom Load more clearance, and editor opening.
+- Requires fresh exact-HEAD CI, independent review, and parent #698 re-reconciliation. Do not merge without explicit owner go-merge instruction.

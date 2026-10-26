@@ -45,82 +45,6 @@ void main() {
     expect(find.byTooltip('Settings'), findsNothing);
   });
 
-  testWidgets('Progress reserves the same root shell bar height as peer tabs',
-      (tester) async {
-    final rootTabs = <ShellTab>[
-      ShellTab.home,
-      ShellTab.workout,
-      ShellTab.nutrition,
-      ShellTab.progress,
-    ];
-    double? bodyTop;
-    for (final tab in rootTabs) {
-      await tester.pumpWidget(
-        MaterialApp(
-          builder: (context, child) => TioTheme(
-            child: child ?? const SizedBox.shrink(),
-          ),
-          home: TioShell(
-            state: ShellUiState(
-              selectedTab: tab,
-              visibleTabs: rootTabs,
-            ),
-            onAction: (_) {},
-            child: const SizedBox.expand(
-              key: ValueKey('root-tab-body'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final bar = tester.widget<Scaffold>(find.byType(Scaffold)).appBar;
-      expect(bar, isNotNull, reason: '${tab.name} must own the root top bar');
-      expect(bar!.preferredSize.height, TioNavigationTokens.topBarHeight);
-      final y = tester.getRect(find.byKey(const ValueKey('root-tab-body'))).top;
-      bodyTop ??= y;
-      expect(y, closeTo(bodyTop, 1),
-          reason: 'Switching tabs cannot shift the top of the body');
-      if (tab == ShellTab.progress) {
-        final progressBar = tester.widget<AppBar>(find.byType(AppBar));
-        expect(progressBar.toolbarHeight, TioNavigationTokens.topBarHeight);
-        expect((progressBar.title! as Text).data, ShellTab.progress.label);
-        // Progress has no approved streak state. No fake Workout/Meal count.
-        expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
-        expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsNothing);
-        expect(find.byKey(const ValueKey('shell-status-streak-icon')), findsNothing);
-      }
-    }
-  });
-
-  testWidgets('Progress toolbar keeps 56dp on compact large-text viewport',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320, 560));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(1.8),
-          ),
-          child: TioTheme(child: child ?? const SizedBox.shrink()),
-        ),
-        home: TioShell(
-          state: const ShellUiState(
-            selectedTab: ShellTab.progress,
-            visibleTabs: [ShellTab.home, ShellTab.nutrition, ShellTab.progress],
-          ),
-          onAction: (_) {},
-          child: const SizedBox.shrink(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.widget<AppBar>(find.byType(AppBar)).toolbarHeight,
-        TioNavigationTokens.topBarHeight);
-    expect(tester.takeException(), isNull);
-  });
-
   for (final testCase in <(ShellPlanTier, String)>[
     (ShellPlanTier.free, 'Get Pro'),
     (ShellPlanTier.plus, 'Plus'),
@@ -309,6 +233,72 @@ void main() {
       );
     });
   }
+
+  testWidgets('Progress root shares canonical top bar, no fake streak',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.progress,
+            visibleTabs: [
+              ShellTab.home,
+              ShellTab.workout,
+              ShellTab.nutrition,
+              ShellTab.progress,
+            ],
+          ),
+          onAction: (_) {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.byType(TioShellStatusTopBar), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.text('Progress'), findsWidgets);
+    expect(find.byKey(const ValueKey('shell-status-streak-icon')), findsNothing);
+    expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsNothing);
+    expect(find.text('TIO'), findsNothing);
+    final bar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(bar.toolbarHeight, TioNavigationTokens.topBarHeight);
+    expect(bar.shape, isNull);
+    expect(bar.elevation, 0);
+    expect(bar.scrolledUnderElevation, 0);
+    expect(
+      tester.widget<TioShellStatusTopBar>(
+        find.byType(TioShellStatusTopBar),
+      ).preferredSize.height,
+      TioNavigationTokens.topBarHeight,
+    );
+  });
+
+  testWidgets('Progress nested sub-screen retains no root top bar',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.progress,
+            visibleTabs: [ShellTab.home, ShellTab.progress],
+            isRootTopBarVisible: false,
+          ),
+          onAction: (_) {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byType(TioShellStatusTopBar), findsNothing);
+  });
 
   testWidgets('feature status shows only a real positive count',
       (tester) async {

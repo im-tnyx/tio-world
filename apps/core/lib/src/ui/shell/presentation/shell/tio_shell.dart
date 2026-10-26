@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../theme/theme.dart';
-
 import '../action/shell_action.dart';
 import '../state/shell_state.dart';
 import '../widgets/tio_shell_bottom_nav.dart';
@@ -81,24 +79,12 @@ class TioShell extends StatelessWidget {
                   trailingAction: statusTopBarTrailingAction,
                   center: statusTopBarCenter,
                 ),
-              // Progress is a first-class root tab and must reserve the
-              // same canonical toolbar height and status-bar inset as every
-              // other primary screen. It has no verified streak domain, so
-              // do not invent one merely to reuse the status top bar.
-              ShellTab.progress => AppBar(
-                  toolbarHeight: TioNavigationTokens.topBarHeight,
-                  automaticallyImplyLeading: false,
-                  titleSpacing: TioSpacing.lg,
-                  title: Text(statusTopBarTitle ?? ShellTab.progress.label),
-                  shape: null,
-                  surfaceTintColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  scrolledUnderElevation: TioElevation.none,
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .surface
-                      .withValues(alpha: state.appBarOpacity.clamp(0, 1).toDouble()),
-                  elevation: TioElevation.none,
+              ShellTab.progress => TioShellStatusTopBar(
+                  title: statusTopBarTitle ?? ShellTab.progress.label,
+                  scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
+                  trailingAction: statusTopBarTrailingAction,
+                  center: statusTopBarCenter,
                 ),
               ShellTab.ai => null,
             }

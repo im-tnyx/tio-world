@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Progress 56dp Log Weight action stays fixed during Timeline scroll',
+  testWidgets('Progress 46dp Log Weight action stays fixed during Timeline scroll',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -58,7 +58,7 @@ void main() {
     expect(action, findsOneWidget);
     expect(tester.widget<TioButton>(action).variant, TioButtonVariant.primary);
     final before = tester.getRect(action);
-    expect(before.height, TioSize.dp56);
+    expect(before.height, TioButtonTokens.height);
     expect(before.right, closeTo(360 - TioSpacing.xl, 1));
 
     await tester.drag(list, const Offset(0, -400));
@@ -86,7 +86,7 @@ void main() {
     await pumpProgress(tester, repo, scale: 1.5);
     final action = find.byKey(const ValueKey('progress-weight-log-action'));
     expect(action, findsOneWidget);
-    expect(tester.getRect(action).height, TioSize.dp56);
+    expect(tester.getRect(action).height, TioButtonTokens.height);
     expect(tester.takeException(), isNull);
   });
 

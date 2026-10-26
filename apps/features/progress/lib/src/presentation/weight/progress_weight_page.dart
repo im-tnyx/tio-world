@@ -7,9 +7,8 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
-// Matches the approved compact bottom action footprint: 46dp control and 24dp
-// breathing room on each side, plus the current safe bottom inset.
-const double _logWeightClearance = TioSize.dp46 + TioSpacing.xl * 2;
+// Fixed primary action plus 24dp breathing room on both sides.
+const double _logWeightActionClearance = TioButtonTokens.height + 2 * TioSpacing.xl;
 
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
@@ -171,17 +170,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           TioSpacing.lg,
           TioSpacing.md,
           TioSpacing.lg,
-          _logWeightClearance + MediaQuery.paddingOf(context).bottom,
+          _logWeightActionClearance + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          Text(
-            'Weight',
-            key: const ValueKey('progress-weight-heading'),
-            style: typography.headlineSmall?.copyWith(
-              color: colors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.lg),
+          // The shell owns the Progress title. The body begins with the
+          // actual Weight summary instead of repeating a page heading.
           if (_loading)
             const Center(
               child: Padding(
@@ -238,9 +231,6 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ],
       ),
         ),
-        // The button is attached to the viewport, not the Timeline list.
-        // Preserve its Nutrition-equivalent SafeArea and 24dp inset while
-        // keeping the labelled Tio pill rather than switching to a '+' FAB.
         if (!_loading && _error == null && _snapshot != null)
           Positioned.fill(
             child: SafeArea(
@@ -249,7 +239,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(TioSpacing.xl),
                   child: SizedBox(
-                    height: TioSize.dp46,
+                    height: TioButtonTokens.height,
                     child: TioButton.primary(
                       key: const ValueKey('progress-weight-log-action'),
                       label: 'Log Weight',
