@@ -54,6 +54,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('Progress shell title is not duplicated below the top bar',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    expect(find.byKey(const ValueKey('progress-weight-heading')), findsNothing);
+    expect(find.text('Weight'), findsNothing);
+    expect(find.text('Weight summary'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-scroll')), findsOneWidget);
+  });
+
   testWidgets('empty Weight shows truthful first-entry help, no active edit',
       (tester) async {
     await pumpPage(tester, InMemoryBodySetupRepository());
