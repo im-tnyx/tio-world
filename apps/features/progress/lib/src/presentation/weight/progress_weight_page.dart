@@ -47,6 +47,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   bool _loading = true;
   bool _loadingMore = false;
   bool _refreshFailed = false;
+  // Prevent edits against a stale row after a confirmed write while its
+  // canonical History refresh is pending or has failed.
+  bool _mutationNeedsReconcile = false;
   String? _editingWeightId;
   int _generation = 0;
   ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
@@ -85,7 +88,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
 
   Future<void> _openLogWeight() async {
     final snapshot = _snapshot;
-    if (snapshot == null || _loading) return;
+    if (snapshot == null || _loading || _mutationNeedsReconcile) return;
     final active = _sessionActive;
     final repository = widget.repository;
     final result = await showProgressWeightLogSheet(
@@ -103,12 +106,14 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     );
     if (!mounted || !active.value || result != true) return;
     widget.onWeightLogged?.call();
-    await _reload();
+    if (!mounted || !active.value) return;
+    await _reconcileWeightMutation();
   }
 
   Future<void> _openWeightEditor(BodyWeightEntry entry) async {
     final id = entry.id;
-    if (id == null || _editingWeightId != null || _loading) return;
+    if (id == null || _editingWeightId != null || _loading ||
+        _mutationNeedsReconcile) return;
     final active = _sessionActive;
     final generation = _generation;
     final repository = widget.repository;
@@ -144,7 +149,16 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       return;
     }
     widget.onWeightLogged?.call();
-    await _reload();
+    if (!mounted || !active.value || generation != _generation) return;
+    await _reconcileWeightMutation();
+  }
+
+  Future<void> _reconcileWeightMutation() async {
+    if (!mounted || !_sessionActive.value || _snapshot == null) return;
+    setState(() => _mutationNeedsReconcile = true);
+    // The existing chart and Timeline stay mounted until the canonical
+    // History read succeeds; failure retains them with an explicit Retry.
+    await _reload(preserveContent: true);
   }
 
   Future<void> _reload({bool preserveContent = false}) async {
@@ -156,7 +170,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     setState(() {
       _loading = !keepExisting;
       _loadingMore = false;
-      if (!keepExisting) _snapshot = null;
+      if (!keepExisting) {
+        _snapshot = null;
+        _mutationNeedsReconcile = false;
+      }
       _error = null;
       _historyError = null;
       _refreshFailed = false;
@@ -203,6 +220,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         _snapshot = snapshot;
         _loading = false;
         _refreshFailed = false;
+        _mutationNeedsReconcile = false;
       });
     } catch (_) {
       // Never log health measurements, tokens or user-owned row identifiers.
@@ -223,7 +241,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Future<void> _loadMore() async {
     final snapshot = _snapshot;
     final cursor = snapshot?.history.nextCursor;
-    if (snapshot == null || cursor == null || _loadingMore) return;
+    if (snapshot == null || cursor == null || _loadingMore ||
+        _mutationNeedsReconcile) {
+      return;
+    }
     final generation = _generation;
     setState(() {
       _historyError = null;
@@ -371,7 +392,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     child: TioButton.primary(
                       key: const ValueKey('progress-weight-log-action'),
                       label: 'Log Weight',
-                      onPressed: _openLogWeight,
+                      onPressed: _mutationNeedsReconcile
+                          ? null : _openLogWeight,
                     ),
                   ),
                 ),
@@ -996,7 +1018,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final editAction = IconButton(
       key: ValueKey('progress-weight-edit-${entry.id}'),
       tooltip: 'Edit weight log',
-      onPressed: _editingWeightId == null
+      onPressed: _editingWeightId == null && !_mutationNeedsReconcile
           ? () => _openWeightEditor(entry)
           : null,
       constraints: const BoxConstraints(
@@ -1107,7 +1129,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             // A short tap and normal vertical scrolling remain unchanged.
             onLongPress: entry.id != null &&
                     _editingWeightId == null &&
-                    !_loading
+                    !_loading &&
+                    !_mutationNeedsReconcile
                 ? () => _openWeightEditor(entry)
                 : null,
             child: DecoratedBox(

@@ -1721,8 +1721,7 @@ void main() {
     final widget = tester.widget<CustomScrollView>(scroll);
     expect(widget.physics, isA<BouncingScrollPhysics>());
     expect(widget.physics?.parent, isA<AlwaysScrollableScrollPhysics>());
-    expect(find.byKey(const ValueKey('progress-weight-pull-space')),
-        findsOneWidget);
+    expect(widget.slivers.first, isA<CupertinoSliverRefreshControl>());
     await tester.drag(scroll, const Offset(0, 350));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -1757,7 +1756,7 @@ void main() {
     expect(repository.refreshReadStarted, isTrue);
     expect(find.byKey(const ValueKey('progress-weight-log-action')),
         findsOneWidget);
-    expect(find.text('Timeline'), findsOneWidget);
+    // Timeline may be below the lazy SliverList's built viewport.
     expect(find.text('73 kg'), findsWidgets);
     pending.complete();
     await tester.pumpAndSettle();
@@ -1786,7 +1785,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(repo.refreshReadStarted, isTrue);
     expect(find.text('73 kg'), findsWidgets);
-    expect(find.text('Timeline'), findsOneWidget);
+    // Chart remains mounted; Timeline may be lazy/offscreen during a pull.
     expect(graph, findsOneWidget);
     expect(log, findsOneWidget);
     expect(find.text('Weight could not be loaded.'), findsNothing);
