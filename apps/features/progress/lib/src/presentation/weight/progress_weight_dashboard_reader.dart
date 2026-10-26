@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import '../../domain/body_setup.dart';
 
 /// The chart window is relative to an instant, not a synthetic calendar series.
@@ -15,7 +13,13 @@ enum ProgressWeightRange {
 }
 
 /// A display-independent projection of the canonical active Body Goal.
-enum ProgressWeightTargetStatus { reached, onTrack, progress }
+enum ProgressWeightTargetStatus {
+  reached,
+  belowTarget,
+  aboveTarget,
+  onTrack,
+  progress,
+}
 
 class ProgressWeightTargetProgress {
   const ProgressWeightTargetProgress({
@@ -56,22 +60,27 @@ class ProgressWeightSnapshot {
     if (activeGoal == null || target == null) return null;
 
     final weight = current?.weightKg;
-    final remaining = weight == null
-        ? null
-        : switch (activeGoal.goalType) {
-            BodyGoalType.loseWeight => math.max(0.0, weight - target),
-            BodyGoalType.gainWeight => math.max(0.0, target - weight),
-            _ => (weight - target).abs(),
-          };
+    // Keep the actual difference on either side of the saved goal. Clamping
+    // it to zero previously hid overshoot behind "Target reached".
+    final signedDifference = weight == null ? null : weight - target;
+    final remaining = signedDifference?.abs();
     final baseline = activeGoal.startingWeightKg;
     final movedCloser = remaining != null &&
         baseline != null &&
         remaining < (baseline - target).abs();
-    final status = remaining != null && remaining < 0.0001
-        ? ProgressWeightTargetStatus.reached
-        : movedCloser
-            ? ProgressWeightTargetStatus.onTrack
-            : ProgressWeightTargetStatus.progress;
+    final status = signedDifference == null
+        ? ProgressWeightTargetStatus.progress
+        : signedDifference.abs() < 0.0001
+            ? ProgressWeightTargetStatus.reached
+            : activeGoal.goalType == BodyGoalType.loseWeight &&
+                    signedDifference < 0
+                ? ProgressWeightTargetStatus.belowTarget
+                : activeGoal.goalType == BodyGoalType.gainWeight &&
+                        signedDifference > 0
+                    ? ProgressWeightTargetStatus.aboveTarget
+                    : movedCloser
+                        ? ProgressWeightTargetStatus.onTrack
+                        : ProgressWeightTargetStatus.progress;
     return ProgressWeightTargetProgress(
       targetKg: target,
       remainingKg: remaining,
