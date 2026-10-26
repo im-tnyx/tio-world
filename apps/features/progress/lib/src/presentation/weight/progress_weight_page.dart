@@ -422,6 +422,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               color: colors.textSecondary,
             ),
           ),
+          if (entry.note != null) ...[
+            const SizedBox(height: TioSpacing.xs),
+            Text(entry.note!, style: typography.bodyMedium),
+          ],
         ],
       ),
     );
