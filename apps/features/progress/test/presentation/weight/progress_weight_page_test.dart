@@ -38,8 +38,77 @@ void main() {
     expect(find.text('Weight summary'), findsOneWidget);
     expect(find.text('No measurements in this range'), findsOneWidget);
     expect(find.textContaining('No weight measurements yet'), findsOneWidget);
-    expect(find.text('Log Weight'), findsNothing);
+    expect(find.byKey(const ValueKey('progress-weight-log-action')), findsOneWidget);
     expect(find.byIcon(Icons.edit), findsNothing);
+  });
+
+
+  testWidgets('Log sheet reuses wheel; Notes icon alone expands text field',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
+    final photo = tester.widget<IconButton>(
+      find.byKey(const ValueKey('progress-log-photo-later')),
+    );
+    expect(photo.onPressed, isNull);
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
+  });
+
+  testWidgets('A3 optional note persists on Save and History refreshes',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    await tester.pumpAndSettle();
+    final field = find.descendant(
+      of: find.byKey(const ValueKey('progress-log-note-field')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(field, 'Morning check-in');
+    await tester.ensureVisible(find.byKey(const ValueKey('progress-log-save')));
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.note, 'Morning check-in');
+    expect(repository.weightEntries.single.source, BodyWeightSources.manual);
+    expect(find.text('Morning check-in'), findsOneWidget);
+  });
+
+  testWidgets('ambiguous failed submission retries same ID exactly once',
+      (tester) async {
+    final repository = _AmbiguousSaveWeightRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(find.textContaining('Save not confirmed'), findsOneWidget);
+    expect(find.textContaining('Details are locked'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.attempts, 2);
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsNothing);
+  });
+
+  testWidgets('new log uses the existing global lb input preference',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository(), unit: WeightUnit.lb);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    final wheel = tester.widget<TioWeightWheel>(
+      find.byKey(const ValueKey('progress-log-wheel')),
+    );
+    expect(wheel.unit, WeightUnit.lb);
+    expect(wheel.showUnitSwitcher, isFalse);
   });
 
   testWidgets('shows measured Current Weight and global pounds preference',
@@ -194,5 +263,18 @@ class _CountingProgressHistoryRepository extends InMemoryBodySetupRepository {
   ) {
     historyCalls++;
     return super.getWeightHistory(query);
+  }
+}
+
+class _AmbiguousSaveWeightRepository extends InMemoryBodySetupRepository {
+  int attempts = 0;
+
+  @override
+  Future<void> recordCurrentWeight(BodyWeightRecord record) async {
+    attempts++;
+    await super.recordCurrentWeight(record);
+    if (attempts == 1) {
+      throw StateError('Response lost after write committed');
+    }
   }
 }
