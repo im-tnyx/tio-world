@@ -48,6 +48,12 @@ Progress → Weight
 
 Weight is the first real post-onboarding Progress vertical slice, not a second weight source. A photo field or upload action must not be presented as working in Slice A; optional linked photos arrive with separately approved Slice B.
 
+### Chart range and compact root action (2026-10-26 follow-up)
+
+With the default 30-day range and no in-window measurements, the initial Progress screen may choose the first wider supported range (90 or 365 days) with **real owner-owned recorded measurements**; the selected range label must match the chart. A user's explicit 30/90/365-day selection is never silently overridden. All-empty and future-only windows remain honest empty states; changing a Body Goal never invents a measurement or extends a trend line. The plot uses a compact 160dp height; empty state consumes only its text. The selected-range change requires comparable recorded instants.
+
+The `Log Weight` action is an always-visible 56dp-minimum labelled bottom-end pill over the root Progress body, outside its scrolling Timeline, with Nutrition's action location/safe-area and scroll-clearance semantics, while retaining Progress-owned save/auth/unknown handling and Core primary colors. The visible heading is `Timeline`; underlying History repository names/pagination are unchanged. PR #695 separately owns the shell top-bar and pinned **editor-sheet** footer.
+
 ### Summary and chart
 
 - `Current Weight` is derived from the latest **eligible** canonical `body_weight_logs` entry across the user's history, not the selected chart range or a Profile copy. Future-dated measurements must not silently masquerade as current. The precise future-date entry/eligibility policy must be validated in A1/A3 before it is shipped.

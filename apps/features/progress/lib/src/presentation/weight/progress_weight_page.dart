@@ -7,6 +7,9 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
+// Nutrition's 56dp floating-action footprint plus its governed 24dp insets.
+const double _logWeightActionClearance = TioSize.dp56 + 2 * TioSpacing.xl;
+
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
 class ProgressWeightPage extends StatefulWidget {
@@ -35,6 +38,7 @@ class ProgressWeightPage extends StatefulWidget {
 
 class _ProgressWeightPageState extends State<ProgressWeightPage> {
   ProgressWeightRange _range = ProgressWeightRange.days30;
+  bool _rangeSelectedByUser = false;
   ProgressWeightSnapshot? _snapshot;
   Object? _error;
   Object? _historyError;
@@ -59,6 +63,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         !identical(oldWidget.repository, widget.repository)) {
       _sessionActive.value = false;
       _sessionActive = ValueNotifier<bool>(true);
+      // A new owner starts with a fresh, non-user-selected chart range.
+      _range = ProgressWeightRange.days30;
+      _rangeSelectedByUser = false;
       // Invalidate all prior async completions, including page fetches.
       _reload();
     }
@@ -104,9 +111,35 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       _historyError = null;
     });
     try {
-      final snapshot = await _reader.load(_range);
+      var selectedRange = _range;
+      var snapshot = await _reader.load(selectedRange);
+      if (!mounted || generation != _generation) return;
+
+      // Initial/default 30-day selection can be empty even while older,
+      // owner-scoped History contains real measurements. Widen only to the
+      // first range with actual points; never manufacture today's weight or
+      // override a range explicitly chosen by the user.
+      if (!_rangeSelectedByUser &&
+          selectedRange == ProgressWeightRange.days30 &&
+          snapshot.chartEntries.isEmpty &&
+          snapshot.history.entries.isNotEmpty) {
+        for (final fallback in [
+          ProgressWeightRange.days90,
+          ProgressWeightRange.days365,
+        ]) {
+          final extended = await _reader.load(fallback);
+          if (!mounted || generation != _generation) return;
+          if (extended.chartEntries.isNotEmpty) {
+            selectedRange = fallback;
+            snapshot = extended;
+            break;
+          }
+        }
+      }
+
       if (!mounted || generation != _generation) return;
       setState(() {
+        _range = selectedRange;
         _snapshot = snapshot;
         _loading = false;
       });
@@ -146,6 +179,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   }
 
   void _setRange(ProgressWeightRange range) {
+    _rangeSelectedByUser = true;
     if (range == _range) return;
     setState(() => _range = range);
     _reload();
@@ -153,6 +187,35 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _weightBody(context),
+        if (!_loading && _error == null && _snapshot != null)
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: TioSize.dp56),
+                    child: TioButton.primary(
+                      key: const ValueKey('progress-weight-log-action'),
+                      label: 'Log Weight',
+                      trailing: const Icon(Icons.save_outlined),
+                      onPressed: _openLogWeight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _weightBody(BuildContext context) {
     final colors = context.tioColors;
     final typography = Theme.of(context).textTheme;
     return RefreshIndicator(
@@ -160,9 +223,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md,
+        padding: EdgeInsets.fromLTRB(
+          TioSpacing.lg,
+          TioSpacing.md,
+          TioSpacing.lg,
+          _logWeightActionClearance + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           // The shell owns the Progress title. The body begins with the
@@ -188,16 +253,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           else if (_snapshot != null) ...[
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
-            Row(
-              children: [
-                Expanded(child: Text('History', style: typography.titleLarge)),
-                TioButton.supporting(
-                  key: const ValueKey('progress-weight-log-action'),
-                  label: 'Log Weight',
-                  onPressed: _openLogWeight,
-                ),
-              ],
-            ),
+            Text('Timeline', style: typography.titleLarge),
             const SizedBox(height: TioSpacing.sm),
             if (_snapshot!.history.entries.isEmpty)
               const TioCard(
@@ -310,10 +366,23 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               ),
               const SizedBox(height: TioSpacing.md),
               if (chart.isEmpty)
-                const SizedBox(
-                  height: TioSize.dp160,
-                  child: Center(
-                    child: Text('No measurements in this range'),
+                Padding(
+                  key: const ValueKey('progress-weight-chart-empty'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: TioSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('No measurements in this range'),
+                      const SizedBox(height: TioSpacing.xs),
+                      Text(
+                        'Choose another range or Log Weight to see a trend.',
+                        style: typography.bodySmall?.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else ...[
@@ -321,7 +390,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   label: 'Weight trend with ${chart.length} actual measurements '
                       'in ${_range.label}. Individual values are available in History.',
                   child: SizedBox(
-                    height: TioSize.dp200,
+                    height: TioSize.dp160,
                     width: double.infinity,
                     child: CustomPaint(
                       key: const ValueKey('progress-weight-chart'),

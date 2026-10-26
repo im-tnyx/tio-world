@@ -680,6 +680,108 @@ void main() {
     expect(find.text('No measurements in this range'), findsOneWidget);
   });
 
+
+  testWidgets('September records auto-select 90 days, but manual 30 stays empty',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    // Screenshot case: Oct 26, 2026 with real Sep 3/Sep 19 logs.
+    for (final daysAgo in [53, 37, 37]) {
+      await repository.recordCurrentWeight(
+        BodyWeightRecord(
+          weightKg: 74,
+          measuredAt: now.subtract(Duration(days: daysAgo)),
+          source: BodyWeightSources.manual,
+        ),
+      );
+    }
+    await pumpPage(tester, repository);
+    expect(find.text('Last 90 days'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-chart')), findsOneWidget);
+    expect(find.text('No change'), findsOneWidget);
+    expect(find.text('Timeline'), findsOneWidget);
+
+    // An explicit filter always wins, even when it has zero data.
+    await tester.tap(find.byKey(const ValueKey('progress-weight-range')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Last 30 days').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Last 30 days'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-chart')), findsNothing);
+    expect(find.text('No measurements in this range'), findsOneWidget);
+  });
+
+  testWidgets('365-day fallback finds genuine older entries, compact plot',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 180)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository);
+    expect(find.text('Last 365 days'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
+      TioSize.dp160,
+    );
+    expect(find.text('Not enough history'), findsOneWidget);
+  });
+
+  testWidgets('empty chart is compact and retains honest goal reference',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.setActiveBodyGoal(
+      const BodyGoalUpdate(
+        goalType: BodyGoalType.loseWeight,
+        targetWeightKg: 72,
+        weeklyWeightChangeKg: 0.5,
+      ),
+    );
+    await pumpPage(tester, repository);
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey('progress-weight-chart-empty')),
+      ).height,
+      lessThan(TioSize.dp160),
+    );
+    expect(find.text('Your target: 72 kg'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-chart')), findsNothing);
+  });
+
+  testWidgets('Log Weight stays anchored while Timeline scrolls',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    for (var day = 0; day < 16; day++) {
+      await repository.recordCurrentWeight(
+        BodyWeightRecord(
+          weightKg: 70 + day / 10,
+          measuredAt: now.subtract(Duration(days: day + 1)),
+          source: BodyWeightSources.manual,
+        ),
+      );
+    }
+    await pumpPage(tester, repository);
+    final action = find.byKey(const ValueKey('progress-weight-log-action'));
+    final list = find.byKey(const ValueKey('progress-weight-scroll'));
+    expect(find.text('Timeline'), findsOneWidget);
+    expect(find.text('History'), findsNothing);
+    expect(find.descendant(of: list, matching: action), findsNothing);
+    expect(tester.widget<TioButton>(action).variant, TioButtonVariant.primary);
+    final before = tester.getRect(action);
+    expect(before.height, greaterThanOrEqualTo(TioSize.dp56));
+    final scroll = tester.state<ScrollableState>(
+      find.descendant(of: list, matching: find.byType(Scrollable)).first,
+    );
+    scroll.position.jumpTo(scroll.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(action), before);
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+  });
+
   testWidgets('range menu compares two actual records in the selected window',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
