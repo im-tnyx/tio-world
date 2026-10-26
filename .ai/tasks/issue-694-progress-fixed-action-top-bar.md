@@ -1,22 +1,24 @@
-# #694 Progress root shell top bar and fixed Log Weight action
+# #694 Progress fixed Log Weight action — post-#695 handoff
 
-**Status:** In progress; source and tests pending GitHub CI and independent reviewer. **NO MERGE**.
-**Owner approval:** Owner report 2026-10-26, clarified fixed Nutrition parity and color. [GitHub #694](https://github.com/im-tnyx/tio-world/issues/694) is the bounded UI contract. Owner explicitly prohibits merge for current work session.
-**Implementation owner:** `im-tnyx`, isolated `feat/issue-694-progress-shell-fixed-log-action`.
-**Planning:** Linear [TNYX-119](https://linear.app/tnyx/issue/TNYX-119) In Progress (larger parent), [GitHub #692](https://github.com/im-tnyx/tio-world/issues/692) / open PR #695 separate Weight Log editor-footer slice; #693 UNKNOWN write recovery separate pre-release gate.
-**Verified baseline:** `main@80db18965fdba53745d96e9bb97c0cc9ea465caa`. Root/feature AGENTS, Core theme README, shell source, Weight page and test, Nutrition Meal Diary fixed FAB pattern, #694 and Linear reviewed. Windows `G:\projects\Tio-World` not mounted; remote source and GitHub CI only.
+**Status:** Implementation complete on PR #696; exact-HEAD checks previously passed at `5bdc690`. Documentation correction requires new exact-HEAD verification before merge.
+**Owner:** `im-tnyx`; owner authorized documentation cleanup and normal merge on 2026-10-26.
+**Scope:** [GitHub #694](https://github.com/im-tnyx/tio-world/issues/694), Linear [TNYX-119](https://linear.app/tnyx/issue/TNYX-119) (broader parent). [PR #696](https://github.com/im-tnyx/tio-world/pull/696).
+**Baseline:** [PR #695](https://github.com/im-tnyx/tio-world/pull/695) merged into `main` at `63b2853ebe77d1ef49d80ccc3b98badafe0b3bcf`. The #696 branch reconciled with that baseline; no standalone shell top-bar change remains in the current PR diff.
+**Environment:** Remote GitHub inspection and CI; Windows `G:\projects\Tio-World` and physical-device QA were not available here.
 
-## Scoped solution and risks
-- **Top-bar geometry:** `apps/core/lib/src/ui/shell/presentation/shell/tio_shell.dart` currently maps `ShellTab.ai || ShellTab.progress` to null. Give Progress an ordinary Core-owned `AppBar`, mirroring other shell bars at `TioNavigationTokens.topBarHeight` (56dp), no fake streak or extra feature actions, preserving tab-neutral `AppBar` title and SafeArea.
-- **Fixed bottom action:** Progress `ListView` currently embeds labelled `TioButton.supporting('Log Weight')` beside `History`. Replace it with a fixed `Stack/Positioned.fill/SafeArea/Align(bottomEnd)` action modelled after Nutrition's `MealDiaryPage`, using `TioButton.primary` `colors.primary/onPrimary` and a 56dp SizedBox. Keep label and pill style; never import Nutrition into Progress. Scroll list reserves the 56dp action + surrounding governed `TioSpacing.xl` + bottom safe inset; prevent action obscuring Timeline or Load more.
-- **Timeline:** Rename only user-visible section title from `History` to `Timeline`; existing repository/history keys, DTOs, queries, pagination and chart semantics remain untouched.
-- **Security:** No Auth/data changes. Preserve existing `_openLogWeight` session ownership and error gating. No SQL, Storage/RLS, watch, services/api, AI or navigation redesign.
-- **Ownership/sequence:** PR #695 owns editor sheet and editor tests. This slice must not edit those files or depend on #695 and will be reviewed independently. Do not merge or enable auto-merge.
-- **Validation remaining:** Flutter analyze/test exact HEAD, shell top-bar geometry across tabs/compact/large text, fixed button same viewport rect after scrolling, 56dp height and content clearance; independent reviewer and CI. Local device QA unavailable/not claimed.
+## Current implementation contract
 
+- **Shell top bar:** #695 already provides the canonical `TioShellStatusTopBar` for Progress, matching other root tabs. #696 preserves it unchanged. The previously proposed standalone Progress `AppBar` was superseded and is **not** in the current PR diff.
+- **Fixed action:** Progress owns a `Stack` overlay with `Positioned.fill → SafeArea → Align(bottomEnd)` and a `TioButton.primary` labelled **Log Weight**. Its explicit height and scroll clearance use the existing `TioButtonTokens.height` (46dp) and `TioSpacing.xl` (24dp) insets; no new token or Nutrition import.
+- **Timeline:** User-visible section heading changes from **History** to **Timeline**. The existing history repository, DTOs, pagination, chart and save/session semantics remain unchanged.
+- **Scroll and safety:** List bottom padding includes fixed-action clearance and bottom safe inset, so Timeline entries and **Load more** remain reachable. The action remains gated by loaded/error state, preserving `_openLogWeight` owner-session behavior.
+- **Boundaries:** No changes to Weight editor sheet or #695 footer/wheel, Core shell, Auth, Supabase/RLS, Storage, watch or AI.
+- **Tests:** `progress_weight_fixed_action_test.dart` checks the 46dp height, fixed viewport rect across scroll, compact large-text viewport, load-more clearance and opening/closing the existing editor. The shell regression tests/top-bar implementation are owned by already-merged #695, not by this PR.
 
-## Reconciliation after #695 merge (2026-10-26)
-- #695 merged into main at `63b2853`; retain its canonical `TioShellStatusTopBar` and no duplicate Weight heading. The previous #696 standalone AppBar is superseded.
-- Fixed Log Weight action now uses `TioButtonTokens.height` (46dp), with safe-area and 24dp insets, Timeline label and scroll clearance. No changes to Weight editor, Nutrition, Supabase or shared shell.
-- Tests updated to assert 46dp, stable viewport rect, bottom Load more clearance, and editor opening.
-- Requires fresh exact-HEAD CI, independent review, and parent #698 re-reconciliation. Do not merge without explicit owner go-merge instruction.
+## Merge gate and dependencies
+
+- Current #696 diff: this task handoff, Progress weight page and fixed-action widget tests (3 files). Earlier 5-file and 56dp descriptions are obsolete.
+- Exact-head Flutter CI and documentation/attribution checks passed on `5bdc690` before this documentation-only update; recheck all required checks for the new commit.
+- Independent `im-tio` review on `5bdc690` was **COMMENTED**, not APPROVED, with no confirmed actionable P0–P3 issue and no inline threads. Do not describe it as approval. Review coverage/device QA limitations remain.
+- [PR #698](https://github.com/im-tnyx/tio-world/pull/698) has overlapping fixed-action code on a stacked branch; reconcile it against the merged #696 implementation before considering #698 for merge. Do not merge #698 as part of this slice.
+- Owner authorized normal merge for #696 after the documentation fix; no admin override or bypass of branch protection. If GitHub merge gate fails, leave the PR open and report the blocker.
