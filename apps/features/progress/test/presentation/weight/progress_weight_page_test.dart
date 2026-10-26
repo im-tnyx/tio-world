@@ -1169,14 +1169,28 @@ void main() {
         widget.key is ValueKey<String> &&
         (widget.key! as ValueKey<String>).value
             .startsWith('progress-weight-history-'));
-    // At 1.8x text scale the older card can be below the lazy ListView
-    // viewport. Measure each row after scrolling rather than requiring
-    // both to be mounted at the same time.
-    expect(cards, findsOneWidget);
-    final todayHeight = tester.getSize(cards.first).height;
+    // Extra graph-summary cards put the Timeline below the initial viewport
+    // at 1.8x text scale. Scroll to the real Today row before measuring it;
+    // neither Timeline card needs to be initially mounted by the ListView.
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('progress-weight-scroll')),
+      matching: find.byType(Scrollable),
+    ).first;
+    await tester.scrollUntilVisible(
+      find.text('Today'),
+      TioSize.dp120,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    final todayCard = find.ancestor(
+      of: find.text('Today'),
+      matching: cards,
+    );
+    expect(todayCard, findsOneWidget);
+    final todayHeight = tester.getSize(todayCard).height;
     expect(todayHeight, greaterThan(TioSize.dp80));
     final timelineLb = find.descendant(
-      of: cards,
+      of: todayCard,
       matching: find.text('160.9 lb'),
     );
     expect(timelineLb, findsOneWidget);

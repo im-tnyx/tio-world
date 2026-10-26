@@ -75,3 +75,8 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 
 - HEAD `f061034c` Docs Hygiene passed; Flutter Analyze failed only because the new widget test referred to unexported `ProgressWeightRange` as a generic type argument while asserting absence of `PopupMenuButton`. The reusable elevated `TioCard`, three `MenuItemButton` options and selected range behavior are already asserted. Removed this redundant compile-time assertion rather than importing a private presentation type solely for a negative test.
 - All Flutter CI checks must rerun on the resulting HEAD. No approval or merge.
+
+## 2026-10-26 new stats extension: Timeline lazy-list regression
+
+- On `b1adc7a5`, exact-head Flutter Analyze/Dart succeeded. The core-wear shard's 140/141 Progress tests showed one existing large-text Timeline test assumed its first card was mounted at initial scroll offset. The newly approved three cards correctly push Timeline below the fold at 390dp/1.8x; this is an invalid test visibility assumption, not license to reduce/change the approved cards.
+- Adjusted the test to `scrollUntilVisible('Today')`, then measure that card's own full lb value and later the strictly older card; preserves accessibility and equal-height assertions. New exact-head CI is required; **no claim of PASS until it completes**.
