@@ -759,6 +759,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   }) {
     return Semantics(
       label: semantics,
+      excludeSemantics: true,
       child: DecoratedBox(
         key: key,
         decoration: BoxDecoration(
