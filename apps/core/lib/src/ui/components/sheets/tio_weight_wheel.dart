@@ -84,8 +84,11 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     final display = _isLbs ? _selectedKg * _kgToLbsFactor : _selectedKg;
     final minimum = _isLbs ? _minLbs : _minKg;
     final maximum = _isLbs ? _maxLbs : _maxKg;
-    final whole = display.truncate().clamp(minimum, maximum);
-    final decimal = ((display - whole) * 10).round().clamp(0, 9);
+    // Round once to display precision before splitting the two drums. A
+    // canonical lb -> kg -> lb round-trip can be 116.99999999999999.
+    final displayTenths = (display * 10).round();
+    final whole = (displayTenths ~/ 10).clamp(minimum, maximum);
+    final decimal = (displayTenths - whole * 10).clamp(0, 9);
 
     // Initial drum indices are in DISPLAY units, not canonical kilograms.
     // Without this, lb can visibly show a different number from the kg value
@@ -116,8 +119,10 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     // Resynchronize BOTH numeric drums when the external unit changes, even
     // if canonical valueKg itself stays identical.
     final nextKg = widget.valueKg ?? _selectedKg;
+    // The parent's echo of onChanged is already in _selectedKg; re-syncing
+    // that echo would move the visible lb drums after the user's selection.
     if (unitChanged || (widget.valueKg != null &&
-        widget.valueKg != oldWidget.valueKg)) {
+        widget.valueKg != _selectedKg)) {
       _syncToKg(
         nextKg.clamp(_minKg.toDouble(), _maxKg.toDouble()),
         notify: false,
@@ -160,8 +165,9 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
         }
       } else {
         final lbs = kg * _kgToLbsFactor;
-        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
+        final lbsTenths = (lbs * 10).round();
+        final wholeLbs = (lbsTenths ~/ 10).clamp(_minLbs, _maxLbs);
+        final decimalLbs = (lbsTenths - wholeLbs * 10).clamp(0, 9);
 
         final wholeIndex = wholeLbs - _minLbs;
         if (_wholeController.hasClients &&
@@ -219,8 +225,9 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
         _decimalController.jumpToItem(decimal);
       } else {
         final lbs = _selectedKg * _kgToLbsFactor;
-        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
+        final lbsTenths = (lbs * 10).round();
+        final wholeLbs = (lbsTenths ~/ 10).clamp(_minLbs, _maxLbs);
+        final decimalLbs = (lbsTenths - wholeLbs * 10).clamp(0, 9);
         _wholeController.jumpToItem(wholeLbs - _minLbs);
         _decimalController.jumpToItem(decimalLbs);
       }
@@ -247,8 +254,8 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
             builder: (context, index) {
               final whole = !_isLbs ? (_minKg + index) : (_minLbs + index);
               final currentWhole = !_isLbs
-                  ? _selectedKg.truncate()
-                  : (_selectedKg * _kgToLbsFactor).truncate();
+                  ? (_selectedKg * 10).round() ~/ 10
+                  : (_selectedKg * _kgToLbsFactor * 10).round() ~/ 10;
               final isSelected = whole == currentWhole;
               return Center(
                 child: Text(
@@ -292,11 +299,8 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
             childCount: 10,
             builder: (context, index) {
               final currentDecimal = !_isLbs
-                  ? ((_selectedKg - _selectedKg.truncate()) * 10).round()
-                  : (((_selectedKg * _kgToLbsFactor) -
-                              (_selectedKg * _kgToLbsFactor).truncate()) *
-                          10)
-                      .round();
+                  ? (_selectedKg * 10).round() % 10
+                  : (_selectedKg * _kgToLbsFactor * 10).round() % 10;
               final isSelected = index == currentDecimal;
               return Center(
                 child: Text(
