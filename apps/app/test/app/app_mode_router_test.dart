@@ -136,7 +136,10 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
+    final noteToggle = find.byKey(const ValueKey('progress-log-note-toggle'));
+    await tester.ensureVisible(noteToggle);
+    await tester.pumpAndSettle();
+    await tester.tap(noteToggle);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
