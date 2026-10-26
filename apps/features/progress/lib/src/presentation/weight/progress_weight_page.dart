@@ -700,7 +700,13 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             ? Border.all(color: colors.progress, width: TioStroke.width1)
             : null,
       ),
-      child: card,
+      // The outline sits outside the opaque Core card, not behind its fill.
+      child: Padding(
+        padding: item.isToday
+            ? const EdgeInsets.all(TioStroke.width1)
+            : EdgeInsets.zero,
+        child: card,
+      ),
     );
   }
 
