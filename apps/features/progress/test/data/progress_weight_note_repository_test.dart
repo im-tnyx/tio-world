@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_progress/src/data/body_state_row_mapper.dart';
 
 void main() {
   final instant = DateTime.utc(2026, 10, 26, 8);
