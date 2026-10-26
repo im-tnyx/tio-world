@@ -732,6 +732,15 @@ void main() {
   testWidgets('empty chart is compact and retains honest goal reference',
       (tester) async {
     final repository = InMemoryBodySetupRepository();
+    // A directional goal needs a real starting weight; keep it outside
+    // every supported chart window so the empty-state semantics stay honest.
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: now.subtract(const Duration(days: 400)),
+        source: BodyWeightSources.manual,
+      ),
+    );
     await repository.setActiveBodyGoal(
       const BodyGoalUpdate(
         goalType: BodyGoalType.loseWeight,
