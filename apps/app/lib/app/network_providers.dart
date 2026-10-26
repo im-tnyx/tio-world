@@ -64,7 +64,11 @@ final profileAccountRepositoryProvider =
 ///
 /// Watching that DTO provides its existing realtime refresh signal without
 /// treating missing-weight errors as preference failures.
-final progressWeightUnitProvider = FutureProvider.autoDispose<WeightUnit>((ref) async {
+// Family scope binds cached preferences to one authenticated owner/login cycle.
+// Realtime same-owner updates can retain the previous resolved unit while
+// revalidating; a new account/session has a distinct key and no stale value.
+final progressWeightUnitProvider =
+    FutureProvider.autoDispose.family<WeightUnit, String>((ref, scope) async {
   final sessionAsync = ref.watch(authSessionStateProvider);
   final session = sessionAsync.valueOrNull;
   final client = ref.watch(supabaseClientProvider);
@@ -76,6 +80,7 @@ final progressWeightUnitProvider = FutureProvider.autoDispose<WeightUnit>((ref) 
     final cycle = session.session.loginCycleId;
     if (cycle == null ||
         cycle.isEmpty ||
+        scope != '$owner:$cycle' ||
         client.auth.currentUser?.id != owner) {
       throw StateError('Weight preference session is unavailable.');
     }
