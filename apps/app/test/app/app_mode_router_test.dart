@@ -106,6 +106,12 @@ void main() {
         FeatureRoutes.progress.path,
       );
       expect(find.text('Weight summary'), findsOneWidget);
+      expect(
+        tester.widget<ProgressWeightPage>(
+          find.byType(ProgressWeightPage),
+        ).unit,
+        WeightUnit.lb,
+      );
       expect(find.text('No measurements in this range'), findsOneWidget);
       expect(find.textContaining('No weight measurements yet'), findsOneWidget);
       expect(find.text('Weight preferences could not be loaded.'), findsNothing);
