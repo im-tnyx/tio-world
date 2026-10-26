@@ -125,6 +125,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       onRefresh: _reload,
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(
           horizontal: TioSpacing.lg,
           vertical: TioSpacing.md,

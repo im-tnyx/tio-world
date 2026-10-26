@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 
@@ -54,6 +55,56 @@ final profileAccountRepositoryProvider =
     return SupabaseProfileAccountRepository(client: supabaseClient);
   }
   return null;
+});
+
+
+/// A2 display preference is owned by canonical Profile, not the composite
+/// ProfileSetup DTO (which requires an initialized current Body measurement).
+///
+/// Watching that DTO provides its existing realtime refresh signal without
+/// treating missing-weight errors as preference failures.
+final progressWeightUnitProvider = FutureProvider.autoDispose<WeightUnit>((ref) async {
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final session = sessionAsync.valueOrNull;
+  final client = ref.watch(supabaseClientProvider);
+  if (client != null) {
+    if (session is! AuthSessionAuthenticated) {
+      throw StateError('Weight preference session is unavailable.');
+    }
+    final owner = session.session.userId;
+    final cycle = session.session.loginCycleId;
+    if (cycle == null ||
+        cycle.isEmpty ||
+        client.auth.currentUser?.id != owner) {
+      throw StateError('Weight preference session is unavailable.');
+    }
+    // Existing Profile notifications include user_profiles changes; their
+    // *values/errors* do not gate this independent canonical preference read.
+    ref.watch(profileDataProvider);
+    final repository = ref.watch(userProfileRepositoryProvider);
+    if (repository == null) {
+      throw StateError('Canonical Profile repository is unavailable.');
+    }
+    final profile = await repository.read();
+    final live = ref.read(authSessionStateProvider).valueOrNull;
+    if (live is! AuthSessionAuthenticated ||
+        live.session.userId != owner ||
+        live.session.loginCycleId != cycle ||
+        client.auth.currentUser?.id != owner) {
+      throw StateError('Weight preference session changed.');
+    }
+    if (profile == null) {
+      throw StateError('Canonical Profile preference is unavailable.');
+    }
+    return profile.unitPreferences.weightUnit;
+  }
+
+  // Legacy non-Supabase/test composition keeps its existing preference owner.
+  final profile = await ref.watch(profileDataProvider.future);
+  if (profile == null) {
+    throw StateError('Weight preference is unavailable.');
+  }
+  return profile.unitPreferences.weightUnit;
 });
 
 /// Live Profile display data.
