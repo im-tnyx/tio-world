@@ -228,12 +228,14 @@ void main() {
       matching: find.byType(EditableText),
     );
     await tester.enterText(manual, '5');
+    await tester.pumpAndSettle();
     expect(
       tester.widget<TioButton>(find.byKey(const ValueKey('progress-log-save')))
           .onPressed,
       isNull,
     );
     await tester.enterText(manual, '72.5');
+    await tester.pumpAndSettle();
     expect(
       tester.widget<TioButton>(find.byKey(const ValueKey('progress-log-save')))
           .onPressed,
@@ -272,6 +274,7 @@ void main() {
       ),
       '154.3',
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
     await tester.pumpAndSettle();
     expect(repository.weightEntries.single.weightKg, closeTo(70, 0.1));
@@ -601,7 +604,7 @@ void main() {
     );
     expect(wheel.unit, WeightUnit.lb);
     expect(wheel.showUnitSwitcher, isFalse);
-    expect(find.text('Weight (lb)'), findsOneWidget);
+    expect(find.text('Weight (lb)'), findsNothing);
     final drums = find.descendant(
       of: find.byKey(const ValueKey('progress-log-wheel')),
       matching: find.byType(ListWheelScrollView),
