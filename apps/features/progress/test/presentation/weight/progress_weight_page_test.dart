@@ -840,7 +840,9 @@ void main() {
 
   testWidgets('press and drag charts shows only actual recorded readings',
       (tester) async {
-    final repo = InMemoryBodySetupRepository();
+    final repo = InMemoryBodySetupRepository(
+      now: () => DateTime.utc(2026, 10, 1, 10),
+    );
     await repo.recordCurrentWeight(BodyWeightRecord(
       weightKg: 74,
       measuredAt: now.subtract(const Duration(days: 20)),
@@ -880,6 +882,26 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: goalChip, matching: find.text('72.2 kg')),
         findsOneWidget);
+    final locale = MaterialLocalizations.of(tester.element(goalChip));
+    expect(find.descendant(
+      of: weightChip,
+      matching: find.text(locale.formatMediumDate(
+        now.subtract(const Duration(days: 20)).toLocal(),
+      )),
+    ), findsOneWidget);
+    // Baseline 74 → target 72.2 at 0.5 kg/week = rounded 25 days
+    // from the canonical 1 Oct 2026 goal start. It is estimated, not
+    // a persisted deadline or a date assigned to the selected reading.
+    expect(find.byKey(
+      const ValueKey('progress-weight-target-estimated-date'),
+    ), findsOneWidget);
+    expect(find.text(
+      'Est. ${locale.formatMediumDate(DateTime(2026, 10, 26))}',
+    ), findsOneWidget);
+    expect(
+      tester.getSize(popup).width,
+      lessThan(TioSize.dp200),
+    );
     expect(find.byKey(const ValueKey('progress-weight-chart-cursor')),
         findsOneWidget);
     await finger.moveTo(Offset(rect.center.dx, rect.center.dy));
@@ -921,11 +943,44 @@ void main() {
     expect(find.byKey(
       const ValueKey('progress-weight-chart-tooltip-target'),
     ), findsNothing);
+    expect(find.byKey(
+      const ValueKey('progress-weight-target-estimated-date'),
+    ), findsNothing);
     await finger.up();
     await tester.pumpAndSettle();
     expect(find.byKey(
       const ValueKey('progress-weight-chart-tooltip'),
     ), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal with no pace keeps real target but no estimated date',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository(
+      now: () => DateTime.utc(2026, 10, 1, 10),
+    );
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 75, measuredAt: now.subtract(const Duration(days: 4)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight,
+      targetWeightKg: 70,
+    ));
+    await pumpPage(tester, repo);
+    final chart = tester.getRect(
+      find.byKey(const ValueKey('progress-weight-chart')),
+    );
+    final finger = await tester.startGesture(chart.center);
+    await tester.pump(const Duration(milliseconds: 650));
+    expect(find.byKey(
+      const ValueKey('progress-weight-chart-tooltip-target'),
+    ), findsOneWidget);
+    expect(find.byKey(
+      const ValueKey('progress-weight-target-estimated-date'),
+    ), findsNothing);
+    await finger.up();
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
