@@ -7,6 +7,9 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
+// Fixed primary action plus 24dp breathing room on both sides.
+const double _logWeightActionClearance = TioButtonTokens.height + 2 * TioSpacing.xl;
+
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
 class ProgressWeightPage extends StatefulWidget {
@@ -155,14 +158,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final typography = Theme.of(context).textTheme;
-    return RefreshIndicator(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         key: const ValueKey('progress-weight-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md,
+        padding: EdgeInsets.fromLTRB(
+          TioSpacing.lg,
+          TioSpacing.md,
+          TioSpacing.lg,
+          _logWeightActionClearance + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           // The shell owns the Progress title. The body begins with the
@@ -188,16 +196,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           else if (_snapshot != null) ...[
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
-            Row(
-              children: [
-                Expanded(child: Text('History', style: typography.titleLarge)),
-                TioButton.supporting(
-                  key: const ValueKey('progress-weight-log-action'),
-                  label: 'Log Weight',
-                  onPressed: _openLogWeight,
-                ),
-              ],
-            ),
+            Text('Timeline', style: typography.titleLarge),
             const SizedBox(height: TioSpacing.sm),
             if (_snapshot!.history.entries.isEmpty)
               const TioCard(
@@ -231,6 +230,27 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           const SizedBox(height: TioSpacing.xl),
         ],
       ),
+        ),
+        if (!_loading && _error == null && _snapshot != null)
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: SizedBox(
+                    height: TioButtonTokens.height,
+                    child: TioButton.primary(
+                      key: const ValueKey('progress-weight-log-action'),
+                      label: 'Log Weight',
+                      onPressed: _openLogWeight,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
