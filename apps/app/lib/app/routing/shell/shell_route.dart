@@ -147,6 +147,12 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
           sessionKey: cycle,
           repository: ref.watch(bodyRepositoryProvider),
           unit: unit,
+          onWeightLogged: () {
+            // Reuse the same invalidation boundary as Settings-owned writes.
+            // Neither Progress UI nor its repository owns Profile caches.
+            ref.invalidate(bodyStateDataProvider);
+            ref.invalidate(profileDataProvider);
+          },
         );
       },
     );
