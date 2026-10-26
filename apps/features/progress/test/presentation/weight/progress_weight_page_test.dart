@@ -724,8 +724,19 @@ void main() {
     expect(find.text('Last 365 days'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
-      TioSize.dp160,
+      TioSize.dp120,
     );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-chart-axis')),
+        matching: find.byType(Text),
+      ),
+      findsNWidgets(3),
+    );
+    // 74 kg alone needs a real visible scale, rather than empty grid lines.
+    expect(find.text('75'), findsOneWidget);
+    expect(find.text('74'), findsOneWidget);
+    expect(find.text('73'), findsOneWidget);
     expect(find.text('Not enough history'), findsOneWidget);
   });
 
@@ -779,7 +790,8 @@ void main() {
     expect(find.descendant(of: list, matching: action), findsNothing);
     expect(tester.widget<TioButton>(action).variant, TioButtonVariant.primary);
     final before = tester.getRect(action);
-    expect(before.height, greaterThanOrEqualTo(TioSize.dp56));
+    // Owner reduced the action from Nutrition's 56dp to Core's 46dp.
+    expect(before.height, TioButtonTokens.height);
     final scroll = tester.state<ScrollableState>(
       find.descendant(of: list, matching: find.byType(Scrollable)).first,
     );
@@ -789,6 +801,31 @@ void main() {
     await tester.tap(action);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('progress-log-wheel')), findsOneWidget);
+  });
+
+  testWidgets('pounds display uses lb chart axis and one date for one point',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 70,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repository, unit: WeightUnit.lb);
+    final axis = find.byKey(const ValueKey('progress-weight-chart-axis'));
+    expect(axis, findsOneWidget);
+    final values = tester.widgetList<Text>(
+      find.descendant(of: axis, matching: find.byType(Text)),
+    ).map((label) => label.data).toList();
+    expect(values, ['156.5', '154.3', '152.1']);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
+      TioSize.dp120,
+    );
+    // Avoid printing the same date at both ends for just one measurement.
+    expect(find.text('Oct 25, 2026'), findsOneWidget);
   });
 
   testWidgets('range menu compares two actual records in the selected window',

@@ -7,8 +7,8 @@ import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
 
-// Nutrition's 56dp floating-action footprint plus its governed 24dp insets.
-const double _logWeightActionClearance = TioSize.dp56 + 2 * TioSpacing.xl;
+// Core primary button at its standard 46dp height, plus the 24dp insets.
+const double _logWeightActionClearance = TioButtonTokens.height + 2 * TioSpacing.xl;
 
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
@@ -198,14 +198,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 alignment: AlignmentDirectional.bottomEnd,
                 child: Padding(
                   padding: const EdgeInsets.all(TioSpacing.xl),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: TioSize.dp56),
-                    child: TioButton.primary(
-                      key: const ValueKey('progress-weight-log-action'),
-                      label: 'Log Weight',
-                      trailing: const Icon(Icons.save_outlined),
-                      onPressed: _openLogWeight,
-                    ),
+                  child: TioButton.primary(
+                    key: const ValueKey('progress-weight-log-action'),
+                    label: 'Log Weight',
+                    trailing: const Icon(Icons.save_outlined),
+                    onPressed: _openLogWeight,
                   ),
                 ),
               ),
@@ -297,6 +294,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final delta = snapshot.rangeChangeKg;
     final target = snapshot.goal?.targetWeightKg;
     final chart = snapshot.chartEntries;
+    final scale = chart.isEmpty
+        ? null
+        : _WeightChartScale.fromEntries(chart, target);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -388,36 +388,81 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               else ...[
                 Semantics(
                   label: 'Weight trend with ${chart.length} actual measurements '
-                      'in ${_range.label}. Individual values are available in History.',
+                      'in ${_range.label}, scale in '
+                      '${widget.unit == WeightUnit.kg ? 'kilograms' : 'pounds'}. '
+                      'Individual measurements are available in Timeline.',
                   child: SizedBox(
-                    height: TioSize.dp160,
+                    height: TioSize.dp120,
                     width: double.infinity,
-                    child: CustomPaint(
-                      key: const ValueKey('progress-weight-chart'),
-                      painter: _RecordedWeightPainter(
-                        entries: chart,
-                        targetKg: target,
-                        lineColor: colors.progress,
-                        gridColor: colors.outlineStrong,
-                        targetColor: colors.success,
-                      ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CustomPaint(
+                            key: const ValueKey('progress-weight-chart'),
+                            painter: _RecordedWeightPainter(
+                              entries: chart,
+                              scale: scale!,
+                              targetKg: target,
+                              lineColor: colors.progress,
+                              gridColor: colors.outlineStrong,
+                              targetColor: colors.success,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: TioSpacing.xs),
+                        SizedBox(
+                          key: const ValueKey('progress-weight-chart-axis'),
+                          width: TioSize.dp48,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: TioSpacing.xxs,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                for (final value in [
+                                  scale.high,
+                                  (scale.low + scale.high) / 2,
+                                  scale.low,
+                                ])
+                                  Text(
+                                    scale.axisLabel(value, widget.unit),
+                                    maxLines: 1,
+                                    style: typography.labelSmall?.copyWith(
+                                      color: colors.textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(height: TioSpacing.xs),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _dateLabel(context, chart.last.measuredAt),
-                      style: typography.bodySmall,
-                    ),
-                    Text(
+                if (chart.length == 1)
+                  Center(
+                    child: Text(
                       _dateLabel(context, chart.first.measuredAt),
                       style: typography.bodySmall,
                     ),
-                  ],
-                ),
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _dateLabel(context, chart.last.measuredAt),
+                        style: typography.bodySmall,
+                      ),
+                      Text(
+                        _dateLabel(context, chart.first.measuredAt),
+                        style: typography.bodySmall,
+                      ),
+                    ],
+                  ),
               ],
               if (target != null) ...[
                 const SizedBox(height: TioSpacing.md),
@@ -511,9 +556,47 @@ class _WeightLoadFailure {
 
 /// Draws only real points at their recorded instants, with optional target
 /// reference. Connecting recorded neighbours adds no synthetic point/data.
+/// A single kg-domain scale is shared by the plot and its visible side axis.
+/// Conversion to lb affects labels only; the source-of-truth values stay in kg.
+class _WeightChartScale {
+  const _WeightChartScale({required this.low, required this.high});
+
+  final double low;
+  final double high;
+
+  factory _WeightChartScale.fromEntries(
+    List<BodyWeightEntry> entries,
+    double? targetKg,
+  ) {
+    var low = entries.first.weightKg;
+    var high = low;
+    for (final entry in entries) {
+      low = math.min(low, entry.weightKg);
+      high = math.max(high, entry.weightKg);
+    }
+    if (targetKg != null) {
+      low = math.min(low, targetKg);
+      high = math.max(high, targetKg);
+    }
+    final pad = (high - low).abs() < 0.01 ? 1.0 : (high - low) * 0.08;
+    return _WeightChartScale(low: low - pad, high: high + pad);
+  }
+
+  String axisLabel(double kilograms, WeightUnit unit) {
+    final weight = unit == WeightUnit.kg
+        ? kilograms
+        : UnitConverters.kgToLb(kilograms);
+    final rounded = weight.toStringAsFixed(1);
+    return rounded.endsWith('.0')
+        ? rounded.substring(0, rounded.length - 2)
+        : rounded;
+  }
+}
+
 class _RecordedWeightPainter extends CustomPainter {
   const _RecordedWeightPainter({
     required this.entries,
+    required this.scale,
     required this.targetKg,
     required this.lineColor,
     required this.gridColor,
@@ -521,6 +604,7 @@ class _RecordedWeightPainter extends CustomPainter {
   });
 
   final List<BodyWeightEntry> entries;
+  final _WeightChartScale scale;
   final double? targetKg;
   final Color lineColor;
   final Color gridColor;
@@ -530,19 +614,6 @@ class _RecordedWeightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (entries.isEmpty || size.width <= 0 || size.height <= 0) return;
     final ordered = entries.reversed.toList(growable: false);
-    var low = ordered.first.weightKg;
-    var high = low;
-    for (final entry in ordered) {
-      low = math.min(low, entry.weightKg);
-      high = math.max(high, entry.weightKg);
-    }
-    if (targetKg != null) {
-      low = math.min(low, targetKg!);
-      high = math.max(high, targetKg!);
-    }
-    final pad = (high - low).abs() < 0.01 ? 1.0 : (high - low) * 0.08;
-    low -= pad;
-    high += pad;
 
     const left = TioSize.dp8;
     final right = size.width - TioSize.dp8;
@@ -559,7 +630,8 @@ class _RecordedWeightPainter extends CustomPainter {
                 spanUs *
                 (right - left);
     double y(double weight) =>
-        bottom - (weight - low) / (high - low) * (bottom - top);
+        bottom - (weight - scale.low) / (scale.high - scale.low) *
+            (bottom - top);
 
     final grid = Paint()
       ..color = gridColor.withValues(alpha: TioOpacity.opacity30)
@@ -604,6 +676,8 @@ class _RecordedWeightPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _RecordedWeightPainter oldDelegate) {
     return oldDelegate.entries != entries ||
+        oldDelegate.scale.low != scale.low ||
+        oldDelegate.scale.high != scale.high ||
         oldDelegate.targetKg != targetKg ||
         oldDelegate.lineColor != lineColor ||
         oldDelegate.gridColor != gridColor ||
