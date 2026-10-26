@@ -62,6 +62,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   bool _noteVisible = false;
   bool _saving = false;
   bool _attempted = false;
+  bool _dismissQueued = false;
   String? _error;
 
   @override
@@ -71,6 +72,22 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
     _measuredLocal = widget.now().toLocal();
     _submissionId = _newUuid();
     _noteController = TextEditingController();
+    widget.sessionActive.addListener(_onSessionChanged);
+  }
+
+  void _onSessionChanged() {
+    if (widget.sessionActive.value || _dismissQueued) return;
+    _dismissQueued = true;
+    // Deactivation can be triggered by disposal while Flutter builds a new
+    // owner/login cycle. Remove this exact modal after the frame; do not pop
+    // an unrelated top route or leave a blank barrier covering the app.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && route.isActive) {
+        Navigator.of(context).removeRoute(route);
+      }
+    });
   }
 
   /// RFC 4122 version-4 UUID from OS-backed cryptographic random bytes.
@@ -88,6 +105,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
 
   @override
   void dispose() {
+    widget.sessionActive.removeListener(_onSessionChanged);
     _noteController.dispose();
     super.dispose();
   }
