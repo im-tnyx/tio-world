@@ -855,6 +855,52 @@ void main() {
     expect(find.text('+1 kg'), findsOneWidget);
   });
 
+  testWidgets('Timeline groups months and uses real older-record changes',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 74,
+        measuredAt: DateTime.utc(2026, 9, 20, 10),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await repo.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(days: 1)),
+        source: BodyWeightSources.manual,
+        note: 'Morning check-in',
+      ),
+    );
+    await pumpPage(tester, repo);
+    expect(find.byKey(const ValueKey('progress-weight-timeline-month-2026-10')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-timeline-month-2026-9')),
+        findsOneWidget);
+    expect(find.text('-1.0'), findsOneWidget);
+    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('Morning check-in'), findsOneWidget);
+    expect(find.text('0.0'), findsNothing);
+  });
+
+  testWidgets('Today row and units follow actual reading date and global lb',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(minutes: 10)),
+        source: BodyWeightSources.manual,
+      ),
+    );
+    await pumpPage(tester, repo, unit: WeightUnit.lb);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('160.9 lb'), findsOneWidget);
+    expect(find.text('New low'), findsNothing);
+    expect(find.text('0.0'), findsNothing);
+  });
+
   testWidgets('Load more appends History without duplicate pagination',
       (tester) async {
     final repository = InMemoryBodySetupRepository();

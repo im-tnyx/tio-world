@@ -54,6 +54,12 @@ With the default 30-day range and no in-window measurements, the initial Progres
 
 The `Log Weight` action is an always-visible Core-standard **46dp** labelled bottom-end pill over the root Progress body, outside its scrolling Timeline, with Nutrition's action location/safe-area and scroll-clearance semantics but deliberately shorter than its 56dp circular FAB per the owner's latest screenshot, while retaining Progress-owned save/auth/unknown handling and Core primary colors. The visible heading is `Timeline`; underlying History repository names/pagination are unchanged. PR #695 separately owns the shell top-bar and pinned **editor-sheet** footer.
 
+### Month-grouped Weight Timeline (owner reference, 2026-10-26)
+
+The section name stays **Timeline**. Render actual owner-scoped, newest-first Weight History grouped under local **month/year** headings, keeping distinct same-time IDs, optional note and existing `Load more` pagination. Cards show local date/time, prominent kg/lb-converted measurement, and **signed change from the immediately older actual measurement** only when its timestamp is strictly older. This is not a smoothed Trend calculation and does not infer missing values.
+
+A **Today** dot/highlight applies only to nonfuture measurements on the captured local day. An optional **New low** badge requires proof that the actual measurement is strictly below **every older eligible measurement**; suppress it while more older pages remain unloaded. Positive/negative change is coloured as helpful/harmful only when active Lose/Gain goal direction supplies that meaning; absent direction uses neutral styling. Respect Tio semantic colors/cards/tokens rather than copying the reference image's purple background. Preserve the fixed Log Weight action, chart and existing owner/session data handling; no Edit/Delete or photo activation.
+
 ### Summary and chart
 
 - `Current Weight` is derived from the latest **eligible** canonical `body_weight_logs` entry across the user's history, not the selected chart range or a Profile copy. Future-dated measurements must not silently masquerade as current. The precise future-date entry/eligibility policy must be validated in A1/A3 before it is shipped.

@@ -6,6 +6,7 @@ import 'package:tio_core/core.dart';
 import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
 import 'progress_weight_log_sheet.dart';
+import 'progress_weight_timeline_projection.dart';
 
 // Core primary button at its standard 46dp height, plus the 24dp insets.
 const double _logWeightActionClearance = TioButtonTokens.height + 2 * TioSpacing.xl;
@@ -259,10 +260,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 ),
               )
             else
-              for (final entry in _snapshot!.history.entries) ...[
-                _historyEntry(context, entry),
-                const SizedBox(height: TioSpacing.sm),
-              ],
+              ..._timelineEntries(context, _snapshot!),
             if (_historyError != null) ...[
               Text(
                 'More history could not be loaded.',
@@ -516,34 +514,263 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     return kilograms > 0 ? '+$value' : value;
   }
 
-  Widget _historyEntry(BuildContext context, BodyWeightEntry entry) {
-    final typography = Theme.of(context).textTheme;
+
+  List<Widget> _timelineEntries(
+    BuildContext context,
+    ProgressWeightSnapshot snapshot,
+  ) {
+    final rows = ProgressWeightTimelineProjection.project(
+      entries: snapshot.history.entries,
+      hasMore: snapshot.history.nextCursor != null,
+      capturedAt: snapshot.capturedAt,
+    );
     final colors = context.tioColors;
-    final local = entry.measuredAt.toLocal();
-    return TioCard(
-      key: ValueKey('progress-weight-history-${entry.id!}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final typography = Theme.of(context).textTheme;
+    final localization = MaterialLocalizations.of(context);
+    final result = <Widget>[];
+    for (var i = 0; i < rows.length; i++) {
+      final row = rows[i];
+      if (i == 0 ||
+          rows[i - 1].localMeasuredAt.month != row.localMeasuredAt.month ||
+          rows[i - 1].localMeasuredAt.year != row.localMeasuredAt.year) {
+        result.add(const SizedBox(height: TioSpacing.md));
+        result.add(
           Text(
-            UnitFormatters.formatWeight(entry.weightKg, widget.unit),
-            style: typography.titleMedium?.copyWith(
-              color: colors.textPrimary,
+            localization.formatMonthYear(row.localMeasuredAt).toUpperCase(),
+            key: ValueKey(
+              'progress-weight-timeline-month-'
+              '${row.localMeasuredAt.year}-${row.localMeasuredAt.month}',
+            ),
+            style: typography.labelMedium?.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+        );
+        result.add(const SizedBox(height: TioSpacing.sm));
+      }
+      result.add(_historyEntry(context, row, snapshot.goal?.goalType));
+      result.add(const SizedBox(height: TioSpacing.sm));
+    }
+    return result;
+  }
+
+  Widget _historyEntry(
+    BuildContext context,
+    ProgressWeightTimelineItem item,
+    BodyGoalType? goalType,
+  ) {
+    final colors = context.tioColors;
+    final typography = Theme.of(context).textTheme;
+    final entry = item.entry;
+    final local = item.localMeasuredAt;
+    final date = item.isToday
+        ? 'Today'
+        : MaterialLocalizations.of(context).formatShortMonthDay(local);
+    final displayedWeight = widget.unit == WeightUnit.kg
+        ? entry.weightKg
+        : UnitConverters.kgToLb(entry.weightKg);
+    final unitText = widget.unit == WeightUnit.kg ? 'kg' : 'lb';
+
+    final dateColumn = SizedBox(
+      width: TioSize.dp76,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.circle,
+            size: TioSize.dp10,
+            color: item.isToday ? colors.progress : colors.textMuted,
+          ),
+          const SizedBox(height: TioSpacing.xs),
+          Text(
+            date,
+            key: item.isToday
+                ? ValueKey('progress-weight-timeline-today-${entry.id}')
+                : null,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: typography.labelMedium?.copyWith(
+              color: item.isToday ? colors.progress : colors.textSecondary,
             ),
           ),
           const SizedBox(height: TioSpacing.xs),
           Text(
-            '${_dateLabel(context, local)} at '
-                '${TimeOfDay.fromDateTime(local).format(context)}',
+            TimeOfDay.fromDateTime(local).format(context),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: typography.bodySmall?.copyWith(color: colors.textMuted),
+          ),
+        ],
+      ),
+    );
+    final weightColumn = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${displayedWeight.toStringAsFixed(1)} $unitText',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: typography.titleLarge?.copyWith(
+            color: colors.textPrimary,
+          ),
+        ),
+        if (entry.note != null) ...[
+          const SizedBox(height: TioSpacing.xs),
+          Text(
+            entry.note!,
             style: typography.bodySmall?.copyWith(
               color: colors.textSecondary,
             ),
           ),
-          if (entry.note != null) ...[
-            const SizedBox(height: TioSpacing.xs),
-            Text(entry.note!, style: typography.bodyMedium),
-          ],
         ],
+      ],
+    );
+    final badges = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (item.isNewLow) ...[
+          _timelineBadge(
+            context,
+            label: 'New low',
+            key: ValueKey('progress-weight-timeline-new-low-${entry.id}'),
+            foreground: colors.success,
+            background: colors.success.withValues(alpha: TioOpacity.opacity12),
+            semantics: 'New lowest weight compared with all older measurements',
+          ),
+          if (item.deltaKg != null)
+            const SizedBox(height: TioSpacing.xs),
+        ],
+        if (item.deltaKg != null)
+          _timelineChangeBadge(context, item, goalType),
+      ],
+    );
+    final hasBadges = item.isNewLow || item.deltaKg != null;
+    final card = TioCard(
+      variant: TioCardVariant.normal,
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.md,
+        vertical: TioSpacing.lg,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // On compact screens put badges on their own row rather than
+          // squeezing dates, units, or accessibility-scaled weight text.
+          if (constraints.maxWidth < TioSize.dp320) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    dateColumn,
+                    const SizedBox(width: TioSpacing.sm),
+                    Expanded(child: weightColumn),
+                  ],
+                ),
+                if (hasBadges) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: badges,
+                  ),
+                ],
+              ],
+            );
+          }
+          return Row(
+            children: [
+              dateColumn,
+              const SizedBox(width: TioSpacing.md),
+              Expanded(child: weightColumn),
+              if (hasBadges) ...[
+                const SizedBox(width: TioSpacing.sm),
+                badges,
+              ],
+            ],
+          );
+        },
+      ),
+    );
+    return DecoratedBox(
+      key: ValueKey('progress-weight-history-${entry.id!}'),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(TioCardTokens.radius),
+        border: item.isToday
+            ? Border.all(color: colors.progress, width: TioStroke.width1)
+            : null,
+      ),
+      child: card,
+    );
+  }
+
+  Widget _timelineChangeBadge(
+    BuildContext context,
+    ProgressWeightTimelineItem item,
+    BodyGoalType? goalType,
+  ) {
+    final colors = context.tioColors;
+    final delta = item.deltaKg!;
+    final value = widget.unit == WeightUnit.kg
+        ? delta
+        : UnitConverters.kgToLb(delta);
+    final improving = switch (goalType) {
+      BodyGoalType.loseWeight => delta < 0,
+      BodyGoalType.gainWeight => delta > 0,
+      _ => false,
+    };
+    final worsening = switch (goalType) {
+      BodyGoalType.loseWeight => delta > 0,
+      BodyGoalType.gainWeight => delta < 0,
+      _ => false,
+    };
+    final tint = improving
+        ? colors.success
+        : worsening
+            ? colors.danger
+            : colors.textSecondary;
+    return _timelineBadge(
+      context,
+      label: '${delta > 0 ? '+' : ''}${value.toStringAsFixed(1)}',
+      key: ValueKey('progress-weight-timeline-change-${item.entry.id}'),
+      foreground: tint,
+      background: improving || worsening
+          ? tint.withValues(alpha: TioOpacity.opacity12)
+          : colors.surfaceVariant,
+      semantics: 'Change from previous older measurement: '
+          '${UnitFormatters.formatWeight(delta.abs(), widget.unit)}, '
+          '${delta > 0 ? 'increase' : delta < 0 ? 'decrease' : 'no change'}',
+    );
+  }
+
+  Widget _timelineBadge(
+    BuildContext context, {
+    required String label,
+    required Key key,
+    required Color foreground,
+    required Color background,
+    required String semantics,
+  }) {
+    return Semantics(
+      label: semantics,
+      child: DecoratedBox(
+        key: key,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(TioRadius.md),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSpacing.sm,
+            vertical: TioSpacing.xs,
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: foreground,
+            ),
+          ),
+        ),
       ),
     );
   }
