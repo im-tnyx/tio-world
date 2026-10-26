@@ -45,6 +45,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> tapNoteToggle(WidgetTester tester) async {
+    // The first-weight confirmation makes the editor body scrollable.
+    // Reach the note action the same way a person would before tapping.
+    final toggle = find.byKey(const ValueKey('progress-log-note-toggle'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('empty Weight shows truthful first-entry help, no active edit',
       (tester) async {
     await pumpPage(tester, InMemoryBodySetupRepository());
@@ -154,8 +164,7 @@ void main() {
       find.byKey(const ValueKey('progress-log-photo-later')),
     );
     expect(photo.onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
-    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
   });
 
@@ -180,8 +189,7 @@ void main() {
     await pumpPage(tester, repository);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
-    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
     final field = find.descendant(
       of: find.byKey(const ValueKey('progress-log-note-field')),
       matching: find.byType(EditableText),
@@ -204,8 +212,7 @@ void main() {
     await pumpPage(tester, repository);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
-    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
     await tester.enterText(
       find.descendant(
         of: find.byKey(const ValueKey('progress-log-note-field')),
@@ -213,8 +220,7 @@ void main() {
       ),
       '  After the run  ',
     );
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
-    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsNothing);
     await confirmInitialWeight(tester);
     await tester.tap(find.byKey(const ValueKey('progress-log-save')));
@@ -229,8 +235,7 @@ void main() {
     await pumpPage(tester, repository);
     await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('progress-log-note-toggle')));
-    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
     final message = List.filled(300, '😀').join();
     await tester.enterText(
       find.descendant(
