@@ -461,13 +461,19 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        _dateLabel(context, chart.last.measuredAt),
-                        style: typography.bodySmall,
+                      Flexible(
+                        child: Text(
+                          _dateLabel(context, chart.last.measuredAt),
+                          style: typography.bodySmall,
+                        ),
                       ),
-                      Text(
-                        _dateLabel(context, chart.first.measuredAt),
-                        style: typography.bodySmall,
+                      const SizedBox(width: TioSpacing.xs),
+                      Flexible(
+                        child: Text(
+                          _dateLabel(context, chart.first.measuredAt),
+                          textAlign: TextAlign.end,
+                          style: typography.bodySmall,
+                        ),
                       ),
                     ],
                   ),
@@ -580,6 +586,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final unitText = widget.unit == WeightUnit.kg ? 'kg' : 'lb';
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final largerText = textScale > 1.15;
+    bool stackTimelineBadges(double effectiveContentWidth) =>
+        largerText ||
+        effectiveContentWidth < (TioSize.dp320 - TioSize.dp40);
 
     final dateColumn = SizedBox(
       width: largerText ? TioSize.dp110 : TioSize.dp76,
@@ -686,7 +695,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         builder: (context, constraints) {
           // On compact screens put badges on their own row rather than
           // squeezing dates, units, or accessibility-scaled weight text.
-          if (constraints.maxWidth < (TioSize.dp320 - TioSize.dp40) || largerText) {
+          if (stackTimelineBadges(
+            constraints.maxWidth -
+                (item.isToday ? 0 : 2 * TioStroke.width1),
+          )) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -727,8 +739,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         // irrespective of notes, Today border or one/two change badges.
         // Expand the shared height at narrow widths or accessibility scales
         // instead of clipping the weight value or its unit.
-        final stackBadges = largerText ||
-            constraints.maxWidth - 2 * TioSpacing.md < (TioSize.dp320 - TioSize.dp40);
+        // Reserve the Today outline inset for every row so Today and
+        // non-Today entries always share the same height breakpoint.
+        final stackBadges = stackTimelineBadges(
+          constraints.maxWidth - 2 * TioSpacing.md - 2 * TioStroke.width1,
+        );
         final height = TioSize.dp80 +
             (stackBadges ? TioSize.dp54 : 0) +
             math.max(0.0, textScale - 1.0) * TioSize.dp80;

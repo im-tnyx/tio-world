@@ -47,3 +47,12 @@ Focused projection tests for same-time/missing comparison, future Today, partial
 - Owner observed variable Timeline card heights; corrected within the approved Timeline UI slice. All rows use a consistent 80dp height at the normal 390dp/1x viewport, irrespective of Today, badge or note. Longer notes have a one-line preview with the full saved note retained via Tooltip (no data loss).
 - For narrow widths/accessibility text sizes, all cards in that viewport grow to the same taller shared height. Badge actions relocate below measurements rather than truncating lb/kg and user-entered weights. Small-screen/large-text physical layout remains to be QA-tested.
 - Added widget regressions covering equal-height mixed cards and larger text with New low + lb; prior baseline height test now asserts exact 80dp. Continue exact-HEAD Flutter CI and independent Codex review; no merge.
+
+## 2026-10-26 exact-head Flutter CI repair audit
+
+- Confirmed HEAD `d84fd32a` failed Flutter CI run `40321469602` in `Test Flutter (core-wear)`: Progress shard 131 passed / 1 failed. Aggregate `Analyze and test` failure is downstream; Flutter/Dart analysis and other two Flutter shards passed.
+- Root exception in the new 1.8x text widget test: chart date-label `Row` at `progress_weight_page.dart:461` overflowed horizontally by 158px. Make both date labels flexible, retaining full text through wrapping and baseline normal-scale alignment.
+- The same test assumed both Timeline cards are mounted simultaneously, but the older record is below the lazy ListView viewport. Verify two row heights sequentially after scrolling, not via a false global count.
+- Latest Codex P2 identified a Today-border 2dp width mismatch between Timeline badge stacking and fixed-height decisions near 337dp. Use a shared width predicate, reserve that inset consistently for every card, and add a narrow Today/non-Today equal-height/overflow regression. At standard 390dp/1x, 80dp same-height contract remains untouched.
+- Scoped to existing approved #700 Progress UI/test repair. No schema/Auth/RLS/Storage change; TNYX-119 remains In Progress. GitHub source edits are committed by existing `im-tnyx` implementation owner only. Linear `get_agent_context` was unavailable (tool not found), while `get_issue(TNYX-119)` succeeded.
+- Exact new commit Flutter CI, independent review, and physical Android/iOS screenshot QA still require verification; **do not merge** without separate owner instruction.

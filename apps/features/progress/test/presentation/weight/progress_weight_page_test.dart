@@ -963,6 +963,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Today inset keeps narrow Timeline cards the same height',
+      (tester) async {
+    tester.view.physicalSize = const Size(337, 1300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repository = InMemoryBodySetupRepository();
+    for (final record in [
+      BodyWeightRecord(
+        weightKg: 75,
+        measuredAt: now.subtract(const Duration(days: 2)),
+        source: BodyWeightSources.manual,
+      ),
+      BodyWeightRecord(
+        weightKg: 73,
+        measuredAt: now.subtract(const Duration(minutes: 10)),
+        source: BodyWeightSources.manual,
+      ),
+    ]) {
+      await repository.recordCurrentWeight(record);
+    }
+    await pumpPage(tester, repository);
+    final cards = find.byWidgetPredicate((widget) =>
+        widget is DecoratedBox &&
+        widget.key is ValueKey<String> &&
+        (widget.key! as ValueKey<String>).value
+            .startsWith('progress-weight-history-'));
+    expect(cards, findsNWidgets(2));
+    for (var i = 0; i < 2; i++) {
+      expect(
+        tester.getSize(cards.at(i)).height,
+        TioSize.dp80 + TioSize.dp54,
+      );
+    }
+    expect(find.text('New low'), findsOneWidget);
+    expect(find.text('-2.0'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('large text preserves full lb value and equal Timeline rows',
       (tester) async {
     tester.view.physicalSize = const Size(390, 1300);
@@ -1013,9 +1054,12 @@ void main() {
         widget.key is ValueKey<String> &&
         (widget.key! as ValueKey<String>).value
             .startsWith('progress-weight-history-'));
-    expect(cards, findsNWidgets(2));
-    expect(tester.getSize(cards.at(0)).height,
-        tester.getSize(cards.at(1)).height);
+    // At 1.8x text scale the older card can be below the lazy ListView
+    // viewport. Measure each row after scrolling rather than requiring
+    // both to be mounted at the same time.
+    expect(cards, findsOneWidget);
+    final todayHeight = tester.getSize(cards.first).height;
+    expect(todayHeight, greaterThan(TioSize.dp80));
     final timelineLb = find.descendant(
       of: cards,
       matching: find.text('160.9 lb'),
@@ -1023,6 +1067,21 @@ void main() {
     expect(timelineLb, findsOneWidget);
     expect(tester.widget<Text>(timelineLb).overflow, TextOverflow.visible);
     expect(find.text('New low'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('165.3 lb'),
+      TioSize.dp120,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('progress-weight-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.pumpAndSettle();
+    final olderCard = find.ancestor(
+      of: find.text('165.3 lb'),
+      matching: cards,
+    );
+    expect(olderCard, findsOneWidget);
+    expect(tester.getSize(olderCard).height, todayHeight);
     expect(tester.takeException(), isNull);
   });
 
