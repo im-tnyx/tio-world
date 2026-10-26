@@ -1122,6 +1122,68 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('long press edits the selected older Timeline row without duplicates',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    final older = repository.weightEntries.first;
+    final latest = repository.weightEntries.last;
+    final olderCard = find.byKey(
+      ValueKey('progress-weight-history-${older.id}'),
+    );
+    await tester.ensureVisible(olderCard);
+    await tester.pumpAndSettle();
+
+    // A brief tap on the card is not an edit or a deletion.
+    await tester.tap(find.text('72.0 kg'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsNothing);
+    expect(repository.weightEntries, hasLength(2));
+
+    await tester.longPress(find.text('72.0 kg'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-wheel')),
+        findsOneWidget);
+    await tester.tap(find.byKey(
+      const ValueKey('progress-log-weight-mode-toggle')));
+    await tester.pumpAndSettle();
+    final manual = find.byKey(
+      const ValueKey('progress-log-manual-weight'));
+    await tester.enterText(find.descendant(
+      of: manual, matching: find.byType(EditableText)), '71.0');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(repository.weightEntries, hasLength(2));
+    expect(repository.weightEntries.singleWhere(
+      (entry) => entry.id == older.id).weightKg, 71);
+    expect(repository.weightEntries.singleWhere(
+      (entry) => entry.id == latest.id).weightKg, 76);
+    expect(find.text('Edit Weight'), findsNothing);
+
+    // The explicit pencil still opens the very same Edit Weight sheet.
+    final pencil = find.byKey(
+      ValueKey('progress-weight-edit-${latest.id}'),
+    );
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('deleting exact Timeline entry requires confirmation and reloads',
       (tester) async {
     final repository = InMemoryBodySetupRepository();

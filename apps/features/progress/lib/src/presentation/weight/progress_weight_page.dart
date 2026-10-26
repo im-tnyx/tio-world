@@ -1053,20 +1053,30 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             math.max(0.0, textScale - 1.0) * TioSize.dp80;
         return SizedBox(
           height: height,
-          child: DecoratedBox(
-            key: ValueKey('progress-weight-history-${entry.id!}'),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(TioCardTokens.radius),
-              border: item.isLatestEligible
-                  ? Border.all(color: colors.progress, width: TioStroke.width05)
-                  : null,
-            ),
-            // Outline does not increase overall card height for Today.
-            child: Padding(
-              padding: item.isLatestEligible
-                  ? const EdgeInsets.all(TioStroke.width05)
-                  : EdgeInsets.zero,
-              child: card,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // Long press uses exactly the same guarded editor as the pencil.
+            // A short tap and normal vertical scrolling remain unchanged.
+            onLongPress: entry.id != null &&
+                    _editingWeightId == null &&
+                    !_loading
+                ? () => _openWeightEditor(entry)
+                : null,
+            child: DecoratedBox(
+              key: ValueKey('progress-weight-history-${entry.id!}'),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(TioCardTokens.radius),
+                border: item.isLatestEligible
+                    ? Border.all(color: colors.progress, width: TioStroke.width05)
+                    : null,
+              ),
+              // Outline does not increase overall card height.
+              child: Padding(
+                padding: item.isLatestEligible
+                    ? const EdgeInsets.all(TioStroke.width05)
+                    : EdgeInsets.zero,
+                child: card,
+              ),
             ),
           ),
         );

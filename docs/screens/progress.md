@@ -185,3 +185,7 @@ Edit Weight header shows **red Delete → Keyboard → X**, with the existing Co
 ### 2026-10-26 Timeline highlight: latest entry only
 
 The 0.5dp progress-coloured outline, status dot and date text tint now highlight **only the newest eligible nonfuture measurement** under canonical `measuredAt DESC, id DESC` History ordering. Month heading is not a highlighted group, and older records in the same month or on the same day stay neutral—even though multiple legitimate entries may still display the truthful `Today` date label. No future record is highlighted. Goal-directed New low/high, change badges, 56dp/100dp Timeline heights, rounded pencil/Edit sheet and owner/session policies remain unchanged.
+
+### 2026-10-26 Timeline long-press editing shortcut
+
+Long-pressing a Timeline measurement card opens its existing exact-record Edit Weight sheet, identical to pressing the round pencil. This extra gesture does not turn a short tap into an edit, does not disable vertical ListView scrolling, and never directly deletes a row; Delete still requires separate confirmation within the editor. The gesture delegates to the same Progress-owned `_openWeightEditor(BodyWeightEntry)` with immutable row ID, owner-session/generation checks and a single-editor guard. Existing card geometry, notes, 0.5dp latest-only highlight, badges and pencil behavior remain unchanged. The long-press widget test verifies editing an older exact ID without creating duplicates or modifying the current record.

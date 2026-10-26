@@ -144,3 +144,7 @@ Owner confirmed **red Delete → Keyboard → X** in edit header and original No
 ## 2026-10-26 user QA: latest-only Timeline highlight
 
 Actual PR source showed `isToday` driving purple border/dot/date tint for every same-day log, which the user perceived as the month being highlighted. Added O(n) projection boolean `isLatestEligible` from the first nonfuture row in canonical sorted History; kept `isToday` solely for date/Today semantics, and keyed 0.5dp border, dot and tinted date only to latest eligibility. Do not change height/layout, historical records, goal-directed badges or source truth. Tests cover multiple same-day entries, future exclusion and exactly one outlined row. Latest CI/independent review/physical QA required; do not merge.
+
+## 2026-10-26 owner-approved Timeline card long press
+
+Added card-surface `GestureDetector.onLongPress` as an alternate path to the existing exact-row, session-guarded `_openWeightEditor(entry)`. Keep the pencil and normal short tap/scroll interactions; a long press never deletes without the separate confirmation inside the editor. Same PR and no new UI, source of truth, backend, RLS or token. Targeted widget regression tests single-tap no-op, older selected-record update, no duplicate/current-row mutation and pencil functionality. Exact-head CI and independent review/physical Android/iOS gesture QA remain required; do not merge.
