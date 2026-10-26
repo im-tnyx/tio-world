@@ -153,6 +153,22 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
   });
 
+
+  testWidgets('pull-to-refresh works with empty short History', (tester) async {
+    final repo = _CountingProgressHistoryRepository();
+    await pumpPage(tester, repo);
+    final callsBefore = repo.historyCalls;
+    expect(find.text('No measurements in this range'), findsOneWidget);
+    final scroll = find.byKey(const ValueKey('progress-weight-scroll'));
+    final widget = tester.widget<ListView>(scroll);
+    expect(widget.physics, isA<AlwaysScrollableScrollPhysics>());
+    await tester.drag(scroll, const Offset(0, 350));
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(repo.historyCalls, greaterThan(callsBefore));
+    expect(find.textContaining('No weight measurements yet'), findsOneWidget);
+  });
+
   testWidgets('load failure offers retry without exposing stale weights',
       (tester) async {
     await pumpPage(tester, _FailingWeightRepository());
@@ -167,4 +183,16 @@ class _FailingWeightRepository extends InMemoryBodySetupRepository {
   Future<BodyWeightHistoryPage> getWeightHistory(
     BodyWeightHistoryQuery query,
   ) => Future.error(StateError('private transport failure'));
+}
+
+class _CountingProgressHistoryRepository extends InMemoryBodySetupRepository {
+  int historyCalls = 0;
+
+  @override
+  Future<BodyWeightHistoryPage> getWeightHistory(
+    BodyWeightHistoryQuery query,
+  ) {
+    historyCalls++;
+    return super.getWeightHistory(query);
+  }
 }
