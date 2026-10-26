@@ -78,7 +78,7 @@ void main() {
         reason: 'bottom clearance must keep Load more above the fixed action');
   });
 
-  testWidgets('short Timeline keeps action fixed and opens the canonical sheet',
+  testWidgets('short Timeline anchors action on compact large-text viewport',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 560));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -88,12 +88,18 @@ void main() {
     expect(action, findsOneWidget);
     expect(tester.getRect(action).height, TioSize.dp56);
     expect(tester.takeException(), isNull);
+  });
 
-    await tester.tap(action);
+  testWidgets('fixed action opens and closes the same owner-bound Weight editor',
+      (tester) async {
+    final repo = InMemoryBodySetupRepository();
+    await pumpProgress(tester, repo);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('progress-log-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(repo.weightEntries, isEmpty);
   });
 }
