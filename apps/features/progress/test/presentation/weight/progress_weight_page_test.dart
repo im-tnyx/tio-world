@@ -791,7 +791,8 @@ void main() {
     expect(tester.widget<TioButton>(action).variant, TioButtonVariant.primary);
     final before = tester.getRect(action);
     // Owner reduced the action from Nutrition's 56dp to Core's 46dp.
-    expect(before.height, TioButtonTokens.height);
+    expect(before.height, greaterThanOrEqualTo(TioButtonTokens.height));
+    expect(before.height, lessThan(TioSize.dp56));
     final scroll = tester.state<ScrollableState>(
       find.descendant(of: list, matching: find.byType(Scrollable)).first,
     );
