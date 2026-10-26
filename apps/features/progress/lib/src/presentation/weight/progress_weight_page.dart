@@ -47,6 +47,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Object? _historyError;
   bool _loading = true;
   bool _loadingMore = false;
+  // A retained snapshot must not be paginated while a fresh canonical read
+  // is pending; otherwise an old page can overwrite the refreshed snapshot.
+  bool _refreshInFlight = false;
   bool _refreshFailed = false;
   // Prevent edits against a stale row after a confirmed write while its
   // canonical History refresh is pending or has failed.
@@ -174,6 +177,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final generation = ++_generation;
     setState(() {
       _loading = !keepExisting;
+      _refreshInFlight = keepExisting;
       _loadingMore = false;
       if (!keepExisting) {
         _snapshot = null;
@@ -224,6 +228,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         _range = selectedRange;
         _snapshot = snapshot;
         _loading = false;
+        _refreshInFlight = false;
         _refreshFailed = false;
         _mutationNeedsReconcile = false;
       });
@@ -239,6 +244,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           _error = const _WeightLoadFailure();
         }
         _loading = false;
+        _refreshInFlight = false;
       });
     }
   }
@@ -247,7 +253,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final snapshot = _snapshot;
     final cursor = snapshot?.history.nextCursor;
     if (snapshot == null || cursor == null || _loadingMore ||
-        _mutationNeedsReconcile) {
+        _refreshInFlight || _mutationNeedsReconcile) {
       return;
     }
     final generation = _generation;
@@ -375,7 +381,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                   key: const ValueKey('progress-weight-load-more'),
                   label: _historyError == null ? 'Load more' : 'Retry history',
                   loading: _loadingMore,
-                  onPressed: _loadMore,
+                  onPressed: _refreshInFlight ? null : _loadMore,
                 ),
               ),
           ],
