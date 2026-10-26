@@ -89,3 +89,8 @@ Owner-reported Android QA: weight wheel lacks the original kg/lbs drum; restore 
 
 - Graph target sentence removed and goal distance moved to independent horizontal TioCard; the value is derived from canonical current/target, never hard-coded from reference imagery. Smaller aligned stat cards (third spans full width on narrow phones), reduced chart padding. Weekly rate suppressed for intervals below seven elapsed days; actual range change retained. Timeline uniform baseline 72dp (narrow stack +40dp), Today border 0.75dp Core stroke, goal record beside the weight and not stacked into the delta badge; no markers when no active Lose/Gain goal.
 - Pending: exact-ID History Delete action + security/session tests, CI, independent review/visual QA. No merge.
+
+## 2026-10-26 exact History delete action
+
+- Each Timeline card now has an explicit small delete icon for its immutable `BodyWeightEntry.id` and uses Core `showTioConfirmationBottomSheet` with destructive intent. Cancel/no-answer never touches data; confirmed calls existing owner/session-pinned `BodyRepository.deleteWeightLog(id)` once and refreshes real current/chart/History and app-owned Body caches. Missing/deleted row or exception is non-optimistic and shows a generic result without identifying the owner/weight in logs. Session and async generation checks suppress stale UI update. No direct Flutter-to-privileged API, new schema/RLS/Storage or delete-by-row-position.
+- Device QA checkpoint: latest commit CI and independent review required; do not merge.

@@ -626,13 +626,13 @@ void main() {
       find.byKey(const ValueKey('progress-log-wheel')),
     );
     expect(wheel.unit, WeightUnit.lb);
-    expect(wheel.showUnitSwitcher, isFalse);
+    expect(wheel.showUnitSwitcher, isTrue);
     expect(find.text('Weight (lb)'), findsNothing);
     final drums = find.descendant(
       of: find.byKey(const ValueKey('progress-log-wheel')),
       matching: find.byType(ListWheelScrollView),
     );
-    expect(drums, findsNWidgets(2));
+    expect(drums, findsNWidgets(3));
     final whole = tester.widget<ListWheelScrollView>(drums.at(0)).controller!
         as FixedExtentScrollController;
     final decimal = tester.widget<ListWheelScrollView>(drums.at(1)).controller!
@@ -984,7 +984,7 @@ void main() {
     for (final weight in [74.0, 73.0, 72.0]) {
       await repo.recordCurrentWeight(BodyWeightRecord(
         weightKg: weight,
-        measuredAt: now.subtract(Duration(days: 75 - weight.toInt())),
+        measuredAt: now.subtract(Duration(days: weight.toInt() - 71)),
         source: BodyWeightSources.manual,
       ));
     }
@@ -997,6 +997,40 @@ void main() {
     expect(find.byKey(const ValueKey('progress-weight-target-card')), findsOneWidget);
     final chart = find.byKey(const ValueKey('progress-weight-graph-card'));
     expect(find.descendant(of: chart, matching: find.textContaining('to go')), findsNothing);
+  });
+
+  testWidgets('deleting exact Timeline entry requires confirmation and reloads',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72, measuredAt: now.subtract(const Duration(days: 2)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76, measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repository);
+    expect(find.text('76 kg'), findsOneWidget);
+    final newestId = repository.weightEntries.last.id!;
+    final delete = find.byKey(ValueKey('progress-weight-delete-$newestId'));
+    await tester.ensureVisible(delete);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(find.text('Delete weight log?'), findsOneWidget);
+    expect(repository.weightEntries, hasLength(2));
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(2));
+
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete').last);
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.weightKg, 72);
+    expect(find.text('72 kg'), findsWidgets);
+    expect(find.text('76 kg'), findsNothing);
   });
 
   testWidgets('Timeline groups months and uses real older-record changes',

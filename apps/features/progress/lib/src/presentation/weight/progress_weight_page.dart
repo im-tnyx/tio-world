@@ -45,6 +45,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Object? _historyError;
   bool _loading = true;
   bool _loadingMore = false;
+  String? _deletingWeightId;
   int _generation = 0;
   ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
 
@@ -64,6 +65,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         !identical(oldWidget.repository, widget.repository)) {
       _sessionActive.value = false;
       _sessionActive = ValueNotifier<bool>(true);
+      _deletingWeightId = null;
       // A new owner starts with a fresh, non-user-selected chart range.
       _range = ProgressWeightRange.days30;
       _rangeSelectedByUser = false;
@@ -100,6 +102,46 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     if (!mounted || !active.value || result != true) return;
     widget.onWeightLogged?.call();
     await _reload();
+  }
+
+  Future<void> _deleteWeightEntry(BodyWeightEntry entry) async {
+    final id = entry.id;
+    if (id == null || _deletingWeightId != null || _loading) return;
+    final active = _sessionActive;
+    final repository = widget.repository;
+    final generation = _generation;
+    final approved = await showTioConfirmationBottomSheet(
+      context: context,
+      title: 'Delete weight log?',
+      message: 'Delete only this measurement? Weight summary, graph and '
+          'Timeline will refresh. This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      intent: TioConfirmationIntent.destructive,
+    );
+    if (approved != true ||
+        !mounted || !active.value || generation != _generation) return;
+    setState(() => _deletingWeightId = id);
+    try {
+      final deleted = await repository.deleteWeightLog(id);
+      if (!mounted || !active.value || generation != _generation) return;
+      setState(() => _deletingWeightId = null);
+      if (!deleted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Weight log no longer available.')),
+        );
+        return;
+      }
+      // Existing app composition invalidates owner-scoped Body caches.
+      widget.onWeightLogged?.call();
+      await _reload();
+    } catch (_) {
+      if (!mounted || !active.value || generation != _generation) return;
+      setState(() => _deletingWeightId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not delete weight log. Try again.')),
+      );
+    }
   }
 
   Future<void> _reload() async {
@@ -565,6 +607,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               ],
             );
           },
+        ),
         if (target != null && snapshot.goal != null) ...[
           const SizedBox(height: TioSpacing.sm),
           _targetProgressCard(context, current, snapshot.goal!),
@@ -732,8 +775,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final largerText = textScale > 1.15;
     bool stackTimelineBadges(double effectiveContentWidth) =>
-        largerText ||
-        effectiveContentWidth < (TioSize.dp320 - TioSize.dp40);
+        largerText || effectiveContentWidth < TioSize.dp320;
 
     final dateColumn = SizedBox(
       width: largerText ? TioSize.dp110 : TioSize.dp76,
@@ -829,11 +871,24 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       ],
     );
     final hasBadges = item.deltaKg != null;
+    final deleteAction = IconButton(
+      key: ValueKey('progress-weight-delete-${entry.id}'),
+      tooltip: 'Delete weight log',
+      onPressed: _deletingWeightId == null
+          ? () => _deleteWeightEntry(entry)
+          : null,
+      constraints: const BoxConstraints(
+        minWidth: TioSize.dp32,
+        minHeight: TioSize.dp40,
+      ),
+      padding: EdgeInsets.zero,
+      icon: const Icon(Icons.delete_outline_rounded, size: TioSize.dp20),
+    );
     final card = TioCard(
       variant: TioCardVariant.normal,
       padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.md,
-        vertical: TioSpacing.sm,
+        horizontal: TioSpacing.sm,
+        vertical: TioSpacing.xs,
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -851,6 +906,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                     dateColumn,
                     const SizedBox(width: TioSpacing.sm),
                     Expanded(child: weightWithRecord),
+                    deleteAction,
                   ],
                 ),
                 if (hasBadges) ...[
@@ -869,9 +925,11 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               const SizedBox(width: TioSpacing.md),
               Expanded(child: weightWithRecord),
               if (hasBadges) ...[
-                const SizedBox(width: TioSpacing.sm),
+                const SizedBox(width: TioSpacing.xs),
                 _timelineChangeBadge(context, item, goalType),
               ],
+              const SizedBox(width: TioSpacing.xxs),
+              deleteAction,
             ],
           );
         },
