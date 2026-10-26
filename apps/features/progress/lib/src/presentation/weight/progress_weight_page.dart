@@ -113,7 +113,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   Future<void> _openWeightEditor(BodyWeightEntry entry) async {
     final id = entry.id;
     if (id == null || _editingWeightId != null || _loading ||
-        _mutationNeedsReconcile) return;
+        _mutationNeedsReconcile) {
+      return;
+    }
     final active = _sessionActive;
     final generation = _generation;
     final repository = widget.repository;

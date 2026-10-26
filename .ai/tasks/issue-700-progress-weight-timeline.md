@@ -180,3 +180,7 @@ Added deferred canonical-read widget regressions for Log, Edit and Delete: confi
 ## 2026-10-26 post-write lint gate
 
 Exact HEAD `4ffc4c56` Flutter Analyze failed a single existing-repo strict Dart lint: `curly_braces_in_flow_control_structures` in the new session-generation guard immediately before Edit/Delete post-write soft refresh. Wrapped that guard in braces. No behavior or scope change; rerun new exact-head CI.
+
+## 2026-10-26 exact HEAD second Dart lint correction
+
+CI `9515e010` still failed one `curly_braces_in_flow_control_structures` at line 116: the wrapped multi-line `_openWeightEditor` guard for `_mutationNeedsReconcile`, distinct from the previously corrected Edit/Delete post-write generation guard. Added braces around the actual multiline `if`. No behavior changes; new exact-head CI required.
