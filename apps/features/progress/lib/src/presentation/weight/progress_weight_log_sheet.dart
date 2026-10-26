@@ -65,6 +65,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
   bool _weightConfirmed = false;
   bool _saving = false;
   bool _attempted = false;
+  // Once any request outcome is UNKNOWN, a later definite rejection of a
+  // retry cannot prove the earlier request did not commit.
+  bool _hasUnknownOutcome = false;
   bool _dismissQueued = false;
   Route<dynamic>? _activePickerRoute;
   ModalRoute<dynamic>? _sheetRoute;
@@ -240,10 +243,22 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet> {
         return;
       }
       Navigator.of(context).pop(true);
+    } on BodyWeightSubmissionRejected {
+      if (!mounted || !widget.sessionActive.value) return;
+      setState(() {
+        _saving = false;
+        // Only a *first* proven no-write result may unlock corrections and
+        // Close. An earlier UNKNOWN still requires same-UUID reconciliation.
+        if (!_hasUnknownOutcome) _attempted = false;
+        _error = _hasUnknownOutcome
+            ? 'Save not confirmed. Retry this same entry before closing.'
+            : 'Weight was not saved. Check your entry or close.';
+      });
     } catch (_) {
       if (!mounted || !widget.sessionActive.value) return;
       setState(() {
         _saving = false;
+        _hasUnknownOutcome = true;
         _error = 'Save not confirmed. Retry this same entry before closing.';
       });
     }

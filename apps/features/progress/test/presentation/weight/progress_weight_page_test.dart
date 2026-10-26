@@ -282,6 +282,69 @@ void main() {
   });
 
 
+  testWidgets('definitive rejection leaves draft editable and allows Close',
+      (tester) async {
+    final repository = _DefinitelyRejectedWeightRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+
+    expect(repository.attempts, 1);
+    expect(repository.weightEntries, isEmpty);
+    expect(find.textContaining('Weight was not saved'), findsOneWidget);
+    expect(find.textContaining('Details are locked'), findsNothing);
+    expect(
+      tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-close')),
+      ).onPressed,
+      isNotNull,
+    );
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-log-save')),
+      ).label,
+      'Save Weight',
+    );
+    await tapNoteToggle(tester);
+    expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('progress-log-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(repository.weightEntries, isEmpty);
+  });
+
+  testWidgets('definite retry rejection does not unlock earlier UNKNOWN',
+      (tester) async {
+    final repository = _UnknownThenRejectedWeightRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Save not confirmed'), findsOneWidget);
+    expect(repository.weightEntries, hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.attempts, 2);
+    expect(find.textContaining('Save not confirmed'), findsOneWidget);
+    expect(find.textContaining('Details are locked'), findsOneWidget);
+    expect(
+      tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-close')),
+      ).onPressed,
+      isNull,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
+    expect(repository.weightEntries, hasLength(1));
+  });
+
   testWidgets('Back and barrier cannot close while weight save is in flight',
       (tester) async {
     final repository = _DelayedSaveRepository();
@@ -527,5 +590,29 @@ class _DelayedSaveRepository extends InMemoryBodySetupRepository {
   Future<void> recordCurrentWeight(BodyWeightRecord record) async {
     await release.future;
     return super.recordCurrentWeight(record);
+  }
+}
+
+class _DefinitelyRejectedWeightRepository extends InMemoryBodySetupRepository {
+  int attempts = 0;
+
+  @override
+  Future<void> recordCurrentWeight(BodyWeightRecord record) async {
+    attempts++;
+    throw const BodyWeightSubmissionRejected();
+  }
+}
+
+class _UnknownThenRejectedWeightRepository extends InMemoryBodySetupRepository {
+  int attempts = 0;
+
+  @override
+  Future<void> recordCurrentWeight(BodyWeightRecord record) async {
+    attempts++;
+    if (attempts == 1) {
+      await super.recordCurrentWeight(record);
+      throw StateError('Response lost after committed insert');
+    }
+    throw const BodyWeightSubmissionRejected();
   }
 }

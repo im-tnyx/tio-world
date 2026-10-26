@@ -103,6 +103,13 @@ class BodyWeightEntry {
   final String? note;
 }
 
+/// The backend definitively rejected this insert before any row could commit.
+/// Only throw this for confirmed no-write responses. Transport/read-back
+/// failures are UNKNOWN and must retain the original submission UUID.
+final class BodyWeightSubmissionRejected implements Exception {
+  const BodyWeightSubmissionRejected();
+}
+
 /// Explicit command payload for recording a new post-onboarding weight row.
 class BodyWeightRecord {
   const BodyWeightRecord({

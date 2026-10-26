@@ -206,9 +206,27 @@ class SupabaseBodySetupRepository implements BodyRepository {
     };
     try {
       await _client.from('body_weight_logs').insert(payload);
-    } catch (_) {
+    } catch (error) {
       final id = record.submissionId;
       if (id == null) rethrow;
+
+      // A narrowly allowlisted Postgres/PostgREST rejection proves this
+      // particular insert did not commit. Exclude 23505: an earlier UNKNOWN
+      // attempt with this UUID may already have inserted the same row.
+      // Network, server, read-back and all unclassified errors stay UNKNOWN.
+      if (error is PostgrestException &&
+          const <String>{
+            '42501', // permission / RLS rejection
+            '23514', // check constraint
+            '23502', // not-null constraint
+            '23503', // foreign-key constraint
+            '22003', // numeric value out of range
+            '22P02', // invalid input representation
+            'PGRST102', // invalid request body, rejected before SQL
+          }.contains(error.code)) {
+        _requireWeightSession(userId, expectedCycle: cycle);
+        throw const BodyWeightSubmissionRejected();
+      }
 
       // An ambiguous timeout may have already committed the insert. Verify
       // the exact owner row and payload before accepting a retry as saved.
