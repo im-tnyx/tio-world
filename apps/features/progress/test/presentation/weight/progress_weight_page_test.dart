@@ -2113,7 +2113,8 @@ void main() {
       measuredAt: now.subtract(const Duration(hours: 1)),
       source: BodyWeightSources.manual,
     ));
-    await pumpPage(tester, repository);
+    // This is a new canonical History read, not an in-place state rebuild.
+    await pumpPage(tester, repository, cycle: 'goal-reached-after-new-log');
     expect(find.descendant(
         of: card, matching: find.text('Target reached')),
         findsOneWidget);
