@@ -422,6 +422,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final delta = snapshot.rangeChangeKg;
     final weeklyRate = snapshot.weeklyRateOfChangeKg;
     final target = snapshot.goal?.targetWeightKg;
+    final targetProgress = snapshot.targetProgress;
     final chart = snapshot.chartEntries;
     final scale = chart.isEmpty
         ? null
@@ -727,9 +728,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
             );
           },
         ),
-        if (snapshot.targetProgress case final progress?) ...[
+        if (targetProgress != null) ...[
           const SizedBox(height: TioSpacing.sm),
-          _targetProgressCard(context, progress),
+          _targetProgressCard(context, targetProgress),
         ],
       ],
     );
