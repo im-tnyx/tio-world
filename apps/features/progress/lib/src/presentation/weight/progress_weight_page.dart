@@ -347,26 +347,43 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         ? null
         : _WeightChartScale.fromEntries(chart, target);
 
+    final startingKg = snapshot.goal?.startingWeightKg;
+    // Separate lifetime change since the active Body Goal's canonical
+    // starting baseline from N-day chart change. Never guess a baseline.
+    final goalChangeKg = startingKg == null || current == null
+        ? null
+        : current.weightKg - startingKg;
+    Color trendColor(double? changeKg) {
+      if (changeKg == null || changeKg == 0) return colors.textPrimary;
+      final goalType = snapshot.goal?.goalType;
+      final improving = (goalType == BodyGoalType.loseWeight && changeKg < 0) ||
+          (goalType == BodyGoalType.gainWeight && changeKg > 0);
+      final worsening = (goalType == BodyGoalType.loseWeight && changeKg > 0) ||
+          (goalType == BodyGoalType.gainWeight && changeKg < 0);
+      return improving ? colors.success
+          : worsening ? colors.danger : colors.textPrimary;
+    }
     final statistics = <Widget>[
       _summaryStatCard(
         context,
-        'progress-weight-stat-current',
-        'CURRENT',
-        current == null
-            ? '—'
-            : UnitFormatters.formatWeight(current.weightKg, widget.unit),
+        'progress-weight-stat-starting',
+        'STARTING',
+        startingKg == null
+            ? '—' : UnitFormatters.formatWeight(startingKg, widget.unit),
       ),
       _summaryStatCard(
         context,
-        'progress-weight-stat-change',
-        '${_range.days} DAY CHANGE',
-        delta == null ? 'Not enough history' : _formatChange(delta),
+        'progress-weight-stat-overall-change',
+        'CHANGE',
+        goalChangeKg == null ? '—' : _formatChange(goalChangeKg),
+        valueColor: trendColor(goalChangeKg),
       ),
       _summaryStatCard(
         context,
         'progress-weight-stat-rate',
         'RATE OF CHANGE',
         weeklyRate == null ? '—' : _formatWeeklyRate(weeklyRate),
+        valueColor: trendColor(weeklyRate),
       ),
     ];
 
@@ -453,6 +470,33 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _graphHeaderStat(
+                      context,
+                      key: 'progress-weight-stat-current',
+                      label: 'CURRENT',
+                      value: current == null
+                          ? '—'
+                          : UnitFormatters.formatWeight(
+                              current.weightKg, widget.unit),
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.sm),
+                  Expanded(
+                    child: _graphHeaderStat(
+                      context,
+                      key: 'progress-weight-stat-change',
+                      label: '${_range.days} DAY CHANGE',
+                      value: delta == null
+                          ? 'Not enough history' : _formatChange(delta),
+                      rightAligned: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TioSpacing.md),
               if (chart.isEmpty)
                 Padding(
                   key: const ValueKey('progress-weight-chart-empty'),
@@ -567,12 +611,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         const SizedBox(height: TioSpacing.sm),
         LayoutBuilder(
           builder: (context, constraints) {
-            // Two compact cards + a full-width third on phones. One column
-            // for narrow/text-scaled screens; three columns on wide layouts.
-            final scale = MediaQuery.textScalerOf(context).scale(1);
-            final singleColumn =
-                constraints.maxWidth < TioSize.dp320 || scale > 1.5;
-            if (singleColumn) {
+            // Same-size three-column cards at ordinary phone widths. Only
+            // narrow accessibility layouts stack to retain complete units.
+            final enlarged = MediaQuery.textScalerOf(context).scale(1) > 1.5;
+            if (enlarged || constraints.maxWidth < TioSize.dp280) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -583,29 +625,17 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 ],
               );
             }
-            final showThreeColumns = constraints.maxWidth >=
-                TioSize.dp480 + TioSize.dp120;
-            return Column(
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: statistics[0]),
-                      const SizedBox(width: TioSpacing.sm),
-                      Expanded(child: statistics[1]),
-                      if (showThreeColumns) ...[
-                        const SizedBox(width: TioSpacing.sm),
-                        Expanded(child: statistics[2]),
-                      ],
-                    ],
-                  ),
-                ),
-                if (!showThreeColumns) ...[
-                  const SizedBox(height: TioSpacing.sm),
-                  SizedBox(width: double.infinity, child: statistics[2]),
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: statistics[0]),
+                  const SizedBox(width: TioSpacing.sm),
+                  Expanded(child: statistics[1]),
+                  const SizedBox(width: TioSpacing.sm),
+                  Expanded(child: statistics[2]),
                 ],
-              ],
+              ),
             );
           },
         ),
@@ -629,32 +659,57 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
       BodyGoalType.gainWeight => math.max(0.0, targetKg - current.weightKg),
       _ => (current.weightKg - targetKg).abs(),
     };
+    final beginning = goal.startingWeightKg;
+    final movedCloser = remaining != null && beginning != null &&
+        remaining < (beginning - targetKg).abs();
+    final status = remaining != null && remaining < 0.0001
+        ? 'Target reached'
+        : movedCloser ? 'On track to target' : 'Target progress';
     return TioCard(
       key: const ValueKey('progress-weight-target-card'),
       variant: TioCardVariant.normal,
       padding: const EdgeInsets.all(TioSpacing.sm),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              'Target progress',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: colors.textSecondary,
+          Container(
+            width: TioSize.dp36,
+            height: TioSize.dp36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colors.progress.withValues(alpha: TioOpacity.opacity12),
+              border: Border.all(
+                color: colors.progress, width: TioStroke.width075,
               ),
             ),
+            child: Icon(
+              Icons.flag_outlined, color: colors.progress, size: TioSize.dp20,
+            ),
           ),
-          const SizedBox(width: TioSpacing.xs),
-          Flexible(
-            child: Text(
-              remaining == null
-                  ? 'Target: ${UnitFormatters.formatWeight(targetKg, widget.unit)}'
-                  : remaining < 0.0001
-                      ? 'Target reached'
-                      : '${UnitFormatters.formatWeight(remaining, widget.unit)} to go',
-              textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: colors.textPrimary,
-              ),
+          const SizedBox(width: TioSpacing.sm),
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: TioSpacing.xs,
+              runSpacing: TioSpacing.xxs,
+              children: [
+                Text(
+                  status,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+                Text(
+                  remaining == null
+                      ? 'Target: ${UnitFormatters.formatWeight(targetKg, widget.unit)}'
+                      : remaining < 0.0001
+                          ? ''
+                          : '${UnitFormatters.formatWeight(remaining, widget.unit)} to go',
+                  key: const ValueKey('progress-weight-target-distance'),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -662,40 +717,75 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     );
   }
 
-  Widget _summaryStatCard(
-    BuildContext context,
-    String key,
-    String label,
-    String value,
-  ) =>
-      TioCard(
-        key: ValueKey(key),
-        variant: TioCardVariant.normal,
-        padding: const EdgeInsets.all(TioSpacing.sm),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: TioSize.dp48),
-          child: _stat(context, label, value),
-        ),
-      );
-
-  Widget _stat(BuildContext context, String label, String value) {
-    final colors = context.tioColors;
+  Widget _graphHeaderStat(
+    BuildContext context, {
+    required String key,
+    required String label,
+    required String value,
+    bool rightAligned = false,
+  }) {
     final typography = Theme.of(context).textTheme;
+    final colors = context.tioColors;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      key: ValueKey(key),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: rightAligned
+          ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Text(
           label,
+          maxLines: 2,
+          textAlign: rightAligned ? TextAlign.end : TextAlign.start,
           style: typography.labelSmall?.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: TioSpacing.xxs),
         Text(
           value,
+          textAlign: rightAligned ? TextAlign.end : TextAlign.start,
           style: typography.titleMedium?.copyWith(color: colors.textPrimary),
         ),
       ],
     );
   }
+
+  Widget _summaryStatCard(
+    BuildContext context,
+    String key,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) =>
+      TioCard(
+        key: ValueKey(key),
+        variant: TioCardVariant.normal,
+        padding: const EdgeInsets.all(TioSpacing.sm),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: TioSize.dp72),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: valueColor ?? context.tioColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: TioSpacing.xs),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.tioColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
   String _formatChange(double kilograms) {
     if (kilograms == 0) return 'No change';
@@ -1151,6 +1241,25 @@ class _RecordedWeightPainter extends CustomPainter {
           goalPaint,
         );
       }
+      final targetLabel = TextPainter(
+        text: TextSpan(
+          text: 'YOUR TARGET',
+          style: TextStyle(
+            color: targetColor,
+            fontSize: TioFontSize.size10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      targetLabel.paint(
+        canvas,
+        Offset(
+          math.max(left, right - targetLabel.width - TioSpacing.xs),
+          math.max(top, math.min(bottom - targetLabel.height,
+              goalY - targetLabel.height - TioSpacing.xs)),
+        ),
+      );
     }
 
     final points = ordered.map((e) => Offset(x(e), y(e.weightKg))).toList();

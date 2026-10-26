@@ -885,21 +885,76 @@ void main() {
     expect(graph, findsOneWidget);
     expect(
       find.descendant(of: graph, matching: find.text('CURRENT')),
-      findsNothing,
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: graph, matching: find.text('30 DAY CHANGE')),
+      findsOneWidget,
     );
     expect(
       find.descendant(of: graph, matching: find.text('RATE OF CHANGE')),
       findsNothing,
     );
+    expect(find.text('STARTING'), findsOneWidget);
+    expect(find.text('CHANGE'), findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-stat-current')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-stat-change')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-stat-starting')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-weight-stat-overall-change')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('progress-weight-stat-rate')),
         findsOneWidget);
     expect(find.text('30 DAY CHANGE'), findsOneWidget);
     expect(find.text('+1 kg'), findsOneWidget);
     expect(find.text('+0.5 kg/week'), findsOneWidget);
+  });
+
+  testWidgets('reference summary has equal phone cards and distinct changes',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 1300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final repo = InMemoryBodySetupRepository();
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 74, measuredAt: now.subtract(const Duration(days: 20)),
+      source: BodyWeightSources.manual,
+    ));
+    await repo.setActiveBodyGoal(const BodyGoalUpdate(
+      goalType: BodyGoalType.loseWeight, targetWeightKg: 70,
+      weeklyWeightChangeKg: 0.5,
+    ));
+    await repo.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 73, measuredAt: now.subtract(const Duration(days: 6)),
+      source: BodyWeightSources.manual,
+    ));
+    await pumpPage(tester, repo);
+    final graph = find.byKey(const ValueKey('progress-weight-graph-card'));
+    expect(find.descendant(of: graph, matching: find.text('CURRENT')),
+        findsOneWidget);
+    expect(find.descendant(of: graph, matching: find.text('30 DAY CHANGE')),
+        findsOneWidget);
+    expect(find.text('STARTING'), findsOneWidget);
+    expect(find.text('CHANGE'), findsOneWidget);
+    expect(find.text('RATE OF CHANGE'), findsOneWidget);
+    expect(find.text('74 kg'), findsWidgets);
+    expect(find.text('-1 kg'), findsWidgets);
+    final metrics = [
+      'progress-weight-stat-starting',
+      'progress-weight-stat-overall-change',
+      'progress-weight-stat-rate',
+    ].map((k) => tester.getSize(find.byKey(ValueKey(k)))).toList();
+    expect(metrics[0].height, metrics[1].height);
+    expect(metrics[1].height, metrics[2].height);
+    expect(metrics[0].width, closeTo(metrics[1].width, 0.001));
+    expect(metrics[1].width, closeTo(metrics[2].width, 0.001));
+    expect(find.text('On track to target'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('chart range menu reuses elevated TioCard and marks selection',

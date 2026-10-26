@@ -112,3 +112,7 @@ Flutter Analyzer on `696b8f27` flagged one missing block-brace lint (fixed at `b
 ## 2026-10-26 exact-HEAD edit-test import correction
 
 On `0c39c74e`, Dart Analyze of production Progress code passed; the newly added edit sheet widget test referenced `BodyWeightEntry` without importing the public `tio_feature_progress/progress.dart` boundary, producing one `undefined_function` error. Added the missing public import. Exact new-head Analyze and tests, independent review and Android/iOS QA remain mandatory; not merged.
+
+## 2026-10-26 final screenshot alignment correction
+
+Owner clarified that "30 DAY CHANGE" belongs only inside chart (beside CURRENT), and below there must not be another N-day-change card. Retain three equal-width cards beneath chart as in reference: STARTING and CHANGE are active goal baseline and signed lifetime goal change, while RATE OF CHANGE is selected-window pace. They are distinct from selected-range N DAY CHANGE. Chart has target guide label and separate compact target-distance horizontal card. Avoid fabricating baseline; missing data displays —. Keep Core theme/tokens and 320–390dp/large-text behavior, with fresh exact-head CI and independent review before merge.
