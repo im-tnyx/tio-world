@@ -46,8 +46,7 @@ void main() {
   }
 
   Future<void> tapNoteToggle(WidgetTester tester) async {
-    // The first-weight confirmation makes the editor body scrollable.
-    // Reach the note action the same way a person would before tapping.
+    // The Notes action is now pinned below the scrolling editor body.
     final toggle = find.byKey(const ValueKey('progress-log-note-toggle'));
     await tester.ensureVisible(toggle);
     await tester.pumpAndSettle();
@@ -166,6 +165,75 @@ void main() {
     expect(photo.onPressed, isNull);
     await tapNoteToggle(tester);
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
+  });
+
+  testWidgets('pinned footer uses one anchored DateTime popup',
+      (tester) async {
+    await pumpPage(tester, InMemoryBodySetupRepository());
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('progress-log-date')), findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-time')), findsNothing);
+    expect(find.byKey(const ValueKey('progress-log-date-time')), findsOneWidget);
+    expect(find.byType(TioEditorActionFooter), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-save')), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-photo-later')),
+        findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
+    await tester.pumpAndSettle();
+    final picker = tester.widget<TioDateTimeWheelPicker>(
+      find.byType(TioDateTimeWheelPicker),
+    );
+    expect(picker.maximumDate, now.toLocal());
+    expect(picker.minimumDate, DateTime(1900));
+    expect(picker.value, now.toLocal());
+    expect(find.byType(DatePickerDialog), findsNothing);
+    expect(find.byType(TimePickerDialog), findsNothing);
+  });
+
+  testWidgets('popup date/time selection persists canonical UTC Weight entry',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
+    await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
+    await tester.pumpAndSettle();
+
+    final selected = now.toLocal().subtract(
+      const Duration(days: 2, minutes: 15),
+    );
+    tester.widget<TioDateTimeWheelPicker>(
+      find.byType(TioDateTimeWheelPicker),
+    ).onChanged(selected);
+    await tester.pumpAndSettle();
+    // The wheel cannot select a future actual measurement.
+    tester.widget<TioDateTimeWheelPicker>(
+      find.byType(TioDateTimeWheelPicker),
+    ).onChanged(now.toLocal().add(const Duration(days: 1)));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioDateTimeWheelPicker>(
+        find.byType(TioDateTimeWheelPicker),
+      ).value.isAfter(now.toLocal()),
+      isFalse,
+    );
+    tester.widget<TioDateTimeWheelPicker>(
+      find.byType(TioDateTimeWheelPicker),
+    ).onChanged(selected);
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('tio-date-time-picker-popup')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(repository.weightEntries.single.measuredAt.isUtc, isTrue);
+    expect(repository.weightEntries.single.measuredAt, selected.toUtc());
   });
 
   testWidgets('disposing Weight page with open Log sheet is lifecycle-safe',
