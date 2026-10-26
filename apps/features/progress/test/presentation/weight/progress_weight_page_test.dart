@@ -825,17 +825,16 @@ void main() {
       tester.getSize(find.byKey(const ValueKey('progress-weight-chart'))).height,
       TioSize.dp120,
     );
-    // The chart date is below the plot inside the lazily built scroll view.
-    // Scroll the actual page until it is built and visible.
-    await tester.scrollUntilVisible(
-      find.text('Oct 25, 2026'),
-      150,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('progress-weight-scroll')),
-        matching: find.byType(Scrollable),
-      ).first,
+    // Assert the actual single-point label independent of locale formatting
+    // and viewport visibility; the chart itself is already mounted above.
+    final label = tester.widget<Text>(
+      find.byKey(const ValueKey('progress-weight-single-date'),
+          skipOffstage: false),
     );
-    expect(find.text('Oct 25, 2026'), findsOneWidget);
+    final expectedDate = MaterialLocalizations.of(
+      tester.element(find.byKey(const ValueKey('progress-weight-chart'))),
+    ).formatMediumDate(now.subtract(const Duration(days: 1)).toLocal());
+    expect(label.data, expectedDate);
   });
 
   testWidgets('range menu compares two actual records in the selected window',

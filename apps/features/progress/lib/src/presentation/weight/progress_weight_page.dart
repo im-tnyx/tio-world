@@ -445,6 +445,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
                 if (chart.length == 1)
                   Center(
                     child: Text(
+                      key: const ValueKey('progress-weight-single-date'),
                       _dateLabel(context, chart.first.measuredAt),
                       style: typography.bodySmall,
                     ),
