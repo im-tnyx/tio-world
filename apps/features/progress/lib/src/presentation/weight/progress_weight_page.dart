@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/body_setup.dart';
 import 'progress_weight_dashboard_reader.dart';
+import 'progress_weight_log_sheet.dart';
 
 /// Weight-only A2 Progress surface. Ownership, authentication, persistence and
 /// the global unit preference are resolved by the app composition root.
@@ -13,6 +14,7 @@ class ProgressWeightPage extends StatefulWidget {
     required this.repository,
     required this.unit,
     required this.sessionKey,
+    this.onWeightLogged,
     this.now,
     super.key,
   });
@@ -20,6 +22,11 @@ class ProgressWeightPage extends StatefulWidget {
   final BodyRepository repository;
   final WeightUnit unit;
   final String sessionKey;
+
+  /// App-composition invalidation of the existing Settings/Body read caches.
+  /// Progress never imports app providers or owns Body Goal semantics.
+  final VoidCallback? onWeightLogged;
+
   final DateTime Function()? now;
 
   @override
@@ -34,6 +41,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   bool _loading = true;
   bool _loadingMore = false;
   int _generation = 0;
+  ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(true);
 
   ProgressWeightDashboardReader get _reader =>
       ProgressWeightDashboardReader(widget.repository, now: widget.now);
@@ -49,6 +57,8 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.sessionKey != widget.sessionKey ||
         !identical(oldWidget.repository, widget.repository)) {
+      _sessionActive.value = false;
+      _sessionActive = ValueNotifier<bool>(true);
       // Invalidate all prior async completions, including page fetches.
       _reload();
     }
@@ -57,7 +67,31 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
   @override
   void dispose() {
     _generation++;
+    _sessionActive.value = false;
     super.dispose();
+  }
+
+  Future<void> _openLogWeight() async {
+    final snapshot = _snapshot;
+    if (snapshot == null || _loading) return;
+    final active = _sessionActive;
+    final repository = widget.repository;
+    final result = await showProgressWeightLogSheet(
+      context: context,
+      unit: widget.unit,
+      currentWeightKg: snapshot.current?.weightKg,
+      sessionActive: active,
+      now: widget.now,
+      onSubmit: (record) {
+        if (!mounted || !active.value) {
+          throw StateError('Weight session is no longer active.');
+        }
+        return repository.recordCurrentWeight(record);
+      },
+    );
+    if (!mounted || !active.value || result != true) return;
+    widget.onWeightLogged?.call();
+    await _reload();
   }
 
   Future<void> _reload() async {
@@ -160,12 +194,21 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           else if (_snapshot != null) ...[
             _summary(context, _snapshot!),
             const SizedBox(height: TioSpacing.xl),
-            Text('History', style: typography.titleLarge),
+            Row(
+              children: [
+                Expanded(child: Text('History', style: typography.titleLarge)),
+                TioButton.supporting(
+                  key: const ValueKey('progress-weight-log-action'),
+                  label: 'Log Weight',
+                  onPressed: _openLogWeight,
+                ),
+              ],
+            ),
             const SizedBox(height: TioSpacing.sm),
             if (_snapshot!.history.entries.isEmpty)
               const TioCard(
                 child: Text(
-                  'No weight measurements yet. You can record Current Weight in Body & Weight Settings.',
+                  'No weight measurements yet. Use Log Weight to add your first measurement.',
                 ),
               )
             else
@@ -386,6 +429,10 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
               color: colors.textSecondary,
             ),
           ),
+          if (entry.note != null) ...[
+            const SizedBox(height: TioSpacing.xs),
+            Text(entry.note!, style: typography.bodyMedium),
+          ],
         ],
       ),
     );

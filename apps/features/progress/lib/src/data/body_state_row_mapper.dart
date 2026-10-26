@@ -64,11 +64,22 @@ class BodyStateRowMapper {
       );
     }
 
+    final metadata = row['metadata'];
+    if (metadata != null && metadata is! Map<String, dynamic>) {
+      throw const FormatException('Invalid canonical Weight metadata.');
+    }
+    final rawNote = (metadata as Map<String, dynamic>?)?['note'];
+    if (rawNote != null && rawNote is! String) {
+      throw const FormatException('Invalid canonical Weight note.');
+    }
     return BodyWeightEntry(
       id: rawId as String?,
       weightKg: rawWeight.toDouble(),
       measuredAt: measuredAt,
       source: rawSource as String?,
+      note: rawNote is String && rawNote.trim().isNotEmpty
+          ? rawNote.trim()
+          : null,
     );
   }
 

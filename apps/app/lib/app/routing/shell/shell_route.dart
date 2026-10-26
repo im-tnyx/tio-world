@@ -118,13 +118,19 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
             child: Text('Sign in to see your Weight progress.'),
           );
         }
-        final profileAsync = ref.watch(progressWeightUnitProvider);
-        if (profileAsync.isLoading) {
+        // Family isolation prevents cached unit data crossing owners/cycles.
+        // During a same-owner realtime refresh, retain the prior resolved
+        // unit and mounted Weight screen so the unsaved draft survives.
+        final scope = '${auth.session.userId}:$cycle';
+        final preferenceProvider = progressWeightUnitProvider(scope);
+        final profileAsync = ref.watch(preferenceProvider);
+        final unit = profileAsync.valueOrNull;
+        if (profileAsync.isLoading && unit == null) {
           // The previous login cycle's units must not label this owner's
           // weight while the current Profile preference is being refreshed.
           return const Center(child: CircularProgressIndicator());
         }
-        if (profileAsync.hasError) {
+        if (profileAsync.hasError && unit == null) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -132,13 +138,12 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
                 const Text('Weight preferences could not be loaded.'),
                 TioButton.secondary(
                   label: 'Retry',
-                  onPressed: () => ref.invalidate(progressWeightUnitProvider),
+                  onPressed: () => ref.invalidate(preferenceProvider),
                 ),
               ],
             ),
           );
         }
-        final unit = profileAsync.valueOrNull;
         if (unit == null) {
           return const Center(child: Text('Weight preferences are unavailable.'));
         }
@@ -147,6 +152,12 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
           sessionKey: cycle,
           repository: ref.watch(bodyRepositoryProvider),
           unit: unit,
+          onWeightLogged: () {
+            // Reuse the same invalidation boundary as Settings-owned writes.
+            // Neither Progress UI nor its repository owns Profile caches.
+            ref.invalidate(bodyStateDataProvider);
+            ref.invalidate(profileDataProvider);
+          },
         );
       },
     );

@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 /// Canonical Body Goal values shared across app modes.
 enum BodyGoalType {
   loseWeight,
@@ -83,6 +85,7 @@ class BodyWeightEntry {
     required this.measuredAt,
     this.id,
     this.source,
+    this.note,
   });
 
   /// Stable row identity; older current-state consumers may omit it.
@@ -95,6 +98,16 @@ class BodyWeightEntry {
   /// backend/device source. Null is preserved for legacy rows rather than
   /// inventing provenance.
   final String? source;
+
+  /// Optional private note on this measurement, not a photo caption.
+  final String? note;
+}
+
+/// The backend definitively rejected this insert before any row could commit.
+/// Only throw this for confirmed no-write responses. Transport/read-back
+/// failures are UNKNOWN and must retain the original submission UUID.
+final class BodyWeightSubmissionRejected implements Exception {
+  const BodyWeightSubmissionRejected();
 }
 
 /// Explicit command payload for recording a new post-onboarding weight row.
@@ -103,11 +116,29 @@ class BodyWeightRecord {
     required this.weightKg,
     required this.measuredAt,
     required this.source,
+    this.note,
+    this.submissionId,
   });
 
   final double weightKg;
   final DateTime measuredAt;
   final String source;
+
+  /// Optional note persisted in this row's existing metadata JSON.
+  final String? note;
+
+  /// Stable client UUID for a single manual draft's safe retries. Null keeps
+  /// existing Settings and onboarding create semantics unchanged.
+  final String? submissionId;
+
+  void validateNoteAndSubmission() {
+    final value = note?.trim();
+    if (value != null && value.characters.length > 500) {
+      throw ArgumentError.value(value.length, 'note', 'Maximum 500 characters.');
+    }
+    final id = submissionId;
+    if (id != null) BodyWeightLogIds.requireValid(id);
+  }
 }
 
 
