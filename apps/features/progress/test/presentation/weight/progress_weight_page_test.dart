@@ -167,6 +167,33 @@ void main() {
     expect(find.byKey(const ValueKey('progress-log-note-field')), findsOneWidget);
   });
 
+  testWidgets('opening DateTime from Notes dismisses keyboard, keeps note',
+      (tester) async {
+    final repository = InMemoryBodySetupRepository();
+    await pumpPage(tester, repository);
+    await tester.tap(find.byKey(const ValueKey('progress-weight-log-action')));
+    await tester.pumpAndSettle();
+    await tapNoteToggle(tester);
+    final note = find.descendant(
+      of: find.byKey(const ValueKey('progress-log-note-field')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(note, 'After keyboard entry');
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('progress-log-date-time')));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(find.byKey(const ValueKey('tio-date-time-picker-popup')),
+        findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+    await confirmInitialWeight(tester);
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries.single.note, 'After keyboard entry');
+  });
+
   testWidgets('pinned footer uses one anchored DateTime popup',
       (tester) async {
     await pumpPage(tester, InMemoryBodySetupRepository());
