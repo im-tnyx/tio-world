@@ -1,6 +1,6 @@
 # Progress Weight A2 — read-only dashboard and History
 
-**Status:** In review — A2 code HEAD CI verified; independent formal review pending
+**Status:** In review — Codex P2 fixes and independent P3 test-fixture remediation passed exact-code-head Flutter CI; independent formal APPROVED pending
 **Primary owner:** Progress/Body `apps/features/progress`; app shell composition in `apps/app`
 **Affected platforms:** Flutter Android + iOS phone
 **Approval:** Owner explicitly requested "Go A2 — Progress Weight Screen" on 2026-10-26; product-visible Weight dashboard, chart and History approved. No merge authorized.
@@ -42,3 +42,11 @@ No A3 Log Weight bottom sheet/new insert action, A4 Edit/Delete UI, Body/Health/
 **Branch audit:** 9 task commits ahead/0 behind `main@2f95bb81`, exactly 10 expected A2 task/code/docs paths, before this checkpoint update. Recheck ancestry/changed files if `main` moves.
 **Review:** Open PR, distinct `im-tio` reviewer requested but **no verdict**. Zero unresolved threads at prior check. Codex automated review failed due to usage limit.
 **Next:** Validate checks at new docs-only final PR head; await independent review, correct any findings, and do **not merge** without a new explicit owner `Go merge`.
+
+## A2 Codex / independent review reconciliation (2026-10-26)
+
+- [GitHub PR #690](https://github.com/im-tnyx/tio-world/pull/690) remains OPEN/unmerged. Two Codex P2 issues were fixed in the existing A2 UI/composition scope: empty/short History pull-to-refresh via `AlwaysScrollableScrollPhysics`, and unit selection via canonical `UserProfileRepository.read().unitPreferences.weightUnit` instead of composite Profile DTO that fails without any Weight row. Widget/app regression tests cover both. Independent `im-tio` reviewer reviewed at `a62915ae` and confirmed both fixes in source and tests.
+- That reviewer submitted **COMMENT, not APPROVED**, flagging one P3 analyzer failure in the new app test fixture `User(...)`. Original CI [#40252758499](https://github.com/im-tnyx/tio-world/actions/runs/40252758499) had three passing Flutter test shards but failed analyzer and aggregate. Intermediate `c33c7e67` made outer `const User(...)` but [CI #40253734324](https://github.com/im-tnyx/tio-world/actions/runs/40253734324) exposed two redundant nested map `const` lints; not a passing build.
+- **Final Dart code HEAD:** `f82db6ba6e6311c80b17f3ab7d391519ecb57359`. Outer `const User(...)` kept, inner map `const` removed. Exact-head [Flutter CI #40253957686](https://github.com/im-tnyx/tio-world/actions/runs/40253957686) **SUCCESS 5/5** (Analyzer/Dart test, three Flutter shards and aggregate). Docs Hygiene and Commit Attribution SUCCESS at that code head. No production Weight/Body/Settings changes in the P3 lint commits.
+- Both Codex P2 threads replied and resolved only after the independent reviewer confirmed fixes and exact-head Flutter CI passed; independent P3 thread replied but remains **unresolved pending `im-tio` re-review**. Distinct `im-tio` formal re-review requested on `f82db6ba`; no formal APPROVED yet. No merge/auto-merge, migration, Storage, Photos or A3/A4 activation.
+- **Handoff-only file update advances PR HEAD after code validation.** Validate GitHub checks on this new exact HEAD; do not infer its CI result from earlier code-head evidence. Current Windows checkout and device QA not accessible via this connector; local `git status` and on-device results NOT VERIFIED.
