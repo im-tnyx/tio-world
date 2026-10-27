@@ -86,6 +86,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   final Set<ProgramId> _loadingRoutinePrograms = <ProgramId>{};
   int _routineRefreshVersion = 0;
   bool _openingAddRoutine = false;
+  final Set<ProgramId> _openingProgramActions = <ProgramId>{};
 
   void _toggleExpanded(ProgramId id) {
     setState(() {
@@ -270,92 +271,75 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   Future<void> _openProgramActions(Program program) async {
+    if (_openingProgramActions.contains(program.id)) return;
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
-    var addRequested = false;
-    var openRequested = false;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: TioSheet(
-          key: const ValueKey('program-actions-sheet'),
-          child: Column(
+    _openingProgramActions.add(program.id);
+    try {
+      // Use the same Core editor-sheet and outlined option-card treatment as
+      // Routine options; only the available Program-owned actions differ.
+      final selected = await showTioEditorSheet<_ProgramAction>(
+        context: context,
+        useSafeArea: true,
+        builder: (sheetContext) => TioEditorSheet(
+          key: ValueKey('program-actions-sheet-${program.id.value}'),
+          title: program.name,
+          content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                program.name,
-                key: const ValueKey('program-actions-title'),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      color: sheetContext.tioColors.textPrimary,
-                    ),
+              if (widget.onProgramPressed != null) ...[
+                _ProgramActionOption(
+                  key: ValueKey('program-action-open-${program.id.value}'),
+                  label: 'Open Program',
+                  icon: Icons.open_in_new_rounded,
+                  onTap: () =>
+                      Navigator.of(sheetContext).pop(_ProgramAction.open),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+              ],
+              _ProgramActionOption(
+                key: ValueKey('program-action-edit-${program.id.value}'),
+                label: 'Edit Program',
+                icon: Icons.edit_outlined,
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_ProgramAction.edit),
               ),
-              const SizedBox(height: TioSpacing.lg),
-              TioGroupCard(
-                children: [
-                  if (widget.onProgramPressed != null)
-                    TioSettingsNavigationRow(
-                      key: const ValueKey('program-action-open'),
-                      leading: const TioSettingsLeadingIcon(
-                        icon: Icons.open_in_new_rounded,
-                      ),
-                      title: 'Open Program',
-                      supportingText: 'View this Program',
-                      showChevron: false,
-                      onTap: () {
-                        openRequested = true;
-                        Navigator.of(sheetContext).pop();
-                      },
-                    ),
-                  TioSettingsNavigationRow(
-                    key: const ValueKey('program-action-edit'),
-                    leading: const TioSettingsLeadingIcon(
-                      icon: Icons.edit_outlined,
-                    ),
-                    title: 'Edit Program',
-                    supportingText: 'Rename this Program',
-                    showChevron: false,
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      await _openRename(program);
-                    },
-                  ),
-                  if (widget.onAddRoutinePressed != null)
-                    TioSettingsNavigationRow(
-                      key: const ValueKey('program-action-add-routine'),
-                      leading: const TioSettingsLeadingIcon(
-                        icon: Icons.add_rounded,
-                      ),
-                      title: 'Add New Routine',
-                      titleColor: pendingSave || _openingAddRoutine
-                          ? sheetContext.tioColors.textMuted
+              if (widget.onAddRoutinePressed != null) ...[
+                const SizedBox(height: TioSpacing.sm),
+                _ProgramActionOption(
+                  key: ValueKey('program-action-add-routine-${program.id.value}'),
+                  label: 'Add New Routine',
+                  icon: Icons.add_rounded,
+                  onTap: pendingSave || _openingAddRoutine
+                      ? null
+                      : () => Navigator.of(sheetContext)
+                          .pop(_ProgramAction.addRoutine),
+                  supportingText: pendingSave
+                      ? 'Check the previous save in Program'
+                      : _openingAddRoutine
+                          ? 'Another Routine is opening'
                           : null,
-                      supportingText: pendingSave
-                          ? 'Check the previous save in Program'
-                          : _openingAddRoutine
-                              ? 'Another Routine is opening'
-                              : 'Create in this Program',
-                      showChevron: false,
-                      onTap: _openingAddRoutine || pendingSave ? null : () {
-                        addRequested = true;
-                        Navigator.of(sheetContext).pop();
-                      },
-                    ),
-                ],
-              ),
+                  enabled: !pendingSave && !_openingAddRoutine,
+                ),
+              ],
             ],
           ),
         ),
-      ),
-    );
-    // The bottom-sheet transition must finish before the shell tests whether
-    // Library is still the current route and launches canonical Create.
-    if (openRequested && mounted) await _openProgram(program);
-    if (addRequested && mounted) await _openAddRoutine(program);
+      );
+
+      if (!mounted) return;
+      switch (selected) {
+        case _ProgramAction.open:
+          await _openProgram(program);
+        case _ProgramAction.edit:
+          await _openRename(program);
+        case _ProgramAction.addRoutine:
+          await _openAddRoutine(program);
+        case null:
+          break;
+      }
+    } finally {
+      _openingProgramActions.remove(program.id);
+    }
   }
 
   Future<void> _openCreate() async {
@@ -699,6 +683,82 @@ class _StandaloneProgramRow extends StatelessWidget {
             fontWeight: TioFontWeight.w700,
             fontSize: TioFontSize.size15,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ProgramAction { open, edit, addRoutine }
+
+class _ProgramActionOption extends StatelessWidget {
+  const _ProgramActionOption({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.supportingText,
+    this.enabled = true,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? supportingText;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: enabled,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: TioCard(
+        variant: TioCardVariant.outlined,
+        outlinedBorderWidth: TioCardTokens.borderThin,
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.md,
+          vertical: TioSpacing.sm,
+        ),
+        onTap: onTap,
+        child: Row(
+          children: [
+            SizedBox(
+              width: TioSize.dp38,
+              height: TioSize.dp38,
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: enabled ? colors.textPrimary : colors.textMuted,
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: enabled ? null : colors.textMuted,
+                        ),
+                  ),
+                  if (supportingText != null)
+                    Text(
+                      supportingText!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
