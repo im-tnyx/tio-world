@@ -319,6 +319,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             ),
           ],
         );
+      case ProgramRoutinesStatus.refreshing:
       case ProgramRoutinesStatus.ready:
         if (state.routines.isEmpty) {
           return const _RoutineMessage(
