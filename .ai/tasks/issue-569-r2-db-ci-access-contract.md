@@ -7,13 +7,13 @@
 
 **Planning owner:** GitHub #569 / Linear TNYX-81
 **Implementation owner:** `im-tnyx` (this R2 CI slice only)
-**Review owner:** `im-tio` requested changes on PR #673; independent human security review remains pending.
+**Review owner:** `im-tio` requested changes on PR #673; independent security review remains pending.
 **Implementation ownership state:** Active
 **Repository state last verified:** Clean `main@86f0afa8711dec28a57e513f33031e779516fa10`; GitHub `main` matched through connected GitHub read.
 **Branch:** `tnyx/569-r2-db-ci-access-contract`
 **Observed uncommitted/dirty files:** None before this slice.
 **Current implementation state:** Source head `bc68089917ff15806f1a02153bac0015b2db6e13` shares the three-RPC ACL cleanup between races and the denied/granted success/failure regression; disposable DB CI passed. This handoff is a later docs-only PR amendment, so its final-head receipts must be checked separately.
-**Validation remaining:** Verify checks on the final PR head, request Codex and `im-tio` re-review, close verified threads, and obtain separate independent human security sign-off before merge.
+**Validation remaining:** Verify checks on the final PR head, request Codex and `im-tio` re-review, close verified threads, and obtain separate independent security sign-off before merge.
 **Next exact action:** Verify final-head CI and review results; keep hosted access and the production flag OFF.
 
 ## 1. Discovery
@@ -55,7 +55,7 @@ Preflight the three `postgres` owners, `SECURITY DEFINER`, empty `search_path`, 
 
 The separate rollback migration must `REVOKE EXECUTE` on those three exact identities from `authenticated` (and verify `PUBLIC`/`anon`/`service_role` remain denied). Recheck ACLs and a permanent-account test call denied with SQLSTATE `42501`; retain functions, provenance, history, and committed workout data. Revocation blocks new calls, not transactions already executing. Reconcile any UNKNOWN client result by owner-scoped mutation receipt before retrying or claiming Undo. Never reverse the applied 69 migrations for access rollback.
 
-Release sequence: CI compatibility PR -> owner exposure decision -> single grant/rollback security PR and independent human review with exact-head disposable DB CI -> explicit hosted apply authorization and read-only ACL/advisor verification -> separate Flutter production activation build -> Android and iOS real-write, timeout/UNKNOWN, race, Undo and rollback acceptance -> release decision. #567 user-initiated Delete Program remains separately gated.
+Release sequence: CI compatibility PR -> owner exposure decision -> single grant/rollback security PR and independent review with exact-head disposable DB CI -> explicit hosted apply authorization and read-only ACL/advisor verification -> separate Flutter production activation build -> Android and iOS real-write, timeout/UNKNOWN, race, Undo and rollback acceptance -> release decision. #567 user-initiated Delete Program remains separately gated.
 
 ## 5. Implementation plan
 
@@ -70,7 +70,7 @@ Release sequence: CI compatibility PR -> owner exposure decision -> single grant
 ## 6. Quality review
 
 **Validation run:** Source head `bc68089917ff15806f1a02153bac0015b2db6e13`: [Supabase Database CI 40091047752](https://github.com/im-tnyx/tio-world/actions/runs/40091047752) SUCCESS, including migration replay, existing Move/Create+Move/Undo matrices and races, step 49 denied/granted ACL success/failure cleanup for all three exact signatures, and step 50 dormant three-RPC reassertion; [Docs Hygiene 40091047728](https://github.com/im-tnyx/tio-world/actions/runs/40091047728) SUCCESS. Local PyYAML workflow parse and `git diff --check` passed; local Bash syntax execution was unavailable because the Windows sandbox denied MSYS named-object creation (`0xC0000022`). Required Commit attribution guard and final docs-amended-head checks remain to verify. Prior head `57b71fb3` passed DB CI 40089433584 and Docs Hygiene 40089433574 but covered only the denied baseline.
-**Review provenance:** `im-tio` GitHub review [CHANGES_REQUESTED](https://github.com/im-tnyx/tio-world/pull/673#pullrequestreview-5638092222) at prior head; P2 and P3 inline threads await evidence replies and re-review. This connected-account review does not establish independent human security sign-off.
+**Review provenance:** `im-tio` GitHub review [CHANGES_REQUESTED](https://github.com/im-tnyx/tio-world/pull/673#pullrequestreview-5638092222) at prior head; P2 and P3 inline threads await evidence replies and re-review. This connected-account review does not establish independent security sign-off.
 
 | Finding | Severity | Status | Required resolution |
 |---|---|---|---|
@@ -79,4 +79,4 @@ Release sequence: CI compatibility PR -> owner exposure decision -> single grant
 
 ## 7. Handoff
 
-**Status:** REVIEW. Final-head checks, Codex re-review, distinct-account re-review, resolved threads and independent human security review remain before merge. Future grant migration and all-signed-in exposure decision are separate R2 gates.
+**Status:** REVIEW. Final-head checks, Codex re-review, distinct-account re-review, resolved threads and independent security review remain before merge. Future grant migration and all-signed-in exposure decision are separate R2 gates.

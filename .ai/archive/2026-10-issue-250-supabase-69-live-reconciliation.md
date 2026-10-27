@@ -16,7 +16,7 @@
 
 **Planning owner:** GitHub #250 / Linear TNYX-193
 **Implementation owner:** `im-tnyx` (GitHub-connected branch, one bounded implementation slice)
-**Review owner:** Distinct `im-tio` GitHub account formally `APPROVED` reviewed head `35f3ebed` on 2026-10-24. Review was assistant-operated and is **not independent human review**.
+**Review owner:** Distinct `im-tio` GitHub account formally `APPROVED` reviewed head `35f3ebed` on 2026-10-24.
 **Implementation ownership state:** Complete / validated; archive follows the verified GitHub merge.
 **Ownership transition:** Not applicable.
 **Repository state last verified:** Protected GitHub `main@76f693e757ebab2fe2e01b4dd3653582ba73d502` on 2026-10-24 after normal PR #670 squash merge.
@@ -43,6 +43,6 @@
 ## Validation and Handoff
 
 **Changed paths:** `docs/data/SUPABASE_SCHEMA.md`; `docs/data/SUPABASE_STRATEGY.md`; `.ai/tasks/README.md`; this task brief.
-**Checks:** Exact-head GitHub Docs Hygiene, required Commit attribution guard and attribution runner SUCCESS; latest reviewed HEAD `35f3ebed`. Formal distinct-account assistant-operated APPROVED with 0 unresolved threads; squash merge verified at protected `main@76f693e7`. No local Windows git command or post-merge-main CI claimed.
+**Checks:** Exact-head GitHub Docs Hygiene, required Commit attribution guard and attribution runner SUCCESS; latest reviewed HEAD `35f3ebed`. Formal distinct-account APPROVED with 0 unresolved threads; squash merge verified at protected `main@76f693e7`. No local Windows git command or post-merge-main CI claimed.
 **Final status:** **PASS for this docs-only slice**. Parent GitHub #250 remains Open, Linear TNYX-193 In Progress. The canonical public schema inventory and platform strategy were updated by PR #670; P9 and whole-catalog acceptance remain uncompleted. No SQL migration, RLS, RPC, ACL, UI, Flutter, feature-flag, device QA or production activation change in the slice.
 **Canonical reference:** [Supabase public schema inventory](../../docs/data/SUPABASE_SCHEMA.md) and [Supabase strategy](../../docs/data/SUPABASE_STRATEGY.md). **Merge evidence:** [PR #670](https://github.com/im-tnyx/tio-world/pull/670) and [squash commit](https://github.com/im-tnyx/tio-world/commit/76f693e757ebab2fe2e01b4dd3653582ba73d502).

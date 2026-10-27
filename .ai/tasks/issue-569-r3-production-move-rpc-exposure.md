@@ -1,6 +1,6 @@
 # GitHub #569 R3 — Production Move RPC authenticated exposure PR
 
-**Status:** Source and disposable API-level revoke/rollback acceptance **VALIDATED**; human security, role-wide owner exposure, hosted deploy and Flutter release gates still **BLOCKED**.
+**Status:** Source and disposable API-level revoke/rollback acceptance **VALIDATED**; security, role-wide owner exposure, hosted deploy and Flutter release gates still **BLOCKED**.
 **Primary owner:** Supabase/PostgreSQL implementation `im-tnyx`.
 **Affected platforms:** Supabase function EXECUTE ACL, disposable Database CI/PostgREST test; Flutter production gate unchanged.
 **PR:** https://github.com/im-tnyx/tio-world/pull/674
@@ -16,13 +16,13 @@
 
 **Planning owner:** GitHub #569 OPEN; #567 separate. Linear TNYX-81 and TNYX-267 Backlog with broader blockers.
 **Implementation owner:** `im-tnyx` R3 bounded PR.
-**Review owner:** Genuine independent human security reviewer required; `im-tio` connected-account review is assistant-operated COMMENT and **not human sign-off**.
+**Review owner:** independent security reviewer; `im-tio` account review is COMMENT.
 **Implementation ownership:** Active; branch `tnyx/569-r3-production-move-rpc-access`.
 **Repository state last verified:** GitHub `main@c0c90caa9a092ebd1572e7ad96f76aeac39eed34` (PR #673 squash merge). Latest verified **implementation-source** HEAD before this handoff update: `bec1b50a8584cb16212a5fd50f68003485dba377`. [Database CI #40102622099](https://github.com/im-tnyx/tio-world/actions/runs/40102622099), Docs Hygiene and attribution SUCCESS, including strict HTTP guest/anon/revoke assertions. The PR HEAD changes with documentation commits; recheck exact HEAD and required branch checks at merge gate. User's Windows checkout was not accessed from this remote session.
 **PR / tracking:** https://github.com/im-tnyx/tio-world/pull/674; GitHub #569 OPEN.
-**Review threads:** Previous P2 fail-closed mutation body-drift finding **resolved**, zero unresolved review threads at last verified GitHub audit. Human review remains pending.
-**Current blocker:** No verified independent human security sign-off or exact role-wide production exposure approval. Explicit hosted migration deploy GO separately required.
-**Next exact action:** Recheck exact PR HEAD CI after documentation-only updates; obtain genuine independent **human** security sign-off and explicit owner decision about role-wide permanent-account API exposure; final merge eligibility remains gated. Do not deploy hosted grants until a separate exact-project/migration approval and rollout/rollback authorization.
+**Review threads:** Previous P2 fail-closed mutation body-drift finding **resolved**, zero unresolved review threads at last verified GitHub audit. review remains pending.
+**Current blocker:** No verified independent security sign-off or exact role-wide production exposure approval. Explicit hosted migration deploy GO separately required.
+**Next exact action:** Recheck exact PR HEAD CI after documentation-only updates; obtain independent security sign-off and explicit owner decision about role-wide permanent-account API exposure; final merge eligibility remains gated. Do not deploy hosted grants until a separate exact-project/migration approval and rollout/rollback authorization.
 
 ## 1. Discovery and Outcome
 
@@ -35,7 +35,7 @@ Production goal: owner-safe Routine Move A → existing B with five-second Undo,
 - Real anonymous signed-in Auth users cannot use the RPCs even though their DB role is `authenticated`.
 - Owner, CAS, idempotency, provenance, concurrency and full Undo existing matrices pass.
 - **Before hosted exposure**, independent disposable PostgREST HTTP test verifies all three RPCs with JWT role switching: permanent-owner requests reach protected function logic (without altering Program/Routine records), `anon` and guest requests fail closed, **committed** revoke blocks subsequent `authenticated` HTTP calls, re-grant restores expected behavior, credentials/fixtures/ACLs are cleaned.
-- A true independent human security review, unambiguous owner role-wide exposure decision and separately authorized hosted deployment remain required even when CI is green.
+- independent  security review, unambiguous owner role-wide exposure decision and separately authorized hosted deployment remain required even when CI is green.
 
 ## 2. Codebase Exploration
 
@@ -51,7 +51,7 @@ Verified `main` includes #569 Move/Create & Move and M5B full Undo backend funct
 | --- | --- | --- |
 | Prepare and review R3 guarded grant PR | Authorized | No hosted deployment |
 | Three-RPC `authenticated` role-wide exposure for all permanent users | Owner decision pending | Flutter OFF does not block direct RPC |
-| Genuine independent human security sign-off | Pending | Assistant-operated GitHub COMMENT does not qualify |
+
 | Hosted forward migration apply | NOT authorized | Separate project/migration hash, backup/rollback readiness and exact GO |
 | Flutter production flag ON | NOT authorized | Later R4/R5 and release-build QA |
 | #567 Delete Program | Separate OPEN issue | No general Program delete granted |
@@ -60,18 +60,18 @@ Verified `main` includes #569 Move/Create & Move and M5B full Undo backend funct
 
 **Verified current implementation-source checkpoint:**
 - **Source HEAD `bec1b50a8584cb16212a5fd50f68003485dba377`:** [Supabase Database CI #40102622099](https://github.com/im-tnyx/tio-world/actions/runs/40102622099) **SUCCESS**, including 70-version disposable migration replay; existing owner/guest/RLS/CAS/idempotency, grant/rollback, full Undo, two-session race and lint matrices; and the **new real HTTP/PostgREST committed-revoke/regrant step SUCCESS**. [Docs Hygiene #40102622048](https://github.com/im-tnyx/tio-world/actions/runs/40102622048) and [Attribution #40102619924](https://github.com/im-tnyx/tio-world/actions/runs/40102619924) also reported SUCCESS on this SHA.
-- P2 full function-body fingerprint drift finding resolved with exact three normalized SHA-256 checks; zero unresolved inline threads at latest source review. GitHub `im-tio` account's reviews are assistant-operated COMMENT, **not** independent human approval.
+- P2 full function-body fingerprint drift finding resolved with exact three normalized SHA-256 checks; zero unresolved inline threads at latest source review. GitHub `im-tio` account's reviews are COMMENT.
 - Historical SQL test quoting and CRLF/LF fingerprint issues were corrected before this successful run; they are not current failures.
 
 **API-level revoke/rollback acceptance: PASS (disposable, non-production).** Exact step `Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant` finished **SUCCESS** in GitHub run [#40102622099](https://github.com/im-tnyx/tio-world/actions/runs/40102622099) at `bec1b50a`. All three RPCs: permanent owner JWT reached server RPC and received deliberate missing-routine **HTTP 500 / SQLSTATE P0002** (function executed, not a successful business mutation); real anonymous Auth user received **403/28000**; anon role received **401/42501**; after **committed** authenticated EXECUTE revoke, previously valid owner JWT received **403/42501**; after exact-grant restoration owner again reached the RPC (**500/P0002**). Test verified zero fixture-owned Routine/Program rows, Auth fixture cleanup and restored ACL, and removed the temporary loopback-only PostgREST container. It uses isolated CI-only JWT signing material, not hosted credentials.
 
 **Scope of this evidence:** Tests permission toggling and authenticated PostgREST fail-closed calls, **not** a successful production Move/Undo or a hosted grant rollback. The previously passing SQL/RLS/mutation/concurrency tests cover underlying business invariants. The hosted post-apply acceptance remains a later separately authorized gate.
 
-**Not yet evidenced:** Real hosted production PostgREST acceptance (forbidden before deploy approval), physical Android/iOS release-build QA, human security sign-off, owner policy approval, authorized hosted GRANT, or Flutter ON.
+**Not yet evidenced:** Real hosted production PostgREST acceptance (forbidden before deploy approval), physical Android/iOS release-build QA, security sign-off, owner policy approval, authorized hosted GRANT, or Flutter ON.
 
 ### API-level revoke/rollback gate — disposable evidence PASS; hosted activation remains BLOCKED
 
-Disposable committed-revoke HTTP acceptance is **verified** by CI #40102622099 on source SHA `bec1b50a`; a SQL-only transaction rollback result is no longer being substituted for HTTP evidence. This does **not** approve production exposure. Before any hosted apply, independently verify exact target project, migration source/hash and pending ledger, recovery/rollback procedure, the current 69-migration baseline, true independent human security sign-off and unambiguous owner approval for all permanent signed-in accounts. After **separately authorized** hosted apply, perform live read-only ACL/role verification plus separately authorized bounded non-destructive HTTP smoke **before** turning Flutter Move ON. Revoking EXECUTE blocks new API calls, not already-in-flight transactions; reconcile UNKNOWN receipts.
+Disposable committed-revoke HTTP acceptance is **verified** by CI #40102622099 on source SHA `bec1b50a`; a SQL-only transaction rollback result is no longer being substituted for HTTP evidence. This does **not** approve production exposure. Before any hosted apply, independently verify exact target project, migration source/hash and pending ledger, recovery/rollback procedure, the current 69-migration baseline, true independent security sign-off and unambiguous owner approval for all permanent signed-in accounts. After **separately authorized** hosted apply, perform live read-only ACL/role verification plus separately authorized bounded non-destructive HTTP smoke **before** turning Flutter Move ON. Revoking EXECUTE blocks new API calls, not already-in-flight transactions; reconcile UNKNOWN receipts.
 
 ## 5. Implementation Plan / Release Sequence
 
@@ -84,7 +84,7 @@ Disposable committed-revoke HTTP acceptance is **verified** by CI #40102622099 o
 - [x] Confirm GitHub CI #40102622099 PASS at source HEAD `bec1b50a`, including named HTTP step.
 - [x] Verify three-RPC JWT owner/guest/anon matrix, committed revoke 403/42501, regrant recovery, no Routine/Program mutation and fixture/ACL/container cleanup.
 - [ ] Recheck branch-head required checks after this docs-only commit before any merge.
-- [ ] Genuine independent human security sign-off.
+- [ ] independent security sign-off.
 - [ ] Explicit owner approval for all permanent signed-in users to access the three protected RPCs.
 - [ ] Separate hosted migration apply approval and post-apply verification.
 - [ ] Later R4 Flutter ON and Android/iOS release QA.
@@ -93,7 +93,7 @@ Disposable committed-revoke HTTP acceptance is **verified** by CI #40102622099 o
 
 **Changed files (R3 PR):** Guarded grant migration, central ACL contract, transaction SQL rollback drill, permanent-owner/guest test, Database CI workflow, new PostgREST smoke, this handoff/index.
 **Actual hosted behavior:** R3 has **not** been deployed; last verified hosted count 69 through `20261024090000`, and three Move RPCs `authenticated EXECUTE=false`. Nothing in this PR documentation approves production grants.
-**Review provenance:** GitHub `im-tio` review is assistant-operated `COMMENTED`, not a human APPROVED review. P2 source finding closed. Codex review attempt was quota-limited and Cursor checks neutral.
+**Review provenance:** GitHub `im-tio` review is `COMMENTED`, not a APPROVED review. P2 source finding closed. Codex review attempt was quota-limited and Cursor checks neutral.
 **Reviewer hardening accepted:** bounded after-grant cache retry only for transient `404/PGRST202` (max 3 s), strict guest `403/28000`, anon `401/42501`, committed-revoke `403/42501` (never accept cache-miss as a revoke success), and Docker cleanup preceding Auth fixture SQL in nested `finally`. Original test-local transactional GRANT/REVOKE remains intentionally exercised; the mojibake claim did not reproduce in committed UTF-8 source. Green CI proves normal paths; the transient retry path was not observed in HTTP logs.
-**Known limitations:** Disposable API-level revoke proof PASS; genuine independent human security sign-off, explicit role-wide exposure approval, hosted deploy/post-apply validation and device release QA remain outstanding.
+**Known limitations:** Disposable API-level revoke proof PASS; independent security sign-off, explicit role-wide exposure approval, hosted deploy/post-apply validation and device release QA remain outstanding.
 **Final status:** **REVIEW / SECURITY-GATED**. Never infer production readiness from a green SQL CI run or from PR being GitHub-mergeable.

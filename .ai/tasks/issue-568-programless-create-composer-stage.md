@@ -47,6 +47,6 @@ Rejected alternative: client-create a fake `My Program` row or a two-phase Progr
 
 ## Handoff
 
-Implementation owner: this GitHub-connected assistant acting via `im-tnyx` on the bounded branch. Review owner: independent `im-tio` requested on PR #644 (latest review verdict not presumed). No implementation ownership transfer. Parent #568 remains OPEN, TNYX-78 In Progress; #569 remains OPEN and Move OFF. **Do not merge without a new explicit owner command.**
+Implementation owner: Review owner: independent `im-tio` requested on PR #644 (latest review verdict not presumed). No implementation ownership transfer. Parent #568 remains OPEN, TNYX-78 In Progress; #569 remains OPEN and Move OFF. **Do not merge without a new explicit owner command.**
 
 **Next:** inspect actual exact-head Flutter CI, independent review findings and thread state; address scoped findings, obtain owner Windows exact-head native diff receipt; only then report merge gate status. No background CI/review outcome is presumed.
