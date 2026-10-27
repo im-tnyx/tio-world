@@ -45,6 +45,7 @@ final class ProgramDeleteControllerState {
     this.failure,
     this.unknown,
     this.refreshFailed = false,
+    this.dispatched = false,
   });
 
   const ProgramDeleteControllerState.idle()
@@ -57,6 +58,7 @@ final class ProgramDeleteControllerState {
   final ProgramDeleteException? failure;
   final ProgramDeleteOutcomeUnknown? unknown;
   final bool refreshFailed;
+  final bool dispatched;
 
   bool get canConfirm =>
       status == ProgramDeleteOperationStatus.ready && target != null;
@@ -290,6 +292,7 @@ final class ProgramDeleteController extends ChangeNotifier {
       status: ProgramDeleteOperationStatus.inFlight,
       program: current.program,
       target: target,
+      dispatched: true,
     ));
     try {
       final result = await _deleteRepository.delete(
@@ -302,6 +305,7 @@ final class ProgramDeleteController extends ChangeNotifier {
           unknown: ProgramDeleteOutcomeUnknown(
             reason: ProgramDeleteUncertainty.sessionChanged,
           ),
+          dispatched: true,
         ));
         return _state;
       }
@@ -310,6 +314,7 @@ final class ProgramDeleteController extends ChangeNotifier {
         program: current.program,
         target: target,
         result: result,
+        dispatched: true,
       ));
       await _refreshAfterAttempt(
         preparedSession,
@@ -323,6 +328,7 @@ final class ProgramDeleteController extends ChangeNotifier {
         program: current.program,
         target: target,
         unknown: error,
+        dispatched: true,
       ));
       await _refreshAfterAttempt(
         preparedSession,
@@ -331,10 +337,20 @@ final class ProgramDeleteController extends ChangeNotifier {
       return _state;
     } on ProgramDeleteException catch (error) {
       if (error.kind == ProgramDeleteFailureKind.inProgress) {
-        _reject(error, program: current.program, target: target);
+        _reject(
+          error,
+          program: current.program,
+          target: target,
+          dispatched: true,
+        );
         return _state;
       }
-      _reject(error, program: current.program, target: target);
+      _reject(
+        error,
+        program: current.program,
+        target: target,
+        dispatched: true,
+      );
       await _refreshAfterAttempt(
         preparedSession,
         sourceProgramId: target.sourceProgramId,
@@ -347,6 +363,7 @@ final class ProgramDeleteController extends ChangeNotifier {
         program: current.program,
         target: target,
         unknown: error,
+        dispatched: true,
       ));
       await _refreshAfterAttempt(
         preparedSession,
@@ -380,6 +397,7 @@ final class ProgramDeleteController extends ChangeNotifier {
           failure: current.failure,
           unknown: current.unknown,
           refreshFailed: true,
+          dispatched: current.dispatched,
         ));
       }
     }
@@ -424,6 +442,7 @@ final class ProgramDeleteController extends ChangeNotifier {
     ProgramDeleteException error, {
     Program? program,
     ProgramDeleteTarget? target,
+    bool dispatched = false,
   }) {
     if (_disposed) return;
     _preparedSession = null;
@@ -432,6 +451,7 @@ final class ProgramDeleteController extends ChangeNotifier {
       program: program,
       target: target,
       failure: error,
+      dispatched: dispatched,
     ));
   }
 

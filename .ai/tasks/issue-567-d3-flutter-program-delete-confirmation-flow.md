@@ -42,11 +42,12 @@
 3. Handled already-confirmed Program deletion in `!prepared` state (`controller.state.status == ProgramDeleteOperationStatus.confirmed`), showing accurate refresh message and returning true to trigger view refresh without claiming false new deletion.
 4. Bound confirm call to exact captured target reference (`identical(currentTarget, target)` and `listEquals`) preventing cross-flow target replacement.
 5. Populated `target` in `ProgramDeleteController.prepare()` when gate returns cached `unknown` or `committed`, and verified `cachedTarget.sourceProgramId == program.id` in `ProgramDeleteFlow` before attributing terminal state to requested Program.
+6. Tracked `dispatched` explicitly in `ProgramDeleteControllerState` and returned `false` for pre-dispatch rejections (e.g. pending-conflict checks before delete repository dispatch), ensuring only true dispatched attempts or unconfirmed states return `true`.
 **Relevant execution surface:** `apps/features/workout`
-**Validation completed at SHA:** Local validation PASS: 16/16 focused tests in `program_delete_flow_test.dart`, 38/38 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
+**Validation completed at SHA:** Local validation PASS: 17/17 focused tests in `program_delete_flow_test.dart`, 39/39 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
 **Validation remaining:** Push & GitHub PR CI checks
 **Current blocker:** None
-**Open review finding IDs:** None (Codex threads 4392621553, 4392621563, 4392621570, 4392770762, 4392845115 addressed)
+**Open review finding IDs:** None (Codex threads 4392621553, 4392621563, 4392621570, 4392770762, 4392845115, 4392920771 addressed)
 **Next exact action:** Commit, push to PR #708, and verify CI checks.
 
 ## Global UI / Design-System Guardrail

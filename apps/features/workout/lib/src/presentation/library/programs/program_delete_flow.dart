@@ -178,7 +178,6 @@ final class ProgramDeleteFlow {
     }
     _activeProgramId = program.id;
 
-    var attempted = false;
     try {
       final prepared = await controller.prepare(program.id);
       if (!context.mounted || !canWrite()) return false;
@@ -254,7 +253,6 @@ final class ProgramDeleteFlow {
         return false;
       }
 
-      attempted = true;
       final mutationId = _newMutationId();
       final endState = await controller.confirm(clientMutationId: mutationId);
       if (!context.mounted || !canWrite()) return false;
@@ -276,16 +274,16 @@ final class ProgramDeleteFlow {
             _show(context,
                 'Could not delete this Program. Please try again later.');
           }
-          return attempted;
+          return endState.dispatched;
         default:
-          return attempted;
+          return endState.dispatched;
       }
     } catch (_) {
       if (context.mounted && canWrite()) {
         _show(
             context, 'Could not delete this Program. Please try again later.');
       }
-      return attempted && context.mounted && canWrite();
+      return controller.state.dispatched && context.mounted && canWrite();
     } finally {
       if (_activeProgramId == program.id) {
         _activeProgramId = null;

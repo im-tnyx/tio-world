@@ -138,14 +138,16 @@ ProgramDeleteController _controller({
   required _FakeRoutines routines,
   required _FakeDeleteRepo deleteRepository,
   required ProgramDeleteAttemptGate attemptGate,
+  RoutinePendingCreateGate? pendingCreateGate,
+  RoutineMoveDeleteAttemptGate? routineOperationGate,
 }) {
   return ProgramDeleteController(
     programs: programs,
     routines: routines,
     deleteRepository: deleteRepository,
     attemptGate: attemptGate,
-    pendingCreateGate: RoutinePendingCreateGate(),
-    routineOperationGate: RoutineMoveDeleteAttemptGate(),
+    pendingCreateGate: pendingCreateGate ?? RoutinePendingCreateGate(),
+    routineOperationGate: routineOperationGate ?? RoutineMoveDeleteAttemptGate(),
     refresh: (_) async {},
   );
 }
@@ -1051,6 +1053,56 @@ void main() {
         );
         expect(find.byType(Dialog), findsNothing);
         expect(deleteRepo.writes, 0);
+      },
+    );
+
+    testWidgets(
+      'pre-dispatch rejection before repository call returns false and does not dispatch',
+      (tester) async {
+        final prog = _program();
+        final gate = ProgramDeleteAttemptGate();
+        final operations = RoutineMoveDeleteAttemptGate();
+        final programs = _FakePrograms([prog]);
+        final routines = _FakeRoutines([_snapshot(_routineOne)]);
+        final deleteRepo = _FakeDeleteRepo(attemptGate: gate);
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+          routineOperationGate: operations,
+        );
+        addTearDown(controller.dispose);
+
+        bool? result;
+        final flow = ProgramDeleteFlow();
+        await pumpFlow(
+          tester,
+          program: prog,
+          controller: controller,
+          flow: flow,
+          onResult: (r) => result = r,
+        );
+
+        await tester.tap(find.text('Trigger Delete'));
+        await tester.pumpAndSettle();
+        expect(find.byType(Dialog), findsOneWidget);
+
+        // Simulate a Routine operation becoming pending after preparation but before confirm
+        expect(operations.tryStart(_owner, _routineOne), isTrue);
+
+        // Tap Delete to confirm
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        // Must return false because rejection happened before dispatch
+        expect(result, isFalse);
+        expect(deleteRepo.writes, 0);
+        expect(
+          find.text(
+              'This Program changed. Refresh the list before trying again.'),
+          findsOneWidget,
+        );
       },
     );
   });
