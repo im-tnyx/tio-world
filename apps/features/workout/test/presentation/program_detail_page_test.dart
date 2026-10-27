@@ -495,7 +495,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Routine options mark stays compact with a 4dp bar gap',
+  testWidgets(
+      'Routine options mark uses a shorter right-aligned bottom bar',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -531,7 +532,7 @@ void main() {
     );
     expect(
       tester.getSize(bars.at(1)),
-      const Size(TioSize.dp20, TioStroke.width2),
+      const Size(TioSize.dp14, TioStroke.width2),
     );
     final gap =
         tester.getRect(bars.at(1)).top - tester.getRect(bars.at(0)).bottom;
@@ -540,6 +541,9 @@ void main() {
     final menuRect = tester.getRect(menu);
     final topBar = tester.getRect(bars.at(0));
     final bottomBar = tester.getRect(bars.at(1));
+    expect(bottomBar.right, closeTo(topBar.right, 0.1));
+    expect(bottomBar.width, closeTo(TioSize.dp14, 0.1));
+    expect(topBar.width, closeTo(TioSize.dp20, 0.1));
     expect(
       (topBar.left + topBar.right) / 2,
       closeTo(menuRect.center.dx, 0.1),

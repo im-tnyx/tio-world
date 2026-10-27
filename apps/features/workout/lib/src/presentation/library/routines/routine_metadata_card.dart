@@ -215,23 +215,31 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: TioSize.dp20,
-                            height: TioStroke.width2,
-                            decoration: BoxDecoration(
-                              color: colors.textPrimary,
-                              borderRadius:
-                                  BorderRadius.circular(TioRadius.full),
+                          // Owner-approved mark: longer top bar, shorter
+                          // bottom bar, physical right edges aligned.
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              width: TioSize.dp20,
+                              height: TioStroke.width2,
+                              decoration: BoxDecoration(
+                                color: colors.textPrimary,
+                                borderRadius:
+                                    BorderRadius.circular(TioRadius.full),
+                              ),
                             ),
                           ),
                           const SizedBox(height: TioSpacing.xs),
-                          Container(
-                            width: TioSize.dp20,
-                            height: TioStroke.width2,
-                            decoration: BoxDecoration(
-                              color: colors.textPrimary,
-                              borderRadius:
-                                  BorderRadius.circular(TioRadius.full),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              width: TioSize.dp14,
+                              height: TioStroke.width2,
+                              decoration: BoxDecoration(
+                                color: colors.textPrimary,
+                                borderRadius:
+                                    BorderRadius.circular(TioRadius.full),
+                              ),
                             ),
                           ),
                         ],
