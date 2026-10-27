@@ -804,7 +804,7 @@ class _LibraryProgramRow extends StatelessWidget {
                       // Chevron starts at the Library's own leading padding.
                       // The text and icon form ONE accessible expand target.
                       SizedBox(
-                        width: TioSize.dp30,
+                        width: TioSize.dp28,
                         height: TioSize.dp40,
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
