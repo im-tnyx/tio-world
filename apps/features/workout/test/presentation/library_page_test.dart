@@ -582,7 +582,7 @@ void main() {
       find.descendant(of: row, matching: find.byType(Padding)).first,
     );
     expect(padding.padding,
-        const EdgeInsets.symmetric(vertical: TioSpacing.sm));
+        const EdgeInsets.symmetric(vertical: TioSpacing.xs));
 
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
@@ -607,7 +607,7 @@ void main() {
     final glyphRect = tester.getRect(leftGlyph);
     expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
     expect(titleRect.left - glyphRect.right,
-        closeTo(TioSpacing.sm, 0.1));
+        closeTo(TioSpacing.xs + 2, 0.1));
 
     // Tapping text, not just the arrow, must collapse the same Program.
     await tester.tap(find.text('Strength'));
