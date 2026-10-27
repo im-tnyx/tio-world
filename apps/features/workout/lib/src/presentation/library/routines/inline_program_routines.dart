@@ -23,6 +23,7 @@ class InlineProgramRoutines extends StatefulWidget {
     this.onOpenProgram,
     this.disableAddRoutine = false,
     this.hasUnconfirmedCreate = false,
+    this.onLoadingChanged,
     super.key,
   });
 
@@ -43,6 +44,8 @@ class InlineProgramRoutines extends StatefulWidget {
   final Future<void> Function()? onOpenProgram;
   final bool disableAddRoutine;
   final bool hasUnconfirmedCreate;
+  /// Presentation-only activity signal; never a Move outcome or ownership cue.
+  final ValueChanged<bool>? onLoadingChanged;
 
   @override
   State<InlineProgramRoutines> createState() => _InlineProgramRoutinesState();
@@ -51,6 +54,21 @@ class InlineProgramRoutines extends StatefulWidget {
 class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
   ProgramRoutinesController? _controller;
   bool _openingCreate = false;
+  bool? _reportedLoading;
+
+  void _reportLoadingAfterFrame() {
+    if (widget.onLoadingChanged == null) return;
+    // Never set ancestor state while a descendant is building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final status = _controller?.state.status;
+      final loading = status == ProgramRoutinesStatus.loading ||
+          status == ProgramRoutinesStatus.refreshing;
+      if (_reportedLoading == loading) return;
+      _reportedLoading = loading;
+      widget.onLoadingChanged?.call(loading);
+    });
+  }
 
   Future<void> _addRoutine() async {
     final add = widget.onAddRoutine;
@@ -124,6 +142,7 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
     final repository = widget.repository;
     if (repository == null) {
       _controller = null;
+      _reportLoadingAfterFrame();
       return;
     }
     final controller = ProgramRoutinesController(
@@ -132,10 +151,13 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
     )..addListener(_onChanged);
     _controller = controller;
     controller.load();
+    _reportLoadingAfterFrame();
   }
 
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    _reportLoadingAfterFrame();
   }
 
   @override
@@ -159,12 +181,8 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
     Widget content;
     switch (state.status) {
       case ProgramRoutinesStatus.loading:
-        content = const Center(
-          child: Padding(
-            padding: EdgeInsets.all(TioSpacing.sm),
-            child: CircularProgressIndicator(),
-          ),
-        );
+        // The parent Programs heading owns the single shared loading cue.
+        content = const SizedBox.shrink();
       case ProgramRoutinesStatus.loadFailed:
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +202,9 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
             ),
           ],
         );
+      case ProgramRoutinesStatus.refreshing:
       case ProgramRoutinesStatus.ready:
+        final refreshing = state.status == ProgramRoutinesStatus.refreshing;
         if (state.routines.isEmpty) {
           content = widget.onAddRoutine == null
               ? Text(
@@ -195,7 +215,7 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   key: ValueKey(
                     'library-add-routine-${widget.program.id.value}',
                   ),
-                  onPressed: _openingCreate || widget.disableAddRoutine
+                  onPressed: refreshing || _openingCreate || widget.disableAddRoutine
                       ? null : _addRoutine,
                 );
         } else {
@@ -210,18 +230,18 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                   child: RoutineMetadataCard(
                     routine: routine,
-                    onTap: widget.onRoutinePressed == null
+                    onTap: refreshing || widget.onRoutinePressed == null
                         ? null
                         : () { widget.onRoutinePressed!(routine); },
-                    onEdit: widget.onEditRoutine == null
+                    onEdit: refreshing || widget.onEditRoutine == null
                         ? null
                         : () { widget.onEditRoutine!(routine); },
                     actionSheetGuard: widget.actionSheetGuard,
-                    onMove: widget.onMoveRoutine == null ||
+                    onMove: refreshing || widget.onMoveRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
                         : () => _moveRoutine(routine),
-                    onDelete: widget.onDeleteRoutine == null ||
+                    onDelete: refreshing || widget.onDeleteRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
                         : () => _deleteRoutine(routine),
