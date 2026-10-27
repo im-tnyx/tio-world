@@ -2290,6 +2290,61 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('missing-row after unknown Edit releases sheet and reloads',
+      (tester) async {
+    final repository = _UnknownThenMissingEditRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    var invalidations = 0;
+    await pumpPage(tester, repository,
+        onWeightLogged: () => invalidations++);
+    final missingId = repository.weightEntries.last.id!;
+    final pencil = find.byKey(ValueKey('progress-weight-edit-$missingId'));
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry Changes'), findsOneWidget);
+
+    final held = repository.holdNextRefresh();
+    await tester.tap(find.text('Retry Changes'));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(repository.attempts, 2);
+    expect(repository.refreshReadStarted, isTrue);
+    expect(invalidations, 1);
+    expect(find.text('76 kg'), findsWidgets);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-weight-log-action')),
+      ).onPressed,
+      isNull,
+    );
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsNothing);
+    expect(find.text('76 kg'), findsNothing);
+    expect(find.text('72 kg'), findsWidgets);
+    expect(repository.weightEntries, hasLength(1));
+    expect(find.byKey(ValueKey('progress-weight-edit-$missingId')),
+        findsNothing);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-weight-log-action')),
+      ).onPressed,
+      isNotNull,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ambiguous committed Delete reconciles on editor Close',
       (tester) async {
     final repository = _CommittedButAmbiguousDeleteRepository();
@@ -2740,6 +2795,23 @@ class _AmbiguousSaveWeightRepository extends InMemoryBodySetupRepository {
     if (attempts == 1) {
       throw StateError('Response lost after write committed');
     }
+  }
+}
+
+class _UnknownThenMissingEditRepository
+    extends _ControlledRefreshWeightRepository {
+  int attempts = 0;
+
+  @override
+  Future<bool> updateWeightLog(BodyWeightLogEdit edit) async {
+    attempts++;
+    if (attempts == 1) {
+      await super.updateWeightLog(edit);
+      throw StateError('Edit applied but response was lost');
+    }
+    // Simulate deletion by another client before this exact-ID retry.
+    await super.deleteWeightLog(edit.id);
+    return false;
   }
 }
 
