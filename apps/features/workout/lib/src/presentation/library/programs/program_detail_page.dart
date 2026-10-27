@@ -321,6 +321,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
         );
       case ProgramRoutinesStatus.refreshing:
       case ProgramRoutinesStatus.ready:
+        final refreshing = state.status == ProgramRoutinesStatus.refreshing;
+        final canShowActions = _canEdit || refreshing;
         if (state.routines.isEmpty) {
           return const _RoutineMessage(
             key: ValueKey('program-routines-empty'),
@@ -339,16 +341,20 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                   supportingText: widget.onRoutinePressed == null
                       ? null
                       : 'View Routine',
-                  onTap: _canEdit && widget.onRoutinePressed != null
+                  // Keep the same 48dp overflow slot and read-only navigation
+                  // on a verified same-owner refresh; mutation callbacks stay
+                  // guarded by the controller's _canEdit check.
+                  actionsEnabled: _canEdit,
+                  onTap: canShowActions && widget.onRoutinePressed != null
                       ? () { widget.onRoutinePressed!(routine); }
                       : null,
-                  onEdit: _canEdit && widget.onEditRoutine != null
+                  onEdit: canShowActions && widget.onEditRoutine != null
                       ? () => _openEditor(routine) : null,
                   actionSheetGuard: widget.actionSheetGuard,
-                  onMove: _canEdit && !_hasUnconfirmed &&
+                  onMove: canShowActions && !_hasUnconfirmed &&
                           widget.onMoveRoutine != null
                       ? () => _moveRoutine(routine) : null,
-                  onDelete: _canEdit && !_hasUnconfirmed &&
+                  onDelete: canShowActions && !_hasUnconfirmed &&
                           widget.onDeleteRoutine != null
                       ? () => _deleteRoutine(routine) : null,
                 ),
