@@ -30,6 +30,7 @@ Future<void> _pump(
   bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
+  TextDirection textDirection = TextDirection.ltr,
 }) async {
   final resolvedProgramRepository = withProgramRepository
       ? programRepository ??
@@ -44,7 +45,9 @@ Future<void> _pump(
         config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: LibraryPage(
+      home: Directionality(
+        textDirection: textDirection,
+        child: LibraryPage(
         programRepository: resolvedProgramRepository,
         routineRepository: routineRepository,
         programIdGenerator: programIdGenerator,
@@ -65,6 +68,7 @@ Future<void> _pump(
         onCreateExercisePressed: onCreateExercisePressed ?? () {},
         canCreateExercise: canCreateExercise,
         onSearchPressed: onSearchPressed ?? () {},
+        ),
       ),
     ),
   );
@@ -626,6 +630,35 @@ void main() {
       tester.widget<IconButton>(toggle).tooltip,
       'Expand Strength',
     );
+  });
+
+  testWidgets('compact chevron and title keep distinct RTL tap targets',
+      (tester) async {
+    Program? opened;
+    await _pump(tester,
+      textDirection: TextDirection.rtl,
+      onProgramPressed: (program) async { opened = program; },
+    );
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    final title = find.byKey(ValueKey('program-open-${_id(1).value}'));
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final glyph = find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getRect(glyph).left - tester.getRect(find.text('Strength')).right,
+        closeTo(TioSpacing.xs, 0.1));
+    await tester.tap(title);
+    await tester.pump();
+    expect(opened?.id, _id(1));
+    await tester.tap(toggle);
+    await tester.pump();
+    expect(tester.widget<IconButton>(toggle).tooltip, 'Expand Strength');
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
   });
 
   testWidgets('expanded Programs render only their persisted Routine children',
