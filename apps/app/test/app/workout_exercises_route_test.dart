@@ -563,7 +563,13 @@ void main() {
 
   testWidgets('Program name opens real owner-scoped Detail and returns to Library',
       (tester) async {
-    final (_, router) = await _app(tester, AppMode.hybrid);
+    // Open lives in the session-guarded sheet, so this route needs the same
+    // authenticated owner and login cycle as the other Detail tests.
+    final (_, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+    );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
 
