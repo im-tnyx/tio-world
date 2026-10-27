@@ -753,7 +753,7 @@ class _LibraryProgramRow extends StatelessWidget {
                         key: ValueKey('program-open-${program.id.value}'),
                         onTap: onProgramPressed,
                         child: Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: AlignmentDirectional.centerStart,
                           child: Text(
                             program.name,
                             maxLines: 2,
