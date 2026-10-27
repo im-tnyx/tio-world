@@ -14,6 +14,7 @@ class RoutineMetadataCard extends StatefulWidget {
     this.onMove,
     this.onDelete,
     this.actionSheetGuard,
+    this.actionsEnabled = true,
   });
 
   final Routine routine;
@@ -24,6 +25,9 @@ class RoutineMetadataCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
+  /// Keep action geometry while a same-owner verification read is in flight.
+  /// Only the action menu is disabled; read-only Routine navigation remains.
+  final bool actionsEnabled;
   /// Optional app-owned auth-cycle guard for the separate options modal.
   /// Sheet ownership remains here; account identity never enters Workout.
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -36,7 +40,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
   bool _openingActions = false;
 
   Future<void> _openActions() async {
-    if (_openingActions) return;
+    if (_openingActions || !widget.actionsEnabled) return;
     final openingId = widget.routine.id;
     final openingProgramId = widget.routine.programId;
     _openingActions = true;
@@ -169,12 +173,14 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
               // primary navigation tap, with one semantic tap target.
               container: true,
               button: true,
+              enabled: widget.actionsEnabled,
               label: 'Routine options',
-              onTap: _openActions,
+              onTap: widget.actionsEnabled ? _openActions : null,
               child: ExcludeSemantics(
                 child: IconButton(
                   tooltip: 'Routine options',
-                  onPressed: _openActions,
+                  onPressed:
+                      widget.actionsEnabled ? _openActions : null,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints.tightFor(
                     width: TioSize.dp48,
