@@ -193,27 +193,32 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                       width: TioSize.dp48,
                       height: TioSize.dp48,
                     ),
-                    icon: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: TioSize.dp24,
-                          height: TioStroke.width2,
-                          decoration: BoxDecoration(
-                            color: colors.textPrimary,
-                            borderRadius: BorderRadius.circular(TioRadius.full),
+                    icon: SizedBox(
+                      width: TioSize.dp28,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: TioSize.dp28,
+                            height: TioStroke.width2,
+                            decoration: BoxDecoration(
+                              color: colors.textPrimary,
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.full),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: TioSpacing.xs),
-                        Container(
-                          width: TioSize.dp24,
-                          height: TioStroke.width2,
-                          decoration: BoxDecoration(
-                            color: colors.textPrimary,
-                            borderRadius: BorderRadius.circular(TioRadius.full),
+                          const SizedBox(height: TioSpacing.sm),
+                          Container(
+                            width: TioSize.dp28,
+                            height: TioStroke.width2,
+                            decoration: BoxDecoration(
+                              color: colors.textPrimary,
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.full),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
