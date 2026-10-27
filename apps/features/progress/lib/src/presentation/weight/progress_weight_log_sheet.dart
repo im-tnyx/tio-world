@@ -303,13 +303,15 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
       return;
     }
     FocusScope.of(context).unfocus();
-    final confirmed = await showTioConfirmationBottomSheet(
+    final confirmed = await showTioConfirmationDialog(
       context: context,
+      dialogKey: const ValueKey('progress-weight-delete-confirmation-dialog'),
       title: 'Delete weight log?',
       message: 'Delete only this measurement? Weight summary, graph and '
           'Timeline will refresh. This cannot be undone.',
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
+      icon: const Icon(Icons.delete_outline_rounded),
       intent: TioConfirmationIntent.destructive,
       activeWhileOpen: widget.sessionActive,
     );
