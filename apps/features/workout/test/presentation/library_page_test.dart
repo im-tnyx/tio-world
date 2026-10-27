@@ -710,6 +710,39 @@ void main() {
     expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
   });
 
+  testWidgets('owner rebind drops an open Program action still in the sheet',
+      (tester) async {
+    Program? opened;
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    Future<void> select(Program program) async {
+      opened = program;
+    }
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-b',
+      moveRefreshLoginCycleId: 'cycle-b',
+    );
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened, isNull);
+  });
+
   testWidgets('RTL Program header remains one accessible toggle and menu',
       (tester) async {
     Program? opened;

@@ -671,6 +671,35 @@ void main() {
     expect(find.byType(EditRoutinePage), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Library Program actions sheet closes on A-to-B Auth switch',
+      (tester) async {
+    final (container, router) = await _app(
+      tester, AppMode.hybrid, withRoutineComposition: true,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const programId = '20000000-0000-4000-8000-000000000001';
+    await tester.tap(find.byKey(const ValueKey('program-overflow-$programId')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    expect(find.text('Open Program'), findsOneWidget);
+    expect(find.text('Synthetic Route Program'), findsWidgets);
+
+    container.read(_routineTestAuthStateProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: 'second-user', loginCycleId: 'second-cycle'),
+        );
+    final bootstrap = container.read(appSessionBootstrapControllerProvider)
+        as _ReadyAppSessionBootstrapController;
+    bootstrap.transitionTo('second-user');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
+    expect(find.text('Open Program'), findsNothing);
+    expect(find.byType(ProgramDetailPage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Routine options Edit opens full Name editor directly, not Rename sheet',
       (tester) async {
     final (_, router) = await _app(

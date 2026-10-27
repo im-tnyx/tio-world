@@ -307,6 +307,11 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
     final refreshing =
         _controller?.state.status == ProgramsStatus.refreshing;
+    // The sheet can outlive an owner or login-cycle rebind. Dispatch only
+    // while this same controller and session are still current.
+    final controller = _controller;
+    final ownerId = widget.moveRefreshOwnerId;
+    final loginCycleId = widget.moveRefreshLoginCycleId;
     _openingProgramActions.add(program.id);
     try {
       // Use the same Core editor-sheet and outlined option-card treatment as
@@ -314,68 +319,98 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
       final selected = await showTioEditorSheet<_ProgramAction>(
         context: context,
         useSafeArea: true,
-        builder: (sheetContext) => TioEditorSheet(
-          key: const ValueKey('program-actions-sheet'),
-          title: program.name,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.onProgramPressed != null) ...[
+        builder: (sheetContext) {
+          final sheet = TioEditorSheet(
+            key: const ValueKey('program-actions-sheet'),
+            title: program.name,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onProgramPressed != null) ...[
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-open'),
+                    label: 'Open Program',
+                    icon: Icons.open_in_new_rounded,
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop(_ProgramAction.open),
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                ],
                 _ProgramActionOption(
-                  key: const ValueKey('program-action-open'),
-                  label: 'Open Program',
-                  icon: Icons.open_in_new_rounded,
-                  onTap: () =>
-                      Navigator.of(sheetContext).pop(_ProgramAction.open),
-                ),
-                const SizedBox(height: TioSpacing.sm),
-              ],
-              _ProgramActionOption(
-                key: const ValueKey('program-action-edit'),
-                label: 'Edit Program',
-                icon: Icons.edit_outlined,
-                enabled: !refreshing,
-                onTap: refreshing
-                    ? null
-                    : () => Navigator.of(sheetContext).pop(_ProgramAction.edit),
-              ),
-              if (widget.onAddRoutinePressed != null) ...[
-                const SizedBox(height: TioSpacing.sm),
-                _ProgramActionOption(
-                  key: const ValueKey('program-action-add-routine'),
-                  label: 'Add New Routine',
-                  icon: Icons.add_rounded,
-                  onTap: pendingSave || _openingAddRoutine || refreshing
+                  key: const ValueKey('program-action-edit'),
+                  label: 'Edit Program',
+                  icon: Icons.edit_outlined,
+                  enabled: !refreshing,
+                  onTap: refreshing
                       ? null
-                      : () => Navigator.of(sheetContext)
-                          .pop(_ProgramAction.addRoutine),
-                  supportingText: pendingSave
-                      ? 'Check the previous save in Program'
-                      : _openingAddRoutine
-                          ? 'Another Routine is opening'
-                          : null,
-                  enabled: !pendingSave && !_openingAddRoutine && !refreshing,
+                      : () =>
+                          Navigator.of(sheetContext).pop(_ProgramAction.edit),
                 ),
+                if (widget.onAddRoutinePressed != null) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-add-routine'),
+                    label: 'Add New Routine',
+                    icon: Icons.add_rounded,
+                    onTap: pendingSave || _openingAddRoutine || refreshing
+                        ? null
+                        : () => Navigator.of(sheetContext)
+                            .pop(_ProgramAction.addRoutine),
+                    supportingText: pendingSave
+                        ? 'Check the previous save in Program'
+                        : _openingAddRoutine
+                            ? 'Another Routine is opening'
+                            : null,
+                    enabled:
+                        !pendingSave && !_openingAddRoutine && !refreshing,
+                  ),
+                ],
               ],
-            ],
-          ),
-        ),
+            ),
+          );
+          return widget.actionSheetGuard?.call(sheetContext, sheet) ?? sheet;
+        },
       );
 
-      if (!mounted) return;
+      if (!_sameProgramSession(controller, ownerId, loginCycleId)) return;
+      final live = _visibleProgram(controller, program.id);
+      if (live == null) return;
       switch (selected) {
         case _ProgramAction.open:
-          await _openProgram(program);
+          await _openProgram(live);
         case _ProgramAction.edit:
-          await _openRename(program);
+          await _openRename(live);
         case _ProgramAction.addRoutine:
-          await _openAddRoutine(program);
+          await _openAddRoutine(live);
         case null:
           break;
       }
     } finally {
       _openingProgramActions.remove(program.id);
     }
+  }
+
+  bool _sameProgramSession(
+    ProgramsController? controller,
+    String? ownerId,
+    String? loginCycleId,
+  ) =>
+      mounted &&
+      identical(controller, _controller) &&
+      widget.moveRefreshOwnerId == ownerId &&
+      widget.moveRefreshLoginCycleId == loginCycleId;
+
+  Program? _visibleProgram(ProgramsController? controller, ProgramId id) {
+    final state = controller?.state;
+    if (state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing)) {
+      return null;
+    }
+    for (final item in state.programs) {
+      if (item.id == id) return item;
+    }
+    return null;
   }
 
   Future<void> _openCreate() async {
