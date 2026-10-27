@@ -528,11 +528,11 @@ void main() {
     expect(bars, findsNWidgets(2));
     expect(
       tester.getSize(bars.at(0)),
-      const Size(TioSize.dp20, TioStroke.width2),
+      const Size(TioSize.dp16, TioStroke.width2),
     );
     expect(
       tester.getSize(bars.at(1)),
-      const Size(TioSize.dp14, TioStroke.width2),
+      const Size(TioSize.dp10, TioStroke.width2),
     );
     final gap =
         tester.getRect(bars.at(1)).top - tester.getRect(bars.at(0)).bottom;
@@ -542,8 +542,8 @@ void main() {
     final topBar = tester.getRect(bars.at(0));
     final bottomBar = tester.getRect(bars.at(1));
     expect(bottomBar.right, closeTo(topBar.right, 0.1));
-    expect(bottomBar.width, closeTo(TioSize.dp14, 0.1));
-    expect(topBar.width, closeTo(TioSize.dp20, 0.1));
+    expect(bottomBar.width, closeTo(TioSize.dp10, 0.1));
+    expect(topBar.width, closeTo(TioSize.dp16, 0.1));
     expect(
       (topBar.left + topBar.right) / 2,
       closeTo(menuRect.center.dx, 0.1),

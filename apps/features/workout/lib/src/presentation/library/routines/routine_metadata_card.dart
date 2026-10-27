@@ -211,16 +211,17 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                       height: TioSize.dp32,
                     ),
                     icon: SizedBox(
-                      width: TioSize.dp20,
+                      width: TioSize.dp16,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Owner-approved mark: longer top bar, shorter
-                          // bottom bar, physical right edges aligned.
+                          // Match the Program more_horiz glyph ink (16.03dp
+                          // inside the default 24dp icon). Bottom stays
+                          // shorter. Both bars keep physical right edges.
                           Align(
                             alignment: Alignment.centerRight,
                             child: Container(
-                              width: TioSize.dp20,
+                              width: TioSize.dp16,
                               height: TioStroke.width2,
                               decoration: BoxDecoration(
                                 color: colors.textPrimary,
@@ -233,7 +234,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: Container(
-                              width: TioSize.dp14,
+                              width: TioSize.dp10,
                               height: TioStroke.width2,
                               decoration: BoxDecoration(
                                 color: colors.textPrimary,
