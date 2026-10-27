@@ -87,11 +87,32 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
     await tester.pumpAndSettle();
     expect(find.text('Delete weight log?'), findsOneWidget);
-    expect(find.byType(BottomSheet), findsWidgets);
+    final confirmation = find.byKey(
+      const ValueKey('progress-weight-delete-confirmation-dialog'),
+    );
+    expect(confirmation, findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
+    final card = find.descendant(
+      of: confirmation,
+      matching: find.byType(TioCard),
+    );
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).width, lessThanOrEqualTo(TioSize.dp320));
+    final actionsTheme = Theme.of(tester.element(find.text('Delete').last));
+    expect(
+      actionsTheme.filledButtonTheme.style?.minimumSize?.resolve({})?.height,
+      TioSize.dp38,
+    );
+    expect(
+      actionsTheme.outlinedButtonTheme.style?.minimumSize?.resolve({})?.height,
+      TioSize.dp38,
+    );
 
     active.value = false;
     await tester.pumpAndSettle();
     expect(find.text('Delete weight log?'), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
+    expect(confirmation, findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
     expect(
