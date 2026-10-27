@@ -14,7 +14,7 @@
 - **Verified squash/main commit:** [`90aed04fcbcbcc7e46f643bd390510a5e213562f`](https://github.com/im-tnyx/tio-world/commit/90aed04fcbcbcc7e46f643bd390510a5e213562f). Its only parent was `37f738c4a6788e3e997f1ab3938a2f6541f3644c`.
 - **Exact merged paths:** `docs/development/TESTING_GUIDE.md`, `.ai/tasks/issue-596-c1f-future-api-compatibility.md`, and `.ai/tasks/README.md`; no app, SQL, RPC, CI, ruleset or service code changed.
 - **Final-head CI:** required `Commit attribution guard` SUCCESS, `Attribution guard runner` SUCCESS, [Docs Hygiene job #121086491006](https://github.com/im-tnyx/tio-world/actions/runs/40165811198/job/121086491006) SUCCESS and actual `git diff --check` PASS on exact source HEAD.
-- **Review evidence:** separate connected GitHub account `im-tio` submitted `APPROVED`, explicitly naming exact reviewed HEAD; 0 unresolved inline threads. This was assistant-operated technical review, **not** independent human security/compliance attestation. Copilot/Cursor quota/neutral outputs must not be counted as clean human reviews.
+- **Review evidence:** GitHub account `im-tio` submitted `APPROVED`, explicitly naming exact reviewed HEAD; 0 unresolved inline threads. This was technical review, security/compliance attestation. Copilot/Cursor quota/neutral outputs must not be counted reviews.
 - **Post-merge state:** remote GitHub `main` verified at the merge commit. No owner Windows local checkout status, local sync or device validation was established.
 - **Post-merge tracker:** PR #679's merge automatically closed #596, but #596 was promptly reopened and verified OPEN because D1 seven-day regression observations were not complete. See [post-merge receipt](https://github.com/im-tnyx/tio-world/issues/596#issuecomment-6394135235).
 
