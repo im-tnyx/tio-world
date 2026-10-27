@@ -80,6 +80,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                     // callback still rechecks live Auth and Routine ownership.
                     Navigator.of(sheetContext).pop(_RoutineAction.move);
                     if (mounted &&
+                        widget.actionsEnabled &&
                         widget.routine.id == openingId &&
                         widget.routine.programId == openingProgramId) {
                       widget.onMove?.call();
@@ -109,6 +110,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
       // captured before the await. Keep this a presentation-only boundary:
       // the app shell independently rechecks the owner and login cycle.
       if (!mounted ||
+          !widget.actionsEnabled ||
           widget.routine.id != openingId ||
           widget.routine.programId != openingProgramId) {
         return;
