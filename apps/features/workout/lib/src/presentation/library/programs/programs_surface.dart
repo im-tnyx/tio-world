@@ -272,6 +272,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   Future<void> _openProgramActions(Program program) async {
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
     var addRequested = false;
+    var openRequested = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -296,6 +297,20 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               const SizedBox(height: TioSpacing.lg),
               TioGroupCard(
                 children: [
+                  if (widget.onProgramPressed != null)
+                    TioSettingsNavigationRow(
+                      key: const ValueKey('program-action-open'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.open_in_new_rounded,
+                      ),
+                      title: 'Open Program',
+                      supportingText: 'View this Program',
+                      showChevron: false,
+                      onTap: () {
+                        openRequested = true;
+                        Navigator.of(sheetContext).pop();
+                      },
+                    ),
                   TioSettingsNavigationRow(
                     key: const ValueKey('program-action-edit'),
                     leading: const TioSettingsLeadingIcon(
@@ -339,6 +354,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     );
     // The bottom-sheet transition must finish before the shell tests whether
     // Library is still the current route and launches canonical Create.
+    if (openRequested && mounted) await _openProgram(program);
     if (addRequested && mounted) await _openAddRoutine(program);
   }
 
@@ -609,9 +625,6 @@ class _ProgramsListState extends State<_ProgramsList> {
           expanded: expanded,
           onToggleExpanded: () => widget.onToggleExpanded(program.id),
           onOverflowPressed: () => widget.onProgramActions(program),
-          onProgramPressed: widget.onProgramPressed == null
-              ? null
-              : () => widget.onProgramPressed!(program),
         ),
       );
       if (expanded) {
@@ -698,7 +711,6 @@ class _LibraryProgramRow extends StatelessWidget {
     required this.expanded,
     required this.onToggleExpanded,
     required this.onOverflowPressed,
-    required this.onProgramPressed,
     super.key,
   });
 
@@ -706,7 +718,6 @@ class _LibraryProgramRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggleExpanded;
   final VoidCallback onOverflowPressed;
-  final VoidCallback? onProgramPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -715,46 +726,34 @@ class _LibraryProgramRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
       child: Row(
         children: [
-          IconButton(
-            key: ValueKey('program-expand-${program.id.value}'),
-            tooltip:
-                expanded ? 'Collapse ${program.name}' : 'Expand ${program.name}',
-            onPressed: onToggleExpanded,
-            color: colors.textSecondary,
-            padding: EdgeInsets.zero,
-            // Keep the icon at the Library's leading padding. The owner's
-            // compact selection request shrinks the horizontal hit region,
-            // without reducing its 48dp height or affecting title/overflow.
-            alignment: AlignmentDirectional.centerStart,
-            constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp32,
-              height: TioSize.dp48,
-            ),
-            icon: Icon(
-              expanded
-                  ? Icons.keyboard_arrow_down_rounded
-                  : Icons.keyboard_arrow_right_rounded,
-            ),
-          ),
           Expanded(
-            child: onProgramPressed == null
-                ? Text(
-                    program.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  )
-                : ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: TioSize.dp48),
-                    child: InkWell(
-                      key: ValueKey('program-open-${program.id.value}'),
-                      onTap: onProgramPressed,
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
+            child: Tooltip(
+              message: expanded
+                  ? 'Collapse ${program.name}'
+                  : 'Expand ${program.name}',
+              child: InkWell(
+                key: ValueKey('program-expand-${program.id.value}'),
+                onTap: onToggleExpanded,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: TioSize.dp48),
+                  child: Row(
+                    children: [
+                      // Chevron starts at the Library's own leading padding.
+                      // The text and icon form ONE accessible expand target.
+                      SizedBox(
+                        width: TioSize.dp32,
+                        height: TioSize.dp48,
+                        child: Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Icon(
+                            expanded
+                                ? Icons.keyboard_arrow_down_rounded
+                                : Icons.keyboard_arrow_right_rounded,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
                         child: Text(
                           program.name,
                           maxLines: 2,
@@ -766,8 +765,11 @@ class _LibraryProgramRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                ),
+              ),
+            ),
           ),
           IconButton(
             key: ValueKey('program-overflow-${program.id.value}'),
