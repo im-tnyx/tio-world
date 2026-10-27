@@ -2290,6 +2290,105 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ambiguous committed Delete reconciles on editor Close',
+      (tester) async {
+    final repository = _CommittedButAmbiguousDeleteRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 72,
+      measuredAt: now.subtract(const Duration(days: 3)),
+      source: BodyWeightSources.manual,
+    ));
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    var invalidations = 0;
+    await pumpPage(
+      tester,
+      repository,
+      onWeightLogged: () => invalidations++,
+    );
+    final deletedId = repository.weightEntries.last.id!;
+    final pencil = find.byKey(ValueKey('progress-weight-edit-$deletedId'));
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete').last);
+    await tester.pumpAndSettle();
+
+    // Remote deletion committed but its response was lost. The editor still
+    // offers its existing error/Close flow instead of claiming success.
+    expect(repository.deleteCalls, 1);
+    expect(repository.weightEntries, hasLength(1));
+    expect(find.text('Could not delete weight log. Try again.'), findsOneWidget);
+    expect(find.text('Edit Weight'), findsOneWidget);
+
+    final held = repository.holdNextRefresh();
+    await tester.tap(find.byKey(const ValueKey('progress-log-close')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(repository.refreshReadStarted, isTrue);
+    expect(invalidations, 1);
+    expect(find.byKey(const ValueKey('progress-weight-graph-card')),
+        findsOneWidget);
+    expect(find.text('76 kg'), findsWidgets);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-weight-log-action')),
+      ).onPressed,
+      isNull,
+    );
+    expect(repository.deleteCalls, 1);
+
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsNothing);
+    expect(find.text('76 kg'), findsNothing);
+    expect(find.text('72 kg'), findsWidgets);
+    expect(find.byKey(ValueKey('progress-weight-edit-$deletedId')),
+        findsNothing);
+    expect(
+      tester.widget<TioButton>(
+        find.byKey(const ValueKey('progress-weight-log-action')),
+      ).onPressed,
+      isNotNull,
+    );
+    expect(find.byKey(const ValueKey('progress-weight-refresh-failed')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('cancelling Delete does not invalidate or refresh weight',
+      (tester) async {
+    final repository = _CountingProgressHistoryRepository();
+    await repository.recordCurrentWeight(BodyWeightRecord(
+      weightKg: 76,
+      measuredAt: now.subtract(const Duration(days: 1)),
+      source: BodyWeightSources.manual,
+    ));
+    var invalidations = 0;
+    await pumpPage(tester, repository,
+        onWeightLogged: () => invalidations++);
+    final readsBefore = repository.historyCalls;
+    final id = repository.weightEntries.single.id!;
+    final pencil = find.byKey(ValueKey('progress-weight-edit-$id'));
+    await tester.ensureVisible(pencil);
+    await tester.tap(pencil);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-close')));
+    await tester.pumpAndSettle();
+    expect(repository.weightEntries, hasLength(1));
+    expect(invalidations, 0);
+    expect(repository.historyCalls, readsBefore);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Delete keeps UI but locks stale row until Retry reconciles',
       (tester) async {
     final repository = _ControlledRefreshWeightRepository();
@@ -2641,6 +2740,18 @@ class _AmbiguousSaveWeightRepository extends InMemoryBodySetupRepository {
     if (attempts == 1) {
       throw StateError('Response lost after write committed');
     }
+  }
+}
+
+class _CommittedButAmbiguousDeleteRepository
+    extends _ControlledRefreshWeightRepository {
+  int deleteCalls = 0;
+
+  @override
+  Future<bool> deleteWeightLog(String id) async {
+    deleteCalls++;
+    await super.deleteWeightLog(id);
+    throw StateError('Delete committed but response was lost');
   }
 }
 
