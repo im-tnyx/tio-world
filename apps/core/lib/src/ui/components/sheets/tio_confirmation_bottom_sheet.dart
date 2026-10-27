@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../../theme/theme.dart';
@@ -20,12 +21,15 @@ Future<bool?> showTioConfirmationBottomSheet({
   Key? cardKey,
   Widget? icon,
   TioConfirmationIntent intent = TioConfirmationIntent.standard,
+  ValueListenable<bool>? activeWhileOpen,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: TioPalette.transparent,
-    builder: (sheetContext) => SafeArea(
+    builder: (sheetContext) => _TioConfirmationRouteGuard(
+      activeWhileOpen: activeWhileOpen,
+      child: SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.all(TioSpacing.lg),
@@ -41,8 +45,89 @@ Future<bool?> showTioConfirmationBottomSheet({
           onConfirm: () => Navigator.of(sheetContext).pop(true),
         ),
       ),
+      ),
     ),
   );
+}
+
+/// Optional owner/session lifecycle binding for a modal presented over another
+/// editor. It removes only this confirmation route, never an unrelated route.
+class _TioConfirmationRouteGuard extends StatefulWidget {
+  const _TioConfirmationRouteGuard({
+    required this.child,
+    this.activeWhileOpen,
+  });
+
+  final Widget child;
+  final ValueListenable<bool>? activeWhileOpen;
+
+  @override
+  State<_TioConfirmationRouteGuard> createState() =>
+      _TioConfirmationRouteGuardState();
+}
+
+class _TioConfirmationRouteGuardState
+    extends State<_TioConfirmationRouteGuard> {
+  ModalRoute<dynamic>? _route;
+  NavigatorState? _navigator;
+  bool _dismissQueued = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.activeWhileOpen?.addListener(_onActiveChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TioConfirmationRouteGuard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.activeWhileOpen, widget.activeWhileOpen)) {
+      oldWidget.activeWhileOpen?.removeListener(_onActiveChanged);
+      widget.activeWhileOpen?.addListener(_onActiveChanged);
+      _onActiveChanged();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _route = ModalRoute.of(context);
+    _navigator = Navigator.of(context);
+    _onActiveChanged();
+  }
+
+  void _onActiveChanged() {
+    if (widget.activeWhileOpen?.value != false || _dismissQueued) return;
+    _dismissQueued = true;
+    final route = _route;
+    final navigator = _navigator;
+    // The enclosing editor may itself be removed during an owner switch.
+    // Capture this exact route before deactivation; do not pop top-of-stack.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator == null || !navigator.mounted ||
+          route == null || !route.isActive) {
+        return;
+      }
+      navigator.removeRoute(route);
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.activeWhileOpen?.removeListener(_onActiveChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = widget.activeWhileOpen;
+    if (active == null) return widget.child;
+    return ValueListenableBuilder<bool>(
+      valueListenable: active,
+      builder: (context, isActive, _) =>
+          isActive ? widget.child : const SizedBox.shrink(),
+    );
+  }
 }
 
 class _TioConfirmationContent extends StatelessWidget {
