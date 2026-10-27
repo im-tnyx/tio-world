@@ -195,14 +195,16 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                     tooltip: 'Routine options',
                     onPressed:
                         widget.actionsEnabled ? _openActions : null,
-                    alignment: AlignmentDirectional.centerEnd,
+                    // The 32dp target stays on the card's trailing edge.
+                    // Center the mark so the press highlight surrounds it.
+                    alignment: Alignment.center,
                     padding: EdgeInsets.zero,
                     style: IconButton.styleFrom(
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
                       fixedSize: const Size(TioSize.dp32, TioSize.dp32),
-                      alignment: AlignmentDirectional.centerEnd,
+                      alignment: Alignment.center,
                     ),
                     constraints: const BoxConstraints.tightFor(
                       width: TioSize.dp32,

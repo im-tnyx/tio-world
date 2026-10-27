@@ -537,9 +537,20 @@ void main() {
         tester.getRect(bars.at(1)).top - tester.getRect(bars.at(0)).bottom;
     expect(gap, TioSpacing.xs);
     expect(tester.getSize(menu), const Size(TioSize.dp32, TioSize.dp32));
+    final menuRect = tester.getRect(menu);
+    final topBar = tester.getRect(bars.at(0));
+    final bottomBar = tester.getRect(bars.at(1));
+    expect(
+      (topBar.left + topBar.right) / 2,
+      closeTo(menuRect.center.dx, 0.1),
+    );
+    expect(
+      (topBar.top + bottomBar.bottom) / 2,
+      closeTo(menuRect.center.dy, 0.1),
+    );
     final card = find.ancestor(of: menu, matching: find.byType(TioCard)).first;
     expect(
-      tester.getRect(card).right - tester.getRect(menu).right,
+      tester.getRect(card).right - menuRect.right,
       closeTo(TioSpacing.xs, 0.1),
     );
   });
