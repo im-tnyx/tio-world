@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-Validated [#699 Library refresh cue, chevron/title expand, and Routine overflow mark](../archive/2026-10-issue-699-library-refresh-chevron.md) is **archived** after [PR #703](https://github.com/im-tnyx/tio-world/pull/703) squash-merged at `main@b073c33ef4c78935cc0edad7003af0014380cd9e` (2026-10-27). Exact final head `1946744d` CI SUCCESS, independent `im-tio` APPROVED `5667172522`, post-merge Flutter CI SUCCESS, owner Android QA passed. [GitHub #699](https://github.com/im-tnyx/tio-world/issues/699) closure is an owner decision; [TNYX-267](https://linear.app/tnyx/issue/TNYX-267) is the broader W6B epic and stays open.
+Validated [#699 Library refresh cue, chevron/title expand, and Routine overflow mark](../archive/2026-10-issue-699-library-refresh-chevron.md) is **archived** after [PR #703](https://github.com/im-tnyx/tio-world/pull/703) squash-merged at `main@b073c33ef4c78935cc0edad7003af0014380cd9e` (2026-10-27). Exact final head `1946744d` CI SUCCESS, independent `im-tio` APPROVED `5667172522`, post-merge Flutter CI SUCCESS, owner Android QA passed. [GitHub #699](https://github.com/im-tnyx/tio-world/issues/699) is CLOSED as completed (2026-10-27); [TNYX-267](https://linear.app/tnyx/issue/TNYX-267) is the broader W6B epic and stays open.
 
 [#692 Progress Weight A3-F reusable pinned footer and Core DateTime popup](issue-692-progress-weight-pinned-footer.md) is the current approved implementation slice; review-gated only, **NO MERGE**. Prior A3 PR #691 is merged on main@80db1896; its task brief still contains historical review-state text pending bounded archive cleanup.
 

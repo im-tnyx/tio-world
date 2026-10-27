@@ -1,5 +1,5 @@
 # GitHub #699 — Library Programs single refresh cue and compact chevron/title
-**Status:** Validated / archived on 2026-10-27, after [PR #703](https://github.com/im-tnyx/tio-world/pull/703) squash-merged into `main` at `b073c33ef4c78935cc0edad7003af0014380cd9e`. GitHub #699 closure and the TNYX-267 note are owner decisions; TNYX-267 is the broader W6B epic and stays open.
+**Status:** Validated / archived on 2026-10-27, after [PR #703](https://github.com/im-tnyx/tio-world/pull/703) squash-merged into `main` at `b073c33ef4c78935cc0edad7003af0014380cd9e`. GitHub #699 is CLOSED as completed (2026-10-27); TNYX-267 is the broader W6B epic and stays open.
 **Primary owner:** apps/features/workout presentation
 **Affected platforms:** Flutter Android/iOS, Library Programs surface
 

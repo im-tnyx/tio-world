@@ -30,9 +30,9 @@
 **Current implementation state:** Dormant typed repository; the two requested PR #681 P2 fixes, same-gate follow-ups, and independent `40003` UNKNOWN fix are implemented in `9b27613de0609308c261fa064858979f6018ea96`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
 **Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 19-test suite, changed-area `test/data` suite (406 tests), and `git diff --check` passed for the `40003` fix at `9b27613de0609308c261fa064858979f6018ea96`
-**Validation remaining:** Independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
-**Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
-**Open review finding IDs:** `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755` — fixes pushed; keep all related threads open pending independent re-review
+**Validation remaining:** Historical as of archive (2026-10-27). Independent re-review is complete: `im-tio` APPROVED review `5642136304` on exact head `5841606f7645cf9d9100ccdd9d7a71fc6d74788b`, and [PR #681](https://github.com/im-tnyx/tio-world/pull/681) is merged. Hosted migration, client `EXECUTE`, and production/UI gates stay separate #567 work.
+**Current blocker:** None for this archived source slice; hosted EXECUTE remains intentionally unavailable
+**Open review finding IDs:** Historical IDs `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755`. `im-tio` APPROVED review `5642136304` on exact head `5841606f` recorded the underlying defects as fixed while noting these inline threads as leftover unresolved metadata (not a remaining code gate). PR #681 is merged, so those #681 threads cannot block #681 (and they are not review threads on other PRs such as #705).
 **Next exact action:** None for D2A. Remaining #567 gates are separate slices.
 
 ## 1. Discovery
@@ -131,8 +131,8 @@ Exact-head workflow `40173512028` at PR HEAD `6a121e3ede4c5069ceca8c612b629576ed
 **Review source / link:** [PR #681](https://github.com/im-tnyx/tio-world/pull/681), Codex findings `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755`
 **Reviewer / relation to implementer:** Independent reviewer `im-tio` requested changes on `b7906cff`; fix pushed in `9b27613de0609308c261fa064858979f6018ea96`
 **Diff or commit SHA actually reviewed:** Independent finding reviewed `b7906cff90a66e71604a87de67b933bd13e59d07`; latest fix commit is `9b27613de0609308c261fa064858979f6018ea96`
-**Independent review?:** Changes requested on prior HEAD; fix evidence posted; re-review pending; all related inline threads intentionally remain open
-**Limitations and unmet required gates:** Exact-head GitHub CI is PASS. Independent re-review is pending and `reviewDecision` remains `CHANGES_REQUESTED` until a new review is submitted; hosted migration/EXECUTE, device/UI, controller, and merge gates remain intentionally unmet.
+**Independent review?:** Historical pre-merge record: changes were requested on an earlier head and the inline threads were left open. Superseded: `im-tio` APPROVED review `5642136304` on `5841606f`, and PR #681 is merged. The finding IDs above were cited in that APPROVED review as unresolved GitHub thread metadata after the code fixes; they do not reopen a merge/review gate for the archived D2A slice.
+**Limitations and unmet required gates:** Historical pre-merge record said re-review was pending and `reviewDecision` was `CHANGES_REQUESTED`. Superseded: review decision is APPROVED and PR #681 is merged. Hosted migration/EXECUTE, device/UI, and controller activation remain separate unmet #567 gates.
 
 ## 7. Final Handoff
 
