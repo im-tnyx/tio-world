@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -229,10 +230,18 @@ final class ProgramDeleteFlow {
         return false;
       }
 
-      // Verify that controller state is still ready for this exact target.
-      // Another operation or preparation must never cause dispatch for a different Program.
+      // Verify that controller state is still ready for this exact captured target.
+      // Another preparation for the same or different Program must never cause dispatch
+      // with a replaced Routine membership snapshot.
+      final currentTarget = controller.state.target;
       if (controller.state.status != ProgramDeleteOperationStatus.ready ||
-          controller.state.target?.sourceProgramId != program.id) {
+          currentTarget == null ||
+          currentTarget.sourceProgramId != target.sourceProgramId ||
+          !listEquals(
+            currentTarget.expectedRoutineIds,
+            target.expectedRoutineIds,
+          ) ||
+          !identical(currentTarget, target)) {
         _show(context,
             'This Program changed. Refresh the list before trying again.');
         return false;

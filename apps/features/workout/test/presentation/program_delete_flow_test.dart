@@ -803,6 +803,86 @@ void main() {
     );
 
     testWidgets(
+      'different flows sharing one controller abort if same Program target is prepared with new snapshot before confirmation',
+      (tester) async {
+        final prog = _program(name: 'Strength Block');
+        final gate = ProgramDeleteAttemptGate();
+        final programs = _FakePrograms([prog]);
+        // Initially 1 routine
+        final snapshots = <RoutineMetadataRevision>[_snapshot(_routineOne)];
+        final routines = _FakeRoutines(snapshots);
+        final writtenTargets = <ProgramDeleteTarget>[];
+        final deleteRepo = _FakeDeleteRepo(
+          attemptGate: gate,
+          onDeleteTarget: (target) => writtenTargets.add(target),
+        );
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        final flowA = ProgramDeleteFlow();
+        bool? resultA;
+
+        await tester.pumpWidget(MaterialApp(
+          home: TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () async {
+                    resultA = await flowA.run(
+                      context: context,
+                      program: prog,
+                      controller: controller,
+                      canWrite: () => true,
+                    );
+                  },
+                  child: const Text('Delete Prog'),
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        // Open Dialog for Program
+        await tester.tap(find.text('Delete Prog'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Delete "Strength Block"? Its 1 saved Routine will be moved to My Program. '
+            'This cannot be undone.',
+          ),
+          findsOneWidget,
+        );
+
+        // While Dialog A is open, a new routine is added and another preparation runs
+        snapshots.add(_snapshot(_routineTwo));
+        await controller.prepare(prog.id);
+        expect(controller.state.target?.expectedRoutineIds.length, 2);
+
+        // User taps Delete on Dialog A (which was confirmed for 1 routine)
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        // Flow A must safely abort because controller target was replaced with a new snapshot
+        expect(resultA, isFalse);
+        expect(deleteRepo.writes, 0);
+        expect(writtenTargets, isEmpty);
+        expect(
+          find.text(
+            'This Program changed. Refresh the list before trying again.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
       'uses prepared Program name when caller Program name is stale',
       (tester) async {
         final canonicalProg = _program(name: 'Updated Canonical Name');
