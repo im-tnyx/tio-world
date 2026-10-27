@@ -81,9 +81,9 @@ class ProgramsSurface extends StatefulWidget {
 
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
-  // The list child unmounts while ProgramsController publishes loading.
-  // Keep the view-only collapse state in this stable, owner-scoped parent.
+  // Preserve owner-scoped expansion and presentation-only load activity here.
   final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
+  final Set<ProgramId> _loadingRoutinePrograms = <ProgramId>{};
   int _routineRefreshVersion = 0;
   bool _openingAddRoutine = false;
 
@@ -91,6 +91,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     setState(() {
       if (!_collapsedPrograms.add(id)) {
         _collapsedPrograms.remove(id);
+      } else {
+        _loadingRoutinePrograms.remove(id);
       }
     });
   }
@@ -121,6 +123,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     // Controller rebind covers repository/owner/login-cycle changes. Never
     // carry a former account's Program view preferences into a new session.
     _collapsedPrograms.clear();
+    _loadingRoutinePrograms.clear();
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
@@ -141,7 +144,34 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   void _onControllerChanged() {
+    final state = _controller?.state;
+    if (state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing)) {
+      _loadingRoutinePrograms.clear();
+    } else {
+      final visible = state.programs.map((program) => program.id).toSet();
+      _loadingRoutinePrograms.removeWhere(
+        (id) => !visible.contains(id) || _collapsedPrograms.contains(id),
+      );
+    }
     if (mounted) setState(() {});
+  }
+
+  void _onRoutineLoadingChanged(ProgramId programId, bool loading) {
+    final state = _controller?.state;
+    if (!mounted ||
+        state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing) ||
+        _collapsedPrograms.contains(programId) ||
+        !state.programs.any((program) => program.id == programId)) {
+      return;
+    }
+    final changed = loading
+        ? _loadingRoutinePrograms.add(programId)
+        : _loadingRoutinePrograms.remove(programId);
+    if (changed) setState(() {});
   }
 
   void _onMoveRefresh() {
@@ -400,6 +430,20 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                     ),
               ),
             ),
+            if (controller?.state.status == ProgramsStatus.loading ||
+                controller?.state.status == ProgramsStatus.refreshing ||
+                _loadingRoutinePrograms.isNotEmpty)
+              const Padding(
+                padding: EdgeInsetsDirectional.only(start: TioSpacing.sm),
+                child: SizedBox(
+                  key: ValueKey('library-programs-refreshing'),
+                  width: TioSize.dp16,
+                  height: TioSize.dp16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: TioStroke.width2,
+                  ),
+                ),
+              ),
             const Spacer(),
             IconButton(
               key: const ValueKey('library-programs-create'),
@@ -430,13 +474,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     final state = controller.state;
     switch (state.status) {
       case ProgramsStatus.loading:
-        return const _ProgramsLoading();
+        return embedded ? const SizedBox.shrink() : const _ProgramsLoading();
       case ProgramsStatus.loadFailed:
         return _ProgramsLoadFailure(
           message:
               state.loadError ?? 'Could not load programs. Please try again.',
           onRetry: controller.retryLoad,
         );
+      case ProgramsStatus.refreshing:
       case ProgramsStatus.ready:
         if (state.programs.isEmpty) {
           return _ProgramsEmpty(onCreate: _openCreate);
@@ -462,6 +507,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
           isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
+          onRoutineLoadingChanged: _onRoutineLoadingChanged,
         );
     }
   }
@@ -498,6 +544,7 @@ class _ProgramsList extends StatefulWidget {
     required this.hasUnconfirmedCreate,
     required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
+    required this.onRoutineLoadingChanged,
   });
 
   final List<Program> programs;
@@ -517,6 +564,7 @@ class _ProgramsList extends StatefulWidget {
   final bool Function(Program)? hasUnconfirmedCreate;
   final bool isLaunchingRoutine;
   final int routineRefreshVersion;
+  final void Function(ProgramId, bool) onRoutineLoadingChanged;
 
   @override
   State<_ProgramsList> createState() => _ProgramsListState();
@@ -573,6 +621,8 @@ class _ProgramsListState extends State<_ProgramsList> {
             program: program,
             repository: widget.routineRepository,
             refreshVersion: widget.routineRefreshVersion,
+            onLoadingChanged: (loading) =>
+                widget.onRoutineLoadingChanged(program.id, loading),
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
@@ -672,7 +722,7 @@ class _LibraryProgramRow extends StatelessWidget {
             onPressed: onToggleExpanded,
             color: colors.textSecondary,
             padding: EdgeInsets.zero,
-            alignment: AlignmentDirectional.centerStart,
+            alignment: AlignmentDirectional.centerEnd,
             constraints: const BoxConstraints.tightFor(
               width: TioSize.dp48,
               height: TioSize.dp48,
@@ -684,7 +734,9 @@ class _LibraryProgramRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: onProgramPressed == null
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(start: TioSpacing.xs),
+              child: onProgramPressed == null
                 ? Text(
                     program.name,
                     maxLines: 2,
@@ -715,6 +767,7 @@ class _LibraryProgramRow extends StatelessWidget {
                       ),
                     ),
                   ),
+            ),
           ),
           IconButton(
             key: ValueKey('program-overflow-${program.id.value}'),
