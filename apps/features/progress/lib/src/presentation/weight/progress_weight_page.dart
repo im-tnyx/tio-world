@@ -125,6 +125,9 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
     final repository = widget.repository;
     setState(() => _editingWeightId = id);
     bool? changed;
+    // A Delete transport error cannot prove that the server did not delete.
+    // Re-read canonical owner data after the editor closes in either case.
+    var deleteAttempted = false;
     try {
       changed = await showProgressWeightEditSheet(
         context: context,
@@ -142,6 +145,7 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
           if (!mounted || !active.value || generation != _generation) {
             throw StateError('Weight session is no longer active.');
           }
+          deleteAttempted = true;
           return repository.deleteWeightLog(rowId);
         },
       );
@@ -150,10 +154,12 @@ class _ProgressWeightPageState extends State<ProgressWeightPage> {
         setState(() => _editingWeightId = null);
       }
     }
-    if (!mounted || !active.value ||
-        generation != _generation || changed != true) {
+    if (!mounted || !active.value || generation != _generation ||
+        (changed != true && !deleteAttempted)) {
       return;
     }
+    // Failed/ambiguous Delete also invalidates the read caches and locks
+    // old Timeline actions until the exact canonical read is reconciled.
     widget.onWeightLogged?.call();
     if (!mounted || !active.value || generation != _generation) {
       return;
