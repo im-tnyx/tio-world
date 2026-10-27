@@ -30,26 +30,25 @@ Future<bool?> showTioConfirmationBottomSheet({
     builder: (sheetContext) => _TioConfirmationRouteGuard(
       activeWhileOpen: activeWhileOpen,
       child: SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.all(TioSpacing.lg),
-        child: _TioConfirmationContent(
-          key: cardKey,
-          icon: icon,
-          title: title,
-          message: message,
-          cancelLabel: cancelLabel,
-          confirmLabel: confirmLabel,
-          intent: intent,
-          onCancel: () => Navigator.of(sheetContext).pop(false),
-          onConfirm: () => Navigator.of(sheetContext).pop(true),
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(TioSpacing.lg),
+          child: _TioConfirmationContent(
+            key: cardKey,
+            icon: icon,
+            title: title,
+            message: message,
+            cancelLabel: cancelLabel,
+            confirmLabel: confirmLabel,
+            intent: intent,
+            onCancel: () => Navigator.of(sheetContext).pop(false),
+            onConfirm: () => Navigator.of(sheetContext).pop(true),
+          ),
         ),
-      ),
       ),
     ),
   );
 }
-
 
 /// Presents the same Core confirmation contract as a compact centered dialog.
 ///
