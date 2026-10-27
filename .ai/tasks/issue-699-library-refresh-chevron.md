@@ -18,17 +18,17 @@
 **Ownership transition:** Not applicable.
 **Repository state last verified:** GitHub `main@d1b373db0bff77c5d2b9bd447eb1489e21887643`; owner Windows working tree not visible to this connector.
 **Branch:** `tnyx/issue-699-library-refresh-chevron-20261027`
-**HEAD SHA:** `d1b373db0bff77c5d2b9bd447eb1489e21887643` before implementation.
+**HEAD SHA:** `c3e6c59a9dbd51b32518def4e68d0c600b057a12` at implementation checkpoint; handoff commit will advance it.
 **Observed working-tree state:** Remote GitHub branch only; local checkout not inspected.
 **Observed uncommitted/dirty files:** Not observable through GitHub connector.
-**PR / tracker:** https://github.com/im-tnyx/tio-world/issues/699, https://linear.app/tnyx/issue/TNYX-267.
-**Current implementation state:** Not yet written.
+**PR / tracker:** https://github.com/im-tnyx/tio-world/pull/703 (Draft), https://github.com/im-tnyx/tio-world/issues/699, https://linear.app/tnyx/issue/TNYX-267.
+**Current implementation state:** Authored controlled refresh states; a single Library Programs heading loader; content-preserving same-owner background reads; compact RTL-aware arrow/title and preserved separate actions; focused controller/widget regressions. Changes only in Workout feature/test files, no backend or release flags.
 **Relevant execution surface:** `programs_surface.dart`, `inline_program_routines.dart`, owner-scoped presentation controllers and focused tests.
 **Validation completed at SHA:** None on this new branch.
-**Validation remaining:** Focused Flutter tests/analyze and exact-head GitHub CI; independent PR review; owner Android visual QA.
+**Validation remaining:** Exact-final-HEAD Flutter CI analysis, Dart tests and app-workout shard; independent PR review and owner Android visual QA. Earlier PR test runs were cancelled when formatting/RTL fixes advanced HEAD; do not count those as exact-head PASS.
 **Current blocker:** None for implementation; tests require CI or owner's Flutter installation.
 **Open review finding IDs:** None observed yet.
-**Next exact action:** Make minimum feature-owned presentation/controller+test changes and open PR (do not merge).
+**Next exact action:** Verify all required GitHub CI jobs against latest PR HEAD; correct failures, review diff, obtain independent review/owner visual QA; no merge yet.
 
 ## 1. Discovery
 **User outcome:** Avoid a spinner under every expanded Program and eliminate needless arrow-title visual gap.
@@ -53,24 +53,24 @@
 - Alternative rejected: hiding per-Program spinner without retaining verified rows (blank flicker), making 3-dot blink (confuses action affordance), narrowing fan-out (would leave destination stale), shrinking 48dp tap target.
 
 ## 5. Implementation Plan
-- [ ] Preserve validated records in refreshing controller states with owner/cycle safety.
-- [ ] Aggregate loading from expanded Routine controllers to single Library Programs section.
-- [ ] Align chevron glyph at title edge, preserve 48dp independent targets and RTL.
-- [ ] Add widget/controller regression tests for loading, Move fan-out, session invalidation and layout.
+- [x] Preserve validated records in refreshing controller states with owner/cycle safety.
+- [x] Aggregate loading from expanded Routine controllers to single Library Programs section.
+- [x] Align chevron glyph at title edge, preserve 48dp independent targets and RTL.
+- [x] Add widget/controller regression tests for loading, Move fan-out, session invalidation and layout (not yet CI-verified).
 - [ ] CI, exact-head review and owner Android acceptance.
 
 ## 6. Quality Review
 ### Validation Run
-Not run yet. Connector has no user's Flutter SDK or native device.
+No local Flutter run: connector does not have the owner's Windows Flutter SDK or emulator. Exact-head GitHub CI triggered by Draft PR #703; conclusions pending for current HEAD. Earlier Docs Hygiene CI was green on a superseded HEAD and is not current release evidence.
 ### Acceptance Evidence
-Pending code and CI/owner receipts.
+Code/test diffs authored in PR #703; CI and owner device receipts pending.
 ### Review Provenance
 Independent reviewer pending. No self-review equated with approval.
 ### Review Findings and Resolution
 None yet.
 
 ## 7. Final Handoff
-**Changed Files:** Pending.
-**Actual Behavior:** Pending validation.
+**Changed Files:** `programs_surface.dart`, `programs_controller.dart`, `inline_program_routines.dart`, `program_routines_controller.dart`, `program_detail_page.dart`; focused `library_page_test.dart`, `programs_controller_test.dart`, `program_routines_controller_test.dart`, this handoff.
+**Actual Behavior:** Implemented source behavior only; no successful validation recorded yet.
 **Known Limitations:** No physical Android visual QA from connector.
 **Final Status:** REVIEW — work pending.
