@@ -29,6 +29,21 @@ const _programsPath = '/workout/programs';
 const _exercisesPath = '/workout/exercises';
 const _libraryPath = '/workout/library';
 
+const _syntheticProgramId = '20000000-0000-4000-8000-000000000001';
+
+/// Library opens Program Detail from the overflow sheet, not a row button.
+Future<void> _openProgramDetail(
+  WidgetTester tester, [
+  String? programId,
+]) async {
+  final id = programId ?? _syntheticProgramId;
+  await tester.tap(find.byKey(ValueKey('program-overflow-$id')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('program-action-open')));
+  await tester.pumpAndSettle();
+}
+
+
 void main() {
   test('Library hides the bottom navigation and root top bar', () {
     final policy = shellChromePolicyForPath(_libraryPath);
@@ -258,9 +273,7 @@ void main() {
       await tester.pumpAndSettle();
 
       if (onProgramDetail) {
-        await tester.tap(find.byKey(const ValueKey(
-            'program-open-20000000-0000-4000-8000-000000000001')));
-        await tester.pumpAndSettle();
+        await _openProgramDetail(tester);
         expect(find.byType(ProgramDetailPage), findsOneWidget);
       } else {
         expect(find.byType(LibraryPage), findsOneWidget);
@@ -303,9 +316,7 @@ void main() {
       router.go(_libraryPath);
       await tester.pumpAndSettle();
       if (onProgramDetail) {
-        await tester.tap(find.byKey(const ValueKey(
-            'program-open-20000000-0000-4000-8000-000000000001')));
-        await tester.pumpAndSettle();
+        await _openProgramDetail(tester);
         expect(find.byType(ProgramDetailPage), findsOneWidget);
       } else {
         expect(find.byType(LibraryPage), findsOneWidget);
@@ -361,9 +372,7 @@ void main() {
       router.go(_libraryPath);
       await tester.pumpAndSettle();
       if (onProgramDetail) {
-        await tester.tap(find.byKey(const ValueKey(
-            'program-open-20000000-0000-4000-8000-000000000001')));
-        await tester.pumpAndSettle();
+        await _openProgramDetail(tester);
         expect(find.byType(ProgramDetailPage), findsOneWidget);
       } else {
         expect(find.byType(LibraryPage), findsOneWidget);
@@ -431,9 +440,7 @@ void main() {
         router.go(_libraryPath);
         await tester.pumpAndSettle();
         if (onProgramDetail) {
-          await tester.tap(find.byKey(const ValueKey(
-              'program-open-20000000-0000-4000-8000-000000000001')));
-          await tester.pumpAndSettle();
+          await _openProgramDetail(tester);
           expect(find.byType(ProgramDetailPage), findsOneWidget);
         } else {
           expect(find.byType(LibraryPage), findsOneWidget);
@@ -485,9 +492,7 @@ void main() {
       router.go(_libraryPath);
       await tester.pumpAndSettle();
       if (onProgramDetail) {
-        await tester.tap(find.byKey(const ValueKey(
-            'program-open-20000000-0000-4000-8000-000000000001')));
-        await tester.pumpAndSettle();
+        await _openProgramDetail(tester);
       }
       const rid = '30000000-0000-4000-8000-000000000001';
       await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
@@ -562,9 +567,7 @@ void main() {
     router.go(_libraryPath);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
 
     expect(find.byType(ProgramDetailPage), findsOneWidget);
     expect(find.byType(ProgramsPage), findsNothing);
@@ -584,9 +587,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
 
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
@@ -623,9 +624,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-      'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     const rid = '30000000-0000-4000-8000-000000000001';
     await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
     await tester.pumpAndSettle();
@@ -679,9 +678,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     const rid = '30000000-0000-4000-8000-000000000001';
     await tester.tap(find.byKey(const ValueKey('routine-menu-$rid')));
     await tester.pumpAndSettle();
@@ -708,9 +705,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
@@ -732,9 +727,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
@@ -946,9 +939,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
@@ -986,9 +977,7 @@ void main() {
     compositions.testLoadKg = 8;
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey(
         'program-routine-30000000-0000-4000-8000-000000000001')));
     await tester.pumpAndSettle();
@@ -1348,8 +1337,7 @@ void main() {
     await tester.pumpAndSettle();
 
     const programId = '20000000-0000-4000-8000-000000000001';
-    await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester, programId);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
 
@@ -1677,7 +1665,11 @@ void main() {
       const ValueKey('program-action-add-routine'),
     );
     expect(
-      tester.widget<TioSettingsNavigationRow>(blocked).onTap,
+      tester
+          .widget<TioCard>(
+            find.descendant(of: blocked, matching: find.byType(TioCard)),
+          )
+          .onTap,
       isNull,
       reason: 'Reauth must not expose a silent stale overflow Add action',
     );
@@ -1738,8 +1730,7 @@ void main() {
     router.go(_libraryPath);
     await tester.pumpAndSettle();
     const programId = '20000000-0000-4000-8000-000000000001';
-    await tester.tap(find.byKey(const ValueKey('program-open-$programId')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester, programId);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsOneWidget);
@@ -1779,9 +1770,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey(
         'program-detail-add-routine')));
     await tester.pumpAndSettle();
@@ -1846,12 +1835,9 @@ void main() {
         as _RouteCreate;
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    const programKey = ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001');
     const addKey = ValueKey('program-detail-add-routine');
     const checkKey = ValueKey('program-routines-verify-create');
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(addKey));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
@@ -1880,8 +1866,7 @@ void main() {
     expect(create.createCalls, 1);
     await tester.tap(find.byType(BackButton).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     expect(tester.widget<IconButton>(find.byKey(addKey)).onPressed, isNull);
     await create.commitLate(); // Original RPC commits AFTER first read.
     expect(create.createCalls, 1);
@@ -1905,15 +1890,12 @@ void main() {
     final create = container.read(routineCreateRepositoryProvider)
         as _RouteCreate;
     final gate = container.read(routinePendingCreateGateProvider);
-    const programKey = ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001');
     final programId = ProgramId(
         '20000000-0000-4000-8000-000000000001');
 
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
@@ -1948,8 +1930,7 @@ void main() {
     // Old Program Detail does not inherit a new-cycle write capability.
     await tester.tap(find.byType(BackButton).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     const addKey = ValueKey('program-detail-add-routine');
     const verifyKey = ValueKey('program-routines-verify-create');
     expect(gate.hasPending(
@@ -1989,15 +1970,12 @@ void main() {
     final create = container.read(routineCreateRepositoryProvider)
         as _RouteCreate;
     final gate = container.read(routinePendingCreateGateProvider);
-    const programKey = ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001');
     final programId = ProgramId(
         '20000000-0000-4000-8000-000000000001');
 
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
@@ -2025,8 +2003,7 @@ void main() {
 
     await tester.tap(find.byType(BackButton).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(programKey));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     const addKey = ValueKey('program-detail-add-routine');
     expect(gate.hasPending(owner: 'test-user', loginCycle: 'next-cycle',
       programId: programId), isTrue);
@@ -2056,9 +2033,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-        'program-open-20000000-0000-4000-8000-000000000001')));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     expect(find.byType(ProgramDetailPage), findsOneWidget);
 
     // Same owner signed in again. A still-mounted Program Detail must not
@@ -2106,10 +2081,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-      'program-open-20000000-0000-4000-8000-000000000001',
-    )));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     expect(find.byType(CreateRoutinePage), findsNothing);
@@ -2126,10 +2098,7 @@ void main() {
     );
     router.go(_libraryPath);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey(
-      'program-open-20000000-0000-4000-8000-000000000001',
-    )));
-    await tester.pumpAndSettle();
+    await _openProgramDetail(tester);
     await tester.tap(find.byKey(const ValueKey('program-detail-add-routine')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
