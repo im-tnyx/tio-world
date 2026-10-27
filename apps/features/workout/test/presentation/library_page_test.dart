@@ -613,8 +613,8 @@ void main() {
     expect(rightAction.alignment, AlignmentDirectional.centerEnd);
     expect(tester.getSize(toggle), const Size(TioSize.dp32, TioSize.dp48));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
-    // The glyphs meet the same outer bounds as the Routine and dotted cards.
-    // Do not shrink accessible hit targets just to remove visible side gaps.
+    // The trailing 3-dot retains its 48dp target, while the owner-approved
+    // leading chevron uses a compact 32dp horizontal touch target.
     expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
     // Owner requested a smaller horizontal selection footprint: 32x48dp.
     // Icon returns to the Library start padding, title stays visually close.
