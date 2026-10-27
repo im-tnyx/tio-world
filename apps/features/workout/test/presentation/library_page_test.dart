@@ -158,7 +158,11 @@ void main() {
       _routine(1, 101, 'Push'),
       _routine(2, 201, 'Legs'),
     ]);
+    var navigations = 0;
+    var edits = 0;
     await _pump(tester,
+      onRoutinePressed: (_, __) async { navigations++; },
+      onEditRoutine: (_, __) async { edits++; return false; },
       programRepository: _FakeProgramRepository(
         programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
       ),
@@ -167,6 +171,17 @@ void main() {
       moveRefreshOwnerId: 'owner-a',
       moveRefreshLoginCycleId: 'cycle-a',
     );
+    // An edit-capable card must retain its overflow and exact rect even while
+    // the same owner has two concurrent expanded Program reads.
+    final firstCard = find.byKey(ValueKey(
+        'library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    final secondCard = find.byKey(ValueKey(
+        'library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+    final menu = find.byKey(ValueKey(
+        'routine-menu-${_routine(1, 101, 'Push').id.value}'));
+    final beforeFirst = tester.getRect(firstCard);
+    final beforeSecond = tester.getRect(secondCard);
+    expect(menu, findsOneWidget);
     final pending = Completer<void>();
     routines.readGate = pending;
     signal.request(
@@ -182,6 +197,18 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('Push'), findsOneWidget);
     expect(find.text('Legs'), findsOneWidget);
+    expect(tester.getRect(firstCard), beforeFirst);
+    expect(tester.getRect(secondCard), beforeSecond);
+    expect(menu, findsOneWidget, reason: '3-dot slot must never blink away');
+    final disabledButton = tester.widget<IconButton>(
+      find.descendant(of: menu, matching: find.byType(IconButton)),
+    );
+    expect(disabledButton.onPressed, isNull);
+    // Verified read-only navigation is still permitted during refresh.
+    await tester.tap(firstCard);
+    await tester.pump();
+    expect(navigations, 1);
+    expect(edits, 0);
     expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
         findsOneWidget);
     expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
@@ -582,20 +609,20 @@ void main() {
     final rightAction = tester.widget<IconButton>(overflow);
     expect(leftAction.padding, EdgeInsets.zero);
     expect(rightAction.padding, EdgeInsets.zero);
-    expect(leftAction.alignment, AlignmentDirectional.centerEnd);
+    expect(leftAction.alignment, AlignmentDirectional.centerStart);
     expect(rightAction.alignment, AlignmentDirectional.centerEnd);
-    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getSize(toggle), const Size(TioSize.dp32, TioSize.dp48));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
     // The glyphs meet the same outer bounds as the Routine and dotted cards.
     // Do not shrink accessible hit targets just to remove visible side gaps.
     expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
-    // Maintain the accessible 48dp target but move the visible chevron close
-    // to the text rather than flush against the Library's leading edge.
+    // Owner requested a smaller horizontal selection footprint: 32x48dp.
+    // Icon returns to the Library start padding, title stays visually close.
     final titleRect = tester.getRect(find.text('Strength'));
     final glyphRect = tester.getRect(leftGlyph);
-    expect(glyphRect.left, greaterThan(sectionRect.left));
+    expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
     expect(titleRect.left - glyphRect.right,
-        closeTo(TioSpacing.xs, 0.1));
+        closeTo(TioSpacing.sm, 0.1));
 
     await tester.tap(toggle);
     await tester.pump();
@@ -646,10 +673,14 @@ void main() {
       of: toggle,
       matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
     );
-    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getSize(toggle), const Size(TioSize.dp32, TioSize.dp48));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
-    expect(tester.getRect(glyph).left - tester.getRect(find.text('Strength')).right,
-        closeTo(TioSpacing.xs, 0.1));
+    final section = find.byKey(const ValueKey('library-programs-content'));
+    expect(tester.getRect(glyph).right,
+        closeTo(tester.getRect(section).right, 0.1));
+    expect(tester.getRect(glyph).left -
+        tester.getRect(find.text('Strength')).right,
+        closeTo(TioSpacing.sm, 0.1));
     await tester.tap(title);
     await tester.pump();
     expect(opened?.id, _id(1));
