@@ -193,10 +193,27 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                       width: TioSize.dp48,
                       height: TioSize.dp48,
                     ),
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      size: TioSize.dp24,
-                      color: colors.textPrimary,
+                    icon: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: TioSize.dp24,
+                          height: TioStroke.width2,
+                          decoration: BoxDecoration(
+                            color: colors.textPrimary,
+                            borderRadius: BorderRadius.circular(TioRadius.full),
+                          ),
+                        ),
+                        const SizedBox(height: TioSpacing.xs),
+                        Container(
+                          width: TioSize.dp24,
+                          height: TioStroke.width2,
+                          decoration: BoxDecoration(
+                            color: colors.textPrimary,
+                            borderRadius: BorderRadius.circular(TioRadius.full),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
