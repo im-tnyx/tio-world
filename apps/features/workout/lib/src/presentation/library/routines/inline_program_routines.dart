@@ -215,8 +215,11 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   key: ValueKey(
                     'library-add-routine-${widget.program.id.value}',
                   ),
-                  onPressed: refreshing || _openingCreate || widget.disableAddRoutine
-                      ? null : _addRoutine,
+                  onPressed: refreshing ||
+                          _openingCreate ||
+                          widget.disableAddRoutine
+                      ? null
+                      : _addRoutine,
                 );
         } else {
           content = Column(
