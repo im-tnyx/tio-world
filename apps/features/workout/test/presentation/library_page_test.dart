@@ -570,31 +570,21 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
-  testWidgets('inline Program rows are plain and expose collapse state',
+  testWidgets('Program header combines chevron and title as one toggle',
       (tester) async {
     await _pump(tester);
-
     final programs = find.byKey(const ValueKey('library-programs-content'));
-    expect(
-      find.descendant(of: programs, matching: find.byType(TioGroupCard)),
-      findsNothing,
-    );
+    expect(find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+        findsNothing);
 
     final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
     final padding = tester.widget<Padding>(
       find.descendant(of: row, matching: find.byType(Padding)).first,
     );
-    expect(
-      padding.padding,
-      const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-    );
+    expect(padding.padding,
+        const EdgeInsets.symmetric(vertical: TioSpacing.sm));
 
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
-    expect(toggle, findsOneWidget);
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Collapse Strength',
-    );
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
     final leftGlyph = find.descendant(
       of: toggle,
@@ -605,61 +595,63 @@ void main() {
       matching: find.byIcon(Icons.more_horiz_rounded),
     );
     final sectionRect = tester.getRect(programs);
-    final leftAction = tester.widget<IconButton>(toggle);
-    final rightAction = tester.widget<IconButton>(overflow);
-    expect(leftAction.padding, EdgeInsets.zero);
-    expect(rightAction.padding, EdgeInsets.zero);
-    expect(leftAction.alignment, AlignmentDirectional.centerStart);
-    expect(rightAction.alignment, AlignmentDirectional.centerEnd);
-    expect(tester.getSize(toggle), const Size(TioSize.dp32, TioSize.dp48));
+    expect(tester.widget<InkWell>(toggle).onTap, isNotNull);
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(toggle).width,
+        greaterThan(TioSize.dp48 * 2));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
-    // The trailing 3-dot retains its 48dp target, while the owner-approved
-    // leading chevron uses a compact 32dp horizontal touch target.
-    expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
-    // Owner requested a smaller horizontal selection footprint: 32x48dp.
-    // Icon returns to the Library start padding, title stays visually close.
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    expect(tester.getRect(rightGlyph).right,
+        closeTo(sectionRect.right, 0.1));
     final titleRect = tester.getRect(find.text('Strength'));
     final glyphRect = tester.getRect(leftGlyph);
     expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
     expect(titleRect.left - glyphRect.right,
         closeTo(TioSpacing.sm, 0.1));
 
-    await tester.tap(toggle);
+    // Tapping text, not just the arrow, must collapse the same Program.
+    await tester.tap(find.text('Strength'));
     await tester.pump();
-
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
-    );
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+        findsNothing);
+    await tester.tap(leftGlyph);
+    await tester.pump();
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+        findsOneWidget);
   });
 
-  testWidgets('Program name has a 48dp action target and the right identity',
+  testWidgets('Program Detail opens only from the 3-dot Open Program action',
       (tester) async {
     Program? selected;
     await _pump(tester, onProgramPressed: (program) async {
       selected = program;
     });
-
-    final target = find.byKey(
-      ValueKey('program-open-${_id(1).value}'),
-    );
-    expect(target, findsOneWidget);
-    expect(tester.getSize(target).height, greaterThanOrEqualTo(TioSize.dp48));
-    await tester.tap(target);
-    await tester.pump();
-    expect(selected?.id, _id(1));
-
-    // The existing separate collapse/expand control still owns its action.
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    expect(find.byKey(ValueKey('program-open-${_id(1).value}')),
+        findsNothing);
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    expect(selected, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
     await tester.tap(toggle);
     await tester.pump();
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
-    );
+
+    final overflow = find.byKey(
+        ValueKey('program-overflow-${_id(1).value}'));
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    final open = find.byKey(const ValueKey('program-action-open'));
+    expect(open, findsOneWidget);
+    expect(find.text('Open Program'), findsOneWidget);
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    expect(selected?.id, _id(1));
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
   });
 
-  testWidgets('compact chevron and title keep distinct RTL tap targets',
+  testWidgets('RTL Program header remains one accessible toggle and menu',
       (tester) async {
     Program? opened;
     await _pump(tester,
@@ -667,29 +659,32 @@ void main() {
       onProgramPressed: (program) async { opened = program; },
     );
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
-    final title = find.byKey(ValueKey('program-open-${_id(1).value}'));
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
     final glyph = find.descendant(
       of: toggle,
       matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
     );
-    expect(tester.getSize(toggle), const Size(TioSize.dp32, TioSize.dp48));
-    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
     final section = find.byKey(const ValueKey('library-programs-content'));
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
     expect(tester.getRect(glyph).right,
         closeTo(tester.getRect(section).right, 0.1));
     expect(tester.getRect(glyph).left -
         tester.getRect(find.text('Strength')).right,
         closeTo(TioSpacing.sm, 0.1));
-    await tester.tap(title);
+
+    await tester.tap(find.text('Strength'));
     await tester.pump();
-    expect(opened?.id, _id(1));
+    expect(opened, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
     await tester.tap(toggle);
     await tester.pump();
-    expect(tester.widget<IconButton>(toggle).tooltip, 'Expand Strength');
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
     await tester.tap(overflow);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened?.id, _id(1));
   });
 
   testWidgets('expanded Programs render only their persisted Routine children',
@@ -822,7 +817,9 @@ void main() {
       },
     );
     expect(find.text('New Routine'), findsNothing);
-    await tester.tap(find.byKey(ValueKey('program-open-${_id(1).value}')));
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
     await tester.pumpAndSettle();
     expect(find.text('New Routine'), findsOneWidget);
     expect(repository.queries.where((p) => p == _id(1)).length,
