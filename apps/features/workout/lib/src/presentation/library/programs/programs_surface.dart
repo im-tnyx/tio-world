@@ -281,14 +281,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
         context: context,
         useSafeArea: true,
         builder: (sheetContext) => TioEditorSheet(
-          key: ValueKey('program-actions-sheet-${program.id.value}'),
+          key: const ValueKey('program-actions-sheet'),
           title: program.name,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.onProgramPressed != null) ...[
                 _ProgramActionOption(
-                  key: ValueKey('program-action-open-${program.id.value}'),
+                  key: const ValueKey('program-action-open'),
                   label: 'Open Program',
                   icon: Icons.open_in_new_rounded,
                   onTap: () =>
@@ -297,7 +297,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                 const SizedBox(height: TioSpacing.sm),
               ],
               _ProgramActionOption(
-                key: ValueKey('program-action-edit-${program.id.value}'),
+                key: const ValueKey('program-action-edit'),
                 label: 'Edit Program',
                 icon: Icons.edit_outlined,
                 onTap: () =>
@@ -306,7 +306,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
               if (widget.onAddRoutinePressed != null) ...[
                 const SizedBox(height: TioSpacing.sm),
                 _ProgramActionOption(
-                  key: ValueKey('program-action-add-routine-${program.id.value}'),
+                  key: const ValueKey('program-action-add-routine'),
                   label: 'Add New Routine',
                   icon: Icons.add_rounded,
                   onTap: pendingSave || _openingAddRoutine
