@@ -149,7 +149,7 @@ final class ProgramDeleteFlow {
   final String Function() _newMutationId;
   static String _uuidV4() => const Uuid().v4();
 
-  final Set<ProgramId> _opening = <ProgramId>{};
+  ProgramId? _activeProgramId;
 
   /// Runs the owner-scoped Program Delete flow.
   ///
@@ -172,9 +172,10 @@ final class ProgramDeleteFlow {
       return false;
     }
 
-    if (!canWrite() || !_opening.add(program.id)) {
+    if (!canWrite() || _activeProgramId != null) {
       return false;
     }
+    _activeProgramId = program.id;
 
     var attempted = false;
     try {
@@ -185,32 +186,55 @@ final class ProgramDeleteFlow {
         final failure = controller.state.failure;
         if (failure != null) {
           _showFailure(context, failure.kind);
-        } else if (controller.state.status ==
-            ProgramDeleteOperationStatus.unknown) {
+          return false;
+        }
+        if (controller.state.status == ProgramDeleteOperationStatus.confirmed) {
+          _show(context, 'This Program was already deleted. Refresh the list.');
+          return true;
+        }
+        if (controller.state.status == ProgramDeleteOperationStatus.unknown) {
           _show(
             context,
             'Delete status is unconfirmed. Checking your Programs; do not retry.',
           );
           return true;
-        } else {
-          _show(context,
-              'Could not verify this Program. Please try again later.');
         }
+        _show(
+            context, 'Could not verify this Program. Please try again later.');
         return false;
       }
 
+      final preparedProgram = controller.state.program;
       final target = controller.state.target;
-      final routineCount = target?.expectedRoutineIds.length;
+      if (preparedProgram == null ||
+          preparedProgram.id != program.id ||
+          target == null ||
+          target.sourceProgramId != program.id) {
+        _show(context,
+            'This Program changed. Refresh the list before trying again.');
+        return false;
+      }
+
+      final routineCount = target.expectedRoutineIds.length;
 
       final confirmed = await showProgramDeleteDialog(
         context: context,
         programId: program.id,
-        programName: program.name,
+        programName: preparedProgram.name,
         routineCount: routineCount,
         confirmationGuard: confirmationGuard,
       );
 
       if (confirmed != true || !context.mounted || !canWrite()) {
+        return false;
+      }
+
+      // Verify that controller state is still ready for this exact target.
+      // Another operation or preparation must never cause dispatch for a different Program.
+      if (controller.state.status != ProgramDeleteOperationStatus.ready ||
+          controller.state.target?.sourceProgramId != program.id) {
+        _show(context,
+            'This Program changed. Refresh the list before trying again.');
         return false;
       }
 
@@ -247,7 +271,9 @@ final class ProgramDeleteFlow {
       }
       return attempted && context.mounted && canWrite();
     } finally {
-      _opening.remove(program.id);
+      if (_activeProgramId == program.id) {
+        _activeProgramId = null;
+      }
     }
   }
 

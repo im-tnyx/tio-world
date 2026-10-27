@@ -35,14 +35,17 @@
 **Branch:** `tnyx/567-d3-flutter-program-delete-confirmation-flow`
 **HEAD SHA:** `240b1b09ab40f176481967449e437fd7625b6fca`
 **Observed working-tree state:** Clean
-**PR / tracker:** GitHub #567 OPEN; Linear TNYX-81 / TNYX-267 Backlog
-**Current implementation state:** Implementation complete. `program_delete_flow.dart` and `program_delete_flow_test.dart` implemented and exported in `programs.dart`.
+**PR / tracker:** GitHub #567 OPEN, PR #708; Linear TNYX-81 / TNYX-267 Backlog
+**Current implementation state:** Codex P2 findings remediation complete:
+1. Serialized concurrent delete flows via `_activeProgramId` and bound controller target identity check immediately before confirm.
+2. Verified canonical name displayed from prepared target `controller.state.program.name` rather than caller's potentially stale Program name.
+3. Handled already-confirmed Program deletion in `!prepared` state (`controller.state.status == ProgramDeleteOperationStatus.confirmed`), showing accurate refresh message and returning true to trigger view refresh without claiming false new deletion.
 **Relevant execution surface:** `apps/features/workout`
-**Validation completed at SHA:** Local validation PASS: 10/10 focused tests in `program_delete_flow_test.dart`, 32/32 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
+**Validation completed at SHA:** Local validation PASS: 14/14 focused tests in `program_delete_flow_test.dart`, 36/36 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
 **Validation remaining:** Push & GitHub PR CI checks
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Commit, push branch, and open GitHub PR targeting main.
+**Open review finding IDs:** None (Codex threads 4392621553, 4392621563, 4392621570 addressed)
+**Next exact action:** Commit, push to PR #708, and verify CI checks.
 
 ## Global UI / Design-System Guardrail
 

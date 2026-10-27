@@ -83,11 +83,13 @@ final class _FakeDeleteRepo implements ProgramDeleteRepository {
     required this.attemptGate,
     this.uncertainty,
     this.failure,
+    this.onDeleteTarget,
   });
 
   final ProgramDeleteAttemptGate attemptGate;
   final ProgramDeleteOutcomeUnknown? uncertainty;
   final ProgramDeleteException? failure;
+  final void Function(ProgramDeleteTarget target)? onDeleteTarget;
   int writes = 0;
 
   @override
@@ -104,6 +106,7 @@ final class _FakeDeleteRepo implements ProgramDeleteRepository {
       throw const ProgramDeleteException(ProgramDeleteFailureKind.inProgress);
     }
     writes++;
+    onDeleteTarget?.call(target);
     try {
       if (uncertainty case final outcome?) {
         attemptGate.markUnknown(target.ownerId, target.sourceProgramId);
@@ -616,5 +619,287 @@ void main() {
       expect(programs.reads, 1);
       expect(deleteRepo.writes, 0);
     });
+
+    testWidgets(
+      'concurrent runs for different Program IDs cannot dispatch deletion for the wrong Program',
+      (tester) async {
+        final progA = _program(
+          id: ProgramId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+          name: 'Program A',
+        );
+        final progB = _program(
+          id: ProgramId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+          name: 'Program B',
+        );
+        final gate = ProgramDeleteAttemptGate();
+        final programs = _FakePrograms([progA, progB]);
+        final routines = _FakeRoutines([]);
+        final writtenTargetIds = <ProgramId>[];
+        final deleteRepo = _FakeDeleteRepo(
+          attemptGate: gate,
+          onDeleteTarget: (target) =>
+              writtenTargetIds.add(target.sourceProgramId),
+        );
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        final flow = ProgramDeleteFlow();
+        bool? resultA;
+        bool? resultB;
+
+        await tester.pumpWidget(MaterialApp(
+          home: TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => Column(
+                  children: [
+                    TextButton(
+                      onPressed: () async {
+                        resultA = await flow.run(
+                          context: context,
+                          program: progA,
+                          controller: controller,
+                          canWrite: () => true,
+                        );
+                      },
+                      child: const Text('Delete A'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        resultB = await flow.run(
+                          context: context,
+                          program: progB,
+                          controller: controller,
+                          canWrite: () => true,
+                        );
+                      },
+                      child: const Text('Delete B'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        // Open Dialog for Program A
+        await tester.tap(find.text('Delete A'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Delete "Program A"? This Program has no saved Routines. '
+            'This cannot be undone.',
+          ),
+          findsOneWidget,
+        );
+
+        // While Dialog A is open, run Program B on the same flow
+        final context = tester.element(find.byType(Scaffold));
+        resultB = await flow.run(
+          context: context,
+          program: progB,
+          controller: controller,
+          canWrite: () => true,
+        );
+        expect(resultB, isFalse);
+
+        // Confirm Dialog A
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(resultA, isTrue);
+        expect(deleteRepo.writes, 1);
+        expect(writtenTargetIds, [progA.id]);
+      },
+    );
+
+    testWidgets(
+      'different flows sharing one controller abort if target identity is superseded before confirmation',
+      (tester) async {
+        final progA = _program(
+          id: ProgramId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+          name: 'Program A',
+        );
+        final progB = _program(
+          id: ProgramId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+          name: 'Program B',
+        );
+        final gate = ProgramDeleteAttemptGate();
+        final programs = _FakePrograms([progA, progB]);
+        final routines = _FakeRoutines([]);
+        final writtenTargetIds = <ProgramId>[];
+        final deleteRepo = _FakeDeleteRepo(
+          attemptGate: gate,
+          onDeleteTarget: (target) =>
+              writtenTargetIds.add(target.sourceProgramId),
+        );
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        final flowA = ProgramDeleteFlow();
+        bool? resultA;
+
+        await tester.pumpWidget(MaterialApp(
+          home: TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () async {
+                    resultA = await flowA.run(
+                      context: context,
+                      program: progA,
+                      controller: controller,
+                      canWrite: () => true,
+                    );
+                  },
+                  child: const Text('Delete A'),
+                ),
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        // Open Dialog for Program A
+        await tester.tap(find.text('Delete A'));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(ValueKey('confirm-delete-program-${progA.id.value}')),
+          findsOneWidget,
+        );
+
+        // Simulate another flow preparing Program B on the shared controller
+        await controller.prepare(progB.id);
+        expect(controller.state.target?.sourceProgramId, progB.id);
+
+        // User taps Delete on Dialog A
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        // Flow A must safely abort because controller target no longer matches Program A
+        expect(resultA, isFalse);
+        expect(deleteRepo.writes, 0);
+        expect(writtenTargetIds, isEmpty);
+        expect(
+          find.text(
+            'This Program changed. Refresh the list before trying again.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'uses prepared Program name when caller Program name is stale',
+      (tester) async {
+        final canonicalProg = _program(name: 'Updated Canonical Name');
+        final callerStaleProg = _program(name: 'Old Stale Name');
+        final gate = ProgramDeleteAttemptGate();
+        final programs = _FakePrograms([canonicalProg]);
+        final routines = _FakeRoutines([]);
+        final deleteRepo = _FakeDeleteRepo(attemptGate: gate);
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        final flow = ProgramDeleteFlow();
+        await pumpFlow(
+          tester,
+          program: callerStaleProg,
+          controller: controller,
+          flow: flow,
+          onResult: (_) {},
+        );
+
+        await tester.tap(find.text('Trigger Delete'));
+        await tester.pumpAndSettle();
+
+        // Dialog must display prepared target's verified name, NOT caller's stale name
+        expect(
+          find.text(
+            'Delete "Updated Canonical Name"? This Program has no saved Routines. '
+            'This cannot be undone.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.textContaining('Old Stale Name'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'already-confirmed Program reports accurate message and returns true to refresh stale view',
+      (tester) async {
+        final prog = _program();
+        final gate = ProgramDeleteAttemptGate();
+        // Mark Program as committed in the attempt gate (simulates already deleted on server)
+        gate.tryStart(
+          owner: _owner,
+          sourceProgramId: prog.id,
+          target: ProgramDeleteTarget(
+            sourceProgramId: prog.id,
+            expectedRoutineIds: const [],
+            ownerId: _owner,
+            loginCycleId: _cycle,
+          ),
+          mutationId: '99999999-9999-4999-8999-999999999999',
+        );
+        gate.markCommitted(_owner, prog.id);
+        gate.finish(_owner, prog.id);
+
+        final programs = _FakePrograms([prog]);
+        final routines = _FakeRoutines([]);
+        final deleteRepo = _FakeDeleteRepo(attemptGate: gate);
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        bool? result;
+        final flow = ProgramDeleteFlow();
+        await pumpFlow(
+          tester,
+          program: prog,
+          controller: controller,
+          flow: flow,
+          onResult: (r) => result = r,
+        );
+
+        await tester.tap(find.text('Trigger Delete'));
+        await tester.pumpAndSettle();
+
+        // Must return true to refresh stale view, show accurate feedback, never claim false new delete
+        expect(result, isTrue);
+        expect(
+          find.text('This Program was already deleted. Refresh the list.'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Could not verify this Program. Please try again later.'),
+          findsNothing,
+        );
+        expect(find.byType(Dialog), findsNothing);
+        expect(deleteRepo.writes, 0);
+      },
+    );
   });
 }
