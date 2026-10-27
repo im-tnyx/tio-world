@@ -512,6 +512,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                   height: TioSize.dp16,
                   child: CircularProgressIndicator(
                     strokeWidth: TioStroke.width2,
+                    semanticsLabel: 'Refreshing Programs',
                   ),
                 ),
               ),

@@ -292,6 +292,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                     height: TioSize.dp16,
                     child: CircularProgressIndicator(
                       strokeWidth: TioStroke.width2,
+                      semanticsLabel: 'Refreshing Routines',
                     ),
                   ),
                 ),

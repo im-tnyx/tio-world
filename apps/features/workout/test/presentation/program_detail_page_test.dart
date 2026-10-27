@@ -785,6 +785,8 @@ void main() {
 
   testWidgets('Program Detail keeps rows and shows one refresh cue',
       (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final repository = _MemoryRoutines([
@@ -815,12 +817,19 @@ void main() {
         findsOneWidget);
     expect(find.text('Push'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Routines'),
+    );
     pending.complete();
     repository.readGate = null;
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('program-detail-refreshing')),
         findsNothing);
     expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 }
 

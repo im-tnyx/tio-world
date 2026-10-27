@@ -153,6 +153,8 @@ void main() {
 
   testWidgets('shared Programs header is the only Routine refresh spinner',
       (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final routines = _FakeRoutineRepository([
@@ -196,6 +198,10 @@ void main() {
     expect(find.byKey(const ValueKey('library-programs-refreshing')),
         findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Programs'),
+    );
     expect(find.text('Push'), findsOneWidget);
     expect(find.text('Legs'), findsOneWidget);
     expect(tester.getRect(firstCard), beforeFirst);
@@ -233,10 +239,15 @@ void main() {
         findsNothing);
     expect(find.text('Push'), findsOneWidget);
     expect(find.text('Legs'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('Program collection refresh retains expanded rows and one cue',
       (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final programs = _FakeProgramRepository(
@@ -265,6 +276,10 @@ void main() {
     expect(find.byKey(const ValueKey('library-programs-refreshing')),
         findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Programs'),
+    );
     expect(find.text('Push'), findsOneWidget);
     expect(find.byKey(ValueKey('program-row-${_id(1).value}')),
         findsOneWidget);
@@ -279,6 +294,9 @@ void main() {
     expect(find.byKey(const ValueKey('library-programs-refreshing')),
         findsNothing);
     expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('Program Edit and Add stay disabled during collection refresh',
