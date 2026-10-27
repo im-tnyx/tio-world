@@ -1,6 +1,8 @@
 # GitHub #567 D2A — Flutter protected Program Delete repository
 
-**Status:** In progress
+**Status:** Validated / archived on 2026-10-27. Merged via [PR #681](https://github.com/im-tnyx/tio-world/pull/681), squash `main@aff044c97e4a4ca7806656b9aab483ba521fa124` (2026-10-25), after `im-tio` APPROVED review `5642136304` on exact final head `5841606f7645cf9d9100ccdd9d7a71fc6d74788b`. Source-only and dormant: no hosted migration, client `EXECUTE`, UI or production caller.
+
+**Archive note (2026-10-27):** The Active Handoff, Review Provenance and Final Status sections below were written before merge and are kept as historical evidence. Exact final head `5841606f` passed Flutter CI run `40173834097`, Docs Hygiene run `40173834106` and the attribution guard run `40173834105`. The branch was deleted after merge. Parent #567 stays OPEN; the hosted D1 migration, reviewed client `EXECUTE`, D3 confirmation UI and device/security QA are separate, unstarted gates.
 **Primary owner:** Codex
 **Affected platforms:** Flutter `apps/features/workout` data/domain boundary only
 
@@ -20,18 +22,18 @@
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean `main` before branch creation; base `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582`
-**Branch:** `tnyx/567-d2a-flutter-program-delete-repository`
-**HEAD SHA:** `6a121e3ede4c5069ceca8c612b629576edf2be54`
+**Branch:** `tnyx/567-d2a-flutter-program-delete-repository` (deleted after merge)
+**HEAD SHA:** Final merged head `5841606f7645cf9d9100ccdd9d7a71fc6d74788b`; `6a121e3ede4c5069ceca8c612b629576edf2be54` was the last pre-merge handoff snapshot
 **Observed working-tree state:** Clean after 40003 fix and final CI verification; fsmonitor IPC warning only
 **Observed uncommitted/dirty files:** None before this handoff synchronization
-**PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 OPEN; Linear TNYX-81 and TNYX-267 remain backlog/dependency trackers
+**PR / tracker:** GitHub #567 OPEN; D1 PR #678 merged; D2A PR #681 merged at `aff044c9`; Linear TNYX-81 and TNYX-267 remain Backlog
 **Current implementation state:** Dormant typed repository; the two requested PR #681 P2 fixes, same-gate follow-ups, and independent `40003` UNKNOWN fix are implemented in `9b27613de0609308c261fa064858979f6018ea96`; no production caller or activation path added
 **Relevant execution surface:** `apps/features/workout` repository contracts, Supabase gateway adapter, focused mock-gateway tests, package exports
 **Validation completed at SHA:** Dart formatting, Flutter package analyzer, focused 19-test suite, changed-area `test/data` suite (406 tests), and `git diff --check` passed for the `40003` fix at `9b27613de0609308c261fa064858979f6018ea96`
 **Validation remaining:** Independent re-review remains pending; hosted migration/EXECUTE and production/UI gates remain intentionally out of scope
 **Current blocker:** None for source-only work; hosted EXECUTE remains intentionally unavailable
 **Open review finding IDs:** `4369947937`, `4369947940`, `4369975166`, `4370003751`, and independent P2 `4370037755` — fixes pushed; keep all related threads open pending independent re-review
-**Next exact action:** Await independent re-review; keep all related threads open and do not merge or activate production capability.
+**Next exact action:** None for D2A. Remaining #567 gates are separate slices.
 
 ## 1. Discovery
 
@@ -155,4 +157,4 @@ The repository capability is source-only and dormant. It cannot establish hosted
 
 ### Final Status
 
-`REVIEW` — source-only PR #681 remains open with independent `CHANGES_REQUESTED` addressed in source; all related P2 threads are open pending re-review. No merge or production activation.
+`VALIDATED` / archived 2026-10-27 - PR #681 squash-merged at `aff044c9` after `im-tio` APPROVED review `5642136304` on exact head `5841606f`. Dormant source; no production activation.

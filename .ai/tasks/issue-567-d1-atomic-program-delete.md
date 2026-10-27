@@ -9,7 +9,7 @@
 
 - PR #678 merged at `main@37f738c4a6788e3e997f1ab3938a2f6541f3644c`; the older branch, pre-merge review state, and source-head references below are historical evidence, not current repository state.
 - Current `main@86fd082515c8cb8cc1ded93fb1a59d360c2f4582` contains the merged D1 source. The hosted Supabase migration has not been applied and client `EXECUTE` remains denied; no UI or production caller is activated.
-- The bounded Flutter follow-up is tracked in [D2A](issue-567-d2a-flutter-program-delete-repository.md). D2A is source-only and does not change this D1 migration, grants, hosted state, or #567 status.
+- The bounded Flutter follow-ups are [D2A](../archive/2026-10-issue-567-d2a-flutter-program-delete-repository.md) and [D2B](../archive/2026-10-issue-567-d2b-flutter-program-delete-controller-refresh.md), both merged and archived. They are source-only and do not change this D1 migration, grants, hosted state, or #567 status.
 
 ## Owner approval and boundary
 
