@@ -783,7 +783,9 @@ class _LibraryProgramRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+      // Keep the accessible 48dp action target while trimming excess space
+      // outside the Program row.
+      padding: const EdgeInsets.symmetric(vertical: TioSpacing.xs),
       child: Row(
         children: [
           Expanded(
@@ -801,7 +803,7 @@ class _LibraryProgramRow extends StatelessWidget {
                       // Chevron starts at the Library's own leading padding.
                       // The text and icon form ONE accessible expand target.
                       SizedBox(
-                        width: TioSize.dp32,
+                        width: TioSize.dp30,
                         height: TioSize.dp48,
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
@@ -831,18 +833,24 @@ class _LibraryProgramRow extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            key: ValueKey('program-overflow-${program.id.value}'),
-            tooltip: 'Program actions',
-            onPressed: onOverflowPressed,
-            color: colors.textSecondary,
-            padding: EdgeInsets.zero,
-            alignment: AlignmentDirectional.centerEnd,
-            constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp48,
-              height: TioSize.dp48,
+          // Keep the 3-dot's geometry stable and prevent a disabled
+          // child control from falling through to the parent card/header.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onOverflowPressed,
+            child: IconButton(
+              key: ValueKey('program-overflow-${program.id.value}'),
+              tooltip: 'Program actions',
+              onPressed: onOverflowPressed,
+              color: colors.textSecondary,
+              padding: EdgeInsets.zero,
+              alignment: AlignmentDirectional.centerEnd,
+              constraints: const BoxConstraints.tightFor(
+                width: TioSize.dp48,
+                height: TioSize.dp48,
+              ),
+              icon: const Icon(Icons.more_horiz_rounded),
             ),
-            icon: const Icon(Icons.more_horiz_rounded),
           ),
         ],
       ),
