@@ -783,9 +783,9 @@ class _LibraryProgramRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return Padding(
-      // Keep the accessible 48dp action target while trimming excess space
-      // outside the Program row.
-      padding: const EdgeInsets.symmetric(vertical: TioSpacing.xs),
+      // Keep the overflow action at 48dp, but make the expand selection
+      // more compact and avoid adding extra vertical space around the row.
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(
@@ -796,15 +796,16 @@ class _LibraryProgramRow extends StatelessWidget {
               child: InkWell(
                 key: ValueKey('program-expand-${program.id.value}'),
                 onTap: onToggleExpanded,
+                borderRadius: BorderRadius.circular(TioRadius.md),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: TioSize.dp48),
+                  constraints: const BoxConstraints(minHeight: TioSize.dp40),
                   child: Row(
                     children: [
                       // Chevron starts at the Library's own leading padding.
                       // The text and icon form ONE accessible expand target.
                       SizedBox(
                         width: TioSize.dp30,
-                        height: TioSize.dp48,
+                        height: TioSize.dp40,
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: Icon(
