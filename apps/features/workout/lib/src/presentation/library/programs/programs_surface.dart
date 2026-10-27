@@ -738,36 +738,36 @@ class _LibraryProgramRow extends StatelessWidget {
           ),
           Expanded(
             child: onProgramPressed == null
-                  ? Text(
-                      program.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size15,
-                      ),
-                    )
-                  : ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: TioSize.dp48),
-                      child: InkWell(
-                        key: ValueKey('program-open-${program.id.value}'),
-                        onTap: onProgramPressed,
-                        child: Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: Text(
-                            program.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w700,
-                              fontSize: TioFontSize.size15,
-                            ),
+                ? Text(
+                    program.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontWeight: TioFontWeight.w700,
+                      fontSize: TioFontSize.size15,
+                    ),
+                  )
+                : ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: TioSize.dp48),
+                    child: InkWell(
+                      key: ValueKey('program-open-${program.id.value}'),
+                      onTap: onProgramPressed,
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          program.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size15,
                           ),
                         ),
                       ),
                     ),
+                  ),
           ),
           IconButton(
             key: ValueKey('program-overflow-${program.id.value}'),
