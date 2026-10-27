@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -493,6 +495,70 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'Routine options mark uses a shorter right-aligned bottom bar',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: RoutineMetadataCard(
+            routine: Routine(
+              id: RoutineId(_routineId),
+              programId: _program.id,
+              name: 'Push',
+            ),
+            onEdit: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    final bars = find.descendant(
+      of: menu,
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Container && widget.child == null,
+      ),
+    );
+    expect(bars, findsNWidgets(2));
+    expect(
+      tester.getSize(bars.at(0)),
+      const Size(TioSize.dp16, TioStroke.width2),
+    );
+    expect(
+      tester.getSize(bars.at(1)),
+      const Size(TioSize.dp10, TioStroke.width2),
+    );
+    final gap =
+        tester.getRect(bars.at(1)).top - tester.getRect(bars.at(0)).bottom;
+    expect(gap, TioSpacing.xs);
+    expect(tester.getSize(menu), const Size(TioSize.dp32, TioSize.dp32));
+    final menuRect = tester.getRect(menu);
+    final topBar = tester.getRect(bars.at(0));
+    final bottomBar = tester.getRect(bars.at(1));
+    expect(bottomBar.right, closeTo(topBar.right, 0.1));
+    expect(bottomBar.width, closeTo(TioSize.dp10, 0.1));
+    expect(topBar.width, closeTo(TioSize.dp16, 0.1));
+    expect(
+      (topBar.left + topBar.right) / 2,
+      closeTo(menuRect.center.dx, 0.1),
+    );
+    expect(
+      (topBar.top + bottomBar.bottom) / 2,
+      closeTo(menuRect.center.dy, 0.1),
+    );
+    final card = find.ancestor(of: menu, matching: find.byType(TioCard)).first;
+    expect(
+      tester.getRect(card).right - menuRect.right,
+      closeTo(TioSpacing.xs, 0.1),
+    );
+  });
+
   testWidgets('Routine sheet dispatches only supplied Move/Delete actions',
       (tester) async {
     var editCalls = 0;
@@ -716,6 +782,55 @@ void main() {
     expect(find.text('Strength'), findsOneWidget);
     expect(find.text('Routines'), findsNothing);
   });
+
+  testWidgets('Program Detail keeps rows and shows one refresh cue',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final repository = _MemoryRoutines([
+      Routine(
+        id: RoutineId(_routineId),
+        programId: _program.id,
+        name: 'Push',
+      ),
+    ]);
+    await _pump(
+      tester,
+      repository: repository,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+      onEditRoutine: (_) async => false,
+    );
+    expect(find.text('Push'), findsOneWidget);
+    final pending = Completer<void>();
+    repository.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: false,
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('program-detail-refreshing')),
+        findsOneWidget);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Routines'),
+    );
+    pending.complete();
+    repository.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-detail-refreshing')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
 }
 
 final class _MemoryRoutines implements RoutineRepository {
@@ -725,9 +840,12 @@ final class _MemoryRoutines implements RoutineRepository {
   final List<Routine> created = [];
   bool failCreate = false;
   int loadFailures = 0;
+  Completer<void>? readGate;
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw Exception('disconnected');

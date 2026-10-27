@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -89,6 +90,7 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   _LibraryCategory? _selectedCategory;
   bool _openingRootRoutine = false;
+  final _programsRefresh = LibraryProgramsRefresh();
 
   _LibraryCategory get _contentCategory =>
       _selectedCategory ?? _LibraryCategory.programs;
@@ -132,6 +134,7 @@ class _LibraryPageState extends State<LibraryPage> {
         moveRefreshLoginCycleId: widget.moveRefreshLoginCycleId,
         onDeleteRoutine: widget.onDeleteRoutine,
         actionSheetGuard: widget.actionSheetGuard,
+        pullRefresh: _programsRefresh,
       );
 
   @override
@@ -178,32 +181,49 @@ class _LibraryPageState extends State<LibraryPage> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.lg,
-            vertical: TioSpacing.md,
+        child: CustomScrollView(
+          key: const ValueKey('library-scroll'),
+          // Match Progress: the refresh sliver takes real top space so the
+          // list moves down under the stationary Library bar.
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
-          children: [
-            _LibraryCategoryStrip(
-              selectedCategory: _selectedCategory,
-              onCategoryPressed: _selectCategory,
-              onClearPressed: _clearCategorySelection,
+          slivers: [
+            CupertinoSliverRefreshControl(
+              key: const ValueKey('library-pull-space'),
+              onRefresh: _programsRefresh.call,
             ),
-            const SizedBox(height: TioSpacing.lg),
-            switch (_contentCategory) {
-              _LibraryCategory.programs =>
-                widget.pendingCreateChanges == null
-                    ? _programsContent()
-                    : ListenableBuilder(
-                        listenable: widget.pendingCreateChanges!,
-                        builder: (_, __) => _programsContent(),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: TioSpacing.lg,
+                vertical: TioSpacing.md,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _LibraryCategoryStrip(
+                    selectedCategory: _selectedCategory,
+                    onCategoryPressed: _selectCategory,
+                    onClearPressed: _clearCategorySelection,
+                  ),
+                  const SizedBox(height: TioSpacing.lg),
+                  switch (_contentCategory) {
+                    _LibraryCategory.programs =>
+                      widget.pendingCreateChanges == null
+                          ? _programsContent()
+                          : ListenableBuilder(
+                              listenable: widget.pendingCreateChanges!,
+                              builder: (_, __) => _programsContent(),
+                            ),
+                    _LibraryCategory.exercises => _ExercisesContent(
+                        canCreateExercise: widget.canCreateExercise,
+                        onCreateExercisePressed:
+                            widget.onCreateExercisePressed,
+                        onExercisesPressed: widget.onExercisesPressed,
                       ),
-              _LibraryCategory.exercises => _ExercisesContent(
-                  canCreateExercise: widget.canCreateExercise,
-                  onCreateExercisePressed: widget.onCreateExercisePressed,
-                  onExercisesPressed: widget.onExercisesPressed,
-                ),
-            },
+                  },
+                ]),
+              ),
+            ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -30,6 +31,7 @@ Future<void> _pump(
   bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
+  TextDirection textDirection = TextDirection.ltr,
 }) async {
   final resolvedProgramRepository = withProgramRepository
       ? programRepository ??
@@ -44,27 +46,30 @@ Future<void> _pump(
         config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: LibraryPage(
-        programRepository: resolvedProgramRepository,
-        routineRepository: routineRepository,
-        programIdGenerator: programIdGenerator,
-        onProgramsManagePressed: onProgramsManagePressed ?? () async {},
-        onProgramPressed: onProgramPressed,
-        onAddRoutinePressed: onAddRoutinePressed,
-        onCreateRoutinePressed: onCreateRoutinePressed,
-        onVerifyPendingRoutine: onVerifyPendingRoutine,
-        hasUnconfirmedCreate: hasUnconfirmedCreate,
-        onRoutinePressed: onRoutinePressed,
-        onEditRoutine: onEditRoutine,
-        onMoveRoutine: onMoveRoutine,
-        moveRefreshSignal: moveRefreshSignal,
-        moveRefreshOwnerId: moveRefreshOwnerId,
-        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
-        onDeleteRoutine: onDeleteRoutine,
-        onExercisesPressed: onExercisesPressed ?? () {},
-        onCreateExercisePressed: onCreateExercisePressed ?? () {},
-        canCreateExercise: canCreateExercise,
-        onSearchPressed: onSearchPressed ?? () {},
+      home: Directionality(
+        textDirection: textDirection,
+        child: LibraryPage(
+          programRepository: resolvedProgramRepository,
+          routineRepository: routineRepository,
+          programIdGenerator: programIdGenerator,
+          onProgramsManagePressed: onProgramsManagePressed ?? () async {},
+          onProgramPressed: onProgramPressed,
+          onAddRoutinePressed: onAddRoutinePressed,
+          onCreateRoutinePressed: onCreateRoutinePressed,
+          onVerifyPendingRoutine: onVerifyPendingRoutine,
+          hasUnconfirmedCreate: hasUnconfirmedCreate,
+          onRoutinePressed: onRoutinePressed,
+          onEditRoutine: onEditRoutine,
+          onMoveRoutine: onMoveRoutine,
+          moveRefreshSignal: moveRefreshSignal,
+          moveRefreshOwnerId: moveRefreshOwnerId,
+          moveRefreshLoginCycleId: moveRefreshLoginCycleId,
+          onDeleteRoutine: onDeleteRoutine,
+          onExercisesPressed: onExercisesPressed ?? () {},
+          onCreateExercisePressed: onCreateExercisePressed ?? () {},
+          canCreateExercise: canCreateExercise,
+          onSearchPressed: onSearchPressed ?? () {},
+        ),
       ),
     ),
   );
@@ -144,6 +149,199 @@ void main() {
     expect(find.text('Push'), findsNothing);
     expect(repository.queries.where((id) => id == _id(1)).length,
         greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('shared Programs header is the only Routine refresh spinner',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final routines = _FakeRoutineRepository([
+      _routine(1, 101, 'Push'),
+      _routine(2, 201, 'Legs'),
+    ]);
+    var navigations = 0;
+    var edits = 0;
+    await _pump(tester,
+      onRoutinePressed: (_, __) async { navigations++; },
+      onEditRoutine: (_, __) async { edits++; return false; },
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: routines,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    // An edit-capable card must retain its overflow and exact rect even while
+    // the same owner has two concurrent expanded Program reads.
+    final firstCard = find.byKey(ValueKey(
+        'library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    final secondCard = find.byKey(ValueKey(
+        'library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+    final menu = find.byKey(ValueKey(
+        'routine-menu-${_routine(1, 101, 'Push').id.value}'));
+    final beforeFirst = tester.getRect(firstCard);
+    final beforeSecond = tester.getRect(secondCard);
+    expect(menu, findsOneWidget);
+    final pending = Completer<void>();
+    routines.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: false,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Programs'),
+    );
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.text('Legs'), findsOneWidget);
+    expect(tester.getRect(firstCard), beforeFirst);
+    expect(tester.getRect(secondCard), beforeSecond);
+    expect(menu, findsOneWidget, reason: '3-dot slot must never blink away');
+    final disabledButton = tester.widget<IconButton>(
+      find.descendant(of: menu, matching: find.byType(IconButton)),
+    );
+    expect(disabledButton.onPressed, isNull);
+    // A disabled overflow press must not fall through to card navigation.
+    await tester.tap(menu);
+    await tester.pump();
+    expect(navigations, 0);
+    expect(edits, 0);
+    expect(
+      find.byKey(ValueKey(
+        'routine-actions-sheet-${_routine(1, 101, 'Push').id.value}',
+      )),
+      findsNothing,
+    );
+    // Verified read-only navigation is still permitted during refresh.
+    await tester.tap(firstCard);
+    await tester.pump();
+    expect(navigations, 1);
+    expect(edits, 0);
+    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
+        findsOneWidget);
+
+    pending.complete();
+    routines.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.text('Legs'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('Program collection refresh retains expanded rows and one cue',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+    );
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+      programRepository: programs,
+      routineRepository: routines,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    final pendingPrograms = Completer<void>();
+    final pendingRoutines = Completer<void>();
+    programs.readGate = pendingPrograms;
+    routines.readGate = pendingRoutines;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: true,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+      contains('Refreshing Programs'),
+    );
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.byKey(ValueKey('program-row-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('program-row-${_id(2).value}')),
+        findsOneWidget);
+
+    pendingPrograms.complete();
+    pendingRoutines.complete();
+    programs.readGate = null;
+    routines.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('Program Edit and Add stay disabled during collection refresh',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final pending = Completer<void>();
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: (_) async {},
+      onAddRoutinePressed: (_) async {},
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    programs.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: true,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    TioCard optionCard(ValueKey<String> key) => tester.widget<TioCard>(
+          find.descendant(
+            of: find.byKey(key),
+            matching: find.byType(TioCard),
+          ),
+        );
+    expect(optionCard(const ValueKey('program-action-open')).onTap, isNotNull);
+    expect(optionCard(const ValueKey('program-action-edit')).onTap, isNull);
+    expect(
+      optionCard(const ValueKey('program-action-add-routine')).onTap,
+      isNull,
+    );
+    pending.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Move refreshes both expanded Program Routine lists, keeps collapse',
@@ -447,31 +645,58 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
-  testWidgets('inline Program rows are plain and expose collapse state',
+  testWidgets('Library Program rows keep spacing and draw no divider',
       (tester) async {
-    await _pump(tester);
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+    );
 
-    final programs = find.byKey(const ValueKey('library-programs-content'));
+    final list = find.byKey(const ValueKey('programs-list'));
+    expect(list, findsOneWidget);
     expect(
-      find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+      find.descendant(of: list, matching: find.byType(Divider)),
       findsNothing,
     );
+
+    final gap = find.byKey(const ValueKey('library-program-gap-0'));
+    expect(find.descendant(of: list, matching: gap), findsOneWidget);
+    expect(tester.getSize(gap).height, TioSpacing.xxs);
+
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    await tester.tap(find.text('Cardio'));
+    await tester.pump();
+
+    final first = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(1).value}')),
+    );
+    final second = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(2).value}')),
+    );
+    expect(
+      find.descendant(of: list, matching: find.byType(Divider)),
+      findsNothing,
+    );
+    expect(second.top - first.bottom, closeTo(TioSpacing.xxs, 0.1));
+  });
+
+  testWidgets('Program header combines chevron and title as one toggle',
+      (tester) async {
+    await _pump(tester);
+    final programs = find.byKey(const ValueKey('library-programs-content'));
+    expect(find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+        findsNothing);
 
     final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
     final padding = tester.widget<Padding>(
       find.descendant(of: row, matching: find.byType(Padding)).first,
     );
-    expect(
-      padding.padding,
-      const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-    );
+    expect(padding.padding, EdgeInsets.zero);
 
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
-    expect(toggle, findsOneWidget);
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Collapse Strength',
-    );
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
     final leftGlyph = find.descendant(
       of: toggle,
@@ -482,52 +707,132 @@ void main() {
       matching: find.byIcon(Icons.more_horiz_rounded),
     );
     final sectionRect = tester.getRect(programs);
-    final leftAction = tester.widget<IconButton>(toggle);
-    final rightAction = tester.widget<IconButton>(overflow);
-    expect(leftAction.padding, EdgeInsets.zero);
-    expect(rightAction.padding, EdgeInsets.zero);
-    expect(leftAction.alignment, AlignmentDirectional.centerStart);
-    expect(rightAction.alignment, AlignmentDirectional.centerEnd);
-    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.widget<InkWell>(toggle).onTap, isNotNull);
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(toggle).width,
+        greaterThan(TioSize.dp48 * 2));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
-    // The glyphs meet the same outer bounds as the Routine and dotted cards.
-    // Do not shrink accessible hit targets just to remove visible side gaps.
-    expect(tester.getRect(leftGlyph).left, closeTo(sectionRect.left, 0.1));
-    expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    expect(tester.getRect(rightGlyph).right,
+        closeTo(sectionRect.right, 0.1));
+    final titleRect = tester.getRect(find.text('Strength'));
+    final glyphRect = tester.getRect(leftGlyph);
+    expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
+    expect(titleRect.left - glyphRect.right,
+        closeTo(TioSpacing.xs, 0.1));
 
-    await tester.tap(toggle);
+    // Tapping text, not just the arrow, must collapse the same Program.
+    await tester.tap(find.text('Strength'));
     await tester.pump();
-
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
-    );
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
+        findsNothing);
+    await tester.tap(find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_right_rounded),
+    ));
+    await tester.pump();
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
+        findsOneWidget);
   });
 
-  testWidgets('Program name has a 48dp action target and the right identity',
+  testWidgets('Program Detail opens only from the 3-dot Open Program action',
       (tester) async {
     Program? selected;
     await _pump(tester, onProgramPressed: (program) async {
       selected = program;
     });
-
-    final target = find.byKey(
-      ValueKey('program-open-${_id(1).value}'),
-    );
-    expect(target, findsOneWidget);
-    expect(tester.getSize(target).height, greaterThanOrEqualTo(TioSize.dp48));
-    await tester.tap(target);
-    await tester.pump();
-    expect(selected?.id, _id(1));
-
-    // The existing separate collapse/expand control still owns its action.
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    expect(find.byKey(ValueKey('program-open-${_id(1).value}')),
+        findsNothing);
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    expect(selected, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
     await tester.tap(toggle);
     await tester.pump();
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
+
+    final overflow = find.byKey(
+        ValueKey('program-overflow-${_id(1).value}'));
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    final open = find.byKey(const ValueKey('program-action-open'));
+    expect(open, findsOneWidget);
+    expect(find.text('Open Program'), findsOneWidget);
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    expect(selected?.id, _id(1));
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
+  });
+
+  testWidgets('owner rebind drops an open Program action still in the sheet',
+      (tester) async {
+    Program? opened;
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
     );
+    Future<void> select(Program program) async {
+      opened = program;
+    }
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-b',
+      moveRefreshLoginCycleId: 'cycle-b',
+    );
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened, isNull);
+  });
+
+  testWidgets('RTL Program header remains one accessible toggle and menu',
+      (tester) async {
+    Program? opened;
+    await _pump(tester,
+      textDirection: TextDirection.rtl,
+      onProgramPressed: (program) async { opened = program; },
+    );
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final glyph = find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    final section = find.byKey(const ValueKey('library-programs-content'));
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getRect(glyph).right,
+        closeTo(tester.getRect(section).right, 0.1));
+    expect(tester.getRect(glyph).left -
+        tester.getRect(find.text('Strength')).right,
+        closeTo(TioSpacing.xs, 0.1));
+
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    expect(opened, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
+    await tester.tap(toggle);
+    await tester.pump();
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened?.id, _id(1));
   });
 
   testWidgets('expanded Programs render only their persisted Routine children',
@@ -660,7 +965,9 @@ void main() {
       },
     );
     expect(find.text('New Routine'), findsNothing);
-    await tester.tap(find.byKey(ValueKey('program-open-${_id(1).value}')));
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
     await tester.pumpAndSettle();
     expect(find.text('New Routine'), findsOneWidget);
     expect(repository.queries.where((p) => p == _id(1)).length,
@@ -752,7 +1059,9 @@ void main() {
     final action = find.byKey(const ValueKey('program-action-add-routine'));
     expect(action, findsOneWidget);
     expect(
-      tester.widget<TioSettingsNavigationRow>(action).onTap,
+      tester.widget<TioCard>(
+        find.descendant(of: action, matching: find.byType(TioCard)),
+      ).onTap,
       isNull,
     );
     hold.complete();
@@ -790,9 +1099,10 @@ void main() {
     );
     await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
     await tester.pumpAndSettle();
+    final addAction = find.byKey(const ValueKey('program-action-add-routine'));
     expect(
-      tester.widget<TioSettingsNavigationRow>(
-        find.byKey(const ValueKey('program-action-add-routine')),
+      tester.widget<TioCard>(
+        find.descendant(of: addAction, matching: find.byType(TioCard)),
       ).onTap,
       isNull,
     );
@@ -952,15 +1262,18 @@ void main() {
     expect(find.byType(ProgramsPage), findsNothing);
   });
 
-  testWidgets('Program name stays non-navigable until W4 detail exists',
+  testWidgets('Program name expands in place and does not open detail',
       (tester) async {
     await _pump(tester);
 
     final name = find.text('Strength');
     expect(name, findsOneWidget);
     expect(
-      find.ancestor(of: name, matching: find.byType(InkWell)),
-      findsNothing,
+      find.ancestor(
+        of: name,
+        matching: find.byKey(ValueKey('program-expand-${_id(1).value}')),
+      ),
+      findsOneWidget,
     );
   });
 
@@ -1048,11 +1361,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final title = tester.widget<Text>(
-      find.byKey(const ValueKey('program-actions-title')),
-    );
-    expect(title.maxLines, 2);
-    expect(title.overflow, TextOverflow.ellipsis);
+    final sheet = find.byKey(const ValueKey('program-actions-sheet'));
+    expect(sheet, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text(longName)),
+        findsOneWidget);
+    final rect = tester.getRect(sheet);
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.right, lessThanOrEqualTo(800));
     expect(find.text('Edit Program'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -1270,6 +1585,49 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('pull moves Programs down and keeps them while rereading',
+      (tester) async {
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    await _pump(tester, programRepository: programs);
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    final before = tester.getTopLeft(row).dy;
+    final readsBefore = programs.listReads;
+    final scroll = find.byKey(const ValueKey('library-scroll'));
+    final view = tester.widget<CustomScrollView>(scroll);
+    expect(view.physics, isA<BouncingScrollPhysics>());
+    expect(view.physics?.parent, isA<AlwaysScrollableScrollPhysics>());
+    expect(view.slivers.first, isA<CupertinoSliverRefreshControl>());
+
+    final gate = Completer<void>();
+    programs.readGate = gate;
+    final touch = await tester.startGesture(tester.getCenter(row));
+    await touch.moveBy(const Offset(0, 190));
+    await tester.pump();
+    await touch.moveBy(const Offset(0, 230));
+    await tester.pump();
+
+    expect(tester.getTopLeft(row).dy, greaterThan(before + TioSpacing.lg));
+    expect(tester.getRect(scroll).top, lessThan(tester.getTopLeft(row).dy));
+    expect(
+      tester.getTopLeft(find.text('Library')).dy,
+      lessThan(before),
+    );
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(programs.listReads, greaterThan(readsBefore));
+    expect(find.text('Strength'), findsOneWidget);
+
+    programs.programs[0] = _program(1, 'Power');
+    gate.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.text('Power'), findsOneWidget);
+    expect(find.text('Strength'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 ProgramId _id(int value) => ProgramId(
@@ -1299,10 +1657,13 @@ final class _FakeProgramRepository implements ProgramRepository {
   final List<Program> created = [];
   final List<({ProgramId id, String name})> renamed = [];
   final Object? renameErrorAfterWrite;
+  Completer<void>? readGate;
 
   @override
   Future<List<Program>> list() async {
     listReads++;
+    final gate = readGate;
+    if (gate != null) await gate.future;
     return List.unmodifiable(programs);
   }
 
@@ -1341,10 +1702,13 @@ final class _FakeRoutineRepository implements RoutineRepository {
   final List<ProgramId> queries = [];
   int loadFailures = 0;
   bool returnForeign = false;
+  Completer<void>? readGate;
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
     queries.add(programId);
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw StateError('temporary failure');

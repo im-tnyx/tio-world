@@ -14,6 +14,7 @@ class RoutineMetadataCard extends StatefulWidget {
     this.onMove,
     this.onDelete,
     this.actionSheetGuard,
+    this.actionsEnabled = true,
   });
 
   final Routine routine;
@@ -24,6 +25,9 @@ class RoutineMetadataCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
+  /// Keep action geometry while a same-owner verification read is in flight.
+  /// Only the action menu is disabled; read-only Routine navigation remains.
+  final bool actionsEnabled;
   /// Optional app-owned auth-cycle guard for the separate options modal.
   /// Sheet ownership remains here; account identity never enters Workout.
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -36,7 +40,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
   bool _openingActions = false;
 
   Future<void> _openActions() async {
-    if (_openingActions) return;
+    if (_openingActions || !widget.actionsEnabled) return;
     final openingId = widget.routine.id;
     final openingProgramId = widget.routine.programId;
     _openingActions = true;
@@ -76,6 +80,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                     // callback still rechecks live Auth and Routine ownership.
                     Navigator.of(sheetContext).pop(_RoutineAction.move);
                     if (mounted &&
+                        widget.actionsEnabled &&
                         widget.routine.id == openingId &&
                         widget.routine.programId == openingProgramId) {
                       widget.onMove?.call();
@@ -105,6 +110,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
       // captured before the await. Keep this a presentation-only boundary:
       // the app shell independently rechecks the owner and login cycle.
       if (!mounted ||
+          !widget.actionsEnabled ||
           widget.routine.id != openingId ||
           widget.routine.programId != openingProgramId) {
         return;
@@ -131,6 +137,13 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
     final colors = context.tioColors;
     return TioCard(
       onTap: widget.onTap,
+      // Keep the leading inset. The menu sits on the card's trailing edge.
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        TioSpacing.lg,
+        TioSpacing.lg,
+        TioSpacing.xs,
+        TioSpacing.lg,
+      ),
       child: Row(
         children: [
           Icon(Icons.fitness_center_outlined, color: colors.textSecondary),
@@ -169,21 +182,70 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
               // primary navigation tap, with one semantic tap target.
               container: true,
               button: true,
+              enabled: widget.actionsEnabled,
               label: 'Routine options',
-              onTap: _openActions,
+              onTap: widget.actionsEnabled ? _openActions : null,
               child: ExcludeSemantics(
-                child: IconButton(
-                  tooltip: 'Routine options',
-                  onPressed: _openActions,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(
-                    width: TioSize.dp48,
-                    height: TioSize.dp48,
-                  ),
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    size: TioSize.dp24,
-                    color: colors.textPrimary,
+                child: GestureDetector(
+                  // Keep a child tap recognizer during refresh so the
+                  // disabled overflow press cannot reach the parent card.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.actionsEnabled ? _openActions : () {},
+                  child: IconButton(
+                    tooltip: 'Routine options',
+                    onPressed:
+                        widget.actionsEnabled ? _openActions : null,
+                    // The 32dp target stays on the card's trailing edge.
+                    // Center the mark so the press highlight surrounds it.
+                    alignment: Alignment.center,
+                    padding: EdgeInsets.zero,
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      fixedSize: const Size(TioSize.dp32, TioSize.dp32),
+                      alignment: Alignment.center,
+                    ),
+                    constraints: const BoxConstraints.tightFor(
+                      width: TioSize.dp32,
+                      height: TioSize.dp32,
+                    ),
+                    icon: SizedBox(
+                      width: TioSize.dp16,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Match the Program more_horiz glyph ink (16.03dp
+                          // inside the default 24dp icon). Bottom stays
+                          // shorter. Both bars keep physical right edges.
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              width: TioSize.dp16,
+                              height: TioStroke.width2,
+                              decoration: BoxDecoration(
+                                color: colors.textPrimary,
+                                borderRadius:
+                                    BorderRadius.circular(TioRadius.full),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.xs),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              width: TioSize.dp10,
+                              height: TioStroke.width2,
+                              decoration: BoxDecoration(
+                                color: colors.textPrimary,
+                                borderRadius:
+                                    BorderRadius.circular(TioRadius.full),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

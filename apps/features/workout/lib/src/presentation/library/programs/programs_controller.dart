@@ -14,12 +14,20 @@ String suggestProgramName(Iterable<Program> programs) {
   return 'Program $index';
 }
 
-enum ProgramsStatus { loading, ready, loadFailed }
+enum ProgramsStatus { loading, refreshing, ready, loadFailed }
 
 final class ProgramsState {
   const ProgramsState.loading()
       : status = ProgramsStatus.loading,
         programs = const [],
+        loadError = null,
+        creating = false,
+        createError = null;
+
+  /// Same Program collection remains visible during a background reread.
+  ProgramsState.refreshing(List<Program> existing)
+      : status = ProgramsStatus.refreshing,
+        programs = List.unmodifiable(existing),
         loadError = null,
         creating = false,
         createError = null;
@@ -64,7 +72,13 @@ final class ProgramsController extends ChangeNotifier {
 
   Future<void> load() async {
     final version = ++_loadVersion;
-    _publish(const ProgramsState.loading());
+    // A background refresh must not unmount verified Program cards. A new
+    // controller on owner/login-cycle rebind has no saved collection to retain.
+    final current = _state;
+    _publish(current.status == ProgramsStatus.ready ||
+            current.status == ProgramsStatus.refreshing
+        ? ProgramsState.refreshing(current.programs)
+        : const ProgramsState.loading());
 
     try {
       final programs = await repository.list();

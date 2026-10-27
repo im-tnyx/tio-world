@@ -281,6 +281,22 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               ),
               const SizedBox(height: TioSpacing.lg),
             ],
+            if (_controller?.state.status == ProgramRoutinesStatus.refreshing)
+              const Padding(
+                padding: EdgeInsets.only(bottom: TioSpacing.sm),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    key: ValueKey('program-detail-refreshing'),
+                    width: TioSize.dp16,
+                    height: TioSize.dp16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: TioStroke.width2,
+                      semanticsLabel: 'Refreshing Routines',
+                    ),
+                  ),
+                ),
+              ),
             _body(),
           ],
         ),
@@ -319,7 +335,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             ),
           ],
         );
+      case ProgramRoutinesStatus.refreshing:
       case ProgramRoutinesStatus.ready:
+        final refreshing = state.status == ProgramRoutinesStatus.refreshing;
+        final canShowActions = _canEdit || refreshing;
         if (state.routines.isEmpty) {
           return const _RoutineMessage(
             key: ValueKey('program-routines-empty'),
@@ -338,16 +357,20 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                   supportingText: widget.onRoutinePressed == null
                       ? null
                       : 'View Routine',
-                  onTap: _canEdit && widget.onRoutinePressed != null
+                  // Keep the trailing overflow slot and read-only navigation
+                  // on a verified same-owner refresh; mutation callbacks stay
+                  // guarded by the controller's _canEdit check.
+                  actionsEnabled: _canEdit,
+                  onTap: canShowActions && widget.onRoutinePressed != null
                       ? () { widget.onRoutinePressed!(routine); }
                       : null,
-                  onEdit: _canEdit && widget.onEditRoutine != null
+                  onEdit: canShowActions && widget.onEditRoutine != null
                       ? () => _openEditor(routine) : null,
                   actionSheetGuard: widget.actionSheetGuard,
-                  onMove: _canEdit && !_hasUnconfirmed &&
+                  onMove: canShowActions && !_hasUnconfirmed &&
                           widget.onMoveRoutine != null
                       ? () => _moveRoutine(routine) : null,
-                  onDelete: _canEdit && !_hasUnconfirmed &&
+                  onDelete: canShowActions && !_hasUnconfirmed &&
                           widget.onDeleteRoutine != null
                       ? () => _deleteRoutine(routine) : null,
                 ),
