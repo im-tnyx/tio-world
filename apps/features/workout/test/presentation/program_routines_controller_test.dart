@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -15,6 +17,49 @@ void main() {
     expect(controller.state.status, ProgramRoutinesStatus.ready);
     expect(repository.lastListProgramId, _program(1).id);
     expect(controller.state.routines, [_routine(1, 11, 'Push')]);
+  });
+
+  test('same owner background refresh retains read-only Routine snapshot',
+      () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Push')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final gate = Completer<void>();
+    repository.readGate = gate;
+    final refreshing = controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.refreshing);
+    expect(controller.state.routines.single.name, 'Push');
+    expect(await controller.create('New'), isFalse);
+
+    gate.complete();
+    repository.readGate = null;
+    await refreshing;
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines.single.name, 'Push');
+  });
+
+  test('owner change discards old Routine snapshot before network resolves',
+      () async {
+    final repository = _FakeRoutines([_routine(1, 11, 'Push')]);
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    repository.currentOwner = 'owner-b';
+    repository.currentCycle = 'cycle-b';
+    repository.rows.clear();
+    final gate = Completer<void>();
+    repository.readGate = gate;
+    final load = controller.load();
+    expect(controller.state.status, ProgramRoutinesStatus.loading);
+    expect(controller.state.routines, isEmpty);
+    gate.complete();
+    repository.readGate = null;
+    await load;
+    expect(controller.state.status, ProgramRoutinesStatus.ready);
+    expect(controller.state.routines, isEmpty);
   });
 
   test('missing/invalid cross-owner rows fail closed instead of showing them',
@@ -570,6 +615,7 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   final List<Routine> attempted = [];
   ProgramId? lastListProgramId;
   int loadFailures = 0;
+  Completer<void>? readGate;
   int renameCount = 0;
   bool returnForeign = false;
   bool throwBeforeCreate = false;
@@ -607,6 +653,8 @@ final class _FakeRoutines implements RoutineRepository, RoutineVersionedRenameRe
   @override
   Future<List<Routine>> list(ProgramId programId) async {
     lastListProgramId = programId;
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw Exception('network');
