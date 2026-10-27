@@ -119,15 +119,27 @@ final class ProgramDeleteController extends ChangeNotifier {
       return false;
     }
     if (_attemptGate.isUnknown(session.owner, sourceProgramId)) {
-      _publish(const ProgramDeleteControllerState(
+      _publish(ProgramDeleteControllerState(
         status: ProgramDeleteOperationStatus.unknown,
-        unknown: ProgramDeleteOutcomeUnknown(),
+        unknown: const ProgramDeleteOutcomeUnknown(),
+        target: ProgramDeleteTarget(
+          sourceProgramId: sourceProgramId,
+          expectedRoutineIds: const [],
+          ownerId: session.owner,
+          loginCycleId: session.cycle,
+        ),
       ));
       return false;
     }
     if (_attemptGate.isCommitted(session.owner, sourceProgramId)) {
-      _publish(const ProgramDeleteControllerState(
+      _publish(ProgramDeleteControllerState(
         status: ProgramDeleteOperationStatus.confirmed,
+        target: ProgramDeleteTarget(
+          sourceProgramId: sourceProgramId,
+          expectedRoutineIds: const [],
+          ownerId: session.owner,
+          loginCycleId: session.cycle,
+        ),
       ));
       return false;
     }

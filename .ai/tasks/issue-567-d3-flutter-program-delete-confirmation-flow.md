@@ -36,15 +36,17 @@
 **HEAD SHA:** `240b1b09ab40f176481967449e437fd7625b6fca`
 **Observed working-tree state:** Clean
 **PR / tracker:** GitHub #567 OPEN, PR #708; Linear TNYX-81 / TNYX-267 Backlog
-**Current implementation state:** Codex P2 findings remediation complete:
+**Current implementation state:** Codex findings remediation complete:
 1. Serialized concurrent delete flows via `_activeProgramId` and bound controller target identity check immediately before confirm.
 2. Verified canonical name displayed from prepared target `controller.state.program.name` rather than caller's potentially stale Program name.
 3. Handled already-confirmed Program deletion in `!prepared` state (`controller.state.status == ProgramDeleteOperationStatus.confirmed`), showing accurate refresh message and returning true to trigger view refresh without claiming false new deletion.
+4. Bound confirm call to exact captured target reference (`identical(currentTarget, target)` and `listEquals`) preventing cross-flow target replacement.
+5. Populated `target` in `ProgramDeleteController.prepare()` when gate returns cached `unknown` or `committed`, and verified `cachedTarget.sourceProgramId == program.id` in `ProgramDeleteFlow` before attributing terminal state to requested Program.
 **Relevant execution surface:** `apps/features/workout`
-**Validation completed at SHA:** Local validation PASS: 14/14 focused tests in `program_delete_flow_test.dart`, 36/36 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
+**Validation completed at SHA:** Local validation PASS: 16/16 focused tests in `program_delete_flow_test.dart`, 38/38 delete-suite regression tests, `flutter analyze --no-pub` PASS (0 issues in `workout` and `app`), `dart format` clean, and `git diff --check` clean.
 **Validation remaining:** Push & GitHub PR CI checks
 **Current blocker:** None
-**Open review finding IDs:** None (Codex threads 4392621553, 4392621563, 4392621570 addressed)
+**Open review finding IDs:** None (Codex threads 4392621553, 4392621563, 4392621570, 4392770762, 4392845115 addressed)
 **Next exact action:** Commit, push to PR #708, and verify CI checks.
 
 ## Global UI / Design-System Guardrail

@@ -981,5 +981,77 @@ void main() {
         expect(deleteRepo.writes, 0);
       },
     );
+
+    testWidgets(
+      'cached terminal state from different Program is not attributed to newly requested Program',
+      (tester) async {
+        final progA = _program(
+          id: ProgramId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+          name: 'Program A',
+        );
+        final progB = _program(
+          id: ProgramId('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+          name: 'Program B',
+        );
+        final gate = ProgramDeleteAttemptGate();
+        // Mark Program A as committed in gate
+        gate.tryStart(
+          owner: _owner,
+          sourceProgramId: progA.id,
+          target: ProgramDeleteTarget(
+            sourceProgramId: progA.id,
+            expectedRoutineIds: const [],
+            ownerId: _owner,
+            loginCycleId: _cycle,
+          ),
+          mutationId: '99999999-9999-4999-8999-999999999999',
+        );
+        gate.markCommitted(_owner, progA.id);
+        gate.finish(_owner, progA.id);
+
+        final programs = _FakePrograms([progA, progB]);
+        final routines = _FakeRoutines([]);
+        final deleteRepo = _FakeDeleteRepo(attemptGate: gate);
+        final controller = _controller(
+          programs: programs,
+          routines: routines,
+          deleteRepository: deleteRepo,
+          attemptGate: gate,
+        );
+        addTearDown(controller.dispose);
+
+        // Prepare Program A so controller enters confirmed status for Prog A
+        await controller.prepare(progA.id);
+        expect(controller.state.status, ProgramDeleteOperationStatus.confirmed);
+        expect(controller.state.target?.sourceProgramId, progA.id);
+
+        // Now trigger ProgramDeleteFlow for Program B with this controller
+        bool? resultB;
+        final flow = ProgramDeleteFlow();
+        await pumpFlow(
+          tester,
+          program: progB,
+          controller: controller,
+          flow: flow,
+          onResult: (r) => resultB = r,
+        );
+
+        await tester.tap(find.text('Trigger Delete'));
+        await tester.pumpAndSettle();
+
+        // Must NOT report Program B as deleted; must return false and show verify error
+        expect(resultB, isFalse);
+        expect(
+          find.text('This Program was already deleted. Refresh the list.'),
+          findsNothing,
+        );
+        expect(
+          find.text('Could not verify this Program. Please try again later.'),
+          findsOneWidget,
+        );
+        expect(find.byType(Dialog), findsNothing);
+        expect(deleteRepo.writes, 0);
+      },
+    );
   });
 }

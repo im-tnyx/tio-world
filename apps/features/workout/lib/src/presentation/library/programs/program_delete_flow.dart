@@ -189,16 +189,23 @@ final class ProgramDeleteFlow {
           _showFailure(context, failure.kind);
           return false;
         }
-        if (controller.state.status == ProgramDeleteOperationStatus.confirmed) {
-          _show(context, 'This Program was already deleted. Refresh the list.');
-          return true;
-        }
-        if (controller.state.status == ProgramDeleteOperationStatus.unknown) {
-          _show(
-            context,
-            'Delete status is unconfirmed. Checking your Programs; do not retry.',
-          );
-          return true;
+        final cachedTarget = controller.state.target;
+        final matchesRequestedProgram =
+            cachedTarget != null && cachedTarget.sourceProgramId == program.id;
+        if (matchesRequestedProgram) {
+          if (controller.state.status ==
+              ProgramDeleteOperationStatus.confirmed) {
+            _show(
+                context, 'This Program was already deleted. Refresh the list.');
+            return true;
+          }
+          if (controller.state.status == ProgramDeleteOperationStatus.unknown) {
+            _show(
+              context,
+              'Delete status is unconfirmed. Checking your Programs; do not retry.',
+            );
+            return true;
+          }
         }
         _show(
             context, 'Could not verify this Program. Please try again later.');
