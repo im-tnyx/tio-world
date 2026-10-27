@@ -233,18 +233,27 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                   padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                   child: RoutineMetadataCard(
                     routine: routine,
-                    onTap: refreshing || widget.onRoutinePressed == null
+                    // A same-owner background read may keep navigation
+                    // available, but the action menu must not dispatch writes.
+                    // Preserve the existing 48dp menu slot throughout the read.
+                    actionsEnabled: !refreshing,
+                    onTap: widget.onRoutinePressed == null
                         ? null
                         : () { widget.onRoutinePressed!(routine); },
-                    onEdit: refreshing || widget.onEditRoutine == null
+                    onEdit: widget.onEditRoutine == null
                         ? null
-                        : () { widget.onEditRoutine!(routine); },
+                        : () {
+                            if (controller.state.status ==
+                                ProgramRoutinesStatus.ready) {
+                              widget.onEditRoutine!(routine);
+                            }
+                          },
                     actionSheetGuard: widget.actionSheetGuard,
-                    onMove: refreshing || widget.onMoveRoutine == null ||
+                    onMove: widget.onMoveRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
                         : () => _moveRoutine(routine),
-                    onDelete: refreshing || widget.onDeleteRoutine == null ||
+                    onDelete: widget.onDeleteRoutine == null ||
                             widget.hasUnconfirmedCreate
                         ? null
                         : () => _deleteRoutine(routine),
