@@ -146,6 +146,98 @@ void main() {
         greaterThanOrEqualTo(2));
   });
 
+  testWidgets('shared Programs header is the only Routine refresh spinner',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final routines = _FakeRoutineRepository([
+      _routine(1, 101, 'Push'),
+      _routine(2, 201, 'Legs'),
+    ]);
+    await _pump(tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+      routineRepository: routines,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    final pending = Completer<void>();
+    routines.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: false,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.text('Legs'), findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
+        findsOneWidget);
+
+    pending.complete();
+    routines.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.text('Legs'), findsOneWidget);
+  });
+
+  testWidgets('Program collection refresh retains expanded rows and one cue',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+    );
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+      programRepository: programs,
+      routineRepository: routines,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    final pendingPrograms = Completer<void>();
+    final pendingRoutines = Completer<void>();
+    programs.readGate = pendingPrograms;
+    routines.readGate = pendingRoutines;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: true,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Push'), findsOneWidget);
+    expect(find.byKey(ValueKey('program-row-${_id(1).value}')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('program-row-${_id(2).value}')),
+        findsOneWidget);
+
+    pendingPrograms.complete();
+    pendingRoutines.complete();
+    programs.readGate = null;
+    routines.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('library-programs-refreshing')),
+        findsNothing);
+    expect(find.text('Push'), findsOneWidget);
+  });
+
   testWidgets('Move refreshes both expanded Program Routine lists, keeps collapse',
       (tester) async {
     final signal = RoutineMoveRefreshSignal();
@@ -486,14 +578,20 @@ void main() {
     final rightAction = tester.widget<IconButton>(overflow);
     expect(leftAction.padding, EdgeInsets.zero);
     expect(rightAction.padding, EdgeInsets.zero);
-    expect(leftAction.alignment, AlignmentDirectional.centerStart);
+    expect(leftAction.alignment, AlignmentDirectional.centerEnd);
     expect(rightAction.alignment, AlignmentDirectional.centerEnd);
     expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
     // The glyphs meet the same outer bounds as the Routine and dotted cards.
     // Do not shrink accessible hit targets just to remove visible side gaps.
-    expect(tester.getRect(leftGlyph).left, closeTo(sectionRect.left, 0.1));
     expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
+    // Maintain the accessible 48dp target but move the visible chevron close
+    // to the text rather than flush against the Library's leading edge.
+    final titleRect = tester.getRect(find.text('Strength'));
+    final glyphRect = tester.getRect(leftGlyph);
+    expect(glyphRect.left, greaterThan(sectionRect.left));
+    expect(titleRect.left - glyphRect.right,
+        closeTo(TioSpacing.xs, 0.1));
 
     await tester.tap(toggle);
     await tester.pump();
@@ -1299,10 +1397,13 @@ final class _FakeProgramRepository implements ProgramRepository {
   final List<Program> created = [];
   final List<({ProgramId id, String name})> renamed = [];
   final Object? renameErrorAfterWrite;
+  Completer<void>? readGate;
 
   @override
   Future<List<Program>> list() async {
     listReads++;
+    final gate = readGate;
+    if (gate != null) await gate.future;
     return List.unmodifiable(programs);
   }
 
@@ -1341,10 +1442,13 @@ final class _FakeRoutineRepository implements RoutineRepository {
   final List<ProgramId> queries = [];
   int loadFailures = 0;
   bool returnForeign = false;
+  Completer<void>? readGate;
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
     queries.add(programId);
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw StateError('temporary failure');
