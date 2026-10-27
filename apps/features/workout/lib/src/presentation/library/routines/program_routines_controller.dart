@@ -5,13 +5,20 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
-enum ProgramRoutinesStatus { loading, ready, loadFailed }
+enum ProgramRoutinesStatus { loading, refreshing, ready, loadFailed }
 
 /// A Program-owned Routine collection; never a standalone Library collection.
 final class ProgramRoutinesState {
   const ProgramRoutinesState.loading()
       : status = ProgramRoutinesStatus.loading,
         routines = const [],
+        error = null,
+        saving = false;
+
+  /// Read-only snapshot while the SAME authenticated owner/cycle refreshes.
+  ProgramRoutinesState.refreshing(List<Routine> existing)
+      : status = ProgramRoutinesStatus.refreshing,
+        routines = List.unmodifiable(existing),
         error = null,
         saving = false;
 
@@ -110,10 +117,22 @@ final class ProgramRoutinesController extends ChangeNotifier {
   Future<void> load() async {
     if (_state.saving) return;
     final version = ++_loadVersion;
-    _publish(const ProgramRoutinesState.loading());
     final versioned = repository is RoutineVersionedRenameRepository
         ? repository as RoutineVersionedRenameRepository
         : null;
+    // Retain rows only for a previously verified owner/login cycle. During the
+    // read this is presentation-only: refresh status blocks edit/move/delete.
+    // A session change must immediately stop displaying the old owner snapshot.
+    final current = _state;
+    final hasVerifiedCycle = versioned == null ||
+        (_loadedOwnerId != null && _loadedSessionCycleId != null);
+    final canRetain = hasVerifiedCycle &&
+        (current.status == ProgramRoutinesStatus.ready ||
+            current.status == ProgramRoutinesStatus.refreshing) &&
+        _sameOwnerCycle(versioned, _loadedOwnerId, _loadedSessionCycleId);
+    _publish(canRetain
+        ? ProgramRoutinesState.refreshing(current.routines)
+        : const ProgramRoutinesState.loading());
     try {
       final cycle = versioned?.activeLoginCycleId;
       final owner = versioned?.activeOwnerId;
