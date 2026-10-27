@@ -311,6 +311,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       intent: TioConfirmationIntent.destructive,
+      activeWhileOpen: widget.sessionActive,
     );
     if (!mounted || !widget.sessionActive.value || confirmed != true) {
       return;
@@ -371,7 +372,17 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
           weightKg: _weightKg,
           measuredAt: _measuredLocal.toUtc(),
         ));
-        if (!saved) throw const BodyWeightSubmissionRejected();
+        if (!saved) {
+          if (_hasUnknownOutcome) {
+            // After an unknown earlier update, a missing-row retry must not
+            // trap this editor forever. It is NOT confirmed save success:
+            // the parent treats true as a canonical reconciliation request.
+            if (!mounted || !widget.sessionActive.value) return;
+            Navigator.of(context).pop(true);
+            return;
+          }
+          throw const BodyWeightSubmissionRejected();
+        }
       } else {
         await widget.onSubmit!(BodyWeightRecord(
           submissionId: _submissionId,
