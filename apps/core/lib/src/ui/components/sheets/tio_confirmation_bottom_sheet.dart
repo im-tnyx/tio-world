@@ -50,6 +50,54 @@ Future<bool?> showTioConfirmationBottomSheet({
   );
 }
 
+
+/// Presents the same Core confirmation contract as a compact centered dialog.
+///
+/// The sheet API and existing sheet consumers remain unchanged. Only this
+/// additive presenter opts into the Routine Delete-proven compact geometry.
+Future<bool?> showTioConfirmationDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  required String cancelLabel,
+  Key? dialogKey,
+  Key? cardKey,
+  Widget? icon,
+  TioConfirmationIntent intent = TioConfirmationIntent.standard,
+  ValueListenable<bool>? activeWhileOpen,
+}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => _TioConfirmationRouteGuard(
+      activeWhileOpen: activeWhileOpen,
+      child: Dialog(
+        key: dialogKey,
+        backgroundColor: TioPalette.transparent,
+        elevation: TioElevation.none,
+        insetPadding: const EdgeInsets.all(TioSpacing.lg),
+        child: SizedBox(
+          width: TioSize.dp320,
+          child: SingleChildScrollView(
+            child: _TioConfirmationContent(
+              key: cardKey,
+              title: title,
+              message: message,
+              confirmLabel: confirmLabel,
+              cancelLabel: cancelLabel,
+              icon: icon,
+              intent: intent,
+              centered: true,
+              onCancel: () => Navigator.of(dialogContext).pop(false),
+              onConfirm: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Optional owner/session lifecycle binding for a modal presented over another
 /// editor. It removes only this confirmation route, never an unrelated route.
 class _TioConfirmationRouteGuard extends StatefulWidget {
@@ -141,6 +189,7 @@ class _TioConfirmationContent extends StatelessWidget {
     required this.intent,
     super.key,
     this.icon,
+    this.centered = false,
   });
 
   final String title;
@@ -151,11 +200,31 @@ class _TioConfirmationContent extends StatelessWidget {
   final VoidCallback onCancel;
   final Widget? icon;
   final TioConfirmationIntent intent;
+  final bool centered;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    // Match the Routine Delete dialog's smaller visual action minimum only
+    // inside centered confirmations; keep Material's padded tap targets.
+    const compactMinSize = WidgetStatePropertyAll<Size>(
+      Size(TioButtonTokens.minimumWidth, TioSize.dp38),
+    );
+    final compactTheme = centered
+        ? theme.copyWith(
+            filledButtonTheme: FilledButtonThemeData(
+              style: (theme.filledButtonTheme.style ?? const ButtonStyle())
+                  .copyWith(minimumSize: compactMinSize),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: (theme.outlinedButtonTheme.style ?? const ButtonStyle())
+                  .copyWith(minimumSize: compactMinSize),
+            ),
+          )
+        : theme;
 
     final confirmButton = switch (intent) {
       TioConfirmationIntent.standard => TioButton.primary(
@@ -170,25 +239,43 @@ class _TioConfirmationContent extends StatelessWidget {
         ),
     };
 
+    final actions = Row(
+      children: [
+        Expanded(
+          child: TioButton.secondary(
+            label: cancelLabel,
+            onPressed: onCancel,
+            expand: true,
+          ),
+        ),
+        SizedBox(width: centered ? TioSpacing.sm : TioSpacing.md),
+        Expanded(child: confirmButton),
+      ],
+    );
+
     return TioCard(
       variant: TioCardVariant.elevated,
-      padding: const EdgeInsets.all(TioSpacing.xl),
+      padding: EdgeInsets.all(centered ? TioSpacing.lg : TioSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
             IconTheme(
               data: IconThemeData(
-                color: colors.textPrimary,
+                color: centered && intent == TioConfirmationIntent.destructive
+                    ? colors.danger
+                    : colors.textPrimary,
                 size: TioSize.dp24,
               ),
               child: icon!,
             ),
-            const SizedBox(height: TioSpacing.md),
+            SizedBox(height: centered ? TioSpacing.sm : TioSpacing.md),
           ],
           Text(
             title,
+            textAlign: centered ? TextAlign.center : null,
             style: textTheme.titleLarge?.copyWith(
               color: colors.textPrimary,
               fontWeight: TioFontWeight.w700,
@@ -197,25 +284,14 @@ class _TioConfirmationContent extends StatelessWidget {
           const SizedBox(height: TioSpacing.sm),
           Text(
             message,
+            textAlign: centered ? TextAlign.center : null,
             style: textTheme.bodyMedium?.copyWith(
               color: colors.textSecondary,
               height: TioLineHeight.height140,
             ),
           ),
-          const SizedBox(height: TioSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: TioButton.secondary(
-                  label: cancelLabel,
-                  onPressed: onCancel,
-                  expand: true,
-                ),
-              ),
-              const SizedBox(width: TioSpacing.md),
-              Expanded(child: confirmButton),
-            ],
-          ),
+          SizedBox(height: centered ? TioSpacing.lg : TioSpacing.xl),
+          centered ? Theme(data: compactTheme, child: actions) : actions,
         ],
       ),
     );
