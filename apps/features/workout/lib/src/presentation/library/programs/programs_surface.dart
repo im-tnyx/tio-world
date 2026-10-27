@@ -719,7 +719,14 @@ class _ProgramsListState extends State<_ProgramsList> {
         );
       }
       if (index != widget.programs.length - 1) {
-        children.add(const _ProgramsDivider(indented: false));
+        // Owner decision 2026-10-27: no hairline between Library Programs.
+        // xxs is the smallest positive TioSpacing role, so rows keep a gap.
+        children.add(
+          SizedBox(
+            key: ValueKey('library-program-gap-$index'),
+            height: TioSpacing.xxs,
+          ),
+        );
       }
     }
 

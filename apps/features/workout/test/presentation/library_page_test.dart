@@ -645,6 +645,44 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
+  testWidgets('Library Program rows keep spacing and draw no divider',
+      (tester) async {
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+    );
+
+    final list = find.byKey(const ValueKey('programs-list'));
+    expect(list, findsOneWidget);
+    expect(
+      find.descendant(of: list, matching: find.byType(Divider)),
+      findsNothing,
+    );
+
+    final gap = find.byKey(const ValueKey('library-program-gap-0'));
+    expect(find.descendant(of: list, matching: gap), findsOneWidget);
+    expect(tester.getSize(gap).height, TioSpacing.xxs);
+
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    await tester.tap(find.text('Cardio'));
+    await tester.pump();
+
+    final first = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(1).value}')),
+    );
+    final second = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(2).value}')),
+    );
+    expect(
+      find.descendant(of: list, matching: find.byType(Divider)),
+      findsNothing,
+    );
+    expect(second.top - first.bottom, closeTo(TioSpacing.xxs, 0.1));
+  });
+
   testWidgets('Program header combines chevron and title as one toggle',
       (tester) async {
     await _pump(tester);
