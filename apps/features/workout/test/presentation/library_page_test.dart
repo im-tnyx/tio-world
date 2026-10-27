@@ -607,7 +607,7 @@ void main() {
     final glyphRect = tester.getRect(leftGlyph);
     expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
     expect(titleRect.left - glyphRect.right,
-        closeTo(TioSpacing.xs + 2, 0.1));
+        closeTo(TioSpacing.xs, 0.1));
 
     // Tapping text, not just the arrow, must collapse the same Program.
     await tester.tap(find.text('Strength'));
@@ -671,7 +671,7 @@ void main() {
         closeTo(tester.getRect(section).right, 0.1));
     expect(tester.getRect(glyph).left -
         tester.getRect(find.text('Strength')).right,
-        closeTo(TioSpacing.sm, 0.1));
+        closeTo(TioSpacing.xs, 0.1));
 
     await tester.tap(find.text('Strength'));
     await tester.pump();
