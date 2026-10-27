@@ -179,19 +179,25 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
               label: 'Routine options',
               onTap: widget.actionsEnabled ? _openActions : null,
               child: ExcludeSemantics(
-                child: IconButton(
-                  tooltip: 'Routine options',
-                  onPressed:
-                      widget.actionsEnabled ? _openActions : null,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(
-                    width: TioSize.dp48,
-                    height: TioSize.dp48,
-                  ),
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    size: TioSize.dp24,
-                    color: colors.textPrimary,
+                child: GestureDetector(
+                  // Keep a child tap recognizer during refresh so the
+                  // disabled overflow press cannot reach the parent card.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.actionsEnabled ? _openActions : () {},
+                  child: IconButton(
+                    tooltip: 'Routine options',
+                    onPressed:
+                        widget.actionsEnabled ? _openActions : null,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: TioSize.dp48,
+                      height: TioSize.dp48,
+                    ),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      size: TioSize.dp24,
+                      color: colors.textPrimary,
+                    ),
                   ),
                 ),
               ),
