@@ -137,6 +137,13 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
     final colors = context.tioColors;
     return TioCard(
       onTap: widget.onTap,
+      // Keep the leading inset. The menu sits on the card's trailing edge.
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        TioSpacing.lg,
+        TioSpacing.lg,
+        TioSpacing.xs,
+        TioSpacing.lg,
+      ),
       child: Row(
         children: [
           Icon(Icons.fitness_center_outlined, color: colors.textSecondary),
@@ -188,18 +195,26 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                     tooltip: 'Routine options',
                     onPressed:
                         widget.actionsEnabled ? _openActions : null,
+                    alignment: AlignmentDirectional.centerEnd,
                     padding: EdgeInsets.zero,
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      fixedSize: const Size(TioSize.dp32, TioSize.dp32),
+                      alignment: AlignmentDirectional.centerEnd,
+                    ),
                     constraints: const BoxConstraints.tightFor(
-                      width: TioSize.dp48,
-                      height: TioSize.dp48,
+                      width: TioSize.dp32,
+                      height: TioSize.dp32,
                     ),
                     icon: SizedBox(
-                      width: TioSize.dp28,
+                      width: TioSize.dp20,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: TioSize.dp28,
+                            width: TioSize.dp20,
                             height: TioStroke.width2,
                             decoration: BoxDecoration(
                               color: colors.textPrimary,
@@ -207,9 +222,9 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                                   BorderRadius.circular(TioRadius.full),
                             ),
                           ),
-                          const SizedBox(height: TioSpacing.sm),
+                          const SizedBox(height: TioSpacing.xs),
                           Container(
-                            width: TioSize.dp28,
+                            width: TioSize.dp20,
                             height: TioStroke.width2,
                             decoration: BoxDecoration(
                               color: colors.textPrimary,

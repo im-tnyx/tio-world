@@ -235,7 +235,7 @@ class _InlineProgramRoutinesState extends State<InlineProgramRoutines> {
                     routine: routine,
                     // A same-owner background read may keep navigation
                     // available, but the action menu must not dispatch writes.
-                    // Preserve the existing 48dp menu slot throughout the read.
+                    // Preserve the trailing menu slot throughout the read.
                     actionsEnabled: !refreshing,
                     onTap: widget.onRoutinePressed == null
                         ? null

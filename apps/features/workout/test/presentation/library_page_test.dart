@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -204,6 +205,17 @@ void main() {
       find.descendant(of: menu, matching: find.byType(IconButton)),
     );
     expect(disabledButton.onPressed, isNull);
+    // A disabled overflow press must not fall through to card navigation.
+    await tester.tap(menu);
+    await tester.pump();
+    expect(navigations, 0);
+    expect(edits, 0);
+    expect(
+      find.byKey(ValueKey(
+        'routine-actions-sheet-${_routine(1, 101, 'Push').id.value}',
+      )),
+      findsNothing,
+    );
     // Verified read-only navigation is still permitted during refresh.
     await tester.tap(firstCard);
     await tester.pump();
@@ -267,6 +279,51 @@ void main() {
     expect(find.byKey(const ValueKey('library-programs-refreshing')),
         findsNothing);
     expect(find.text('Push'), findsOneWidget);
+  });
+
+  testWidgets('Program Edit and Add stay disabled during collection refresh',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final pending = Completer<void>();
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: (_) async {},
+      onAddRoutinePressed: (_) async {},
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    programs.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: true,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    TioCard optionCard(ValueKey<String> key) => tester.widget<TioCard>(
+          find.descendant(
+            of: find.byKey(key),
+            matching: find.byType(TioCard),
+          ),
+        );
+    expect(optionCard(const ValueKey('program-action-open')).onTap, isNotNull);
+    expect(optionCard(const ValueKey('program-action-edit')).onTap, isNull);
+    expect(
+      optionCard(const ValueKey('program-action-add-routine')).onTap,
+      isNull,
+    );
+    pending.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Move refreshes both expanded Program Routine lists, keeps collapse',
@@ -581,8 +638,7 @@ void main() {
     final padding = tester.widget<Padding>(
       find.descendant(of: row, matching: find.byType(Padding)).first,
     );
-    expect(padding.padding,
-        const EdgeInsets.symmetric(vertical: TioSpacing.xs));
+    expect(padding.padding, EdgeInsets.zero);
 
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
@@ -613,12 +669,15 @@ void main() {
     await tester.tap(find.text('Strength'));
     await tester.pump();
     expect(find.byTooltip('Expand Strength'), findsOneWidget);
-    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
         findsNothing);
-    await tester.tap(leftGlyph);
+    await tester.tap(find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_right_rounded),
+    ));
     await tester.pump();
     expect(find.byTooltip('Collapse Strength'), findsOneWidget);
-    expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
         findsOneWidget);
   });
 
@@ -911,7 +970,9 @@ void main() {
     final action = find.byKey(const ValueKey('program-action-add-routine'));
     expect(action, findsOneWidget);
     expect(
-      tester.widget<TioSettingsNavigationRow>(action).onTap,
+      tester.widget<TioCard>(
+        find.descendant(of: action, matching: find.byType(TioCard)),
+      ).onTap,
       isNull,
     );
     hold.complete();
@@ -949,9 +1010,10 @@ void main() {
     );
     await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
     await tester.pumpAndSettle();
+    final addAction = find.byKey(const ValueKey('program-action-add-routine'));
     expect(
-      tester.widget<TioSettingsNavigationRow>(
-        find.byKey(const ValueKey('program-action-add-routine')),
+      tester.widget<TioCard>(
+        find.descendant(of: addAction, matching: find.byType(TioCard)),
       ).onTap,
       isNull,
     );
@@ -1111,15 +1173,18 @@ void main() {
     expect(find.byType(ProgramsPage), findsNothing);
   });
 
-  testWidgets('Program name stays non-navigable until W4 detail exists',
+  testWidgets('Program name expands in place and does not open detail',
       (tester) async {
     await _pump(tester);
 
     final name = find.text('Strength');
     expect(name, findsOneWidget);
     expect(
-      find.ancestor(of: name, matching: find.byType(InkWell)),
-      findsNothing,
+      find.ancestor(
+        of: name,
+        matching: find.byKey(ValueKey('program-expand-${_id(1).value}')),
+      ),
+      findsOneWidget,
     );
   });
 
@@ -1207,11 +1272,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final title = tester.widget<Text>(
-      find.byKey(const ValueKey('program-actions-title')),
-    );
-    expect(title.maxLines, 2);
-    expect(title.overflow, TextOverflow.ellipsis);
+    final sheet = find.byKey(const ValueKey('program-actions-sheet'));
+    expect(sheet, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text(longName)),
+        findsOneWidget);
+    final rect = tester.getRect(sheet);
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.right, lessThanOrEqualTo(800));
     expect(find.text('Edit Program'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -1429,6 +1496,49 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('pull moves Programs down and keeps them while rereading',
+      (tester) async {
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    await _pump(tester, programRepository: programs);
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    final before = tester.getTopLeft(row).dy;
+    final readsBefore = programs.listReads;
+    final scroll = find.byKey(const ValueKey('library-scroll'));
+    final view = tester.widget<CustomScrollView>(scroll);
+    expect(view.physics, isA<BouncingScrollPhysics>());
+    expect(view.physics?.parent, isA<AlwaysScrollableScrollPhysics>());
+    expect(view.slivers.first, isA<CupertinoSliverRefreshControl>());
+
+    final gate = Completer<void>();
+    programs.readGate = gate;
+    final touch = await tester.startGesture(tester.getCenter(row));
+    await touch.moveBy(const Offset(0, 190));
+    await tester.pump();
+    await touch.moveBy(const Offset(0, 230));
+    await tester.pump();
+
+    expect(tester.getTopLeft(row).dy, greaterThan(before + TioSpacing.lg));
+    expect(tester.getRect(scroll).top, lessThan(tester.getTopLeft(row).dy));
+    expect(
+      tester.getTopLeft(find.text('Library')).dy,
+      lessThan(before),
+    );
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(programs.listReads, greaterThan(readsBefore));
+    expect(find.text('Strength'), findsOneWidget);
+
+    programs.programs[0] = _program(1, 'Power');
+    gate.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.text('Power'), findsOneWidget);
+    expect(find.text('Strength'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 ProgramId _id(int value) => ProgramId(

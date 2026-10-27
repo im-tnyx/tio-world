@@ -281,6 +281,21 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               ),
               const SizedBox(height: TioSpacing.lg),
             ],
+            if (_controller?.state.status == ProgramRoutinesStatus.refreshing)
+              const Padding(
+                padding: EdgeInsets.only(bottom: TioSpacing.sm),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    key: ValueKey('program-detail-refreshing'),
+                    width: TioSize.dp16,
+                    height: TioSize.dp16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: TioStroke.width2,
+                    ),
+                  ),
+                ),
+              ),
             _body(),
           ],
         ),
@@ -341,7 +356,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                   supportingText: widget.onRoutinePressed == null
                       ? null
                       : 'View Routine',
-                  // Keep the same 48dp overflow slot and read-only navigation
+                  // Keep the trailing overflow slot and read-only navigation
                   // on a verified same-owner refresh; mutation callbacks stay
                   // guarded by the controller's _canEdit check.
                   actionsEnabled: _canEdit,

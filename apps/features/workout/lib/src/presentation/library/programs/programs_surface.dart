@@ -11,6 +11,20 @@ import 'programs_controller.dart';
 
 enum _ProgramsSurfaceMode { standalone, library }
 
+/// Library owns the pull gesture. The mounted Programs surface performs the
+/// same content-preserving reread used by background refresh.
+final class LibraryProgramsRefresh {
+  Future<void> Function()? _action;
+
+  void attach(Future<void> Function() action) => _action = action;
+
+  void detach(Future<void> Function() action) {
+    if (identical(_action, action)) _action = null;
+  }
+
+  Future<void> call() => _action?.call() ?? Future<void>.value();
+}
+
 /// Reusable persisted user-Program collection presentation.
 ///
 /// The standalone mode backs `ProgramsPage`. The Library mode renders the same
@@ -34,7 +48,8 @@ class ProgramsSurface extends StatefulWidget {
         actionSheetGuard = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
-        routineRepository = null;
+        routineRepository = null,
+        pullRefresh = null;
 
   const ProgramsSurface.library({
     required this.repository,
@@ -52,6 +67,7 @@ class ProgramsSurface extends StatefulWidget {
     this.moveRefreshSignal,
     this.moveRefreshOwnerId,
     this.moveRefreshLoginCycleId,
+    this.pullRefresh,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
 
@@ -61,6 +77,8 @@ class ProgramsSurface extends StatefulWidget {
   final RoutineMoveRefreshSignal? moveRefreshSignal;
   final String? moveRefreshOwnerId;
   final String? moveRefreshLoginCycleId;
+  /// Set only by Library. Standalone Programs does not own this gesture.
+  final LibraryProgramsRefresh? pullRefresh;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
@@ -102,6 +120,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   void initState() {
     super.initState();
     widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    widget.pullRefresh?.attach(_refreshFromPull);
     _bindController();
   }
 
@@ -111,6 +130,10 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
       oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
       widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
+    if (!identical(oldWidget.pullRefresh, widget.pullRefresh)) {
+      oldWidget.pullRefresh?.detach(_refreshFromPull);
+      widget.pullRefresh?.attach(_refreshFromPull);
     }
     if (!identical(oldWidget.repository, widget.repository) ||
         !identical(oldWidget.idGenerator, widget.idGenerator) ||
@@ -192,8 +215,17 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     setState(() => _routineRefreshVersion++);
   }
 
+  Future<void> _refreshFromPull() async {
+    if (!mounted) return;
+    // Expanded Routine lists reread with the Program collection. Verified
+    // rows stay mounted while both reads are in flight.
+    setState(() => _routineRefreshVersion++);
+    await _controller?.load();
+  }
+
   @override
   void dispose() {
+    widget.pullRefresh?.detach(_refreshFromPull);
     widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_onControllerChanged)
@@ -273,6 +305,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   Future<void> _openProgramActions(Program program) async {
     if (_openingProgramActions.contains(program.id)) return;
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
+    final refreshing =
+        _controller?.state.status == ProgramsStatus.refreshing;
     _openingProgramActions.add(program.id);
     try {
       // Use the same Core editor-sheet and outlined option-card treatment as
@@ -300,8 +334,10 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                 key: const ValueKey('program-action-edit'),
                 label: 'Edit Program',
                 icon: Icons.edit_outlined,
-                onTap: () =>
-                    Navigator.of(sheetContext).pop(_ProgramAction.edit),
+                enabled: !refreshing,
+                onTap: refreshing
+                    ? null
+                    : () => Navigator.of(sheetContext).pop(_ProgramAction.edit),
               ),
               if (widget.onAddRoutinePressed != null) ...[
                 const SizedBox(height: TioSpacing.sm),
@@ -309,7 +345,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                   key: const ValueKey('program-action-add-routine'),
                   label: 'Add New Routine',
                   icon: Icons.add_rounded,
-                  onTap: pendingSave || _openingAddRoutine
+                  onTap: pendingSave || _openingAddRoutine || refreshing
                       ? null
                       : () => Navigator.of(sheetContext)
                           .pop(_ProgramAction.addRoutine),
@@ -318,7 +354,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                       : _openingAddRoutine
                           ? 'Another Routine is opening'
                           : null,
-                  enabled: !pendingSave && !_openingAddRoutine,
+                  enabled: !pendingSave && !_openingAddRoutine && !refreshing,
                 ),
               ],
             ],
@@ -798,14 +834,14 @@ class _LibraryProgramRow extends StatelessWidget {
                 onTap: onToggleExpanded,
                 borderRadius: BorderRadius.circular(TioRadius.md),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: TioSize.dp40),
+                  constraints: const BoxConstraints(minHeight: TioSize.dp48),
                   child: Row(
                     children: [
                       // Chevron starts at the Library's own leading padding.
                       // The text and icon form ONE accessible expand target.
                       SizedBox(
                         width: TioSize.dp28,
-                        height: TioSize.dp40,
+                        height: TioSize.dp48,
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: Icon(

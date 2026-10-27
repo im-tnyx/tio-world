@@ -6,7 +6,7 @@
 ## Owner Approval and Scope Boundary
 **Trigger:** Product-visible UI/UX change.
 **Approval status:** Approved.
-**Approval evidence:** User approved #699 implementation, then requested smaller chevron selection and original left padding; final explicit 2026-10-27 UX decision: chevron and title share ONE expand/collapse tap area and Open Program appears only in the 3-dot sheet.
+**Approval evidence:** User approved #699 implementation, then requested smaller chevron selection and original left padding; final explicit 2026-10-27 UX decision: chevron and title share ONE expand/collapse tap area and Open Program appears only in the 3-dot sheet. Same-day owner request: Library pull-to-refresh matches the Progress physical reveal.
 **Approved boundaries:** Single Programs-level refresh indicator, owner-safe retained rows with stable card/action geometry, one combined chevron+title expand/collapse target, and Open Program as the first action in the existing 3-dot sheet. Existing Edit/Add remain; no Delete.
 **Explicit non-changes:** No backend, auth, RPC, migrations, feature flags, Program Delete, Move/Undo server semantics, unrelated UI, Core token changes, or production release activation.
 
@@ -22,7 +22,7 @@
 **Observed working-tree state:** Remote GitHub branch only; local checkout not inspected.
 **Observed uncommitted/dirty files:** Not observable through GitHub connector.
 **PR / tracker:** https://github.com/im-tnyx/tio-world/pull/703 (ready for review, not merged), https://github.com/im-tnyx/tio-world/issues/699, https://linear.app/tnyx/issue/TNYX-267.
-**Current implementation state:** Single Programs heading refresh cue; content-preserving owner-safe background reads; RoutineMetadataCard keeps 48dp 3-dot geometry while disabling writes and guarding pending sheet callbacks; chevron/title is a unified full-width expand/collapse InkWell with original leading alignment, 6dp glyph-to-title gap, trimmed 4dp vertical row padding (while preserving 48dp accessible tap height), and Open Program moved to existing 3-dot TioSheet and uses the existing _openProgram readback navigation. Existing Edit/Add remain; no backend or release flags. Tests cover LTR/RTL tap, menu navigation, refresh card geometry.
+**Current implementation state:** Library pull-to-refresh matches Progress: `CupertinoSliverRefreshControl` moves the list under the fixed Library bar and rereads Programs plus expanded Routines without clearing rows. Single Programs heading refresh cue; content-preserving owner-safe background reads; RoutineMetadataCard keeps the 48dp options target. Owner 2026-10-27 correction after `0f325a09`: the two-line Routine mark is 20×2dp bars with a 4dp gap (`TioSpacing.xs`), not the 28dp bars / 8dp gap from that commit. Chevron/title remains one expand/collapse target; Open Program stays in the existing sheet. Existing Edit/Add remain; no backend or release flags.
 **Relevant execution surface:** `programs_surface.dart`, `inline_program_routines.dart`, owner-scoped presentation controllers and focused tests.
 **Validation completed at SHA:** Earlier `c27097bd` passed all Flutter/Dart CI and Docs Hygiene. New UX and review fixes advanced HEAD; exact-final-HEAD Flutter CI remains pending and earlier green results do NOT validate it.
 **Validation remaining:** Exact-final-HEAD Flutter CI analysis and app-workout/navigation regressions; Docs Hygiene; independent review of all bot findings and disabled-overflow behavior; owner Android visual QA. Superseded prior runs do not count.
