@@ -18,16 +18,16 @@
 **Ownership transition:** Not applicable.
 **Repository state last verified:** GitHub `main@d1b373db0bff77c5d2b9bd447eb1489e21887643`; owner Windows working tree not visible to this connector.
 **Branch:** `tnyx/issue-699-library-refresh-chevron-20261027`
-**HEAD SHA:** `e0274d600345646bdd3a457c848b8e12b33cbbe2` before this handoff commit; track latest branch HEAD via GitHub.
+**HEAD SHA:** `12300121b300ea51d25ca4980881729404859769` (latest compact-spacing, disabled-overflow guard, and widget expectation changes).
 **Observed working-tree state:** Remote GitHub branch only; local checkout not inspected.
 **Observed uncommitted/dirty files:** Not observable through GitHub connector.
 **PR / tracker:** https://github.com/im-tnyx/tio-world/pull/703 (ready for review, not merged), https://github.com/im-tnyx/tio-world/issues/699, https://linear.app/tnyx/issue/TNYX-267.
-**Current implementation state:** Single Programs heading refresh cue; content-preserving owner-safe background reads; RoutineMetadataCard keeps 48dp 3-dot geometry while disabling writes and guarding pending sheet callbacks; chevron/title is a unified full-width expand/collapse InkWell with original leading alignment and 48dp minimum height; Open Program moved to existing 3-dot TioSheet and uses the existing _openProgram readback navigation. Existing Edit/Add remain; no backend or release flags. Tests cover LTR/RTL tap, menu navigation, refresh card geometry.
+**Current implementation state:** Single Programs heading refresh cue; content-preserving owner-safe background reads; RoutineMetadataCard keeps 48dp 3-dot geometry while disabling writes and guarding pending sheet callbacks; chevron/title is a unified full-width expand/collapse InkWell with original leading alignment, 6dp glyph-to-title gap, trimmed 4dp vertical row padding (while preserving 48dp accessible tap height), and Open Program moved to existing 3-dot TioSheet and uses the existing _openProgram readback navigation. Existing Edit/Add remain; no backend or release flags. Tests cover LTR/RTL tap, menu navigation, refresh card geometry.
 **Relevant execution surface:** `programs_surface.dart`, `inline_program_routines.dart`, owner-scoped presentation controllers and focused tests.
 **Validation completed at SHA:** Earlier `c27097bd` passed all Flutter/Dart CI and Docs Hygiene. New UX and review fixes advanced HEAD; exact-final-HEAD Flutter CI remains pending and earlier green results do NOT validate it.
-**Validation remaining:** Exact-final-HEAD Flutter CI analysis and app-workout/navigation regressions; Docs Hygiene; independent review after two bot findings; owner Android visual QA. Superseded prior runs do not count.
+**Validation remaining:** Exact-final-HEAD Flutter CI analysis and app-workout/navigation regressions; Docs Hygiene; independent review of all bot findings and disabled-overflow behavior; owner Android visual QA. Superseded prior runs do not count.
 **Current blocker:** None for implementation; tests require CI or owner's Flutter installation.
-**Open review finding IDs:** Codex P1 `#4386182151` thread `PRRT_kwDOTOXwB86wlrrN` initially unresolved/outdated after source changes; Cursor `#4386201854` thread `PRRT_kwDOTOXwB86wlumn` auto-resolved/outdated. Both require validation that disabled actions preserve card rect and cannot dispatch writes.
+**Open review finding IDs:** Codex P1 `#4386182151` thread `PRRT_kwDOTOXwB86wlrrN` still unresolved/outdated; Cursor `#4386201854` thread `PRRT_kwDOTOXwB86wlumn` resolved/outdated. New Cursor medium finding `#4386476685` thread `PRRT_kwDOTOXwB86wmZh7` reported disabled Routine overflow taps falling through to card navigation. Implemented a child opaque GestureDetector no-op while actions are disabled; must validate with regression test/review. Geometry test now asserts 6dp gap and reduced row padding.
 **Next exact action:** Verify all required GitHub CI jobs against latest PR HEAD; correct failures, review diff, obtain independent review/owner visual QA; no merge yet.
 
 ## 1. Discovery
