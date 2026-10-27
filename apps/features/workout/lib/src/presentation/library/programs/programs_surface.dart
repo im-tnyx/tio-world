@@ -722,9 +722,12 @@ class _LibraryProgramRow extends StatelessWidget {
             onPressed: onToggleExpanded,
             color: colors.textSecondary,
             padding: EdgeInsets.zero,
-            alignment: AlignmentDirectional.centerEnd,
+            // Keep the icon at the Library's leading padding. The owner's
+            // compact selection request shrinks the horizontal hit region,
+            // without reducing its 48dp height or affecting title/overflow.
+            alignment: AlignmentDirectional.centerStart,
             constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp48,
+              width: TioSize.dp32,
               height: TioSize.dp48,
             ),
             icon: Icon(
@@ -734,9 +737,7 @@ class _LibraryProgramRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsetsDirectional.only(start: TioSpacing.xs),
-              child: onProgramPressed == null
+            child: onProgramPressed == null
                   ? Text(
                       program.name,
                       maxLines: 2,
@@ -767,7 +768,6 @@ class _LibraryProgramRow extends StatelessWidget {
                         ),
                       ),
                     ),
-            ),
           ),
           IconButton(
             key: ValueKey('program-overflow-${program.id.value}'),
