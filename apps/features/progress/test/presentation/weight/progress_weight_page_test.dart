@@ -1641,6 +1641,13 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
     await tester.pumpAndSettle();
     expect(find.text('Delete weight log?'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('progress-weight-delete-confirmation-dialog'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(Dialog), findsOneWidget);
     expect(repository.weightEntries, hasLength(2));
     await tester.tap(find.text('Cancel').last);
     await tester.pumpAndSettle();
