@@ -575,6 +575,10 @@ Features still own callbacks, navigation, values, keys, domain copy, and intenti
 
 `showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, presenter-level `TioConfirmationIntent`, boolean result semantics, and internal `TioCard` + `TioButton` composition. Features supply only the title, message, confirm/cancel labels, optional icon widget, and semantic confirmation intent. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
 
+For an owner/session-scoped workflow that can lose authorization while the confirmation is open, callers may pass `activeWhileOpen: ValueListenable<bool>` to the existing presenter. When it becomes false, the presenter redacts the content and removes **only its own** modal route. Existing callers that omit this optional binding keep the same sheet, button geometry, intent, and result semantics. This is lifecycle safety, **not** the separately planned centered confirmation design (GitHub #173).
+
+`TioWeightWheel` rounds **total canonical/display tenths before splitting whole and decimal drums** on external value synchronization and kg/lb unit switching. For example, canonical ~69.9894 kg from 154.3 lb must visually select `70.0 kg`, not `69.9 kg`; the underlying measurement is not silently rounded for storage.
+
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 
 Raw Flutter primitives are valid inside reusable core implementations and rare justified one-off cases.

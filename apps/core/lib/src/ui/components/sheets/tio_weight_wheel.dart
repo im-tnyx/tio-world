@@ -149,8 +149,12 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
 
   void _syncToKg(double kg, {bool notify = true}) {
     setState(() => _selectedKg = kg);
-    final whole = kg.truncate().clamp(_minKg, _maxKg);
-    final decimal = ((kg - whole) * 10).round().clamp(0, 9);
+    // Round total tenths before splitting whole/decimal. Rounding 69.989
+    // must carry to 70.0, not clamp the decimal to 69.9.
+    final kgTenths =
+        (kg * 10).round().clamp(_minKg * 10, _maxKg * 10).toInt();
+    final whole = kgTenths ~/ 10;
+    final decimal = kgTenths % 10;
 
     _runProgrammaticSync(() {
       if (!_isLbs) {
@@ -219,8 +223,10 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
 
     _runProgrammaticSync(() {
       if (!newIsLbs) {
-        final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
-        final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
+        final kgTenths = (_selectedKg * 10)
+            .round().clamp(_minKg * 10, _maxKg * 10).toInt();
+        final whole = kgTenths ~/ 10;
+        final decimal = kgTenths % 10;
         _wholeController.jumpToItem(whole - _minKg);
         _decimalController.jumpToItem(decimal);
       } else {

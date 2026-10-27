@@ -1,9 +1,232 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_progress/src/presentation/weight/progress_weight_log_sheet.dart';
 
 void main() {
+  testWidgets('edit modal closes on owner invalidation without mutating log',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    var updates = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showProgressWeightEditSheet(
+                context: context,
+                unit: WeightUnit.kg,
+                entry: BodyWeightEntry(
+                  id: '11111111-1111-4111-8111-111111111111',
+                  weightKg: 74,
+                  measuredAt: DateTime.utc(2026, 10, 20, 10),
+                ),
+                sessionActive: active,
+                onUpdate: (_) async { updates++; return true; },
+                onDelete: (_) async => true,
+                now: () => DateTime.utc(2026, 10, 26, 10),
+              ),
+              child: const Text('Open edit'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-edit-delete')), findsOneWidget);
+    active.value = false;
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Weight'), findsNothing);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(updates, 0);
+  });
+
+  testWidgets('session change dismisses nested Delete confirmation route',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    var deletes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showProgressWeightEditSheet(
+                context: context,
+                unit: WeightUnit.kg,
+                entry: BodyWeightEntry(
+                  id: '11111111-1111-4111-8111-111111111111',
+                  weightKg: 74,
+                  measuredAt: DateTime.utc(2026, 10, 20, 10),
+                ),
+                sessionActive: active,
+                onUpdate: (_) async => true,
+                onDelete: (_) async { deletes++; return true; },
+                now: () => DateTime.utc(2026, 10, 26, 10),
+              ),
+              child: const Text('Open edit'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-edit-delete')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete weight log?'), findsOneWidget);
+    expect(find.byType(BottomSheet), findsWidgets);
+
+    active.value = false;
+    await tester.pumpAndSettle();
+    expect(find.text('Delete weight log?'), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
+    expect(
+      tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
+      isFalse,
+    );
+    expect(find.text('Open edit'), findsOneWidget);
+    expect(deletes, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('unknown Edit then missing-row retry exits for reconciliation',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    var attempts = 0;
+    bool? reconciliationRequested;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                reconciliationRequested = await showProgressWeightEditSheet(
+                  context: context,
+                  unit: WeightUnit.kg,
+                  entry: BodyWeightEntry(
+                    id: '11111111-1111-4111-8111-111111111111',
+                    weightKg: 74,
+                    measuredAt: DateTime.utc(2026, 10, 20, 10),
+                  ),
+                  sessionActive: active,
+                  onUpdate: (_) async {
+                    attempts++;
+                    if (attempts == 1) {
+                      throw StateError('Update response lost');
+                    }
+                    return false; // Row absent on the same-ID retry.
+                  },
+                  onDelete: (_) async => true,
+                  now: () => DateTime.utc(2026, 10, 26, 10),
+                );
+              },
+              child: const Text('Open edit'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry Changes'), findsOneWidget);
+    expect(find.textContaining('Save not confirmed'), findsOneWidget);
+    expect(
+      tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-close')),
+      ).onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('Retry Changes'));
+    await tester.pumpAndSettle();
+    expect(attempts, 2);
+    expect(reconciliationRequested, isTrue);
+    expect(find.text('Edit Weight'), findsNothing);
+    expect(find.text('Open edit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Edit header and footer preserve note actions and icon order',
+      (tester) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    final note = List.filled(105, 'recorded').join(' ');
+    BodyWeightLogEdit? saved;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: Builder(builder: (context) => ElevatedButton(
+        onPressed: () => showProgressWeightEditSheet(
+          context: context,
+          unit: WeightUnit.kg,
+          entry: BodyWeightEntry(
+            id: '11111111-1111-4111-8111-111111111111',
+            weightKg: 74,
+            measuredAt: DateTime.utc(2026, 10, 20, 10),
+            note: note,
+          ),
+          sessionActive: active,
+          onUpdate: (edit) async { saved = edit; return true; },
+          onDelete: (_) async => true,
+          now: () => DateTime.utc(2026, 10, 26, 10),
+        ),
+        child: const Text('Open edit'),
+      ))),
+    ));
+    await tester.tap(find.text('Open edit'));
+    await tester.pumpAndSettle();
+    final del = find.byKey(const ValueKey('progress-edit-delete'));
+    final keyboard = find.byKey(
+        const ValueKey('progress-log-weight-mode-toggle'));
+    final close = find.byKey(const ValueKey('progress-log-close'));
+    expect(tester.getTopLeft(del).dx,
+        lessThan(tester.getTopLeft(keyboard).dx));
+    expect(tester.getTopLeft(keyboard).dx,
+        lessThan(tester.getTopLeft(close).dx));
+    final icon = tester.widget<IconButton>(keyboard).icon as Icon;
+    expect(icon.icon, Icons.keyboard_outlined);
+    final noteAction = find.byKey(const ValueKey('progress-log-note-toggle'));
+    expect(noteAction, findsOneWidget);
+    final photo = tester.widget<IconButton>(
+        find.byKey(const ValueKey('progress-log-photo-later')));
+    expect(photo.onPressed, isNull);
+    expect(find.byKey(const ValueKey('progress-log-date-time')),
+        findsOneWidget);
+    await tester.tap(noteAction);
+    await tester.pumpAndSettle();
+    expect(find.text(note), findsOneWidget);
+    expect(find.byKey(const ValueKey('progress-log-note-field')),
+        findsNothing);
+    await tester.tap(noteAction);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('progress-log-save')));
+    await tester.pumpAndSettle();
+    expect(saved?.id, '11111111-1111-4111-8111-111111111111');
+    expect(saved?.weightKg, 74);
+  });
+
   testWidgets('owner deactivation removes root modal and private draft',
       (tester) async {
     final active = ValueNotifier<bool>(true);

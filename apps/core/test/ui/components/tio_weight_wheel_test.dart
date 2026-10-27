@@ -135,6 +135,77 @@ void main() {
     expect(decimal.selectedItem, 3);
   });
 
+  testWidgets('switching 154.3 lb to kg carries to visible 70.0',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: TioWeightWheel(
+            valueKg: 154.3 / 2.20462,
+            unit: WeightUnit.lb,
+            showUnitSwitcher: true,
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final drums = find.byType(ListWheelScrollView);
+    expect(drums, findsNWidgets(3));
+    final whole = tester.widget<ListWheelScrollView>(drums.at(0)).controller!
+        as FixedExtentScrollController;
+    final decimal = tester.widget<ListWheelScrollView>(drums.at(1)).controller!
+        as FixedExtentScrollController;
+    final unit = tester.widget<ListWheelScrollView>(drums.at(2)).controller!
+        as FixedExtentScrollController;
+    expect(whole.selectedItem, 154 - 66);
+    expect(decimal.selectedItem, 3);
+    unit.jumpToItem(0);
+    await tester.pumpAndSettle();
+    expect(whole.selectedItem, 70 - 30);
+    expect(decimal.selectedItem, 0);
+    expect(find.text('70'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('external canonical kg sync carries rounded decimal overflow',
+      (tester) async {
+    var kg = 69.5;
+    late StateSetter change;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(body: StatefulBuilder(
+        builder: (context, setState) {
+          change = setState;
+          return TioWeightWheel(
+            valueKg: kg,
+            unit: WeightUnit.kg,
+            showUnitSwitcher: false,
+            onChanged: (_) {},
+          );
+        },
+      )),
+    ));
+    await tester.pumpAndSettle();
+    final drums = find.byType(ListWheelScrollView);
+    final whole = tester.widget<ListWheelScrollView>(drums.at(0)).controller!
+        as FixedExtentScrollController;
+    final decimal = tester.widget<ListWheelScrollView>(drums.at(1)).controller!
+        as FixedExtentScrollController;
+    change(() => kg = 154.3 / 2.20462);
+    await tester.pumpAndSettle();
+    expect(whole.selectedItem, 70 - 30);
+    expect(decimal.selectedItem, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('light theme selection pill uses a contrasting surface role',
       (tester) async {
     await tester.pumpWidget(

@@ -12,6 +12,27 @@ enum ProgressWeightRange {
   final String label;
 }
 
+/// A display-independent projection of the canonical active Body Goal.
+enum ProgressWeightTargetStatus {
+  reached,
+  belowTarget,
+  aboveTarget,
+  onTrack,
+  progress,
+}
+
+class ProgressWeightTargetProgress {
+  const ProgressWeightTargetProgress({
+    required this.targetKg,
+    required this.remainingKg,
+    required this.status,
+  });
+
+  final double targetKg;
+  final double? remainingKg;
+  final ProgressWeightTargetStatus status;
+}
+
 /// Immutable owner-scoped read model. History and chart have different windows.
 class ProgressWeightSnapshot {
   const ProgressWeightSnapshot({
@@ -31,6 +52,42 @@ class ProgressWeightSnapshot {
   final ProgressWeightRange range;
   final DateTime capturedAt;
 
+  /// Goal status is a domain projection, not a decision made by the widget.
+  /// A missing real measurement remains unknown even with a valid target.
+  ProgressWeightTargetProgress? get targetProgress {
+    final activeGoal = goal;
+    final target = activeGoal?.targetWeightKg;
+    if (activeGoal == null || target == null) return null;
+
+    final weight = current?.weightKg;
+    // Keep the actual difference on either side of the saved goal. Clamping
+    // it to zero previously hid overshoot behind "Target reached".
+    final signedDifference = weight == null ? null : weight - target;
+    final remaining = signedDifference?.abs();
+    final baseline = activeGoal.startingWeightKg;
+    final movedCloser = remaining != null &&
+        baseline != null &&
+        remaining < (baseline - target).abs();
+    final status = signedDifference == null
+        ? ProgressWeightTargetStatus.progress
+        : signedDifference.abs() < 0.0001
+            ? ProgressWeightTargetStatus.reached
+            : activeGoal.goalType == BodyGoalType.loseWeight &&
+                    signedDifference < 0
+                ? ProgressWeightTargetStatus.belowTarget
+                : activeGoal.goalType == BodyGoalType.gainWeight &&
+                        signedDifference > 0
+                    ? ProgressWeightTargetStatus.aboveTarget
+                    : movedCloser
+                        ? ProgressWeightTargetStatus.onTrack
+                        : ProgressWeightTargetStatus.progress;
+    return ProgressWeightTargetProgress(
+      targetKg: target,
+      remainingKg: remaining,
+      status: status,
+    );
+  }
+
   double? get rangeChangeKg {
     if (chartEntries.length < 2 ||
         chartEntries.first.measuredAt.isAtSameMomentAs(
@@ -39,6 +96,19 @@ class ProgressWeightSnapshot {
       return null;
     }
     return chartEntries.first.weightKg - chartEntries.last.weightKg;
+  }
+
+  /// Signed real change per seven elapsed days, never a prediction or goal pace.
+  /// The first and last in-range instants must be distinct, as for rangeChange.
+  double? get weeklyRateOfChangeKg {
+    final change = rangeChangeKg;
+    if (change == null) return null;
+    final elapsed = chartEntries.first.measuredAt
+        .difference(chartEntries.last.measuredAt)
+        .inMicroseconds;
+    // A few hours of entries do not establish an honest weekly pace.
+    if (elapsed < Duration.microsecondsPerDay * 7) return null;
+    return change * (Duration.microsecondsPerDay * 7) / elapsed;
   }
 
   ProgressWeightSnapshot appendHistory(BodyWeightHistoryPage next) {

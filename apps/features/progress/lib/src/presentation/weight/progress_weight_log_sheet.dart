@@ -32,19 +32,54 @@ Future<bool?> showProgressWeightLogSheet({
       ),
     );
 
+/// Exact-record editor uses the established Log Weight wheel/date/action shell.
+/// The record ID and original metadata are retained by BodyRepository.updateWeightLog.
+Future<bool?> showProgressWeightEditSheet({
+  required BuildContext context,
+  required WeightUnit unit,
+  required BodyWeightEntry entry,
+  required ValueListenable<bool> sessionActive,
+  required Future<bool> Function(BodyWeightLogEdit) onUpdate,
+  required Future<bool> Function(String) onDelete,
+  DateTime Function()? now,
+}) {
+  BodyWeightLogIds.requireValid(entry.id!);
+  return showTioEditorSheet<bool>(
+    context: context,
+    useRootNavigator: true,
+    useSafeArea: true,
+    isDismissible: false,
+    builder: (context) => _ProgressWeightLogSheet(
+      unit: unit,
+      initialKg: entry.weightKg,
+      editingEntry: entry,
+      sessionActive: sessionActive,
+      onUpdate: onUpdate,
+      onDelete: onDelete,
+      now: now ?? DateTime.now,
+    ),
+  );
+}
+
 class _ProgressWeightLogSheet extends StatefulWidget {
   const _ProgressWeightLogSheet({
     required this.unit,
     required this.initialKg,
     required this.sessionActive,
-    required this.onSubmit,
+    this.onSubmit,
+    this.editingEntry,
+    this.onUpdate,
+    this.onDelete,
     required this.now,
   });
 
   final WeightUnit unit;
   final double? initialKg;
   final ValueListenable<bool> sessionActive;
-  final Future<void> Function(BodyWeightRecord) onSubmit;
+  final Future<void> Function(BodyWeightRecord)? onSubmit;
+  final BodyWeightEntry? editingEntry;
+  final Future<bool> Function(BodyWeightLogEdit)? onUpdate;
+  final Future<bool> Function(String)? onDelete;
   final DateTime Function() now;
 
   @override
@@ -57,6 +92,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   static const _maxKg = 200.0;
 
   late double _weightKg;
+  late WeightUnit _displayUnit;
   late DateTime _measuredLocal;
   late String _submissionId;
   late final TextEditingController _noteController;
@@ -85,6 +121,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   @override
   void initState() {
     super.initState();
+    _displayUnit = widget.unit;
     final initial = widget.initialKg;
     _weightConfirmed = initial != null &&
         initial.isFinite &&
@@ -94,11 +131,14 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
     // Out-of-range historical measurements are not silently re-recorded as
     // the nearest wheel bound, either.
     _weightKg = _weightConfirmed ? initial! : 70.0;
-    _measuredLocal = widget.now().toLocal();
+    _measuredLocal =
+        widget.editingEntry?.measuredAt.toLocal() ?? widget.now().toLocal();
     _maximumLocal = widget.now().toLocal();
     WidgetsBinding.instance.addObserver(this);
     _submissionId = _newUuid();
-    _noteController = TextEditingController();
+    _noteController = TextEditingController(
+      text: widget.editingEntry?.note ?? '',
+    );
     _weightController = TextEditingController(text: _weightDisplayValue());
     widget.sessionActive.addListener(_onSessionChanged);
   }
@@ -205,15 +245,23 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   }
 
   double _displayWeightKg(double displayValue) =>
-      widget.unit == WeightUnit.kg
+      _displayUnit == WeightUnit.kg
           ? displayValue
           : UnitConverters.lbToKg(displayValue);
 
   String _weightDisplayValue() {
-    final display = widget.unit == WeightUnit.kg
+    final display = _displayUnit == WeightUnit.kg
         ? _weightKg
         : UnitConverters.kgToLb(_weightKg);
     return display.toStringAsFixed(1);
+  }
+
+  void _onWheelUnitChanged(WeightUnit unit) {
+    if (_saving || _attempted || !widget.sessionActive.value) return;
+    setState(() {
+      _displayUnit = unit;
+      _weightController.text = _weightDisplayValue();
+    });
   }
 
   void _toggleWeightInputMode() {
@@ -248,6 +296,45 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
   static int _wordCount(String value) =>
       _wordPattern.allMatches(value.trim()).length;
 
+  Future<void> _confirmDelete() async {
+    final id = widget.editingEntry?.id;
+    if (id == null || widget.onDelete == null ||
+        _saving || _attempted || !widget.sessionActive.value) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final confirmed = await showTioConfirmationBottomSheet(
+      context: context,
+      title: 'Delete weight log?',
+      message: 'Delete only this measurement? Weight summary, graph and '
+          'Timeline will refresh. This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      intent: TioConfirmationIntent.destructive,
+      activeWhileOpen: widget.sessionActive,
+    );
+    if (!mounted || !widget.sessionActive.value || confirmed != true) {
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      // A missing row still calls for a fresh canonical read, not an
+      // optimistic local removal or an invented delete-success state.
+      await widget.onDelete!(id);
+      if (!mounted || !widget.sessionActive.value) return;
+      Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted || !widget.sessionActive.value) return;
+      setState(() {
+        _saving = false;
+        _error = 'Could not delete weight log. Try again.';
+      });
+    }
+  }
+
   Future<void> _save() async {
     if (_saving || !widget.sessionActive.value) return;
     if (!_weightConfirmed || (_manualMode && !_manualValid)) {
@@ -266,25 +353,45 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
       return;
     }
     final rawNote = _noteController.text.trim();
-    if (_wordCount(rawNote) > 100 || rawNote.characters.length > 500) {
+    if (widget.editingEntry == null &&
+        (_wordCount(rawNote) > 100 || rawNote.characters.length > 500)) {
       setState(() => _error = 'Note is too long.');
       return;
     }
 
-    final record = BodyWeightRecord(
-      submissionId: _submissionId,
-      weightKg: _weightKg,
-      measuredAt: _measuredLocal.toUtc(),
-      source: BodyWeightSources.manual,
-      note: rawNote.isEmpty ? null : rawNote,
-    );
     setState(() {
       _saving = true;
       _attempted = true; // No draft mutations after ambiguous remote writes.
       _error = null;
     });
     try {
-      await widget.onSubmit(record);
+      final editing = widget.editingEntry;
+      if (editing != null) {
+        final saved = await widget.onUpdate!(BodyWeightLogEdit(
+          id: editing.id!,
+          weightKg: _weightKg,
+          measuredAt: _measuredLocal.toUtc(),
+        ));
+        if (!saved) {
+          if (_hasUnknownOutcome) {
+            // After an unknown earlier update, a missing-row retry must not
+            // trap this editor forever. It is NOT confirmed save success:
+            // the parent treats true as a canonical reconciliation request.
+            if (!mounted || !widget.sessionActive.value) return;
+            Navigator.of(context).pop(true);
+            return;
+          }
+          throw const BodyWeightSubmissionRejected();
+        }
+      } else {
+        await widget.onSubmit!(BodyWeightRecord(
+          submissionId: _submissionId,
+          weightKg: _weightKg,
+          measuredAt: _measuredLocal.toUtc(),
+          source: BodyWeightSources.manual,
+          note: rawNote.isEmpty ? null : rawNote,
+        ));
+      }
       if (!mounted) return;
       if (!widget.sessionActive.value) {
         Navigator.of(context).pop(false);
@@ -345,23 +452,34 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             // preserve the single Core DateTime card and native wheel.
             elevatedCard: false,
             child: TioEditorSheet(
-          title: 'Log Weight',
+          title: widget.editingEntry == null ? 'Log Weight' : 'Edit Weight',
           flushActions: true,
           canDismiss: !_attempted && !_saving,
           titleTrailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.editingEntry != null)
+                IconButton(
+                  key: const ValueKey('progress-edit-delete'),
+                  tooltip: 'Delete weight log',
+                  onPressed: (_saving || _attempted)
+                      ? null : _confirmDelete,
+                  icon: Icon(Icons.delete_outline_rounded,
+                      color: colors.danger),
+                ),
               IconButton(
                 key: const ValueKey('progress-log-weight-mode-toggle'),
                 tooltip: _manualMode ? 'Use weight wheel' : 'Type weight',
                 onPressed: _saving || _attempted
                     ? null
                     : _toggleWeightInputMode,
-                icon: Icon(_manualMode ? Icons.tune : Icons.edit_outlined),
+                icon: Icon(_manualMode ? Icons.tune : Icons.keyboard_outlined),
               ),
               IconButton(
                 key: const ValueKey('progress-log-close'),
-                tooltip: 'Close Log Weight',
+                tooltip: widget.editingEntry == null
+                    ? 'Close Log Weight'
+                    : 'Close Edit Weight',
                 onPressed: (_saving || _attempted)
                     ? null
                     : () => Navigator.of(context).pop(false),
@@ -373,7 +491,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // The canonical wheel is the default full-height editor.
-              // The header pencil switches only the input mode, not the
+              // The header keyboard action switches only input mode, not the
               // global kg/lb preference or the canonical storage unit.
               if (_manualMode)
                 TioInput.numericEditor(
@@ -381,7 +499,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   controller: _weightController,
                   autofocus: true,
                   enabled: !_attempted && !_saving,
-                  suffixText: widget.unit == WeightUnit.lb ? 'lb' : 'kg',
+                  suffixText: _displayUnit == WeightUnit.lb ? 'lb' : 'kg',
                   onChanged: _handleManualWeightChanged,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -393,8 +511,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   child: TioWeightWheel(
                     key: const ValueKey('progress-log-wheel'),
                     valueKg: _weightKg,
-                    unit: widget.unit,
-                    showUnitSwitcher: false,
+                    unit: _displayUnit,
+                    showUnitSwitcher: true,
+                    onUnitChanged: _onWheelUnitChanged,
                     minKg: _minKg,
                     maxKg: _maxKg,
                     onChanged: (kg) {
@@ -427,7 +546,7 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                         }),
                 ),
               ],
-              if (_noteVisible) ...[
+              if (widget.editingEntry == null && _noteVisible) ...[
                 const SizedBox(height: TioSpacing.sm),
                 TioInput.multiline(
                   key: const ValueKey('progress-log-note-field'),
@@ -444,6 +563,19 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
                   ],
                   enabled: !_attempted,
                   hint: 'Add a note about this measurement',
+                ),
+              ],
+              // Existing note is read-only on edit, never a new input.
+              if (widget.editingEntry != null && _noteVisible) ...[
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  widget.editingEntry!.note?.isNotEmpty == true
+                      ? widget.editingEntry!.note!
+                      : 'No note on this measurement.',
+                  key: const ValueKey('progress-edit-note-readonly'),
+                  style: typography.bodySmall?.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
               ],
               if (_attempted && !_saving) ...[
@@ -469,7 +601,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
               children: [
                 IconButton(
                   key: const ValueKey('progress-log-note-toggle'),
-                  tooltip: _noteVisible ? 'Hide note' : 'Add note',
+                  tooltip: widget.editingEntry == null
+                      ? (_noteVisible ? 'Hide note' : 'Add note')
+                      : (_noteVisible ? 'Hide saved note' : 'View saved note'),
                   onPressed: _attempted || _saving
                       ? null
                       : () => setState(() => _noteVisible = !_noteVisible),
@@ -532,7 +666,9 @@ class _ProgressWeightLogSheetState extends State<_ProgressWeightLogSheet>
             ),
             primary: TioButton.primary(
               key: const ValueKey('progress-log-save'),
-              label: _attempted ? 'Retry Log Weight' : 'Save Weight',
+              label: widget.editingEntry == null
+                  ? (_attempted ? 'Retry Log Weight' : 'Save Weight')
+                  : (_attempted ? 'Retry Changes' : 'Save Changes'),
               onPressed: (_saving || (!_attempted &&
                   (!_weightConfirmed || (_manualMode && !_manualValid))))
                   ? null
