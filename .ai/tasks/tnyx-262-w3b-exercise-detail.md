@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-28
 **Branch:** `codex/tnyx-262-exercise-detail`
-**HEAD SHA:** `b637332446e8734a9aedfa94369a62fd6b871417`
-**Observed working-tree state:** Clean after the task commit; branch is one commit ahead of `origin/main` and tracks `origin/codex/tnyx-262-exercise-detail`.
-**Observed uncommitted/dirty files:** None after commit; no unrelated pre-existing dirty work was present at audit time.
+**HEAD SHA:** `8611e1454e561946552864053fe896dced9abac2` before the review-fix commit.
+**Observed working-tree state:** Review fixes are currently uncommitted on the task branch; unrelated work remains absent.
+**Observed uncommitted/dirty files:** Four focused Workout source/test files contain only the current Codex review fixes.
 **PR / tracker:** Linear `TNYX-262` is `In Review` with GitHub PR #712 attached; Linear `TNYX-264` remains `In Progress`; GitHub #557 and #556 are `OPEN`. PR #710 is merged at `ca3817af` and its catalog/model/localization changes are present in `main`.
 **Current implementation state:** Implemented locally. Dedicated catalog/active Custom rows and Routine Create/Edit picker Info actions open one canonical Detail/About presentation. Routine row taps still select/add; Info does not mutate pending selection. Custom Edit is explicit and owner/session gated.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, `apps/features/workout/test/`, `apps/app/lib/app/routing/shell/shell_route.dart`, `apps/core/lib/src/routing/routes/app_routes.dart`, related route/widget tests and package manifests.
-**Validation completed at SHA:** Audit completed at `ad1c840e`; local implementation validation completed at `b637332446e8734a9aedfa94369a62fd6b871417` with focused Workout tests (`93` passed), app Workout route tests (`89` passed), core route-contract tests (`7` passed), and analyzer diagnostics reporting `No issues found` for Workout, app and core (Dart telemetry exit warning recorded below).
+**Validation completed at SHA:** Audit completed at `ad1c840e`; initial implementation validation completed at `b637332446e8734a9aedfa94369a62fd6b871417` with focused Workout tests (`93` passed), app Workout route tests (`89` passed), core route-contract tests (`7` passed), and analyzer diagnostics reporting `No issues found` for Workout, app and core (Dart telemetry exit warning recorded below). Review-fix validation then passed the focused Workout regression suite with `94` tests; analyzer again reported `No issues found` with the same machine-local telemetry exit warning.
 **Validation remaining:** Full monorepo `melos` validation, current-head CI, independent review, device/video QA and assistive-technology QA were not run in this local handoff.
 **Current blocker:** No bounded implementation blocker. Merge/review remains gated by current-head CI, independent review and device/accessibility QA; PR #712 is open and no merge was performed.
-**Open review finding IDs:** None for this new slice.
-**Next exact action:** Owner/independent review of PR #712 and current-head CI; no merge was performed.
+**Open review finding IDs:** GitHub Codex findings `4402773341`, `4402773361`, `4402773380`, and `4402773394` were reviewed and fixed locally; they remain pending re-review after push.
+**Next exact action:** Commit and push the bounded review fixes, then request current-head Codex review; no merge was performed.
 
 ## 1. Discovery
 
@@ -151,12 +151,12 @@ PASS — no whitespace errors.
 
 ### Review Provenance
 
-**Review source / link:** self-review until a later PR review
-**Reviewer / relation to implementer:** Current implementation agent / self-review
+**Review source / link:** GitHub PR #712 Codex review
+**Reviewer / relation to implementer:** `chatgpt-codex-connector[bot]` / independent automated review
 **Diff or commit SHA actually reviewed:** Working-tree diff against `ad1c840ea68672fb50c4662ce00fbcdb90e7aef2`
-**Review result and finding IDs/dispositions:** Self-review completed; no open finding IDs. Formatter-only churn was removed from large pre-existing route/test files before handoff.
-**Independent review?** No (self-review)
-**Limitations and unmet required gates:** No current-head CI, independent review, device QA or accessibility technology QA yet.
+**Review result and finding IDs/dispositions:** Four P2 findings were valid and fixed locally: trailing Info-button inset (`4402773341`), full regional locale fallback (`4402773361`), edit-time repository failure handling (`4402773380`), and labeled row selection semantics (`4402773394`).
+**Independent review?** Yes, Codex review was received; re-review after the fix push remains required.
+**Limitations and unmet required gates:** Review-fix current-head CI and re-review are pending; no device QA or accessibility technology QA was run.
 
 ## 7. Final Handoff
 

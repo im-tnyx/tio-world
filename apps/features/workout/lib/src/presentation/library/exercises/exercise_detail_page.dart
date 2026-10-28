@@ -356,15 +356,27 @@ class _ExerciseVideoMediaState extends State<_ExerciseVideoMedia>
 
 String _localizedTitle(BuildContext context, Exercise exercise) {
   final values = exercise.localizedTitles;
-  final language = Localizations.localeOf(context).languageCode;
-  return values[language] ?? values['en'] ?? exercise.displayName;
+  final locale = Localizations.localeOf(context);
+  return values[_localeKey(locale)] ??
+      values[locale.languageCode] ??
+      values['en'] ??
+      exercise.displayName;
 }
 
 List<String> _localizedInstructions(BuildContext context, Exercise exercise) {
   final values = exercise.localizedInstructions;
-  final language = Localizations.localeOf(context).languageCode;
-  return values[language] ?? values['en'] ?? const [];
+  final locale = Localizations.localeOf(context);
+  return values[_localeKey(locale)] ??
+      values[locale.languageCode] ??
+      values['en'] ??
+      const [];
 }
+
+String _localeKey(Locale locale) => [
+      locale.languageCode,
+      if (locale.scriptCode case final script?) script,
+      if (locale.countryCode case final country?) country,
+    ].join('-');
 
 class _InstructionStep extends StatelessWidget {
   const _InstructionStep({required this.number, required this.text});

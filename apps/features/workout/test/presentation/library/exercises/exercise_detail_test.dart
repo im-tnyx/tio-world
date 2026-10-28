@@ -104,6 +104,41 @@ void main() {
     expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
   });
 
+  testWidgets('edit-time Custom recheck failure stays on Detail safely',
+      (tester) async {
+    final exercise = _exercise(
+      '10000000-0000-4000-8000-000000000003',
+      'Unstable Custom',
+      custom: true,
+    );
+    final repository = _FakeUserExerciseRepository([exercise]);
+    const owner = 'owner-1';
+    const cycle = 'cycle-1';
+
+    await _pumpDetail(
+      tester,
+      exercise: exercise,
+      userExerciseRepository: repository,
+      expectedOwnerId: owner,
+      expectedLoginCycleId: cycle,
+      currentUserId: () => owner,
+      currentLoginCycleId: () => cycle,
+    );
+
+    repository.failIncludeArchived = true;
+    await tester.tap(find.byKey(const ValueKey('exercise-detail-options')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit Exercise'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Exercise details are unavailable right now.'),
+      findsOneWidget,
+    );
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('wrong-owner Custom Detail fails closed and hides edit',
       (tester) async {
     final exercise = _exercise(
@@ -292,15 +327,18 @@ final class _FakeUserExerciseRepository implements UserExerciseRepository {
   _FakeUserExerciseRepository(this.exercises);
 
   final List<Exercise> exercises;
+  bool failIncludeArchived = false;
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async =>
-      List<Exercise>.unmodifiable(
-        exercises.where(
-          (exercise) =>
-              includeArchived || exercise.status == ExerciseStatus.active,
-        ),
-      );
+      failIncludeArchived && includeArchived
+          ? throw StateError('temporary repository failure')
+          : List<Exercise>.unmodifiable(
+              exercises.where(
+                (exercise) =>
+                    includeArchived || exercise.status == ExerciseStatus.active,
+              ),
+            );
 
   @override
   Future<void> archive(UserCreatedExerciseRef id) async {}

@@ -126,6 +126,8 @@ class ExerciseListRow extends StatelessWidget {
               color: colors.textSecondary,
             ),
           ],
+          if (onInfoTap != null)
+            const SizedBox(width: kMinInteractiveDimension),
         ],
       ),
     );
@@ -135,39 +137,39 @@ class ExerciseListRow extends StatelessWidget {
     }
 
     if (onInfoTap != null) {
-      return Semantics(
-        label: [
-          item.name,
-          if (item.metadata case final metadata?) metadata,
-        ].join('\n'),
-        selected: selectionMode ? isSelected : null,
-        child: Material(
-          color: selectionMode && isSelected
-              ? colors.surfaceVariant.withAlpha(TioAlpha.alpha20)
-              : TioPalette.transparent,
-          child: Stack(
-            children: [
-              Row(
-                children: [
-                  Expanded(child: MergeSemantics(child: body)),
-                ],
+      return Material(
+        color: selectionMode && isSelected
+            ? colors.surfaceVariant.withAlpha(TioAlpha.alpha20)
+            : TioPalette.transparent,
+        child: Stack(
+          children: [
+            ExcludeSemantics(child: body),
+            Positioned.fill(
+              child: Semantics(
+                button: true,
+                label: [
+                  item.name,
+                  if (item.metadata case final metadata?) metadata,
+                ].join('\n'),
+                selected: selectionMode ? isSelected : null,
+                onTap: onTap,
+                child: InkWell(onTap: onTap),
               ),
-              Positioned.fill(child: InkWell(onTap: onTap)),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  key: ValueKey('exercise-info-${item.exercise.ref.value}'),
-                  tooltip: 'About ${item.name}',
-                  onPressed: onInfoTap,
-                  icon: Icon(
-                    Icons.info_outline_rounded,
-                    color: colors.textSecondary,
-                    size: TioSize.dp24,
-                  ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                key: ValueKey('exercise-info-${item.exercise.ref.value}'),
+                tooltip: 'About ${item.name}',
+                onPressed: onInfoTap,
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  color: colors.textSecondary,
+                  size: TioSize.dp24,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

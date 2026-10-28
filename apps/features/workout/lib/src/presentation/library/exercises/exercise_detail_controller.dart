@@ -49,9 +49,7 @@ final class ExerciseDetailController extends ChangeNotifier {
     _publish(const ExerciseDetailState.loading());
 
     try {
-      final exercise = isCustom
-          ? await _loadCustom()
-          : await _loadCatalog();
+      final exercise = isCustom ? await _loadCustom() : await _loadCatalog();
       if (_disposed || version != _loadVersion) return;
       if (exercise == null || exercise.status != ExerciseStatus.active) {
         _publish(const ExerciseDetailState.unavailable());
@@ -70,18 +68,29 @@ final class ExerciseDetailController extends ChangeNotifier {
 
   /// Rechecks the active owner-scoped Custom row immediately before editing.
   Future<bool> revalidateCustom() async {
-    if (!isCustom || !_sessionMatchesExpected()) {
-      _publish(const ExerciseDetailState.unavailable());
+    try {
+      if (!isCustom || !_sessionMatchesExpected()) {
+        _publish(const ExerciseDetailState.unavailable());
+        return false;
+      }
+      final exercise = await _loadCustom();
+      if (_disposed) return false;
+      if (exercise == null || exercise.status != ExerciseStatus.active) {
+        _publish(const ExerciseDetailState.unavailable());
+        return false;
+      }
+      _publish(ExerciseDetailState.ready(exercise));
+      return true;
+    } catch (_) {
+      if (!_disposed) {
+        _publish(
+          const ExerciseDetailState.failed(
+            'Exercise details are unavailable right now.',
+          ),
+        );
+      }
       return false;
     }
-    final exercise = await _loadCustom();
-    if (_disposed) return false;
-    if (exercise == null || exercise.status != ExerciseStatus.active) {
-      _publish(const ExerciseDetailState.unavailable());
-      return false;
-    }
-    _publish(ExerciseDetailState.ready(exercise));
-    return true;
   }
 
   Future<Exercise?> _loadCatalog() async {
