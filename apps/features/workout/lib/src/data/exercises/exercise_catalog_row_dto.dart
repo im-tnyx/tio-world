@@ -6,14 +6,18 @@ import '../../domain/exercises/invalid_exercise_catalog_exception.dart';
 ///
 /// Data-boundary only: presentation and other consumers see canonical
 /// [Exercise] values. Unknown row keys are ignored. Presence and type are
-/// checked here; value rules such as blank or duplicate taxonomy and https
-/// media URLs come from the canonical [Exercise] and [ExerciseMedia]
-/// contracts. `media` is optional.
+/// checked here; value rules such as blank or duplicate taxonomy, localized
+/// content and https media URLs come from the canonical [Exercise] and
+/// [ExerciseMedia] contracts. `media`, `localizedTitles` and
+/// `localizedInstructions` are optional for backwards-compatible document
+/// loading, but the production asset guard requires them for bundled rows.
 final class ExerciseCatalogRowDto {
   const ExerciseCatalogRowDto._({
     required this.rowIndex,
     required this.id,
     required this.title,
+    required this.localizedTitles,
+    required this.localizedInstructions,
     required this.exerciseType,
     required this.muscleGroup,
     required this.primaryMuscles,
@@ -28,6 +32,9 @@ final class ExerciseCatalogRowDto {
   final int rowIndex;
   final String id;
   final String title;
+  final Map<String, String> localizedTitles;
+  final Map<String, List<String>> localizedInstructions;
+
   /// Optional canonical measurement profile; older bundled rows omit it.
   final ExerciseType? exerciseType;
   final String muscleGroup;
@@ -96,6 +103,14 @@ final class ExerciseCatalogRowDto {
 
     final id = field<String>(row, 'id', 'id');
     final title = field<String>(row, 'title', 'title');
+    final localizedTitles = _LocalizedTitles.read(
+      row['localizedTitles'],
+      problem,
+    );
+    final localizedInstructions = _LocalizedInstructions.read(
+      row['localizedInstructions'],
+      problem,
+    );
     final muscleGroup = field<String>(row, 'muscleGroup', 'muscleGroup');
     final primaryMuscles = stringList('primaryMuscles');
     final secondaryMuscles = stringList('secondaryMuscles');
@@ -136,6 +151,8 @@ final class ExerciseCatalogRowDto {
       rowIndex: rowIndex,
       id: id!,
       title: title!,
+      localizedTitles: localizedTitles,
+      localizedInstructions: localizedInstructions,
       exerciseType: exerciseType,
       muscleGroup: muscleGroup!,
       primaryMuscles: primaryMuscles!,
@@ -179,6 +196,8 @@ final class ExerciseCatalogRowDto {
       return Exercise(
         ref: ref,
         displayName: title,
+        localizedTitles: localizedTitles,
+        localizedInstructions: localizedInstructions,
         exerciseType: exerciseType,
         muscleGroup: muscleGroup,
         primaryMuscles: primaryMuscles,
@@ -331,4 +350,79 @@ final class _MediaUrlError {
 
   final String path;
   final String message;
+}
+
+final class _LocalizedTitles {
+  static Map<String, String> read(
+    Object? value,
+    void Function(String path, String problem) problem,
+  ) {
+    if (value == null) return const {};
+    if (value is! Map) {
+      problem('localizedTitles', 'must be an object');
+      return const {};
+    }
+
+    final result = <String, String>{};
+    for (final entry in value.entries) {
+      if (entry.key is! String || (entry.key as String).trim().isEmpty) {
+        problem('localizedTitles', 'locale keys must be non-blank strings');
+        continue;
+      }
+      final locale = entry.key as String;
+      final path = 'localizedTitles.$locale';
+      if (entry.value is! String || (entry.value as String).trim().isEmpty) {
+        problem(path, 'must be a non-blank string');
+        continue;
+      }
+      result[locale] = entry.value as String;
+    }
+    return result;
+  }
+}
+
+final class _LocalizedInstructions {
+  static Map<String, List<String>> read(
+    Object? value,
+    void Function(String path, String problem) problem,
+  ) {
+    if (value == null) return const {};
+    if (value is! Map) {
+      problem('localizedInstructions', 'must be an object');
+      return const {};
+    }
+
+    final result = <String, List<String>>{};
+    for (final entry in value.entries) {
+      if (entry.key is! String || (entry.key as String).trim().isEmpty) {
+        problem(
+          'localizedInstructions',
+          'locale keys must be non-blank strings',
+        );
+        continue;
+      }
+      final locale = entry.key as String;
+      final path = 'localizedInstructions.$locale';
+      final rawSteps = entry.value;
+      if (rawSteps is! List) {
+        problem(path, 'must be a list of instruction strings');
+        continue;
+      }
+      if (rawSteps.isEmpty) {
+        problem(path, 'must contain at least one instruction step');
+        continue;
+      }
+      final steps = <String>[];
+      for (var index = 0; index < rawSteps.length; index++) {
+        final step = rawSteps[index];
+        if (step is! String || step.trim().isEmpty) {
+          problem('$path[$index]', 'must be a non-blank string');
+          continue;
+        }
+        steps.add(step);
+      }
+      result[locale] = steps;
+    }
+    return result;
+  }
 }
