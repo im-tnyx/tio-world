@@ -2242,6 +2242,47 @@ void main() {
   });
 
   testWidgets(
+      'catalog and Custom rows open the shared Exercise Detail',
+      (tester) async {
+    final (_, router) = await _app(tester, AppMode.hybrid);
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout-home-library-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-category-exercises')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('library-exercises-entry')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_synthetic_route_curl')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ExerciseDetailPage), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsWidgets);
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.workout.path,
+    );
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(ExercisesPage), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey(
+          'exercise-row-10000000-0000-4000-8000-000000000001',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ExerciseDetailPage), findsOneWidget);
+    expect(find.text('Synthetic Route Custom'), findsWidgets);
+    expect(find.byType(CustomExerciseEditorPage), findsNothing);
+  });
+
+  testWidgets(
       'Library Create Exercise opens directly and back returns to selected Library',
       (tester) async {
     final (_, router) = await _app(tester, AppMode.hybrid);

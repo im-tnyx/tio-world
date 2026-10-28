@@ -34,6 +34,7 @@ class CreateRoutinePage extends StatefulWidget {
     required this.weightUnit,
     this.userExerciseRepository,
     this.viewerMediaGender,
+    this.onExerciseInfoPressed,
     this.routineRepository,
     this.compositionRepository,
     this.onUnconfirmedExit,
@@ -62,6 +63,7 @@ class CreateRoutinePage extends StatefulWidget {
     required this.weightUnit,
     this.userExerciseRepository,
     this.viewerMediaGender,
+    this.onExerciseInfoPressed,
     this.routineRepository,
     this.compositionRepository,
     required this.onMyProgramUnconfirmedExit,
@@ -86,6 +88,8 @@ class CreateRoutinePage extends StatefulWidget {
   final ProgramRepository? programRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Opens canonical Exercise About without changing the pending draft.
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
   /// Resolved at app/profile boundary; null follows catalog default gender.
   final ExerciseMediaGender? viewerMediaGender;
   final RoutineRepository? routineRepository;
@@ -241,6 +245,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExerciseSelected: (selected) =>
                   Navigator.of(routeContext).pop<Exercise>(selected),
             ),
@@ -255,6 +260,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExercisesAdded: (selected) =>
                   Navigator.of(routeContext).pop<List<Exercise>>(selected),
             ),

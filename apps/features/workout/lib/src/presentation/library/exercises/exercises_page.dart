@@ -11,6 +11,7 @@ import '../../../domain/exercises/user_exercise_repository.dart';
 import 'custom_exercise_editor_page.dart';
 import 'custom_exercises_controller.dart';
 import 'custom_exercises_state.dart';
+import 'exercise_detail_page.dart';
 import 'exercise_taxonomy_labels.dart';
 import 'exercises_controller.dart';
 import 'exercises_providers.dart';
@@ -28,6 +29,8 @@ class ExercisesPage extends ConsumerStatefulWidget {
     this.startSearching = false,
     this.userExerciseRepository,
     this.catalogRepository,
+    this.onExercisePressed,
+    this.onExerciseInfoPressed,
     this.onExerciseSelected,
     this.onExercisesAdded,
   }) : assert(onExerciseSelected == null || onExercisesAdded == null);
@@ -44,6 +47,15 @@ class ExercisesPage extends ConsumerStatefulWidget {
   /// An explicit canonical catalog source for the Routine selection context.
   /// Browse uses the existing shared provider; no nested provider override.
   final ExerciseCatalogRepository? catalogRepository;
+
+  /// Normal browse callback. Picker callbacks remain separate and continue to
+  /// own selection semantics; this callback only opens canonical Detail.
+  final ValueChanged<Exercise>? onExercisePressed;
+
+  /// Opens the same canonical Detail from a Routine selection list. The
+  /// callback is deliberately separate from row selection so browsing About
+  /// cannot mutate the pending selection.
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
 
   /// When supplied, reuse this canonical screen as a Routine Exercise
   /// selector rather than launching a duplicate picker UI. Browse behavior
@@ -83,8 +95,10 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   void didUpdateWidget(covariant ExercisesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.catalogRepository, widget.catalogRepository) ||
-        !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
-        (oldWidget.onExercisesAdded == null) != (widget.onExercisesAdded == null)) {
+        !identical(
+            oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        (oldWidget.onExercisesAdded == null) !=
+            (widget.onExercisesAdded == null)) {
       _pending.clear();
     }
     if (!identical(
@@ -195,7 +209,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
   }
 
   void _confirmBatch() {
-    if (widget.onExercisesAdded == null || _pending.isEmpty ||
+    if (widget.onExercisesAdded == null ||
+        _pending.isEmpty ||
         !_pending.values.every(_canPick)) {
       return;
     }
@@ -224,6 +239,21 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         builder: (_) => CustomExerciseEditorPage(
           controller: controller,
           exercise: exercise,
+        ),
+      ),
+    );
+  }
+
+  void _openExerciseDetail(Exercise exercise) {
+    final ExerciseCatalogRepository repository =
+        widget.catalogRepository ?? ref.read(exerciseCatalogRepositoryProvider);
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseDetailPage(
+          exerciseRef: exercise.ref,
+          catalogRepository: repository,
+          userExerciseRepository: widget.userExerciseRepository,
+          viewerMediaGender: ref.read(exerciseViewerMediaGenderProvider),
         ),
       ),
     );
@@ -266,8 +296,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     );
     final canCreate = customState?.status == CustomExercisesStatus.ready &&
         !(customState?.actionInProgress ?? true);
-    final isSelecting = widget.onExerciseSelected != null ||
-        widget.onExercisesAdded != null;
+    final isSelecting =
+        widget.onExerciseSelected != null || widget.onExercisesAdded != null;
     final batchReady = widget.onExercisesAdded != null &&
         _pending.isNotEmpty &&
         catalogState.status == ExercisesStatus.ready &&
@@ -407,8 +437,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     // A selector must not offer only catalog (or only Custom) choices if
     // either requested source has not resolved. Unlike casual browsing,
     // it returns one verified, active Exercise to an owner-scoped draft.
-    if (widget.onExerciseSelected != null ||
-        widget.onExercisesAdded != null) {
+    if (widget.onExerciseSelected != null || widget.onExercisesAdded != null) {
       if (catalogState.status != ExercisesStatus.ready) {
         return catalogState.status == ExercisesStatus.loading
             ? const Center(
@@ -418,8 +447,10 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
               )
             : _Message(
                 text: switch (catalogState.status) {
-                  ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
-                  ExercisesStatus.malformedCatalog => ExercisesPage.malformedCatalogMessage,
+                  ExercisesStatus.missingCatalog =>
+                    ExercisesPage.missingCatalogMessage,
+                  ExercisesStatus.malformedCatalog =>
+                    ExercisesPage.malformedCatalogMessage,
                   _ => ExercisesPage.failedMessage,
                 },
               );
@@ -431,8 +462,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         final refs = <ExerciseRef>{};
         final validOwnerCollection = customState!.exercises.every(
           (exercise) =>
-              exercise.ref is UserCreatedExerciseRef &&
-              refs.add(exercise.ref),
+              exercise.ref is UserCreatedExerciseRef && refs.add(exercise.ref),
         );
         if (!validOwnerCollection) {
           return _Failure(
@@ -462,10 +492,8 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
     final catalogItems = catalogState.status == ExercisesStatus.ready
         ? catalogState.items
         : const <ExerciseListItem>[];
-    final hasMatchingItems =
-        customItems.isNotEmpty || catalogItems.isNotEmpty;
-    final anySourceLoading =
-        catalogState.status == ExercisesStatus.loading ||
+    final hasMatchingItems = customItems.isNotEmpty || catalogItems.isNotEmpty;
+    final anySourceLoading = catalogState.status == ExercisesStatus.loading ||
         customState?.status == CustomExercisesStatus.loading;
     final catalogFailureMessage = switch (catalogState.status) {
       ExercisesStatus.missingCatalog => ExercisesPage.missingCatalogMessage,
@@ -498,13 +526,14 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
           onCustomTap: widget.onExercisesAdded != null
               ? _toggle
               : widget.onExerciseSelected == null
-                  ? _openCustomEditor
+                  ? (widget.onExercisePressed ?? _openExerciseDetail)
                   : _select,
           onCatalogTap: widget.onExercisesAdded != null
               ? _toggle
               : widget.onExerciseSelected == null
-                  ? null
+                  ? (widget.onExercisePressed ?? _openExerciseDetail)
                   : _select,
+          onExerciseInfoPressed: widget.onExerciseInfoPressed,
           multiSelecting: widget.onExercisesAdded != null,
           selectedRefs: _pending.keys.toSet(),
           customFailure: customFailureMessage,
@@ -528,8 +557,7 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
         );
       }
 
-      final hasAnyExercise =
-          catalogState.hasActiveExercises || customHasAny;
+      final hasAnyExercise = catalogState.hasActiveExercises || customHasAny;
       if (!hasAnyExercise) {
         return const _Message(
           key: ValueKey('exercises-empty'),
@@ -549,13 +577,14 @@ class _ExercisesPageState extends ConsumerState<ExercisesPage> {
       onCustomTap: widget.onExercisesAdded != null
           ? _toggle
           : widget.onExerciseSelected == null
-              ? _openCustomEditor
+              ? (widget.onExercisePressed ?? _openExerciseDetail)
               : _select,
       onCatalogTap: widget.onExercisesAdded != null
           ? _toggle
           : widget.onExerciseSelected == null
-              ? null
+              ? (widget.onExercisePressed ?? _openExerciseDetail)
               : _select,
+      onExerciseInfoPressed: widget.onExerciseInfoPressed,
       multiSelecting: widget.onExercisesAdded != null,
       selectedRefs: _pending.keys.toSet(),
       customFailure: customFailureMessage,
@@ -619,6 +648,7 @@ class _ExerciseList extends StatelessWidget {
     required this.onCustomTap,
     required this.multiSelecting,
     required this.selectedRefs,
+    this.onExerciseInfoPressed,
     this.onCatalogTap,
     this.customFailure,
     this.onRetryCustom,
@@ -630,6 +660,7 @@ class _ExerciseList extends StatelessWidget {
   final ValueChanged<Exercise> onCustomTap;
   final bool multiSelecting;
   final Set<ExerciseRef> selectedRefs;
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
   final ValueChanged<Exercise>? onCatalogTap;
   final String? customFailure;
   final VoidCallback? onRetryCustom;
@@ -668,6 +699,9 @@ class _ExerciseList extends StatelessWidget {
             selectionMode: multiSelecting,
             isSelected: selectedRefs.contains(customItems[i].exercise.ref),
             onTap: () => onCustomTap(customItems[i].exercise),
+            onInfoTap: onExerciseInfoPressed == null
+                ? null
+                : () => onExerciseInfoPressed!(customItems[i].exercise),
           ),
           if (i != customItems.length - 1) divider(),
         ],
@@ -688,12 +722,14 @@ class _ExerciseList extends StatelessWidget {
             onTap: onCatalogTap == null
                 ? null
                 : () => onCatalogTap!(catalogItems[i].exercise),
+            onInfoTap: onExerciseInfoPressed == null
+                ? null
+                : () => onExerciseInfoPressed!(catalogItems[i].exercise),
           ),
           if (i != catalogItems.length - 1) divider(),
         ],
       ],
-      if (catalogMessage case final message?)
-        _InlineMessage(text: message),
+      if (catalogMessage case final message?) _InlineMessage(text: message),
     ];
 
     return ListView(

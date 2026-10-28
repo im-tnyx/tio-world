@@ -52,6 +52,78 @@ TioShellPlaceholder _page(TioRouteContract route) {
       title: route.title, description: route.description);
 }
 
+String? _currentAuthUserId(WidgetRef ref) {
+  final value = ref.read(authSessionStateProvider);
+  if (value.isLoading || value.hasError) return null;
+  final auth = value.valueOrNull;
+  return auth is AuthSessionAuthenticated ? auth.session.userId : null;
+}
+
+String? _currentAuthLoginCycleId(WidgetRef ref) {
+  final value = ref.read(authSessionStateProvider);
+  if (value.isLoading || value.hasError) return null;
+  final auth = value.valueOrNull;
+  return auth is AuthSessionAuthenticated ? auth.session.loginCycleId : null;
+}
+
+void _pushCanonicalExerciseDetail({
+  required BuildContext context,
+  required WidgetRef ref,
+  required Exercise exercise,
+  required ExerciseCatalogRepository catalogRepository,
+  required UserExerciseRepository? userExerciseRepository,
+  required ExerciseMediaGender? viewerMediaGender,
+  required String? expectedOwnerId,
+  required String? expectedLoginCycleId,
+}) {
+  Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => ExerciseDetailPage(
+        exerciseRef: exercise.ref,
+        catalogRepository: catalogRepository,
+        userExerciseRepository: userExerciseRepository,
+        viewerMediaGender: viewerMediaGender,
+        expectedOwnerId: expectedOwnerId,
+        expectedLoginCycleId: expectedLoginCycleId,
+        currentUserId: () => _currentAuthUserId(ref),
+        currentLoginCycleId: () => _currentAuthLoginCycleId(ref),
+      ),
+    ),
+  );
+}
+
+Widget _exerciseDetailRoutePage(
+  BuildContext context,
+  GoRouterState state,
+) => Consumer(
+  builder: (context, ref, _) {
+    final rawRef = state.pathParameters['exerciseId'];
+    if (rawRef == null) return _page(AppRoutes.workoutExerciseDetail);
+
+    ExerciseRef exerciseRef;
+    try {
+      exerciseRef = ExerciseRef.parse(rawRef);
+    } on FormatException {
+      return _page(AppRoutes.workoutExerciseDetail);
+    }
+
+    ref.watch(authSessionStateProvider);
+    final args = state.extra is ExerciseDetailRouteArguments
+        ? state.extra! as ExerciseDetailRouteArguments
+        : null;
+    return ExerciseDetailPage(
+      exerciseRef: exerciseRef,
+      catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+      userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+      viewerMediaGender: ref.watch(exerciseViewerMediaGenderProvider),
+      expectedOwnerId: args?.ownerId,
+      expectedLoginCycleId: args?.loginCycleId,
+      currentUserId: () => _currentAuthUserId(ref),
+      currentLoginCycleId: () => _currentAuthLoginCycleId(ref),
+    );
+  },
+);
+
 Widget _shellBranchPage(ShellBranchDefinition branch) {
   if (branch.tab == ShellTab.home) {
     return const HomePage();
@@ -350,6 +422,27 @@ List<RouteBase> _shellBranchChildRoutes(
                                         viewerMediaGender: authorized && unit != null
                                             ? ref.watch(exerciseViewerMediaGenderProvider)
                                             : null,
+                                        onExerciseInfoPressed: (exercise) =>
+                                            _pushCanonicalExerciseDetail(
+                                          context: context,
+                                          ref: ref,
+                                          exercise: exercise,
+                                          catalogRepository: ref.read(
+                                            exerciseCatalogRepositoryProvider,
+                                          ),
+                                          userExerciseRepository: authorized
+                                              ? ref.read(
+                                                  userExerciseRepositoryProvider,
+                                                )
+                                              : null,
+                                          viewerMediaGender: authorized && unit != null
+                                              ? ref.read(
+                                                  exerciseViewerMediaGenderProvider,
+                                                )
+                                              : null,
+                                          expectedOwnerId: startingOwner,
+                                          expectedLoginCycleId: startingCycleId,
+                                        ),
                                         weightUnit: unit,
                                         // Recheck the live opening login cycle
                                         // synchronously immediately before an
@@ -941,6 +1034,21 @@ List<RouteBase> _shellBranchChildRoutes(
                           userExerciseRepository,
                       routineRepository: routineRepository,
                       compositionRepository: compositions,
+                      onExerciseInfoPressed: (exercise) =>
+                          _pushCanonicalExerciseDetail(
+                        context: context,
+                        ref: ref,
+                        exercise: exercise,
+                        catalogRepository: catalog,
+                        userExerciseRepository: authorized
+                            ? userExerciseRepository
+                            : null,
+                        viewerMediaGender: authorized
+                            ? ref.read(exerciseViewerMediaGenderProvider)
+                            : null,
+                        expectedOwnerId: openingOwner,
+                        expectedLoginCycleId: openingCycle,
+                      ),
                       // An explicitly unconfirmed exit
                       // needs a fresh owner-bound Program
                       // read; it is not an ACK of Create.
@@ -1319,6 +1427,19 @@ List<RouteBase> _shellBranchChildRoutes(
                       compositionRepository: compositionRepo,
                       viewerMediaGender: createRef
                           .watch(exerciseViewerMediaGenderProvider),
+                      onExerciseInfoPressed: (exercise) =>
+                          _pushCanonicalExerciseDetail(
+                        context: createContext,
+                        ref: createRef,
+                        exercise: exercise,
+                        catalogRepository: catalog,
+                        userExerciseRepository: authorized ? exerciseRepo : null,
+                        viewerMediaGender: authorized
+                            ? createRef.read(exerciseViewerMediaGenderProvider)
+                            : null,
+                        expectedOwnerId: owner,
+                        expectedLoginCycleId: cycle,
+                      ),
                       weightUnit: lastVerifiedUnit!,
                       canWrite: () => firstRoutineSessionValid(owner, cycle),
                       onMyProgramWriteStarted: (command) {
@@ -1508,8 +1629,25 @@ List<RouteBase> _shellBranchChildRoutes(
           startSearching:
               state.uri.queryParameters[_exercisesSearchParameter] == 'true',
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+          onExercisePressed: (exercise) => _pushCanonicalExerciseDetail(
+            context: context,
+            ref: ref,
+            exercise: exercise,
+            catalogRepository: ref.read(exerciseCatalogRepositoryProvider),
+            userExerciseRepository: ref.read(userExerciseRepositoryProvider),
+            viewerMediaGender: ref.read(exerciseViewerMediaGenderProvider),
+            expectedOwnerId: _currentAuthUserId(ref),
+            expectedLoginCycleId: _currentAuthLoginCycleId(ref),
+          ),
         ),
       ),
+      routes: [
+        GoRoute(
+          path: ':exerciseId',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: _exerciseDetailRoutePage,
+        ),
+      ],
     ),
   ];
 }

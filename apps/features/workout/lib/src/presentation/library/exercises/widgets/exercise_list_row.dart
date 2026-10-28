@@ -13,12 +13,14 @@ class ExerciseListRow extends StatelessWidget {
     required this.item,
     super.key,
     this.onTap,
+    this.onInfoTap,
     this.selectionMode = false,
     this.isSelected = false,
   });
 
   final ExerciseListItem item;
   final VoidCallback? onTap;
+  final VoidCallback? onInfoTap;
   final bool selectionMode;
   final bool isSelected;
 
@@ -116,7 +118,7 @@ class ExerciseListRow extends StatelessWidget {
             _SelectedExerciseBadge(
               key: ValueKey('exercise-selected-${item.exercise.ref.value}'),
             ),
-          ] else if (onTap != null && !selectionMode) ...[
+          ] else if (onInfoTap == null && onTap != null && !selectionMode) ...[
             const SizedBox(width: TioSpacing.sm),
             Icon(
               Icons.chevron_right_rounded,
@@ -128,12 +130,54 @@ class ExerciseListRow extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) {
+    if (onInfoTap == null && onTap == null) {
       return MergeSemantics(child: body);
+    }
+
+    if (onInfoTap != null) {
+      return Semantics(
+        label: [
+          item.name,
+          if (item.metadata case final metadata?) metadata,
+        ].join('\n'),
+        selected: selectionMode ? isSelected : null,
+        child: Material(
+          color: selectionMode && isSelected
+              ? colors.surfaceVariant.withAlpha(TioAlpha.alpha20)
+              : TioPalette.transparent,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: MergeSemantics(child: body)),
+                ],
+              ),
+              Positioned.fill(child: InkWell(onTap: onTap)),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  key: ValueKey('exercise-info-${item.exercise.ref.value}'),
+                  tooltip: 'About ${item.name}',
+                  onPressed: onInfoTap,
+                  icon: Icon(
+                    Icons.info_outline_rounded,
+                    color: colors.textSecondary,
+                    size: TioSize.dp24,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Semantics(
       button: true,
+      label: [
+        item.name,
+        if (item.metadata case final metadata?) metadata,
+      ].join('\n'),
       selected: selectionMode ? isSelected : null,
       onTap: onTap,
       child: Material(

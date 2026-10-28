@@ -31,6 +31,7 @@ class EditRoutinePage extends StatefulWidget {
     required this.weightUnit,
     this.userExerciseRepository,
     this.viewerMediaGender,
+    this.onExerciseInfoPressed,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -42,6 +43,8 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  /// Opens canonical Exercise About without changing the current composition.
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
   /// Profile-resolved by the app; null uses catalog's default media gender.
   final ExerciseMediaGender? viewerMediaGender;
   /// Live opening-session capability, not a cached authorization snapshot.
@@ -188,6 +191,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExerciseSelected: (selected) =>
                   Navigator.of(routeContext).pop<Exercise>(selected),
             ),
@@ -202,6 +206,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExercisesAdded: (selected) =>
                   Navigator.of(routeContext).pop<List<Exercise>>(selected),
             ),

@@ -14,6 +14,7 @@ void main() {
   testWidgets('picker creates an identified Set; blank targets may Save',
       (tester) async {
     final create = _Create();
+    var infoCalls = 0;
     var index = 0;
     final uuids = [
       '44444444-4444-4444-8444-444444444444',
@@ -34,6 +35,7 @@ void main() {
         initialName: 'Routine 1',
         createRepository: create,
         catalogRepository: _Catalog(),
+        onExerciseInfoPressed: (_) => infoCalls++,
         weightUnit: WeightUnit.kg,
         newUuid: () => uuids[index++],
       ),
@@ -47,7 +49,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('exercises-page')),
         findsOneWidget);
-    await tester.tap(find.text('Bench Press'));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-info-ex_bench_press')),
+    );
+    await tester.pumpAndSettle();
+    expect(infoCalls, 1);
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_bench_press')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
