@@ -196,6 +196,9 @@ List<RouteBase> _shellBranchChildRoutes(
               ref.watch(myProgramRoutineCreateQaEnabledProvider);
           final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
           final deleteFlow = ref.read(routineDeleteFlowProvider);
+          final programDeleteRepository =
+              ref.watch(programDeleteRepositoryProvider);
+          final programDeleteFlow = ref.read(programDeleteFlowProvider);
           // Reuse the feature-owned Move flow and the same existing/New Program
           // adapter instance. The release capability remains OFF until M3D3
           // coordination, hosted RPC/grants and device QA are approved.
@@ -457,6 +460,88 @@ List<RouteBase> _shellBranchChildRoutes(
                 },
               ),
             );
+          }
+
+          /// One guarded Program Delete entry for the Library and Programs surfaces.
+          Future<bool> deleteProgram(Program program) async {
+            final repository = programDeleteRepository;
+            if (repository == null || program.isDefault) {
+              return false;
+            }
+            final openingBoot =
+                ref.read(appSessionBootstrapControllerProvider).state;
+            final owner = openingBoot is AppSessionBootstrapReady
+                ? openingBoot.userId : null;
+            final openingValue = ref.read(authSessionStateProvider);
+            final openingAuth = openingValue.isLoading || openingValue.hasError
+                ? null : openingValue.valueOrNull;
+            final cycle = openingAuth is AuthSessionAuthenticated &&
+                    openingAuth.session.userId == owner
+                ? openingAuth.session.loginCycleId : null;
+            if (owner == null || cycle == null) return false;
+
+            bool sameSession() {
+              try {
+                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final value = ref.read(authSessionStateProvider);
+                final auth = value.isLoading || value.hasError
+                    ? null : value.valueOrNull;
+                return boot is AppSessionBootstrapReady &&
+                    boot.userId == owner &&
+                    auth is AuthSessionAuthenticated &&
+                    auth.session.userId == owner &&
+                    auth.session.loginCycleId == cycle &&
+                    ref.read(supabaseClientProvider)?.auth.currentUser?.id == owner;
+              } catch (_) {
+                return false;
+              }
+            }
+            if (!sameSession()) return false;
+            final subscription = ref.listenManual<ProgramDeleteController?>(
+              programDeleteControllerProvider(program.id),
+              (_, __) {},
+            );
+            try {
+              final controller =
+                  ref.read(programDeleteControllerProvider(program.id));
+              if (controller == null) return false;
+
+              return await programDeleteFlow.run(
+                context: context,
+                program: program,
+                controller: controller,
+                canWrite: sameSession,
+                confirmationGuard: (dialogContext, content) => Consumer(
+                  builder: (guardContext, guardRef, _) {
+                    final currentBoot = guardRef
+                        .watch(appSessionBootstrapControllerProvider).state;
+                    final currentAuth = guardRef.watch(authSessionStateProvider);
+                    final currentState = currentAuth.isLoading || currentAuth.hasError
+                        ? null : currentAuth.valueOrNull;
+                    final stillOwner = currentBoot is AppSessionBootstrapReady &&
+                        currentBoot.userId == owner &&
+                        currentState is AuthSessionAuthenticated &&
+                        currentState.session.userId == owner &&
+                        currentState.session.loginCycleId == cycle &&
+                        sameSession();
+                    if (!stillOwner) {
+                      final staleRoute = ModalRoute.of(guardContext);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!guardContext.mounted || staleRoute == null ||
+                            !staleRoute.isActive) {
+                          return;
+                        }
+                        Navigator.of(guardContext).removeRoute(staleRoute);
+                      });
+                      return const SizedBox.shrink();
+                    }
+                    return content;
+                  },
+                ),
+              );
+            } finally {
+              subscription.close();
+            }
           }
 
           /// Prepare the canonical Workout Move flow behind a default-off
@@ -1374,6 +1459,10 @@ List<RouteBase> _shellBranchChildRoutes(
                     routineRepository == null || deleteRepository == null
                 ? null
                 : deleteRoutine,
+            onDeleteProgram: !bound || !canCreateForSession ||
+                    programDeleteRepository == null
+                ? null
+                : deleteProgram,
             onProgramsManagePressed: () =>
                 context.push(AppRoutes.workoutPrograms.path),
             onExercisesPressed: () =>

@@ -45,6 +45,7 @@ class ProgramsSurface extends StatefulWidget {
         onEditRoutine = null,
         onMoveRoutine = null,
         onDeleteRoutine = null,
+        onDeleteProgram = null,
         actionSheetGuard = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
@@ -59,6 +60,7 @@ class ProgramsSurface extends StatefulWidget {
     this.onEditRoutine,
     this.onMoveRoutine,
     this.onDeleteRoutine,
+    this.onDeleteProgram,
     this.actionSheetGuard,
     this.onAddRoutinePressed,
     this.hasUnconfirmedCreate,
@@ -90,6 +92,7 @@ class ProgramsSurface extends StatefulWidget {
   /// Optional Move capability; production app shell does not inject it yet.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Future<bool> Function(Program)? onDeleteProgram;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
 
@@ -365,6 +368,20 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                         !pendingSave && !_openingAddRoutine && !refreshing,
                   ),
                 ],
+                if (!program.isDefault && widget.onDeleteProgram != null) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-delete'),
+                    label: 'Delete Program',
+                    icon: Icons.delete_outline_rounded,
+                    destructive: true,
+                    enabled: !refreshing,
+                    onTap: refreshing
+                        ? null
+                        : () => Navigator.of(sheetContext)
+                            .pop(_ProgramAction.delete),
+                  ),
+                ],
               ],
             ),
           );
@@ -382,6 +399,12 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           await _openRename(live);
         case _ProgramAction.addRoutine:
           await _openAddRoutine(live);
+        case _ProgramAction.delete:
+          final deleted = await widget.onDeleteProgram?.call(live) ?? false;
+          if (deleted && mounted) {
+            setState(() => _routineRefreshVersion++);
+            await _controller?.load();
+          }
         case null:
           break;
       }
@@ -768,7 +791,7 @@ class _StandaloneProgramRow extends StatelessWidget {
   }
 }
 
-enum _ProgramAction { open, edit, addRoutine }
+enum _ProgramAction { open, edit, addRoutine, delete }
 
 class _ProgramActionOption extends StatelessWidget {
   const _ProgramActionOption({
@@ -777,6 +800,7 @@ class _ProgramActionOption extends StatelessWidget {
     required this.onTap,
     this.supportingText,
     this.enabled = true,
+    this.destructive = false,
     super.key,
   });
 
@@ -785,10 +809,14 @@ class _ProgramActionOption extends StatelessWidget {
   final VoidCallback? onTap;
   final String? supportingText;
   final bool enabled;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final contentColor = enabled
+        ? (destructive ? colors.danger : colors.textPrimary)
+        : colors.textMuted;
     return Semantics(
       container: true,
       button: true,
@@ -812,7 +840,7 @@ class _ProgramActionOption extends StatelessWidget {
               child: Center(
                 child: Icon(
                   icon,
-                  color: enabled ? colors.textPrimary : colors.textMuted,
+                  color: contentColor,
                 ),
               ),
             ),
@@ -824,7 +852,7 @@ class _ProgramActionOption extends StatelessWidget {
                   Text(
                     label,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: enabled ? null : colors.textMuted,
+                          color: contentColor,
                         ),
                   ),
                   if (supportingText != null)

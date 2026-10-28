@@ -36,8 +36,8 @@ psql() { command psql --no-psqlrc "$@"; }
 identity="$(psql "$db" --set=ON_ERROR_STOP=1 -At \
   --command="select current_database()='postgres' and current_user='postgres'
     and (select count(*)=1 from supabase_migrations.schema_migrations
-         where version='20261025100000')
-    and not has_function_privilege('authenticated','$signature','EXECUTE')" \
+         where version='20261028110000')
+    and has_function_privilege('authenticated','$signature','EXECUTE')" \
   | tr -d '[:space:]')"
 if [[ "$identity" != t ]]; then
   echo 'Wrong disposable DB identity, migration, or dormant RPC baseline' >&2
@@ -130,7 +130,7 @@ SQL
 
 psql "$db" --set=ON_ERROR_STOP=1 -q \
   --command="grant execute on function $signature to authenticated"
-grant_open=1
+grant_open=0
 
 # RACE 1: Delete transaction moves and locks Routine first; stale protected
 # Edit must wait, then reject the old source Program after Delete commits.

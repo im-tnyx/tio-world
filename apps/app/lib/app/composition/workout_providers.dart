@@ -392,6 +392,11 @@ final routineDeleteFlowProvider = Provider<RoutineDeleteFlow>(
   (ref) => RoutineDeleteFlow(),
 );
 
+/// One cross-surface Program Delete action guard, with business/UI flow owned by Workout.
+final programDeleteFlowProvider = Provider<ProgramDeleteFlow>(
+  (ref) => ProgramDeleteFlow(),
+);
+
 /// Owner-scoped destructive capability, never an in-memory fallback.
 /// Refreshing auth can rebuild this adapter, but the caller-owned attempt
 /// gate remains stable for the lifetime of the ProviderContainer.

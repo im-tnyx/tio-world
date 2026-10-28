@@ -37,8 +37,8 @@ psql() { command psql --no-psqlrc "$@"; }
 identity="$(psql "$db" --set=ON_ERROR_STOP=1 -At --command="
   select current_database()='postgres' and current_user='postgres'
     and (select count(*)=1 from supabase_migrations.schema_migrations
-         where version='20261025100000')
-    and not has_function_privilege('authenticated','$signature','EXECUTE')
+         where version='20261028110000')
+    and has_function_privilege('authenticated','$signature','EXECUTE')
 " | tr -d '[:space:]')"
 if [[ "$identity" != t ]]; then
   echo 'Wrong disposable database, migration ledger or dormant ACL' >&2
@@ -132,7 +132,7 @@ values
 SQL
 psql "$db" --set=ON_ERROR_STOP=1 -q \
   --command="grant execute on function $signature to authenticated"
-grant_open=1
+grant_open=0
 
 # Race 1: atomic Create holds source Program KEY SHARE before committing.
 # Delete confirms an empty snapshot, waits on source FOR UPDATE, and MUST
