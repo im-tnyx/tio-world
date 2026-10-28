@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-28
 **Branch:** `tnyx/exercise-catalog-localization`
-**HEAD SHA:** `ba087094f54f98d3504d57c3e26a973040bbd4d8` (implementation commit; follow-up handoff correction is being added on this same PR branch)
-**Observed working-tree state:** Branch tracks `origin/tnyx/exercise-catalog-localization`; unrelated deployment-readiness task is isolated on its own branch/PR
-**Observed uncommitted/dirty files:** None before this review correction
+**Implementation/validation SHA:** `ba087094f54f98d3504d57c3e26a973040bbd4d8` (catalog implementation commit; the current PR head is authoritative in GitHub PR #710 after subsequent documentation-only handoff commits)
+**Observed working-tree state:** Branch `tnyx/exercise-catalog-localization` tracks `origin/tnyx/exercise-catalog-localization`; unrelated deployment-readiness task is isolated on its own branch/PR
+**Observed uncommitted/dirty files:** None at the last pushed handoff state
 **PR / tracker:** GitHub PR [#710](https://github.com/im-tnyx/tio-world/pull/710) is `OPEN`; Linear `TNYX-262` (W3B — Exercise detail) remains `Backlog`; this slice prepares its catalog contract but does not implement W3B UI.
-**Current implementation state:** Bounded implementation is committed and pushed; PR #710 has one P3 documentation finding about this handoff, addressed by this follow-up correction
+**Current implementation state:** Bounded implementation and handoff corrections are committed/pushed; PR #710 remains open with one P3 operational-record finding being resolved in this latest handoff update
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/features/workout/assets/exercises/`, `apps/features/workout/lib/src/data/exercises/`, focused tests, and exercise catalog docs
-**Validation completed at SHA:** `ba087094f54f98d3504d57c3e26a973040bbd4d8` plus local focused validation; PR CI passed at that implementation head
-**Validation remaining:** PR CI re-run and reviewer re-review after this handoff correction; full monorepo local suite remains not run
-**Current blocker:** PR #710 reviewer re-review pending after the P3 handoff correction
+**Validation completed at SHA:** `ba087094f54f98d3504d57c3e26a973040bbd4d8` plus local focused validation; PR CI for the implementation and subsequent handoff correction commit `2b8788d40dfccf1129551c72d83103e19f5ffb90` passed
+**Validation remaining:** CI will re-run for this documentation-only handoff update; full monorepo local suite remains not run
+**Current blocker:** PR #710 reviewer re-review pending after this latest operational-record correction
 **Open review finding IDs:** `4398874968` — P3 stale active-handoff state; addressed in this follow-up
-**Next exact action:** Commit/push this handoff correction and request reviewer re-review; implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
+**Next exact action:** Push this latest handoff correction and request reviewer re-review; implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
 
 ## 1. Discovery
 
@@ -122,8 +122,8 @@ apps/features/workout focused analyze: PASS (`flutter.bat analyze`; no issues fo
 apps/features/workout focused tests: PASS (`flutter.bat test test/data/exercises/exercise_catalog_parser_test.dart test/data/exercises/asset_bundle_exercise_catalog_source_test.dart`; 49 tests passed)
 git diff --check: PASS
 Full monorepo `melos analyze` / `melos test`: NOT RUN
-PR #710 independent review: REVIEWED by `im-tio`; one P3 handoff finding received (comment `4398874968`)
-PR #710 CI at implementation head: PASS (Attribution guard, Docs Hygiene, Flutter/Dart analyze/tests, and package test checks)
+PR #710 independent review: REVIEWED by `im-tio`; implementation scope accepted, with P3 `4398874968` requesting current operational-record wording
+PR #710 CI: PASS for implementation commit `ba087094` and handoff correction commit `2b8788d4` (Attribution guard, Docs Hygiene, Flutter/Dart analyze/tests, and package test checks)
 Device QA: NOT RUN; no device-visible UI changed
 ```
 
@@ -139,10 +139,10 @@ Device QA: NOT RUN; no device-visible UI changed
 
 **Review source / link:** [PR #710 review comment](https://github.com/im-tnyx/tio-world/pull/710#discussion_r4398874968)
 **Reviewer / relation to implementer:** `im-tio`, collaborator; independent of implementation agent
-**Diff or commit SHA actually reviewed:** `ba087094f54f98d3504d57c3e26a973040bbd4d8`
-**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text and addressed in this follow-up correction
-**Independent review?** Yes — one collaborator review received; re-review is pending after the correction
-**Limitations and unmet required gates:** PR re-review and follow-up CI are pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
+**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; handoff correction `2b8788d40dfccf1129551c72d83103e19f5ffb90`
+**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text. This latest update removes the self-referential stale wording and records implementation validation separately from the live PR head.
+**Independent review?** Yes — collaborator re-review received; the P3 remains open only until the latest wording update is reviewed.
+**Limitations and unmet required gates:** CI for this latest docs-only update and reviewer re-review are pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
 
 ## 7. Final Handoff
 
@@ -170,4 +170,4 @@ The About/Exercise Detail surface remains unimplemented and tracked separately b
 
 ### Final Status
 
-`REVIEW` — P3 stale-handoff finding addressed; follow-up CI and reviewer re-review remain pending.
+`REVIEW` — implementation and prior handoff correction are validated; latest operational-record wording update awaits CI and reviewer re-review.
