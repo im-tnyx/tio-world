@@ -27,10 +27,10 @@
 **PR / tracker:** GitHub PR [#710](https://github.com/im-tnyx/tio-world/pull/710) is `OPEN`; Linear `TNYX-262` (W3B — Exercise detail) remains `Backlog`; this slice prepares its catalog contract but does not implement W3B UI.
 **Current implementation state:** Bounded implementation and handoff metadata are committed/pushed; no source correction is outstanding. PR #710 remains open, with reviewer approval as the remaining PR gate.
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/features/workout/assets/exercises/`, `apps/features/workout/lib/src/data/exercises/`, focused tests, and exercise catalog docs
-**Validation completed at SHA:** `ba087094f54f98d3504d57c3e26a973040bbd4d8` plus local focused validation; the last observed PR head `2d5a7f18bcf8b52eda5f02d756cd3935ae063b7a` had all required CI checks passing
-**Validation remaining:** No implementation validation remains for this slice; the full monorepo local suite was not run. GitHub PR #710 is authoritative for the current head and check state after any later documentation-only commit.
+**Validation completed:** Local focused validation passed for implementation SHA `ba087094f54f98d3504d57c3e26a973040bbd4d8`; the last observed PR validation head `499272a123b10eecba0c267711bbe1219588690b` is historical and had all required CI checks passing. GitHub PR #710 is authoritative for the current head/check state.
+**Validation remaining:** No implementation validation remains for this slice; the full monorepo local suite was not run. Any later documentation-only commit follows the repository's normal PR checks.
 **Current blocker:** Reviewer approval/PR review disposition is pending; no code or catalog-data blocker remains
-**Open review finding IDs:** `4398874968` — P3 operational-record wording; this update addresses it, with closure pending reviewer confirmation
+**Open review finding IDs:** None — P3 `4398874968` is resolved in the task handoff; reviewer approval remains a separate PR gate
 **Next exact action:** Reviewer approval and the normal PR merge process; no further source changes are required. Implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
 
 ## 1. Discovery
@@ -122,8 +122,8 @@ apps/features/workout focused analyze: PASS (`flutter.bat analyze`; no issues fo
 apps/features/workout focused tests: PASS (`flutter.bat test test/data/exercises/exercise_catalog_parser_test.dart test/data/exercises/asset_bundle_exercise_catalog_source_test.dart`; 49 tests passed)
 git diff --check: PASS
 Full monorepo `melos analyze` / `melos test`: NOT RUN
-PR #710 independent review: REVIEWED by `im-tio`; implementation scope accepted, with P3 `4398874968` requesting current operational-record wording; this handoff records the final disposition boundary
-PR #710 CI: last observed PASS on head `2d5a7f18` (Attribution guard, Docs Hygiene, Flutter/Dart analyze/tests, and package test checks)
+PR #710 independent review: REVIEWED by `im-tio`; implementation scope accepted; P3 `4398874968` is resolved by the final operational-record wording in this handoff
+PR #710 CI: last observed PASS on historical head `499272a1` (Attribution guard, Docs Hygiene, Flutter/Dart analyze/tests, and package test checks); current status remains authoritative in GitHub PR #710
 Device QA: NOT RUN; no device-visible UI changed
 ```
 
@@ -140,8 +140,8 @@ Device QA: NOT RUN; no device-visible UI changed
 **Review source / link:** [PR #710 review comment](https://github.com/im-tnyx/tio-world/pull/710#discussion_r4398874968)
 **Reviewer / relation to implementer:** `im-tio`, collaborator; independent of implementation agent
 **Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; handoff correction `2b8788d40dfccf1129551c72d83103e19f5ffb90`
-**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text. This update records the implementation baseline separately from the live PR head and removes future-tense CI/review claims.
-**Independent review?** Yes — collaborator re-review received; P3 closure is pending confirmation that this operational-record wording is acceptable.
+**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text and is resolved by explicitly labeling the last validation SHA as historical and recording the final disposition.
+**Independent review?** Yes — collaborator re-review received; final approval remains pending.
 **Limitations and unmet required gates:** Reviewer approval remains pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
 
 ## 7. Final Handoff
