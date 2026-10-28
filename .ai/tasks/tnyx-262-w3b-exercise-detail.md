@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-28
 **Branch:** `codex/tnyx-262-exercise-detail`
-**HEAD SHA:** `8611e1454e561946552864053fe896dced9abac2` before the review-fix commit.
-**Observed working-tree state:** Review fixes are currently uncommitted on the task branch; unrelated work remains absent.
-**Observed uncommitted/dirty files:** Four focused Workout source/test files contain only the current Codex review fixes.
+**HEAD SHA:** `09cc6cb42f9f44efbdf05aa15d7071b820d67829`
+**Observed working-tree state:** Clean after the review-fix commit; unrelated work remains absent.
+**Observed uncommitted/dirty files:** None.
 **PR / tracker:** Linear `TNYX-262` is `In Review` with GitHub PR #712 attached; Linear `TNYX-264` remains `In Progress`; GitHub #557 and #556 are `OPEN`. PR #710 is merged at `ca3817af` and its catalog/model/localization changes are present in `main`.
 **Current implementation state:** Implemented locally. Dedicated catalog/active Custom rows and Routine Create/Edit picker Info actions open one canonical Detail/About presentation. Routine row taps still select/add; Info does not mutate pending selection. Custom Edit is explicit and owner/session gated.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, `apps/features/workout/test/`, `apps/app/lib/app/routing/shell/shell_route.dart`, `apps/core/lib/src/routing/routes/app_routes.dart`, related route/widget tests and package manifests.
 **Validation completed at SHA:** Audit completed at `ad1c840e`; initial implementation validation completed at `b637332446e8734a9aedfa94369a62fd6b871417` with focused Workout tests (`93` passed), app Workout route tests (`89` passed), core route-contract tests (`7` passed), and analyzer diagnostics reporting `No issues found` for Workout, app and core (Dart telemetry exit warning recorded below). Review-fix validation then passed the focused Workout regression suite with `94` tests; analyzer again reported `No issues found` with the same machine-local telemetry exit warning.
-**Validation remaining:** Full monorepo `melos` validation, current-head CI, independent review, device/video QA and assistive-technology QA were not run in this local handoff.
+**Validation remaining:** Full monorepo `melos` validation, review-fix current-head CI, re-review, device/video QA and assistive-technology QA remain pending.
 **Current blocker:** No bounded implementation blocker. Merge/review remains gated by current-head CI, independent review and device/accessibility QA; PR #712 is open and no merge was performed.
-**Open review finding IDs:** GitHub Codex findings `4402773341`, `4402773361`, `4402773380`, and `4402773394` were reviewed and fixed locally; they remain pending re-review after push.
-**Next exact action:** Commit and push the bounded review fixes, then request current-head Codex review; no merge was performed.
+**Open review finding IDs:** GitHub Codex findings `4402773341`, `4402773361`, `4402773380`, and `4402773394` were fixed in `09cc6cb4`; re-review remains pending after push.
+**Next exact action:** Push the bounded review-fix commit and request current-head Codex review; no merge was performed.
 
 ## 1. Discovery
 
@@ -154,7 +154,7 @@ PASS — no whitespace errors.
 **Review source / link:** GitHub PR #712 Codex review
 **Reviewer / relation to implementer:** `chatgpt-codex-connector[bot]` / independent automated review
 **Diff or commit SHA actually reviewed:** Working-tree diff against `ad1c840ea68672fb50c4662ce00fbcdb90e7aef2`
-**Review result and finding IDs/dispositions:** Four P2 findings were valid and fixed locally: trailing Info-button inset (`4402773341`), full regional locale fallback (`4402773361`), edit-time repository failure handling (`4402773380`), and labeled row selection semantics (`4402773394`).
+**Review result and finding IDs/dispositions:** Four P2 findings were valid and fixed in `09cc6cb4`: trailing Info-button inset (`4402773341`), full regional locale fallback (`4402773361`), edit-time repository failure handling (`4402773380`), and labeled row selection semantics (`4402773394`).
 **Independent review?** Yes, Codex review was received; re-review after the fix push remains required.
 **Limitations and unmet required gates:** Review-fix current-head CI and re-review are pending; no device QA or accessibility technology QA was run.
 
