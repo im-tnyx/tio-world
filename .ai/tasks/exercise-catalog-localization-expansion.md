@@ -31,7 +31,7 @@
 **Validation remaining:** No implementation validation remains for this slice; the full monorepo local suite was not run. Any later documentation-only commit follows the repository's normal PR checks.
 **Current blocker:** Reviewer approval/PR review disposition is pending; no code or catalog-data blocker remains
 **Open review finding IDs:** None — P3 `4398874968` is resolved in the task handoff; reviewer approval remains a separate PR gate
-**Last verified PR state:** GitHub PR #710 head `34b91852bcc7cdb82842216a8568ae8095843c03` was `MERGEABLE` with required Attribution, Docs Hygiene, and Flutter CI checks `SUCCESS`; GitHub remains authoritative after later documentation-only commits.
+**Last verified PR state:** GitHub PR #710 head `5ae1a0fe98396237d4ddf6f31d5446a80a763cd2` was `MERGEABLE` with required Attribution, Docs Hygiene, and Flutter CI checks `SUCCESS`; this SHA is historical after later documentation-only commits, and GitHub remains authoritative for the current head/check state.
 **Next exact action:** Reviewer approval and the normal PR merge process; no further source changes are required. Implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
 
 ## 1. Discovery
@@ -140,7 +140,7 @@ Device QA: NOT RUN; no device-visible UI changed
 
 **Review source / link:** [PR #710 review comment](https://github.com/im-tnyx/tio-world/pull/710#discussion_r4398874968)
 **Reviewer / relation to implementer:** `im-tio`, collaborator; independent of implementation agent
-**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; latest reviewed handoff head `34b91852bcc7cdb82842216a8568ae8095843c03`
+**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; last verified PR head `5ae1a0fe98396237d4ddf6f31d5446a80a763cd2` (historical after this task-brief-only update; current PR head is authoritative in GitHub PR #710)
 **Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text and is resolved by the current evidence, explicit historical labels, and corrected parser/asset-guard description.
 **Independent review?** Yes — collaborator re-review received; final approval remains pending.
 **Limitations and unmet required gates:** Reviewer approval remains pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
