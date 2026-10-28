@@ -15,10 +15,10 @@
 - `apps/app/lib/app/composition/workout_providers.dart`: Expose `programDeleteFlowProvider`.
 - `apps/app/lib/app/routing/shell/shell_route.dart`: Session-guarded wiring using `ProgramDeleteFlow`, `programDeleteControllerProvider(program.id)`, and `programDeleteRepositoryProvider` with strict `sameSession()` checks (user ID, login cycle ID, Supabase current user, auth state) and retain `programDeleteControllerProvider` across the async flow using `ref.listenManual` + `try/finally` subscription cleanup.
 - `apps/features/workout/test/presentation/programs_surface_delete_action_test.dart`: Focused widget test suite for UI action sheet, non-default inclusion, default exclusion, null callback suppression, cancel behavior, and refresh dispatching.
-- `supabase/migrations/20261028110000_grant_authenticated_program_delete_rpc.sql`: Track Gate B authenticated EXECUTE grant in Git to match hosted ledger 72/72.
-- `supabase/tests/database/tnyx_567_*`: Update database test assertions to verify migrated authenticated-only EXECUTE and preserve the migrated ACL during concurrency tests.
+- `supabase/migrations/20261028110000_grant_authenticated_program_delete_rpc.sql`: Track Gate B migration file in Git repository history to align local and CI migration replay with the already-applied hosted Supabase ledger (72/72). Gate B (`grant execute ... to authenticated`) was previously deployed and verified on hosted Supabase prior to this PR; this PR only records that existing migration file in Git for CI replay parity and performs zero writes or deployments to the hosted database.
+- `supabase/tests/database/tnyx_567_*`: Update database test assertions to verify the already-applied Gate B authenticated-only EXECUTE grant and preserve the migrated ACL during concurrency tests.
 **Explicit non-changes & hard stops:**
-- Zero hosted database mutations, migrations, or privilege modifications.
+- Zero hosted database mutations, writes, migrations, or privilege deployments in this PR slice (Gate B was already applied to hosted Supabase in a prior approved step; this PR purely records the migration file in Git for CI replay parity and performs no new hosted database modification or deployment).
 - Default canonical Program (`isDefault: true` / `My Program`) must NEVER display `Delete Program` and must fail closed.
 - Zero unrelated visual redesign or token modifications.
 - Do NOT merge branch into main; provide merge-gate recommendation.
