@@ -27,8 +27,8 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `G:/projects/Tio-World` at branch `tnyx/issue-567-d3c-deployment-readiness-gate`; working tree was clean at audit start
 **Branch:** `tnyx/issue-567-d3c-deployment-readiness-gate`
-**Base / HEAD SHA:** base `origin/main`=`ca3817af8b05c707d026a30d0c0f3c560a009185`; branch `HEAD`=`0dff29d965a9e72890f8830ebe0bcdf930c4757a`
-**Branch state:** Stale/diverged from current `origin/main` because the PR branch predates the later squash merge; no rebase, rewrite, merge, or push was performed in this audit
+**Base / reconciliation SHA:** base `origin/main`=`ca3817af8b05c707d026a30d0c0f3c560a009185`; correction commit=`1a24109ce160fd375e8fc9b8818838fc8fe4c970`; reconciliation merge=`58f9434d1931b95b3e47d17e6f3a59c9e84b1c17`
+**Branch state:** Reconciled with current `origin/main` through a non-rewriting merge; no rebase, force-push, or history rewrite was performed. Push is pending.
 **PR / tracker:** GitHub #711 `OPEN` with `CHANGES_REQUESTED`; Linear TNYX-81 / TNYX-267 Backlog
 **Current implementation state:**
 - D1 (RPC logic & DB CI tests) committed on mainline.
@@ -44,7 +44,7 @@
 **Relevant execution surface:** `supabase/migrations/`, `apps/features/workout`
 **Validation completed at SHA:** Read-only branch/ref audit, source migration inspection, canonical Programs-doc comparison, current GitHub PR metadata/review/check inspection, and `git diff --check` after the local correction. No hosted Supabase or local database execution was performed.
 **Validation remaining:** Authoritative hosted status/receipt for Gates A/B and the Gate C disposable-account verification remain unavailable and unauthorized.
-**Current blocker:** Requires explicit Owner Approval before any hosted migration, permission grant, hosted QA, or UI activation; the PR branch also requires stale-parent reconciliation before merge consideration.
+**Current blocker:** Requires explicit Owner Approval before any hosted migration, permission grant, hosted QA, or UI activation; the updated PR requires independent review before merge consideration.
 **Open review finding IDs:** GitHub PR #711 review thread `4398976641` remains `UNRESOLVED` with `CHANGES_REQUESTED` for the Gate A/B contradiction. This local correction is not remotely resolved or reviewed.
 **Next exact action:** Submit this corrected decision brief to the Owner and await an explicit approval decision plus authoritative hosted deployment/read-only evidence. Until then, no migration, grant, hosted QA, production UI activation, or merge is permitted.
 
