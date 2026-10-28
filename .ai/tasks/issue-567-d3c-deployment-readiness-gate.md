@@ -45,7 +45,7 @@
 **Validation completed at SHA:** Read-only branch/ref audit, source migration inspection, canonical Programs-doc comparison, current GitHub PR metadata/review/check inspection, and `git diff --check` after the local correction. No hosted Supabase or local database execution was performed.
 **Validation remaining:** Authoritative hosted status/receipt for Gates A/B and the Gate C disposable-account verification remain unavailable and unauthorized.
 **Current blocker:** Requires explicit Owner Approval before any hosted migration, permission grant, hosted QA, or UI activation; the updated PR requires independent review before merge consideration.
-**Open review finding IDs:** GitHub PR #711 review thread `4398976641` remains `UNRESOLVED` with `CHANGES_REQUESTED` for the Gate A/B contradiction. This local correction is not remotely resolved or reviewed.
+**Open review finding IDs:** GitHub PR #711 review threads `4398976641`, `4401102681`, and `4401102702` remain `UNRESOLVED` with `CHANGES_REQUESTED`. The original Gate A/B contradiction is corrected in the current text, while independent reviewer acknowledgement and thread resolution remain pending on the current head.
 **Next exact action:** Submit this corrected decision brief to the Owner and await an explicit approval decision plus authoritative hosted deployment/read-only evidence. Until then, no migration, grant, hosted QA, production UI activation, or merge is permitted.
 
 ---
@@ -72,7 +72,7 @@
 
 ### Gate B — Authenticated EXECUTE Grant Migration
 - **Current status:** `NOT VERIFIED / NOT COMPLETE` for hosted readiness; source grant migration exists, but repository evidence does not establish that the hosted grant was applied.
-- **Scope:** Create and apply dedicated forward migration (e.g. `20261028110000_grant_authenticated_program_delete_rpc.sql`).
+- **Scope:** Review the existing checked-in migration `20261028110000_grant_authenticated_program_delete_rpc.sql` and, only after explicit Owner Approval, apply and verify that artifact. Do not create a second migration with the same filename.
 - **Exact DDL Content:**
   ```sql
   grant execute on function public.delete_user_workout_program_preserving_routines(
