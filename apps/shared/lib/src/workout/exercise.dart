@@ -6,13 +6,16 @@ import 'exercise_type.dart';
 /// Canonical pure-Dart read model for one Exercise.
 ///
 /// [ref] carries catalog or user-created identity. [media] carries optional
-/// per-gender media URLs. Catalog parsing, persistence, ownership, localized
-/// instructions and standards remain outside this domain contract.
+/// per-gender media URLs. Bundled catalog localization is represented as
+/// immutable locale-keyed content; persistence, ownership and standards remain
+/// outside this domain contract.
 final class Exercise {
   Exercise({
     required this.ref,
     required String displayName,
     String? description,
+    Map<String, String> localizedTitles = const {},
+    Map<String, List<String>> localizedInstructions = const {},
     this.exerciseType,
     String? muscleGroup,
     List<String> primaryMuscles = const [],
@@ -24,6 +27,9 @@ final class Exercise {
     this.media,
   })  : displayName = _requireNonBlankText(displayName, 'displayName'),
         description = _normalizeOptionalText(description),
+        localizedTitles = _validateLocalizedTitles(localizedTitles),
+        localizedInstructions =
+            _validateLocalizedInstructions(localizedInstructions),
         muscleGroup = _validateOptionalTaxonomy(muscleGroup, 'muscleGroup'),
         primaryMuscles = _validateTaxonomyList(
           primaryMuscles,
@@ -48,6 +54,12 @@ final class Exercise {
 
   /// Optional user-authored description/instructions.
   final String? description;
+
+  /// Locale-keyed display titles supplied by the bundled catalog.
+  final Map<String, String> localizedTitles;
+
+  /// Locale-keyed, ordered instruction steps supplied by the bundled catalog.
+  final Map<String, List<String>> localizedInstructions;
 
   /// Optional stable Exercise measurement-profile identity.
   final ExerciseType? exerciseType;
@@ -93,6 +105,44 @@ final class Exercise {
     return trimmed.isEmpty ? null : trimmed;
   }
 
+  static Map<String, String> _validateLocalizedTitles(
+    Map<String, String> values,
+  ) {
+    final normalized = <String, String>{};
+    for (final entry in values.entries) {
+      final locale = _requireNonBlankText(entry.key, 'localizedTitles locale');
+      normalized[locale] = _requireNonBlankText(
+        entry.value,
+        'localizedTitles.$locale',
+      );
+    }
+    return Map<String, String>.unmodifiable(normalized);
+  }
+
+  static Map<String, List<String>> _validateLocalizedInstructions(
+    Map<String, List<String>> values,
+  ) {
+    final normalized = <String, List<String>>{};
+    for (final entry in values.entries) {
+      final locale = _requireNonBlankText(
+        entry.key,
+        'localizedInstructions locale',
+      );
+      if (entry.value.isEmpty) {
+        throw ArgumentError.value(
+          entry.value,
+          'localizedInstructions.$locale',
+          'must contain at least one instruction step',
+        );
+      }
+      normalized[locale] = List<String>.unmodifiable([
+        for (final step in entry.value)
+          _requireNonBlankText(step, 'localizedInstructions.$locale'),
+      ]);
+    }
+    return Map<String, List<String>>.unmodifiable(normalized);
+  }
+
   static String? _validateOptionalTaxonomy(String? value, String name) {
     if (value == null) return null;
     return _requireNonBlankText(value, name);
@@ -127,6 +177,28 @@ final class Exercise {
     return true;
   }
 
+  static int _localizedTitlesHash(Map<String, String> values) =>
+      Object.hashAll(
+        values.keys.toList()..sort(),
+      ).hashCode ^
+      Object.hashAll(
+        values.entries
+            .map((entry) => Object.hash(entry.key, entry.value))
+            .toList()
+          ..sort(),
+      ).hashCode;
+
+  static int _localizedInstructionsHash(Map<String, List<String>> values) =>
+      Object.hashAll(
+        values.entries
+            .map((entry) => Object.hash(
+                  entry.key,
+                  Object.hashAll(entry.value),
+                ))
+            .toList()
+          ..sort(),
+      );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -134,6 +206,17 @@ final class Exercise {
           other.ref == ref &&
           other.displayName == displayName &&
           other.description == description &&
+          other.localizedTitles.length == localizedTitles.length &&
+          other.localizedTitles.entries.every(
+            (entry) => other.localizedTitles[entry.key] == entry.value,
+          ) &&
+          other.localizedInstructions.length == localizedInstructions.length &&
+          other.localizedInstructions.entries.every(
+            (entry) =>
+                other.localizedInstructions.containsKey(entry.key) &&
+                _listsEqual(
+                    other.localizedInstructions[entry.key]!, entry.value),
+          ) &&
           other.exerciseType == exerciseType &&
           other.muscleGroup == muscleGroup &&
           _listsEqual(other.primaryMuscles, primaryMuscles) &&
@@ -149,6 +232,8 @@ final class Exercise {
         ref,
         displayName,
         description,
+        _localizedTitlesHash(localizedTitles),
+        _localizedInstructionsHash(localizedInstructions),
         exerciseType,
         muscleGroup,
         Object.hashAll(primaryMuscles),
