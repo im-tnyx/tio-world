@@ -25,42 +25,35 @@
 **Review owner:** Architecture & Security Lead
 **Implementation ownership state:** Paused (Awaiting Owner Approval)
 **Ownership transition:** Not applicable
-**Repository state last verified:** `G:/projects/Tio-World` at branch `main`
-**Branch:** `main`
-**HEAD SHA:** `780fb56d1fd47d55666ed5d0a6d881992f314ff2` (clean tree, in exact sync with `origin/main`)
-**PR / tracker:** GitHub #567 OPEN (PR #708 merged); Linear TNYX-81 / TNYX-267 Backlog
+**Repository state last verified:** `G:/projects/Tio-World` at branch `tnyx/issue-567-d3c-deployment-readiness-gate`; working tree was clean at audit start
+**Branch:** `tnyx/issue-567-d3c-deployment-readiness-gate`
+**Base / HEAD SHA:** base `origin/main`=`ca3817af8b05c707d026a30d0c0f3c560a009185`; branch `HEAD`=`0dff29d965a9e72890f8830ebe0bcdf930c4757a`
+**Branch state:** Stale/diverged from current `origin/main` because the PR branch predates the later squash merge; no rebase, rewrite, merge, or push was performed in this audit
+**PR / tracker:** GitHub #711 `OPEN` with `CHANGES_REQUESTED`; Linear TNYX-81 / TNYX-267 Backlog
 **Current implementation state:**
 - D1 (RPC logic & DB CI tests) committed on mainline.
 - D2A (Repository adapter & DTO) merged.
 - D2B (Controller & state machine) merged.
 - D3 (Presentation confirmation flow & 17 unit/widget tests) merged in PR #708.
-- Hosted Supabase (`oykupyiitspujzpwwvuj`): Gate A & Gate B COMPLETED.
-  - Migration #71 (`20261025100000_delete_user_workout_program_preserving_routines.sql`) deployed & verified.
-  - Migration #72 (`20261028110000_grant_authenticated_program_delete_rpc.sql`) deployed & verified.
-  - 72/72 remote ledger count.
-  - Function `public.delete_user_workout_program_preserving_routines(uuid, uuid[], uuid)` exists as `SECURITY DEFINER` with empty `search_path`.
-  - EXECUTE privileges: `can_execute` is `true` for `authenticated`; strictly `false` for `anon`, `service_role`, `public`.
-  - Direct table `DELETE`: `can_delete_programs` and `can_delete_routines` are `false` for `anon`, `authenticated`, `public`. Zero DELETE policies in RLS.
-  - Gate C QA Audit: Phase 1 completed. Test matrix mapped across all 13 criteria.
-  - Local Docker engine: Unavailable on this workstation.
-  - GitHub Actions DB CI: 100% green on Run `40162185101` (SQL suite + 3 concurrency race harnesses passed).
-  - Awaiting Owner instruction for Phase 2 QA execution (disposable identity hosted smoke test authorization).
-  - Production UI remains disconnected and dormant.
+- Repository source contains Migration #71 (`20261025100000_delete_user_workout_program_preserving_routines.sql`) and Migration #72 (`20261028110000_grant_authenticated_program_delete_rpc.sql`), and local/CI test definitions exercise their replay/ACL behavior. Source presence or replay tests do not prove hosted deployment.
+- Current canonical repository evidence in `docs/screens/programs.md` states that Migration #71 is not applied on hosted Supabase, the hosted ledger was 70 migrations through `20261024120000`, client `EXECUTE` was not granted, and no Delete UI exists.
+- **Gate A hosted status:** `NOT VERIFIED / NOT COMPLETE` in this audit. No hosted read-only receipt or live metadata was accessed, and the repository evidence contradicts the brief's previous “deployed & verified” claim.
+- **Gate B hosted status:** `NOT VERIFIED / NOT COMPLETE` in this audit. The checked-in grant migration is source evidence only; no authoritative hosted grant receipt was available, and canonical repository evidence says client `EXECUTE` is not granted.
+- Gate C hosted disposable-account QA has not been run and remains unauthorized pending explicit Owner approval and a controlled test-account plan.
+- Local Docker engine and hosted Supabase were not accessed or mutated. Production UI remains disconnected and dormant.
 **Relevant execution surface:** `supabase/migrations/`, `apps/features/workout`
-**Validation completed at SHA:**
-- Flutter delete-suite: 39/39 tests PASS (`program_delete_flow_test.dart`, `program_delete_controller_test.dart`, `supabase_workout_repository_test.dart`).
-- `flutter analyze --no-pub`: 0 issues across all packages.
-- Supabase local/CI: 14 SQL assertions + 3 concurrency race matrices passing in CI (`supabase-db-ci.yml`).
-**Validation remaining:** Remote hosted verification (Gate C) after Gates A & B approval.
-**Current blocker:** Requires explicit Owner Approval before hosted migration or permission grants.
-**Open review finding IDs:** None
-**Next exact action:** Submit decision brief to Owner and await authorization.
+**Validation completed at SHA:** Read-only branch/ref audit, source migration inspection, canonical Programs-doc comparison, current GitHub PR metadata/review/check inspection, and `git diff --check` after the local correction. No hosted Supabase or local database execution was performed.
+**Validation remaining:** Authoritative hosted status/receipt for Gates A/B and the Gate C disposable-account verification remain unavailable and unauthorized.
+**Current blocker:** Requires explicit Owner Approval before any hosted migration, permission grant, hosted QA, or UI activation; the PR branch also requires stale-parent reconciliation before merge consideration.
+**Open review finding IDs:** GitHub PR #711 review thread `4398976641` remains `UNRESOLVED` with `CHANGES_REQUESTED` for the Gate A/B contradiction. This local correction is not remotely resolved or reviewed.
+**Next exact action:** Submit this corrected decision brief to the Owner and await an explicit approval decision plus authoritative hosted deployment/read-only evidence. Until then, no migration, grant, hosted QA, production UI activation, or merge is permitted.
 
 ---
 
 ## Deployment Architecture & Gate Sequence
 
 ### Gate A — Migration #71 RPC Definition Application
+- **Current status:** `NOT VERIFIED / NOT COMPLETE` for hosted readiness; source migration exists, but repository evidence does not establish that it was applied remotely.
 - **Scope:** Push existing migration `20261025100000_delete_user_workout_program_preserving_routines.sql` to hosted Supabase.
 - **Security Posture Upon Deployment:**
   - `SECURITY DEFINER` with fixed `set search_path = ''`.
@@ -78,6 +71,7 @@
   - Zero table/column schema changes exist in Migration #71, so rollback carries zero data loss risk.
 
 ### Gate B — Authenticated EXECUTE Grant Migration
+- **Current status:** `NOT VERIFIED / NOT COMPLETE` for hosted readiness; source grant migration exists, but repository evidence does not establish that the hosted grant was applied.
 - **Scope:** Create and apply dedicated forward migration (e.g. `20261028110000_grant_authenticated_program_delete_rpc.sql`).
 - **Exact DDL Content:**
   ```sql
