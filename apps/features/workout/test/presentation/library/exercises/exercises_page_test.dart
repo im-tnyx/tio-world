@@ -22,6 +22,10 @@ Future<void> _pumpPage(
   bool settle = true,
   bool startSearching = false,
   UserExerciseRepository? userExerciseRepository,
+  ExerciseCatalogRepository? pageCatalogRepository,
+  ValueChanged<Exercise>? onExerciseInfoPressed,
+  ValueChanged<Exercise>? onExerciseSelected,
+  ValueChanged<List<Exercise>>? onExercisesAdded,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -37,6 +41,10 @@ Future<void> _pumpPage(
         home: ExercisesPage(
           startSearching: startSearching,
           userExerciseRepository: userExerciseRepository,
+          catalogRepository: pageCatalogRepository,
+          onExerciseInfoPressed: onExerciseInfoPressed,
+          onExerciseSelected: onExerciseSelected,
+          onExercisesAdded: onExercisesAdded,
         ),
       ),
     ),
@@ -361,7 +369,7 @@ void main() {
       );
     });
 
-    _testWidgets('rows have no icon, chevron, action or tap behavior',
+    _testWidgets('catalog rows open the canonical Exercise Detail',
         (tester) async {
       await _pumpPage(
         tester,
@@ -374,28 +382,24 @@ void main() {
         'ex_synthetic_stretch',
       ]) {
         final row = _row(id);
-        for (final type in [
-          Icon,
-          IconButton,
-          InkWell,
-          GestureDetector,
-          ListTile,
-          TioButton,
-        ]) {
-          expect(
-            find.descendant(of: row, matching: find.byType(type)),
-            findsNothing,
-            reason: '$id must not contain $type',
-          );
-        }
         final semantics = tester.getSemantics(row).getSemanticsData();
-        expect(semantics.hasAction(SemanticsAction.tap), isFalse);
-        expect(semantics.flagsCollection.isButton, isFalse);
+        expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+        expect(semantics.flagsCollection.isButton, isTrue);
       }
 
-      await tester.tap(_row('ex_synthetic_curl'), warnIfMissed: false);
+      await tester.tap(_row('ex_synthetic_curl'));
       await tester.pumpAndSettle();
-      expect(find.byType(ExercisesPage), findsOneWidget);
+      expect(find.byType(ExerciseDetailPage), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('exercise-detail-name')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('exercise-detail-name')),
+            )
+            .data,
+        'Synthetic Curl',
+      );
     });
 
     _testWidgets('a row reads its name and metadata as one node',
@@ -406,10 +410,10 @@ void main() {
         repository: FakeExerciseCatalogRepository(catalog: syntheticCatalog()),
       );
 
-      expect(
-        tester.getSemantics(_row('ex_synthetic_curl')),
-        matchesSemantics(label: 'Synthetic Curl\nDumbbell • Upper arms'),
-      );
+      final data =
+          tester.getSemantics(_row('ex_synthetic_curl')).getSemanticsData();
+      expect(data.label, 'Synthetic Curl\nDumbbell • Upper arms');
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
       handle.dispose();
     });
 
@@ -462,7 +466,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Custom Exercises'), findsOneWidget);
-      expect(find.byKey(const ValueKey('all-exercises-section')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('all-exercises-section')), findsOneWidget);
       expect(find.text('All Exercises'), findsOneWidget);
       expect(_row(_customId(1).value), findsOneWidget);
       expect(
@@ -477,7 +482,7 @@ void main() {
       expect(customSemantics.hasAction(SemanticsAction.tap), isTrue);
       final catalogSemantics =
           tester.getSemantics(_row('ex_synthetic_curl')).getSemanticsData();
-      expect(catalogSemantics.hasAction(SemanticsAction.tap), isFalse);
+      expect(catalogSemantics.hasAction(SemanticsAction.tap), isTrue);
     });
 
     _testWidgets('search applies to catalog and Custom Exercises together',
@@ -498,7 +503,7 @@ void main() {
       expect(_row('ex_synthetic_press'), findsNothing);
     });
 
-    _testWidgets('Custom row opens the existing editor on the same flow',
+    _testWidgets('Custom row opens the canonical Exercise Detail',
         (tester) async {
       final userRepository = _FakeUserExerciseRepository([
         _customExercise(1, 'My Cable Row'),
@@ -512,8 +517,62 @@ void main() {
       await tester.tap(_row(_customId(1).value));
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomExerciseEditorPage), findsOneWidget);
-      expect(find.text('Edit Exercise'), findsOneWidget);
+      expect(find.byType(ExerciseDetailPage), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('exercise-detail-name')),
+            )
+            .data,
+        'My Cable Row',
+      );
+      expect(find.byType(CustomExerciseEditorPage), findsNothing);
+    });
+
+    _testWidgets(
+        'Routine Info opens About without selecting and preserves pending state',
+        (tester) async {
+      var added = false;
+      final repository = FakeExerciseCatalogRepository(
+        catalog: syntheticCatalog(),
+      );
+      await _pumpPage(
+        tester,
+        repository: repository,
+        pageCatalogRepository: repository,
+        onExercisesAdded: (_) => added = true,
+        onExerciseInfoPressed: (exercise) {
+          Navigator.of(tester.element(find.byType(ExercisesPage))).push<void>(
+            MaterialPageRoute(
+              builder: (_) => ExerciseDetailPage(
+                exerciseRef: exercise.ref,
+                catalogRepository: repository,
+              ),
+            ),
+          );
+        },
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('exercise-info-ex_synthetic_curl')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ExerciseDetailPage), findsOneWidget);
+      expect(added, isFalse);
+      expect(
+          find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('exercise-detail-back')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ExercisesPage), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('exercises-add-selected')), findsNothing);
+
+      await tester.tap(_row('ex_synthetic_curl'));
+      await tester.pumpAndSettle();
+      expect(
+          find.byKey(const ValueKey('exercises-add-selected')), findsOneWidget);
+      expect(added, isFalse);
     });
 
     _testWidgets('create action opens the Custom Exercise editor',
@@ -572,8 +631,7 @@ void main() {
       expect(find.text('Late Custom Match'), findsOneWidget);
     });
 
-    _testWidgets(
-        'shows Custom load failure instead of an empty unified claim',
+    _testWidgets('shows Custom load failure instead of an empty unified claim',
         (tester) async {
       final userRepository = _FakeUserExerciseRepository(
         const [],

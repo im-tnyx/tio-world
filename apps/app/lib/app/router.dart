@@ -8,6 +8,7 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_splash/splash.dart';
+import 'package:tio_feature_workout/workout.dart';
 
 import 'account_setup/account_setup_providers.dart';
 import 'app_mode/app_mode.dart';
@@ -73,6 +74,10 @@ ChromePolicy shellChromePolicyForPath(String location) {
   final isMainTabRoot =
       shellBranchRegistry.any((branch) => branch.route.path == location);
   if (isMainTabRoot) return ChromePolicy.mainChrome;
+
+  if (location.startsWith('${AppRoutes.workoutExercises.path}/')) {
+    return ChromePolicy.noBottomBar;
+  }
 
   return ChromePolicy.noBottomBar;
 }
@@ -225,6 +230,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
     navigatorKey: rootNavigatorKey,
+    observers: [exerciseDetailRouteObserver],
     refreshListenable: Listenable.merge([
       appSessionBootstrapController,
       appModeController,

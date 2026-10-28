@@ -56,7 +56,7 @@ RoutineCompositionSnapshot _snapshot({
     );
 
 class _Fixtures {
-  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite})
+  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed})
       : compositions = _Compositions(_snapshot()),
         catalog = _Catalog(),
         users = _Users();
@@ -65,6 +65,7 @@ class _Fixtures {
   final Routine? routine;
   final bool repositoryAvailable;
   final bool Function()? canWrite;
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
   final _Compositions compositions;
   final _Catalog catalog;
   final _Users users;
@@ -98,6 +99,7 @@ class _Fixtures {
                         repositoryAvailable ? compositions : null,
                     catalogRepository: catalog,
                     userExerciseRepository: users,
+                    onExerciseInfoPressed: onExerciseInfoPressed,
                     canWrite: canWrite,
                     weightUnit: unit,
                     newUuid: newId,
@@ -352,14 +354,24 @@ void main() {
 
   testWidgets('Edit batch Add queues two Exercises and saves once',
       (tester) async {
-    final f = _Fixtures();
+    var infoCalls = 0;
+    final f = _Fixtures(onExerciseInfoPressed: (_) => infoCalls++);
     f.compositions.snapshot = _snapshot(entries: const []);
     await f.open(tester);
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bench Press'));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-info-ex_bench_press')),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Run on Treadmill'));
+    expect(infoCalls, 1);
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_bench_press')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_run_on_treadmill')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Add 2 exercises'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
