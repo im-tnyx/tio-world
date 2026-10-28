@@ -31,6 +31,7 @@
 **Validation remaining:** No implementation validation remains for this slice; the full monorepo local suite was not run. Any later documentation-only commit follows the repository's normal PR checks.
 **Current blocker:** Reviewer approval/PR review disposition is pending; no code or catalog-data blocker remains
 **Open review finding IDs:** None — P3 `4398874968` is resolved in the task handoff; reviewer approval remains a separate PR gate
+**Last verified PR state:** GitHub PR #710 head `34b91852bcc7cdb82842216a8568ae8095843c03` was `MERGEABLE` with required Attribution, Docs Hygiene, and Flutter CI checks `SUCCESS`; GitHub remains authoritative after later documentation-only commits.
 **Next exact action:** Reviewer approval and the normal PR merge process; no further source changes are required. Implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
 
 ## 1. Discovery
@@ -67,7 +68,7 @@ The future About Exercise surface can read localized titles and step-by-step ins
 
 - `G:\exercises\Final update\exercises_data.json` contains `118` unique rows; every row has non-empty `localizedTitles` and `localizedInstructions`, currently with `en` content.
 - Before implementation, `apps/features/workout/assets/exercises/exercise_catalog.json` contained `101` unique rows at `catalogVersion: 3`; all `101` consumed source fields/media matched the owner source exactly. The implementation now projects all `118` owner rows at `catalogVersion: 4`.
-- The current DTO/parser intentionally ignores `localizedTitles` and `localizedInstructions`, and the asset guard currently forbids those keys.
+- The implementation now validates and maps `localizedTitles` and `localizedInstructions` in the DTO/parser, and the production asset guard requires non-empty localized title/instruction content for every bundled row.
 - Linear `TNYX-262` is `Backlog` and explicitly scopes instructions on the shared Exercise detail surface; W3A catalog/data issues are `Done`.
 
 ## 3. Clarification
@@ -139,8 +140,8 @@ Device QA: NOT RUN; no device-visible UI changed
 
 **Review source / link:** [PR #710 review comment](https://github.com/im-tnyx/tio-world/pull/710#discussion_r4398874968)
 **Reviewer / relation to implementer:** `im-tio`, collaborator; independent of implementation agent
-**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; handoff correction `2b8788d40dfccf1129551c72d83103e19f5ffb90`
-**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text and is resolved by explicitly labeling the last validation SHA as historical and recording the final disposition.
+**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; latest reviewed handoff head `34b91852bcc7cdb82842216a8568ae8095843c03`
+**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; P3 `4398874968` identified stale branch/HEAD/PR/validation handoff text and is resolved by the current evidence, explicit historical labels, and corrected parser/asset-guard description.
 **Independent review?** Yes — collaborator re-review received; final approval remains pending.
 **Limitations and unmet required gates:** Reviewer approval remains pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
 
@@ -170,4 +171,4 @@ The About/Exercise Detail surface remains unimplemented and tracked separately b
 
 ### Final Status
 
-`REVIEW` — implementation and required CI are validated; no source blocker remains, but reviewer approval and P3 disposition are pending.
+`REVIEW` — implementation and required CI are validated; no source blocker or open P3 finding remains, but reviewer approval is pending.
