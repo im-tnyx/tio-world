@@ -1,6 +1,6 @@
 # TNYX-262 W3B — Exercise Detail / About
 
-**Status:** In progress
+**Status:** In Review
 **Primary owner:** Current implementation agent
 **Affected platforms:** Flutter phone (`apps/app`, `apps/features/workout`)
 
@@ -10,7 +10,7 @@
 **Approval status:** Approved
 **Approval evidence:** User request on 2026-10-28 for TNYX-262 / GitHub #557 W3B implementation using the owner-provided Exercise Detail/About contract.
 **Approved product/UI/data-shape boundaries:** One canonical Exercise Detail/About surface for bundled catalog and active owner-scoped Custom Exercises; canonical media/instruction rendering; nested Workout navigation; explicit owner-only Edit entry reusing the existing editor.
-**Explicit non-changes:** No second Exercise model/catalog, no Supabase schema/RLS/Storage change, no Custom media upload pipeline, no hard delete, no #556 thumbnail alignment work, no Wear/watch/video work, no WorkoutSession or Routine selection/save semantics redesign, no merge/push/PR/tracker mutation. The bounded Routine change is only the separate Info entry point and full-row selection feedback.
+**Explicit non-changes:** No second Exercise model/catalog, no Supabase schema/RLS/Storage change, no Custom media upload pipeline, no hard delete, no #556 thumbnail alignment work, no Wear/watch/video work, no WorkoutSession or Routine selection/save semantics redesign, and no merge. Push/PR creation and Linear handoff were performed only after the owner's explicit review-gate request. The bounded Routine change is only the separate Info entry point and full-row selection feedback.
 
 ## Active Handoff
 
@@ -20,18 +20,18 @@
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-28
-**Branch:** `main`
-**HEAD SHA:** `ad1c840ea68672fb50c4662ce00fbcdb90e7aef2`
-**Observed working-tree state:** Clean before implementation; local `main` and GitHub `main` were verified at the same SHA before implementation. The current work remains uncommitted on `main`.
-**Observed uncommitted/dirty files:** Task-scoped W3B source, tests, docs and dependency lock/generated registration changes listed below; no unrelated pre-existing dirty work was present at audit time.
-**PR / tracker:** Linear `TNYX-262` is `Backlog`; Linear `TNYX-264` is `In Progress`; GitHub #557 and #556 are `OPEN`; no open W3B implementation PR exists. PR #710 is merged at `ca3817af` and its catalog/model/localization changes are present in `main`.
+**Branch:** `codex/tnyx-262-exercise-detail`
+**HEAD SHA:** `b637332446e8734a9aedfa94369a62fd6b871417`
+**Observed working-tree state:** Clean after the task commit; branch is one commit ahead of `origin/main` and tracks `origin/codex/tnyx-262-exercise-detail`.
+**Observed uncommitted/dirty files:** None after commit; no unrelated pre-existing dirty work was present at audit time.
+**PR / tracker:** Linear `TNYX-262` is `In Review` with GitHub PR #712 attached; Linear `TNYX-264` remains `In Progress`; GitHub #557 and #556 are `OPEN`. PR #710 is merged at `ca3817af` and its catalog/model/localization changes are present in `main`.
 **Current implementation state:** Implemented locally. Dedicated catalog/active Custom rows and Routine Create/Edit picker Info actions open one canonical Detail/About presentation. Routine row taps still select/add; Info does not mutate pending selection. Custom Edit is explicit and owner/session gated.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/exercises/`, `apps/features/workout/test/`, `apps/app/lib/app/routing/shell/shell_route.dart`, `apps/core/lib/src/routing/routes/app_routes.dart`, related route/widget tests and package manifests.
-**Validation completed at SHA:** Audit completed at `ad1c840e`; local implementation validation completed with focused Workout tests (`93` passed), app Workout route tests (`89` passed), core route-contract tests (`7` passed), and analyzer diagnostics reporting `No issues found` for Workout, app and core (Dart telemetry exit warning recorded below).
+**Validation completed at SHA:** Audit completed at `ad1c840e`; local implementation validation completed at `b637332446e8734a9aedfa94369a62fd6b871417` with focused Workout tests (`93` passed), app Workout route tests (`89` passed), core route-contract tests (`7` passed), and analyzer diagnostics reporting `No issues found` for Workout, app and core (Dart telemetry exit warning recorded below).
 **Validation remaining:** Full monorepo `melos` validation, current-head CI, independent review, device/video QA and assistive-technology QA were not run in this local handoff.
-**Current blocker:** No bounded implementation blocker. Merge/review remains gated by current-head CI, independent review, device/accessibility QA and tracker reconciliation; no PR was opened or merged.
+**Current blocker:** No bounded implementation blocker. Merge/review remains gated by current-head CI, independent review and device/accessibility QA; PR #712 is open and no merge was performed.
 **Open review finding IDs:** None for this new slice.
-**Next exact action:** Owner review of the uncommitted diff and current-head CI/PR workflow; no external GitHub mutation was performed.
+**Next exact action:** Owner/independent review of PR #712 and current-head CI; no merge was performed.
 
 ## 1. Discovery
 
