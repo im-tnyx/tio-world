@@ -28,7 +28,7 @@
 **Repository state last verified:** `G:/projects/Tio-World` at branch `tnyx/issue-567-d3c-deployment-readiness-gate`; working tree was clean at audit start
 **Branch:** `tnyx/issue-567-d3c-deployment-readiness-gate`
 **Base / reconciliation SHA:** base `origin/main`=`ca3817af8b05c707d026a30d0c0f3c560a009185`; correction commit=`1a24109ce160fd375e8fc9b8818838fc8fe4c970`; reconciliation merge=`58f9434d1931b95b3e47d17e6f3a59c9e84b1c17`
-**Branch state:** Reconciled with current `origin/main` through a non-rewriting merge; no rebase, force-push, or history rewrite was performed. Push is pending.
+**Branch state:** Reconciled with current `origin/main` through a non-rewriting merge; no rebase, force-push, or history rewrite was performed. Reconciliation commits are pushed to PR #711; independent review and CI remain pending.
 **PR / tracker:** GitHub #711 `OPEN` with `CHANGES_REQUESTED`; Linear TNYX-81 / TNYX-267 Backlog
 **Current implementation state:**
 - D1 (RPC logic & DB CI tests) committed on mainline.
