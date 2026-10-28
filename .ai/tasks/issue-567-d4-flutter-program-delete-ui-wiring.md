@@ -1,20 +1,22 @@
 # GitHub #567 Gate D — Flutter Program Delete UI Wiring
 
-**Status:** Implementation & Validation Complete (Ready for Owner Review / PR)
+**Status:** Implementation & Review Remediation Complete (PR #709 Active)
 **Primary owner:** Antigravity (Implementation Owner)
-**Affected platforms:** Flutter `apps/features/workout` and `apps/app`
+**Affected platforms:** Flutter `apps/features/workout` and `apps/app`, Supabase database tests
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** Internal implementation subtask of approved #567 lifecycle slice (Gate D: source UI wiring after verified Gate A, Gate B, and Gate C sign-off).
-**Approval status:** Approved by User/Owner in prompt 10.
-**Approval evidence:** "Go — Issue #567 Gate D source implementation. Approved scope: programs_surface.dart, library_page.dart, shell_route.dart, focused widget/composition tests."
+**Approval status:** Approved by User/Owner in prompt 10 & 11.
+**Approval evidence:** "Go — Issue #567 Gate D source implementation." and "Go — Issue #567: Continue from the verified Gate D commit/push to PR Merge Gate."
 **Approved product/UI/data-shape boundaries:**
 - `apps/features/workout/lib/src/presentation/library/programs/programs_surface.dart`: Wire `Delete Program` action in `_openProgramActions` exclusively for non-default Programs (`!program.isDefault && widget.onDeleteProgram != null`).
 - `apps/features/workout/lib/src/presentation/library/library_page.dart`: Pass `onDeleteProgram` callback through to `ProgramsSurface.library`.
 - `apps/app/lib/app/composition/workout_providers.dart`: Expose `programDeleteFlowProvider`.
-- `apps/app/lib/app/routing/shell/shell_route.dart`: Session-guarded wiring using `ProgramDeleteFlow`, `programDeleteControllerProvider(program.id)`, and `programDeleteRepositoryProvider` with strict `sameSession()` checks (user ID, login cycle ID, Supabase current user, auth state).
+- `apps/app/lib/app/routing/shell/shell_route.dart`: Session-guarded wiring using `ProgramDeleteFlow`, `programDeleteControllerProvider(program.id)`, and `programDeleteRepositoryProvider` with strict `sameSession()` checks (user ID, login cycle ID, Supabase current user, auth state) and retain `programDeleteControllerProvider` across the async flow using `ref.listenManual` + `try/finally` subscription cleanup.
 - `apps/features/workout/test/presentation/programs_surface_delete_action_test.dart`: Focused widget test suite for UI action sheet, non-default inclusion, default exclusion, null callback suppression, cancel behavior, and refresh dispatching.
+- `supabase/migrations/20261028110000_grant_authenticated_program_delete_rpc.sql`: Track Gate B authenticated EXECUTE grant in Git to match hosted ledger 72/72.
+- `supabase/tests/database/tnyx_567_*`: Update database test assertions to verify migrated authenticated-only EXECUTE and preserve the migrated ACL during concurrency tests.
 **Explicit non-changes & hard stops:**
 - Zero hosted database mutations, migrations, or privilege modifications.
 - Default canonical Program (`isDefault: true` / `My Program`) must NEVER display `Delete Program` and must fail closed.
@@ -30,14 +32,12 @@
 **Branch:** `tnyx/567-d4-flutter-program-delete-ui-wiring`
 **Base SHA:** `780fb56d1fd47d55666ed5d0a6d881992f314ff2` (main)
 **Observed working-tree state:** Clean implementation files + task tracking files
-**PR / tracker:** GitHub #567 OPEN; Linear TNYX-81 / TNYX-267
+**PR / tracker:** GitHub #567 OPEN; GitHub PR #709 OPEN; Linear TNYX-81 / TNYX-267
 **Validation completed:**
 - `flutter analyze` in `apps/features/workout`: PASS (0 issues)
 - `flutter analyze` in `apps/app`: PASS (0 issues)
 - `flutter test test/presentation/programs_surface_delete_action_test.dart`: PASS (7/7 tests)
-- `flutter test test/presentation/programs_page_test.dart ...`: PASS (39/39 tests)
-- `flutter test test/data/supabase_program_delete_repository_test.dart`: PASS (19/19 tests)
-- `flutter test` across all of `apps/app`: PASS (469/469 tests)
+- `flutter test test/app/program_delete_controller_provider_lifecycle_test.dart`: PASS (4/4 tests)
 - `git diff --check`: PASS (0 errors)
 **Current blocker:** None
-**Next exact action:** Submit final Gate D implementation report and merge-gate recommendation to owner.
+**Next exact action:** Submit final PR audit and merge-gate recommendation to owner.

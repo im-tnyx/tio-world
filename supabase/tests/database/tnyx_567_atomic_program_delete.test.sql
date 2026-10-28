@@ -38,7 +38,7 @@ select pg_temp.assert_true(
   and not has_function_privilege('anon',
       'public.delete_user_workout_program_preserving_routines(uuid,uuid[],uuid)',
       'EXECUTE')
-  and not has_function_privilege('authenticated',
+  and has_function_privilege('authenticated',
       'public.delete_user_workout_program_preserving_routines(uuid,uuid[],uuid)',
       'EXECUTE')
   and not has_function_privilege('service_role',
@@ -48,9 +48,11 @@ select pg_temp.assert_true(
     'authenticated', 'public.user_workout_programs', 'DELETE')
   and not has_column_privilege(
     'authenticated', 'public.user_workout_routines', 'program_id', 'UPDATE'),
-  'source migration has a protected dormant RPC and no direct client delete'
+  'source migration has an authenticated-only RPC and no direct client delete'
 );
 
+-- Gate B migration 20261028110000 grants EXECUTE to authenticated;
+-- this statement remains for idempotent transactional execution.
 grant execute on function public.delete_user_workout_program_preserving_routines(
   uuid,uuid[],uuid
 ) to authenticated;

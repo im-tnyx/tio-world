@@ -497,43 +497,51 @@ List<RouteBase> _shellBranchChildRoutes(
               }
             }
             if (!sameSession()) return false;
-            final controller =
-                ref.read(programDeleteControllerProvider(program.id));
-            if (controller == null) return false;
-
-            return programDeleteFlow.run(
-              context: context,
-              program: program,
-              controller: controller,
-              canWrite: sameSession,
-              confirmationGuard: (dialogContext, content) => Consumer(
-                builder: (guardContext, guardRef, _) {
-                  final currentBoot = guardRef
-                      .watch(appSessionBootstrapControllerProvider).state;
-                  final currentAuth = guardRef.watch(authSessionStateProvider);
-                  final currentState = currentAuth.isLoading || currentAuth.hasError
-                      ? null : currentAuth.valueOrNull;
-                  final stillOwner = currentBoot is AppSessionBootstrapReady &&
-                      currentBoot.userId == owner &&
-                      currentState is AuthSessionAuthenticated &&
-                      currentState.session.userId == owner &&
-                      currentState.session.loginCycleId == cycle &&
-                      sameSession();
-                  if (!stillOwner) {
-                    final staleRoute = ModalRoute.of(guardContext);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!guardContext.mounted || staleRoute == null ||
-                          !staleRoute.isActive) {
-                        return;
-                      }
-                      Navigator.of(guardContext).removeRoute(staleRoute);
-                    });
-                    return const SizedBox.shrink();
-                  }
-                  return content;
-                },
-              ),
+            final subscription = ref.listenManual<ProgramDeleteController?>(
+              programDeleteControllerProvider(program.id),
+              (_, __) {},
             );
+            try {
+              final controller =
+                  ref.read(programDeleteControllerProvider(program.id));
+              if (controller == null) return false;
+
+              return await programDeleteFlow.run(
+                context: context,
+                program: program,
+                controller: controller,
+                canWrite: sameSession,
+                confirmationGuard: (dialogContext, content) => Consumer(
+                  builder: (guardContext, guardRef, _) {
+                    final currentBoot = guardRef
+                        .watch(appSessionBootstrapControllerProvider).state;
+                    final currentAuth = guardRef.watch(authSessionStateProvider);
+                    final currentState = currentAuth.isLoading || currentAuth.hasError
+                        ? null : currentAuth.valueOrNull;
+                    final stillOwner = currentBoot is AppSessionBootstrapReady &&
+                        currentBoot.userId == owner &&
+                        currentState is AuthSessionAuthenticated &&
+                        currentState.session.userId == owner &&
+                        currentState.session.loginCycleId == cycle &&
+                        sameSession();
+                    if (!stillOwner) {
+                      final staleRoute = ModalRoute.of(guardContext);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!guardContext.mounted || staleRoute == null ||
+                            !staleRoute.isActive) {
+                          return;
+                        }
+                        Navigator.of(guardContext).removeRoute(staleRoute);
+                      });
+                      return const SizedBox.shrink();
+                    }
+                    return content;
+                  },
+                ),
+              );
+            } finally {
+              subscription.close();
+            }
           }
 
           /// Prepare the canonical Workout Move flow behind a default-off
