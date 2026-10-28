@@ -27,11 +27,11 @@
 **PR / tracker:** GitHub PR [#710](https://github.com/im-tnyx/tio-world/pull/710) is `OPEN`; Linear `TNYX-262` (W3B — Exercise detail) remains `Backlog`; this slice prepares its catalog contract but does not implement W3B UI.
 **Current implementation state:** Bounded implementation and handoff metadata are committed/pushed; no source correction is outstanding. PR #710 remains open, with reviewer approval as the remaining PR gate.
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/features/workout/assets/exercises/`, `apps/features/workout/lib/src/data/exercises/`, focused tests, and exercise catalog docs
-**Validation completed:** Local focused validation passed for implementation SHA `ba087094f54f98d3504d57c3e26a973040bbd4d8`; the last observed PR validation head `499272a123b10eecba0c267711bbe1219588690b` is historical and had all required CI checks passing. GitHub PR #710 is authoritative for the current head/check state.
+**Validation completed:** Local focused validation passed for implementation SHA `ba087094f54f98d3504d57c3e26a973040bbd4d8`; the last reviewed PR validation head `20630157e03f40ac16841bc3fd4ea854c6f73fc8` is historical after this task-brief-only update and had all required CI checks passing. GitHub PR #710 is authoritative for the current head/check state.
 **Validation remaining:** No implementation validation remains for this slice; the full monorepo local suite was not run. Any later documentation-only commit follows the repository's normal PR checks.
 **Current blocker:** Reviewer approval/PR review disposition is pending; no code or catalog-data blocker remains
 **Open review finding IDs:** None — P3 `4398874968` is resolved in the task handoff; reviewer approval remains a separate PR gate
-**Last verified PR state:** GitHub PR #710 head `763c2e6dbfdb6dd997856885acabc2a25c075bc4` was `MERGEABLE` with required Attribution, Docs Hygiene, and Flutter CI checks `SUCCESS`; this SHA is historical after this task-brief-only update, and GitHub remains authoritative for the current head/check state.
+**Last verified PR state:** GitHub PR #710 head `20630157e03f40ac16841bc3fd4ea854c6f73fc8` was `MERGEABLE` with required Attribution, Docs Hygiene, and Flutter CI checks `SUCCESS`; this SHA is historical after this task-brief-only update, and GitHub remains authoritative for the current head/check state.
 **Next exact action:** Reviewer approval and the normal PR merge process; no further source changes are required. Implement Linear `TNYX-262` About/Exercise Detail UI only as a separately approved slice.
 
 ## 1. Discovery
@@ -140,8 +140,8 @@ Device QA: NOT RUN; no device-visible UI changed
 
 **Review source / link:** [PR #710 review comment](https://github.com/im-tnyx/tio-world/pull/710#discussion_r4398874968)
 **Reviewer / relation to implementer:** `im-tio`, collaborator; independent of implementation agent
-**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; last reviewed PR head `763c2e6dbfdb6dd997856885acabc2a25c075bc4` (historical after this task-brief-only update; current PR head is authoritative in GitHub PR #710)
-**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; all six P3 handoff findings (`4398874968`, `4399074862`, `4399177716`, `4399282654`, `4399413170`, `4399479949`) are resolved by the current evidence, corrected implementation description, explicit historical labels, and current review provenance.
+**Diff or commit SHA actually reviewed:** Implementation `ba087094f54f98d3504d57c3e26a973040bbd4d8`; last reviewed PR head `20630157e03f40ac16841bc3fd4ea854c6f73fc8` (historical after this task-brief-only update; current PR head is authoritative in GitHub PR #710)
+**Review result and finding IDs/dispositions:** Implementation accepted as sound overall; all six P3 handoff findings (`4398874968`, `4399074862`, `4399177716`, `4399282654`, `4399413170`, `4399479949`) and the latest provenance follow-up are resolved by the current evidence, explicit historical labels, and current review provenance.
 **Independent review?** Yes — collaborator re-review received; all related P3 findings are resolved, and final approval remains pending.
 **Limitations and unmet required gates:** Reviewer approval remains pending; Linear `TNYX-262` UI implementation and device proof remain outside this slice.
 
