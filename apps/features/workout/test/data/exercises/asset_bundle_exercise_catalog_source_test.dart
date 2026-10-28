@@ -215,7 +215,7 @@ void main() {
 
       final catalog = await source.load();
 
-      expect(catalog.all, isNotEmpty);
+      expect(catalog.all, hasLength(118));
       expect(
         catalog.all.every((exercise) => exercise.ref is CatalogExerciseRef),
         isTrue,
@@ -227,7 +227,8 @@ void main() {
       }
     });
 
-    test('all bundled Treadmill variants use KM/TIME; other profiles stay '
+    test(
+        'all bundled Treadmill variants use KM/TIME; other profiles stay '
         'explicit', () async {
       final catalog = await AssetBundleExerciseCatalogSource(rootBundle).load();
       final typedTreadmills = {
@@ -283,7 +284,7 @@ void main() {
             'exercises',
           ]));
       expect(decoded['schemaVersion'], 1);
-      expect(decoded['catalogVersion'], 3);
+      expect(decoded['catalogVersion'], 4);
       expect(exercises, isNotEmpty);
 
       const allowedRowKeys = {
@@ -298,6 +299,8 @@ void main() {
         'isArchived',
         'isCustom',
         'media',
+        'localizedTitles',
+        'localizedInstructions',
       };
       const allowedMediaKeys = {'type', 'defaultGender', 'male', 'female'};
       const optionalMediaKeys = {'videoFallbackGender'};
@@ -320,6 +323,29 @@ void main() {
           unorderedEquals(['primary']),
           reason: '${row['id']}.equipment',
         );
+        final localizedTitles = row['localizedTitles'] as Map<String, dynamic>;
+        expect(localizedTitles.keys, isNotEmpty,
+            reason: '${row['id']}.localizedTitles');
+        for (final entry in localizedTitles.entries) {
+          expect(entry.key.trim(), isNotEmpty,
+              reason: '${row['id']}.localizedTitles');
+          expect((entry.value as String).trim(), isNotEmpty,
+              reason: '${row['id']}.localizedTitles.${entry.key}');
+        }
+        final localizedInstructions =
+            row['localizedInstructions'] as Map<String, dynamic>;
+        expect(localizedInstructions.keys, isNotEmpty,
+            reason: '${row['id']}.localizedInstructions');
+        for (final entry in localizedInstructions.entries) {
+          final steps = entry.value as List<dynamic>;
+          expect(steps, isNotEmpty,
+              reason: '${row['id']}.localizedInstructions.${entry.key}');
+          for (var index = 0; index < steps.length; index++) {
+            expect((steps[index] as String).trim(), isNotEmpty,
+                reason:
+                    '${row['id']}.localizedInstructions.${entry.key}[$index]');
+          }
+        }
         final media = row['media'] as Map<String, dynamic>;
         expect(
           media.keys.toSet().difference(optionalMediaKeys),
@@ -349,7 +375,7 @@ void main() {
       expect(nonMediaSource, isNot(contains('https://')));
       expect(source.toLowerCase(), isNot(contains('youtube')));
       final forbiddenKey = RegExp(
-        r'"(?:source|legacyExerciseIds|localizedInstructions|localizedTitles|standards|goals|tracking)"\s*:',
+        r'"(?:source|legacyExerciseIds|standards|goals|tracking)"\s*:',
       );
       expect(forbiddenKey.hasMatch(source), isFalse);
     });

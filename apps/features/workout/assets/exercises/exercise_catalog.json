@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": 3,
+  "catalogVersion": 4,
   "exercises": [
     {
       "id": "ex_cable_one_arm_lateral_raise",
@@ -37,6 +37,22 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22311101-Cable-One-Arm-Lateral-Raise-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable One Arm Lateral Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Set the cable pulley to its lowest position and attach a single handle.",
+          "Stand sideways to the cable machine with the working arm facing away from the machine.",
+          "Reach across your body and hold the handle with the hand farthest from the pulley.",
+          "Stand upright, brace your core, and keep a slight bend in your working elbow.",
+          "Raise the handle out to your side in a controlled motion.",
+          "Continue until your arm reaches approximately shoulder height.",
+          "Pause briefly without shrugging your shoulder or leaning your torso.",
+          "Slowly lower the handle back to the starting position.",
+          "Complete the desired repetitions, then repeat with the opposite arm."
+        ]
       }
     },
     {
@@ -71,6 +87,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22481101-Cable-Overhead-Triceps-Extension-(rope-attachment)-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Overhead Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Attach a rope handle to a low cable pulley.",
+          "Stand facing away from the cable machine and hold one end of the rope in each hand.",
+          "Bring the rope behind your head with your elbows bent and pointing forward.",
+          "Keep your upper arms close to your head and maintain an upright posture.",
+          "Brace your core and keep your shoulders relaxed.",
+          "Extend your elbows and push the rope upward and slightly forward.",
+          "Continue until your arms are fully extended without locking your elbows forcefully.",
+          "Pause briefly and contract your triceps at the top of the movement.",
+          "Slowly bend your elbows and lower the rope behind your head.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -113,6 +146,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28821101-Cable-Standing-Rear-Delt-Row-(with-rope)-(female)_shoulder_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Standing Rear Delt Row"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Attach a rope handle to a cable pulley set around upper-chest height.",
+          "Stand facing the cable machine and hold one end of the rope in each hand.",
+          "Step backward until the cable is under tension and extend your arms in front of you.",
+          "Stand upright with your feet about shoulder-width apart and keep your knees slightly bent.",
+          "Brace your core and keep your chest lifted.",
+          "Pull the rope toward your upper chest while driving your elbows outward and backward.",
+          "Separate the ends of the rope as your hands approach your shoulders.",
+          "Squeeze your rear shoulders and upper back at the end of the movement.",
+          "Slowly extend your arms and return the rope to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -152,6 +202,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28831101-Lever-Seated-Shoulder-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Shoulder Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat so that the machine handles are approximately level with your shoulders.",
+          "Sit firmly against the backrest with your feet flat on the floor.",
+          "Grip the handles with your palms facing forward or in the position provided by the machine.",
+          "Keep your chest lifted, shoulders lowered, and core braced.",
+          "Press the handles upward by extending your elbows.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles at the top of the movement.",
+          "Slowly lower the handles until your elbows return to approximately shoulder level.",
+          "Keep your back against the pad and avoid using momentum.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -190,6 +257,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22301101-Cable-Front-Raise-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Front Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Set the cable pulley to its lowest position and attach a suitable handle.",
+          "Stand facing away from the cable machine with the cable running between your legs.",
+          "Hold the handle in front of your thighs with your palms facing downward.",
+          "Stand upright with your feet about shoulder-width apart and keep your knees slightly bent.",
+          "Brace your core, keep your chest lifted, and maintain a slight bend in your elbows.",
+          "Raise the handle forward in a controlled motion.",
+          "Continue until your arms reach approximately shoulder height.",
+          "Pause briefly while keeping your shoulders lowered and your torso still.",
+          "Slowly lower the handle back to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -227,6 +311,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22341101-Dumbbell-Standing-Lateral-Raise-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Standing Lateral Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet about shoulder-width apart.",
+          "Hold a dumbbell in each hand at your sides with your palms facing inward.",
+          "Keep your chest lifted, core braced, and knees slightly bent.",
+          "Maintain a small bend in your elbows throughout the movement.",
+          "Raise both dumbbells out to your sides in a controlled motion.",
+          "Continue until your arms reach approximately shoulder height.",
+          "Keep your wrists neutral and avoid shrugging your shoulders.",
+          "Pause briefly and contract the sides of your shoulders.",
+          "Slowly lower the dumbbells back to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -267,6 +368,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24871101-Dumbbell-Rear-Delt-Fly-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Rear Delt Fly"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand with your feet about shoulder-width apart and hold a dumbbell in each hand.",
+          "Bend your knees slightly and hinge forward at your hips while keeping your back neutral.",
+          "Allow the dumbbells to hang below your shoulders with your palms facing each other.",
+          "Keep a slight bend in your elbows and brace your core.",
+          "Raise both dumbbells outward and backward in a wide arc.",
+          "Continue until your upper arms are approximately level with your shoulders.",
+          "Squeeze your rear shoulders and upper back at the top of the movement.",
+          "Avoid shrugging your shoulders or using momentum.",
+          "Slowly lower the dumbbells back to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -306,6 +424,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22371101-Dumbbell-Seated-Shoulder-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Shoulder Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a bench with back support and place both feet firmly on the floor.",
+          "Hold a dumbbell in each hand at approximately shoulder height.",
+          "Keep your palms facing forward and your elbows bent below your wrists.",
+          "Press your upper back against the bench and brace your core.",
+          "Push both dumbbells upward by extending your elbows.",
+          "Bring the dumbbells toward each other above your head without allowing them to collide.",
+          "Stop when your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles at the top.",
+          "Slowly lower the dumbbells back to shoulder height.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -344,6 +479,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23861101-Dumbbell-Arnold-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Seated Dumbbell Arnold Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright on a bench with your feet firmly planted on the floor.",
+          "Hold a dumbbell in each hand in front of your shoulders.",
+          "Start with your elbows bent and your palms facing toward your body.",
+          "Keep your chest lifted, back supported, and core braced.",
+          "Press the dumbbells upward while rotating your wrists outward.",
+          "Continue rotating until your palms face forward near the top of the movement.",
+          "Extend your arms overhead without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles.",
+          "Lower the dumbbells while rotating your palms back toward your body.",
+          "Return to the starting position and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -383,6 +535,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/69931201-Dumbbel-Seated-Arnold-Press-(female)_Shoulders_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Arnold Press on Flat Bench"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright near the edge of a flat bench with your feet firmly planted on the floor.",
+          "Hold a dumbbell in each hand in front of your shoulders.",
+          "Begin with your elbows bent and your palms facing toward your body.",
+          "Keep your chest lifted, spine neutral, and core firmly braced.",
+          "Press the dumbbells upward while rotating your palms away from your body.",
+          "Continue rotating until your palms face forward as the dumbbells move overhead.",
+          "Extend your arms without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles at the top.",
+          "Lower the dumbbells while reversing the wrist rotation.",
+          "Return your palms toward your body at shoulder height and repeat."
+        ]
       }
     },
     {
@@ -420,6 +589,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26041101-Barbell-Seated-Overhead-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Seated Overhead Press on Flat Bench"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright near the edge of a flat bench with your feet firmly planted on the floor.",
+          "Hold the barbell slightly wider than shoulder width with your palms facing forward.",
+          "Position the barbell at approximately upper-chest or shoulder height.",
+          "Keep your chest lifted, spine neutral, and core firmly braced.",
+          "Press the barbell upward while keeping your forearms approximately vertical.",
+          "Move your head slightly backward as the bar passes your face.",
+          "Once the bar clears your head, bring your head forward and position the bar overhead.",
+          "Extend your arms without forcefully locking your elbows.",
+          "Pause briefly, then lower the barbell under control to the starting position.",
+          "Keep your torso stable and avoid excessive backward leaning throughout the movement."
+        ]
       }
     },
     {
@@ -460,6 +646,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23801101-Dumbbell-Standing-Overhead-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Standing Overhead Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold a dumbbell in each hand at shoulder height with your palms facing forward.",
+          "Position your wrists above your elbows and keep your forearms approximately vertical.",
+          "Brace your core, squeeze your glutes, and keep your ribs from flaring outward.",
+          "Press both dumbbells upward in a controlled motion.",
+          "Move the dumbbells overhead while keeping your torso upright and stable.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly with the dumbbells balanced above your shoulders.",
+          "Slowly lower both dumbbells back to shoulder height.",
+          "Repeat for the desired number of repetitions without using leg drive or excessive momentum."
+        ]
       }
     },
     {
@@ -500,6 +703,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02541101-Circles-Arm_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Arm Circles"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Extend both arms out to your sides at shoulder height.",
+          "Keep your elbows mostly straight with a slight natural bend.",
+          "Brace your core and keep your shoulders relaxed.",
+          "Move your arms in small, controlled forward circles.",
+          "Gradually increase the size of the circles while maintaining control.",
+          "Complete the desired number of repetitions.",
+          "Reverse the direction and perform the circles backward.",
+          "Keep your torso still and avoid shrugging your shoulders.",
+          "Lower your arms slowly after completing both directions."
+        ]
       }
     },
     {
@@ -536,6 +756,18 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/42891101-Neck-Side-Stretch-(female)_Neck_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Neck Side Stretch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit or stand tall with your shoulders relaxed.",
+          "Slowly tilt your head to one side, bringing your ear toward your shoulder.",
+          "Keep your shoulders down and avoid twisting your neck.",
+          "Hold the stretch for the desired time, then return to the starting position.",
+          "Repeat on the other side."
+        ]
       }
     },
     {
@@ -571,6 +803,19 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31511101-Chin-Tuck-(female)_Neck_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Chin Tuck"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit or stand upright with your shoulders relaxed.",
+          "Keep your head level and look straight ahead.",
+          "Gently draw your chin straight backward without tilting your head up or down.",
+          "Continue until you feel a gentle stretch along the back of your neck.",
+          "Hold the position briefly, then slowly return to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -605,6 +850,20 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31521101-Assisted-Chin-Tuck-(female)_Neck_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Assisted Chin Tuck"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit or stand upright with your shoulders relaxed.",
+          "Keep your head level and look straight ahead.",
+          "Place your fingers gently against the front of your chin.",
+          "Use your fingers to guide your chin straight backward without tilting your head.",
+          "Hold the tucked position briefly while keeping your shoulders relaxed.",
+          "Slowly release the pressure and return to the starting position.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -639,6 +898,19 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/54101101-Roll-Neck-Rotation-Lying-on-Floor-(female)_Neck_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Roll Neck Rotation Lying on Floor"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your back with a foam roller positioned beneath your upper back near the base of your neck.",
+          "Bend your knees, place your feet flat on the floor, and keep your body relaxed.",
+          "Keep your shoulders and upper body still throughout the movement.",
+          "Slowly rotate your head toward one side without forcing the movement.",
+          "Return through the center and gently rotate your head toward the opposite side.",
+          "Continue alternating sides slowly for the desired duration."
+        ]
       }
     },
     {
@@ -673,6 +945,20 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/54111101-Roll-Neck-Decompress-Lying-on-Floor-(female)_Neck_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Roll Neck Decompress Lying on Floor"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your back with a foam roller under the back of your neck or just below the base of your skull.",
+          "Bend your knees and place your feet flat on the floor.",
+          "Relax your shoulders, jaw, and upper body.",
+          "Keep your chin gently tucked and allow your head to rest lightly on the roller.",
+          "Make a small, controlled head turn or gentle side-to-side rolling movement.",
+          "Pause briefly over comfortable areas of tension while breathing slowly.",
+          "Continue for the desired duration, then move off the roller and sit up slowly."
+        ]
       }
     },
     {
@@ -707,6 +993,20 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73061201-Standing-Side-Neck-Stretch-(female)_Neck_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Side Neck Stretch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand or sit upright with your shoulders relaxed.",
+          "Keep your head facing forward and maintain a neutral posture.",
+          "Slowly tilt your head toward one shoulder, bringing your ear closer to it.",
+          "Keep the opposite shoulder lowered and avoid rotating your neck.",
+          "Hold the position for the desired duration while breathing normally.",
+          "Slowly return your head to the starting position.",
+          "Repeat the stretch on the opposite side."
+        ]
       }
     },
     {
@@ -741,6 +1041,20 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73081201-Forward-Neck-Stretch-(female)_Neck_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Forward Neck Stretch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand or sit upright with your shoulders relaxed.",
+          "Keep your back straight and look directly ahead.",
+          "Slowly lower your chin toward your chest.",
+          "Continue until you feel a gentle stretch along the back of your neck.",
+          "Keep your shoulders lowered and avoid rounding your upper back.",
+          "Hold the stretch for the desired duration while breathing normally.",
+          "Slowly raise your head and return to the starting position."
+        ]
       }
     },
     {
@@ -781,6 +1095,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/55721201-Elbow-Touch-and-Lift-(female)_Shoulders_.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Elbow Touch and Lift"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Raise your upper arms in front of your body and bend your elbows to approximately 90 degrees.",
+          "Keep your forearms vertical with your palms facing toward your body.",
+          "Bring your elbows and forearms together in front of your face.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "While maintaining contact between your forearms, lift your elbows upward as high as comfortably possible.",
+          "Pause briefly at the top without arching your lower back.",
+          "Lower your elbows slowly to the starting height.",
+          "Open your arms slightly, then bring your elbows together again.",
+          "Repeat the touch-and-lift movement for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -821,6 +1152,21 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73691201-Bent-Arm-Lift-(female)_Shoulders_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Bent Arm Lift"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Bend both elbows and position your forearms horizontally in front of your chest.",
+          "Keep your elbows lifted away from your sides and your shoulders relaxed.",
+          "Bring your hands and forearms together in front of your chest.",
+          "Move your elbows outward and lift your bent arms toward shoulder height.",
+          "Pause briefly while keeping your chest lifted and your torso still.",
+          "Lower your arms under control and bring your hands back together.",
+          "Repeat the movement for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -860,6 +1206,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23811101-Dumbbell-One-Arm-Shoulder-Press-(version-2)-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell One-Arm Shoulder Press (Version 2)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold a dumbbell in one hand at shoulder height with your palm facing forward.",
+          "Place your free hand on your hip or keep it beside your body for balance.",
+          "Position your wrist above your elbow and keep your forearm approximately vertical.",
+          "Brace your core, squeeze your glutes, and keep your torso upright.",
+          "Press the dumbbell overhead by extending your elbow.",
+          "Continue until your arm is almost fully extended without forcefully locking your elbow.",
+          "Pause briefly with the dumbbell positioned above your shoulder.",
+          "Slowly lower the dumbbell back to shoulder height.",
+          "Complete the desired repetitions, then repeat with the opposite arm."
+        ]
       }
     },
     {
@@ -897,6 +1260,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25911101-Dumbbell-One-Arm-Lateral-Raise-(female)_shoulder_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell One-Arm Lateral Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold a dumbbell in one hand beside your thigh with your palm facing inward.",
+          "Place your free hand on your hip or use it for balance.",
+          "Brace your core and keep your chest lifted.",
+          "Maintain a slight bend in the working elbow.",
+          "Raise the dumbbell outward to your side in a controlled motion.",
+          "Continue until your arm reaches approximately shoulder height.",
+          "Pause briefly without shrugging your shoulder or leaning your torso.",
+          "Slowly lower the dumbbell back to the starting position.",
+          "Complete the desired repetitions, then repeat with the opposite arm."
+        ]
       }
     },
     {
@@ -936,6 +1316,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36201101-Smith-Seated-Shoulder-Press-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Smith Seated Shoulder Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Position a bench inside the Smith machine and adjust the seat so the bar is slightly above shoulder height.",
+          "Sit with your upper back firmly supported and place both feet flat on the floor.",
+          "Grip the bar slightly wider than shoulder width with your palms facing forward.",
+          "Unrack the bar and position it at approximately upper-chest or shoulder height.",
+          "Keep your chest lifted, core braced, and wrists aligned above your elbows.",
+          "Press the bar upward along the fixed path by extending your elbows.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles at the top.",
+          "Slowly lower the bar toward the starting position under control.",
+          "After completing the desired repetitions, rotate the bar securely back onto the hooks."
+        ]
       }
     },
     {
@@ -976,6 +1373,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/70051201-Barbell-Standing-Military-Press-(without-rack)-(fe_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Standing Military Press (Without Rack)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Safely bring the barbell to the front of your shoulders before beginning.",
+          "Stand upright with your feet approximately hip-width to shoulder-width apart.",
+          "Grip the bar slightly wider than shoulder width with your palms facing forward.",
+          "Position the bar across your upper chest with your wrists above your elbows.",
+          "Brace your core, squeeze your glutes, and keep your torso upright.",
+          "Press the barbell upward while moving your head slightly backward to clear the bar.",
+          "Once the bar passes your face, bring your head forward beneath the bar.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly with the bar balanced directly over your shoulders.",
+          "Slowly lower the bar to your upper chest and repeat without using leg drive."
+        ]
       }
     },
     {
@@ -1015,6 +1429,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31011101-Lever-Military-Press-(plate-loaded)-(female)_shoulder_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Military Press (Plate-Loaded)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Load the machine with the appropriate weight plates.",
+          "Adjust the seat so the handles are approximately level with your shoulders.",
+          "Sit firmly against the backrest with your feet flat on the floor.",
+          "Grip the handles with your palms facing forward.",
+          "Keep your chest lifted, core braced, and shoulders lowered.",
+          "Press the handles upward by extending your elbows.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your shoulder muscles at the top.",
+          "Slowly lower the handles until they return to approximately shoulder height.",
+          "Repeat for the desired number of repetitions without bouncing the weight."
+        ]
       }
     },
     {
@@ -1052,6 +1483,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24401101-Barbell-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on a flat bench with your eyes positioned approximately beneath the barbell.",
+          "Plant your feet firmly on the floor and keep your upper back against the bench.",
+          "Grip the bar slightly wider than shoulder width with your palms facing forward.",
+          "Retract your shoulder blades and keep your chest lifted.",
+          "Unrack the barbell and hold it directly above your chest with your arms extended.",
+          "Lower the bar under control toward the middle or lower portion of your chest.",
+          "Keep your wrists stacked above your elbows and avoid allowing your elbows to flare excessively.",
+          "Pause briefly when the bar lightly reaches your chest.",
+          "Press the bar upward and slightly backward until your arms are extended.",
+          "Complete the desired repetitions, then securely return the bar to the rack."
+        ]
       }
     },
     {
@@ -1089,6 +1537,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23881101-Barbell-Incline-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Incline Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Set the bench to an incline and position it securely beneath the barbell rack.",
+          "Lie back on the bench with your eyes approximately beneath the bar.",
+          "Plant your feet firmly on the floor and keep your upper back against the bench.",
+          "Grip the bar slightly wider than shoulder width with your palms facing forward.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Unrack the bar and hold it above your upper chest with your arms extended.",
+          "Lower the bar under control toward the upper portion of your chest.",
+          "Keep your wrists aligned above your elbows and avoid excessive elbow flaring.",
+          "Press the bar upward until your arms are extended without forcefully locking your elbows.",
+          "Complete the desired repetitions, then return the bar securely to the rack."
+        ]
       }
     },
     {
@@ -1126,6 +1591,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24411101-Dumbbell-Incline-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline position.",
+          "Sit on the bench with a dumbbell resting on each thigh.",
+          "Lie back and bring the dumbbells to the sides of your upper chest.",
+          "Plant your feet firmly on the floor and keep your upper back against the bench.",
+          "Hold the dumbbells with your palms facing forward and your wrists above your elbows.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Press both dumbbells upward and slightly inward in a controlled motion.",
+          "Continue until your arms are extended without forcefully locking your elbows.",
+          "Slowly lower the dumbbells toward the sides of your upper chest.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1163,6 +1645,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/79901101-Dumbbell-Squeeze-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Squeeze Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with a dumbbell resting on each thigh.",
+          "Lie back and position the dumbbells together above the center of your chest.",
+          "Keep your palms facing each other and press the dumbbells firmly against one another.",
+          "Plant your feet on the floor, retract your shoulder blades, and brace your core.",
+          "Lower the dumbbells toward your chest while maintaining inward pressure between them.",
+          "Keep your elbows close to your torso and your wrists in a neutral position.",
+          "Pause briefly when the dumbbells reach the lower position near your chest.",
+          "Press the dumbbells upward while continuing to squeeze them together.",
+          "Extend your arms without forcefully locking your elbows.",
+          "Repeat for the desired number of repetitions while maintaining constant inward pressure."
+        ]
       }
     },
     {
@@ -1200,6 +1699,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/80001101-Dumbbell-Incline-Squeeze-Press-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Squeeze Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline position.",
+          "Sit on the bench with a dumbbell resting on each thigh.",
+          "Lie back and bring the dumbbells together above the center of your upper chest.",
+          "Keep your palms facing each other and press the dumbbells firmly against one another.",
+          "Plant your feet on the floor, retract your shoulder blades, and brace your core.",
+          "Lower the dumbbells toward your upper chest while maintaining inward pressure.",
+          "Keep your elbows close to your torso and your wrists in a neutral position.",
+          "Pause briefly at the bottom of the movement.",
+          "Press the dumbbells upward and slightly inward while continuing to squeeze them together.",
+          "Extend your arms without forcefully locking your elbows and repeat for the desired repetitions."
+        ]
       }
     },
     {
@@ -1237,6 +1753,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/37641101-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline position.",
+          "Sit against the backrest with a dumbbell in each hand.",
+          "Allow your arms to hang naturally beside the bench with your palms facing forward.",
+          "Plant your feet firmly on the floor and keep your head and back supported.",
+          "Keep your upper arms stationary and your shoulders pulled slightly backward.",
+          "Bend your elbows and curl both dumbbells toward your shoulders.",
+          "Keep your wrists neutral and avoid moving your elbows forward.",
+          "Pause briefly and contract your biceps at the top of the movement.",
+          "Slowly lower the dumbbells until your arms are extended.",
+          "Repeat for the desired number of repetitions without using momentum."
+        ]
       }
     },
     {
@@ -1274,6 +1807,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24931101-Dumbbell-Incline-Biceps-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Supinating Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline and sit with your back firmly supported.",
+          "Hold a dumbbell in each hand and allow your arms to hang beside the bench.",
+          "Begin with your palms facing inward in a neutral or hammer grip.",
+          "Keep your shoulders pulled slightly backward and your upper arms stationary.",
+          "Curl the dumbbells upward by bending your elbows.",
+          "As the dumbbells rise, rotate your forearms so your palms gradually face upward.",
+          "Finish with your palms facing your shoulders and squeeze your biceps briefly.",
+          "Lower the dumbbells slowly while reversing the rotation.",
+          "Return to the neutral hammer grip as your arms approach full extension.",
+          "Repeat for the desired number of repetitions without swinging the weights."
+        ]
       }
     },
     {
@@ -1311,6 +1861,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24941101-Dumbbell-Incline-Hammer-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Hammer Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline position and sit with your back firmly supported.",
+          "Hold a dumbbell in each hand and allow your arms to hang beside the bench.",
+          "Keep your palms facing inward in a neutral hammer grip.",
+          "Plant your feet firmly on the floor and keep your shoulders pulled slightly backward.",
+          "Keep your upper arms stationary and bend your elbows to curl the dumbbells upward.",
+          "Maintain the neutral grip throughout the entire movement without rotating your wrists.",
+          "Continue until the dumbbells approach your shoulders.",
+          "Pause briefly and contract your upper-arm muscles at the top.",
+          "Slowly lower the dumbbells until your arms are almost fully extended.",
+          "Repeat for the desired number of repetitions without swinging the weights."
+        ]
       }
     },
     {
@@ -1348,6 +1915,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25211101-Dumbbell-Incline-Inner-Biceps-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Incline Inner Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to an incline position and sit with your back firmly supported.",
+          "Hold a dumbbell in each hand and allow your arms to hang beside the bench.",
+          "Turn your arms slightly outward so your palms face away from your body.",
+          "Keep your shoulders pulled back and your upper arms stationary.",
+          "Curl both dumbbells upward by bending your elbows.",
+          "Maintain the outward arm position and palms-up grip throughout the movement.",
+          "Bring the dumbbells toward the outer sides of your shoulders.",
+          "Pause briefly and contract your biceps at the top.",
+          "Slowly lower the dumbbells until your arms are almost fully extended.",
+          "Repeat for the desired number of repetitions without swinging the weights."
+        ]
       }
     },
     {
@@ -1382,6 +1966,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24881101-Dumbbell-Seated-Triceps-Extension-(female)_Upper-Arms-FIX_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Overhead Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright on a flat bench with your feet firmly planted on the floor.",
+          "Hold one dumbbell with both hands and raise it above your head.",
+          "Support the upper end of the dumbbell with your palms beneath the weight plate.",
+          "Keep your chest lifted, core braced, and spine neutral.",
+          "Position your upper arms close to your head with your elbows pointing forward.",
+          "Bend your elbows and slowly lower the dumbbell behind your head.",
+          "Continue until you feel a comfortable stretch through your triceps.",
+          "Keep your upper arms stationary and avoid allowing your elbows to flare outward.",
+          "Extend your elbows to raise the dumbbell back overhead.",
+          "Contract your triceps at the top and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1416,6 +2017,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22511101-Dumbbell-Lying-Triceps-Extension-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Lying Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with a dumbbell resting on each thigh.",
+          "Lie back carefully and bring the dumbbells above your chest.",
+          "Hold the dumbbells with your palms facing each other and your arms extended.",
+          "Keep your upper arms stable and angle them slightly toward your head.",
+          "Bend your elbows and slowly lower the dumbbells toward the sides of your head.",
+          "Keep your wrists neutral and avoid allowing your elbows to flare outward.",
+          "Continue until you feel a comfortable stretch through your triceps.",
+          "Extend your elbows to raise the dumbbells back to the starting position.",
+          "Contract your triceps briefly while keeping your upper arms stationary.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1454,6 +2072,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25461101-Bench-dip-on-floor-(female)_Upper-Arms-FIX_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Bench Dip on Floor"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the edge of a flat bench and place your hands beside your hips.",
+          "Grip the edge of the bench with your fingers pointing forward.",
+          "Move your hips off the bench and extend your legs in front of you.",
+          "Place your heels on the floor and keep your knees slightly bent if needed.",
+          "Keep your chest lifted and your shoulders pulled down and back.",
+          "Bend your elbows and lower your hips toward the floor.",
+          "Keep your back close to the bench and point your elbows behind you.",
+          "Lower yourself only as far as your shoulders remain comfortable.",
+          "Press through your hands and extend your elbows to return to the starting position.",
+          "Contract your triceps at the top and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1492,6 +2127,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/51101101-Triceps-Dip-Floor-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Triceps Floor Dip"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the floor with your knees bent and your feet placed flat in front of you.",
+          "Place your hands on the floor behind your hips with your fingers pointing toward your feet or slightly outward.",
+          "Press through your hands and lift your hips slightly off the floor.",
+          "Keep your chest lifted and your shoulders pulled away from your ears.",
+          "Bend your elbows and lower your hips toward the floor.",
+          "Keep your elbows pointing backward and your torso close to your hands.",
+          "Lower yourself only as far as your shoulders remain comfortable.",
+          "Press through your palms and extend your elbows to lift your body.",
+          "Contract your triceps at the top without forcefully locking your elbows.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1529,6 +2181,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/37611101-Dumbbell-Seated-Alternate-Biceps-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Alternating Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright near the edge of a flat bench with your feet firmly planted on the floor.",
+          "Hold a dumbbell in each hand with your arms hanging beside your body.",
+          "Begin with your palms facing forward or slightly inward.",
+          "Keep your chest lifted, shoulders relaxed, and upper arms close to your torso.",
+          "Curl one dumbbell toward your shoulder by bending the working elbow.",
+          "Rotate your forearm as needed so your palm faces your shoulder near the top.",
+          "Pause briefly and contract your biceps without moving your upper arm forward.",
+          "Slowly lower the dumbbell to the starting position.",
+          "Repeat the movement with the opposite arm.",
+          "Continue alternating sides for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1566,6 +2235,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25841101-Dumbbell-Alternate-Biceps-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Standing Alternating Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold a dumbbell in each hand with your arms hanging beside your body.",
+          "Begin with your palms facing inward or slightly forward.",
+          "Keep your chest lifted, shoulders relaxed, and upper arms close to your torso.",
+          "Curl one dumbbell toward your shoulder by bending the working elbow.",
+          "Rotate your forearm so your palm faces upward as the dumbbell rises.",
+          "Keep the opposite arm lowered and avoid swinging either dumbbell.",
+          "Pause briefly and contract your biceps at the top of the movement.",
+          "Slowly lower the dumbbell while returning your hand toward the starting position.",
+          "Repeat with the opposite arm and continue alternating sides."
+        ]
       }
     },
     {
@@ -1603,6 +2289,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24521101-Dumbbell-Decline-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Decline Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to a decline position and secure your legs beneath the pads.",
+          "Hold a dumbbell in each hand and carefully lie back on the bench.",
+          "Position the dumbbells beside your lower chest with your palms facing forward.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Keep your wrists aligned above your elbows.",
+          "Press both dumbbells upward and slightly inward in a controlled motion.",
+          "Continue until your arms are extended without forcefully locking your elbows.",
+          "Pause briefly and contract your chest muscles at the top.",
+          "Slowly lower the dumbbells toward the sides of your lower chest.",
+          "Repeat for the desired number of repetitions, then sit up carefully."
+        ]
       }
     },
     {
@@ -1640,6 +2343,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25851101-Dumbbell-Decline-Twist-Fly-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Decline Twist Fly"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to a decline position and secure your legs beneath the pads.",
+          "Hold a dumbbell in each hand and carefully lie back on the bench.",
+          "Extend the dumbbells above your chest with your elbows slightly bent.",
+          "Retract your shoulder blades, lift your chest, and keep your wrists neutral.",
+          "Lower both dumbbells outward in a wide arc while maintaining the bend in your elbows.",
+          "Rotate your forearms gradually as the dumbbells move toward the lower position.",
+          "Stop when you feel a comfortable stretch across your chest and shoulders.",
+          "Bring the dumbbells back together through the same controlled arc.",
+          "Reverse the wrist rotation as the dumbbells return above your chest.",
+          "Contract your chest briefly at the top and repeat for the desired repetitions."
+        ]
       }
     },
     {
@@ -1674,6 +2394,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26731101-Dumbbell-Decline-Triceps-Extension-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Decline Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the bench to a decline position and secure your legs beneath the pads.",
+          "Hold a dumbbell in each hand and carefully lie back on the bench.",
+          "Extend both dumbbells above your chest with your palms facing each other.",
+          "Keep your upper arms stable and angle them slightly toward your head.",
+          "Bend your elbows and lower the dumbbells toward the sides of your head.",
+          "Keep your wrists neutral and avoid allowing your elbows to flare outward.",
+          "Continue until you feel a comfortable stretch through your triceps.",
+          "Extend your elbows to raise the dumbbells back to the starting position.",
+          "Contract your triceps briefly while keeping your upper arms stationary.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1708,6 +2445,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25871101-Dumbbell-Lying-One-Arm-Supinated-Triceps-Extension-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Lying One-Arm Supinated Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your back on a flat bench with your feet firmly planted on the floor.",
+          "Hold one dumbbell above your chest with your working arm extended.",
+          "Use your free hand to support the upper arm near the elbow.",
+          "Turn your working hand into a supinated grip with your palm facing toward you.",
+          "Keep your upper arm stable and your shoulder pressed against the bench.",
+          "Bend your elbow and lower the dumbbell toward the opposite side of your head.",
+          "Continue until you feel a comfortable stretch through your triceps.",
+          "Extend your elbow to raise the dumbbell back to the starting position.",
+          "Keep your wrist neutral and avoid moving your upper arm during the repetition.",
+          "Complete the desired repetitions, then repeat with the opposite arm."
+        ]
       }
     },
     {
@@ -1742,6 +2496,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23901101-Dumbbell-Standing-Triceps-Extension-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Standing Overhead Triceps Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold one dumbbell with both hands and raise it above your head.",
+          "Support the upper end of the dumbbell with your palms beneath the weight plate.",
+          "Brace your core, squeeze your glutes, and keep your spine neutral.",
+          "Position your upper arms close to your head with your elbows pointing forward.",
+          "Bend your elbows and slowly lower the dumbbell behind your head.",
+          "Continue until you feel a comfortable stretch through your triceps.",
+          "Keep your upper arms stationary and avoid flaring your elbows outward.",
+          "Extend your elbows to raise the dumbbell back overhead.",
+          "Contract your triceps at the top and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1776,6 +2547,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/34211101-Dumbbell-Seated-Kickback-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Triceps Kickback"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit near the edge of a flat bench with a dumbbell in each hand.",
+          "Place your feet firmly on the floor and hinge forward from your hips.",
+          "Keep your back neutral, chest lifted, and core braced.",
+          "Bend your elbows and pull your upper arms backward until they are close to your torso.",
+          "Keep your upper arms stationary with your elbows bent at approximately 90 degrees.",
+          "Extend both elbows and move the dumbbells backward.",
+          "Continue until your arms are nearly straight without forcefully locking your elbows.",
+          "Pause briefly and contract your triceps at the end of the movement.",
+          "Slowly bend your elbows and return the dumbbells to the starting position.",
+          "Repeat for the desired number of repetitions without swinging your upper arms."
+        ]
       }
     },
     {
@@ -1815,6 +2603,23 @@
           "thumbnailUrl": null,
           "imageUrl": null
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Pullover"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on a flat bench with your head and upper back fully supported.",
+          "Plant your feet firmly on the floor and hold one dumbbell with both hands.",
+          "Position the dumbbell above your chest with your arms extended.",
+          "Maintain a slight bend in your elbows throughout the movement.",
+          "Brace your core and keep your ribs from flaring upward.",
+          "Lower the dumbbell backward in a controlled arc behind your head.",
+          "Continue until you feel a comfortable stretch through your chest and upper back.",
+          "Keep the elbow angle mostly unchanged while moving through the shoulders.",
+          "Pull the dumbbell back over your chest through the same controlled arc.",
+          "Pause briefly and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -1854,12 +2659,28 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22411101-Dumbbell-Straight-Arm-Pullover-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Straight-Arm Pullover"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on a flat bench with your head and upper back fully supported.",
+          "Plant your feet firmly on the floor and hold one dumbbell with both hands.",
+          "Extend the dumbbell directly above your chest.",
+          "Keep your arms nearly straight with only a small, fixed bend in your elbows.",
+          "Brace your core and keep your lower back from excessively arching.",
+          "Lower the dumbbell backward in a wide arc behind your head.",
+          "Maintain the same elbow position throughout the movement.",
+          "Stop when you feel a comfortable stretch through your chest and upper back.",
+          "Pull the dumbbell forward through the shoulders until it returns above your chest.",
+          "Maintain control throughout and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
       "id": "ex_walking_on_treadmill",
       "title": "Walking on Treadmill",
-      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "quadriceps",
@@ -1896,12 +2717,29 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22601101-Walking-on-Treadmill-(female)_Cardio_small.png"
         }
-      }
+      },
+      "localizedTitles": {
+        "en": "Walking on Treadmill"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Step onto the treadmill and place your feet on the side rails before starting.",
+          "Select a low speed and begin walking when the belt starts moving.",
+          "Stand upright with your chest lifted and look straight ahead.",
+          "Allow your arms to swing naturally beside your body.",
+          "Land softly through your heel or midfoot and roll forward through your toes.",
+          "Maintain a comfortable and consistent walking pace.",
+          "Use the handrails only when needed for balance.",
+          "Continue for the desired distance or duration.",
+          "Gradually reduce the speed before stopping.",
+          "Wait until the belt has stopped completely before stepping off."
+        ]
+      },
+      "exerciseType": "distance_duration"
     },
     {
       "id": "ex_run_on_treadmill",
       "title": "Run on Treadmill",
-      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "quadriceps",
@@ -1939,12 +2777,29 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/21971101-Run-on-Treadmill-(female)_Cardio_small.png"
         }
-      }
+      },
+      "localizedTitles": {
+        "en": "Run on Treadmill"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Step onto the treadmill and stand on the side rails before starting the belt.",
+          "Begin at a comfortable walking speed.",
+          "Gradually increase the speed until you reach a controlled running pace.",
+          "Keep your head up, chest lifted, and torso upright.",
+          "Bend your elbows and allow your arms to swing naturally.",
+          "Land softly beneath your body and avoid taking excessively long strides.",
+          "Maintain a steady rhythm and stay near the center of the treadmill belt.",
+          "Continue for the desired distance or duration.",
+          "Gradually reduce the speed to a walk before finishing.",
+          "Wait until the treadmill belt stops before stepping off."
+        ]
+      },
+      "exerciseType": "distance_duration"
     },
     {
       "id": "ex_walking_on_incline_treadmill",
       "title": "Walking on Incline Treadmill",
-      "exerciseType": "distance_duration",
       "muscleGroup": "cardio",
       "primaryMuscles": [
         "glutes",
@@ -1980,7 +2835,25 @@
           "thumbnailUrl": null,
           "imageUrl": null
         }
-      }
+      },
+      "localizedTitles": {
+        "en": "Walking on Incline Treadmill"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Step onto the treadmill and begin walking at a low speed.",
+          "Gradually increase the incline to a comfortable level.",
+          "Stand upright with your chest lifted and look straight ahead.",
+          "Lean slightly forward from your ankles without bending at your waist.",
+          "Keep your core braced and allow your arms to swing naturally.",
+          "Take controlled steps and press through your feet as you walk uphill.",
+          "Avoid holding the handrails unless needed for balance.",
+          "Maintain a steady pace for the desired distance or duration.",
+          "Reduce the incline and speed gradually before finishing.",
+          "Wait until the treadmill belt has stopped before stepping off."
+        ]
+      },
+      "exerciseType": "distance_duration"
     },
     {
       "id": "ex_lever_leg_extension",
@@ -2014,6 +2887,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22561101-Lever-Leg-Extension-(female)_Thighs_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Leg Extension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat so your knees align with the machine's pivot point.",
+          "Position the lower shin pad just above your ankles.",
+          "Sit firmly against the backrest and grip the side handles.",
+          "Keep your knees bent and your feet pointing forward.",
+          "Brace your core and keep your hips pressed against the seat.",
+          "Extend both knees and raise the padded lever in a controlled motion.",
+          "Continue until your legs are almost straight without forcefully locking your knees.",
+          "Pause briefly and contract your quadriceps at the top.",
+          "Slowly bend your knees and lower the lever to the starting position.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2052,6 +2942,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22551101-Lever-Seated-Fly-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Fly"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat so the machine handles are approximately level with the middle of your chest.",
+          "Sit firmly against the backrest and place both feet flat on the floor.",
+          "Grip the handles with your palms facing forward or inward according to the machine design.",
+          "Keep your chest lifted, shoulder blades gently retracted, and elbows slightly bent.",
+          "Brace your core and keep your back pressed against the support.",
+          "Bring the handles together in front of your chest in a controlled arc.",
+          "Maintain the same elbow angle throughout the movement.",
+          "Pause briefly and contract your chest muscles when the handles approach each other.",
+          "Slowly allow your arms to open until you feel a comfortable stretch across your chest.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2097,6 +3004,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30691101-Cable-Straight-Back-Seated-Row-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Straight-Back Seated Row"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the cable row bench and place your feet securely against the foot supports.",
+          "Hold the close-grip handle with both hands and keep your knees slightly bent.",
+          "Sit upright with your chest lifted, shoulders lowered, and spine neutral.",
+          "Extend your arms in front of you without rounding your lower back.",
+          "Brace your core and pull the handle toward your lower abdomen.",
+          "Drive your elbows backward while keeping them close to your torso.",
+          "Squeeze your shoulder blades together at the end of the movement.",
+          "Keep your torso upright and avoid leaning backward to move the weight.",
+          "Slowly extend your arms and allow your shoulder blades to move forward under control.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2138,6 +3062,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24901101-Walking-on-Stepmill-(female)_Thighs_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Walking on Stepmill"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Step onto the stepmill and place both hands lightly on the support rails.",
+          "Start the machine at a slow and comfortable stepping speed.",
+          "Stand upright with your chest lifted and look straight ahead.",
+          "Place your entire foot securely on each moving step.",
+          "Press through the working foot and step upward in a controlled rhythm.",
+          "Keep your knees aligned with your feet and avoid allowing them to collapse inward.",
+          "Use the handrails only for balance and avoid supporting your body weight with your arms.",
+          "Maintain a steady pace for the desired number of steps or duration.",
+          "Reduce the speed gradually before finishing.",
+          "Wait until the machine stops completely before stepping off."
+        ]
       }
     },
     {
@@ -2176,6 +3117,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/29591101-Dumbbell-Split-Squat-(female)_Thighs-FIX_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Split Squat"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with a dumbbell in each hand and your arms resting beside your body.",
+          "Step one foot forward and the other foot backward into a split stance.",
+          "Keep your feet approximately hip-width apart to maintain balance.",
+          "Keep your chest lifted, spine neutral, and core braced.",
+          "Bend both knees and lower your body straight toward the floor.",
+          "Keep your front knee aligned with your toes and your front foot firmly planted.",
+          "Lower until your rear knee approaches the floor without touching it forcefully.",
+          "Press through your front foot to extend both legs and return to the starting position.",
+          "Keep your torso stable and avoid pushing off excessively with the rear foot.",
+          "Complete the desired repetitions, then switch your stance and repeat with the opposite leg forward."
+        ]
       }
     },
     {
@@ -2213,6 +3171,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22901101-Dumbbell-Bulgarian-Split-Squat-(female)_Thighs_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Bulgarian Split Squat"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand a short distance in front of a flat bench while holding a dumbbell in each hand.",
+          "Place the top of one foot on the bench behind you.",
+          "Position your front foot far enough forward to maintain balance as you descend.",
+          "Keep your chest lifted, spine neutral, and core braced.",
+          "Bend your front knee and lower your rear knee toward the floor.",
+          "Keep your front knee aligned with your toes and your front foot firmly planted.",
+          "Lower until your front thigh approaches parallel to the floor or as far as comfortable.",
+          "Press through your front foot to extend your leg and return to the starting position.",
+          "Keep most of your weight on the working front leg and avoid pushing excessively through the rear foot.",
+          "Complete the desired repetitions, then switch legs and repeat."
+        ]
       }
     },
     {
@@ -2251,6 +3226,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23701101-Barbell-Split-Squat-(female)_Thighs_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Split Squat"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Position a barbell securely across your upper back.",
+          "Stand upright and step one foot forward and the other foot backward into a split stance.",
+          "Keep your feet approximately hip-width apart to maintain balance.",
+          "Keep your chest lifted, spine neutral, and core firmly braced.",
+          "Bend both knees and lower your body straight toward the floor.",
+          "Keep your front knee aligned with your toes and your front foot firmly planted.",
+          "Lower until your rear knee approaches the floor without touching it forcefully.",
+          "Press through your front foot to extend both legs and return to the starting position.",
+          "Keep your torso stable and avoid pushing excessively through the rear foot.",
+          "Complete the desired repetitions, then switch your stance and repeat with the opposite leg forward."
+        ]
       }
     },
     {
@@ -2288,6 +3280,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22161101-Barbell-Hip-Thrust-(female)_Hips_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Hip Thrust"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the floor with your upper back positioned against the side of a flat bench.",
+          "Roll a loaded barbell over your legs and position it across the crease of your hips.",
+          "Use a bar pad or folded mat to protect your hips if needed.",
+          "Bend your knees and place your feet flat on the floor approximately hip-width apart.",
+          "Brace your core and keep your chin gently tucked.",
+          "Drive through your feet and extend your hips upward.",
+          "Continue until your torso and thighs form a straight line near the top.",
+          "Squeeze your glutes without excessively arching your lower back.",
+          "Pause briefly, then lower your hips toward the floor under control.",
+          "Repeat for the desired number of repetitions while keeping the bar stable."
+        ]
       }
     },
     {
@@ -2325,6 +3334,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26431101-Dumbbell-Alternate-Seated-Hammer-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Alternating Hammer Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright on a bench with your feet firmly planted on the floor.",
+          "Hold a dumbbell in each hand with your arms hanging beside your body.",
+          "Keep your palms facing inward in a neutral hammer grip.",
+          "Keep your chest lifted, shoulders relaxed, and upper arms close to your torso.",
+          "Curl one dumbbell toward your shoulder by bending the working elbow.",
+          "Maintain the neutral grip without rotating your wrist.",
+          "Pause briefly and contract your upper-arm muscles at the top.",
+          "Slowly lower the dumbbell to the starting position.",
+          "Repeat the movement with the opposite arm.",
+          "Continue alternating sides for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2362,6 +3388,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22361101-Dumbbell-Seated-Lateral-Raise-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Lateral Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit upright on a bench with your feet firmly planted on the floor.",
+          "Hold a dumbbell in each hand with your arms resting beside your body.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "Maintain a slight bend in your elbows throughout the movement.",
+          "Raise both dumbbells outward to your sides in a controlled motion.",
+          "Continue until your arms reach approximately shoulder height.",
+          "Keep your wrists neutral and avoid shrugging your shoulders.",
+          "Pause briefly and contract the sides of your shoulders.",
+          "Slowly lower the dumbbells back to the starting position.",
+          "Repeat for the desired number of repetitions without using momentum."
+        ]
       }
     },
     {
@@ -2399,6 +3442,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22541101-Dumbbell-Bench-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Bench Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the edge of a flat bench with a dumbbell resting on each thigh.",
+          "Use your thighs to help raise the dumbbells as you carefully lie back on the bench.",
+          "Position the dumbbells beside your chest with your palms facing forward.",
+          "Plant your feet firmly on the floor and keep your upper back supported.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Press both dumbbells upward and slightly inward in a controlled motion.",
+          "Continue until your arms are extended without forcefully locking your elbows.",
+          "Pause briefly and contract your chest muscles at the top.",
+          "Slowly lower the dumbbells toward the sides of your chest.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2436,6 +3496,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22231101-Lever-Lying-Leg-Curl-(female)_Thighs_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Lying Leg Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the machine so your knees align with its pivot point.",
+          "Lie face down with your torso and hips supported by the pads.",
+          "Position the roller pad against the back of your lower legs just above your ankles.",
+          "Grip the machine handles and keep your hips pressed firmly against the bench.",
+          "Brace your core and begin with your legs almost fully extended.",
+          "Bend your knees and curl the roller pad toward your glutes.",
+          "Keep your thighs against the bench and avoid lifting your hips.",
+          "Pause briefly and contract your hamstrings at the top of the movement.",
+          "Slowly extend your knees and lower the lever to the starting position.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2472,6 +3549,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22571101-Lever-Seated-Leg-Curl-(female)_Thighs-FIX_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Leg Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat so your knees align with the machine's pivot point.",
+          "Position the lower roller pad behind your legs just above your ankles.",
+          "Secure the thigh pad firmly above your knees.",
+          "Sit with your back against the support and grip the side handles.",
+          "Begin with your legs extended and maintain a slight bend in your knees.",
+          "Bend your knees and pull the roller pad downward and backward.",
+          "Continue until your knees are comfortably flexed.",
+          "Pause briefly and contract your hamstrings at the bottom of the movement.",
+          "Slowly extend your knees and return the lever to the starting position.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2510,6 +3604,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06651101-Push-up-w_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Push-Up"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Place your hands on the floor slightly wider than shoulder width.",
+          "Extend your legs behind you and balance on your hands and toes.",
+          "Keep your body in a straight line from your head to your heels.",
+          "Brace your core, squeeze your glutes, and keep your neck neutral.",
+          "Bend your elbows and lower your chest toward the floor.",
+          "Keep your elbows angled slightly backward rather than flaring directly outward.",
+          "Lower until your chest approaches the floor while maintaining a stable torso.",
+          "Press through your palms and extend your elbows to raise your body.",
+          "Return to the starting position without allowing your hips to sag or rise.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2550,6 +3661,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28221101-Lever-Seated-Reverse-Fly-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Reverse Fly (Parallel Grip)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat so the handles are approximately level with your shoulders.",
+          "Sit facing the machine with your chest firmly supported against the pad.",
+          "Grip the handles with your palms facing each other in a parallel grip.",
+          "Keep your arms extended with a slight bend in your elbows.",
+          "Keep your chest against the pad, shoulders lowered, and core braced.",
+          "Move the handles outward and backward in a controlled arc.",
+          "Continue until your upper arms are approximately in line with your torso.",
+          "Pause briefly and squeeze your rear shoulders and upper back.",
+          "Slowly return the handles to the starting position under control.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2590,6 +3718,23 @@
           "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/28221201-Lever-Seated-Reverse-Fly-(female)_Shoulders-FIX2_thumbnail_@3x.jpg",
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/28221101-Lever-Seated-Reverse-Fly-(female)_Shoulders_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Reverse Fly (Pronated Grip)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Select an appropriate resistance and adjust the seat height.",
+          "Position the seat so the handles are approximately level with your shoulders.",
+          "Sit facing the machine with your chest firmly supported against the pad.",
+          "Grip the horizontal handles with your palms facing downward.",
+          "Extend your arms forward while maintaining a slight bend in your elbows.",
+          "Keep your shoulders lowered, chest supported, and core braced.",
+          "Move the handles outward and backward in a controlled arc.",
+          "Continue until your upper arms are approximately in line with your torso.",
+          "Pause briefly and squeeze your rear shoulders and upper back.",
+          "Slowly return the handles to the starting position and repeat."
+        ]
       }
     },
     {
@@ -2627,6 +3772,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/35921101-Barbell-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold the barbell with an underhand grip approximately shoulder-width apart.",
+          "Allow your arms to extend in front of your thighs.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "Keep your upper arms close to your torso throughout the movement.",
+          "Bend your elbows and curl the barbell toward your shoulders.",
+          "Avoid swinging your torso or allowing your elbows to move forward excessively.",
+          "Pause briefly and contract your biceps at the top of the movement.",
+          "Slowly lower the barbell until your arms are almost fully extended.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2661,6 +3823,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24381101-Cable-Pushdown-(with-rope-attachment)-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Rope Pushdown"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Attach a rope handle to a high cable pulley.",
+          "Stand facing the cable machine and hold one end of the rope in each hand.",
+          "Keep your feet approximately shoulder-width apart and bend your knees slightly.",
+          "Bring your elbows close to your sides and bend them to approximately 90 degrees.",
+          "Keep your chest lifted, shoulders relaxed, and core braced.",
+          "Extend your elbows and push the rope downward.",
+          "Separate the ends of the rope slightly as your arms approach full extension.",
+          "Pause briefly and contract your triceps at the bottom of the movement.",
+          "Slowly bend your elbows and return the rope to the starting position.",
+          "Keep your upper arms stationary and repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2697,6 +3876,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26141101-Push-up-(wall)-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Wall Push-Up"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand facing a wall at approximately arm's length.",
+          "Place your palms on the wall slightly wider than shoulder width and around chest height.",
+          "Step your feet backward until your body forms a straight line from your head to your heels.",
+          "Brace your core, squeeze your glutes, and keep your neck neutral.",
+          "Bend your elbows and slowly move your chest toward the wall.",
+          "Keep your elbows angled slightly downward and avoid shrugging your shoulders.",
+          "Bring your chest close to the wall while maintaining a straight body position.",
+          "Press through your palms and extend your elbows to move away from the wall.",
+          "Return to the starting position without allowing your hips to sag.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2735,6 +3931,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36111101-Lever-Seated-Hip-Abduction-(female)_Hips_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Hip Abduction"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat and thigh pads so the machine is comfortable for your hip width.",
+          "Sit firmly against the backrest with your feet placed on the supports.",
+          "Position the outer thigh pads against the outside of your knees or lower thighs.",
+          "Grip the side handles and keep your chest lifted.",
+          "Brace your core and keep your hips pressed against the seat.",
+          "Push both legs outward against the pads in a controlled motion.",
+          "Continue until you reach a comfortable range without rotating your hips.",
+          "Pause briefly and contract the muscles along the sides of your hips.",
+          "Slowly bring your legs back together under control.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2771,6 +3984,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/25531101-Lever-Seated-Hip-Abduction-(VERSION-2)-(female)_Hips_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Hip Abduction (Version 2)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the seat and resistance to a comfortable position.",
+          "Sit firmly against the backrest with your feet placed on the machine supports.",
+          "Position the pads against the outside of your thighs or knees.",
+          "Grip the side handles and keep your chest lifted.",
+          "Brace your core and keep your hips firmly against the seat.",
+          "Push your legs outward against the pads in a controlled motion.",
+          "Continue until you reach a comfortable range without rotating your hips.",
+          "Pause briefly and contract the muscles along the outside of your hips.",
+          "Slowly bring your legs back toward the starting position.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2809,6 +4039,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24561101-Lever-Chest-Press-(plate-loaded)-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Chest Press (Plate-Loaded)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Load the machine evenly with the appropriate weight plates.",
+          "Adjust the seat so the handles are approximately level with the middle of your chest.",
+          "Sit firmly against the backrest and place both feet flat on the floor.",
+          "Grip the handles with your palms facing forward.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Press the handles forward by extending your elbows.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your chest muscles at the end of the movement.",
+          "Slowly bend your elbows and return the handles toward your chest.",
+          "Repeat for the desired number of repetitions without allowing the weights to drop."
+        ]
       }
     },
     {
@@ -2847,6 +4094,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24571101-Lever-Chest-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Chest Press (Weight Stack)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Select an appropriate resistance on the weight stack.",
+          "Adjust the seat so the handles are approximately level with the middle of your chest.",
+          "Sit firmly against the backrest and place both feet flat on the floor.",
+          "Grip the handles with your palms facing forward.",
+          "Retract your shoulder blades, lift your chest, and brace your core.",
+          "Press the handles forward by extending your elbows.",
+          "Continue until your arms are almost fully extended without forcefully locking your elbows.",
+          "Pause briefly and contract your chest muscles at the end of the movement.",
+          "Slowly bend your elbows and allow the handles to return toward your chest.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -2882,6 +4146,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31061101-Lever-Seated-Calf-Raise-(plate-loaded)-(female)_Calves_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Calf Raise (Plate-Loaded)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Load the machine evenly with the appropriate weight plates.",
+          "Sit on the machine and place the balls of your feet securely on the foot platform.",
+          "Position the thigh pad firmly above your knees.",
+          "Keep your knees bent at approximately 90 degrees and your heels hanging below the platform.",
+          "Grip the handles and release the machine's safety support.",
+          "Lower your heels slowly until you feel a comfortable stretch through your calves.",
+          "Press through the balls of your feet and raise your heels as high as possible.",
+          "Pause briefly and contract your calf muscles at the top.",
+          "Slowly lower your heels back to the stretched position.",
+          "Repeat for the desired number of repetitions, then secure the safety support."
+        ]
       }
     },
     {
@@ -2919,6 +4200,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22381101-EZ-Barbell-Curl-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "EZ Barbell Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold the EZ bar using an underhand grip on the angled sections.",
+          "Allow your arms to extend in front of your thighs.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "Keep your upper arms close to your torso throughout the movement.",
+          "Bend your elbows and curl the bar toward your shoulders.",
+          "Avoid swinging your torso or allowing your elbows to move forward excessively.",
+          "Pause briefly and contract your biceps at the top of the movement.",
+          "Slowly lower the bar until your arms are almost fully extended.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2955,6 +4253,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/02751101-Crunch-Floor-w_waist_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Floor Crunch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your back with your knees bent and your feet flat on the floor.",
+          "Place your fingertips lightly behind your head without pulling on your neck.",
+          "Keep your elbows open and your lower back gently pressed toward the floor.",
+          "Brace your abdominal muscles and keep your chin slightly tucked.",
+          "Lift your head, shoulders, and upper back a short distance from the floor.",
+          "Focus on bringing your rib cage toward your pelvis without sitting fully upright.",
+          "Pause briefly and contract your abdominal muscles at the top.",
+          "Slowly lower your upper back and shoulders to the starting position.",
+          "Keep your feet planted and avoid using momentum.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -2991,6 +4306,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22111101-Lever-Standing-Calf-Raise-(female)_Calves_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Standing Calf Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the shoulder pads to a comfortable height and select an appropriate resistance.",
+          "Step onto the platform and place the balls of your feet securely on its edge.",
+          "Position your shoulders beneath the pads and keep your knees almost straight.",
+          "Grip the machine handles and maintain an upright posture.",
+          "Allow your heels to lower slowly below the level of the platform.",
+          "Continue until you feel a comfortable stretch through your calves.",
+          "Press through the balls of your feet and raise your heels as high as possible.",
+          "Pause briefly and contract your calf muscles at the top.",
+          "Slowly lower your heels back to the stretched position.",
+          "Repeat for the desired number of repetitions without bouncing."
+        ]
       }
     },
     {
@@ -3028,6 +4360,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24271101-Lever-Pec-Deck-Fly-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Pec Deck Fly"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Select an appropriate resistance and adjust the seat height.",
+          "Sit with your back firmly against the backrest and place your feet flat on the floor.",
+          "Position your forearms against the padded levers with your elbows bent.",
+          "Keep your upper arms approximately level with your shoulders.",
+          "Lift your chest, keep your shoulders lowered, and brace your core.",
+          "Bring the padded levers together in front of your chest in a controlled motion.",
+          "Maintain the same elbow angle throughout the movement.",
+          "Pause briefly and contract your chest muscles when the pads approach each other.",
+          "Slowly open your arms until you feel a comfortable stretch across your chest.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -3071,6 +4420,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/55451201-W-to-Y-Superman-(female)_Hips_.png"
         }
+      },
+      "localizedTitles": {
+        "en": "W to Y Superman"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie face down on the floor with your legs extended behind you.",
+          "Bend your elbows and position your arms beside your head to form a W shape.",
+          "Keep your forehead facing the floor and maintain a neutral neck position.",
+          "Brace your core and squeeze your glutes.",
+          "Lift your chest, arms, and legs slightly away from the floor.",
+          "While holding the lifted position, extend your arms diagonally overhead to form a Y shape.",
+          "Keep your shoulders lowered and avoid excessively arching your lower back.",
+          "Pull your elbows back and return your arms to the W position.",
+          "Lower your chest, arms, and legs toward the floor under control.",
+          "Repeat the W-to-Y movement for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3108,12 +4474,28 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/31031101-Lever-Preacher-Curl-(plate-loaded)-(female)_Upper-Arms_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Preacher Curl (Plate-Loaded)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Load the machine evenly with an appropriate amount of weight.",
+          "Adjust the seat so your upper arms rest comfortably against the preacher pad.",
+          "Sit upright and place your chest close to the top of the pad.",
+          "Grip the handles with your palms facing upward.",
+          "Begin with your elbows extended while keeping a slight bend in your arms.",
+          "Curl the handles upward by bending your elbows.",
+          "Keep your upper arms firmly against the pad throughout the movement.",
+          "Pause briefly and contract your biceps at the top.",
+          "Slowly lower the handles until your arms return to the starting position.",
+          "Repeat for the desired number of repetitions without lifting your elbows from the pad."
+        ]
       }
     },
     {
       "id": "ex_front_plank",
       "title": "Front Plank",
-      "exerciseType": "duration",
       "muscleGroup": "waist",
       "primaryMuscles": [
         "rectus_abdominis"
@@ -3151,7 +4533,25 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04651101-Front-Plank_Waist_small.png"
         }
-      }
+      },
+      "localizedTitles": {
+        "en": "Front Plank"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie face down and place your forearms on the floor.",
+          "Position your elbows directly beneath your shoulders.",
+          "Extend your legs behind you and balance on your forearms and toes.",
+          "Keep your feet approximately hip-width apart.",
+          "Brace your abdominal muscles and squeeze your glutes.",
+          "Lift your hips until your body forms a straight line from your head to your heels.",
+          "Keep your neck neutral and look toward the floor.",
+          "Avoid allowing your hips to sag or rise excessively.",
+          "Breathe steadily while maintaining full-body tension.",
+          "Hold the position for the desired duration, then lower your body under control."
+        ]
+      },
+      "exerciseType": "duration"
     },
     {
       "id": "ex_lever_seated_row",
@@ -3196,6 +4596,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22461101-Lever-Seated-Row-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lever Seated Row"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Select an appropriate resistance and adjust the seat to a comfortable position.",
+          "Sit facing the machine with your chest firmly supported against the front pad.",
+          "Place your feet securely on the supports and grip the handles with both hands.",
+          "Begin with your arms extended while keeping your shoulders lowered.",
+          "Keep your spine neutral, chest supported, and core braced.",
+          "Pull the handles toward your torso by driving your elbows backward.",
+          "Squeeze your shoulder blades together at the end of the movement.",
+          "Keep your chest against the pad and avoid using torso momentum.",
+          "Slowly extend your arms and allow your shoulder blades to move forward under control.",
+          "Repeat for the desired number of repetitions without allowing the weight stack to slam."
+        ]
       }
     },
     {
@@ -3234,6 +4651,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22521101-Cable-Low-Fly-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Low-to-High Fly"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Set both cable pulleys to their lowest positions and attach a single handle to each side.",
+          "Stand in the center of the cable machine and hold one handle in each hand.",
+          "Step slightly forward and place one foot ahead of the other for balance.",
+          "Begin with your hands beside your hips and maintain a slight bend in your elbows.",
+          "Keep your chest lifted, shoulders lowered, and core braced.",
+          "Bring both handles forward and upward in a wide arc.",
+          "Continue until your hands approach each other around upper-chest or shoulder height.",
+          "Pause briefly and contract your chest muscles at the top.",
+          "Slowly lower the handles through the same arc until your arms return beside your hips.",
+          "Repeat for the desired number of repetitions without using momentum."
+        ]
       }
     },
     {
@@ -3278,6 +4712,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/51091201-Downward-Punch-(female)_Shoulders_.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Downward Punch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Raise your upper arms out to your sides at approximately shoulder height.",
+          "Bend your elbows and keep your forearms hanging downward.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "Extend your elbows and punch both hands downward in a controlled motion.",
+          "Keep your upper arms lifted and avoid shrugging your shoulders.",
+          "Pause briefly with your arms extended downward.",
+          "Bend your elbows and return your forearms to the starting position.",
+          "Keep your torso still and avoid using momentum.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3318,6 +4769,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/78091201-Lying-Raised-Shoulders-Windshield-Wiper-(female)_W_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Lying Raised-Shoulders Windshield Wiper"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your back with your arms extended beside your body and your palms pressed into the floor.",
+          "Bring your legs together and raise them until they are approximately vertical.",
+          "Keep your knees straight or slightly bent according to your mobility.",
+          "Lift your head, shoulders, and upper back slightly away from the floor.",
+          "Brace your abdominal muscles and keep your lower back controlled.",
+          "Lower both legs together toward one side in a slow, controlled arc.",
+          "Stop before your opposite hip or shoulder lifts excessively from the floor.",
+          "Use your abdominal muscles to bring your legs back to the center.",
+          "Lower your legs toward the opposite side through the same controlled range.",
+          "Continue alternating sides for the desired number of repetitions without using momentum."
+        ]
       }
     },
     {
@@ -3362,6 +4830,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59551201-Half-Squat-Torso-Punches-(female)_Waist__GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Half Squat Torso Punches"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand with your feet wider than shoulder width and turn your toes slightly outward.",
+          "Bend your knees and lower your hips into a comfortable half-squat position.",
+          "Keep your chest lifted, spine neutral, and knees aligned with your toes.",
+          "Hold both fists near your chest with your elbows bent.",
+          "Brace your abdominal muscles and maintain the half-squat position.",
+          "Punch one arm forward while rotating your torso slightly toward the opposite side.",
+          "Return the punching hand to your chest under control.",
+          "Repeat the punch with the opposite arm while rotating through your torso.",
+          "Keep your hips low and avoid allowing your knees to collapse inward.",
+          "Continue alternating punches for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3400,6 +4885,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59601201-Obliques-Twist-High-Knee-and-Kick-(female)_Plyomet_GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Obliques Twist High Knee and Kick"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold your hands together in front of your chest with your elbows lifted.",
+          "Brace your core and keep your chest upright.",
+          "Raise one knee toward your torso while rotating your upper body toward the lifted knee.",
+          "Return your torso to the center and lower the foot under control.",
+          "Lift the same leg again and extend it forward into a controlled kick.",
+          "Bring the leg back to the floor and regain your starting stance.",
+          "Repeat the high-knee twist and kick sequence with the opposite leg.",
+          "Keep your supporting knee slightly bent and avoid leaning excessively backward.",
+          "Continue alternating sides at a controlled pace for the desired duration."
+        ]
       }
     },
     {
@@ -3437,6 +4939,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/59381201-Russian-Twist-Chop-(female)_Waist__GREEN.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Russian Twist Chop"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the floor with your knees bent and your feet together.",
+          "Lean your torso backward slightly while keeping your spine long and chest lifted.",
+          "Raise your feet from the floor and balance on your sitting bones.",
+          "Clasp your hands together and extend your arms in front of your body.",
+          "Brace your abdominal muscles and keep your knees stable.",
+          "Rotate your torso and move your hands downward toward one side of your hips.",
+          "Return through the center and rotate toward the opposite side.",
+          "Move your arms and torso together rather than swinging only your hands.",
+          "Keep your feet elevated and avoid rounding your lower back excessively.",
+          "Continue alternating the chopping motion for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3476,6 +4995,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/57671201-Celebratory-Hip-Thrust-(female)_Waist_.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Celebratory Hip Thrust"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Extend your arms diagonally overhead and keep your hands close together.",
+          "Maintain a slight bend in your knees and brace your core.",
+          "Push your hips backward and hinge forward from your hips.",
+          "Keep your spine neutral and allow your torso to lean forward under control.",
+          "Continue until you feel a comfortable stretch through your hamstrings.",
+          "Drive your hips forward and squeeze your glutes to return upright.",
+          "Keep your arms extended and avoid excessively arching your lower back.",
+          "Pause briefly in the standing position.",
+          "Repeat the hip hinge and thrust movement for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3520,6 +5056,23 @@
           "thumbnailUrl": null,
           "imageUrl": null
         }
+      },
+      "localizedTitles": {
+        "en": "Rope Pull Side Step"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold your hands together in front of your chest as though gripping a rope.",
+          "Brace your core and bend your knees slightly.",
+          "Take a wide step to one side and shift your weight toward the stepping leg.",
+          "Bend the working knee while keeping the opposite leg extended.",
+          "Rotate your torso slightly and pull your hands diagonally toward the working side.",
+          "Keep your chest lifted and your working knee aligned with your toes.",
+          "Push through the working foot and return to the center position.",
+          "Repeat the side step and pulling motion in the opposite direction.",
+          "Continue alternating sides at a controlled pace for the desired duration."
+        ]
       }
     },
     {
@@ -3565,6 +5118,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/56291201-Stepjack-Inner-Biceps-Curl-(female)_Plyometrics_.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Step Jack Inner Biceps Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet together and your arms extended out to your sides.",
+          "Keep your palms facing upward and maintain a slight bend in your elbows.",
+          "Step one foot outward while bending both elbows.",
+          "Curl your hands inward toward your shoulders as you complete the side step.",
+          "Keep your chest lifted, core braced, and shoulders relaxed.",
+          "Step the working foot back toward the center while extending your arms outward.",
+          "Repeat the movement by stepping to the opposite side.",
+          "Keep your knees slightly bent and land softly with each step.",
+          "Maintain a steady rhythm without swinging your upper body.",
+          "Continue alternating sides for the desired duration."
+        ]
       }
     },
     {
@@ -3603,6 +5173,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26801101-Dumbbell-Lying-One-Arm-Press-(female)_Chest_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Lying One-Arm Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on the edge of a flat bench with a dumbbell resting on each thigh.",
+          "Carefully lie back and position the dumbbells beside your chest.",
+          "Plant your feet firmly on the floor and keep your upper back supported.",
+          "Hold one dumbbell steady near your chest while positioning the working arm to press.",
+          "Retract your shoulder blades, brace your core, and keep your hips stable.",
+          "Press the working dumbbell upward until your arm is extended without forcefully locking your elbow.",
+          "Avoid rotating your torso or allowing the opposite shoulder to lift from the bench.",
+          "Slowly lower the dumbbell toward the side of your chest.",
+          "Complete the desired repetitions with one arm, then repeat with the opposite arm.",
+          "Keep the movement controlled and maintain equal repetitions on both sides."
+        ]
       }
     },
     {
@@ -3640,6 +5227,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26021101-Barbell-Seated-Good-morning-(female)_Hips_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Barbell Seated Good Morning"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Position a barbell securely across your upper back.",
+          "Sit near the edge of a flat bench with your feet firmly planted on the floor.",
+          "Place your feet slightly wider than hip width and keep your knees bent.",
+          "Keep your chest lifted, spine neutral, and core firmly braced.",
+          "Push your hips backward and hinge your torso forward from your hips.",
+          "Keep the bar stable and avoid rounding your upper or lower back.",
+          "Lower your torso until you feel a comfortable stretch through your hips and hamstrings.",
+          "Pause briefly while maintaining tension through your posterior chain.",
+          "Drive through your feet and extend your hips to return to the upright position.",
+          "Repeat for the desired number of repetitions using a controlled range of motion."
+        ]
       }
     },
     {
@@ -3681,6 +5285,23 @@
           "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/22471201-Cable-Bar-Lateral-Pulldown-(female)_Back-FIX_thumbnail_@3x.jpg",
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22911101-Cable-Wide-Grip-Lat-Pulldown-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Lat Pulldown"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the thigh pad so it fits securely against your thighs.",
+          "Select an appropriate resistance on the cable machine.",
+          "Grip the pulldown bar slightly wider than shoulder width with your palms facing forward.",
+          "Sit down and secure your legs beneath the thigh pad.",
+          "Begin with your arms extended overhead and your chest lifted.",
+          "Pull your shoulders down and back before starting the repetition.",
+          "Drive your elbows downward and pull the bar toward your upper chest.",
+          "Keep your torso mostly upright and avoid swinging backward.",
+          "Pause briefly and squeeze your back muscles at the bottom of the movement.",
+          "Slowly extend your arms overhead and return the bar to the starting position."
+        ]
       }
     },
     {
@@ -3723,6 +5344,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30201101-Bench-Pull-ups-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Bench-Assisted Pull-Up"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Place a stable bench beneath or slightly in front of a pull-up bar.",
+          "Grip the bar with an overhand grip slightly wider than shoulder width.",
+          "Place one foot or knee on the bench to provide assistance.",
+          "Begin with your arms extended and your shoulders pulled down away from your ears.",
+          "Keep your chest lifted and brace your core.",
+          "Pull your body upward by driving your elbows down toward your sides.",
+          "Use only as much pressure from the supporting leg as needed to complete the repetition.",
+          "Continue until your upper chest approaches the bar.",
+          "Slowly lower yourself until your arms are extended again.",
+          "Repeat for the desired number of repetitions while keeping the movement controlled."
+        ]
       }
     },
     {
@@ -3767,6 +5405,23 @@
           "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/24911201-Cable-Reverse-Grip-Pulldown-(female)_Back_thumbnail_@3x.jpg",
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24911101-Cable-Reverse-Grip-Pulldown-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Cable Reverse-Grip Lat Pulldown"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Select an appropriate resistance and adjust the thigh pad so your legs fit securely underneath it.",
+          "Stand in front of the machine and grip the bar with an underhand grip approximately shoulder-width apart.",
+          "Sit down and secure your thighs beneath the pad.",
+          "Begin with your arms extended overhead and your chest lifted.",
+          "Pull your shoulders down and back before starting the repetition.",
+          "Drive your elbows downward and pull the bar toward your upper chest.",
+          "Keep your elbows relatively close to your torso and avoid excessive backward leaning.",
+          "Pause briefly and squeeze your lats and upper back at the bottom of the movement.",
+          "Slowly extend your arms overhead while maintaining control of the cable.",
+          "Repeat for the desired number of repetitions."
+        ]
       }
     },
     {
@@ -3809,6 +5464,23 @@
           "thumbnailUrl": null,
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/23271101-Dumbbell-Reverse-Grip-Row-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Bent-Over Reverse-Grip Row"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand with your feet approximately shoulder-width apart while holding a dumbbell in each hand.",
+          "Use an underhand grip with your palms facing forward.",
+          "Bend your knees slightly and hinge forward from your hips.",
+          "Keep your spine neutral, chest lifted, and core braced.",
+          "Allow the dumbbells to hang below your shoulders with your arms extended.",
+          "Pull both dumbbells toward your lower ribs by driving your elbows backward.",
+          "Keep your elbows relatively close to your torso throughout the movement.",
+          "Pause briefly and squeeze your back muscles at the top.",
+          "Slowly lower the dumbbells until your arms are fully extended again.",
+          "Repeat for the desired number of repetitions without using torso momentum."
+        ]
       }
     },
     {
@@ -3853,6 +5525,1052 @@
           "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/24821201-Dumbbell-Bent-Over-Row-(female)_Back_thumbnail_@3x.jpg",
           "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24821101-Dumbbell-Bent-Over-Row-(female)_Back_small.png"
         }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Bent-Over Row"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright while holding a dumbbell in each hand.",
+          "Keep your feet approximately shoulder-width apart and bend your knees slightly.",
+          "Brace your core and hinge forward from your hips while keeping your spine neutral.",
+          "Allow both arms to hang below your shoulders with your palms facing each other.",
+          "Keep your chest lifted and your shoulders pulled away from your ears.",
+          "Pull both dumbbells toward your torso by driving your elbows backward.",
+          "Continue until your elbows are approximately level with or slightly behind your torso.",
+          "Pause briefly and squeeze your upper back muscles at the top.",
+          "Slowly lower the dumbbells until your arms are extended again.",
+          "Repeat for the desired number of repetitions without swinging your torso."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_back_squat_high_bar",
+      "title": "Barbell Back Squat (High Bar)",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "quadriceps",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings",
+        "core_stabilizers",
+        "erector_spinae"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/14361201-Barbell-High-Bar-Squat_Thighs_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/00431201-Barbell-Full-Squat_Thighs_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/14361101-Barbell-High-Bar-Squat_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/35931201-Barbell-Squat-(female)_Thighs.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/57181201-Barbell-Full-Squat-(Side-POV)-(female)_Thighs_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/35931101-Barbell-Squat-(female)_Thighs_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Back Squat (High Bar)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Position the barbell on a squat rack at approximately upper-chest height.",
+          "Step underneath the bar and position it securely across your upper trapezius muscles.",
+          "Grip the bar evenly with both hands and keep your elbows angled downward.",
+          "Brace your core, lift your chest, and unrack the bar by extending your legs.",
+          "Take one or two controlled steps backward and position your feet approximately shoulder-width apart.",
+          "Point your toes slightly outward and distribute your weight evenly across both feet.",
+          "Take a deep breath, brace your abdominal muscles, and begin bending your hips and knees.",
+          "Lower your body in a controlled motion while keeping your chest upright and spine neutral.",
+          "Keep your knees tracking in the same direction as your toes and your heels firmly planted.",
+          "Descend until your thighs reach at least parallel to the floor, or deeper if your mobility and control allow.",
+          "Drive through your midfoot and extend your hips and knees to return to the standing position.",
+          "Exhale near the top while maintaining control of the barbell.",
+          "Repeat for the desired number of repetitions.",
+          "After completing the set, carefully walk forward and secure the barbell on the rack."
+        ]
+      }
+    },
+    {
+      "id": "ex_dumbbell_goblet_squat",
+      "title": "Dumbbell Goblet Squat",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "quadriceps",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "hamstrings",
+        "adductors",
+        "gluteus_medius",
+        "core_stabilizers"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/17601201-Dumbbell-Goblet-Squat_Thighs-FIX_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/17601201-Dumbbell-Goblet-Squat_Thighs-FIX_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/17601101-Dumbbell-Goblet-Squat_Thighs-FIX_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/22811201-Dumbbell-Goblet-Squat-(female)_Thighs.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/22811201-Dumbbell-Goblet-Squat-(female)_Thighs_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22811101-Dumbbell-Goblet-Squat-(female)_Thighs_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Goblet Squat"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold one dumbbell vertically in front of your chest using both hands.",
+          "Support the upper end of the dumbbell securely with your palms.",
+          "Keep your elbows close to your torso and your chest lifted.",
+          "Point your toes slightly outward and brace your abdominal muscles.",
+          "Begin the squat by bending your hips and knees simultaneously.",
+          "Lower your body in a controlled motion while keeping the dumbbell close to your chest.",
+          "Keep your knees aligned with your toes and your heels firmly planted on the floor.",
+          "Descend until your thighs are approximately parallel to the floor or as low as your mobility allows.",
+          "Maintain a neutral spine and avoid excessively rounding your lower back.",
+          "Press through your midfoot and extend your hips and knees to return to the standing position.",
+          "Squeeze your glutes near the top without leaning backward.",
+          "Repeat for the desired number of repetitions while maintaining a controlled movement."
+        ]
+      }
+    },
+    {
+      "id": "ex_sled_45_degree_leg_press",
+      "title": "Sled 45° Leg Press",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "quadriceps",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "sled"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/07391201-Sled-45-Leg-Press_Hips.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/07391201-Sled-45-Leg-Press_Hips_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/07391101-Sled-45-Leg-Press_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/22241201-Sled-45-degrees-Leg-Press-(female)_Thighs_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/22241201-Sled-45-degrees-Leg-Press-(female)_Thighs_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/22241101-Sled-45-degrees-Leg-Press-(female)_Thighs_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Sled 45° Leg Press"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Load the leg press machine evenly with an appropriate amount of weight.",
+          "Sit on the machine with your back and hips firmly supported against the padded backrest.",
+          "Place your feet approximately shoulder-width apart on the foot platform.",
+          "Point your toes slightly outward and keep your feet flat against the platform.",
+          "Grip the side handles and brace your abdominal muscles.",
+          "Press through your feet to extend your legs and carefully release the safety locks.",
+          "Keep your knees slightly bent without forcefully locking them.",
+          "Slowly bend your knees and lower the sled toward your torso.",
+          "Keep your knees aligned with your toes and your heels firmly planted on the platform.",
+          "Lower the sled until your knees reach a comfortable depth without allowing your lower back or hips to lift from the seat.",
+          "Pause briefly at the bottom while maintaining control of the weight.",
+          "Press through your entire foot to extend your hips and knees.",
+          "Return to the starting position without locking your knees aggressively.",
+          "Repeat for the desired number of repetitions.",
+          "After completing the set, extend your legs sufficiently to engage the safety locks and carefully secure the sled before releasing the handles."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_romanian_deadlift",
+      "title": "Barbell Romanian Deadlift",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "hamstrings",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "erector_spinae",
+        "upper_back",
+        "latissimus_dorsi",
+        "adductors"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/00851201-Barbell-Romanian-Deadlift_Hips-FIX_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/00851201-Barbell-Romanian-Deadlift_Hips-FIX_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00851101-Barbell-Romanian-Deadlift_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/22131201-Barbell-Romanian-Deadlift-(female)_Hips.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/22131201-Barbell-Romanian-Deadlift-(female)_Hips_thumbnail_@3x.jpg",
+          "imageUrl": null
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Romanian Deadlift"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately hip-width apart.",
+          "Hold a barbell in front of your thighs using a double overhand grip approximately shoulder-width apart.",
+          "Keep your knees slightly bent and maintain this knee angle throughout most of the movement.",
+          "Lift your chest, pull your shoulders down and back, and brace your abdominal muscles.",
+          "Begin the movement by pushing your hips backward while hinging forward at your hips.",
+          "Keep your spine neutral and maintain the barbell close to your legs throughout the descent.",
+          "Lower the barbell in a controlled motion along the front of your thighs and shins.",
+          "Continue lowering until you feel a comfortable stretch through your hamstrings without rounding your lower back.",
+          "Keep your weight balanced through your midfoot and avoid allowing your knees to travel excessively forward.",
+          "Pause briefly at the bottom while maintaining tension through your hamstrings and glutes.",
+          "Drive your hips forward and contract your glutes to return to the standing position.",
+          "Keep the barbell close to your body as you rise and avoid excessively arching your lower back at the top.",
+          "Exhale near the top and reset your core before beginning the next repetition.",
+          "Repeat for the desired number of repetitions while maintaining a controlled hip-hinge movement."
+        ]
+      }
+    },
+    {
+      "id": "ex_forward_lunge",
+      "title": "Forward Lunge",
+      "muscleGroup": "thighs",
+      "primaryMuscles": [
+        "quadriceps",
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "adductors",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/34701201-Forward-Lunge-(male)_Thighs.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/34701101-Forward-Lunge-(male)_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/06121201-Lunge-(female)_Hips.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06121101-Lunge_Hips_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Forward Lunge"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately hip-width apart.",
+          "Place your hands on your hips or keep them relaxed beside your body.",
+          "Keep your chest lifted, spine neutral, and core firmly braced.",
+          "Take a controlled step forward with one leg.",
+          "Bend both knees and lower your body toward the floor.",
+          "Keep your front foot flat on the floor and your front knee aligned with your toes.",
+          "Lower until your front thigh approaches parallel to the floor and your rear knee comes close to the ground.",
+          "Keep your torso upright and avoid leaning excessively forward.",
+          "Press through your front foot to push your body backward.",
+          "Bring your front foot back to its original position beside your other foot.",
+          "Return to a fully upright standing position before beginning the next repetition.",
+          "Repeat the movement with the opposite leg or complete the desired repetitions on one side before switching.",
+          "Maintain balance and control throughout each repetition without walking forward."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_seated_wrist_curl",
+      "title": "Barbell Seated Wrist Curl",
+      "muscleGroup": "forearms",
+      "primaryMuscles": [
+        "wrist_flexors"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/01251201-Barbell-Wrist-Curl-(VERSION-2)_Forearms-FIX_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01251101-Barbell-Wrist-Curl-II_Forearms_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": null
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Seated Wrist Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with your feet firmly planted on the floor.",
+          "Hold a barbell with an underhand grip and your palms facing upward.",
+          "Position your forearms on top of your thighs with your wrists extending slightly beyond your knees.",
+          "Keep your forearms supported and your elbows stable throughout the movement.",
+          "Allow the barbell to lower slowly by extending your wrists.",
+          "Lower the bar until you feel a comfortable stretch through your forearm muscles.",
+          "Curl your wrists upward to raise the barbell as high as comfortably possible.",
+          "Keep your forearms stationary and avoid lifting your elbows from your thighs.",
+          "Pause briefly and squeeze your forearm muscles at the top of the movement.",
+          "Slowly lower the barbell back to the starting position.",
+          "Repeat for the desired number of repetitions using controlled wrist movements."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_wrist_curl_forward_leaning",
+      "title": "Barbell Wrist Curl (Forward-Leaning)",
+      "muscleGroup": "forearms",
+      "primaryMuscles": [
+        "wrist_flexors"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "female",
+        "male": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/01261101-Barbell-Wrist-Curl_Forearm_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30331201-Barbell-Wrist-Curl-(female)_Forearms.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30331101-Barbell-Wrist-Curl-(female)_Forearms_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Wrist Curl (Forward-Leaning)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with your feet firmly planted on the floor.",
+          "Hold a barbell with an underhand grip and your palms facing upward.",
+          "Lean your torso forward slightly while keeping your spine neutral.",
+          "Position your forearms securely on your thighs with your wrists extending beyond your knees.",
+          "Keep your elbows stable and your forearms supported throughout the movement.",
+          "Allow your wrists to extend downward slowly, lowering the barbell toward the floor.",
+          "Continue until you feel a comfortable stretch through your forearm flexor muscles.",
+          "Curl your wrists upward to raise the barbell as high as comfortably possible.",
+          "Keep your upper arms and forearms stationary without lifting your elbows.",
+          "Pause briefly and squeeze your forearm muscles at the top.",
+          "Slowly lower the barbell back to the starting position.",
+          "Repeat for the desired number of repetitions using controlled wrist movements."
+        ]
+      }
+    },
+    {
+      "id": "ex_dumbbell_seated_palms_up_wrist_curl",
+      "title": "Dumbbell Seated Palms-Up Wrist Curl",
+      "muscleGroup": "forearms",
+      "primaryMuscles": [
+        "wrist_flexors"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/04011201-Dumbbell-Seated-Palms-Up-Wrist-Curl_Forearms_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/04011201-Dumbbell-Seated-Palms-Up-Wrist-Curl_Forearms_thumbnail_@3x.jpg",
+          "imageUrl": null
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/26331201-Dumbbell-Seated-Palms-Up-Wrist-Curl-(female)_Forea.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/26331201-Dumbbell-Seated-Palms-Up-Wrist-Curl-(female)_Forea_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/26331101-Dumbbell-Seated-Palms-Up-Wrist-Curl-(female)_Forearms_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Seated Palms-Up Wrist Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with your feet firmly planted on the floor.",
+          "Hold a light dumbbell in each hand with your palms facing upward.",
+          "Lean your torso slightly forward while keeping your spine neutral.",
+          "Rest your forearms on top of your thighs with your wrists extending just beyond your knees.",
+          "Keep your elbows stable and your forearms firmly supported throughout the exercise.",
+          "Begin with your wrists in a neutral position and the dumbbells held securely.",
+          "Slowly extend your wrists downward to lower the dumbbells toward the floor.",
+          "Continue until you feel a comfortable stretch through your forearm flexor muscles.",
+          "Curl both wrists upward simultaneously to raise the dumbbells as high as comfortably possible.",
+          "Keep your forearms stationary and avoid lifting your elbows from your thighs.",
+          "Pause briefly and contract your forearm muscles at the top of the movement.",
+          "Slowly lower the dumbbells back to the starting position.",
+          "Repeat for the desired number of repetitions using controlled wrist movements."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_reverse_curl",
+      "title": "Barbell Reverse Curl",
+      "muscleGroup": "forearms",
+      "primaryMuscles": [
+        "brachioradialis"
+      ],
+      "secondaryMuscles": [
+        "biceps",
+        "brachialis"
+      ],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/00801201-Barbell-Reverse-Curl_Forearm.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/00801201-Barbell-Reverse-Curl_Forearm_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00801101-Barbell-Reverse-Curl_Forearm_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/24791201-Barbell-Reverse-Curl-(female)_Forearms.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/24791201-Barbell-Reverse-Curl-(female)_Forearms_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/24791101-Barbell-Reverse-Curl-(female)_Forearm_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Reverse Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright with your feet approximately shoulder-width apart.",
+          "Hold a barbell in front of your thighs using an overhand grip with your palms facing downward.",
+          "Position your hands approximately shoulder-width apart and keep your wrists straight.",
+          "Keep your chest lifted, shoulders relaxed, and core firmly braced.",
+          "Allow your arms to extend naturally while keeping your elbows close to your torso.",
+          "Take a breath and begin curling the barbell upward by bending your elbows.",
+          "Keep your palms facing downward and maintain a neutral wrist position throughout the movement.",
+          "Raise the barbell toward your upper abdomen or lower chest without moving your upper arms excessively.",
+          "Avoid swinging your torso, shrugging your shoulders, or using momentum to lift the weight.",
+          "Pause briefly at the top and contract your forearm and upper-arm muscles.",
+          "Slowly lower the barbell by extending your elbows in a controlled motion.",
+          "Return to the starting position without forcefully locking your elbows.",
+          "Repeat for the desired number of repetitions while maintaining proper technique."
+        ]
+      }
+    },
+    {
+      "id": "ex_standing_calf_raise",
+      "title": "Standing Calf Raise",
+      "muscleGroup": "calves",
+      "primaryMuscles": [
+        "gastrocnemius"
+      ],
+      "secondaryMuscles": [
+        "soleus"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/13731201-Bodyweight-Standing-Calf-Raise_Calves.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/13731201-Bodyweight-Standing-Calf-Raise_Calves_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/13731101-Bodyweight-Standing-Calf-Raise_Calves_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/30181201-Standing-Calf-Raise-(female)_Calves_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/30181201-Standing-Calf-Raise-(female)_Calves_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30181101-Standing-Calf-Raise-(female)_Calves-FIX_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Standing Calf Raise"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Stand upright on a flat, stable surface with your feet approximately hip-width apart.",
+          "Position your feet parallel to each other with your toes pointing forward.",
+          "Keep your knees relatively straight without forcefully locking them.",
+          "Maintain an upright posture with your chest lifted, shoulders relaxed, and core engaged.",
+          "Allow your arms to rest naturally at your sides or lightly hold a stable support if additional balance is needed.",
+          "Distribute your body weight evenly across both feet.",
+          "Take a breath and prepare to raise your heels while maintaining a stable body position.",
+          "Press firmly through the balls of both feet and slowly lift your heels away from the floor.",
+          "Extend your ankles as high as comfortably possible while keeping your knees relatively straight.",
+          "Keep your ankles aligned and avoid allowing your feet to roll inward or outward.",
+          "Exhale as you rise onto your toes and contract your calf muscles.",
+          "Pause briefly at the highest controlled position to emphasize the calf contraction.",
+          "Slowly lower your heels toward the floor while maintaining control throughout the movement.",
+          "Inhale as you return to the starting position.",
+          "Allow your heels to make controlled contact with the floor without bouncing.",
+          "Avoid bending your knees excessively, swinging your body, or using momentum to perform the movement.",
+          "Keep your torso upright and maintain a consistent range of motion during every repetition.",
+          "Repeat for the desired number of repetitions while maintaining balance and proper technique."
+        ]
+      }
+    },
+    {
+      "id": "ex_reverse_crunch",
+      "title": "Reverse Crunch",
+      "muscleGroup": "abdominals",
+      "primaryMuscles": [
+        "rectus_abdominis"
+      ],
+      "secondaryMuscles": [
+        "obliques"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/08721201-Reverse-Crunch-m_waist.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/08721201-Reverse-Crunch-m_waist_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/08721101-Reverse-Crunch-m_waist_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/06711201-Reverse-Crunch-(female)_Waist-FIX_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/06711201-Reverse-Crunch-(female)_Waist-FIX_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/06711101-Reverse-Crunch_waist_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Reverse Crunch"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie flat on your back on a comfortable, stable surface with your legs extended and your arms resting alongside your body.",
+          "Place your palms flat against the floor to help maintain balance and stability throughout the movement.",
+          "Bend your knees to approximately 90 degrees and lift your legs until your thighs are positioned roughly perpendicular to the floor.",
+          "Keep your knees aligned above your hips and maintain the bent-knee position throughout the exercise.",
+          "Relax your neck and shoulders while keeping your head and upper back comfortably supported against the floor.",
+          "Engage your abdominal muscles and gently flatten your lower back toward the floor by tilting your pelvis backward.",
+          "Take a controlled breath and prepare to initiate the movement using your abdominal muscles rather than swinging your legs.",
+          "Exhale as you contract your abdominals and slowly curl your pelvis upward, bringing your knees toward your chest.",
+          "Lift your hips slightly away from the floor while maintaining the bend in your knees.",
+          "Focus on bringing your pelvis toward your rib cage rather than simply pulling your knees forward with your hip flexors.",
+          "Keep your upper back, shoulders, and head in contact with the floor throughout the movement.",
+          "Avoid pushing excessively through your hands or swinging your legs to generate momentum.",
+          "Continue curling your pelvis upward until you reach the highest controlled position without forcing your knees toward your face.",
+          "Pause briefly at the top of the movement and contract your abdominal muscles.",
+          "Inhale as you slowly lower your pelvis and hips toward the floor in a controlled motion.",
+          "Return your knees to their original position above your hips while maintaining approximately 90 degrees of knee flexion.",
+          "Avoid allowing your lower back to arch excessively or your legs to drop suddenly during the lowering phase.",
+          "Maintain continuous abdominal tension and keep your movements slow, smooth, and controlled.",
+          "Repeat for the desired number of repetitions while maintaining proper technique and consistent abdominal engagement."
+        ]
+      }
+    },
+    {
+      "id": "ex_hip_adduction_machine",
+      "title": "Hip Adduction (Machine)",
+      "muscleGroup": "adductors",
+      "primaryMuscles": [
+        "adductor_magnus",
+        "adductor_longus",
+        "adductor_brevis"
+      ],
+      "secondaryMuscles": [
+        "gracilis",
+        "pectineus"
+      ],
+      "equipment": {
+        "primary": "machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/05981201-Lever-Seated-Hip-Adduction_Thighs.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/05981201-Lever-Seated-Hip-Adduction_Thighs_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/05981101-Lever-Seated-Hip-Adduction_Thighs_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/36121201-Lever-Seated-Hip-Adduction-(female)_Thighs.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/36121201-Lever-Seated-Hip-Adduction-(female)_Thighs_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/36121101-Lever-Seated-Hip-Adduction-(female)_Thighs_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Hip Adduction (Machine)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust the hip adduction machine to match your body size and select an appropriate weight that allows controlled movement throughout the exercise.",
+          "Sit upright on the machine with your back comfortably supported against the backrest.",
+          "Position your thighs against the machine's inner thigh pads, ensuring that the pads are correctly aligned and comfortably positioned.",
+          "Place your feet securely on the designated foot platforms or supports.",
+          "Adjust the machine's starting position so your thighs are separated to a comfortable width without overstretching your groin muscles.",
+          "Grip the handles located beside the seat to stabilize your upper body.",
+          "Keep your chest lifted, shoulders relaxed, and spine in a neutral position.",
+          "Engage your core muscles and maintain firm contact between your back and the backrest.",
+          "Take a controlled breath and prepare to move your legs inward.",
+          "Exhale as you contract your inner thigh muscles and slowly bring your thighs toward each other against the machine's resistance.",
+          "Focus on initiating the movement from your hip joints rather than using momentum or shifting your upper body.",
+          "Keep your hips firmly positioned on the seat and avoid lifting your pelvis or leaning forward excessively.",
+          "Continue bringing your thighs inward until you reach the machine's comfortable end position.",
+          "Pause briefly at the fully contracted position and consciously squeeze your inner thigh muscles.",
+          "Maintain continuous muscular tension without allowing the weight stack to slam or the machine pads to collide forcefully.",
+          "Inhale as you slowly separate your thighs, allowing the machine pads to return toward the starting position.",
+          "Control the outward movement and resist the weight rather than allowing your legs to spread rapidly.",
+          "Return to the initial comfortable range of motion without forcing your hips into excessive abduction.",
+          "Keep your torso stable, feet properly positioned, and movements smooth throughout the exercise.",
+          "Repeat for the desired number of repetitions while maintaining proper technique and consistent inner thigh engagement."
+        ]
+      }
+    },
+    {
+      "id": "ex_barbell_reverse_wrist_curl",
+      "title": "Barbell Reverse Wrist Curl",
+      "muscleGroup": "forearms",
+      "primaryMuscles": [
+        "extensor_carpi_radialis_longus",
+        "extensor_carpi_radialis_brevis",
+        "extensor_carpi_ulnaris"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "barbell"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/00821201-Barbell-Reverse-Wrist-Curl_Forearm.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/00821101-Barbell-Reverse-Wrist-Curl_Forearm_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/30291201-Barbell-Reverse-Wrist-Curl-(female)_Forearms_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/30291101-Barbell-Reverse-Wrist-Curl-(female)_Forearms_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Barbell Reverse Wrist Curl"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Sit on a flat bench with your feet firmly planted on the floor and your knees comfortably separated.",
+          "Hold a barbell using an overhand grip with your palms facing downward.",
+          "Position your hands approximately shoulder-width apart or slightly narrower, depending on your comfort and wrist mobility.",
+          "Rest your forearms on your thighs or a stable bench surface, allowing your wrists and hands to extend slightly beyond the supporting edge.",
+          "Keep your forearms firmly supported and your elbows relatively stationary throughout the movement.",
+          "Maintain an upright or slightly forward-leaning torso position while keeping your spine neutral.",
+          "Engage your core and relax your shoulders to prevent unnecessary upper-body movement.",
+          "Allow the barbell to lower slowly by bending your wrists downward into a comfortable flexed position.",
+          "Keep your palms facing downward and maintain a secure grip on the barbell.",
+          "Take a controlled breath and prepare to lift the weight using your forearm muscles.",
+          "Exhale as you extend your wrists upward, raising the barbell through a controlled range of motion.",
+          "Focus on contracting the muscles along the back of your forearms while keeping your elbows and upper arms still.",
+          "Lift the barbell as high as comfortably possible through wrist extension without forcing the joints beyond their natural range.",
+          "Avoid lifting your forearms away from the supporting surface or using your shoulders to assist the movement.",
+          "Pause briefly at the top of the movement and contract your wrist extensor muscles.",
+          "Inhale as you slowly lower the barbell by allowing your wrists to bend downward under control.",
+          "Return to the starting position without allowing the weight to drop suddenly or overstretch your wrists.",
+          "Maintain continuous muscular tension and avoid using momentum or swinging the barbell.",
+          "Use a manageable weight that allows precise wrist movement without excessive strain on the joints.",
+          "Repeat for the desired number of repetitions while maintaining proper technique and consistent forearm engagement."
+        ]
+      }
+    },
+    {
+      "id": "ex_side_plank",
+      "title": "Side Plank",
+      "muscleGroup": "abdominals",
+      "primaryMuscles": [
+        "obliques"
+      ],
+      "secondaryMuscles": [],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/07151201-Side-Plank-m_Waist.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/07151201-Side-Plank-m_Waist_thumbnail@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/07151101-Side-Plank-m_Waist_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/48111201-Side-Plank-(VERSION-2)-(female)_Waist_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/48111201-Side-Plank-(VERSION-2)-(female)_Waist_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/07141101-Side-Plank-II_Waist_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "Side Plank"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Lie on your left side on a flat, stable surface with your legs extended and your feet stacked on top of each other.",
+          "Position your left forearm on the floor with your elbow directly beneath your shoulder.",
+          "If performing the straight-arm variation, place your left palm directly beneath your shoulder and extend your supporting arm.",
+          "Keep your supporting shoulder stable and avoid allowing it to collapse toward your ear.",
+          "Align your head, shoulders, hips, knees, and ankles in a straight line.",
+          "Place your right hand on your hip or extend your right arm upward, depending on your balance and comfort.",
+          "Engage your abdominal muscles and gently brace your core before lifting your body.",
+          "Squeeze your glutes and maintain a neutral position through your spine and pelvis.",
+          "Take a controlled breath and prepare to lift your hips away from the floor.",
+          "Press through your supporting forearm or hand and the outer edge of your lower foot.",
+          "Slowly raise your hips until your body forms a straight line from your head to your feet.",
+          "Keep your hips stacked vertically and avoid rotating your torso forward or backward.",
+          "Maintain tension through your obliques, abdominal muscles, and glutes to prevent your hips from sagging.",
+          "Keep your neck in a neutral position and look straight ahead rather than excessively turning your head.",
+          "Distribute your body weight evenly between your supporting arm and the sides of your feet.",
+          "Maintain a stable shoulder position without shrugging or allowing your upper body to collapse.",
+          "Continue breathing naturally while holding the position, avoiding unnecessary breath-holding.",
+          "Hold the side plank for the prescribed duration while maintaining consistent body alignment.",
+          "For a standard working interval, aim for approximately 30 to 60 seconds if you can maintain proper technique.",
+          "Avoid allowing your hips to drop toward the floor, lifting them excessively, or twisting your torso.",
+          "If you begin losing alignment or experience discomfort in your supporting shoulder, lower your hips and end the hold.",
+          "Slowly lower your hips back to the floor in a controlled manner.",
+          "Turn onto your right side and repeat the same movement using your right forearm or hand for support.",
+          "Perform the prescribed duration on both sides to train your lateral core muscles evenly."
+        ]
+      }
+    },
+    {
+      "id": "ex_45_degree_hyperextension",
+      "title": "45 Degree Hyperextension",
+      "muscleGroup": "lower_back",
+      "primaryMuscles": [
+        "erector_spinae"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "bodyweight"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/04891201-Hyperextension_Waist.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/04891101-Hyperextension_Waist_small.png"
+        },
+        "female": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/08771201-45-degree-hyperextension-(arms-in-front-of-chest)_Back.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/08771101-45-degree-hyperextension-(arms-in-front-of-chest)_Back_small.png"
+        }
+      },
+      "localizedTitles": {
+        "en": "45 Degree Hyperextension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust a 45-degree hyperextension bench so that the upper edge of the hip pads sits just below your hip crease.",
+          "Step onto the machine and position your feet securely against the foot platform.",
+          "Place your ankles beneath the support rollers and ensure that your lower body is firmly supported.",
+          "Position your hips against the pads while allowing enough freedom to hinge forward comfortably.",
+          "Keep your feet approximately hip-width apart and maintain a stable lower-body position.",
+          "Cross your arms over your chest or position your hands lightly against your upper chest.",
+          "Engage your abdominal muscles and maintain a neutral spinal position.",
+          "Extend your body until your head, shoulders, hips, and legs form a relatively straight line.",
+          "Keep your neck aligned with your spine and avoid lifting your chin excessively.",
+          "Take a controlled breath and prepare to lower your torso.",
+          "Slowly hinge forward at your hips while maintaining control through your lower back, glutes, and hamstrings.",
+          "Allow your upper body to move downward toward the floor without forcing your spine into excessive rounding.",
+          "Continue lowering until you reach a comfortable range of motion based on your hip mobility and hamstring flexibility.",
+          "Avoid allowing your upper body to drop suddenly or using momentum during the lowering phase.",
+          "Pause briefly at the bottom while maintaining tension through your posterior-chain muscles.",
+          "Exhale as you contract your glutes, hamstrings, and spinal erectors to raise your torso.",
+          "Extend your hips gradually until your body returns to a straight and aligned position.",
+          "Stop when your torso is aligned with your legs rather than arching your lower back beyond neutral.",
+          "Keep your shoulders relaxed and avoid pulling upward with your arms or neck.",
+          "Maintain continuous muscular control throughout both the lifting and lowering phases.",
+          "Repeat for the desired number of repetitions while maintaining proper technique and consistent movement quality."
+        ]
+      }
+    },
+    {
+      "id": "ex_weighted_hyperextension",
+      "title": "Back Extension (Weighted Hyperextension)",
+      "muscleGroup": "lower_back",
+      "primaryMuscles": [
+        "erector_spinae"
+      ],
+      "secondaryMuscles": [
+        "hamstrings",
+        "glutes"
+      ],
+      "equipment": {
+        "primary": "machine"
+      },
+      "category": "strength",
+      "levels": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/50351201-Weighted-Hyperextension_Hips_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/50351201-Weighted-Hyperextension_Hips_thumbnail_@3x.jpg",
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/50351101-Weighted-Hyperextension_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-assets/57821201-Weighted-Hyperextension-(female)_Hips_.mp4",
+          "thumbnailUrl": "https://d2l9nsnmtah87f.cloudfront.net/exercise-thumbnails/57821201-Weighted-Hyperextension-(female)_Hips_thumbnail_@3x.jpg",
+          "imageUrl": null
+        }
+      },
+      "localizedTitles": {
+        "en": "Back Extension (Weighted Hyperextension)"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Position yourself on a 45-degree hyperextension bench and adjust the pads to match your height.",
+          "Place your feet securely on the foot platform and position your ankles beneath the support rollers.",
+          "Ensure that the upper edge of the hip pads rests just below your hip crease, allowing your hips to move freely.",
+          "Select an appropriate weight plate that you can control throughout the full range of motion.",
+          "Hold the weight plate securely against your chest using both hands.",
+          "Keep the weight close to your torso throughout the exercise to maintain stability.",
+          "Position your body so that your head, shoulders, hips, and legs form a relatively straight line.",
+          "Engage your abdominal muscles and maintain a neutral spinal position.",
+          "Keep your shoulders relaxed and your neck aligned with your spine.",
+          "Take a controlled breath and prepare to lower your torso.",
+          "Slowly hinge forward at your hips while keeping the weight plate firmly against your chest.",
+          "Allow your torso to move downward in a controlled manner without excessively rounding your lower back.",
+          "Continue lowering until you reach a comfortable range of motion based on your hip mobility and hamstring flexibility.",
+          "Maintain muscular tension through your lower back, glutes, and hamstrings throughout the lowering phase.",
+          "Avoid allowing the weight plate to move away from your chest or swing forward.",
+          "Pause briefly at the bottom of the movement while maintaining control.",
+          "Exhale as you engage your glutes, hamstrings, and spinal erectors to raise your torso.",
+          "Extend your hips gradually until your upper body returns to alignment with your legs.",
+          "Stop at a neutral body position rather than excessively arching your lower back.",
+          "Keep the weight plate close to your chest and avoid using momentum to lift your torso.",
+          "Maintain a stable lower-body position with your feet and ankles securely supported.",
+          "Control the movement during both the concentric and eccentric phases.",
+          "Use a lighter weight if you cannot maintain proper spinal alignment or controlled movement.",
+          "Repeat for the prescribed number of repetitions while maintaining consistent technique."
+        ]
+      }
+    },
+    {
+      "id": "ex_dumbbell_hyperextension",
+      "title": "Dumbbell Hyperextension",
+      "muscleGroup": "lower_back",
+      "primaryMuscles": [
+        "erector_spinae"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "equipment": {
+        "primary": "dumbbell"
+      },
+      "category": "strength",
+      "levels": [
+        "intermediate",
+        "advanced"
+      ],
+      "isArchived": false,
+      "isCustom": false,
+      "media": {
+        "type": "video",
+        "defaultGender": "male",
+        "male": {
+          "videoUrl": "https://apilyfta.com/static/GymvisualMP4/73281201-Dumbbell-Hyperextension-(male)_Hips_.mp4",
+          "thumbnailUrl": null,
+          "imageUrl": "https://apilyfta.com/static/GymvisualPNG/73281101-Dumbbell-Hyperextension-(male)_Hips_small.png"
+        },
+        "female": {
+          "videoUrl": null,
+          "thumbnailUrl": null,
+          "imageUrl": null
+        }
+      },
+      "localizedTitles": {
+        "en": "Dumbbell Hyperextension"
+      },
+      "localizedInstructions": {
+        "en": [
+          "Adjust a 45-degree hyperextension bench so the hip pads sit just below your hip crease.",
+          "Position your feet securely on the platform and place your ankles beneath the support rollers.",
+          "Ensure that your lower body is stable and your hips can move freely over the support pads.",
+          "Select a manageable dumbbell that allows controlled movement throughout the exercise.",
+          "Hold the dumbbell securely with both hands against your chest.",
+          "Keep the dumbbell close to your torso to prevent unnecessary swinging or shifting of the load.",
+          "Position your body in a straight line from your head through your hips and legs.",
+          "Engage your abdominal muscles and maintain a neutral spinal position.",
+          "Keep your neck aligned with your spine and your shoulders relaxed.",
+          "Take a controlled breath before initiating the movement.",
+          "Slowly hinge forward at your hips while maintaining firm control of the dumbbell.",
+          "Lower your torso toward the floor without excessively rounding or arching your lower back.",
+          "Continue lowering until you reach a comfortable range of motion determined by your hip mobility.",
+          "Maintain tension through your spinal erectors, glutes, and hamstrings throughout the lowering phase.",
+          "Avoid allowing the dumbbell to swing forward or move away from your chest.",
+          "Pause briefly at the bottom of the movement while maintaining control.",
+          "Exhale as you contract your posterior-chain muscles to extend your hips and raise your torso.",
+          "Continue lifting until your upper body returns to alignment with your legs.",
+          "Avoid extending beyond a neutral position or forcing your lower back into excessive hyperextension.",
+          "Keep the dumbbell secure against your chest throughout the movement.",
+          "Maintain controlled movement during both the lifting and lowering phases.",
+          "Use a lighter dumbbell if your spinal position or movement control begins to deteriorate.",
+          "Repeat for the desired number of repetitions while maintaining proper technique."
+        ]
       }
     }
   ]
