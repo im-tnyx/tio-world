@@ -274,84 +274,117 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
     final colors = context.tioColors;
 
     return Center(
-      child: Container(
-        height: 38,
-        constraints: const BoxConstraints(maxWidth: 320),
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: colors.surfaceVariant,
-          borderRadius: BorderRadius.circular(TioRadius.full),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _TabButton(
-                key: const ValueKey('routine-rest-timer-tab-normal'),
-                label: 'Normal set',
-                isSelected: selectedIndex == 0,
-                onTap: () => onSelected(0),
-              ),
-            ),
-            Expanded(
-              child: _TabButton(
-                key: const ValueKey('routine-rest-timer-tab-warmup'),
-                label: 'Warm-up Set',
-                isSelected: selectedIndex == 1,
-                onTap: () => onSelected(1),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-    super.key,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeInOut,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? colors.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(TioRadius.full),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (details) {
+          if (details.primaryDelta != null) {
+            if (details.primaryDelta! > 2 && selectedIndex != 1) {
+              HapticFeedback.selectionClick();
+              onSelected(1);
+            } else if (details.primaryDelta! < -2 && selectedIndex != 0) {
+              HapticFeedback.selectionClick();
+              onSelected(0);
+            }
+          }
+        },
+        child: Container(
+          width: 230,
+          height: 32,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: colors.surfaceVariant,
+            borderRadius: BorderRadius.circular(TioRadius.full),
+          ),
+          child: Stack(
+            children: [
+              // ── Physical Animated Sliding Pill Thumb ──
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: selectedIndex == 0
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  heightFactor: 1.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(TioRadius.full),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
                   ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: TioFontSize.size13,
-            fontWeight: isSelected ? TioFontWeight.w600 : TioFontWeight.w500,
-            color: isSelected ? colors.textPrimary : colors.textSecondary,
+                ),
+              ),
+
+              // ── Labels over the sliding thumb ──
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      key: const ValueKey('routine-rest-timer-tab-normal'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (selectedIndex != 0) {
+                          HapticFeedback.selectionClick();
+                          onSelected(0);
+                        }
+                      },
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          style: TextStyle(
+                            fontSize: TioFontSize.size12,
+                            fontWeight: selectedIndex == 0
+                                ? TioFontWeight.w600
+                                : TioFontWeight.w400,
+                            color: selectedIndex == 0
+                                ? colors.textPrimary
+                                : colors.textSecondary,
+                          ),
+                          child: const Text('Normal set'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      key: const ValueKey('routine-rest-timer-tab-warmup'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (selectedIndex != 1) {
+                          HapticFeedback.selectionClick();
+                          onSelected(1);
+                        }
+                      },
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          style: TextStyle(
+                            fontSize: TioFontSize.size12,
+                            fontWeight: selectedIndex == 1
+                                ? TioFontWeight.w600
+                                : TioFontWeight.w400,
+                            color: selectedIndex == 1
+                                ? colors.textPrimary
+                                : colors.textSecondary,
+                          ),
+                          child: const Text('Warm-up Set'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
