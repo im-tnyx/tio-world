@@ -12,16 +12,16 @@
 **Approved product/UI/data-shape boundaries:**
 - Routine Create/Edit Exercise-level Rest Timer configuration.
 - Header button on `RoutineComposerExerciseCard` in `routine_composer_screen.dart` with summary:
-  - `Rest Timer: OFF` when both Normal and Warm-up are OFF.
-  - `Rest Timer: 1min 30s` when only Normal is active.
-  - `Rest Timer: (45s)` when only Warm-up is active.
-  - `Rest Timer: 1min 30s (45s)` when both are active.
+  - `Rest: OFF` when both Normal and Warm-up are OFF.
+  - `Rest: 1min 30s` when only Normal is active.
+  - `Rest: (45s)` when only Warm-up is active.
+  - `Rest: 1min 30s (45s)` when both are active.
   - Explicit accessibility semantics identifying Normal and Warm-up duration categories.
-- Dedicated `RoutineRestTimerSheet` using `TioEditorSheet` and `TioTabSwitcher` with:
-  - `Normal set` and `Warm-up Set` independent tabs.
-  - Timer OFF toggle and minutes/seconds duration wheels with 5-second increments (0s to 10m).
-  - Explicit distinction between OFF (`null`) and zero seconds (`0`).
-  - Pinned `Done` action button.
+- Dedicated `RoutineRestTimerSheet` with:
+  - Centered title ("Rest Timer") and exercise name subtitle (no checkmark/close icons).
+  - `Normal set` and `Warm-up Set` independent tabs using `TioTabSwitcher`.
+  - Single unified duration wheel in 5-second steps (from index 0 "Off" up to 10m 0s) with selection click haptics.
+  - Pinned white `Done` action button.
 - Effective rest assignment mapping:
   - Warm-up timer ON: Warm-up sets use Warm-up duration.
   - Warm-up timer OFF: Warm-up sets fallback to Normal timer.

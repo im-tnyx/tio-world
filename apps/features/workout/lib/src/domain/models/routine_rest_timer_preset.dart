@@ -80,47 +80,64 @@ class RoutineRestTimerFormatter {
     return '${minutes}min ${remainingSeconds}s';
   }
 
+  /// Formats wheel duration item:
+  /// - index 0 -> "Off"
+  /// - index 1 (5s) -> "5s"
+  /// - index 12 (60s) -> "1m 0s"
+  /// - index 18 (90s) -> "1m 30s"
+  /// - index 60 (300s) -> "5m 0s"
+  static String formatWheelItem(int index, {int stepSeconds = 5}) {
+    if (index <= 0) return 'Off';
+    final seconds = index * stepSeconds;
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    if (minutes == 0) {
+      return '${remainingSeconds}s';
+    }
+    return '${minutes}m ${remainingSeconds}s';
+  }
+
   /// Formats the summary text shown on the Exercise-level header button.
   ///
   /// Reference format examples:
-  /// - Both OFF: "Rest Timer: OFF"
-  /// - Normal only: "Rest Timer: 1min 30s"
-  /// - Warm-up only: "Rest Timer: (45s)"
-  /// - Both active: "Rest Timer: 1min 30s (45s)"
+  /// - Both OFF: "Rest: OFF"
+  /// - Normal only: "Rest: 1min 30s"
+  /// - Warm-up only: "Rest: (45s)"
+  /// - Both active: "Rest: 1min 30s (45s)"
   static String formatSummary({
     required int? normalSeconds,
     required int? warmUpSeconds,
   }) {
     if (normalSeconds == null && warmUpSeconds == null) {
-      return 'Rest Timer: OFF';
+      return 'Rest: OFF';
     }
     if (normalSeconds != null && warmUpSeconds == null) {
-      return 'Rest Timer: ${formatSeconds(normalSeconds)}';
+      return 'Rest: ${formatSeconds(normalSeconds)}';
     }
     if (normalSeconds == null && warmUpSeconds != null) {
-      return 'Rest Timer: (${formatSeconds(warmUpSeconds)})';
+      return 'Rest: (${formatSeconds(warmUpSeconds)})';
     }
-    return 'Rest Timer: ${formatSeconds(normalSeconds!)} (${formatSeconds(warmUpSeconds!)})';
+    return 'Rest: ${formatSeconds(normalSeconds!)} (${formatSeconds(warmUpSeconds!)})';
   }
 
   /// Formats full accessibility semantics distinguishing duration categories.
   ///
   /// Examples:
-  /// - Both OFF: "Rest Timer: OFF"
-  /// - Normal only: "Rest Timer: Normal set 1min 30s, Warm-up set OFF"
-  /// - Warm-up only: "Rest Timer: Normal set OFF, Warm-up set 45s"
-  /// - Both: "Rest Timer: Normal set 1min 30s, Warm-up set 45s"
+  /// - Both OFF: "Rest: OFF"
+  /// - Normal only: "Rest: Normal set 1min 30s, Warm-up set OFF"
+  /// - Warm-up only: "Rest: Normal set OFF, Warm-up set 45s"
+  /// - Both: "Rest: Normal set 1min 30s, Warm-up set 45s"
   static String formatSemantics({
     required int? normalSeconds,
     required int? warmUpSeconds,
   }) {
     if (normalSeconds == null && warmUpSeconds == null) {
-      return 'Rest Timer: OFF';
+      return 'Rest: OFF';
     }
     final normalStr =
         normalSeconds == null ? 'OFF' : formatSeconds(normalSeconds);
     final warmUpStr =
         warmUpSeconds == null ? 'OFF' : formatSeconds(warmUpSeconds);
-    return 'Rest Timer: Normal set $normalStr, Warm-up set $warmUpStr';
+    return 'Rest: Normal set $normalStr, Warm-up set $warmUpStr';
   }
 }

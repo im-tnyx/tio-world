@@ -660,10 +660,18 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
     final current = _editor?.getExerciseRestPreset(entry.id) ??
         const RoutineRestTimerPreset();
+    Exercise? found;
+    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
+      if (item.exercise.ref == entry.exercise) {
+        found = item.exercise;
+        break;
+      }
+    }
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,
       initialWarmUpRestSeconds: current.warmUpRestSeconds,
+      exerciseName: found?.displayName,
     );
     if (result != null && mounted) {
       _editor?.configureExerciseRestTimer(

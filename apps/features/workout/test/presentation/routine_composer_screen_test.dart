@@ -376,25 +376,25 @@ void main() {
 
     // 1. Both OFF
     await tester.pumpWidget(buildCard(preset: const RoutineRestTimerPreset()));
-    expect(find.text('Rest Timer: OFF'), findsOneWidget);
+    expect(find.text('Rest: OFF'), findsOneWidget);
 
     // 2. Normal only
     await tester.pumpWidget(buildCard(
       preset: const RoutineRestTimerPreset(normalRestSeconds: 90),
     ));
-    expect(find.text('Rest Timer: 1min 30s'), findsOneWidget);
+    expect(find.text('Rest: 1min 30s'), findsOneWidget);
 
     // 3. Warm-up only
     await tester.pumpWidget(buildCard(
       preset: const RoutineRestTimerPreset(warmUpRestSeconds: 45),
     ));
-    expect(find.text('Rest Timer: (45s)'), findsOneWidget);
+    expect(find.text('Rest: (45s)'), findsOneWidget);
 
     // 4. Both active
     await tester.pumpWidget(buildCard(
       preset: const RoutineRestTimerPreset(normalRestSeconds: 90, warmUpRestSeconds: 45),
     ));
-    expect(find.text('Rest Timer: 1min 30s (45s)'), findsOneWidget);
+    expect(find.text('Rest: 1min 30s (45s)'), findsOneWidget);
 
     // Tap rest timer button
     await tester.tap(find.byKey(const ValueKey('create-routine-rest-timer-$entryId')));

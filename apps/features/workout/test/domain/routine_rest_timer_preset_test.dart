@@ -94,6 +94,19 @@ void main() {
       expect(RoutineRestTimerFormatter.formatSeconds(300), '5min');
     });
 
+    test('formatWheelItem formats 5s wheel intervals correctly', () {
+      expect(RoutineRestTimerFormatter.formatWheelItem(0), 'Off');
+      expect(RoutineRestTimerFormatter.formatWheelItem(1), '5s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(2), '10s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(11), '55s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(12), '1m 0s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(13), '1m 5s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(18), '1m 30s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(59), '4m 55s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(60), '5m 0s');
+      expect(RoutineRestTimerFormatter.formatWheelItem(120), '10m 0s');
+    });
+
     test('formatSummary covers all 4 combinations and matches reference style', () {
       // 1. Both OFF
       expect(
@@ -101,7 +114,7 @@ void main() {
           normalSeconds: null,
           warmUpSeconds: null,
         ),
-        'Rest Timer: OFF',
+        'Rest: OFF',
       );
 
       // 2. Normal only
@@ -110,7 +123,7 @@ void main() {
           normalSeconds: 90,
           warmUpSeconds: null,
         ),
-        'Rest Timer: 1min 30s',
+        'Rest: 1min 30s',
       );
 
       // 3. Warm-up only
@@ -119,7 +132,7 @@ void main() {
           normalSeconds: null,
           warmUpSeconds: 45,
         ),
-        'Rest Timer: (45s)',
+        'Rest: (45s)',
       );
 
       // 4. Both active
@@ -128,7 +141,7 @@ void main() {
           normalSeconds: 90,
           warmUpSeconds: 45,
         ),
-        'Rest Timer: 1min 30s (45s)',
+        'Rest: 1min 30s (45s)',
       );
 
       // Explicit 0 seconds
@@ -137,7 +150,7 @@ void main() {
           normalSeconds: 0,
           warmUpSeconds: null,
         ),
-        'Rest Timer: 0s',
+        'Rest: 0s',
       );
     });
 
@@ -147,7 +160,7 @@ void main() {
           normalSeconds: null,
           warmUpSeconds: null,
         ),
-        'Rest Timer: OFF',
+        'Rest: OFF',
       );
 
       expect(
@@ -155,7 +168,7 @@ void main() {
           normalSeconds: 90,
           warmUpSeconds: null,
         ),
-        'Rest Timer: Normal set 1min 30s, Warm-up set OFF',
+        'Rest: Normal set 1min 30s, Warm-up set OFF',
       );
 
       expect(
@@ -163,7 +176,7 @@ void main() {
           normalSeconds: null,
           warmUpSeconds: 45,
         ),
-        'Rest Timer: Normal set OFF, Warm-up set 45s',
+        'Rest: Normal set OFF, Warm-up set 45s',
       );
 
       expect(
@@ -171,7 +184,7 @@ void main() {
           normalSeconds: 90,
           warmUpSeconds: 45,
         ),
-        'Rest Timer: Normal set 1min 30s, Warm-up set 45s',
+        'Rest: Normal set 1min 30s, Warm-up set 45s',
       );
     });
   });

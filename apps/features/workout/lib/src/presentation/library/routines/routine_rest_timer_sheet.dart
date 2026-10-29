@@ -9,13 +9,16 @@ Future<RoutineRestTimerPreset?> showRoutineRestTimerSheet({
   required BuildContext context,
   required int? initialNormalRestSeconds,
   required int? initialWarmUpRestSeconds,
+  String? exerciseName,
 }) =>
-    showTioEditorSheet<RoutineRestTimerPreset>(
+    showModalBottomSheet<RoutineRestTimerPreset>(
       context: context,
-      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => RoutineRestTimerSheet(
         initialNormalRestSeconds: initialNormalRestSeconds,
         initialWarmUpRestSeconds: initialWarmUpRestSeconds,
+        exerciseName: exerciseName,
       ),
     );
 
@@ -24,111 +27,65 @@ class RoutineRestTimerSheet extends StatefulWidget {
   const RoutineRestTimerSheet({
     this.initialNormalRestSeconds,
     this.initialWarmUpRestSeconds,
+    this.exerciseName,
     super.key,
   });
 
   final int? initialNormalRestSeconds;
   final int? initialWarmUpRestSeconds;
+  final String? exerciseName;
 
   @override
   State<RoutineRestTimerSheet> createState() => _RoutineRestTimerSheetState();
 }
 
 class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
-  static const int _maxMinutes = 10;
-  static const List<int> _secondSteps = [
-    0,
-    5,
-    10,
-    15,
-    20,
-    25,
-    30,
-    35,
-    40,
-    45,
-    50,
-    55,
-  ];
+  static const int _maxDurationSeconds = 600; // 10 minutes maximum
+  static const int _stepSeconds = 5;
+
+  static int get _itemCount => (_maxDurationSeconds ~/ _stepSeconds) + 1; // 121 items
+
+  static int? indexToSeconds(int index) {
+    if (index <= 0) return null;
+    return (index * _stepSeconds).clamp(5, _maxDurationSeconds);
+  }
+
+  static int secondsToIndex(int? seconds) {
+    if (seconds == null || seconds <= 0) return 0;
+    final clamped = seconds.clamp(5, _maxDurationSeconds);
+    return ((clamped + 2) ~/ _stepSeconds)
+        .clamp(1, _maxDurationSeconds ~/ _stepSeconds);
+  }
 
   int _selectedTab = 0; // 0: Normal set, 1: Warm-up Set
 
   int? _normalSeconds;
   int? _warmUpSeconds;
 
-  int _lastNormalNonZero = 90;
-  int _lastWarmUpNonZero = 45;
-
-  late FixedExtentScrollController _minuteController;
-  late FixedExtentScrollController _secondController;
+  late FixedExtentScrollController _scrollController;
   bool _isProgrammaticSync = false;
 
   @override
   void initState() {
     super.initState();
-    _normalSeconds =
-        widget.initialNormalRestSeconds?.clamp(0, _maxMinutes * 60);
-    _warmUpSeconds =
-        widget.initialWarmUpRestSeconds?.clamp(0, _maxMinutes * 60);
-
-    if (_normalSeconds != null && _normalSeconds! > 0) {
-      _lastNormalNonZero = _normalSeconds!;
-    }
-    if (_warmUpSeconds != null && _warmUpSeconds! > 0) {
-      _lastWarmUpNonZero = _warmUpSeconds!;
-    }
+    _normalSeconds = widget.initialNormalRestSeconds != null &&
+            widget.initialNormalRestSeconds! > 0
+        ? widget.initialNormalRestSeconds!.clamp(0, _maxDurationSeconds)
+        : null;
+    _warmUpSeconds = widget.initialWarmUpRestSeconds != null &&
+            widget.initialWarmUpRestSeconds! > 0
+        ? widget.initialWarmUpRestSeconds!.clamp(0, _maxDurationSeconds)
+        : null;
 
     final initialSeconds = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
-    final initialDuration =
-        initialSeconds ?? (_selectedTab == 0 ? _lastNormalNonZero : _lastWarmUpNonZero);
-
-    final initialMinutes = (initialDuration ~/ 60).clamp(0, _maxMinutes);
-    final sec = initialDuration % 60;
-    final secondIndex =
-        initialMinutes >= _maxMinutes ? 0 : _nearestSecondStepIndex(sec);
-
-    _minuteController = FixedExtentScrollController(initialItem: initialMinutes);
-    _secondController = FixedExtentScrollController(initialItem: secondIndex);
+    final initialIndex = secondsToIndex(initialSeconds);
+    _scrollController = FixedExtentScrollController(initialItem: initialIndex);
   }
 
   @override
   void dispose() {
-    _minuteController.dispose();
-    _secondController.dispose();
+    _scrollController.dispose();
     super.dispose();
-  }
-
-  int _nearestSecondStepIndex(int seconds) {
-    var bestIndex = 0;
-    var minDiff = 999;
-    for (var i = 0; i < _secondSteps.length; i++) {
-      final diff = (seconds - _secondSteps[i]).abs();
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestIndex = i;
-      }
-    }
-    return bestIndex;
-  }
-
-  void _syncControllersForActiveTab() {
-    final current = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
-    final duration =
-        current ?? (_selectedTab == 0 ? _lastNormalNonZero : _lastWarmUpNonZero);
-
-    final minutes = (duration ~/ 60).clamp(0, _maxMinutes);
-    final sec = duration % 60;
-    final secondIndex =
-        minutes >= _maxMinutes ? 0 : _nearestSecondStepIndex(sec);
-
-    _isProgrammaticSync = true;
-    if (_minuteController.hasClients) {
-      _minuteController.jumpToItem(minutes);
-    }
-    if (_secondController.hasClients) {
-      _secondController.jumpToItem(secondIndex);
-    }
-    _isProgrammaticSync = false;
   }
 
   void _onTabChanged(int index) {
@@ -136,63 +93,26 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
     setState(() {
       _selectedTab = index;
     });
-    _syncControllersForActiveTab();
-  }
 
-  void _onToggleEnabled(bool enabled) {
-    setState(() {
-      if (enabled) {
-        final last = _selectedTab == 0 ? _lastNormalNonZero : _lastWarmUpNonZero;
-        if (_selectedTab == 0) {
-          _normalSeconds = last;
-        } else {
-          _warmUpSeconds = last;
-        }
-      } else {
-        if (_selectedTab == 0) {
-          _normalSeconds = null;
-        } else {
-          _warmUpSeconds = null;
-        }
-      }
-    });
-    if (enabled) {
-      _syncControllersForActiveTab();
+    final targetSeconds = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
+    final targetIndex = secondsToIndex(targetSeconds);
+
+    _isProgrammaticSync = true;
+    if (_scrollController.hasClients) {
+      _scrollController.jumpToItem(targetIndex);
     }
+    _isProgrammaticSync = false;
   }
 
-  void _onWheelChanged() {
+  void _onWheelChanged(int index) {
     if (_isProgrammaticSync) return;
-    final current = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
-    if (current == null) return;
-
-    final minutes = _minuteController.hasClients
-        ? _minuteController.selectedItem.clamp(0, _maxMinutes)
-        : 0;
-    var secIndex = _secondController.hasClients
-        ? _secondController.selectedItem.clamp(0, _secondSteps.length - 1)
-        : 0;
-
-    if (minutes >= _maxMinutes && secIndex > 0) {
-      secIndex = 0;
-      _isProgrammaticSync = true;
-      if (_secondController.hasClients) {
-        _secondController.jumpToItem(0);
-      }
-      _isProgrammaticSync = false;
-    }
-
-    final seconds = _secondSteps[secIndex];
-    final total = ((minutes * 60) + seconds).clamp(0, _maxMinutes * 60);
-
     HapticFeedback.selectionClick();
+    final value = indexToSeconds(index);
     setState(() {
       if (_selectedTab == 0) {
-        _normalSeconds = total;
-        if (total > 0) _lastNormalNonZero = total;
+        _normalSeconds = value;
       } else {
-        _warmUpSeconds = total;
-        if (total > 0) _lastWarmUpNonZero = total;
+        _warmUpSeconds = value;
       }
     });
   }
@@ -200,8 +120,8 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
   void _onDone() {
     Navigator.of(context).pop(
       RoutineRestTimerPreset(
-        normalRestSeconds: _normalSeconds?.clamp(0, _maxMinutes * 60),
-        warmUpRestSeconds: _warmUpSeconds?.clamp(0, _maxMinutes * 60),
+        normalRestSeconds: _normalSeconds,
+        warmUpRestSeconds: _warmUpSeconds,
       ),
     );
   }
@@ -209,192 +129,133 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final current = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
-    final isEnabled = current != null;
-    final isMinuteAtMax = isEnabled && (current >= _maxMinutes * 60);
 
-    return TioEditorSheet(
-      title: 'Rest Timer',
-      supportingText: 'Set rest duration between sets.',
-      actions: TioButton.primary(
-        key: const ValueKey('routine-rest-timer-done-button'),
-        label: 'Done',
-        expand: true,
-        onPressed: _onDone,
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceRaised,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(TioRadius.xl),
+        ),
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TioTabSwitcher(
-            tabs: const ['Normal set', 'Warm-up Set'],
-            selectedIndex: _selectedTab,
-            onSelected: _onTabChanged,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.xl,
           ),
-          const SizedBox(height: TioSpacing.lg),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.md,
-              vertical: TioSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: colors.surfaceVariant,
-              borderRadius: BorderRadius.circular(TioRadius.md),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _selectedTab == 0 ? 'Normal Rest Timer' : 'Warm-up Rest Timer',
-                        style: TextStyle(
-                          fontSize: TioFontSize.size14,
-                          fontWeight: TioFontWeight.w600,
-                          color: colors.textPrimary,
-                        ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Header: Centered Title & Subtitle (No checkmark) ──
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Rest Timer',
+                      style: TextStyle(
+                        fontSize: TioFontSize.size18,
+                        fontWeight: TioFontWeight.w700,
+                        color: colors.textPrimary,
                       ),
+                    ),
+                    if (widget.exerciseName != null &&
+                        widget.exerciseName!.isNotEmpty) ...[
                       const SizedBox(height: TioSpacing.xxs),
                       Text(
-                        isEnabled
-                            ? RoutineRestTimerFormatter.formatSeconds(current)
-                            : 'OFF',
+                        widget.exerciseName!,
                         style: TextStyle(
-                          fontSize: TioFontSize.size13,
+                          fontSize: TioFontSize.size14,
+                          fontWeight: TioFontWeight.w400,
                           color: colors.textSecondary,
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-                Switch.adaptive(
-                  key: const ValueKey('routine-rest-timer-switch'),
-                  value: isEnabled,
-                  onChanged: _onToggleEnabled,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: TioSpacing.lg),
-          if (isEnabled)
-            SizedBox(
-              height: TioWheelPickerTokens.viewportHeight,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    key: const ValueKey('routine-rest-timer-selection-pill'),
-                    height: TioWheelPickerTokens.selectionHeight,
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceVariant.withAlpha(
-                        TioWheelPickerTokens.selectionSurfaceAlpha,
+              ),
+              const SizedBox(height: TioSpacing.lg),
+
+              // ── Tab Switcher: Normal set / Warm-up Set ──
+              TioTabSwitcher(
+                tabs: const ['Normal set', 'Warm-up Set'],
+                selectedIndex: _selectedTab,
+                onSelected: _onTabChanged,
+              ),
+              const SizedBox(height: TioSpacing.lg),
+
+              // ── Single Wheel with selection pill ──
+              SizedBox(
+                height: 180,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      key: const ValueKey('routine-rest-timer-selection-pill'),
+                      height: TioWheelPickerTokens.selectionHeight,
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.md,
                       ),
-                      borderRadius: BorderRadius.circular(TioRadius.md),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ListWheelScrollView.useDelegate(
-                          key: const ValueKey('routine-rest-timer-minutes-wheel'),
-                          controller: _minuteController,
-                          itemExtent: TioWheelPickerTokens.itemExtent,
-                          perspective: TioWheelPickerTokens.perspective,
-                          diameterRatio: TioWheelPickerTokens.diameterRatio,
-                          physics: const FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (_) => _onWheelChanged(),
-                          childDelegate: ListWheelChildBuilderDelegate(
-                            childCount: _maxMinutes + 1,
-                            builder: (context, index) {
-                              final isSelected =
-                                  _minuteController.hasClients &&
-                                  _minuteController.selectedItem == index;
-                              return Center(
-                                child: Text(
-                                  '$index min',
-                                  style: TextStyle(
-                                    fontSize: isSelected
-                                        ? TioWheelPickerTokens.selectedFontSize
-                                        : TioFontSize.size16,
-                                    fontWeight: isSelected
-                                        ? TioFontWeight.w700
-                                        : TioFontWeight.w400,
-                                    color: isSelected
-                                        ? colors.textPrimary
-                                        : colors.textSecondary,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceVariant.withAlpha(
+                          TioWheelPickerTokens.selectionSurfaceAlpha,
                         ),
+                        borderRadius: BorderRadius.circular(TioRadius.md),
                       ),
-                      Expanded(
-                        child: IgnorePointer(
-                          key: const ValueKey('routine-rest-timer-seconds-wheel-ignore-pointer'),
-                          ignoring: isMinuteAtMax,
-                          child: ListWheelScrollView.useDelegate(
-                            key: const ValueKey('routine-rest-timer-seconds-wheel'),
-                            controller: _secondController,
-                            itemExtent: TioWheelPickerTokens.itemExtent,
-                            perspective: TioWheelPickerTokens.perspective,
-                            diameterRatio: TioWheelPickerTokens.diameterRatio,
-                            physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (_) => _onWheelChanged(),
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: _secondSteps.length,
-                              builder: (context, index) {
-                                final isSelected =
-                                    _secondController.hasClients &&
-                                    _secondController.selectedItem == index;
-                                final isItemDisabled = isMinuteAtMax && index > 0;
-                                return Center(
-                                  child: Text(
-                                    '${_secondSteps[index]} s',
-                                    style: TextStyle(
-                                      fontSize: isSelected
-                                          ? TioWheelPickerTokens.selectedFontSize
-                                          : TioFontSize.size16,
-                                      fontWeight: isSelected
-                                          ? TioFontWeight.w700
-                                          : TioFontWeight.w400,
-                                      color: isItemDisabled
-                                          ? colors.textMuted
-                                          : (isSelected
-                                              ? colors.textPrimary
-                                              : colors.textSecondary),
-                                    ),
-                                  ),
-                                );
-                              },
+                    ),
+                    ListWheelScrollView.useDelegate(
+                      key: const ValueKey('routine-rest-timer-wheel'),
+                      controller: _scrollController,
+                      itemExtent: TioWheelPickerTokens.itemExtent,
+                      perspective: TioWheelPickerTokens.perspective,
+                      diameterRatio: TioWheelPickerTokens.diameterRatio,
+                      physics: const FixedExtentScrollPhysics(),
+                      onSelectedItemChanged: _onWheelChanged,
+                      childDelegate: ListWheelChildBuilderDelegate(
+                        childCount: _itemCount,
+                        builder: (context, index) {
+                          final isSelected = _scrollController.hasClients &&
+                              _scrollController.selectedItem == index;
+                          final label =
+                              RoutineRestTimerFormatter.formatWheelItem(index);
+                          return Center(
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: isSelected
+                                    ? TioWheelPickerTokens.selectedFontSize
+                                    : TioFontSize.size16,
+                                fontWeight: isSelected
+                                    ? TioFontWeight.w700
+                                    : TioFontWeight.w400,
+                                color: isSelected
+                                    ? colors.textPrimary
+                                    : colors.textSecondary,
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: TioSpacing.xl),
-              child: Center(
-                child: Text(
-                  'Timer is OFF for this category.\nTurn on the switch to set a duration.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: TioFontSize.size14,
-                    color: colors.textSecondary,
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-        ],
+              const SizedBox(height: TioSpacing.xl),
+
+              // ── Done Button ──
+              TioButton.primary(
+                key: const ValueKey('routine-rest-timer-done-button'),
+                label: 'Done',
+                expand: true,
+                onPressed: _onDone,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

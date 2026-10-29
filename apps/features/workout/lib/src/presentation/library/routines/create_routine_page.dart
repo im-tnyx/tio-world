@@ -716,6 +716,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,
       initialWarmUpRestSeconds: current.warmUpRestSeconds,
+      exerciseName: _entryExercises[entry.id]?.displayName,
     );
     if (result != null && mounted) {
       _draft.configureExerciseRestTimer(
