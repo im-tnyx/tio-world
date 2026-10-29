@@ -172,4 +172,45 @@ void main() {
     expect(emitted!.normalRestSeconds, 600);
     expect(emitted!.warmUpRestSeconds, 45);
   });
+
+  testWidgets('resets and disables seconds wheel when minute reaches 10 minutes',
+      (tester) async {
+    RoutineRestTimerPreset? emitted;
+    await tester.pumpWidget(
+      buildSheet(
+        initialNormalRestSeconds: 90,
+        initialWarmUpRestSeconds: 45,
+        onResult: (res) => emitted = res,
+      ),
+    );
+
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1min 30s'), findsOneWidget);
+
+    final ignorePointerFinder = find.byKey(
+      const ValueKey('routine-rest-timer-seconds-wheel-ignore-pointer'),
+    );
+    expect(ignorePointerFinder, findsOneWidget);
+    expect(tester.widget<IgnorePointer>(ignorePointerFinder).ignoring, isFalse);
+
+    final minWheel = find.byKey(const ValueKey('routine-rest-timer-minutes-wheel'));
+    final minScrollable = tester.widget<ListWheelScrollView>(minWheel);
+    (minScrollable.controller! as FixedExtentScrollController).jumpToItem(10);
+    await tester.pumpAndSettle();
+
+    expect(find.text('10min'), findsOneWidget);
+
+    final secWheel = find.byKey(const ValueKey('routine-rest-timer-seconds-wheel'));
+    final secScrollable = tester.widget<ListWheelScrollView>(secWheel);
+    expect((secScrollable.controller! as FixedExtentScrollController).selectedItem, 0);
+    expect(tester.widget<IgnorePointer>(ignorePointerFinder).ignoring, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('routine-rest-timer-done-button')));
+    await tester.pumpAndSettle();
+
+    expect(emitted, isNotNull);
+    expect(emitted!.normalRestSeconds, 600);
+  });
 }

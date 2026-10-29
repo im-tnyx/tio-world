@@ -84,7 +84,8 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
 
     final initialMinutes = (initialDuration ~/ 60).clamp(0, _maxMinutes);
     final sec = initialDuration % 60;
-    final secondIndex = _nearestSecondStepIndex(sec);
+    final secondIndex =
+        initialMinutes >= _maxMinutes ? 0 : _nearestSecondStepIndex(sec);
 
     _minuteController = FixedExtentScrollController(initialItem: initialMinutes);
     _secondController = FixedExtentScrollController(initialItem: secondIndex);
@@ -117,7 +118,8 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
 
     final minutes = (duration ~/ 60).clamp(0, _maxMinutes);
     final sec = duration % 60;
-    final secondIndex = _nearestSecondStepIndex(sec);
+    final secondIndex =
+        minutes >= _maxMinutes ? 0 : _nearestSecondStepIndex(sec);
 
     _isProgrammaticSync = true;
     if (_minuteController.hasClients) {
@@ -164,8 +166,22 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
     final current = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
     if (current == null) return;
 
-    final minutes = _minuteController.selectedItem.clamp(0, _maxMinutes);
-    final secIndex = _secondController.selectedItem.clamp(0, _secondSteps.length - 1);
+    final minutes = _minuteController.hasClients
+        ? _minuteController.selectedItem.clamp(0, _maxMinutes)
+        : 0;
+    var secIndex = _secondController.hasClients
+        ? _secondController.selectedItem.clamp(0, _secondSteps.length - 1)
+        : 0;
+
+    if (minutes >= _maxMinutes && secIndex > 0) {
+      secIndex = 0;
+      _isProgrammaticSync = true;
+      if (_secondController.hasClients) {
+        _secondController.jumpToItem(0);
+      }
+      _isProgrammaticSync = false;
+    }
+
     final seconds = _secondSteps[secIndex];
     final total = ((minutes * 60) + seconds).clamp(0, _maxMinutes * 60);
 
@@ -195,6 +211,7 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
     final colors = context.tioColors;
     final current = _selectedTab == 0 ? _normalSeconds : _warmUpSeconds;
     final isEnabled = current != null;
+    final isMinuteAtMax = isEnabled && (current >= _maxMinutes * 60);
 
     return TioEditorSheet(
       title: 'Rest Timer',
@@ -317,37 +334,44 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
                         ),
                       ),
                       Expanded(
-                        child: ListWheelScrollView.useDelegate(
-                          key: const ValueKey('routine-rest-timer-seconds-wheel'),
-                          controller: _secondController,
-                          itemExtent: TioWheelPickerTokens.itemExtent,
-                          perspective: TioWheelPickerTokens.perspective,
-                          diameterRatio: TioWheelPickerTokens.diameterRatio,
-                          physics: const FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (_) => _onWheelChanged(),
-                          childDelegate: ListWheelChildBuilderDelegate(
-                            childCount: _secondSteps.length,
-                            builder: (context, index) {
-                              final isSelected =
-                                  _secondController.hasClients &&
-                                  _secondController.selectedItem == index;
-                              return Center(
-                                child: Text(
-                                  '${_secondSteps[index]} s',
-                                  style: TextStyle(
-                                    fontSize: isSelected
-                                        ? TioWheelPickerTokens.selectedFontSize
-                                        : TioFontSize.size16,
-                                    fontWeight: isSelected
-                                        ? TioFontWeight.w700
-                                        : TioFontWeight.w400,
-                                    color: isSelected
-                                        ? colors.textPrimary
-                                        : colors.textSecondary,
+                        child: IgnorePointer(
+                          key: const ValueKey('routine-rest-timer-seconds-wheel-ignore-pointer'),
+                          ignoring: isMinuteAtMax,
+                          child: ListWheelScrollView.useDelegate(
+                            key: const ValueKey('routine-rest-timer-seconds-wheel'),
+                            controller: _secondController,
+                            itemExtent: TioWheelPickerTokens.itemExtent,
+                            perspective: TioWheelPickerTokens.perspective,
+                            diameterRatio: TioWheelPickerTokens.diameterRatio,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (_) => _onWheelChanged(),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: _secondSteps.length,
+                              builder: (context, index) {
+                                final isSelected =
+                                    _secondController.hasClients &&
+                                    _secondController.selectedItem == index;
+                                final isItemDisabled = isMinuteAtMax && index > 0;
+                                return Center(
+                                  child: Text(
+                                    '${_secondSteps[index]} s',
+                                    style: TextStyle(
+                                      fontSize: isSelected
+                                          ? TioWheelPickerTokens.selectedFontSize
+                                          : TioFontSize.size16,
+                                      fontWeight: isSelected
+                                          ? TioFontWeight.w700
+                                          : TioFontWeight.w400,
+                                      color: isItemDisabled
+                                          ? colors.textMuted
+                                          : (isSelected
+                                              ? colors.textPrimary
+                                              : colors.textSecondary),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ),
