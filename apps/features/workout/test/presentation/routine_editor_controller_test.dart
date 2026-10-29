@@ -1299,6 +1299,60 @@ void main() {
       sets = ctrl.state.entries.single.sets;
       expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
     });
+
+    test('configureExerciseRestTimer preserves legacy per-set rest values when preset is OFF', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 60,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 90,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+                restSeconds: 30,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      // Mixed normal sets (60s and 90s) cause preset to be OFF
+      expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+
+      final ok = ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: null,
+        warmUpRestSeconds: null,
+      );
+      expect(ok, isTrue);
+      expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets[0].prescription.restSeconds, 60);
+      expect(sets[1].prescription.restSeconds, 90);
+      expect(sets[2].prescription.restSeconds, 30);
+    });
   });
 }
 

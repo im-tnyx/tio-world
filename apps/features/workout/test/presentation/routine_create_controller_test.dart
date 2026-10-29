@@ -904,6 +904,48 @@ void main() {
       sets = c.state.entries.single.sets;
       expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
     });
+
+    test('configureExerciseRestTimer preserves legacy per-set rest values when preset is OFF', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'Program 1'),
+        initialName: 'Routine 1',
+        repository: _Creates(),
+        newUuid: () =>
+            '00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+
+      final set1Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+      )!;
+      final set2Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
+      )!;
+      final set3Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
+      )!;
+
+      expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
+
+      final ok = c.configureExerciseRestTimer(
+        entryId,
+        normalRestSeconds: null,
+        warmUpRestSeconds: null,
+      );
+      expect(ok, isTrue);
+      expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
+
+      final sets = c.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == set1Id).prescription.restSeconds, 45);
+      expect(sets.singleWhere((s) => s.id == set2Id).prescription.restSeconds, 60);
+      expect(sets.singleWhere((s) => s.id == set3Id).prescription.restSeconds, 20);
+    });
   });
 }
 

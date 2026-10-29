@@ -296,7 +296,9 @@ final class RoutineEditorController extends ChangeNotifier {
             loadKg: s.prescription.loadKg,
             distanceMeters: s.prescription.distanceMeters,
             durationSeconds: s.prescription.durationSeconds,
-            restSeconds: preset.effectiveRestFor(s.prescription.setType),
+            restSeconds: preset.isOff
+                ? s.prescription.restSeconds
+                : preset.effectiveRestFor(s.prescription.setType),
           ),
         ),
     ];
