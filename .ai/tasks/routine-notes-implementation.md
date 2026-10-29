@@ -26,13 +26,13 @@
 **Observed working-tree state:** Clean before implementation
 **Observed uncommitted/dirty files:** None before implementation
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Domain, migration/RPC, repository adapter and focused tests added locally; hosted migration unapplied
+**Current implementation state:** Domain, migration/RPC, repository adapter and focused tests committed and pushed in Draft PR #717; hosted migration unapplied
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
 **Validation completed at SHA:** Dart format, package analyze and `git diff --check` completed on the working tree; exact Supabase CLI binary was verified, but its local database harness cannot start without Docker
 **Validation remaining:** SQL replay/security tests and targeted Flutter tests; `supabase db start` could not produce a usable local harness because the Docker daemon endpoint is unavailable, and the targeted Dart test invocation produced no diagnostics before controlled abort
 **Current blocker:** Local SQL/test execution is tool-limited by the unavailable Docker daemon; hosted apply/deployment remains out of scope
 **Open review finding IDs:** None
-**Next exact action:** Commit only the approved Slice 1 files, push `tnyx/routine-notes-persistence`, open a Draft PR linked to GitHub #716 / Linear `TNYX-81`, and keep it unmerged pending SQL/Flutter execution and independent review.
+**Next exact action:** Keep Draft PR #717 unmerged while SQL/Flutter execution and independent review are completed; do not apply the migration or release.
 
 ## 1. Discovery
 
@@ -54,7 +54,7 @@ Domain model, repository contract/adapter, database migration with protected RPC
 
 ### Non-Goals
 
-Notes rows, type sheet, swipe actions, Routine Create/Edit controller integration, WorkoutSession/history snapshots, post integration, migration apply, production grants, commit, merge and release.
+Notes rows, type sheet, swipe actions, Routine Create/Edit controller integration, WorkoutSession/history snapshots, post integration, migration apply, production grants, merge and release.
 
 ## 2. Codebase Exploration
 
