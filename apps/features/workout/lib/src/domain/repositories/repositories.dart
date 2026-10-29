@@ -8,3 +8,4 @@ export 'routine_create_repository.dart';
 export 'my_program_routine_create_repository.dart';
 export 'routine_delete_repository.dart';
 export 'routine_move_repository.dart';
+export 'routine_notes_repository.dart';
