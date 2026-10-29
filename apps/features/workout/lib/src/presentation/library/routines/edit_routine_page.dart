@@ -172,7 +172,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final editor = _editor;
     if (editor == null || !editor.state.canEdit ||
         widget.weightUnit == null || !_nameHydrated ||
-        _name.text.trim().isEmpty || editor.updateExceedsSetLimit) {
+        _name.text.trim().isEmpty || editor.updateExceedsSetLimit ||
+        editor.updateHasInvalidSetOrder) {
       return false;
     }
     if (!editor.compositionDirty) return true;
@@ -373,14 +374,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (type == 'remove') {
       _removeSet(entry, set);
     } else if (type is RoutineSetType) {
-      final current = set.prescription;
-      _editor?.editSet(entry.id, set.id, SetPrescription(
-        reps: current.reps, repsMax: current.repsMax,
-        setType: type, loadKg: current.loadKg,
-        distanceMeters: current.distanceMeters,
-        durationSeconds: current.durationSeconds,
-        restSeconds: current.restSeconds,
-      ));
+      _editor?.changeSetType(entry.id, set.id, type);
     }
   }
 
@@ -626,6 +620,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
               key: ValueKey('edit-routine-too-many-sets'),
               message: 'This Routine has more than 8 Sets in an Exercise. '
                   'Reduce Sets before changing the composition; '
+                  'renaming alone is still available.',
+            ),
+          if (_editor?.hasInvalidSetOrder ?? false)
+            const _Message(
+              key: ValueKey('edit-routine-invalid-set-order'),
+              message: 'Warm-up Sets must appear at the beginning of each Exercise. '
+                  'Change Set types or reorder Sets before updating composition; '
                   'renaming alone is still available.',
             ),
           if (state.message != null)

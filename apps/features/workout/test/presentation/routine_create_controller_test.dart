@@ -449,6 +449,181 @@ void main() {
     c.rename('Day A');
     expect(c.state.canSave, isTrue);
   });
+
+  group('Warm-up Set Ordering Invariant', () {
+    test('adding Warm-up set inserts after warm-up group and before working sets', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+
+      final warmUpId1 = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+      );
+      expect(warmUpId1, isNotNull);
+      var sets = c.state.entries.single.sets;
+      expect(sets.length, 2);
+      expect(sets[0].id, warmUpId1);
+      expect(sets[0].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+
+      final warmUpId2 = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 8, loadKg: 30),
+      );
+      sets = c.state.entries.single.sets;
+      expect(sets.length, 3);
+      expect(sets[0].id, warmUpId1);
+      expect(sets[1].id, warmUpId2);
+      expect(sets[2].prescription.setType, RoutineSetType.normal);
+
+      final normalId2 = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.normal, reps: 6, loadKg: 40),
+      );
+      sets = c.state.entries.single.sets;
+      expect(sets.length, 4);
+      expect(sets[0].id, warmUpId1);
+      expect(sets[1].id, warmUpId2);
+      expect(sets[2].prescription.setType, RoutineSetType.normal);
+      expect(sets[3].id, normalId2);
+    });
+
+    test('changing Normal to Warm-up moves to end of Warm-up group and preserves ID/values', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final s1Id = c.state.entries.single.sets[0].id;
+      final w1Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 20),
+      );
+      final n2Id = c.addSet(
+        entryId,
+        SetPrescription(
+          setType: RoutineSetType.normal,
+          reps: 8,
+          loadKg: 60,
+          restSeconds: 90,
+        ),
+      );
+
+      var sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w1Id, s1Id, n2Id]);
+
+      expect(c.changeSetType(entryId, n2Id!, RoutineSetType.warmUp), isTrue);
+      sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w1Id, n2Id, s1Id]);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.reps, 8);
+      expect(sets[1].prescription.loadKg, 60);
+      expect(sets[1].prescription.restSeconds, 90);
+    });
+
+    test('changing Failure or Drop to Warm-up moves to end of Warm-up group', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final dropId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.drop, reps: 10, loadKg: 30),
+      )!;
+
+      expect(c.changeSetType(entryId, dropId, RoutineSetType.warmUp), isTrue);
+      final sets = c.state.entries.single.sets;
+      expect(sets[0].id, dropId);
+      expect(sets[0].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].id, normalId);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+    });
+
+    test('changing Warm-up to Normal moves after remaining Warm-up sets', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final w1Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, loadKg: 20),
+      )!;
+      final w2Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+      )!;
+
+      var sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w1Id, w2Id, normalId]);
+
+      expect(c.changeSetType(entryId, w1Id, RoutineSetType.normal), isTrue);
+      sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w2Id, w1Id, normalId]);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.reps, 15);
+    });
+
+    test('reordering validates invariant and rejects invalid Warm-up-after-Normal', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final w1Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp),
+      )!;
+      final w2Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp),
+      )!;
+
+      expect(c.moveSet(entryId, 2, 0), isFalse);
+      var sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w1Id, w2Id, normalId]);
+
+      expect(c.moveSet(entryId, 0, 2), isFalse);
+      sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w1Id, w2Id, normalId]);
+
+      expect(c.moveSet(entryId, 0, 1), isTrue);
+      sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w2Id, w1Id, normalId]);
+    });
+  });
 }
 
 final class _Creates implements RoutineCreateRepository {

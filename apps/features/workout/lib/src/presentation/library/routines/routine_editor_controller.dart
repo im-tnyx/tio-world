@@ -90,6 +90,15 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Name-only updates never rewrite or validate historical Set rows.
   bool get updateExceedsSetLimit => _compositionDirty && exceedsSetLimit;
 
+  /// Whether any Exercise in the draft currently violates the Warm-up ordering invariant.
+  bool get hasInvalidSetOrder => _draft.any(
+      (entry) => !RoutineCompositionLimits.hasValidSetOrder(
+            entry.sets.map((s) => s.prescription),
+          ));
+
+  /// Name-only updates never rewrite or validate historical Set rows.
+  bool get updateHasInvalidSetOrder => _compositionDirty && hasInvalidSetOrder;
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
   String _baselineName = '';
@@ -261,20 +270,28 @@ final class RoutineEditorController extends ChangeNotifier {
     // containing ranged Sets, which the canonical RPC correctly rejects.
     final initial = SetPrescription(
       reps: prescription.reps,
-      repsMax: range ? prescription.reps : null,
-      setType: RoutineSetType.normal,
+      repsMax: range ? (prescription.repsMax ?? prescription.reps) : null,
+      setType: prescription.setType,
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
       restSeconds: prescription.restSeconds,
     );
+    final newSet = RoutineCompositionSet(id: id, prescription: initial);
+    final nextSets = [...current.sets];
+    if (initial.setType == RoutineSetType.warmUp) {
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, newSet);
+    } else {
+      nextSets.add(newSet);
+    }
     _replaceEntry(index, RoutineCompositionEntry(
       id: current.id,
       exercise: current.exercise,
-      sets: [
-        ...current.sets,
-        RoutineCompositionSet(id: id, prescription: initial),
-      ],
+      sets: nextSets,
     ));
     return id;
   }
@@ -345,6 +362,56 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Classification belongs to an identified Set; preserves target values and
+  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
+  /// non-Warm-up sets).
+  bool changeSetType(String entryId, String setId, RoutineSetType type) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+    final p = current.prescription;
+    if (p.setType == type) return true;
+
+    final updated = RoutineCompositionSet(
+      id: setId,
+      prescription: SetPrescription(
+        reps: p.reps,
+        repsMax: p.repsMax,
+        setType: type,
+        loadKg: p.loadKg,
+        distanceMeters: p.distanceMeters,
+        durationSeconds: p.durationSeconds,
+        restSeconds: p.restSeconds,
+      ),
+    );
+
+    final wasWarmUp = p.setType == RoutineSetType.warmUp;
+    final isWarmUp = type == RoutineSetType.warmUp;
+
+    final nextSets = [...entry.sets];
+    if (wasWarmUp == isWarmUp) {
+      nextSets[currentSetIndex] = updated;
+    } else {
+      nextSets.removeAt(currentSetIndex);
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, updated);
+    }
+
+    _replaceEntry(index, RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      sets: nextSets,
+    ));
+    return true;
+  }
+
   bool moveSet(String entryId, int from, int to) {
     if (!_state.canEdit) return false;
     final index = _draft.indexWhere((e) => e.id == entryId);
@@ -357,6 +424,11 @@ final class RoutineEditorController extends ChangeNotifier {
     }
     final reordered = [...entry.sets];
     reordered.insert(to, reordered.removeAt(from));
+    if (!RoutineCompositionLimits.hasValidSetOrder(
+      reordered.map((s) => s.prescription),
+    )) {
+      return false;
+    }
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
@@ -386,6 +458,12 @@ final class RoutineEditorController extends ChangeNotifier {
     }
     if (_compositionDirty && exceedsSetLimit) {
       _publish(_ready(message: 'Reduce each Exercise to at most 8 Sets before Update.'));
+      return false;
+    }
+    if (_compositionDirty && hasInvalidSetOrder) {
+      _publish(_ready(
+        message: 'Warm-up sets must appear at the beginning of each Exercise.',
+      ));
       return false;
     }
     if (!_state.dirty) {
@@ -496,6 +574,18 @@ final class RoutineEditorController extends ChangeNotifier {
     // runs on a Flutter frame, so disposal alone is not a write capability.
     if (!_authorized) return false;
     final compositionDirty = _compositionDirty;
+    if (compositionDirty) {
+      for (final entry in _draft) {
+        if (!RoutineCompositionLimits.hasValidSetOrder(
+          entry.sets.map((s) => s.prescription),
+        )) {
+          _publish(_ready(
+            message: 'Warm-up sets must appear at the beginning of each Exercise.',
+          ));
+          return false;
+        }
+      }
+    }
     final nameDirty = _nameDirty;
     final mutationId = _newUuid();
     final command = nameDirty
