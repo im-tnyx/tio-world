@@ -7,6 +7,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../exercises/widgets/exercise_list_row.dart';
 
@@ -216,6 +217,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     required this.selectRepetitionMode,
     required this.buildSetRow,
     required this.addSet,
+    this.restPreset = const RoutineRestTimerPreset(),
+    this.onConfigureRestTimer,
     super.key,
   });
 
@@ -235,6 +238,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
   final VoidCallback selectRepetitionMode;
   final Widget Function(RoutineCompositionSet set, int index) buildSetRow;
   final VoidCallback addSet;
+  final RoutineRestTimerPreset restPreset;
+  final VoidCallback? onConfigureRestTimer;
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +311,76 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: TioSpacing.md),
+          Padding(
+            padding: const EdgeInsets.only(top: TioSpacing.xs),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Semantics(
+                button: true,
+                label: RoutineRestTimerFormatter.formatSemantics(
+                  normalSeconds: restPreset.normalRestSeconds,
+                  warmUpSeconds: restPreset.warmUpRestSeconds,
+                ),
+                child: Material(
+                  color: colors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(TioRadius.full),
+                  child: InkWell(
+                    key: ValueKey('$prefix-rest-timer-${entry.id}'),
+                    borderRadius: BorderRadius.circular(TioRadius.full),
+                    onTap: enabled ? onConfigureRestTimer : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.md,
+                        vertical: TioSpacing.xs + 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            size: TioSize.dp16,
+                            color: colors.textSecondary,
+                          ),
+                          const SizedBox(width: TioSpacing.xs),
+                          Text.rich(
+                            TextSpan(
+                              style: TextStyle(
+                                fontSize: TioFontSize.size13,
+                                fontWeight: TioFontWeight.w600,
+                                color: colors.textPrimary,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: restPreset.normalRestSeconds != null
+                                      ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
+                                      : restPreset.warmUpRestSeconds != null
+                                          ? 'Rest: '
+                                          : 'Rest: OFF',
+                                ),
+                                if (restPreset.warmUpRestSeconds != null) ...[
+                                  if (restPreset.normalRestSeconds != null)
+                                    const TextSpan(text: ' '),
+                                  TextSpan(
+                                    text: '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
+                                    style: TextStyle(
+                                      color: entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp)
+                                          ? colors.warning
+                                          : colors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: TioSpacing.sm),
           Row(
             children: [
               const SizedBox(

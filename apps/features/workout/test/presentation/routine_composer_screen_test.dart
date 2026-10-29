@@ -328,6 +328,135 @@ void main() {
       await tester.pump();
       expect(focusNode.hasFocus, isFalse);
       expect(lastValue, '12');
+  });
+
+  testWidgets('RoutineComposerExerciseCard renders rest timer button and triggers onConfigure', (tester) async {
+    var configured = 0;
+    const entryId = '11111111-1111-4111-8111-111111111111';
+    const setId = '22222222-2222-4222-8222-222222222222';
+    final entry = RoutineCompositionEntry(
+      id: entryId,
+      exercise: ExerciseRef.catalog('ex_bench_press'),
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(reps: 10, restSeconds: 90),
+        ),
+      ],
+    );
+
+    Widget buildCard({required RoutineRestTimerPreset preset}) {
+      return MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: Scaffold(
+          body: RoutineComposerExerciseCard(
+            mode: RoutineComposerMode.create,
+            entry: entry,
+            index: 0,
+            totalEntries: 1,
+            title: 'Bench Press',
+            thumbnailUrl: null,
+            exerciseType: ExerciseType.weightReps,
+            showRangeDraft: false,
+            unit: WeightUnit.kg,
+            enabled: true,
+            moveUp: () {},
+            moveDown: () {},
+            showOptions: () {},
+            selectRepetitionMode: () {},
+            buildSetRow: (set, i) => const SizedBox(),
+            addSet: () {},
+            restPreset: preset,
+            onConfigureRestTimer: () => configured++,
+          ),
+        ),
+      );
+    }
+
+    // 1. Both OFF
+    await tester.pumpWidget(buildCard(preset: const RoutineRestTimerPreset()));
+    expect(find.text('Rest: OFF'), findsOneWidget);
+
+    // 2. Normal only
+    await tester.pumpWidget(buildCard(
+      preset: const RoutineRestTimerPreset(normalRestSeconds: 90),
+    ));
+    expect(find.text('Rest: 1min 30s'), findsOneWidget);
+
+    // 3. Warm-up only (without warm-up sets: (45s) is inactive textMuted color)
+    await tester.pumpWidget(buildCard(
+      preset: const RoutineRestTimerPreset(warmUpRestSeconds: 45),
+    ));
+    expect(find.text('Rest: (45s)'), findsOneWidget);
+    var textWidget = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const ValueKey('create-routine-rest-timer-$entryId')),
+        matching: find.byType(Text),
+      ),
+    );
+    var span = textWidget.textSpan as TextSpan;
+    var warmUpSpan = span.children!.last as TextSpan;
+    expect(warmUpSpan.text, '(45s)');
+    expect(warmUpSpan.style?.color, isNotNull);
+
+    // 4. Both active
+    await tester.pumpWidget(buildCard(
+      preset: const RoutineRestTimerPreset(normalRestSeconds: 90, warmUpRestSeconds: 45),
+    ));
+    expect(find.text('Rest: 1min 30s (45s)'), findsOneWidget);
+
+    // 5. Warm-up with warm-up sets present (matches warning badge color)
+    final entryWithWarmUp = RoutineCompositionEntry(
+      id: entryId,
+      exercise: ExerciseRef.catalog('ex_bench_press'),
+      sets: [
+        RoutineCompositionSet(
+          id: setId,
+          prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 10, restSeconds: 45),
+        ),
+      ],
+    );
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child ?? const SizedBox.shrink()),
+      home: Scaffold(
+        body: RoutineComposerExerciseCard(
+          mode: RoutineComposerMode.create,
+          entry: entryWithWarmUp,
+          index: 0,
+          totalEntries: 1,
+          title: 'Bench Press',
+          thumbnailUrl: null,
+          exerciseType: ExerciseType.weightReps,
+          showRangeDraft: false,
+          unit: WeightUnit.kg,
+          enabled: true,
+          moveUp: () {},
+          moveDown: () {},
+          showOptions: () {},
+          selectRepetitionMode: () {},
+          buildSetRow: (set, i) => const SizedBox(),
+          addSet: () {},
+          restPreset: const RoutineRestTimerPreset(warmUpRestSeconds: 45),
+          onConfigureRestTimer: () => configured++,
+        ),
+      ),
+    ));
+    textWidget = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const ValueKey('create-routine-rest-timer-$entryId')),
+        matching: find.byType(Text),
+      ),
+    );
+    span = textWidget.textSpan as TextSpan;
+    final warmUpWithSetSpan = span.children!.last as TextSpan;
+    expect(warmUpWithSetSpan.text, '(45s)');
+    expect(warmUpWithSetSpan.style?.color, isNot(equals(warmUpSpan.style?.color)));
+
+    // Tap rest timer button
+    await tester.tap(find.byKey(const ValueKey('create-routine-rest-timer-$entryId')));
+    await tester.pump();
+    expect(configured, 1);
       expect(tester.takeException(), isNull);
     });
   }

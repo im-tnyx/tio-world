@@ -1136,6 +1136,7 @@ void main() {
 
     await tester.ensureVisible(
       find.byKey(const ValueKey('create-routine-options-$firstEntry')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(
       const ValueKey('create-routine-options-$firstEntry')));
     await tester.pumpAndSettle();

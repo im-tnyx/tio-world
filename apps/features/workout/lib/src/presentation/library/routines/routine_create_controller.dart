@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/my_program_routine_create_repository.dart';
 import '../../../domain/repositories/program_repository.dart';
@@ -96,6 +97,7 @@ final class RoutineCreateController extends ChangeNotifier {
   // One selected Custom measurement contract per *entry* (not per Exercise
   // ref: duplicate refs may be added independently to a Routine).
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
+  final Map<String, RoutineRestTimerPreset> _restPresets = {};
   RoutineCreateStatus _status = RoutineCreateStatus.ready;
   RoutineCreateCommand? _attempt;
   MyProgramRoutineCreateCommand? _myProgramAttempt;
@@ -183,6 +185,7 @@ final class RoutineCreateController extends ChangeNotifier {
     final newId = _newUuid();
     final setId = _newUuid();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[newId] = exercise.exerciseType;
     }
@@ -203,6 +206,7 @@ final class RoutineCreateController extends ChangeNotifier {
     if (!_editable || !_entries.any((e) => e.id == entryId)) return false;
     _entries = _entries.where((e) => e.id != entryId).toList();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     _publish();
     return true;
   }
@@ -216,6 +220,54 @@ final class RoutineCreateController extends ChangeNotifier {
     next.insert(to, next.removeAt(from));
     _entries = next;
     _publish();
+    return true;
+  }
+
+  RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    return _restPresets[entryId] ?? const RoutineRestTimerPreset();
+  }
+
+  bool configureExerciseRestTimer(
+    String entryId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    final preset = RoutineRestTimerPreset(
+      normalRestSeconds: normalRestSeconds,
+      warmUpRestSeconds: warmUpRestSeconds,
+    );
+    _restPresets[entryId] = preset;
+
+    final updatedSets = [
+      for (final s in entry.sets)
+        RoutineCompositionSet(
+          id: s.id,
+          prescription: SetPrescription(
+            reps: s.prescription.reps,
+            repsMax: s.prescription.repsMax,
+            setType: s.prescription.setType,
+            loadKg: s.prescription.loadKg,
+            distanceMeters: s.prescription.distanceMeters,
+            durationSeconds: s.prescription.durationSeconds,
+            restSeconds: preset.isOff
+                ? s.prescription.restSeconds
+                : preset.effectiveRestFor(s.prescription.setType),
+          ),
+        ),
+    ];
+
+    _replace(
+      index,
+      RoutineCompositionEntry(
+        id: entry.id,
+        exercise: entry.exercise,
+        sets: updatedSets,
+      ),
+    );
     return true;
   }
 
@@ -233,6 +285,10 @@ final class RoutineCreateController extends ChangeNotifier {
     // Repetition mode is Exercise-wide.
     final inRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
+    final preset = getExerciseRestPreset(entry.id);
+    final effectiveRest = preset.isOff
+        ? prescription.restSeconds
+        : preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
@@ -240,7 +296,7 @@ final class RoutineCreateController extends ChangeNotifier {
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
-      restSeconds: prescription.restSeconds,
+      restSeconds: effectiveRest,
     );
     final newSet = RoutineCompositionSet(id: id, prescription: initial);
     final nextSets = [...entry.sets];
@@ -312,6 +368,14 @@ final class RoutineCreateController extends ChangeNotifier {
     final p = current.prescription;
     if (p.setType == type) return true;
 
+    final preset = getExerciseRestPreset(entryId);
+    final int? newRestSeconds;
+    if (!preset.isOff) {
+      newRestSeconds = preset.effectiveRestFor(type);
+    } else {
+      newRestSeconds = p.restSeconds;
+    }
+
     return editSet(
       entryId,
       setId,
@@ -322,7 +386,7 @@ final class RoutineCreateController extends ChangeNotifier {
         loadKg: p.loadKg,
         distanceMeters: p.distanceMeters,
         durationSeconds: p.durationSeconds,
-        restSeconds: p.restSeconds,
+        restSeconds: newRestSeconds,
       ),
     );
   }

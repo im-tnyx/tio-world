@@ -714,6 +714,79 @@ void main() {
     expect(find.text('Push Day'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('displays rest timer when exercise sets configure restSeconds',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: 20),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsOneWidget);
+    expect(find.text('Rest Timer: 20s'), findsOneWidget);
+    expect(find.byIcon(Icons.timer_outlined), findsOneWidget);
+  });
+
+  testWidgets('omits rest timer row when exercise sets have no restSeconds',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: null),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsNothing);
+    expect(find.textContaining('Rest Timer:'), findsNothing);
+  });
+
+  testWidgets('omits rest timer row when restSeconds is 0',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: 0),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsNothing);
+    expect(find.textContaining('Rest Timer:'), findsNothing);
+  });
 }
 
 final class _Routines implements RoutineRepository {

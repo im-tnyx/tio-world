@@ -1058,7 +1058,7 @@ void main() {
     await tester.pumpAndSettle();
     final added = f.compositions.lastSave!.entries.single.sets.last;
     expect(added.prescription.reps, 6);
-    expect(added.prescription.restSeconds, isNull);
+    expect(added.prescription.restSeconds, 60);
     expect(added.prescription.loadKg, 22.5);
     expect(added.id, isNot(_setId));
   });

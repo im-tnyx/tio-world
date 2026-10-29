@@ -1,4 +1,5 @@
 export 'routine_composition_limits.dart';
+export 'routine_rest_timer_preset.dart';
 export 'workout_duration.dart';
 export 'workout_equipment.dart';
 export 'workout_experience_level.dart';
