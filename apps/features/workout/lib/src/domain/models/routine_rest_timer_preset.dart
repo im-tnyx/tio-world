@@ -28,6 +28,71 @@ final class RoutineRestTimerPreset {
   final int? normalRestSeconds;
   final int? warmUpRestSeconds;
 
+  /// Infers a [RoutineRestTimerPreset] from persisted or draft [SetPrescription] items.
+  ///
+  /// - Non-Warm-up sets (Normal, Failure, Drop) map to [normalRestSeconds].
+  /// - Warm-up sets map to [warmUpRestSeconds].
+  /// - If Warm-up rest matches Normal rest, [warmUpRestSeconds] remains null to
+  ///   preserve the approved fallback behavior and concise summary formatting.
+  factory RoutineRestTimerPreset.fromPrescriptions(Iterable<SetPrescription> prescriptions) {
+    if (prescriptions.isEmpty) return const RoutineRestTimerPreset();
+
+    int? normalRest;
+    int? warmUpRest;
+    bool hasNormal = false;
+    bool hasWarmUp = false;
+    bool normalMixed = false;
+    bool warmUpMixed = false;
+
+    for (final p in prescriptions) {
+      if (p.setType == RoutineSetType.warmUp) {
+        if (!hasWarmUp) {
+          warmUpRest = p.restSeconds;
+          hasWarmUp = true;
+        } else if (warmUpRest != p.restSeconds) {
+          warmUpMixed = true;
+        }
+      } else {
+        if (!hasNormal) {
+          normalRest = p.restSeconds;
+          hasNormal = true;
+        } else if (normalRest != p.restSeconds) {
+          normalMixed = true;
+        }
+      }
+    }
+
+    if (normalMixed || warmUpMixed || (!hasNormal && !hasWarmUp)) {
+      return const RoutineRestTimerPreset();
+    }
+
+    if (!hasNormal && hasWarmUp) {
+      return RoutineRestTimerPreset(
+        normalRestSeconds: null,
+        warmUpRestSeconds: warmUpRest,
+      );
+    }
+
+    if (hasNormal && !hasWarmUp) {
+      return RoutineRestTimerPreset(
+        normalRestSeconds: normalRest,
+        warmUpRestSeconds: null,
+      );
+    }
+
+    if (warmUpRest == normalRest) {
+      return RoutineRestTimerPreset(
+        normalRestSeconds: normalRest,
+        warmUpRestSeconds: null,
+      );
+    }
+
+    return RoutineRestTimerPreset(
+      normalRestSeconds: normalRest,
+      warmUpRestSeconds: warmUpRest,
+    );
+  }
+
   bool get isOff => normalRestSeconds == null && warmUpRestSeconds == null;
 
   /// Resolves effective rest duration in seconds for a given [RoutineSetType].

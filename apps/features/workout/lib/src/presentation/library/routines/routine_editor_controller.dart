@@ -172,6 +172,12 @@ final class RoutineEditorController extends ChangeNotifier {
       _draft = current.entries;
       _pickedCustomTypes.clear();
       _restPresets.clear();
+      for (final entry in current.entries) {
+        final preset = RoutineRestTimerPreset.fromPrescriptions(entry.sets.map((s) => s.prescription));
+        if (!preset.isOff) {
+          _restPresets[entry.id] = preset;
+        }
+      }
       _revision = current.revision;
       _uncertainCommand = null;
       _uncertainAggregateCommand = null;

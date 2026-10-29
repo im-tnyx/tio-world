@@ -142,7 +142,7 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
             TioSpacing.lg,
-            TioSpacing.lg,
+            TioSpacing.sm,
             TioSpacing.lg,
             TioSpacing.xl,
           ),
@@ -150,6 +150,35 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ── Drag Handle Pill ──
+              Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragEnd: (details) {
+                    if ((details.primaryVelocity ?? 0) > 100) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: TioEditorSheetTokens.handlePadding,
+                    ),
+                    child: Container(
+                      key: const ValueKey('routine-rest-timer-handle'),
+                      width: TioEditorSheetTokens.handleWidth,
+                      height: TioEditorSheetTokens.handleHeight,
+                      decoration: BoxDecoration(
+                        color: colors.outlineStrong.withAlpha(TioAlpha.alpha50),
+                        borderRadius: BorderRadius.circular(
+                          TioEditorSheetTokens.handleRadius,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+
               // ── Header: Centered Title & Subtitle (No checkmark) ──
               Center(
                 child: Column(

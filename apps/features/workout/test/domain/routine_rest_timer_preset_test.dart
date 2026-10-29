@@ -79,6 +79,60 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
       expect(a, isNot(equals(c)));
     });
+
+    test('fromPrescriptions infers uniform normal rest', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 20),
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 20),
+      ]);
+      expect(p.isOff, isFalse);
+      expect(p.normalRestSeconds, 20);
+      expect(p.warmUpRestSeconds, isNull);
+    });
+
+    test('fromPrescriptions infers warm-up and normal rest', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.warmUp, restSeconds: 30),
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 60),
+      ]);
+      expect(p.isOff, isFalse);
+      expect(p.normalRestSeconds, 60);
+      expect(p.warmUpRestSeconds, 30);
+    });
+
+    test('fromPrescriptions keeps warmUpRest null when warm-up matches normal', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.warmUp, restSeconds: 60),
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 60),
+      ]);
+      expect(p.isOff, isFalse);
+      expect(p.normalRestSeconds, 60);
+      expect(p.warmUpRestSeconds, isNull);
+    });
+
+    test('fromPrescriptions returns OFF when sets have mixed normal rest', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 30),
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 60),
+      ]);
+      expect(p.isOff, isTrue);
+    });
+
+    test('fromPrescriptions returns OFF when all sets have null rest', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: null),
+      ]);
+      expect(p.isOff, isTrue);
+    });
+
+    test('fromPrescriptions preserves explicit 0 seconds', () {
+      final p = RoutineRestTimerPreset.fromPrescriptions([
+        SetPrescription(setType: RoutineSetType.normal, restSeconds: 0),
+      ]);
+      expect(p.isOff, isFalse);
+      expect(p.normalRestSeconds, 0);
+      expect(p.warmUpRestSeconds, isNull);
+    });
   });
 
   group('RoutineRestTimerFormatter', () {

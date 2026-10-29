@@ -52,6 +52,9 @@ void main() {
     await tester.tap(find.text('Open Sheet'));
     await tester.pumpAndSettle();
 
+    // Verify Drag Handle
+    expect(find.byKey(const ValueKey('routine-rest-timer-handle')), findsOneWidget);
+
     // Verify Title and Exercise Subtitle
     expect(find.text('Rest Timer'), findsOneWidget);
     expect(find.text('Barbell Hip Thrust'), findsOneWidget);

@@ -1076,7 +1076,7 @@ void main() {
       expect(sets[1].prescription.loadKg, 60);
     });
 
-    test('RoutineEditorController presets are initially OFF on load and preserve sets', () async {
+    test('RoutineEditorController hydrates saved rest presets on load and preserves sets', () async {
       final comp = _Compositions(_snapshot(entries: [
         RoutineCompositionEntry(
           id: _e,
@@ -1114,7 +1114,9 @@ void main() {
       await ctrl.load();
 
       final preset = ctrl.getExerciseRestPreset(_e);
-      expect(preset.isOff, isTrue);
+      expect(preset.isOff, isFalse);
+      expect(preset.normalRestSeconds, 90);
+      expect(preset.warmUpRestSeconds, 45);
       expect(ctrl.state.entries.single.sets[0].prescription.restSeconds, 45);
       expect(ctrl.state.entries.single.sets[1].prescription.restSeconds, 90);
       expect(ctrl.state.entries.single.sets[2].prescription.restSeconds, 90);
@@ -1221,7 +1223,7 @@ void main() {
           sets: [
             RoutineCompositionSet(
               id: _s,
-              prescription: SetPrescription(reps: 10, setType: RoutineSetType.normal, restSeconds: 60),
+              prescription: SetPrescription(reps: 10, setType: RoutineSetType.normal, restSeconds: null),
             ),
           ],
         ),

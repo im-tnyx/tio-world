@@ -11,6 +11,8 @@ import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_detail_controller.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
+
 
 /// A read-only preview of durable Routine content under its owning Program.
 /// Starting a workout and modifying prescriptions require separate capabilities.
@@ -379,10 +381,30 @@ class _RoutineEntryPreview extends StatelessWidget {
     );
   }
 
+  String? get _restTimerLabel {
+    final preset = RoutineRestTimerPreset.fromPrescriptions(
+      item.entry.sets.map((s) => s.prescription),
+    );
+    if (preset.isOff) return null;
+    final normal = preset.normalRestSeconds;
+    final warmUp = preset.warmUpRestSeconds;
+    if (normal != null && normal > 0) {
+      if (warmUp != null && warmUp > 0 && warmUp != normal) {
+        return 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} (${RoutineRestTimerFormatter.formatSeconds(warmUp)})';
+      }
+      return 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)}';
+    }
+    if (warmUp != null && warmUp > 0) {
+      return 'Rest Timer: (${RoutineRestTimerFormatter.formatSeconds(warmUp)})';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final entry = item.entry;
+    final restLabel = _restTimerLabel;
     final source = item.exercise;
     final profile = routineEntryMeasurementProfile(
       source?.exerciseType,
@@ -429,7 +451,30 @@ class _RoutineEntryPreview extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: TioSpacing.md),
+        if (restLabel != null) ...[
+          const SizedBox(height: TioSpacing.xs),
+          Row(
+            children: [
+              Icon(
+                Icons.timer_outlined,
+                size: TioSize.dp16,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: TioSpacing.xs),
+              Text(
+                restLabel,
+                key: ValueKey('routine-detail-rest-timer-${entry.id}'),
+                style: TextStyle(
+                  fontSize: TioFontSize.size13,
+                  color: colors.textSecondary,
+                  fontWeight: TioFontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: TioSpacing.sm),
+        ] else
+          const SizedBox(height: TioSpacing.md),
         Row(
           children: [
             const SizedBox(
