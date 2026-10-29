@@ -14,7 +14,7 @@ Future<RoutineRestTimerPreset?> showRoutineRestTimerSheet({
     showModalBottomSheet<RoutineRestTimerPreset>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: TioPalette.transparent,
       builder: (context) => RoutineRestTimerSheet(
         initialNormalRestSeconds: initialNormalRestSeconds,
         initialWarmUpRestSeconds: initialWarmUpRestSeconds,
@@ -328,7 +328,7 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
             children: [
               // ── Physical Animated Sliding Pill Thumb ──
               AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: TioMotion.selectionMs),
                 curve: Curves.easeOutCubic,
                 alignment: selectedIndex == 0
                     ? Alignment.centerLeft
@@ -340,11 +340,11 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(TioRadius.full),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.25),
+                          color: TioPalette.blackAlpha26,
                           blurRadius: 4,
-                          offset: const Offset(0, 1),
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
@@ -367,7 +367,7 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
                       },
                       child: Center(
                         child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
+                          duration: const Duration(milliseconds: TioMotion.selectionMs),
                           curve: Curves.easeInOut,
                           style: TextStyle(
                             fontSize: TioFontSize.size12,
@@ -395,7 +395,7 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
                       },
                       child: Center(
                         child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
+                          duration: const Duration(milliseconds: TioMotion.selectionMs),
                           curve: Curves.easeInOut,
                           style: TextStyle(
                             fontSize: TioFontSize.size12,
