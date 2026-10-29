@@ -18,6 +18,8 @@ import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
+import 'routine_rest_timer_sheet.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 
 /// Existing shared Routine composer in Edit mode; Name and Sets share Update.
 /// Returns true only after a confirmed save or read-verified mutation.
@@ -655,6 +657,23 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     );
   }
 
+  Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
+    final current = _editor?.getExerciseRestPreset(entry.id) ??
+        const RoutineRestTimerPreset();
+    final result = await showRoutineRestTimerSheet(
+      context: context,
+      initialNormalRestSeconds: current.normalRestSeconds,
+      initialWarmUpRestSeconds: current.warmUpRestSeconds,
+    );
+    if (result != null && mounted) {
+      _editor?.configureExerciseRestTimer(
+        entry.id,
+        normalRestSeconds: result.normalRestSeconds,
+        warmUpRestSeconds: result.warmUpRestSeconds,
+      );
+    }
+  }
+
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     Exercise? found;
     for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
@@ -691,6 +710,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       buildSetRow: (set, index) =>
           _setRow(entry, set, index, exerciseType),
       addSet: () => _addSetInline(entry),
+      restPreset: _editor?.getExerciseRestPreset(entry.id) ??
+          const RoutineRestTimerPreset(),
+      onConfigureRestTimer: () => _configureRestTimer(entry),
     );
   }
 

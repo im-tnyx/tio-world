@@ -21,6 +21,7 @@ import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
+import 'routine_rest_timer_sheet.dart';
 
 /// Full-screen canonical Create draft. Existing-Program and dormant programless
 /// modes share the same composition/editor UI and distinct atomic repositories.
@@ -709,6 +710,22 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     }
   }
 
+  Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
+    final current = _draft.getExerciseRestPreset(entry.id);
+    final result = await showRoutineRestTimerSheet(
+      context: context,
+      initialNormalRestSeconds: current.normalRestSeconds,
+      initialWarmUpRestSeconds: current.warmUpRestSeconds,
+    );
+    if (result != null && mounted) {
+      _draft.configureExerciseRestTimer(
+        entry.id,
+        normalRestSeconds: result.normalRestSeconds,
+        warmUpRestSeconds: result.warmUpRestSeconds,
+      );
+    }
+  }
+
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final selected = _entryExercises[entry.id];
     final thumbnail = selected == null
@@ -734,6 +751,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       showOptions: () => _showExerciseOptions(entry),
       selectRepetitionMode: () => _selectRepetitionMode(entry),
       buildSetRow: (set, index) => _setRow(entry, set, index),
+      restPreset: _draft.getExerciseRestPreset(entry.id),
+      onConfigureRestTimer: () => _configureRestTimer(entry),
       addSet: () => _addSet(entry),
     );
   }

@@ -696,6 +696,141 @@ void main() {
       expect(sets[1].prescription.reps, 10);
       expect(sets[1].prescription.loadKg, 50);
     });
+
+    test('configureExerciseRestTimer updates existing sets and addSet inherits preset', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'Program 1'),
+        initialName: 'Routine 1',
+        repository: _Creates(),
+        newUuid: () =>
+            '00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final warmUpId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15),
+      )!;
+
+      expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
+
+      expect(
+        c.configureExerciseRestTimer(
+          entryId,
+          normalRestSeconds: 90,
+          warmUpRestSeconds: 45,
+        ),
+        isTrue,
+      );
+      final preset = c.getExerciseRestPreset(entryId);
+      expect(preset.normalRestSeconds, 90);
+      expect(preset.warmUpRestSeconds, 45);
+
+      var sets = c.state.entries.single.sets;
+      final warmUpSet = sets.singleWhere((s) => s.id == warmUpId);
+      final normalSet = sets.singleWhere((s) => s.id == normalId);
+      expect(warmUpSet.prescription.restSeconds, 45);
+      expect(normalSet.prescription.restSeconds, 90);
+
+      final failureId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.failure, reps: 8),
+      )!;
+      final dropId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.drop, reps: 6),
+      )!;
+      final newWarmUpId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 20),
+      )!;
+
+      sets = c.state.entries.single.sets;
+      expect(
+        sets.singleWhere((s) => s.id == failureId).prescription.restSeconds,
+        90,
+      );
+      expect(
+        sets.singleWhere((s) => s.id == dropId).prescription.restSeconds,
+        90,
+      );
+      expect(
+        sets.singleWhere((s) => s.id == newWarmUpId).prescription.restSeconds,
+        45,
+      );
+    });
+
+    test('Warm-up fallback to Normal timer when warm-up timer is OFF', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'Program 1'),
+        initialName: 'Routine 1',
+        repository: _Creates(),
+        newUuid: () =>
+            '00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+
+      c.configureExerciseRestTimer(
+        entryId,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: null,
+      );
+
+      final warmUpId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15),
+      )!;
+
+      final sets = c.state.entries.single.sets;
+      expect(
+        sets.singleWhere((s) => s.id == warmUpId).prescription.restSeconds,
+        90,
+      );
+      expect(
+        sets.singleWhere((s) => s.id == normalId).prescription.restSeconds,
+        90,
+      );
+    });
+
+    test('changeSetType updates rest according to effective rest rules', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'Program 1'),
+        initialName: 'Routine 1',
+        repository: _Creates(),
+        newUuid: () =>
+            '00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final setId = c.state.entries.single.sets[0].id;
+
+      c.configureExerciseRestTimer(
+        entryId,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: 45,
+      );
+
+      expect(c.changeSetType(entryId, setId, RoutineSetType.warmUp), isTrue);
+      expect(
+        c.state.entries.single.sets.single.prescription.restSeconds,
+        45,
+      );
+
+      expect(c.changeSetType(entryId, setId, RoutineSetType.normal), isTrue);
+      expect(
+        c.state.entries.single.sets.single.prescription.restSeconds,
+        90,
+      );
+    });
   });
 }
 

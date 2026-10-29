@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -106,6 +107,7 @@ final class RoutineEditorController extends ChangeNotifier {
   // Selected Custom definition per newly added/replaced entry. Historical
   // entries have no such snapshot: validate their stored target shape.
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
+  final Map<String, RoutineRestTimerPreset> _restPresets = {};
   int _revision = 0;
   RoutineCompositionSave? _uncertainCommand;
   RoutineAggregateUpdate? _uncertainAggregateCommand;
@@ -169,6 +171,7 @@ final class RoutineEditorController extends ChangeNotifier {
       _baseline = current.entries;
       _draft = current.entries;
       _pickedCustomTypes.clear();
+      _restPresets.clear();
       _revision = current.revision;
       _uncertainCommand = null;
       _uncertainAggregateCommand = null;
@@ -219,6 +222,7 @@ final class RoutineEditorController extends ChangeNotifier {
     final newId = _newUuid();
     final setId = _newUuid();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[newId] = exercise.exerciseType;
     }
@@ -239,6 +243,7 @@ final class RoutineEditorController extends ChangeNotifier {
     if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     return true;
   }
 
@@ -255,6 +260,52 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    return _restPresets[entryId] ?? const RoutineRestTimerPreset();
+  }
+
+  bool configureExerciseRestTimer(
+    String entryId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    final preset = RoutineRestTimerPreset(
+      normalRestSeconds: normalRestSeconds,
+      warmUpRestSeconds: warmUpRestSeconds,
+    );
+    _restPresets[entryId] = preset;
+
+    final updatedSets = [
+      for (final s in entry.sets)
+        RoutineCompositionSet(
+          id: s.id,
+          prescription: SetPrescription(
+            reps: s.prescription.reps,
+            repsMax: s.prescription.repsMax,
+            setType: s.prescription.setType,
+            loadKg: s.prescription.loadKg,
+            distanceMeters: s.prescription.distanceMeters,
+            durationSeconds: s.prescription.durationSeconds,
+            restSeconds: preset.effectiveRestFor(s.prescription.setType),
+          ),
+        ),
+    ];
+
+    _replaceEntry(
+      index,
+      RoutineCompositionEntry(
+        id: entry.id,
+        exercise: entry.exercise,
+        sets: updatedSets,
+      ),
+    );
+    return true;
+  }
+
   String? addSet(String entryId, SetPrescription prescription) {
     if (!_state.canEdit) return null;
     final index = _draft.indexWhere((e) => e.id == entryId);
@@ -268,6 +319,9 @@ final class RoutineEditorController extends ChangeNotifier {
         current.sets.first.prescription.isRepRange;
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise
     // containing ranged Sets, which the canonical RPC correctly rejects.
+    final preset = getExerciseRestPreset(current.id);
+    final effectiveRest =
+        prescription.restSeconds ?? preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: range ? (prescription.repsMax ?? prescription.reps) : null,
@@ -275,7 +329,7 @@ final class RoutineEditorController extends ChangeNotifier {
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
-      restSeconds: prescription.restSeconds,
+      restSeconds: effectiveRest,
     );
     final newSet = RoutineCompositionSet(id: id, prescription: initial);
     final nextSets = [...current.sets];
@@ -393,6 +447,14 @@ final class RoutineEditorController extends ChangeNotifier {
     final p = current.prescription;
     if (p.setType == type) return true;
 
+    final preset = getExerciseRestPreset(entryId);
+    final int? newRestSeconds;
+    if (!preset.isOff) {
+      newRestSeconds = preset.effectiveRestFor(type);
+    } else {
+      newRestSeconds = p.restSeconds;
+    }
+
     return editSet(
       entryId,
       setId,
@@ -403,7 +465,7 @@ final class RoutineEditorController extends ChangeNotifier {
         loadKg: p.loadKg,
         distanceMeters: p.distanceMeters,
         durationSeconds: p.durationSeconds,
-        restSeconds: p.restSeconds,
+        restSeconds: newRestSeconds,
       ),
     );
   }

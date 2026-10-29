@@ -1075,6 +1075,143 @@ void main() {
       expect(sets[1].prescription.reps, 10);
       expect(sets[1].prescription.loadKg, 60);
     });
+
+    test('RoutineEditorController presets are initially OFF on load and preserve sets', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+                restSeconds: 45,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 90,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                restSeconds: 90,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      final preset = ctrl.getExerciseRestPreset(_e);
+      expect(preset.isOff, isTrue);
+      expect(ctrl.state.entries.single.sets[0].prescription.restSeconds, 45);
+      expect(ctrl.state.entries.single.sets[1].prescription.restSeconds, 90);
+      expect(ctrl.state.entries.single.sets[2].prescription.restSeconds, 90);
+
+      // Now test routine with mixed normal sets (not silently normalized)
+      final mixedComp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 60,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                restSeconds: 90,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final mixedCtrl = _make(_Routines([_routine()]), mixedComp);
+      addTearDown(mixedCtrl.dispose);
+      await mixedCtrl.load();
+
+      // Sets remain unchanged
+      expect(mixedCtrl.state.entries.single.sets[0].prescription.restSeconds, 60);
+      expect(mixedCtrl.state.entries.single.sets[1].prescription.restSeconds, 90);
+      expect(mixedCtrl.getExerciseRestPreset(_e).isOff, isTrue);
+    });
+
+    test('configureExerciseRestTimer in editor updates sets and addSet inherits preset', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      var next = 0;
+      final ctrl = _make(
+        _Routines([_routine()]),
+        comp,
+        ids: List.generate(
+          10,
+          (i) => '50000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+        ),
+      );
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.configureExerciseRestTimer(
+          _e,
+          normalRestSeconds: 90,
+          warmUpRestSeconds: 45,
+        ),
+        isTrue,
+      );
+
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets[0].prescription.restSeconds, 45);
+      expect(sets[1].prescription.restSeconds, 90);
+
+      // addSet inherits preset
+      final newSetId = ctrl.addSet(_e, SetPrescription(setType: RoutineSetType.warmUp, reps: 20))!;
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 45);
+
+      // changeSetType updates rest
+      expect(ctrl.changeSetType(_e, newSetId, RoutineSetType.normal), isTrue);
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 90);
+    });
   });
 }
 
