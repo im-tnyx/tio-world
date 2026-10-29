@@ -119,8 +119,11 @@ void main() {
   });
 
   test('read rejects a row returned for the wrong owner or scope', () async {
+    final mismatchedRow = Map<String, dynamic>.from(
+      _appliedNote()['note'] as Map,
+    )..['user_id'] = _other;
     final gateway = _Gateway(
-      rows: [Map<String, dynamic>.from(_appliedNote()['note'] as Map)],
+      rows: [mismatchedRow],
     );
     final repository = _repository(gateway);
 

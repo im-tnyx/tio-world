@@ -19,20 +19,20 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-10-29; `main` clean before branch creation
+**Repository state last verified:** 2026-10-29; Slice 1 review-fix work is currently uncommitted on this branch
 **Branch:** `tnyx/routine-notes-persistence`
-**HEAD SHA:** `9c782688acd13efd189b7827c139dea3aca1a5d6` at branch creation
+**HEAD SHA:** `9a13dc3903dcf885454321ee35669528c5510d07` before current review-fix changes
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
-**Observed working-tree state:** Clean before implementation
-**Observed uncommitted/dirty files:** None before implementation
+**Observed working-tree state:** Review-fix changes present; no unrelated files observed
+**Observed uncommitted/dirty files:** `.github/workflows/supabase-db-ci.yml`, `apps/features/workout/test/data/supabase_routine_notes_repository_test.dart`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `supabase/tests/database/tnyx_81_routine_notes_concurrency.sh`
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Domain, migration/RPC, repository adapter and focused tests committed and pushed in Draft PR #717; hosted migration unapplied
+**Current implementation state:** Domain, migration/RPC, repository adapter and focused tests are committed and pushed in Draft PR #717; Slice 1 review-fix changes are staged for final validation; hosted migration unapplied
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
-**Validation completed at SHA:** Dart format, package analyze and `git diff --check` completed on the working tree; exact Supabase CLI binary was verified, but its local database harness cannot start without Docker
-**Validation remaining:** SQL replay/security tests and targeted Flutter tests; `supabase db start` could not produce a usable local harness because the Docker daemon endpoint is unavailable, and the targeted Dart test invocation produced no diagnostics before controlled abort
-**Current blocker:** Local SQL/test execution is tool-limited by the unavailable Docker daemon; hosted apply/deployment remains out of scope
-**Open review finding IDs:** None
-**Next exact action:** Keep Draft PR #717 unmerged while SQL/Flutter execution and independent review are completed; do not apply the migration or release.
+**Validation completed at working tree:** Dart format/analyze for the changed Workout test, transaction-scoped SQL migration plus Notes matrix replay with rollback, shell syntax validation for the race harness, and `git diff --check`.
+**Validation remaining:** Focused Flutter test diagnostics, CI execution of the Notes SQL matrix and two-session race harness, persistent-environment security/lint evidence for the new migration, and independent review. The local database was not reset and the migration was not persistently applied.
+**Current blocker:** Completion/merge evidence is blocked until the focused Flutter test and CI race harness produce results; hosted apply/deployment remains out of scope
+**Open review finding IDs:** `PR717-FLUTTER-FIX`, `PR717-SQL-CI`, `PR717-CONCURRENCY`
+**Next exact action:** Commit and push only the verified review-fix files, keep Draft PR #717 unmerged, then inspect the resulting GitHub Actions logs and review state.
 
 ## 1. Discovery
 
@@ -107,9 +107,9 @@ Slice 1 exposes sanitized outcomes for unauthorized, forbidden, invalid request,
 - [x] Add shared `RoutineNote` identity/scope/body contract.
 - [x] Add `RoutineNotesRepository` contract and Supabase adapter.
 - [x] Add local migration for Notes, receipts, RLS, grants, indexes and protected RPCs.
-- [x] Add SQL security, quota, concurrency and replay tests.
+- [x] Add SQL security, quota, concurrency and replay tests; wire the matrix and race harness into `.github/workflows/supabase-db-ci.yml`.
 - [x] Add focused Dart model/adapter tests.
-- [ ] Run SQL replay/security tests and targeted Flutter tests; current Docker/test-runner limitations are recorded.
+- [ ] Complete the focused Flutter test and CI execution of the SQL matrix/race harness; persistent local apply remains intentionally out of scope.
 - [x] Keep migration unapplied and leave UI untouched.
 
 ## 6. Quality Review
@@ -117,13 +117,21 @@ Slice 1 exposes sanitized outcomes for unauthorized, forbidden, invalid request,
 ### Validation Run
 
 ```text
-Passed: Dart format (changed Dart files), `dart analyze` in `apps/shared`,
-`dart analyze` in `apps/features/workout`, and `git diff --check`.
-Not completed: SQL replay/security test. The exact local Supabase CLI
-`G:\dev\supabase-cli\v2.121.0\supabase.exe` is present, but the Docker daemon
-endpoint `npipe:////./pipe/dockerDesktopLinuxEngine` is unavailable. The
-targeted Dart test invocation also produced no diagnostics and was controlled
-aborted; it is not reported as passed.
+Passed: changed Workout-test Dart format/analyze, `dart analyze` in
+`apps/shared`, `git diff --check`, and shell syntax validation for
+`supabase/tests/database/tnyx_81_routine_notes_concurrency.sh`.
+
+Passed with bounded scope: the Notes migration and
+`supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql` were
+replayed together inside one outer transaction against the running local
+Supabase Postgres, and the transaction was rolled back. The SQL matrix passed;
+this did not alter the local schema and is not a full reset/replay proof.
+
+Not completed: the focused Flutter test produced no diagnostics during the
+bounded runner window and was controlled-aborted; the two-session race harness
+was not run locally because its exact CI-only guard requires the Notes schema
+to be persistently installed. GitHub Actions execution and independent review
+remain pending.
 ```
 
 ### Acceptance Evidence (substantive scope)
@@ -133,15 +141,27 @@ aborted; it is not reported as passed.
 | Durable owner-scoped Notes | `supabase/migrations/20261029120000_create_user_workout_routine_notes.sql` | SQL test authored; execution unavailable | Branch working tree | Hosted schema not changed |
 | Canonical ExerciseRef round-trip | `apps/shared/lib/src/workout/routine_note.dart` | `apps/shared` analyze passed; targeted test not run | Local Windows checkout | Catalog availability is app-owned |
 | Protected mutation behavior | Notes RPCs + Workout adapter | `apps/features/workout` analyze passed; targeted test not run | Local Windows checkout | Hosted grants not activated |
+| SQL matrix and fixture correctness | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql` | Transaction-scoped migration plus matrix replay passed and rolled back; quota, unique mutation IDs and transfer-source fixtures corrected | Local Supabase Postgres, disposable transaction | CI execution still required |
+| Real concurrency coverage | `supabase/tests/database/tnyx_81_routine_notes_concurrency.sh`, `.github/workflows/supabase-db-ci.yml` | `bash -n` passed; exact CI-only two-session quota/transfer harness wired after migration replay | Local shell check; CI runtime pending | Race logs and final assertions not yet observed |
+| Wrong-owner read rejection | `apps/features/workout/test/data/supabase_routine_notes_repository_test.dart` | Fixture now changes `user_id` to a different owner; Dart format/analyze passed | Local Windows checkout | Focused Flutter runner produced no result |
 
 ### Review Provenance
 
-**Review source / link:** chat-provided approved implementation handoff, GitHub #716, Linear `TNYX-81`, and repository source inspection
+**Review source / link:** chat-provided Slice 1 review-fix handoff, GitHub #716/#717, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
-**Diff or commit SHA actually reviewed:** `ec8a314e` source/staged diff review
-**Review result and finding IDs/dispositions:** No blocking finding identified in the local self-review; independent review remains pending
+**Diff or commit SHA actually reviewed:** `9a13dc39` plus current uncommitted review-fix diff
+**Review result and finding IDs/dispositions:** `PR717-FLUTTER-FIX` resolved in source by making the fixture genuinely cross-owner; focused Flutter execution remains pending. `PR717-SQL-CI` resolved in workflow source by wiring the SQL matrix with `ON_ERROR_STOP=1`; hosted execution remains pending. `PR717-CONCURRENCY` implemented and guarded by exact disposable CI identity; runtime evidence remains pending. SQL fixture corrections passed the bounded transaction replay.
 **Independent review?** No (self-review)
-**Limitations and unmet required gates:** Local Docker daemon is unavailable, so the SQL harness could not start; `psql` was not available on PATH. The targeted Dart test invocation produced no diagnostics before controlled abort. Local Supabase CLI `2.121.0` differs from CI's pinned `2.116.0`; no version change was made. Hosted schema validation and deployment are not part of this slice. Dedicated Linear issue creation was rejected by the connector risk policy and was not retried.
+**Limitations and unmet required gates:** The focused Flutter test produced no diagnostics before controlled abort. The exact CI-only concurrency harness was not run locally because persistent Notes migration apply/reset is prohibited for this slice. Local Supabase CLI `2.121.0` differs from CI's pinned `2.116.0`; no version change was made. Hosted schema validation/deployment and independent review remain pending. Dedicated Linear issue creation was not requested and no child issue was created.
+
+### Review Findings and Resolution
+
+| Finding ID | Status | Evidence | Remaining gate |
+|---|---|---|---|
+| `PR717-FLUTTER-FIX` | Source fixed | Wrong-owner fixture now mutates `user_id` to `_other`; changed test formats and analyzes cleanly | Focused Flutter test result |
+| `PR717-SQL-CI` | Source fixed | `.github/workflows/supabase-db-ci.yml` runs the Notes matrix with `ON_ERROR_STOP=1` after migration replay | GitHub Actions log |
+| `PR717-SQL-FIXTURES` | Resolved | Local transaction-scoped matrix passed after quota count, mutation-id uniqueness and transfer-source corrections | CI confirmation |
+| `PR717-CONCURRENCY` | Implemented, runtime pending | Exact CI-only two-session quota/transfer script passes `bash -n` and is wired into the workflow | GitHub Actions race logs and independent review |
 
 ## Exit Criteria
 

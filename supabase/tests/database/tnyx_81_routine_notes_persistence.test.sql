@@ -223,11 +223,15 @@ select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000114',
   'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
   'Routine 4', null, 'a8100000-0000-4000-8000-000000000214');
+select public.mutate_user_workout_routine_note(
+  'create', 'a8100000-0000-4000-8000-000000000115',
+  'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
+  'Routine 5', null, 'a8100000-0000-4000-8000-000000000215');
 select pg_temp.assert_raises(
   $$select public.mutate_user_workout_routine_note(
-    'create', 'a8100000-0000-4000-8000-000000000115',
+    'create', 'a8100000-0000-4000-8000-000000000116',
     'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
-    'Routine 5', null, 'a8100000-0000-4000-8000-000000000215'
+    'Routine 6', null, 'a8100000-0000-4000-8000-000000000216'
   )$$,
   'P0001', 'sixth Note is rejected at the authoritative quota'
 );
@@ -254,22 +258,22 @@ select pg_temp.assert_raises(
 select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000104',
   null, 'ex_barbell_bench_press', 'pinned_exercise',
-  'Catalog exercise note 2', null, 'a8100000-0000-4000-8000-000000000214');
+  'Catalog exercise note 2', null, 'a8100000-0000-4000-8000-000000000314');
 select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000105',
   null, 'ex_barbell_bench_press', 'pinned_exercise',
-  'Catalog exercise note 3', null, 'a8100000-0000-4000-8000-000000000215');
+  'Catalog exercise note 3', null, 'a8100000-0000-4000-8000-000000000315');
 select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000106',
   null, 'ex_barbell_bench_press', 'pinned_exercise',
-  'Catalog exercise note 4', null, 'a8100000-0000-4000-8000-000000000216');
+  'Catalog exercise note 4', null, 'a8100000-0000-4000-8000-000000000316');
 select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000109',
   null, 'ex_barbell_bench_press', 'pinned_exercise',
-  'Catalog exercise note 5', null, 'a8100000-0000-4000-8000-000000000221');
+  'Catalog exercise note 5', null, 'a8100000-0000-4000-8000-000000000321');
 select public.mutate_user_workout_routine_note(
   'create', 'a8100000-0000-4000-8000-000000000107',
-  'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
+  'a8100000-0000-4000-8000-000000000023', null, 'pinned_routine',
   'Transfer source', null, 'a8100000-0000-4000-8000-000000000217');
 select pg_temp.assert_raises(
   $$select public.mutate_user_workout_routine_note(
@@ -281,7 +285,7 @@ select pg_temp.assert_raises(
 );
 select pg_temp.assert_true(
   (select note_type = 'pinned_routine'
-      and routine_id = 'a8100000-0000-4000-8000-000000000021'
+      and routine_id = 'a8100000-0000-4000-8000-000000000023'
       and body = 'Transfer source' and revision = 0
    from public.user_workout_routine_notes
    where id = 'a8100000-0000-4000-8000-000000000107'),
