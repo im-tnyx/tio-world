@@ -276,7 +276,7 @@ set local application_name = 'tnyx_81_routine_notes_transfer_a';
 select set_config('request.jwt.claim.sub', :'owner', true);
 select public.mutate_user_workout_routine_note(
   'transfer', 'a8100100-0000-4000-8000-000000000025'::uuid,
-  null, :'destination_routine', 'pinned_routine', null, 0,
+  :'destination_routine'::uuid, null, 'pinned_routine', null, 0,
   'a8100100-0000-4000-8000-000000000225'::uuid
 );
 commit;

@@ -29,8 +29,8 @@
 **Current implementation state:** Domain, migration/RPC, repository adapter and focused tests are committed and pushed in Draft PR #717; Slice 1 review-fix changes are staged for final validation; hosted migration unapplied
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
 **Validation completed at working tree:** Dart format/analyze for the changed Workout test, transaction-scoped SQL migration plus Notes matrix replay with rollback, shell syntax validation for the race harness, and `git diff --check`.
-**Validation remaining:** Focused Flutter test diagnostics, CI execution of the Notes SQL matrix and two-session race harness, persistent-environment security/lint evidence for the new migration, and independent review. The local database was not reset and the migration was not persistently applied.
-**Current blocker:** Completion/merge evidence is blocked until the focused Flutter test and CI race harness produce results; hosted apply/deployment remains out of scope
+**Validation remaining:** Focused Flutter test diagnostics, a clean CI execution of the two-session race harness, persistent-environment security/lint evidence for the new migration, and independent review. CI run `40877336483` completed the full migration replay and Notes SQL matrix, then exposed a positional-argument bug in the transfer race harness; the harness correction is now prepared for rerun. The local database was not reset and the migration was not persistently applied.
+**Current blocker:** Completion/merge evidence is blocked until the focused Flutter test and corrected CI race harness pass; hosted apply/deployment remains out of scope
 **Open review finding IDs:** `PR717-FLUTTER-FIX`, `PR717-SQL-CI`, `PR717-CONCURRENCY`
 **Next exact action:** Commit and push only the verified review-fix files, keep Draft PR #717 unmerged, then inspect the resulting GitHub Actions logs and review state.
 
@@ -130,8 +130,11 @@ this did not alter the local schema and is not a full reset/replay proof.
 Not completed: the focused Flutter test produced no diagnostics during the
 bounded runner window and was controlled-aborted; the two-session race harness
 was not run locally because its exact CI-only guard requires the Notes schema
-to be persistently installed. GitHub Actions execution and independent review
-remain pending.
+to be persistently installed. GitHub Actions run `40877336483` replayed the
+complete migration set and passed the Routine Notes SQL matrix, then failed in
+the transfer race because the harness passed the destination UUID in the
+`exercise_ref` position; the source correction passes review and requires a
+new CI run. Independent review remains pending.
 ```
 
 ### Acceptance Evidence (substantive scope)
@@ -150,7 +153,7 @@ remain pending.
 **Review source / link:** chat-provided Slice 1 review-fix handoff, GitHub #716/#717, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
 **Diff or commit SHA actually reviewed:** `9a13dc39` plus current uncommitted review-fix diff
-**Review result and finding IDs/dispositions:** `PR717-FLUTTER-FIX` resolved in source by making the fixture genuinely cross-owner; focused Flutter execution remains pending. `PR717-SQL-CI` resolved in workflow source by wiring the SQL matrix with `ON_ERROR_STOP=1`; hosted execution remains pending. `PR717-CONCURRENCY` implemented and guarded by exact disposable CI identity; runtime evidence remains pending. SQL fixture corrections passed the bounded transaction replay.
+**Review result and finding IDs/dispositions:** `PR717-FLUTTER-FIX` resolved in source by making the fixture genuinely cross-owner; focused Flutter execution remains pending. `PR717-SQL-CI` resolved in workflow source and CI run `40877336483` confirmed the complete replay plus Notes SQL matrix. `PR717-CONCURRENCY` exposed a harness-only transfer argument-order bug in CI; the destination is now supplied as `routine_id` and the corrected harness is pending rerun. SQL fixture corrections passed the bounded transaction replay.
 **Independent review?** No (self-review)
 **Limitations and unmet required gates:** The focused Flutter test produced no diagnostics before controlled abort. The exact CI-only concurrency harness was not run locally because persistent Notes migration apply/reset is prohibited for this slice. Local Supabase CLI `2.121.0` differs from CI's pinned `2.116.0`; no version change was made. Hosted schema validation/deployment and independent review remain pending. Dedicated Linear issue creation was not requested and no child issue was created.
 
@@ -161,7 +164,7 @@ remain pending.
 | `PR717-FLUTTER-FIX` | Source fixed | Wrong-owner fixture now mutates `user_id` to `_other`; changed test formats and analyzes cleanly | Focused Flutter test result |
 | `PR717-SQL-CI` | Source fixed | `.github/workflows/supabase-db-ci.yml` runs the Notes matrix with `ON_ERROR_STOP=1` after migration replay | GitHub Actions log |
 | `PR717-SQL-FIXTURES` | Resolved | Local transaction-scoped matrix passed after quota count, mutation-id uniqueness and transfer-source corrections | CI confirmation |
-| `PR717-CONCURRENCY` | Implemented, runtime pending | Exact CI-only two-session quota/transfer script passes `bash -n` and is wired into the workflow | GitHub Actions race logs and independent review |
+| `PR717-CONCURRENCY` | Correction prepared after CI finding | CI run `40877336483` reached the harness; quota race setup passed, while transfer failed because the destination UUID occupied `exercise_ref`; source correction moves it to `routine_id` | Corrected GitHub Actions race run and independent review |
 
 ## Exit Criteria
 
