@@ -21,7 +21,8 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-10-29; Slice 1 review-fix work is committed and pushed
 **Branch:** `tnyx/routine-notes-persistence`
-**HEAD SHA:** `435f74f92b4d503505f14173f28bcdf9dc4ab99a`
+**Current branch HEAD SHA:** `30e0a7733c9ddba45957a846c4c60dd90b08a783`
+**Validated code head SHA:** `435f74f92b4d503505f14173f28bcdf9dc4ab99a` (the later commits are documentation-only)
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
 **Observed working-tree state:** Clean after review-fix commits; no unrelated files observed
 **Observed uncommitted/dirty files:** None
