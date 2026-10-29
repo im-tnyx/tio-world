@@ -66,8 +66,10 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
   @override
   void initState() {
     super.initState();
-    _normalSeconds = widget.initialNormalRestSeconds;
-    _warmUpSeconds = widget.initialWarmUpRestSeconds;
+    _normalSeconds =
+        widget.initialNormalRestSeconds?.clamp(0, _maxMinutes * 60);
+    _warmUpSeconds =
+        widget.initialWarmUpRestSeconds?.clamp(0, _maxMinutes * 60);
 
     if (_normalSeconds != null && _normalSeconds! > 0) {
       _lastNormalNonZero = _normalSeconds!;
@@ -165,7 +167,7 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
     final minutes = _minuteController.selectedItem.clamp(0, _maxMinutes);
     final secIndex = _secondController.selectedItem.clamp(0, _secondSteps.length - 1);
     final seconds = _secondSteps[secIndex];
-    final total = (minutes * 60) + seconds;
+    final total = ((minutes * 60) + seconds).clamp(0, _maxMinutes * 60);
 
     HapticFeedback.selectionClick();
     setState(() {
@@ -182,8 +184,8 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
   void _onDone() {
     Navigator.of(context).pop(
       RoutineRestTimerPreset(
-        normalRestSeconds: _normalSeconds,
-        warmUpRestSeconds: _warmUpSeconds,
+        normalRestSeconds: _normalSeconds?.clamp(0, _maxMinutes * 60),
+        warmUpRestSeconds: _warmUpSeconds?.clamp(0, _maxMinutes * 60),
       ),
     );
   }

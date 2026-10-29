@@ -144,4 +144,32 @@ void main() {
     expect(emitted!.normalRestSeconds, isNotNull);
     expect(emitted!.warmUpRestSeconds, isNull);
   });
+
+  testWidgets('clamps duration to maximum 600 seconds when minutes at max',
+      (tester) async {
+    RoutineRestTimerPreset? emitted;
+    await tester.pumpWidget(
+      buildSheet(
+        initialNormalRestSeconds: 700,
+        initialWarmUpRestSeconds: 45,
+        onResult: (res) => emitted = res,
+      ),
+    );
+
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    // Initial 700 is clamped to 600
+    expect(find.text('10min'), findsOneWidget);
+
+    // Done returns clamped 600
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(emitted, isNotNull);
+    expect(emitted!.normalRestSeconds, 600);
+    expect(emitted!.warmUpRestSeconds, 45);
+  });
 }
