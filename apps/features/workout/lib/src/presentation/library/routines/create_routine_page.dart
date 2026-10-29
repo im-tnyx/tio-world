@@ -712,11 +712,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
     final current = _draft.getExerciseRestPreset(entry.id);
+    final hasWarmUpSets =
+        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,
       initialWarmUpRestSeconds: current.warmUpRestSeconds,
       exerciseName: _entryExercises[entry.id]?.displayName,
+      hasWarmUpSets: hasWarmUpSets,
     );
     if (result != null && mounted) {
       _draft.configureExerciseRestTimer(

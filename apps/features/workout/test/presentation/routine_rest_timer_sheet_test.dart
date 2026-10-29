@@ -9,6 +9,7 @@ void main() {
     int? initialNormalRestSeconds,
     int? initialWarmUpRestSeconds,
     String? exerciseName,
+    bool hasWarmUpSets = true,
     void Function(RoutineRestTimerPreset?)? onResult,
   }) {
     return MaterialApp(
@@ -24,6 +25,7 @@ void main() {
                   initialNormalRestSeconds: initialNormalRestSeconds,
                   initialWarmUpRestSeconds: initialWarmUpRestSeconds,
                   exerciseName: exerciseName,
+                  hasWarmUpSets: hasWarmUpSets,
                 );
                 onResult?.call(result);
               },
@@ -199,5 +201,36 @@ void main() {
     expect(emitted, isNotNull);
     expect(emitted!.normalRestSeconds, 600);
     expect(emitted!.warmUpRestSeconds, 45);
+  });
+
+  testWidgets('hides tab switcher and sets only normal timer when hasWarmUpSets is false', (tester) async {
+    RoutineRestTimerPreset? emitted;
+    await tester.pumpWidget(
+      buildSheet(
+        initialNormalRestSeconds: 60,
+        initialWarmUpRestSeconds: 30,
+        hasWarmUpSets: false,
+        onResult: (res) => emitted = res,
+      ),
+    );
+
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    // Tab switcher is hidden
+    expect(find.byKey(const ValueKey('routine-rest-timer-tab-switcher')), findsNothing);
+    expect(find.text('Normal set'), findsNothing);
+    expect(find.text('Warm-up Set'), findsNothing);
+
+    // Normal wheel is present
+    expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
+
+    // Tap Done
+    await tester.tap(find.byKey(const ValueKey('routine-rest-timer-done-button')));
+    await tester.pumpAndSettle();
+
+    expect(emitted, isNotNull);
+    expect(emitted!.normalRestSeconds, 60);
+    expect(emitted!.warmUpRestSeconds, isNull);
   });
 }

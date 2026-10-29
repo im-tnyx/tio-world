@@ -10,6 +10,7 @@ Future<RoutineRestTimerPreset?> showRoutineRestTimerSheet({
   required int? initialNormalRestSeconds,
   required int? initialWarmUpRestSeconds,
   String? exerciseName,
+  bool hasWarmUpSets = true,
 }) =>
     showModalBottomSheet<RoutineRestTimerPreset>(
       context: context,
@@ -19,6 +20,7 @@ Future<RoutineRestTimerPreset?> showRoutineRestTimerSheet({
         initialNormalRestSeconds: initialNormalRestSeconds,
         initialWarmUpRestSeconds: initialWarmUpRestSeconds,
         exerciseName: exerciseName,
+        hasWarmUpSets: hasWarmUpSets,
       ),
     );
 
@@ -28,12 +30,14 @@ class RoutineRestTimerSheet extends StatefulWidget {
     this.initialNormalRestSeconds,
     this.initialWarmUpRestSeconds,
     this.exerciseName,
+    this.hasWarmUpSets = true,
     super.key,
   });
 
   final int? initialNormalRestSeconds;
   final int? initialWarmUpRestSeconds;
   final String? exerciseName;
+  final bool hasWarmUpSets;
 
   @override
   State<RoutineRestTimerSheet> createState() => _RoutineRestTimerSheetState();
@@ -121,7 +125,7 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
     Navigator.of(context).pop(
       RoutineRestTimerPreset(
         normalRestSeconds: _normalSeconds,
-        warmUpRestSeconds: _warmUpSeconds,
+        warmUpRestSeconds: widget.hasWarmUpSets ? _warmUpSeconds : null,
       ),
     );
   }
@@ -210,11 +214,14 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
               const SizedBox(height: TioSpacing.lg),
 
               // ── Tab Switcher: Normal set / Warm-up Set Slider Switch ──
-              _RoutineRestTimerSliderSwitch(
-                selectedIndex: _selectedTab,
-                onSelected: _onTabChanged,
-              ),
-              const SizedBox(height: TioSpacing.lg),
+              if (widget.hasWarmUpSets) ...[
+                _RoutineRestTimerSliderSwitch(
+                  key: const ValueKey('routine-rest-timer-tab-switcher'),
+                  selectedIndex: _selectedTab,
+                  onSelected: _onTabChanged,
+                ),
+                const SizedBox(height: TioSpacing.lg),
+              ],
 
               // ── Single Wheel with selection pill ──
               SizedBox(
@@ -293,6 +300,7 @@ class _RoutineRestTimerSliderSwitch extends StatelessWidget {
   const _RoutineRestTimerSliderSwitch({
     required this.selectedIndex,
     required this.onSelected,
+    super.key,
   });
 
   final int selectedIndex;

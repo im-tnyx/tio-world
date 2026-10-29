@@ -667,11 +667,14 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         break;
       }
     }
+    final hasWarmUpSets =
+        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,
       initialWarmUpRestSeconds: current.warmUpRestSeconds,
       exerciseName: found?.displayName,
+      hasWarmUpSets: hasWarmUpSets,
     );
     if (result != null && mounted) {
       _editor?.configureExerciseRestTimer(
