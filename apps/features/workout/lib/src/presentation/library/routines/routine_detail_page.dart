@@ -381,6 +381,58 @@ class _RoutineEntryPreview extends StatelessWidget {
     );
   }
 
+  InlineSpan _buildRestTimerSpan(TioColors colors) {
+    final preset = RoutineRestTimerPreset.fromPrescriptions(
+      item.entry.sets.map((s) => s.prescription),
+    );
+    final normal = preset.normalRestSeconds;
+    final warmUp = preset.warmUpRestSeconds;
+    final hasWarmUpSet = item.entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final baseStyle = TextStyle(
+      fontSize: TioFontSize.size13,
+      color: colors.textSecondary,
+      fontWeight: TioFontWeight.w400,
+    );
+
+    if (normal != null && normal > 0) {
+      if (warmUp != null && warmUp > 0 && warmUp != normal) {
+        return TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(
+              text: 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} ',
+            ),
+            TextSpan(
+              text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
+              style: TextStyle(
+                color: hasWarmUpSet ? colors.warning : colors.danger,
+              ),
+            ),
+          ],
+        );
+      }
+      return TextSpan(
+        style: baseStyle,
+        text: 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)}',
+      );
+    }
+    if (warmUp != null && warmUp > 0) {
+      return TextSpan(
+        style: baseStyle,
+        children: [
+          const TextSpan(text: 'Rest Timer: '),
+          TextSpan(
+            text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
+            style: TextStyle(
+              color: hasWarmUpSet ? colors.warning : colors.danger,
+            ),
+          ),
+        ],
+      );
+    }
+    return TextSpan(style: baseStyle, text: '');
+  }
+
   String? get _restTimerLabel {
     final preset = RoutineRestTimerPreset.fromPrescriptions(
       item.entry.sets.map((s) => s.prescription),
@@ -461,14 +513,9 @@ class _RoutineEntryPreview extends StatelessWidget {
                 color: colors.textSecondary,
               ),
               const SizedBox(width: TioSpacing.xs),
-              Text(
-                restLabel,
+              Text.rich(
+                _buildRestTimerSpan(colors),
                 key: ValueKey('routine-detail-rest-timer-${entry.id}'),
-                style: TextStyle(
-                  fontSize: TioFontSize.size13,
-                  color: colors.textSecondary,
-                  fontWeight: TioFontWeight.w400,
-                ),
               ),
             ],
           ),
