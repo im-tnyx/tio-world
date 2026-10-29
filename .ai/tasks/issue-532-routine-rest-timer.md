@@ -55,7 +55,7 @@
 **Validation completed at SHA:** `feat/issue-532-routine-rest-timer` branch (1,066 / 1,066 tests passing, flutter analyze 0 issues)
 **Validation remaining:** Remote CI run on push
 **Current blocker:** None
-**Open review finding IDs:** Addressed discussion_r4408682692 (active preset override on addSet), Addressed discussion_r4408960765 (seconds wheel reset/disable at 10-minute cap), Addressed discussion_r4409572462 (preserve legacy per-set rest values when preset is OFF), Addressed discussion_r4409902209 (unify zero seconds and null as Rest Timer OFF)
+**Open review finding IDs:** Addressed discussion_r4408682692 (active preset override on addSet), Addressed discussion_r4408960765 (seconds wheel reset/disable at 10-minute cap), Addressed discussion_r4409572462 (preserve legacy per-set rest values when preset is OFF), Addressed discussion_r4409902209 (unify zero seconds and null as Rest Timer OFF), Addressed discussion_r4410038873 (align task decisions and PR description with non-positive duration as OFF)
 **Next exact action:** Commit, push to origin feat/issue-532-routine-rest-timer, reply to review thread, await CI/approval.
 
 ## Global UI / Design-System Guardrail
@@ -105,7 +105,7 @@ A user composing or editing a workout routine can configure rest durations per e
 |---|---|---|---|
 | Failure/Drop mapping | Resolved | Inherits Normal timer directly | Owner approved 2026-10-29 |
 | Warm-up fallback | Resolved | Warm-up timer OFF falls back to Normal timer | Owner approved 2026-10-29 |
-| OFF vs 0 | Resolved | OFF is `null`, 0 is explicit zero | Owner approved 2026-10-29 |
+| OFF vs 0 | Resolved | Active duration presets are positive (>=5s); 0, negative, and null represent OFF | Reviewer aligned 2026-10-29 |
 | Summary label | Resolved | `Rest Timer: OFF`, `Rest Timer: 1min 30s (45s)`, etc. | Owner approved 2026-10-29 |
 | Workout Settings | Resolved | Planned only in W10/TNYX-87; no runtime changes | Codebase audit 2026-10-29 |
 
