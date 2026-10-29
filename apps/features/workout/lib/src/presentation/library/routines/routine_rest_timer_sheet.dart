@@ -180,9 +180,8 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
               ),
               const SizedBox(height: TioSpacing.lg),
 
-              // ── Tab Switcher: Normal set / Warm-up Set ──
-              TioTabSwitcher(
-                tabs: const ['Normal set', 'Warm-up Set'],
+              // ── Tab Switcher: Normal set / Warm-up Set Slider Switch ──
+              _RoutineRestTimerSliderSwitch(
                 selectedIndex: _selectedTab,
                 onSelected: _onTabChanged,
               ),
@@ -254,6 +253,105 @@ class _RoutineRestTimerSheetState extends State<RoutineRestTimerSheet> {
                 onPressed: _onDone,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoutineRestTimerSliderSwitch extends StatelessWidget {
+  const _RoutineRestTimerSliderSwitch({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Center(
+      child: Container(
+        height: 38,
+        constraints: const BoxConstraints(maxWidth: 320),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          borderRadius: BorderRadius.circular(TioRadius.full),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _TabButton(
+                key: const ValueKey('routine-rest-timer-tab-normal'),
+                label: 'Normal set',
+                isSelected: selectedIndex == 0,
+                onTap: () => onSelected(0),
+              ),
+            ),
+            Expanded(
+              child: _TabButton(
+                key: const ValueKey('routine-rest-timer-tab-warmup'),
+                label: 'Warm-up Set',
+                isSelected: selectedIndex == 1,
+                onTap: () => onSelected(1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeInOut,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? colors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(TioRadius.full),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: TioFontSize.size13,
+            fontWeight: isSelected ? TioFontWeight.w600 : TioFontWeight.w500,
+            color: isSelected ? colors.textPrimary : colors.textSecondary,
           ),
         ),
       ),
