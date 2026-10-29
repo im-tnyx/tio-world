@@ -365,7 +365,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                                     style: TextStyle(
                                       color: entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp)
                                           ? colors.warning
-                                          : colors.danger,
+                                          : colors.textMuted,
                                     ),
                                   ),
                                 ],

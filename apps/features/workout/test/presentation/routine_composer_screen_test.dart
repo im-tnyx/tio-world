@@ -384,7 +384,7 @@ void main() {
     ));
     expect(find.text('Rest: 1min 30s'), findsOneWidget);
 
-    // 3. Warm-up only (without warm-up sets: (45s) is danger color)
+    // 3. Warm-up only (without warm-up sets: (45s) is inactive textMuted color)
     await tester.pumpWidget(buildCard(
       preset: const RoutineRestTimerPreset(warmUpRestSeconds: 45),
     ));

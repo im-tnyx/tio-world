@@ -405,7 +405,7 @@ class _RoutineEntryPreview extends StatelessWidget {
             TextSpan(
               text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
               style: TextStyle(
-                color: hasWarmUpSet ? colors.warning : colors.danger,
+                color: hasWarmUpSet ? colors.warning : colors.textMuted,
               ),
             ),
           ],
@@ -424,7 +424,7 @@ class _RoutineEntryPreview extends StatelessWidget {
           TextSpan(
             text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
             style: TextStyle(
-              color: hasWarmUpSet ? colors.warning : colors.danger,
+              color: hasWarmUpSet ? colors.warning : colors.textMuted,
             ),
           ),
         ],
