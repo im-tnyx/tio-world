@@ -303,15 +303,32 @@ final class RoutineEditorController extends ChangeNotifier {
     final entry = _draft[index];
     final setIndex = entry.sets.indexWhere((s) => s.id == setId);
     if (setIndex < 0) return false;
-    final next = [...entry.sets];
-    next[setIndex] = RoutineCompositionSet(
+    final current = entry.sets[setIndex];
+
+    final updated = RoutineCompositionSet(
       id: setId,
       prescription: prescription,
     );
+
+    final wasWarmUp = current.prescription.setType == RoutineSetType.warmUp;
+    final isWarmUp = prescription.setType == RoutineSetType.warmUp;
+
+    final nextSets = [...entry.sets];
+    if (wasWarmUp == isWarmUp) {
+      nextSets[setIndex] = updated;
+    } else {
+      nextSets.removeAt(setIndex);
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, updated);
+    }
+
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
-      sets: next,
+      sets: nextSets,
     ));
     return true;
   }
@@ -376,9 +393,10 @@ final class RoutineEditorController extends ChangeNotifier {
     final p = current.prescription;
     if (p.setType == type) return true;
 
-    final updated = RoutineCompositionSet(
-      id: setId,
-      prescription: SetPrescription(
+    return editSet(
+      entryId,
+      setId,
+      SetPrescription(
         reps: p.reps,
         repsMax: p.repsMax,
         setType: type,
@@ -388,28 +406,6 @@ final class RoutineEditorController extends ChangeNotifier {
         restSeconds: p.restSeconds,
       ),
     );
-
-    final wasWarmUp = p.setType == RoutineSetType.warmUp;
-    final isWarmUp = type == RoutineSetType.warmUp;
-
-    final nextSets = [...entry.sets];
-    if (wasWarmUp == isWarmUp) {
-      nextSets[currentSetIndex] = updated;
-    } else {
-      nextSets.removeAt(currentSetIndex);
-      final lastWarmUp = nextSets.lastIndexWhere(
-        (s) => s.prescription.setType == RoutineSetType.warmUp,
-      );
-      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
-      nextSets.insert(insertIndex, updated);
-    }
-
-    _replaceEntry(index, RoutineCompositionEntry(
-      id: entry.id,
-      exercise: entry.exercise,
-      sets: nextSets,
-    ));
-    return true;
   }
 
   bool moveSet(String entryId, int from, int to) {

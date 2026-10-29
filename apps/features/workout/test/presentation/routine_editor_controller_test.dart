@@ -987,6 +987,94 @@ void main() {
       expect(await ctrl.update(), isTrue);
       expect(comp.saveCount, 1);
     });
+
+    test('editSet changing Normal to Warm-up repositions set to end of Warm-up group', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 6, loadKg: 70),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.editSet(
+          _e,
+          '40000000-0000-4000-8000-000000000003',
+          SetPrescription(setType: RoutineSetType.warmUp, reps: 8, loadKg: 40),
+        ),
+        isTrue,
+      );
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+        '40000000-0000-4000-8000-000000000002',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.reps, 8);
+      expect(sets[1].prescription.loadKg, 40);
+    });
+
+    test('editSet changing Warm-up to Normal repositions set after remaining Warm-up sets', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 15, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.editSet(
+          _e,
+          '40000000-0000-4000-8000-000000000001',
+          SetPrescription(setType: RoutineSetType.normal, reps: 10, loadKg: 60),
+        ),
+        isTrue,
+      );
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.reps, 10);
+      expect(sets[1].prescription.loadKg, 60);
+    });
   });
 }
 

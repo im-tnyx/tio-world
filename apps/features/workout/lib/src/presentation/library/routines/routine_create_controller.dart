@@ -266,49 +266,17 @@ final class RoutineCreateController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == entryId);
     if (index < 0) return false;
     final entry = _entries[index];
-    if (!entry.sets.any((s) => s.id == setId)) return false;
-    _replace(index, RoutineCompositionEntry(
-      id: entry.id,
-      exercise: entry.exercise,
-      sets: [
-        for (final set in entry.sets)
-          set.id == setId
-              ? RoutineCompositionSet(id: setId, prescription: prescription)
-              : set,
-      ],
-    ));
-    return true;
-  }
-
-  /// Classification belongs to an identified Set; preserves target values and
-  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
-  /// non-Warm-up sets).
-  bool changeSetType(String entryId, String setId, RoutineSetType type) {
-    if (!_editable) return false;
-    final index = _entries.indexWhere((entry) => entry.id == entryId);
-    if (index < 0) return false;
-    final entry = _entries[index];
-    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    final currentSetIndex = entry.sets.indexWhere((s) => s.id == setId);
     if (currentSetIndex < 0) return false;
     final current = entry.sets[currentSetIndex];
-    final p = current.prescription;
-    if (p.setType == type) return true;
 
     final updated = RoutineCompositionSet(
       id: setId,
-      prescription: SetPrescription(
-        reps: p.reps,
-        repsMax: p.repsMax,
-        setType: type,
-        loadKg: p.loadKg,
-        distanceMeters: p.distanceMeters,
-        durationSeconds: p.durationSeconds,
-        restSeconds: p.restSeconds,
-      ),
+      prescription: prescription,
     );
 
-    final wasWarmUp = p.setType == RoutineSetType.warmUp;
-    final isWarmUp = type == RoutineSetType.warmUp;
+    final wasWarmUp = current.prescription.setType == RoutineSetType.warmUp;
+    final isWarmUp = prescription.setType == RoutineSetType.warmUp;
 
     final nextSets = [...entry.sets];
     if (wasWarmUp == isWarmUp) {
@@ -328,6 +296,35 @@ final class RoutineCreateController extends ChangeNotifier {
       sets: nextSets,
     ));
     return true;
+  }
+
+  /// Classification belongs to an identified Set; preserves target values and
+  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
+  /// non-Warm-up sets).
+  bool changeSetType(String entryId, String setId, RoutineSetType type) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+    final p = current.prescription;
+    if (p.setType == type) return true;
+
+    return editSet(
+      entryId,
+      setId,
+      SetPrescription(
+        reps: p.reps,
+        repsMax: p.repsMax,
+        setType: type,
+        loadKg: p.loadKg,
+        distanceMeters: p.distanceMeters,
+        durationSeconds: p.durationSeconds,
+        restSeconds: p.restSeconds,
+      ),
+    );
   }
 
   bool moveSet(String entryId, int from, int to) {

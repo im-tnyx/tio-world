@@ -623,6 +623,79 @@ void main() {
       sets = c.state.entries.single.sets;
       expect(sets.map((s) => s.id).toList(), [w2Id, w1Id, normalId]);
     });
+
+    test('editSet changing Normal to Warm-up repositions set to end of Warm-up group', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final warmUpId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+      )!;
+
+      final workingSetId = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 60),
+      )!;
+
+      expect(
+        c.editSet(
+          entryId,
+          workingSetId,
+          SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+        ),
+        isTrue,
+      );
+      final sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [warmUpId, workingSetId, normalId]);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.reps, 12);
+      expect(sets[1].prescription.loadKg, 30);
+    });
+
+    test('editSet changing Warm-up to Normal repositions set after remaining Warm-up sets', () {
+      var next = 0;
+      final c = RoutineCreateController(
+        program: Program(id: ProgramId(_programId), name: 'P1'),
+        initialName: 'R1',
+        repository: _Creates(),
+        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+      );
+      addTearDown(c.dispose);
+      c.addPickedExercise(_exercise);
+      final entryId = c.state.entries.single.id;
+      final normalId = c.state.entries.single.sets[0].id;
+      final w1Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, loadKg: 20),
+      )!;
+      final w2Id = c.addSet(
+        entryId,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+      )!;
+
+      expect(
+        c.editSet(
+          entryId,
+          w1Id,
+          SetPrescription(setType: RoutineSetType.normal, reps: 10, loadKg: 50),
+        ),
+        isTrue,
+      );
+      final sets = c.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [w2Id, w1Id, normalId]);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.reps, 10);
+      expect(sets[1].prescription.loadKg, 50);
+    });
   });
 }
 
