@@ -29,7 +29,11 @@ final class RoutineCreateState {
       status == RoutineCreateStatus.ready &&
       name.trim().isNotEmpty &&
       entries.isNotEmpty &&
-      entries.every((entry) => entry.sets.isNotEmpty);
+      entries.every((entry) =>
+          entry.sets.isNotEmpty &&
+          RoutineCompositionLimits.hasValidSetOrder(
+            entry.sets.map((s) => s.prescription),
+          ));
 }
 
 /// One canonical in-memory Routine draft for an existing Program or the
@@ -226,23 +230,33 @@ final class RoutineCreateController extends ChangeNotifier {
       return null;
     }
     final id = _newUuid();
-    // Repetition mode is Exercise-wide. New Set remains Normal in that mode.
+    // Repetition mode is Exercise-wide.
     final inRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     final initial = SetPrescription(
       reps: prescription.reps,
-      repsMax: inRange ? prescription.reps : null,
-      setType: RoutineSetType.normal,
+      repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
+      setType: prescription.setType,
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
       restSeconds: prescription.restSeconds,
     );
+    final newSet = RoutineCompositionSet(id: id, prescription: initial);
+    final nextSets = [...entry.sets];
+    if (initial.setType == RoutineSetType.warmUp) {
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, newSet);
+    } else {
+      nextSets.add(newSet);
+    }
     _replace(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
-      sets: [...entry.sets,
-        RoutineCompositionSet(id: id, prescription: initial)],
+      sets: nextSets,
     ));
     return id;
   }
@@ -252,34 +266,90 @@ final class RoutineCreateController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == entryId);
     if (index < 0) return false;
     final entry = _entries[index];
-    if (!entry.sets.any((s) => s.id == setId)) return false;
+    final currentSetIndex = entry.sets.indexWhere((s) => s.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+
+    final updated = RoutineCompositionSet(
+      id: setId,
+      prescription: prescription,
+    );
+
+    final wasWarmUp = current.prescription.setType == RoutineSetType.warmUp;
+    final isWarmUp = prescription.setType == RoutineSetType.warmUp;
+
+    final nextSets = [...entry.sets];
+    if (wasWarmUp == isWarmUp) {
+      nextSets[currentSetIndex] = updated;
+    } else {
+      nextSets.removeAt(currentSetIndex);
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, updated);
+    }
+
     _replace(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
-      sets: [
-        for (final set in entry.sets)
-          set.id == setId
-              ? RoutineCompositionSet(id: setId, prescription: prescription)
-              : set,
-      ],
+      sets: nextSets,
     ));
     return true;
   }
 
-  /// Classification belongs to an identified Set; preserves target values.
+  /// Classification belongs to an identified Set; preserves target values and
+  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
+  /// non-Warm-up sets).
   bool changeSetType(String entryId, String setId, RoutineSetType type) {
     if (!_editable) return false;
-    final e = _entries.where((entry) => entry.id == entryId);
-    if (e.length != 1) return false;
-    final current = e.single.sets.where((set) => set.id == setId);
-    if (current.length != 1) return false;
-    final p = current.single.prescription;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+    final p = current.prescription;
     if (p.setType == type) return true;
-    return editSet(entryId, setId, SetPrescription(
-      reps: p.reps, repsMax: p.repsMax, setType: type,
-      loadKg: p.loadKg, distanceMeters: p.distanceMeters,
-      durationSeconds: p.durationSeconds, restSeconds: p.restSeconds,
+
+    return editSet(
+      entryId,
+      setId,
+      SetPrescription(
+        reps: p.reps,
+        repsMax: p.repsMax,
+        setType: type,
+        loadKg: p.loadKg,
+        distanceMeters: p.distanceMeters,
+        durationSeconds: p.durationSeconds,
+        restSeconds: p.restSeconds,
+      ),
+    );
+  }
+
+  bool moveSet(String entryId, int from, int to) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    if (from < 0 || to < 0 ||
+        from >= entry.sets.length || to >= entry.sets.length ||
+        from == to) {
+      return false;
+    }
+    final reordered = [...entry.sets];
+    reordered.insert(to, reordered.removeAt(from));
+    if (!RoutineCompositionLimits.hasValidSetOrder(
+      reordered.map((s) => s.prescription),
+    )) {
+      return false;
+    }
+    _replace(index, RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      sets: reordered,
     ));
+    return true;
   }
 
   /// Exercise-level Reps / Rep Range selector. No second stored mode field.
@@ -340,6 +410,15 @@ final class RoutineCreateController extends ChangeNotifier {
   /// will check Custom owner/active state atomically only after #536 deploy.
   Future<bool> save() async {
     if (!_state.canSave || !_authorized) return false;
+    for (final entry in _entries) {
+      if (!RoutineCompositionLimits.hasValidSetOrder(
+        entry.sets.map((s) => s.prescription),
+      )) {
+        _status = RoutineCreateStatus.ready;
+        _publish('Warm-up sets must appear at the beginning of each Exercise.');
+        return false;
+      }
+    }
     final customRefs = _entries
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
