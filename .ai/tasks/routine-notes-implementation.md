@@ -22,6 +22,7 @@
 **Repository state last verified:** 2026-10-29; `main` clean before branch creation
 **Branch:** `tnyx/routine-notes-persistence`
 **HEAD SHA:** `9c782688acd13efd189b7827c139dea3aca1a5d6` at branch creation
+**Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
 **Observed working-tree state:** Clean before implementation
 **Observed uncommitted/dirty files:** None before implementation
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
@@ -137,8 +138,8 @@ aborted; it is not reported as passed.
 
 **Review source / link:** chat-provided approved implementation handoff, GitHub #716, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
-**Diff or commit SHA actually reviewed:** Working-tree source review only; commit SHA will be recorded after the authorized commit
-**Review result and finding IDs/dispositions:** Not reviewed
+**Diff or commit SHA actually reviewed:** `ec8a314e` source/staged diff review
+**Review result and finding IDs/dispositions:** No blocking finding identified in the local self-review; independent review remains pending
 **Independent review?** No (self-review)
 **Limitations and unmet required gates:** Local Docker daemon is unavailable, so the SQL harness could not start; `psql` was not available on PATH. The targeted Dart test invocation produced no diagnostics before controlled abort. Local Supabase CLI `2.121.0` differs from CI's pinned `2.116.0`; no version change was made. Hosted schema validation and deployment are not part of this slice. Dedicated Linear issue creation was rejected by the connector risk policy and was not retried.
 
