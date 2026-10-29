@@ -57,17 +57,16 @@ void main() {
       expect(preset.effectiveRestFor(RoutineSetType.drop), 90);
     });
 
-    test('supports explicit 0 seconds distinct from null', () {
+    test('normalizes 0 seconds or non-positive to null (OFF)', () {
       const preset = RoutineRestTimerPreset(normalRestSeconds: 0);
-      expect(preset.isOff, isFalse);
-      expect(preset.normalRestSeconds, 0);
+      expect(preset.isOff, isTrue);
+      expect(preset.normalRestSeconds, isNull);
       expect(preset.warmUpRestSeconds, isNull);
 
-      // Warm-up falls back to 0
-      expect(preset.effectiveRestFor(RoutineSetType.warmUp), 0);
-      expect(preset.effectiveRestFor(RoutineSetType.normal), 0);
-      expect(preset.effectiveRestFor(RoutineSetType.failure), 0);
-      expect(preset.effectiveRestFor(RoutineSetType.drop), 0);
+      expect(preset.effectiveRestFor(RoutineSetType.warmUp), isNull);
+      expect(preset.effectiveRestFor(RoutineSetType.normal), isNull);
+      expect(preset.effectiveRestFor(RoutineSetType.failure), isNull);
+      expect(preset.effectiveRestFor(RoutineSetType.drop), isNull);
     });
 
     test('equality and hashCode contract', () {
@@ -125,12 +124,12 @@ void main() {
       expect(p.isOff, isTrue);
     });
 
-    test('fromPrescriptions preserves explicit 0 seconds', () {
+    test('fromPrescriptions treats 0 seconds as OFF (null)', () {
       final p = RoutineRestTimerPreset.fromPrescriptions([
         SetPrescription(setType: RoutineSetType.normal, restSeconds: 0),
       ]);
-      expect(p.isOff, isFalse);
-      expect(p.normalRestSeconds, 0);
+      expect(p.isOff, isTrue);
+      expect(p.normalRestSeconds, isNull);
       expect(p.warmUpRestSeconds, isNull);
     });
   });

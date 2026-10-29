@@ -3,27 +3,28 @@ import 'package:tio_shared/shared.dart';
 
 /// Configured rest duration preset for an Exercise entry in Routine Create/Edit.
 ///
-/// Normal and Warm-up presets are independently optional:
-/// - Both null: Rest Timer is OFF.
-/// - Normal present, Warm-up null: Warm-up sets fallback to Normal duration.
-/// - Normal null, Warm-up present: Warm-up sets use Warm-up duration; non-Warm-up sets are OFF.
+/// Active duration presets are positive seconds (in 5-second steps up to 10 minutes).
+/// A null, zero, or negative value represents Rest Timer OFF.
+///
+/// - Both OFF (null/non-positive): Rest Timer is OFF.
+/// - Normal present, Warm-up OFF: Warm-up sets fallback to Normal duration.
+/// - Normal OFF, Warm-up present: Warm-up sets use Warm-up duration; non-Warm-up sets are OFF.
 /// - Both present: Warm-up sets use Warm-up duration; non-Warm-up sets use Normal duration.
 ///
 /// Failure and Drop sets inherit the Normal preset (they do not have separate presets).
-/// Explicit zero seconds (0) is distinct from OFF (null).
 @immutable
 final class RoutineRestTimerPreset {
   const RoutineRestTimerPreset({
-    this.normalRestSeconds,
-    this.warmUpRestSeconds,
-  })  : assert(
-          normalRestSeconds == null || normalRestSeconds >= 0,
-          'normalRestSeconds must be null or non-negative',
-        ),
-        assert(
-          warmUpRestSeconds == null || warmUpRestSeconds >= 0,
-          'warmUpRestSeconds must be null or non-negative',
-        );
+    int? normalRestSeconds,
+    int? warmUpRestSeconds,
+  })  : normalRestSeconds =
+            (normalRestSeconds != null && normalRestSeconds > 0)
+                ? normalRestSeconds
+                : null,
+        warmUpRestSeconds =
+            (warmUpRestSeconds != null && warmUpRestSeconds > 0)
+                ? warmUpRestSeconds
+                : null;
 
   final int? normalRestSeconds;
   final int? warmUpRestSeconds;
@@ -45,24 +46,25 @@ final class RoutineRestTimerPreset {
     bool warmUpMixed = false;
 
     for (final p in prescriptions) {
+      final pRest = (p.restSeconds != null && p.restSeconds! > 0) ? p.restSeconds : null;
       if (p.setType == RoutineSetType.warmUp) {
         if (!hasWarmUp) {
-          warmUpRest = p.restSeconds;
+          warmUpRest = pRest;
           hasWarmUp = true;
-        } else if (warmUpRest != p.restSeconds) {
+        } else if (warmUpRest != pRest) {
           warmUpMixed = true;
         }
       } else {
         if (!hasNormal) {
-          normalRest = p.restSeconds;
+          normalRest = pRest;
           hasNormal = true;
-        } else if (normalRest != p.restSeconds) {
+        } else if (normalRest != pRest) {
           normalMixed = true;
         }
       }
     }
 
-    if (normalMixed || warmUpMixed || (!hasNormal && !hasWarmUp)) {
+    if (normalMixed || warmUpMixed || (normalRest == null && warmUpRest == null)) {
       return const RoutineRestTimerPreset();
     }
 

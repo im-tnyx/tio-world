@@ -55,7 +55,7 @@
 **Validation completed at SHA:** `feat/issue-532-routine-rest-timer` branch (1,066 / 1,066 tests passing, flutter analyze 0 issues)
 **Validation remaining:** Remote CI run on push
 **Current blocker:** None
-**Open review finding IDs:** Addressed discussion_r4408682692 (active preset override on addSet), Addressed discussion_r4408960765 (seconds wheel reset/disable at 10-minute cap), Addressed discussion_r4409572462 (preserve legacy per-set rest values when preset is OFF)
+**Open review finding IDs:** Addressed discussion_r4408682692 (active preset override on addSet), Addressed discussion_r4408960765 (seconds wheel reset/disable at 10-minute cap), Addressed discussion_r4409572462 (preserve legacy per-set rest values when preset is OFF), Addressed discussion_r4409902209 (unify zero seconds and null as Rest Timer OFF)
 **Next exact action:** Commit, push to origin feat/issue-532-routine-rest-timer, reply to review thread, await CI/approval.
 
 ## Global UI / Design-System Guardrail
