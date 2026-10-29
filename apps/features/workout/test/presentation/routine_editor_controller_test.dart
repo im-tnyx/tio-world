@@ -1212,6 +1212,91 @@ void main() {
       sets = ctrl.state.entries.single.sets;
       expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 90);
     });
+
+    test('editor addSet active preset overrides stale non-null restSeconds and preset OFF preserves incoming rest', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: _s,
+              prescription: SetPrescription(reps: 10, setType: RoutineSetType.normal, restSeconds: 60),
+            ),
+          ],
+        ),
+      ]));
+      var next = 0;
+      final ctrl = _make(
+        _Routines([_routine()]),
+        comp,
+        ids: List.generate(
+          10,
+          (i) => '60000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+        ),
+      );
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      // Initially preset is OFF on load: incoming rest is preserved (including explicit 0 and non-null)
+      final offNormalId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+      )!;
+      final offZeroId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 0),
+      )!;
+      final offNullId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: null),
+      )!;
+
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, 45);
+      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, 0);
+      expect(sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds, isNull);
+
+      // Now configure active preset: Normal = 90s, Warm-up = 30s
+      ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: 30,
+      );
+
+      // Adding set with stale restSeconds (e.g. 15s) must be overridden by active preset
+      final staleNormalId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 15),
+      )!;
+      final staleWarmUpId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 60),
+      )!;
+      final staleFailureId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.failure, reps: 8, restSeconds: 20),
+      )!;
+
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == staleNormalId).prescription.restSeconds, 90);
+      expect(sets.singleWhere((s) => s.id == staleWarmUpId).prescription.restSeconds, 30);
+      expect(sets.singleWhere((s) => s.id == staleFailureId).prescription.restSeconds, 90);
+
+      // Warm-up timer OFF while Normal is active (90s):
+      // Warm-up set with stale restSeconds falls back to Normal preset (90s)
+      ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: null,
+      );
+      final fallbackWarmUpId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, restSeconds: 50),
+      )!;
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
+    });
   });
 }
 

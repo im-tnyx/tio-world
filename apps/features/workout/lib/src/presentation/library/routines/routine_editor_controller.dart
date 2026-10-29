@@ -320,8 +320,9 @@ final class RoutineEditorController extends ChangeNotifier {
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise
     // containing ranged Sets, which the canonical RPC correctly rejects.
     final preset = getExerciseRestPreset(current.id);
-    final effectiveRest =
-        prescription.restSeconds ?? preset.effectiveRestFor(prescription.setType);
+    final effectiveRest = preset.isOff
+        ? prescription.restSeconds
+        : preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: range ? (prescription.repsMax ?? prescription.reps) : null,

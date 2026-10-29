@@ -1,6 +1,6 @@
 # Routine Rest Timer (W4B2) — GitHub Issue #532 / Linear TNYX-81
 
-**Status:** Completed (Ready for Review)
+**Status:** In Review (P2 Fixes Addressed)
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter mobile (`apps/features/workout`, `apps/app`)
 
@@ -52,11 +52,11 @@
 **PR / tracker:** GitHub Issue #532, Linear TNYX-81
 **Current implementation state:** Complete
 **Relevant execution surface:** `apps/features/workout`
-**Validation completed at SHA:** `feat/issue-532-routine-rest-timer` branch (1,062 / 1,062 tests passing, flutter analyze 0 issues)
-**Validation remaining:** None
+**Validation completed at SHA:** `feat/issue-532-routine-rest-timer` branch (1,065 / 1,065 tests passing, flutter analyze 0 issues)
+**Validation remaining:** Remote CI run on push
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Commit, push branch, open PR, and reconcile Linear issue.
+**Open review finding IDs:** Addressed discussion_r4408682692 (active preset override on addSet)
+**Next exact action:** Commit, push to origin feat/issue-532-routine-rest-timer, reply to review thread, await CI/approval.
 
 ## Global UI / Design-System Guardrail
 

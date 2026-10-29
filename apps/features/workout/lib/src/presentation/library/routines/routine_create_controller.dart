@@ -284,8 +284,9 @@ final class RoutineCreateController extends ChangeNotifier {
     final inRange = entry.sets.isNotEmpty &&
         entry.sets.first.prescription.isRepRange;
     final preset = getExerciseRestPreset(entry.id);
-    final effectiveRest =
-        prescription.restSeconds ?? preset.effectiveRestFor(prescription.setType);
+    final effectiveRest = preset.isOff
+        ? prescription.restSeconds
+        : preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
