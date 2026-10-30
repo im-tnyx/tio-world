@@ -80,6 +80,14 @@ grant insert, select on routine_note_test_results to authenticated;
 select pg_temp.assert_true(
   to_regclass('public.user_workout_routine_notes') is not null
   and to_regclass('private.user_workout_routine_note_mutations') is not null
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261030081321')
+  and not exists (
+    select 1
+    from private.user_workout_routine_note_mutations
+    where result_snapshot is null
+  )
   and has_table_privilege(
     'authenticated', 'public.user_workout_routine_notes', 'SELECT'
   )
@@ -110,7 +118,7 @@ select pg_temp.assert_true(
     'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)',
     'EXECUTE'
   ),
-  'Notes tables and RPCs use the owner-secured access boundary'
+  'Notes tables, receipts and legacy-snapshot migration gate use the approved boundary'
 );
 
 select pg_temp.assert_true(

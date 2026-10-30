@@ -19,21 +19,22 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-10-30; Option A is pushed, and the approved body/quota review remediation is the owner-authorized commit/push checkpoint; hosted review refresh remains required
+**Repository state last verified:** 2026-10-30; Option A plus the approved body/quota remediation are pushed at `a6034ccf`, and the owner-approved legacy-receipt gate is implemented and validated locally; commit/push of the gate checkpoint is authorized by the current task and hosted review refresh remains required
 **Branch:** `tnyx/routine-notes-persistence`
-**Starting branch HEAD SHA:** `eab80a5c241f96ef650f517036d8e24f36567b53` (pre-commit checkpoint)
-**Validated pre-commit base SHA:** `eab80a5c241f96ef650f517036d8e24f36567b53` (the approved four-file checkpoint was validated before commit/push)
+**Starting branch HEAD SHA:** `a6034ccf15724d6827aa4f0a84321d5f48412c83` (current task preflight)
+**Validated pre-commit base SHA:** `a6034ccf15724d6827aa4f0a84321d5f48412c83` (the approved four-file checkpoint was validated before commit/push)
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
 **Observed pre-commit working-tree state:** The approved four-file checkpoint was present; no unrelated files observed
-**Observed pre-commit files:** `.ai/tasks/routine-notes-implementation.md`, `supabase/tests/database/tnyx_81_routine_notes_concurrency.sh`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `supabase/migrations/20261030065649_routine_note_mutation_result_snapshot.sql`
+**Current commit scope:** `.ai/tasks/routine-notes-implementation.md`, `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`; the existing Option A implementation and unrelated repository state are preserved
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Domain, migration/RPC, repository adapter and Slice 1 review fixes are committed and pushed in PR #717; Option A is included at hosted head `0d0855860535eefa88908740e0f30b4281e04b1a`; the approved body-normalization and 50-total-quota remediation is the owner-authorized synchronization checkpoint; hosted migration unapplied
+**Current implementation state:** Domain, migration/RPC, repository adapter, Option A snapshot replay, body normalization and 50-total-quota remediation are committed and pushed in PR #717 at head `a6034ccf`; the approved fail-closed legacy-receipt migration gate and its focused harness are locally implemented and validated but not yet committed; hosted Notes migration is unapplied
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
-**Validation completed at working tree:** 75-migration replay, updated transaction-scoped Routine Notes SQL matrix with Unicode normalization, 500-scalar boundary and 50-user quota assertions, existing two-session quota/transfer/duplicate harness, `supabase db lint`, `supabase db advisors` and SQL `git diff --check` on a disposable Docker setup. Direct Dart formatting ran with the pinned SDK; focused Dart test execution remains unavailable because the local runner hangs without diagnostics after bounded interruption.
-**Validation remaining:** Focused Dart test/analyze, independent review and owner merge approval. Hosted apply/deployment remains out of scope.
-**Current blocker:** Focused Dart validation and independent review remain pending after the approved body-normalization and total-quota remediation; hosted apply/deployment remains out of scope
-**Review status:** Review #5709395135 on hosted PR #717 at head `0d0855860535eefa88908740e0f30b4281e04b1a` confirmed CI success but kept `CHANGES_REQUESTED` for body-normalization parity and unrestricted cross-scope totals. Owner approved the exact remediation contract on 2026-10-30 and explicitly authorized commit/push; after the new head is pushed, hosted review and checks must be refreshed. No inline comments were returned for that review.
-**Next exact action:** Complete the authorized commit/push checkpoint, then refresh hosted review and checks on the new head; keep PR #717 unmerged and do not apply the migration or release.
+**Validation completed at working tree:** 76 migration files were replayed on a disposable Docker database using a 75-migration baseline plus the exact gate boundary; two legacy `NULL`-snapshot receipts failed atomically with exit 3, receipts and ledger remained unchanged, and a clean existing snapshot was preserved. The updated Routine Notes SQL matrix passed; the existing two-session quota/transfer/duplicate race harness passed in an isolated Linux Docker validation container; the hardened legacy-gate harness passed with exit 0; `supabase db lint` exited 0 with existing/diagnostic warnings; local `supabase db advisors` exited 0 but reported INFO/WARN findings including the private receipt table's no-policy RLS advisory; effective RPC grants, `SECURITY DEFINER`, owner and empty `search_path` were verified. No Dart files changed.
+**Hosted evidence:** Exact project ref `oykupyiitspujzpwwvuj` was verified as the linked healthy Tio-world project. Read-only hosted Advisor returned 47 project-wide WARN/INFO findings (14 authenticated SECURITY DEFINER warnings, 18 RLS init-plan warnings, 1 leaked-password warning, 1 RLS-no-policy finding and 12 unused-index findings); no Routine Notes function/table finding was returned. Hosted migration history ends at `20261028110000`; Notes table, receipt table, mutation RPC and reconciliation RPC are absent on the hosted project, so hosted Notes security is not verified for this unapplied migration.
+**Validation remaining:** Commit/push, exact-head PR refresh, current CI and independent review. S1/S2 architecture and the P3 recommendations remain separate owner decisions; hosted apply/deployment and merge remain out of scope.
+**Current blocker:** No local validation failure remains. Hosted Notes security cannot be closed until the migration is intentionally applied and independently inspected; review #5709617294, S1/S2 and P3 gates remain open.
+**Review status:** Review #5709617294 on hosted PR #717 at head `a6034ccf15724d6827aa4f0a84321d5f48412c83` accepted body-normalization and total-quota parity but kept `CHANGES_REQUESTED` for legacy NULL-snapshot compatibility and incomplete hosted Security Advisor/rationale evidence. The legacy gate is now locally implemented and validated under the approved no-backfill contract. No hosted migration, GitHub mutation or Linear mutation was performed.
+**Next exact action:** Complete final diff/scope inspection, stage only the four approved files, create one normal commit and push the existing branch. Then refresh PR #717 head, reviews, unresolved threads and CI. Keep PR #717 unmerged and do not apply the migration or release.
 
 ## 1. Discovery
 
@@ -80,7 +81,12 @@ Notes rows, type sheet, swipe actions, Routine Create/Edit controller integratio
 | Body normalization | Approved | Trim Unicode White_Space at both edges, reject empty normalized bodies, persist the normalized value, and enforce 500 Unicode scalar values/code points consistently in SQL and Dart | Product owner, 2026-10-30 |
 | Total active Notes quota | Approved | Keep five active Notes per canonical scope and add a 50 active-Notes-per-user cap across Routine and Exercise scopes; transfers must satisfy destination and user-wide capacity | Product owner, 2026-10-30 |
 | Mutation receipts | Option A approved | Successful mutation responses are stored as private immutable JSONB snapshots and replayed exactly | Product owner |
+| Legacy NULL-snapshot receipts | Approved | If any existing receipt has `result_snapshot IS NULL`, the new migration aborts with `routine_note_legacy_receipt_snapshot_required`; no synthetic backfill, delete or rewrite is permitted | Product owner, 2026-10-30 |
 | Hosted deployment | Out of scope | Local migration and tests only | Product owner |
+| S1/S2 RPC security architecture | Pending separate approval | S1 current public authenticated-only `SECURITY DEFINER` wrappers with documented rationale versus S2 private implementation plus minimal public `SECURITY INVOKER` wrappers | Product owner |
+| Receipt retention | Proposed, pending separate approval | Keep immutable receipts for at least 30 days or the supported retry/reconciliation horizon; consider permanent minimal tombstones after snapshot expiry; expired IDs must not silently execute again | Product owner |
+| Cross-user Note UUID conflict | Proposed, pending separate approval | Keep a generic non-disclosing invalid/unavailable outcome for occupied foreign IDs and missing IDs; update Dart mapping only in a separately approved contract change | Product owner |
+| Custom Exercise lifecycle | Proposed, pending separate approval | Keep archive-only authenticated behavior; preserve `ON DELETE NO ACTION`; evaluate service-role deletion and define archived-Note policy before any hard-delete path | Product owner |
 
 ## 4. Architecture Design
 
@@ -114,27 +120,39 @@ Slice 1 exposes sanitized outcomes for unauthorized, forbidden, invalid request,
 - [x] Complete CI execution of the SQL matrix/race harness and Flutter `app-workout` test shard; persistent local apply remains intentionally out of scope.
 - [x] Keep migration unapplied and leave UI untouched.
 - [x] Add the additive immutable result-snapshot migration and replay/reconciliation regression coverage.
+- [x] Add the additive fail-closed legacy-receipt migration gate and migration-boundary regression harness; commit/push is authorized only within the current four-file task scope.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Review remediation was validated on 2026-10-30 with Supabase CLI 2.116.0 and
-a disposable Docker Postgres project on port 55442. All 75 repository
-migrations replayed in single transactions. The updated SQL matrix passed with
-Unicode White_Space trimming, whitespace-only rejection, 500/501 Unicode
-scalar boundaries, the 50-active-Notes-per-user cap across distinct scopes,
-immutable snapshot regressions and rollback. The existing two-session quota,
-transfer and duplicate-result harness passed. `supabase db lint --local
---schema public,private --level error --fail-on none` and `supabase db
-advisors --local --type all --level error --fail-on none` both passed.
+The legacy-receipt gate was validated on 2026-10-30 with Supabase CLI 2.116.0
+and a disposable Docker Postgres project on port 55452. The repository has 76
+migrations after this additive migration. The 75-migration baseline replay was
+followed by two synthetic legacy receipts with `result_snapshot IS NULL`.
+Running the new migration with `psql --single-transaction` failed with exit 3
+and the deterministic error
+`routine_note_legacy_receipt_snapshot_required`; both receipts remained byte-
+for-byte unchanged and the gate version was absent from the migration ledger.
 
-The Dart formatter was run with the direct Dart 3.12.2 executable. Focused
-Dart test execution was attempted with bounded timeout but hung without
-diagnostics; no Dart test pass is claimed. Hosted Supabase was not changed.
-Independent review and merge authorization remain pending; owner commit/push
-authorization is recorded for this remediation checkpoint.
+A clean baseline with an existing valid snapshot applied the gate successfully;
+the snapshot JSONB remained exactly unchanged and the gate ledger entry was
+recorded once. The gate harness and full Routine Notes SQL matrix passed,
+including replay/reconciliation, and the existing two-session quota/transfer/
+duplicate harness passed in an isolated Linux Docker container. `supabase db
+lint` exited 0 with warnings, while local `supabase db advisors` exited 0 with
+INFO/WARN findings including the private receipt-table no-policy advisory.
+Effective local RPC grants plus `SECURITY DEFINER`/empty `search_path`
+properties were verified: both Notes RPCs are executable by `authenticated`,
+not by `anon` or `service_role`, and direct mutation-table privileges are not
+granted to those roles. Hosted Supabase was not changed.
+
+The exact linked hosted project `oykupyiitspujzpwwvuj` was verified read-only.
+Hosted Advisor returned 47 project-wide WARN/INFO findings and no Routine Notes
+finding, but the hosted migration history ends before the Notes migrations and
+the Notes table/RPC objects are absent there. This is hosted project evidence,
+not a hosted Notes security pass.
 ```
 
 ### Acceptance Evidence (substantive scope)
@@ -143,17 +161,18 @@ authorization is recorded for this remediation checkpoint.
 |---|---|---|---|---|
 | Immutable mutation replay | `supabase/migrations/20261030065649_routine_note_mutation_result_snapshot.sql` | Additive snapshot column, private trigger, public wrapper and reconciliation passed in the SQL matrix after delete/update/transfer/cascade | Disposable Supabase Postgres, CLI 2.116.0 | Hosted schema not changed |
 | Canonical ExerciseRef and adapter compatibility | `apps/shared/lib/src/workout/routine_note.dart` and focused test | Dart normalization source and test were formatted; focused Dart test/analyze could not complete because the local runner hung without diagnostics | Local direct Dart 3.12.2 | No hosted/client parity claim until focused Dart validation |
-| SQL security and grants | Snapshot migration plus existing Notes RPCs | SQL matrix, db lint, db advisors and explicit client-grant query passed | Disposable Supabase Postgres | Independent review remains pending |
+| SQL security and grants | Snapshot migration plus existing Notes RPCs | SQL matrix, db lint exit 0, local Advisor exit 0 with reported INFO/WARN findings, and explicit local client-grant/RPC query passed | Disposable Supabase Postgres | Hosted Notes objects are unapplied; hosted security review remains pending |
 | Review-contract regression coverage | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `apps/shared/test/workout/routine_note_test.dart` | 75-migration replay, Unicode body parity, 500/501 scalar boundaries, 50-user quota and existing two-session harness passed; focused Dart test remains blocked by local runner hang | Disposable Docker Postgres / local Dart SDK | Hosted PR head does not yet contain this remediation |
+| Legacy receipt migration boundary | `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh` | Two legacy NULL receipts fail closed without mutation or ledger success; clean valid snapshot is preserved; clean gate, normal SQL matrix and hardened cleanup harness pass | Disposable Docker Postgres, CLI 2.116.0 | Hosted migration not applied; commit/push is authorized by the current task but independent review remains required |
 
 ### Review Provenance
 
 **Review source / link:** chat-provided Slice 1 review-fix handoff, GitHub #716/#717, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
-**Diff or commit SHA actually reviewed:** hosted review #5709395135 reviewed head `0d0855860535eefa88908740e0f30b4281e04b1a`; the approved remediation is the post-head synchronization checkpoint
-**Review result and finding IDs/dispositions:** Option A P2 replay findings are addressed by the pushed immutable snapshots. Review #5709395135 body-normalization and total-quota findings are implemented locally under the owner-approved contract and validated on the database surface. Independent review remains pending.
+**Diff or commit SHA actually reviewed:** hosted review #5709617294 reviewed head `a6034ccf15724d6827aa4f0a84321d5f48412c83`; the legacy-receipt gate is the post-review local remediation checkpoint
+**Review result and finding IDs/dispositions:** Option A replay, body-normalization and total-quota findings are addressed by the pushed/local validated changes. Review #5709617294's legacy-receipt finding is implemented locally under the owner-approved no-backfill contract. Security architecture and P3 policy findings remain decision-ready only. Independent review remains pending.
 **Independent review?** No (self-review)
-**Limitations and unmet required gates:** Focused Dart test/analyze, hosted schema apply/deployment, independent review and merge authorization remain pending. Dedicated Linear issue creation was not requested and no child issue was created.
+**Limitations and unmet required gates:** Hosted schema apply/deployment, hosted Notes Security Advisor evidence, S1/S2 owner decision, P3 dispositions, independent review, post-push CI/review refresh and merge authorization remain pending. Dedicated Linear issue creation was not requested and no child issue was created.
 
 ### Review Findings and Resolution
 
@@ -166,7 +185,59 @@ authorization is recorded for this remediation checkpoint.
 | `PR717-SNAPSHOT-TESTS` | Resolved locally | Four regression tests now cover cascade direct replay, complete JSONB equality, legacy-null fail-closed replay/reconciliation and trigger-failure rollback; disposable 75-migration replay and SQL matrix passed | Owner inspection and independent review |
 | `PR717-BODY-NORMALIZATION` | Implemented locally | SQL and Dart now trim the approved Unicode White_Space set, reject empty normalized bodies and count Unicode scalar values; focused SQL parity cases passed | Focused Dart test and independent review |
 | `PR717-TOTAL-QUOTA` | Implemented locally | Five-per-scope quota remains and a serialized 50-active-Notes-per-user trigger rejects the 51st Note across distinct scopes; SQL quota matrix passed | Independent review |
+| `PR717-LEGACY-RECEIPT-GATE` | Implemented locally | Locked receipt table, deterministic `routine_note_legacy_receipt_snapshot_required` failure, unchanged legacy rows, no false ledger entry, clean-state snapshot preservation and hardened cleanup pass | Post-push independent review |
+| `PR717-SECURITY-DEFINER` | Open — decision-ready | Local grants, owner checks, `SECURITY DEFINER` and empty `search_path` verified; hosted Advisor returned project-wide findings but hosted Notes objects are absent; S1/S2 architecture choice not approved | Owner S1/S2 decision and post-apply hosted evidence |
+| `PR717-P3-DISPOSITIONS` | Open — decision-ready | Receipt retention, cross-user Note ID signalling and Custom Exercise archive/hard-delete lifecycle recommendations are documented; no policy implementation changed | Explicit owner dispositions |
+
+### Decision-ready follow-ups from review #5709617294
+
+**Security boundary recommendation:** Retain the current public authenticated-only
+`SECURITY DEFINER` wrappers as S1 for this compatibility-sensitive Notes slice
+only if the owner accepts the documented rationale and exact hosted Security
+Advisor evidence is obtained for the intended project. Local evidence confirms
+`search_path = ''`, `postgres` ownership, `auth.uid()` checks and authenticated-
+only `EXECUTE`; local advisors are not hosted evidence. S2 (private implementation
+functions with a minimal public authenticated wrapper) is the safer future
+boundary but requires a separate owner-approved migration, grant, PostgREST and
+client-compatibility review. Neither option is implemented here.
+
+**P3 recommendation — receipt retention:** retain immutable receipts for 30 days
+after `created_at`, or longer if the supported offline retry/reconciliation
+horizon is formally longer. Pruning before that horizon can turn a delayed retry
+into a new mutation; pruning after it reduces private payload retention and
+storage growth. A private scheduled cleanup must be separately approved and
+must not be client-callable.
+
+**P3 recommendation — cross-user Note ID conflicts:** return the same generic
+invalid/unavailable mutation outcome for a foreign UUID and a non-existent UUID;
+do not reveal whether another user's Note ID exists. Preserve current owner
+checks and avoid changing the public contract in this slice.
+
+**P3 recommendation — Custom Exercise lifecycle:** keep owner Custom Exercises
+archive-only for now. Authenticated hard-delete is denied, the composition FK is
+`ON DELETE NO ACTION`, and existing Notes use the canonical Exercise UUID text
+without a cleanup FK. Any future hard-delete would require an explicit
+composition/Note preservation or deletion policy and a separate protected
+lifecycle slice; no orphan cleanup is implemented here.
+
+### Migration lock operational note
+
+`20261030081321_routine_note_legacy_receipt_gate.sql` takes an
+`ACCESS EXCLUSIVE` lock on `private.user_workout_routine_note_mutations` before
+checking for legacy `NULL` snapshots. This serializes the precondition against
+receipt writes and reconciliation reads/operations, and also conflicts with
+other table-level access such as concurrent DDL. The lock, precondition and
+failure are inside one migration transaction: a failed check raises
+`routine_note_legacy_receipt_snapshot_required`, rolls back the migration and
+does not record the gate in `supabase_migrations.schema_migrations`.
+
+Run this migration in a controlled release window after checking active
+receipt-operation sessions and blockers. If it fails, preserve the evidence,
+confirm the migration ledger has no successful gate entry, resolve the legacy
+receipt condition under the approved no-backfill procedure, confirm no blocked
+receipt operation remains, and retry only after the release owner approves the
+window. Do not apply it to hosted Supabase from this task.
 
 ## Exit Criteria
 
-PR #717 remains Ready for Review, not Draft. The approved remediation is validated on the disposable database surface and is authorized for synchronization; the migration remains unapplied, UI files remain unchanged, and merge/release remain blocked pending focused Dart validation, new-head CI, independent review and explicit authorization.
+PR #717 remains Ready for Review, not Draft. The legacy-receipt gate is validated locally and is authorized for the current commit/push checkpoint; hosted migration remains unapplied, UI files remain unchanged, and merge/release remain blocked pending post-push review/CI, S1/S2 security decision, P3 dispositions and merge authorization.
