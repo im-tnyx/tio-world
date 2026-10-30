@@ -32,6 +32,51 @@ begin
 end;
 $$;
 
+create function pg_temp.assert_raises_exact(
+  p_sql text,
+  p_state text,
+  p_error text,
+  p_message text
+)
+returns void language plpgsql as $$
+declare
+  v_state text;
+  v_error text;
+begin
+  begin
+    execute p_sql;
+  exception when others then
+    get stacked diagnostics
+      v_state = returned_sqlstate,
+      v_error = message_text;
+    if v_state = p_state and v_error = p_error then return; end if;
+    raise exception 'assertion failed: % expected %/% got %/%',
+      p_message, p_state, p_error, v_state, v_error;
+  end;
+  raise exception 'assertion failed: % (succeeded)', p_message;
+end;
+$$;
+
+create function pg_temp.assert_jsonb_equal(
+  p_expected jsonb,
+  p_actual jsonb,
+  p_message text
+)
+returns void language plpgsql as $$
+begin
+  if p_expected is distinct from p_actual then
+    raise exception 'assertion failed: % expected %, got %',
+      p_message, p_expected, p_actual;
+  end if;
+end;
+$$;
+
+create temporary table routine_note_test_results (
+  mutation_id uuid primary key,
+  result jsonb not null
+);
+grant insert, select on routine_note_test_results to authenticated;
+
 select pg_temp.assert_true(
   to_regclass('public.user_workout_routine_notes') is not null
   and to_regclass('private.user_workout_routine_note_mutations') is not null
@@ -94,7 +139,10 @@ insert into public.user_workout_routines (id, user_id, program_id, name) values
    'a8100000-0000-4000-8000-000000000012', 'Routine B'),
   ('a8100000-0000-4000-8000-000000000023',
    'a8100000-0000-4000-8000-000000000001',
-   'a8100000-0000-4000-8000-000000000011', 'Routine Delete');
+   'a8100000-0000-4000-8000-000000000011', 'Routine Delete'),
+  ('a8100000-0000-4000-8000-000000000024',
+   'a8100000-0000-4000-8000-000000000001',
+   'a8100000-0000-4000-8000-000000000011', 'Routine Snapshot Tests');
 insert into public.user_workout_exercises (
   id, user_id, display_name
 ) values (
@@ -126,14 +174,21 @@ select pg_temp.assert_raises(
   '42501', 'authenticated cannot read mutation receipts directly'
 );
 
-select pg_temp.assert_true(
-  (public.mutate_user_workout_routine_note(
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000201',
+  public.mutate_user_workout_routine_note(
     'create',
     'a8100000-0000-4000-8000-000000000101',
     'a8100000-0000-4000-8000-000000000021',
     null, null, '  Routine note  ', null,
     'a8100000-0000-4000-8000-000000000201'
-  )->>'status') = 'applied',
+  )
+);
+select pg_temp.assert_true(
+  (select result->>'status' = 'applied'
+   from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000201'),
   'create defaults to a Routine Note and normalizes body text'
 );
 select pg_temp.assert_true(
@@ -167,13 +222,20 @@ select pg_temp.assert_true(
   'catalog ExerciseRef remains a catalog identity and is not mirrored'
 );
 
-select pg_temp.assert_true(
-  (public.mutate_user_workout_routine_note(
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000204',
+  public.mutate_user_workout_routine_note(
     'update',
     'a8100000-0000-4000-8000-000000000101',
     null, null, null, 'Updated note', 0,
     'a8100000-0000-4000-8000-000000000204'
-  )->>'revision')::bigint = 1,
+  )
+);
+select pg_temp.assert_true(
+  ((select result->>'revision'
+    from routine_note_test_results
+    where mutation_id = 'a8100000-0000-4000-8000-000000000204')::bigint = 1),
   'body update advances revision exactly once'
 );
 select pg_temp.assert_raises(
@@ -186,14 +248,22 @@ select pg_temp.assert_raises(
   'P0001', 'stale revision is rejected without changing body'
 );
 
-select pg_temp.assert_true(
-  (public.mutate_user_workout_routine_note(
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000206',
+  public.mutate_user_workout_routine_note(
     'transfer',
     'a8100000-0000-4000-8000-000000000101',
     null, 'a8100000-0000-4000-8000-000000000031',
     'pinned_exercise', null, 1,
     'a8100000-0000-4000-8000-000000000206'
-  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000101',
+  )
+);
+select pg_temp.assert_true(
+  ((select result->'note'->>'id'
+    from routine_note_test_results
+    where mutation_id = 'a8100000-0000-4000-8000-000000000206') =
+    'a8100000-0000-4000-8000-000000000101'),
   'type transfer preserves Note UUID and body'
 );
 select pg_temp.assert_true(
@@ -204,6 +274,15 @@ select pg_temp.assert_true(
    from public.user_workout_routine_notes
    where id = 'a8100000-0000-4000-8000-000000000101'),
   'type transfer changes only the approved Note scope'
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'update',
+    'a8100000-0000-4000-8000-000000000101',
+    null, null, null, 'Transferred note', 2,
+    'a8100000-0000-4000-8000-000000000208'
+  )->>'revision')::bigint = 3,
+  'later update advances the transferred Note revision'
 );
 
 -- Fill the Routine scope to the approved cap.
@@ -327,15 +406,20 @@ select pg_temp.assert_raises(
   'P0001', 'new Notes cannot attach to an archived Custom Exercise'
 );
 
-select public.mutate_user_workout_routine_note(
-  'create', 'a8100000-0000-4000-8000-000000000110',
-  'a8100000-0000-4000-8000-000000000023', null, 'pinned_routine',
-  'Routine deletion note', null, 'a8100000-0000-4000-8000-000000000222');
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000222',
+  public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000110',
+    'a8100000-0000-4000-8000-000000000023', null, 'pinned_routine',
+    'Routine deletion note', null, 'a8100000-0000-4000-8000-000000000222'
+  )
+);
 
 select pg_temp.assert_true(
   (public.mutate_user_workout_routine_note(
     'delete', 'a8100000-0000-4000-8000-000000000101',
-    null, null, null, null, 2,
+    null, null, null, null, 3,
     'a8100000-0000-4000-8000-000000000207'
   )->>'status') = 'deleted',
   'Delete removes exactly one Note'
@@ -343,16 +427,88 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   (public.mutate_user_workout_routine_note(
     'delete', 'a8100000-0000-4000-8000-000000000101',
-    null, null, null, null, 2,
+    null, null, null, null, 3,
     'a8100000-0000-4000-8000-000000000207'
   )->>'status') = 'deleted'
+  and (public.mutate_user_workout_routine_note(
+    'delete', 'a8100000-0000-4000-8000-000000000101',
+    null, null, null, null, 3,
+    'a8100000-0000-4000-8000-000000000207'
+  )->>'note_id') = 'a8100000-0000-4000-8000-000000000101'
+  and (public.mutate_user_workout_routine_note(
+    'delete', 'a8100000-0000-4000-8000-000000000101',
+    null, null, null, null, 3,
+    'a8100000-0000-4000-8000-000000000207'
+  )->>'revision')::bigint = 3
   and not exists (
     select 1 from public.user_workout_routine_notes
     where id = 'a8100000-0000-4000-8000-000000000101'
   ),
   'Delete replay cannot resurrect a Note'
 );
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000201'),
+  public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000101',
+    'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
+    '  Routine note  ', null,
+    'a8100000-0000-4000-8000-000000000201'
+  ),
+  'create replay returns the complete immutable result after deletion'
+);
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000206'),
+  public.mutate_user_workout_routine_note(
+    'transfer', 'a8100000-0000-4000-8000-000000000101',
+    null, 'a8100000-0000-4000-8000-000000000031', 'pinned_exercise',
+    null, 1, 'a8100000-0000-4000-8000-000000000206'
+  ),
+  'transfer replay returns the complete original result after deletion'
+);
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000204'),
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000204'
+  ),
+  'reconciliation returns the complete immutable first update result'
+);
 
+reset role;
+select pg_temp.assert_true(
+  (select result_snapshot->>'status' = 'applied'
+      and result_snapshot = (
+        select result from routine_note_test_results
+        where mutation_id = 'a8100000-0000-4000-8000-000000000204'
+      )
+   from private.user_workout_routine_note_mutations
+   where mutation_id = 'a8100000-0000-4000-8000-000000000204'),
+  'successful mutation receipts store the complete private result snapshot'
+);
+
+delete from public.user_workout_routine_notes
+where id = 'a8100000-0000-4000-8000-000000000102';
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'update', 'a8100000-0000-4000-8000-000000000110',
+    null, null, null, 'Routine deletion note v2', 0,
+    'a8100000-0000-4000-8000-000000000223'
+  )->>'revision')::bigint = 1
+  and (public.mutate_user_workout_routine_note(
+    'update', 'a8100000-0000-4000-8000-000000000110',
+    null, null, null, 'Routine deletion note v3', 1,
+    'a8100000-0000-4000-8000-000000000224'
+  )->>'revision')::bigint = 2,
+  'later updates advance the Routine deletion fixture revision'
+);
 reset role;
 delete from public.user_workout_routine_notes
 where id = 'a8100000-0000-4000-8000-000000000102';
@@ -367,6 +523,146 @@ select pg_temp.assert_true(
 );
 
 set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000222'),
+  public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000110',
+    'a8100000-0000-4000-8000-000000000023', null, 'pinned_routine',
+    'Routine deletion note', null, 'a8100000-0000-4000-8000-000000000222'
+  ),
+  'direct mutation replay returns the complete result after Routine cascade'
+);
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000222'),
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000222'
+  ),
+  'reconciliation retains the complete result after Routine cascade'
+);
+reset role;
+select pg_temp.assert_true(
+  (select count(*) = 0
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000110')
+  and (select count(*) = 1
+       from private.user_workout_routine_note_mutations
+       where mutation_id = 'a8100000-0000-4000-8000-000000000222'),
+  'Routine cascade replay does not create a duplicate Note or receipt'
+);
+
+-- A receipt created before the snapshot migration has no result_snapshot. The
+-- replay and reconciliation paths must fail closed without reading a live Note.
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000120',
+    'a8100000-0000-4000-8000-000000000024', null, 'pinned_routine',
+    'Legacy receipt note', null, 'a8100000-0000-4000-8000-000000000225'
+  )->>'status') = 'applied',
+  'legacy receipt fixture starts as a valid completed mutation'
+);
+reset role;
+update private.user_workout_routine_note_mutations
+set result_snapshot = null
+where mutation_id = 'a8100000-0000-4000-8000-000000000225';
+delete from public.user_workout_routine_notes
+where id = 'a8100000-0000-4000-8000-000000000120';
+set local role authenticated;
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000120',
+    'a8100000-0000-4000-8000-000000000024', null, 'pinned_routine',
+    'Legacy receipt note', null, 'a8100000-0000-4000-8000-000000000225'
+  )$$,
+  'P0001', 'routine_note_mutation_snapshot_unavailable',
+  'legacy mutation replay fails closed without a snapshot'
+);
+select pg_temp.assert_raises_exact(
+  $$select public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000225'
+  )$$,
+  'P0001', 'routine_note_mutation_snapshot_unavailable',
+  'legacy mutation reconciliation fails closed without a snapshot'
+);
+reset role;
+select pg_temp.assert_true(
+  (select count(*) = 0
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000120')
+  and (select result_snapshot is null
+       from private.user_workout_routine_note_mutations
+       where mutation_id = 'a8100000-0000-4000-8000-000000000225'),
+  'legacy receipt remains null and never fabricates a current result'
+);
+
+-- Install a disposable AFTER trigger so the already-completed snapshot trigger
+-- runs first, then force the receipt insert to fail before the RPC can commit.
+create function pg_temp.routine_note_test_snapshot_failure()
+returns trigger language plpgsql as $$
+begin
+  raise exception 'routine_note_test_snapshot_failure' using errcode = 'P0001';
+end;
+$$;
+create trigger zzz_routine_note_test_snapshot_failure
+after insert on private.user_workout_routine_note_mutations
+for each row
+execute function pg_temp.routine_note_test_snapshot_failure();
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000121',
+    'a8100000-0000-4000-8000-000000000024', null, 'pinned_routine',
+    'Rollback trigger note', null, 'a8100000-0000-4000-8000-000000000226'
+  )$$,
+  'P0001', 'routine_note_test_snapshot_failure',
+  'snapshot failure propagates from the public mutation RPC'
+);
+reset role;
+select pg_temp.assert_true(
+  (select count(*) = 0
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000121')
+  and (select count(*) = 0
+       from private.user_workout_routine_note_mutations
+       where mutation_id = 'a8100000-0000-4000-8000-000000000226'),
+  'snapshot failure rolls back the Note and receipt together'
+);
+drop trigger zzz_routine_note_test_snapshot_failure
+  on private.user_workout_routine_note_mutations;
+drop function pg_temp.routine_note_test_snapshot_failure();
+set local role authenticated;
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000122',
+    'a8100000-0000-4000-8000-000000000024', null, 'pinned_routine',
+    'Post-rollback normal note', null, 'a8100000-0000-4000-8000-000000000227'
+  )->>'status') = 'applied',
+  'normal mutation succeeds after failure injection is removed'
+);
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000122'),
+  'normal mutation persists after failure injection is removed'
+);
+
 select set_config(
   'request.jwt.claim.sub',
   'a8100000-0000-4000-8000-000000000002',

@@ -332,3 +332,116 @@ if [[ "$transfer_result" != t ]]; then
   exit 1
 fi
 echo 'TNYX-81 full-destination transfer race preserved the source Note.'
+
+fifo_a="$sync_dir/duplicate-a.in"
+fifo_b="$sync_dir/duplicate-b.in"
+log_a="$sync_dir/duplicate-a.log"
+log_b="$sync_dir/duplicate-b.log"
+mkfifo "$fifo_a" "$fifo_b"
+
+psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --set=owner="$owner" --set=routine_id="$transfer_source_routine" \
+  --set=note_id='a8100100-0000-4000-8000-000000000036' \
+  --set=mutation_id='a8100100-0000-4000-8000-000000000136' \
+  <"$fifo_a" >"$log_a" 2>&1 &
+pid_a=$!
+exec 3>"$fifo_a"
+writer_a_open=1
+cat >&3 <<'SQL'
+begin;
+set local role authenticated;
+set local application_name = 'tnyx_81_routine_notes_duplicate_a';
+select set_config('request.jwt.claim.sub', :'owner', true);
+select pg_catalog.pg_advisory_xact_lock(
+  pg_catalog.hashtextextended(
+    :'owner' || ':routine-note-mutation:' || :'mutation_id', 0
+  )
+);
+select public.mutate_user_workout_routine_note(
+  'create', :'note_id'::uuid, :'routine_id'::uuid, null,
+  'pinned_routine', 'Concurrent duplicate', null, :'mutation_id'::uuid
+);
+\echo SESSION_A_DUPLICATE_RESULT_READY
+SQL
+wait_log 'SESSION_A_DUPLICATE_RESULT_READY' "$log_a" "$pid_a"
+
+psql "$database_url" --set=ON_ERROR_STOP=1 \
+  --set=owner="$owner" --set=routine_id="$transfer_source_routine" \
+  --set=note_id='a8100100-0000-4000-8000-000000000036' \
+  --set=mutation_id='a8100100-0000-4000-8000-000000000136' \
+  <"$fifo_b" >"$log_b" 2>&1 &
+pid_b=$!
+exec 4>"$fifo_b"
+writer_b_open=1
+cat >&4 <<'SQL'
+begin;
+set local role authenticated;
+set local application_name = 'tnyx_81_routine_notes_duplicate_b';
+select set_config('request.jwt.claim.sub', :'owner', true);
+select public.mutate_user_workout_routine_note(
+  'create', :'note_id'::uuid, :'routine_id'::uuid, null,
+  'pinned_routine', 'Concurrent duplicate', null, :'mutation_id'::uuid
+);
+commit;
+\echo SESSION_B_DUPLICATE_RESULT_RETURNED
+\quit
+SQL
+
+blocked=0
+for _ in $(seq 1 100); do
+  waiting="$(psql "$database_url" --set=ON_ERROR_STOP=1 -At \
+    --command="select exists(
+      select 1 from pg_stat_activity
+      where application_name='tnyx_81_routine_notes_duplicate_b'
+        and state='active' and wait_event_type='Lock'
+    )" | tr -d '[:space:]')"
+  if [[ "$waiting" == t ]]; then blocked=1; break; fi
+  if ! kill -0 "$pid_b" 2>/dev/null; then
+    echo 'Session B finished without waiting on the mutation receipt lock' >&2
+    exit 1
+  fi
+  sleep 0.1
+done
+if [[ "$blocked" != 1 ]]; then
+  echo 'Concurrent duplicate Session B was not observed waiting on the mutation lock' >&2
+  exit 1
+fi
+
+cat >&3 <<'SQL'
+commit;
+\echo SESSION_A_DUPLICATE_RACE_RELEASED
+\quit
+SQL
+exec 3>&-
+writer_a_open=0
+wait "$pid_a"
+pid_a=""
+grep -Fq 'SESSION_A_DUPLICATE_RACE_RELEASED' "$log_a"
+wait "$pid_b"
+pid_b=""
+writer_b_open=0
+grep -Fq 'SESSION_B_DUPLICATE_RESULT_RETURNED' "$log_b"
+grep -Fq 'a8100100-0000-4000-8000-000000000036' "$log_a"
+grep -Fq 'a8100100-0000-4000-8000-000000000036' "$log_b"
+
+duplicate_note_result="$(psql "$database_url" --set=ON_ERROR_STOP=1 -At \
+  --command="select count(*) = 1
+    and bool_and(last_mutation_id =
+      'a8100100-0000-4000-8000-000000000136'::uuid)
+    and bool_and(body = 'Concurrent duplicate')
+    from public.user_workout_routine_notes
+    where id='a8100100-0000-4000-8000-000000000036'::uuid" \
+  | tr -d '[:space:]')"
+duplicate_receipt_result="$(psql "$database_url" --set=ON_ERROR_STOP=1 -At \
+  --command="select count(*) = 1
+    and min(result_snapshot->'note'->>'id') =
+      'a8100100-0000-4000-8000-000000000036'
+    from private.user_workout_routine_note_mutations
+    where user_id='$owner'::uuid
+      and mutation_id='a8100100-0000-4000-8000-000000000136'::uuid" \
+  | tr -d '[:space:]')"
+if [[ "$duplicate_note_result" != t || "$duplicate_receipt_result" != t ]]; then
+  echo 'Concurrent duplicate requests did not produce one Note and one immutable receipt' >&2
+  exit 1
+fi
+echo 'TNYX-81 concurrent duplicate requests returned one immutable result.'
