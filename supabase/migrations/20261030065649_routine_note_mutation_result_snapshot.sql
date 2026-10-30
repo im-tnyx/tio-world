@@ -2,6 +2,12 @@
 -- Add immutable mutation-result snapshots without changing the approved
 -- Routine Notes normalization, quota, identity or UI contracts.
 
+-- The receipt table is the shared write boundary for the legacy mutation RPC.
+-- Hold this lock for the migration transaction so in-flight receipt writes
+-- finish before the compatibility check and new writes cannot enter while
+-- the snapshot behavior is being installed.
+lock table private.user_workout_routine_note_mutations in access exclusive mode;
+
 alter table private.user_workout_routine_note_mutations
   add column result_snapshot jsonb;
 
@@ -11,6 +17,25 @@ alter table private.user_workout_routine_note_mutations
     result_snapshot is null
     or pg_catalog.jsonb_typeof(result_snapshot) = 'object'
   );
+
+-- This is the critical compatibility barrier. It must run before either public
+-- mutation/reconciliation function changes so a legacy receipt failure rolls
+-- back the column and leaves the original RPC behavior intact.
+do $$
+begin
+  if exists (
+    select 1
+    from private.user_workout_routine_note_mutations
+    where result_snapshot is null
+  ) then
+    raise exception 'routine_note_legacy_receipt_snapshot_required'
+      using
+        errcode = 'P0001',
+        detail = 'Existing mutation receipts are missing immutable result snapshots; this migration does not backfill historical results.',
+        hint = 'Resolve the legacy receipt set under the approved release procedure, then rerun the migration.';
+  end if;
+end;
+$$;
 
 create function private.user_workout_routine_note_receipt_snapshot()
 returns trigger
@@ -163,3 +188,6 @@ revoke all on function public.reconcile_user_workout_routine_note_mutation(uuid)
   from public, anon, authenticated, service_role;
 grant execute on function public.reconcile_user_workout_routine_note_mutation(uuid)
   to authenticated;
+
+-- The later legacy-receipt migration remains as a defense-in-depth invariant
+-- check for deployments that replay the boundary independently.

@@ -81,6 +81,17 @@ select pg_temp.assert_true(
   to_regclass('public.user_workout_routine_notes') is not null
   and to_regclass('private.user_workout_routine_note_mutations') is not null
   and (select count(*) = 1
+       from information_schema.columns
+       where table_schema = 'private'
+         and table_name = 'user_workout_routine_note_mutations'
+         and column_name = 'result_snapshot')
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261030065649')
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261030074635')
+  and (select count(*) = 1
        from supabase_migrations.schema_migrations
        where version = '20261030081321')
   and not exists (
