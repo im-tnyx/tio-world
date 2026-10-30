@@ -83,7 +83,7 @@ final class RoutineNote {
 
   static String normalizeBody(String value) {
     final normalized = value.trim();
-    if (normalized.isEmpty || normalized.length > 500) {
+    if (normalized.isEmpty || normalized.runes.length > 500) {
       throw ArgumentError.value(value, 'body', 'must contain 1-500 characters');
     }
     return normalized;

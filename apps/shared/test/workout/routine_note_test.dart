@@ -53,6 +53,23 @@ void main() {
     expect(() => RoutineNote.normalizeBody('x' * 501), throwsArgumentError);
     expect(RoutineNote.normalizeBody('  valid  '), 'valid');
   });
+
+  test('body normalization matches Unicode whitespace and scalar-value limits', () {
+    expect(
+      RoutineNote.normalizeBody('\u00a0\tvalid\u2028'),
+      'valid',
+    );
+
+    final fiveHundredScalars = '\u{1f600}' * 500;
+    expect(
+      RoutineNote.normalizeBody(fiveHundredScalars).runes.length,
+      500,
+    );
+    expect(
+      () => RoutineNote.normalizeBody('\u{1f600}' * 501),
+      throwsArgumentError,
+    );
+  });
 }
 
 Map<String, dynamic> routineJson(RoutineNote note) => {

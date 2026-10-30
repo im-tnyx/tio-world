@@ -143,6 +143,10 @@ insert into public.user_workout_routines (id, user_id, program_id, name) values
   ('a8100000-0000-4000-8000-000000000024',
    'a8100000-0000-4000-8000-000000000001',
    'a8100000-0000-4000-8000-000000000011', 'Routine Snapshot Tests');
+insert into public.user_workout_routines (id, user_id, program_id, name) values
+  ('a8100000-0000-4000-8000-000000000025',
+   'a8100000-0000-4000-8000-000000000001',
+   'a8100000-0000-4000-8000-000000000011', 'Routine Contract Tests');
 insert into public.user_workout_exercises (
   id, user_id, display_name
 ) values (
@@ -157,6 +161,56 @@ select set_config(
   'a8100000-0000-4000-8000-000000000001',
   true
 );
+
+savepoint total_note_quota_test;
+do $$
+declare
+  i integer;
+  j integer;
+  routine_id uuid;
+  note_id uuid;
+  mutation_id uuid;
+  result jsonb;
+begin
+  for i in 1..10 loop
+    routine_id := (
+      'a8100000-0000-4000-8000-' || lpad((1000 + i)::text, 12, '0')
+    )::uuid;
+    insert into public.user_workout_routines (id, user_id, program_id, name)
+    values (
+      routine_id,
+      'a8100000-0000-4000-8000-000000000001',
+      'a8100000-0000-4000-8000-000000000011',
+      format('Total Quota Routine %s', i)
+    );
+    for j in 1..5 loop
+      note_id := (
+        'a8100000-0000-4000-8000-' || lpad((2000 + (i * 10) + j)::text, 12, '0')
+      )::uuid;
+      mutation_id := (
+        'a8100000-0000-4000-8000-' || lpad((3000 + (i * 10) + j)::text, 12, '0')
+      )::uuid;
+      result := public.mutate_user_workout_routine_note(
+        'create', note_id, routine_id, null, 'pinned_routine',
+        format('Total quota %s/%s', i, j), null, mutation_id
+      );
+      if result->>'status' <> 'applied' then
+        raise exception 'assertion failed: total quota setup mutation was not applied';
+      end if;
+    end loop;
+  end loop;
+end;
+$$;
+select pg_temp.assert_raises(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000040000001',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    'the 51st active Note is rejected across distinct scopes', null,
+    'a8100000-0000-4000-8000-000040000002'
+  )$$,
+  'P0001', 'the user-wide active Notes quota is authoritative across scopes'
+);
+rollback to savepoint total_note_quota_test;
 
 select pg_temp.assert_raises(
   $$insert into public.user_workout_routine_notes (
@@ -197,6 +251,40 @@ select pg_temp.assert_true(
    from public.user_workout_routine_notes
    where id = 'a8100000-0000-4000-8000-000000000101'),
   'created Routine Note has stable identity and initial revision'
+);
+
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000130',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    U&'\00A0\0009Unicode \+01F600\2028', null,
+    'a8100000-0000-4000-8000-000000000230'
+  )->'note'->>'body') = 'Unicode 😀',
+  'SQL body normalization trims the Dart Unicode White_Space set'
+);
+select pg_temp.assert_raises(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000131',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    U&'\000A\0009\00A0', null, 'a8100000-0000-4000-8000-000000000231'
+  )$$,
+  '22023', 'SQL rejects Unicode whitespace-only bodies'
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000132',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    repeat('😀', 500), null, 'a8100000-0000-4000-8000-000000000232'
+  )->>'status') = 'applied',
+  'SQL accepts 500 Unicode scalar values'
+);
+select pg_temp.assert_raises(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000133',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    repeat('😀', 501), null, 'a8100000-0000-4000-8000-000000000233'
+  )$$,
+  '22023', 'SQL rejects 501 Unicode scalar values'
 );
 
 select pg_temp.assert_true(
