@@ -1,6 +1,6 @@
 # Routine Notes Persistence Foundation
 
-**Status:** In progress — latest repository review fixes are pushed; scheduled receipt expiry remains blocked pending owner approval
+**Status:** Locally validated — awaiting scoped commit/push, exact-head CI and independent review; merge gates remain open
 **Primary owner:** Codex (current implementation session)
 **Affected platforms:** Shared, Workout feature, Supabase database
 
@@ -27,14 +27,14 @@
 **Observed starting working-tree state:** Existing local SQL normalization/index migration and SQL regression changes were present before receipt-retention work; they were preserved in the scoped commit. Current scope also included the receipt-retention migration, Dart repository/result mapping, focused tests and this handoff.
 **Current commit scope:** Commit `82fe4a36` contains the two Routine Notes review fixes and initial handoff reconciliation; it was normally pushed and verified under the attached 2026-10-31 authorization. This post-push documentation sync is the only follow-up. No merge, review-thread resolution, hosted migration apply, scheduler creation or other hosted mutation occurred.
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Owner approved 30-day full-snapshot retention on 2026-10-31. Local migration adds access-time expiry/redaction and a body-free `expired` tombstone while preserving `mutation_id` and `request_hash`; Dart maps expired RPC results to a definite `RoutineNoteFailureKind.expired`. This is not full policy enforcement: repository inspection found no approved scheduled cleanup mechanism, so inactive users' expired snapshots remain stored until a receipt RPC touches them. No pg_cron, scheduled function, or new privileged worker was introduced.
+**Current implementation state:** Owner approved 30-day full-snapshot retention on 2026-10-31 and subsequently authorized a local disposable-database `pg_cron` cleanup implementation. The current working-tree migration adds scheduled dormant-receipt cleanup and successful-job-history pruning; it preserves `mutation_id`, `request_hash` and tombstone metadata, redacts only the Note body, and retains explicit `expired` replay/reconciliation behavior. Local behavior and regression matrix passed after aligning the existing disposable database to the current draft; a fresh exact-migration replay on that named project remains to be confirmed by post-push CI. Hosted enforcement is not active or claimed.
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
 **Prior Slice 1 validation checkpoint:** The hardened harness replayed 76 migration files on a disposable Docker database using the pre-Notes baseline and the exact migration boundary. Two legacy `NULL`-snapshot receipts failed atomically with SQLSTATE `P0001`; receipt rows, original mutation/reconciliation function definitions, the added column and migration ledger entries remained unchanged. The two-session test confirmed the `ACCESS EXCLUSIVE` lock blocks a concurrent legacy receipt write until the migration precondition is evaluated. The clean full sequence passed with non-NULL snapshots and the existing Routine Notes persistence/replay matrix. Pinned Supabase CLI `2.116.0` `db lint` exited `0`; local `db advisors` exited `0` with existing project-wide INFO/WARN findings, including the expected private receipt-table no-policy advisory. Effective Routine Note RPC grants, `SECURITY DEFINER` and empty `search_path` were verified. At that checkpoint no production Dart files changed; current bounded review remediation now changes only the Routine Notes repository and its focused test.
 **Hosted evidence:** The Notes migrations remain unapplied and hosted Notes-specific Security Advisor evidence is pending. No hosted security approval is claimed.
 **Current validation:** Prior local SQL persistence/retention matrix, expired-retry concurrency race, migration replay, `db lint`, local advisors and ACL checks remain as recorded below and are local-only. For the two current Dart findings, direct Flutter test runner passed `supabase_routine_notes_repository_test.dart` 11/11, direct Dart formatting/check left 2 files unchanged, and Workout package analysis reported no issues. The Flutter command printed a pre-existing `uses-material-design` package warning; it exited 0. `git diff --check` passed before the scoped commit. No SQL or migration changed in this remediation.
 **PR snapshot immediately after source-fix push (2026-10-31):** PR #717 was OPEN, non-draft, unmerged, head `82fe4a360af726161ae3c8876a99a177546d7b70`, base `main`, merge state `BLOCKED`, and review decision `CHANGES_REQUESTED`. That head's first check refresh had 8 pending, 3 skipped, 0 failed and 0 passed. There were 22 review threads; 18 were unresolved/non-outdated. Codex finding `4431238409` was outdated (thread remains unresolved in GitHub metadata) after this repository path changed; `4431238413` remained unresolved/non-outdated. The latest independent `im-tio` review was on prior head `4d2f2063` and requests changes over incomplete retention; no independent review of `82fe4a36` existed at that checkpoint. Current Linear state at the same task reconciliation: TNYX-81 is Backlog and blocked by TNYX-78 and TNYX-80; TNYX-78 and TNYX-80 are In Progress. Linear search found no dedicated Routine Notes issue, so TNYX-81 remains the broad planning parent; no tracker was changed. A later handoff-only commit will trigger fresh docs/attribution CI and requires another live refresh.
-**Receipt-cleanup architecture gate:** Repository search found no checked-in `pg_cron` extension/configuration, scheduled Edge Function invocation, protected cleanup RPC caller, or approved scheduled worker. `supabase/config.toml` declares no cron setup; existing Edge Functions and GitHub Actions are not an approved production scheduler. Therefore inactive receipts can retain Note bodies beyond 30 days; the policy is only enforced on later receipt access. Conditional recommendation: prefer a bounded database-native `pg_cron` sweep calling a narrow private cleanup function if the linked hosted project already supports/enables the extension and the owner approves its migration/operation. Process bounded batches with `FOR UPDATE SKIP LOCKED`, preserve tombstone fields, make redaction idempotent, alert on failed/lagging runs, and rollback by unscheduling (never restore redacted bodies). A protected scheduled Edge Function is an alternative but needs scheduler configuration plus protected invocation/secret handling, network retries, monitoring and deployment/rollback; it adds a second trust boundary for a database-local cleanup. Hosted extension availability/privileges and job ownership are not verified. No scheduler is approved or implemented; exact blocker is owner approval of the invocation mechanism and confirmation of its hosted privilege/operations boundary.
-**Next exact action:** After the handoff-only sync push, refresh CI/reviews on that exact current head and obtain an independent review; then reassess the still-open retention finding. Request separate owner approval for the recommended cleanup invocation before implementing any scheduler. Hosted migration apply/deployment, PR merge and review-thread resolution remain unauthorized.
+**Receipt-cleanup architecture gate:** The approved local implementation uses a bounded private `pg_cron` sweep. Hosted extension availability/privileges, schedule registration, job ownership and monitoring remain unverified and unauthorized. Therefore this work does not claim production enforcement. See the latest validation checkpoint below for the local scheduler/function role boundary and remaining deployment gates.
+**Next exact action at the preceding checkpoint:** After the handoff-only sync push, refresh CI/reviews and reassess the retention finding. This was superseded by the 2026-10-31 owner authorization and scheduled-cleanup implementation checkpoint below.
 
 ## 2026-10-31 — S1 security test coverage completion checkpoint
 
@@ -228,7 +228,7 @@ not a hosted Notes security pass.
 **Review source / link:** chat-provided Slice 1 review-fix handoff, GitHub #716/#717, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
 **Diff or commit SHA actually reviewed:** hosted review #5709617294 reviewed head `a6034ccf15724d6827aa4f0a84321d5f48412c83`; the legacy-receipt gate is the post-review local remediation checkpoint
-**Review result and finding IDs/dispositions:** Immutable replay, body-normalization, total-quota, legacy-receipt gate, migration order and mutation-ID preservation are present in pushed history. Current hosted `im-tio` review remains `CHANGES_REQUESTED` on `4d2f2063`; it says receipt retention is only access-time and incomplete. New current-head Codex findings `4431238409` and `4431238413` are locally fixed and tested in the pending worktree diff. The original mutation-ID session-change finding was fixed in pushed history at `b622ac2f`. Receipt retention duration was approved 2026-10-31; only its scheduler mechanism remains unapproved. Cross-user Note UUID and Custom Exercise lifecycle decisions remain separate.
+**Review result and finding IDs/dispositions:** Immutable replay, body-normalization, total-quota, legacy-receipt gate, migration order and mutation-ID preservation are present in pushed history. Current hosted `im-tio` review remains `CHANGES_REQUESTED` on `4d2f2063`; it says receipt retention is only access-time and incomplete. New current-head Codex findings `4431238409` and `4431238413` are locally fixed and tested in the pending worktree diff. The original mutation-ID session-change finding was fixed in pushed history at `b622ac2f`. At that earlier checkpoint, only the scheduler mechanism remained unapproved; the owner later authorized a local disposable implementation, recorded below. Cross-user Note UUID and Custom Exercise lifecycle decisions remain separate.
 **Independent review?** No (self-review)
 **Limitations and unmet required gates:** Hosted schema apply/deployment and Notes-specific Security Advisor evidence remain pending. S1 is conditionally approved for this Slice 1 boundary, not production-verified. P3 owner decisions, independent approval, exact post-push CI/review and merge authorization remain separate gates. Dedicated Linear issue creation was not requested and no child issue was created.
 
@@ -282,7 +282,9 @@ need scheduler setup, protected credentials, network retry/authorization,
 monitoring and deployment/rollback, adding an unnecessary HTTP trust boundary
 for a database-local operation. Hosted extension availability, job role and
 operational ownership are not verified. Owner approval is required to choose
-and authorize either invocation path; no scheduler is implemented here.
+and authorize either invocation path at the time of that earlier audit; the
+owner's later local-disposable authorization and implementation are recorded
+in the checkpoint below.
 
 **P3 recommendation — cross-user Note ID conflicts:** return the same generic
 invalid/unavailable mutation outcome for a foreign UUID and a non-existent UUID;
@@ -314,13 +316,109 @@ receipt condition under the approved no-backfill procedure, confirm no blocked
 receipt operation remains, and retry only after the release owner approves the
 window. Do not apply it to hosted Supabase from this task.
 
+## 2026-10-31 — Scheduled receipt cleanup implementation checkpoint
+
+Owner authorization: local implementation and validation only in disposable
+Postgres project `tnyx717receipt20261031`. No hosted Supabase operation is
+authorized. Program/Routine sharing, AI content, Notes UI, Routine Create/Edit,
+WorkoutSession/history and changes to the personal RoutineId / user+ExerciseRef
+Notes scopes remain out of scope.
+
+### Implementation files in the pending worktree
+
+* `supabase/migrations/20261031130000_routine_note_receipt_scheduled_cleanup.sql`
+  installs local `pg_cron`, creates a private sweep function and invoker history
+  pruner, registers five-minute and daily schedules, and uses batches capped at
+  500 with oldest-first ordering and `FOR UPDATE SKIP LOCKED`.
+* `supabase/tests/database/tnyx_81_routine_note_receipt_cleanup.test.sql`
+  covers effective role/ACL/RLS behavior, expiry boundaries, dormant and
+  repeated cleanup, body redaction, permanent tombstones, retry/reconcile,
+  owner isolation, malformed snapshots, batch continuation and scheduling.
+* `supabase/tests/database/tnyx_81_routine_note_receipt_cleanup_concurrency.sh`
+  covers two-worker batches, cleanup/reconciliation and cleanup/mutation locks,
+  scheduler failure/recovery and failure-history preservation.
+* `.github/workflows/supabase-db-ci.yml` wires the matrix and concurrency
+  harness into the existing database workflow.
+
+### Local disposable evidence
+
+The named disposable DB reported PostgreSQL 17.6, `pg_cron` 1.6.4,
+`cron.use_background_workers=off`, and 79 migration ledger entries. Its existing
+draft schema was older than the current pending migration in three details
+(pruner owner, split RLS policies and explicit role SET membership). The local
+database was aligned to the current draft for regression validation; this is
+not evidence of a fresh full migration replay on that exact database.
+
+* `tnyx_81_routine_notes_persistence.test.sql` passed with `psql -v
+  ON_ERROR_STOP=1`.
+* `tnyx_81_routine_note_receipt_cleanup.test.sql` passed after the disposable
+  schema was aligned to the current draft. It covered the 30-day cutoff,
+  tombstone/hash preservation, repeated calls, expired retry refusal,
+  cross-owner isolation, malformed/null fail-closed cases and 511-row batch
+  continuation.
+* `tnyx_81_routine_note_receipt_cleanup_concurrency.sh` passed in the same
+  disposable container: two concurrent workers processed distinct 500-row
+  batches; locked receipts were skipped then handled later; reconciliation and
+  duplicate mutation serialized safely; cron failure was recorded, recovery
+  succeeded, and failed history was retained.
+* Focused Flutter repository test passed 11/11 with Flutter 3.44.6 using the
+  bounded verbose runner. The normal sandbox invocation produced no output and
+  was interrupted; the elevated rerun passed.
+* `git diff --check` passed after the task brief update.
+* Supabase CLI `db lint --db-url` could not authenticate to this container's
+  non-TLS local listener (TLS and password negotiation errors); do not claim a
+  lint result for this DB. Earlier local lint/advisor evidence predates this
+  cleanup migration. Hosted Advisor has not run.
+
+### Role, scheduling and operational limits
+
+`private.cleanup_expired_user_workout_routine_note_receipts()` is narrowly
+`SECURITY DEFINER`, owned by `routine_note_receipt_cleanup_owner`, has empty
+`search_path`, exact scheduler EXECUTE, column-scoped receipt access and split
+owner RLS policies. The scheduler has no receipt-table privileges. History
+pruning is `SECURITY INVOKER`; the scheduler can see/prune only its own cron
+history and the bounded function retains failed runs. Client roles have no
+`cron` schema USAGE or cleanup function EXECUTE.
+
+PostgreSQL 17 creates an automatic creator membership when `postgres` creates
+the helper roles. The membership is only for trusted `postgres`; its
+`supabase_admin`-recorded ADMIN option cannot be revoked by the migration
+principal. The migration explicitly grants effective `SET TRUE`, and tests
+assert effective `SET ROLE` plus no application-role membership. This local
+Supabase privilege nuance needs independent reviewer acceptance.
+
+Expiry cadence is five minutes and history pruning is daily at 03:17 UTC in
+the disposable environment. This is not a ten-minute SLA: run duration, receipt
+arrival rate and backlog capacity are not measured. Alerting/lag monitoring
+must be defined before production activation. Rollback requires unscheduling
+both jobs before dropping the functions/roles/extension; redacted Note bodies
+are not recoverable and must never be restored from receipts.
+
+### Review and release gates
+
+Immediately before this checkpoint update, PR #717 was OPEN, non-draft and
+unmerged at hosted head `a0285c7bec483cd94e6905414593f266fd5eb3d9`, base
+`9c782688acd13efd189b7827c139dea3aca1a5d6`, review `CHANGES_REQUESTED`, with
+18 unresolved/non-outdated and 4 unresolved/outdated review threads. Exact-head
+CI was green: Database `41189728092`, Flutter `41189728017`, Docs Hygiene
+`41189728023`, attribution `41189726348`. These checks predate this pending
+diff and are not current-head validation.
+
+P3 disposition is unchanged: UUID collision signaling remains deferred without
+changing the public contract; Custom Exercise remains archive-only with no
+authenticated hard-delete. Neither is claimed fixed or reviewer-accepted. No
+review threads have been resolved. After scoped commit/push, refresh every
+thread/check on exact HEAD and request independent review. Do not merge while
+`CHANGES_REQUESTED`, a blocking thread, required check or security gate remains.
+Hosted pg_cron enablement, hosted schedule, Notes migration apply, hosted
+Security Advisor, deployment and production data changes remain unauthorized.
+
 ## Exit Criteria
 
-PR #717 remains OPEN, non-draft and unmerged. Current pending diff contains the
-two locally validated Routine Notes P2 fixes and this handoff correction;
-commit/push is authorized only for those scoped files. Refresh review threads
-and CI on the new exact head after push. Hosted Notes migrations remain unapplied.
-The 30-day retention duration is approved but enforcement remains partial until
-the owner approves an invocation mechanism and its hosted privileges/operations
-are verified. Hosted Notes security evidence, remaining P3 owner decisions,
-independent approval and merge authorization remain separate gates.
+PR #717 remains OPEN, non-draft and unmerged as last verified. This working
+tree contains the scheduled cleanup implementation, regression coverage and
+CI wiring described above. Commit/push and fresh review are authorized after
+final diff/validation checks. Hosted 30-day enforcement and security approval
+are not claimed. Remaining gates are exact-head CI, independent review of the
+cleanup and role-membership nuance, reviewer-compatible disposition of P3
+threads, and repository merge protection.
