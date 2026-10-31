@@ -266,6 +266,30 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
 
+      - name: Run TNYX-81 Routine Notes SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql
+
+      - name: Run TNYX-81 receipt cleanup SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_81_routine_note_receipt_cleanup.test.sql
+
+      - name: Run TNYX-81 receipt cleanup and reconciliation races
+        shell: bash
+        env:
+          TNYX_81_DISPOSABLE_DB: '1'
+        run: bash supabase/tests/database/tnyx_81_routine_note_receipt_cleanup_concurrency.sh
+
+      - name: Run TNYX-81 Routine Notes quota and transfer two-session races
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_routine_notes_concurrency.sh
+
       - name: Run #526 owner-scoped Routine Delete SQL matrix
         shell: bash
         run: |

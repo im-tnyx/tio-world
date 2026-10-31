@@ -10,6 +10,7 @@ export 'routine.dart';
 export 'routine_composition.dart';
 export 'routine_exercise.dart';
 export 'routine_id.dart';
+export 'routine_note.dart';
 export 'set_prescription.dart';
 export 'training_plan_id.dart';
 export 'workout_session_id.dart';

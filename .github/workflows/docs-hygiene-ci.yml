@@ -28,7 +28,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
-          persist-credentials: false
+          # The later read-only git fetch needs authentication for private PR refs.
+          # This job checks out trusted base code and never executes the PR head.
+          persist-credentials: true
 
       - name: Validate exact PR refs and documentation diff
         shell: bash
