@@ -142,9 +142,9 @@ Notes rows, type sheet, swipe actions, Routine Create/Edit controller integratio
 | Legacy NULL-snapshot receipts | Approved | If any existing receipt has `result_snapshot IS NULL`, the new migration aborts with `routine_note_legacy_receipt_snapshot_required`; no synthetic backfill, delete or rewrite is permitted | Product owner, 2026-10-30 |
 | Hosted deployment | Out of scope | Local migration and tests only | Product owner |
 | S1/S2 RPC security architecture | S1 conditionally approved for Slice 1 | Retain current authenticated-only public `SECURITY DEFINER` wrappers with verified ACL/ownership/schema/RLS/search_path/helper/cross-owner checks; this is not production approval. S2 remains a separately reviewed alternative. Hosted Notes deployment and Notes-specific Advisor evidence remain mandatory gates. | Product owner, 2026-10-31 |
-| Receipt retention | 30 days approved; enforcement is partial pending cleanup mechanism | Keep full snapshots through 30 days from `created_at`; then redact Note body and retain mutation ID, request hash and identifying tombstone metadata; expired reconciliation is explicit and expired IDs never execute again | Product owner, 2026-10-31 |
-| Cross-user Note UUID conflict | Proposed, pending separate approval | Keep generic non-disclosing behavior for occupied foreign IDs and missing IDs; do not change the public contract without approval. Codex finding “Avoid exposing cross-owner Note ID collisions” duplicates this existing SQL identity-disclosure concern and does not create a second implementation slice. | Product owner |
-| Custom Exercise lifecycle | Proposed, pending separate approval | Keep archive-only authenticated behavior; preserve `ON DELETE NO ACTION`; evaluate service-role deletion and define archived-Note policy before any hard-delete path | Product owner |
+| Receipt retention | 30 days approved; local scheduled enforcement implemented | Keep full snapshots through 30 days from `created_at`; then redact Note body and retain mutation ID, request hash and identifying tombstone metadata; expired reconciliation is explicit and expired IDs never execute again. Hosted scheduler deployment remains unauthorized and unverified. | Product owner, 2026-10-31 |
+| Cross-user Note UUID conflict | Owner-scoped identity approved and implemented in this remediation | Use `(user_id, id)` as the Notes primary key and scope duplicate checks to authenticated `auth.uid()`; preserve the public Note DTO and same-owner duplicate conflict while permitting the same UUID in different owner namespaces. | Product owner, 2026-10-31 |
+| Custom Exercise lifecycle | Archive-only behavior confirmed for this PR | Keep authenticated hard-delete denied and preserve `ON DELETE NO ACTION`; a future privileged hard-delete requires its own approved composition/Note lifecycle contract. | Product owner |
 
 ## 4. Architecture Design
 
@@ -248,8 +248,9 @@ not a hosted Notes security pass.
 | `4431238409` / `PR717-READ-SESSION-SWITCH` | Fixed and pushed in `82fe4a36`; GitHub thread is outdated but unresolved | `read()` now returns `RoutineNoteException(unauthorized)` on owner change; focused regression verifies no stale data, mutation call or reconciliation | Independent new-head review; thread state unchanged |
 | `4431238413` / `PR717-MALFORMED-RPC-RESULT` | Fixed and pushed in `82fe4a36`; GitHub thread remains unresolved/current | `_noteResult()` maps parse `TypeError` to `RoutineNoteException(malformedData)`; numeric `last_mutation_id` regression passes; applied/expired mapping regressions remain green | Independent new-head review; thread state unchanged |
 | `PR717-SECURITY-DEFINER` | S1 conditionally approved for Slice 1 | Local grants, ownership, RLS, `SECURITY DEFINER`, empty `search_path`, helper execution and cross-owner tests recorded; hosted Notes objects remain absent | Hosted deployment and Notes-specific Security Advisor/security review |
-| `PR717-RECEIPT-RETENTION` | Partially implemented; policy enforcement blocked | Owner approved 30-day full snapshots and redacted permanent tombstones. SQL/Dart mapping, expiry matrix and expired-retry race pass locally; no scheduled cleanup mechanism exists, so inactive receipts remain unredacted past 30 days | Approved cleanup invocation or separately approved scheduling mechanism |
-| `PR717-P3-DISPOSITIONS` | Open — remaining owner decisions | Custom Exercise archive/hard-delete remains separate. Cross-owner Note UUID disclosure is an existing concern; Codex collision finding duplicates that concern | Explicit owner disposition |
+| `PR717-RECEIPT-RETENTION` | Implemented and locally scheduled; hosted enforcement pending | Owner-approved 30-day full snapshots and redacted permanent tombstones are enforced by bounded `pg_cron` cleanup in the migration; SQL matrix and two-session cleanup/reconciliation race passed locally | Hosted deployment, scheduler permissions/operations and Notes-specific Security Advisor remain unauthorized/unverified |
+| `PR717-P3-A-UUID-SIGNAL` | Owner-approved; implemented locally | Global Note UUID collision check/primary key replaced by `(user_id, id)` identity; regression verifies cross-owner reuse and same-owner duplicate rejection | Fresh exact-head CI and independent review |
+| `PR717-P3-B-CUSTOM-EXERCISE-LIFECYCLE` | Future lifecycle requirement; not a PR #717 defect | Authenticated hard-delete is denied, Routine composition uses `ON DELETE NO ACTION`, archive is supported, and Note creation rejects archived Custom Exercises | No hard-delete feature in this PR |
 
 ### Decision-ready follow-ups from review #5709617294
 
@@ -286,10 +287,13 @@ and authorize either invocation path at the time of that earlier audit; the
 owner's later local-disposable authorization and implementation are recorded
 in the checkpoint below.
 
-**P3 recommendation — cross-user Note ID conflicts:** return the same generic
-invalid/unavailable mutation outcome for a foreign UUID and a non-existent UUID;
-do not reveal whether another user's Note ID exists. Preserve current owner
-checks and avoid changing the public contract in this slice.
+**P3-A cross-user Note UUID signaling — owner-approved remediation (2026-10-31):**
+the Notes primary key is `(user_id, id)` and create collision checks are scoped
+to the authenticated `auth.uid()` owner. The public RoutineNote shape remains
+unchanged, and same-owner duplicate IDs still return the existing conflict.
+The SQL matrix and two-session disposable-Postgres race verify cross-user UUID
+reuse without cross-owner reads or mutation. The migration is not applied to
+hosted Supabase.
 
 **P3 recommendation — Custom Exercise lifecycle:** keep owner Custom Exercises
 archive-only for now. Authenticated hard-delete is denied, the composition FK is
@@ -404,12 +408,15 @@ CI was green: Database `41189728092`, Flutter `41189728017`, Docs Hygiene
 `41189728023`, attribution `41189726348`. These checks predate this pending
 diff and are not current-head validation.
 
-P3 disposition is unchanged: UUID collision signaling remains deferred without
-changing the public contract; Custom Exercise remains archive-only with no
-authenticated hard-delete. Neither is claimed fixed or reviewer-accepted. No
-review threads have been resolved. After scoped commit/push, refresh every
-thread/check on exact HEAD and request independent review. Do not merge while
-`CHANGES_REQUESTED`, a blocking thread, required check or security gate remains.
+P3-A owner-scoped UUID identity is implemented locally under explicit owner
+approval; the focused SQL matrix and a two-session same-UUID cross-owner race
+passed on the named disposable database. P3-B is a future lifecycle requirement:
+Custom Exercise hard-delete is denied, archive is supported, and Routine
+composition uses `ON DELETE NO ACTION`. Neither finding is independently
+accepted yet. No review thread has been resolved. After scoped commit/push,
+refresh every thread/check on exact HEAD and request independent review. Do not
+merge while `CHANGES_REQUESTED`, a blocking thread, required check or security
+gate remains.
 Hosted pg_cron enablement, hosted schedule, Notes migration apply, hosted
 Security Advisor, deployment and production data changes remain unauthorized.
 

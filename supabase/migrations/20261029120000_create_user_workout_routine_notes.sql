@@ -356,7 +356,8 @@ begin
   if v_operation = 'create' then
     if exists (
       select 1 from public.user_workout_routine_notes as note
-      where note.id = p_note_id
+      where note.user_id = v_user_id
+        and note.id = p_note_id
     ) then
       raise exception 'routine_note_id_conflict' using errcode = 'P0001';
     end if;

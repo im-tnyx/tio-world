@@ -100,6 +100,24 @@ select pg_temp.assert_true(
   and (select count(*) = 1
        from supabase_migrations.schema_migrations
        where version = '20261031110000')
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261031142025')
+  and (select pg_catalog.pg_get_constraintdef(constraint_row.oid)
+         = 'PRIMARY KEY (user_id, id)'
+       from pg_catalog.pg_constraint as constraint_row
+       where constraint_row.conrelid =
+         'public.user_workout_routine_notes'::regclass
+         and constraint_row.conname = 'user_workout_routine_notes_pkey')
+  and not exists (
+    select 1
+    from pg_catalog.pg_index as index_catalog
+    where index_catalog.indrelid =
+        'public.user_workout_routine_notes'::regclass
+      and index_catalog.indisunique
+      and index_catalog.indpred is null
+      and pg_catalog.pg_get_indexdef(index_catalog.indexrelid, 1, true) = 'id'
+  )
   and not exists (
     select 1
     from private.user_workout_routine_note_mutations
@@ -452,6 +470,10 @@ insert into public.user_workout_routines (id, user_id, program_id, name) values
   ('a8100000-0000-4000-8000-000000000025',
    'a8100000-0000-4000-8000-000000000001',
    'a8100000-0000-4000-8000-000000000011', 'Routine Contract Tests');
+insert into public.user_workout_routines (id, user_id, program_id, name) values
+  ('a8100000-0000-4000-8000-000000000026',
+   'a8100000-0000-4000-8000-000000000001',
+   'a8100000-0000-4000-8000-000000000011', 'Routine UUID Isolation Test');
 insert into public.user_workout_exercises (
   id, user_id, display_name
 ) values (
@@ -1145,7 +1167,8 @@ reset role;
 select pg_temp.assert_true(
   (select body = 'User B original result' and revision = 0
    from public.user_workout_routine_notes
-   where id = 'a8100000-0000-4000-8000-000000000901')
+   where id = 'a8100000-0000-4000-8000-000000000901'
+     and user_id = 'a8100000-0000-4000-8000-000000000002')
   and (select count(*) = 0
        from private.user_workout_routine_note_mutations
        where user_id = 'a8100000-0000-4000-8000-000000000001'
@@ -1172,13 +1195,90 @@ reset role;
 select pg_temp.assert_true(
   (select count(*) = 1
    from public.user_workout_routine_notes
-   where id = 'a8100000-0000-4000-8000-000000000901')
+   where id = 'a8100000-0000-4000-8000-000000000901'
+     and user_id = 'a8100000-0000-4000-8000-000000000002')
   and (select count(*) = 0
        from private.user_workout_routine_note_mutations
        where user_id = 'a8100000-0000-4000-8000-000000000001'
          and mutation_id = 'a8100000-0000-4000-8000-000000000905'),
   'cross-owner delete leaves User B Note and User A receipts unchanged'
 );
+
+-- A foreign owner's UUID is not a global namespace collision. The same
+-- request shape succeeds for User A without revealing User B's row, and both
+-- accounts retain independent payloads under the same UUID.
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000901',
+    'a8100000-0000-4000-8000-000000000026', null, 'pinned_routine',
+    'User A same UUID private result', null,
+    'a8100000-0000-4000-8000-000000000906'
+  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000901',
+  'User A can create their own Note with a UUID already used by User B'
+);
+reset role;
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000901'
+     and user_id = 'a8100000-0000-4000-8000-000000000001'
+     and body = 'User A same UUID private result')
+  and (select count(*) = 1
+       from public.user_workout_routine_notes
+       where id = 'a8100000-0000-4000-8000-000000000901'
+         and user_id = 'a8100000-0000-4000-8000-000000000002'
+         and body = 'User B original result'),
+  'same UUID creates two independently owner-scoped Note identities'
+);
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000901'
+     and user_id = 'a8100000-0000-4000-8000-000000000001'
+     and body = 'User A same UUID private result'),
+  'RLS exposes only User A row when Note UUID is shared across owners'
+);
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000002',
+  true
+);
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000901'
+     and user_id = 'a8100000-0000-4000-8000-000000000002'
+     and body = 'User B original result'),
+  'RLS exposes only User B row when Note UUID is shared across owners'
+);
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000901',
+    'a8100000-0000-4000-8000-000000000026', null, 'pinned_routine',
+    'same owner duplicate', null,
+    'a8100000-0000-4000-8000-000000000907'
+  )$$,
+  'P0001', 'routine_note_id_conflict',
+  'a duplicate Note UUID within one owner remains a client-safe conflict'
+);
+reset role;
 
 set local role authenticated;
 select set_config(
