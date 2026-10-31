@@ -510,7 +510,7 @@ S1/hosted-security boundary. Both have factual evidence replies; reviewer
 acceptance remains pending. Do not merge while the independent review decision
 is `CHANGES_REQUESTED` or these dispositions remain unresolved.
 
-## 2026-10-31 — Latest repository review findings
+## 2026-10-31 — Pre-push repository review checkpoint
 
 At the connected PR mirror refresh, PR #717 remains OPEN and unmerged at
 `2de278a19f2c7d90e4f860d8b1f44fab5e15db5d`. The Codex review on that head
@@ -531,12 +531,27 @@ review decision remains `CHANGES_REQUESTED`; fresh exact-head review and checks
 are required after push. Do not merge or resolve threads as part of this local
 fix checkpoint.
 
-## Exit Criteria
+## 2026-10-31 — Exact-head merge-gate checkpoint
 
-The last completed hosted check set is exact-head `2de278a1` (Database CI,
-Flutter CI, Docs Hygiene and attribution passed; Cursor agents were neutral due
-usage limits). The working-tree fixes above are not on the hosted head yet, so
-their CI and reviewer acceptance are pending. Four review threads remain open
-and aggregate review is `CHANGES_REQUESTED`; merge is BLOCKED. Hosted
-30-day-enforcement/security deployment gates remain separate and are not
-claimed as complete.
+Review-fix commit `a58942cf82b89c7a54eda1840572a1ea724cdd34` is pushed to
+`tnyx/routine-notes-persistence`. Focused Flutter repository tests passed
+14/14, Flutter package analysis reported no issues, `dart format` made no
+changes, and `git diff --check` passed. Exact-head GitHub checks passed:
+
+* Database CI: `41216527235`.
+* Flutter CI and all three package shards: `41216527293`.
+* Docs Hygiene: `41216527240`.
+* Commit attribution: `41216527227`.
+
+Cursor Bugbot and Cursor Approval/Security agents were neutral because their
+usage limits prevented review. A fresh `@codex review` request was posted, but
+Codex reported its review usage limit; no new Codex review is available for
+this head. `im-tio` re-review is requested; the last submitted independent
+decision remains `CHANGES_REQUESTED` on an earlier head. Four inline threads
+remain open: two fixed P2 findings now outdated at the new head, plus the
+current P3-B lifecycle and conditional S1/hosted-security threads. The two P2
+threads have evidence replies; they remain unresolved pending explicit
+authorization/reviewer disposition. PR is OPEN, in review and unmerged; merge
+is BLOCKED until fresh independent approval and remaining review dispositions.
+Hosted migrations, scheduler activation, Notes-specific hosted Advisor and
+production deployment are not claimed.
