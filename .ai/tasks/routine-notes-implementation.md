@@ -19,22 +19,21 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-10-31; the S1 security-test checkpoint starts from exact PR #717/local branch HEAD `2cd8fb7f36cff7bf5d9a431719098282e81709d9`; the GitHub CLI was unavailable, while the read-only connector refresh is recorded below
+**Repository state last verified:** 2026-10-31; PR #717 S1 test checkpoint is pushed at `b15d47af724dc5c1dd3c3b690c87a150d695f41a`; current bounded remediation starts from that exact head
 **Branch:** `tnyx/routine-notes-persistence`
-**Starting branch HEAD SHA:** `2cd8fb7f36cff7bf5d9a431719098282e81709d9` (S1 task preflight)
-**Validated pre-commit base SHA:** `2cd8fb7f36cff7bf5d9a431719098282e81709d9` (S1 tests ran against this base plus the allowlisted uncommitted test/handoff changes)
+**Starting branch HEAD SHA:** `b15d47af724dc5c1dd3c3b690c87a150d695f41a` (current remediation preflight)
+**Validated pre-commit base SHA:** `b15d47af724dc5c1dd3c3b690c87a150d695f41a` plus the three-file bounded mutation-ID correction
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
-**Observed pre-commit working-tree state:** Clean before the S1 edits; only the allowlisted SQL test, focused Dart test and this handoff are dirty now
-**Current commit scope:** Owner-authorized S1 checkpoint commit is limited to `.ai/tasks/routine-notes-implementation.md`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql` and `apps/features/workout/test/data/supabase_routine_notes_repository_test.dart`; no production source or migration is included
+**Observed starting working-tree state:** Clean at `b15d47af`; current remediation scope is the repository adapter, its focused test and this handoff
+**Current commit scope:** Preserve the original command mutation ID when an authenticated session changes after a successful RPC; update the matching regression and reconcile this handoff. No SQL or migration changes.
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Domain, migration/RPC, repository adapter, Option A snapshot replay, body normalization, 50-total-quota remediation and the P1 fail-closed legacy-receipt guard are present locally at HEAD `2cd8fb7f`; hosted Notes migration remains unapplied
+**Current implementation state:** Slice 1 implementation and S1 test checkpoint are pushed through `b15d47af`; this working change addresses the Codex P2 finding that session-change UNKNOWN discarded the original mutation ID. Hosted Notes migration remains unapplied.
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
 **Validation completed at working tree:** The hardened harness replayed 76 migration files on a disposable Docker database using the pre-Notes baseline and the exact migration boundary. Two legacy `NULL`-snapshot receipts failed atomically with SQLSTATE `P0001`; receipt rows, original mutation/reconciliation function definitions, the added column and migration ledger entries remained unchanged. The two-session test confirmed the `ACCESS EXCLUSIVE` lock blocks a concurrent legacy receipt write until the migration precondition is evaluated. The clean full sequence passed with non-NULL snapshots and the existing Routine Notes persistence/replay matrix. Pinned Supabase CLI `2.116.0` `db lint` exited `0`; local `db advisors` exited `0` with existing project-wide INFO/WARN findings, including the expected private receipt-table no-policy advisory. Effective Routine Note RPC grants, `SECURITY DEFINER` and empty `search_path` were verified. No production Dart files changed; the allowlisted focused repository test contains the local S1 regressions.
-**Hosted evidence:** Exact project ref `oykupyiitspujzpwwvuj` was verified as the linked healthy Tio-world project. Hosted migration history ends at `20261028110000`; the Notes tables, mutation RPC and reconciliation RPC are absent on the hosted project, so the Notes migration remains unapplied and hosted Notes security is not verified. Last verified PR #717 state at exact head `2cd8fb7f36cff7bf5d9a431719098282e81709d9` was OPEN and `CHANGES_REQUESTED`; a fresh GitHub refresh during this S1 task failed with API connectivity.
-**Validation remaining:** Independently run the hosted Security Advisor gate after the Notes migration is deployed; S1/S2 architecture and P3 recommendations remain separate owner decisions; hosted apply/deployment and merge remain out of scope.
-**Current blocker:** Local S1 test coverage is complete. Hosted Notes security/Advisor evidence remains unavailable while migrations are unapplied.
-**Review status:** The last exact-head hosted review remains `CHANGES_REQUESTED` for the separate S1/security evidence gate. Local S1 test additions are not hosted or reviewed. No hosted migration or Linear mutation was performed.
-**Next exact action:** After a separately authorized commit/push, refresh PR #717 reviews, unresolved threads and CI at the exact pushed head. Keep PR #717 unmerged and do not apply the migration or release.
+**Hosted evidence:** The Notes migrations remain unapplied and hosted Notes-specific Security Advisor evidence is pending. No hosted security approval is claimed.
+**Current validation:** Focused Routine Notes Flutter tests pass 7/7; Dart formatter check and Workout package `flutter analyze` pass; `git diff --check` passes. Prior S1 SQL validation remains historical and was not rerun.
+**Current PR/tracker snapshot (2026-10-31):** PR #717 OPEN, non-draft, unmerged and mergeable at `b15d47af724dc5c1dd3c3b690c87a150d695f41a`. Latest reviewer submission is `COMMENTED`, not APPROVED; no new P0/P1 runtime defect was established. Exact-head CI runs 41184640159 (Supabase Database), 41184640001 (Flutter) and 41184639990 (Docs Hygiene) passed. Codex P2 mutation-ID finding is in this bounded fix. There are 11 review threads, 9 unresolved non-outdated. Linear TNYX-81 remains Backlog, blocked by TNYX-78 and TNYX-80.
+**Next exact action:** Validate this fix, then commit and normally push only the approved repository adapter, focused regression test and task handoff if branch synchronization still matches. Refresh exact-head CI and review status afterward. Keep PR #717 unmerged; hosted deployment and migration remain unauthorized.
 
 ## 2026-10-31 — S1 security test coverage completion checkpoint
 
@@ -141,9 +140,9 @@ Notes rows, type sheet, swipe actions, Routine Create/Edit controller integratio
 | Mutation receipts | Option A approved | Successful mutation responses are stored as private immutable JSONB snapshots and replayed exactly | Product owner |
 | Legacy NULL-snapshot receipts | Approved | If any existing receipt has `result_snapshot IS NULL`, the new migration aborts with `routine_note_legacy_receipt_snapshot_required`; no synthetic backfill, delete or rewrite is permitted | Product owner, 2026-10-30 |
 | Hosted deployment | Out of scope | Local migration and tests only | Product owner |
-| S1/S2 RPC security architecture | Pending separate approval | S1 current public authenticated-only `SECURITY DEFINER` wrappers with documented rationale versus S2 private implementation plus minimal public `SECURITY INVOKER` wrappers | Product owner |
+| S1/S2 RPC security architecture | S1 conditionally approved for Slice 1 | Retain current authenticated-only public `SECURITY DEFINER` wrappers with verified ACL/ownership/schema/RLS/search_path/helper/cross-owner checks; this is not production approval. S2 remains a separately reviewed alternative. Hosted Notes deployment and Notes-specific Advisor evidence remain mandatory gates. | Product owner, 2026-10-31 |
 | Receipt retention | Proposed, pending separate approval | Keep immutable receipts for at least 30 days or the supported retry/reconciliation horizon; consider permanent minimal tombstones after snapshot expiry; expired IDs must not silently execute again | Product owner |
-| Cross-user Note UUID conflict | Proposed, pending separate approval | Keep a generic non-disclosing invalid/unavailable outcome for occupied foreign IDs and missing IDs; update Dart mapping only in a separately approved contract change | Product owner |
+| Cross-user Note UUID conflict | Proposed, pending separate approval | Keep generic non-disclosing behavior for occupied foreign IDs and missing IDs; do not change the public contract without approval. Codex finding “Avoid exposing cross-owner Note ID collisions” duplicates this existing SQL identity-disclosure concern and does not create a second implementation slice. | Product owner |
 | Custom Exercise lifecycle | Proposed, pending separate approval | Keep archive-only authenticated behavior; preserve `ON DELETE NO ACTION`; evaluate service-role deletion and define archived-Note policy before any hard-delete path | Product owner |
 
 ## 4. Architecture Design
@@ -220,17 +219,17 @@ not a hosted Notes security pass.
 | Immutable mutation replay | `supabase/migrations/20261030065649_routine_note_mutation_result_snapshot.sql` | Additive snapshot column, private trigger, public wrapper and reconciliation passed in the SQL matrix after delete/update/transfer/cascade | Disposable Supabase Postgres, CLI 2.116.0 | Hosted schema not changed |
 | Canonical ExerciseRef and adapter compatibility | `apps/shared/lib/src/workout/routine_note.dart` and focused test | Direct Dart format and analyze passed; package-correct Flutter test passed all 7 focused repository tests, including both account-switch regressions | Local direct Dart 3.12.2 / Flutter SDK package runner | No hosted/client parity claim until hosted evidence exists |
 | SQL security and grants | Snapshot migration plus existing Notes RPCs | SQL matrix, db lint exit 0, local Advisor exit 0 with reported INFO/WARN findings, and explicit local client-grant/RPC query passed | Disposable Supabase Postgres | Hosted Notes objects are unapplied; hosted security review remains pending |
-| Review-contract regression coverage | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `apps/shared/test/workout/routine_note_test.dart` | 76-migration replay, Unicode body parity, 500/501 scalar boundaries, 50-user quota and existing two-session harness passed; package-correct focused Flutter test passed all 7 repository tests, including the two new account-switch regressions | Disposable Docker Postgres / local Dart and Flutter SDK | Hosted PR head does not yet contain this remediation |
-| Legacy receipt migration boundary | `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh` | Two legacy NULL receipts fail closed without mutation or ledger success; clean valid snapshot is preserved; clean gate, normal SQL matrix and hardened cleanup harness pass | Disposable Docker Postgres, CLI 2.116.0 | Hosted migration not applied; commit/push is authorized by the current task but independent review remains required |
+| Review-contract regression coverage | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `apps/shared/test/workout/routine_note_test.dart` | Prior 76-migration replay and SQL matrix passed; package-correct Flutter test passed all 7 repository tests, including account-switch regressions | Disposable Docker Postgres / local Dart and Flutter SDK | Hosted Note migrations and Notes-specific Advisor evidence remain pending |
+| Legacy receipt migration boundary | `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh` | Two legacy NULL receipts fail closed without mutation or ledger success; clean valid snapshot is preserved; clean gate, normal SQL matrix and hardened cleanup harness pass | Disposable Docker Postgres, CLI 2.116.0 | Hosted migration not applied; independent review remains required |
 
 ### Review Provenance
 
 **Review source / link:** chat-provided Slice 1 review-fix handoff, GitHub #716/#717, Linear `TNYX-81`, and repository source inspection
 **Reviewer / relation to implementer:** Self-review pending independent review
 **Diff or commit SHA actually reviewed:** hosted review #5709617294 reviewed head `a6034ccf15724d6827aa4f0a84321d5f48412c83`; the legacy-receipt gate is the post-review local remediation checkpoint
-**Review result and finding IDs/dispositions:** Option A replay, body-normalization and total-quota findings are addressed by the pushed/local validated changes. Review #5709617294's legacy-receipt finding is implemented locally under the owner-approved no-backfill contract. Security architecture and P3 policy findings remain decision-ready only. Independent review remains pending.
+**Review result and finding IDs/dispositions:** Option A replay, body-normalization, total-quota and legacy-receipt findings are implemented in the pushed PR history. Latest review on `b15d47af` is `COMMENTED`, not approval; no new P0/P1 runtime defect was established. Codex P2 original mutation-ID loss is being fixed in this bounded change. Codex P3 cross-owner Note UUID finding duplicates the existing P3 disclosure concern. Receipt retention and Custom Exercise lifecycle remain separately pending owner decisions.
 **Independent review?** No (self-review)
-**Limitations and unmet required gates:** Hosted schema apply/deployment, hosted Notes Security Advisor evidence, S1/S2 owner decision, P3 dispositions, independent review, post-push CI/review refresh and merge authorization remain pending. Dedicated Linear issue creation was not requested and no child issue was created.
+**Limitations and unmet required gates:** Hosted schema apply/deployment and Notes-specific Security Advisor evidence remain pending. S1 is conditionally approved for this Slice 1 boundary, not production-verified. P3 owner decisions, independent approval, exact post-push CI/review and merge authorization remain separate gates. Dedicated Linear issue creation was not requested and no child issue was created.
 
 ### Review Findings and Resolution
 
@@ -244,20 +243,19 @@ not a hosted Notes security pass.
 | `PR717-BODY-NORMALIZATION` | Implemented locally | SQL and Dart now trim the approved Unicode White_Space set, reject empty normalized bodies and count Unicode scalar values; focused SQL parity cases and package-correct Flutter tests passed | Local SQL matrix, focused Flutter test and independent review |
 | `PR717-TOTAL-QUOTA` | Implemented locally | Five-per-scope quota remains and a serialized 50-active-Notes-per-user trigger rejects the 51st Note across distinct scopes; SQL quota matrix passed | Independent review |
 | `PR717-LEGACY-RECEIPT-GATE` | Implemented locally | Locked receipt table, deterministic `routine_note_legacy_receipt_snapshot_required` failure, unchanged legacy rows, no false ledger entry, clean-state snapshot preservation and hardened cleanup pass | Post-push independent review |
-| `PR717-SECURITY-DEFINER` | Open — decision-ready | Local grants, owner checks, `SECURITY DEFINER` and empty `search_path` verified; hosted Advisor returned project-wide findings but hosted Notes objects are absent; S1/S2 architecture choice not approved | Owner S1/S2 decision and post-apply hosted evidence |
-| `PR717-P3-DISPOSITIONS` | Open — decision-ready | Receipt retention, cross-user Note ID signalling and Custom Exercise archive/hard-delete lifecycle recommendations are documented; no policy implementation changed | Explicit owner dispositions |
+| `PR717-MUTATION-ID-SESSION-CHANGE` | Fix in progress | `_mutate()` must preserve the command mutation UUID in session-changed `RoutineNoteOutcomeUnknown`; focused regression asserts ID, reason and no reconciliation | Focused Flutter validation and independent review |
+| `PR717-SECURITY-DEFINER` | S1 conditionally approved for Slice 1 | Local grants, ownership, RLS, `SECURITY DEFINER`, empty `search_path`, helper execution and cross-owner tests recorded; hosted Notes objects remain absent | Hosted deployment and Notes-specific Security Advisor/security review |
+| `PR717-P3-DISPOSITIONS` | Open — owner decisions pending | Receipt retention and Custom Exercise archive/hard-delete remain separate. Cross-owner Note UUID disclosure is one existing concern; Codex collision finding is a duplicate reference, with no SQL/API change authorized | Explicit owner dispositions |
 
 ### Decision-ready follow-ups from review #5709617294
 
-**Security boundary recommendation:** Retain the current public authenticated-only
-`SECURITY DEFINER` wrappers as S1 for this compatibility-sensitive Notes slice
-only if the owner accepts the documented rationale and exact hosted Security
-Advisor evidence is obtained for the intended project. Local evidence confirms
-`search_path = ''`, `postgres` ownership, `auth.uid()` checks and authenticated-
-only `EXECUTE`; local advisors are not hosted evidence. S2 (private implementation
-functions with a minimal public authenticated wrapper) is the safer future
-boundary but requires a separate owner-approved migration, grant, PostgREST and
-client-compatibility review. Neither option is implemented here.
+**Security boundary decision:** Owner conditionally approved S1 on 2026-10-31
+for this Slice 1 compatibility boundary: retain the current authenticated-only
+public `SECURITY DEFINER` wrappers subject to effective ACL, ownership/schema,
+RLS, empty `search_path`, helper execution and cross-owner checks. This is not
+production security approval. Hosted Notes migrations and Notes-specific
+Security Advisor evidence remain mandatory after deployment. S2 remains a
+possible separately reviewed alternative and is not authorized by this decision.
 
 **P3 recommendation — receipt retention:** retain immutable receipts for 30 days
 after `created_at`, or longer if the supported offline retry/reconciliation
@@ -298,4 +296,8 @@ window. Do not apply it to hosted Supabase from this task.
 
 ## Exit Criteria
 
-PR #717 remains Ready for Review, not Draft. This four-file checkpoint contains the locally validated P1 migration-order correction; after push, GitHub PR history and exact-head CI become the authoritative synchronization evidence. Hosted migration remains unapplied, UI files remain unchanged, and merge/release remain blocked pending post-push review/CI, S1/S2 security decision, P3 dispositions and merge authorization.
+PR #717 remains OPEN, non-draft and unmerged. The active local change is the
+bounded P2 mutation-ID correction; after validation and authorized push, refresh
+CI and review state on the new head. Hosted Notes migrations remain unapplied.
+Hosted security evidence, unresolved P3 owner decisions, independent PR approval
+and merge authorization remain separate gates.

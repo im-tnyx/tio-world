@@ -158,7 +158,7 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     final owner = _owner();
     try {
       final result = await _gateway.mutate(params).timeout(_timeout);
-      _checkOwner(owner);
+      _checkOwner(owner, mutationId: mutationId);
       return result;
     } on RoutineNoteException {
       rethrow;
@@ -280,10 +280,10 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     return owner;
   }
 
-  void _checkOwner(String owner) {
+  void _checkOwner(String owner, {String mutationId = 'session-changed'}) {
     if (!_sameOwner(owner)) {
-      throw const RoutineNoteOutcomeUnknown(
-        mutationId: 'session-changed',
+      throw RoutineNoteOutcomeUnknown(
+        mutationId: mutationId,
         reason: RoutineNoteUncertainty.sessionChanged,
       );
     }

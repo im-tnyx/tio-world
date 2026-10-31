@@ -101,21 +101,29 @@ void main() {
       currentUserId: () => owner,
     );
 
-    await expectLater(
-      repository.create(
-        RoutineNoteCreate(
-          id: _note,
-          scope: RoutineNoteScope.routine(RoutineId(_routine)),
-          body: 'saved',
-          mutationId: _mutation,
-        ),
+    final mutation = repository.create(
+      RoutineNoteCreate(
+        id: _note,
+        scope: RoutineNoteScope.routine(RoutineId(_routine)),
+        body: 'saved',
+        mutationId: _mutation,
       ),
-      throwsA(isA<RoutineNoteOutcomeUnknown>().having(
-        (error) => error.reason,
-        'reason',
-        RoutineNoteUncertainty.sessionChanged,
-      )),
     );
+
+    await expectLater(
+      mutation,
+      throwsA(
+        isA<RoutineNoteOutcomeUnknown>()
+            .having((error) => error.mutationId, 'mutationId', _mutation)
+            .having(
+              (error) => error.reason,
+              'reason',
+              RoutineNoteUncertainty.sessionChanged,
+            ),
+      ),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 0);
   });
 
   test(
