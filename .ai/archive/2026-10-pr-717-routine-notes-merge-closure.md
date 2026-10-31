@@ -1,7 +1,7 @@
 # Routine Notes Persistence Foundation
 
 **Status:** Validated — PR #717 merged on 2026-10-31; hosted deployment remains separate
-**Primary owner:** Codex (current implementation session)
+**Primary owner during Slice 1:** Codex; implementation ownership is closed after PR #717 merged.
 **Affected platforms:** Shared, Workout feature, Supabase database
 
 ## Owner Approval and Scope Boundary
@@ -17,8 +17,8 @@
 **Final disposition (2026-10-31):** PR #717 merged after exact-head independent `im-tio` approval, 24/24 external review threads resolved, and required CI passed. Final PR HEAD: `9516c4735be0ea4e99f5384bd50087c8aa406c8d`; merge commit: `58b5161879d40d2c44e749a61e078294304d2092`. Post-merge `main` and `origin/main` were verified equal at the merge commit. GitHub #716 was updated with the merge, approval, CI and no-deployment evidence and closed after the validation acceptance criteria were confirmed complete: https://github.com/im-tnyx/tio-world/issues/716#issuecomment-6546518502. Linear TNYX-81 remains Backlog because broader W4 work is incomplete. Hosted Notes migration/scheduler/security verification and production deployment were not performed. This task brief and archive index are reconciled in a documentation-only follow-up PR.
 
 **Planning owner:** Product owner / existing W4 planning
-**Implementation owner:** Codex (current implementation session)
-**Review owner:** Not assigned
+**Implementation owner during Slice 1:** Codex; no active implementation owner remains for this archived slice.
+**Review owner at Slice 1 kickoff:** Not assigned; final independent review by `im-tio` approved the exact merged PR #717 HEAD, and all 24 review threads were resolved.
 **Implementation ownership state:** Validated
 **Ownership transition:** Implementation slice closed after PR #717 merge; no active source owner remains for this brief.
 **Source-fix push verified:** 2026-10-31; commit `82fe4a360af726161ae3c8876a99a177546d7b70` contains the repository/test fixes and initial handoff reconciliation, and was verified on `tnyx/routine-notes-persistence`. This docs-only follow-up records the post-push checkpoint.
@@ -27,7 +27,7 @@
 **Historical Slice 1 pre-commit base:** `b622ac2f46bab324fd86a4d7cc825c664b0eca57`; that earlier task's follow-up documentation commit is `9d5dbda8`
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
 **Observed starting working-tree state:** Existing local SQL normalization/index migration and SQL regression changes were present before receipt-retention work; they were preserved in the scoped commit. Current scope also included the receipt-retention migration, Dart repository/result mapping, focused tests and this handoff.
-**Historical commit scope at source-fix push:** Commit `82fe4a36` contained the two Routine Notes review fixes and initial handoff reconciliation; it was normally pushed and verified under the attached 2026-10-31 authorization. At that checkpoint, PR #717 had not yet merged and its review threads had not yet been resolved. The subsequent merge and review closure are recorded in the Final disposition above. Hosted migration apply, scheduler creation and other hosted mutations remain unperformed.
+**Historical commit scope at source-fix push:** Commit `82fe4a36` contained the two Routine Notes review fixes and initial handoff reconciliation; it was normally pushed and verified under the attached 2026-10-31 authorization. At that checkpoint, PR #717 had not yet merged and its review threads had not yet been resolved. The subsequent merge and review closure are recorded in the Final disposition above. Hosted migration apply, hosted scheduler creation and other hosted mutations remain unperformed.
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
 **Merged implementation state:** The approved 30-day full-snapshot retention contract is implemented in the migration merged by PR #717, including a local disposable-database `pg_cron` cleanup schedule and successful-job-history pruning. The cleanup preserves `mutation_id`, `request_hash` and tombstone metadata, redacts only the Note body, and retains explicit `expired` replay/reconciliation behavior. The local behavior and regression matrix were validated before merge. Hosted enforcement is not active or claimed; hosted extension/scheduler configuration and production validation remain separate gates.
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
