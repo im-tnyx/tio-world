@@ -1,6 +1,6 @@
 # Routine Notes Persistence Foundation
 
-**Status:** Cleanup implementation pushed and exact-head CI passed — awaiting independent review and remaining review-thread/security gates; PR is not merge-ready
+**Status:** Validated — PR #717 merged on 2026-10-31; hosted deployment remains separate
 **Primary owner:** Codex (current implementation session)
 **Affected platforms:** Shared, Workout feature, Supabase database
 
@@ -10,15 +10,17 @@
 **Approval status:** Approved
 **Approval evidence:** Owner-approved Slice 1 implementation kickoff supplied on 2026-10-29: `Implement Slice 1 — Routine Notes Persistence Foundation`.
 **Approved product/UI/data-shape boundaries:** Durable owner-scoped Routine and Exercise Notes foundation; stable UUID identity; canonical `ExerciseRef` serialization; five active Notes per canonical scope; 500-character normalized body; revision-checked protected mutations; durable `(user_id, mutation_id)` receipts; owner-scoped reads; no UI in this slice.
-**Explicit non-changes:** No Notes UI, Routine Set or Rest Timer changes, WorkoutSession/history integration, post publishing, hosted migration apply, production privilege activation, issue/status mutation, merge or deployment. Commit, branch push and Draft PR creation are authorized only for this validated Slice 1 handoff.
+**Explicit non-changes:** No Notes UI, Routine Set or Rest Timer changes, WorkoutSession/history integration, post publishing, hosted migration apply, production privilege activation, or deployment. Commit, branch push, PR creation and later PR merge were separately authorized for this Slice 1. At archive creation, GitHub #716 status/update could not be verified; its post-merge status was subsequently refreshed, updated with exact evidence, and closed after its validation criteria were confirmed complete.
 
 ## Active Handoff
+
+**Final disposition (2026-10-31):** PR #717 merged after exact-head independent `im-tio` approval, 24/24 external review threads resolved, and required CI passed. Final PR HEAD: `9516c4735be0ea4e99f5384bd50087c8aa406c8d`; merge commit: `58b5161879d40d2c44e749a61e078294304d2092`. Post-merge `main` and `origin/main` were verified equal at the merge commit. GitHub #716 was updated with the merge, approval, CI and no-deployment evidence and closed after the validation acceptance criteria were confirmed complete: https://github.com/im-tnyx/tio-world/issues/716#issuecomment-6546518502. Linear TNYX-81 remains Backlog because broader W4 work is incomplete. Hosted Notes migration/scheduler/security verification and production deployment were not performed. This task brief and archive index are reconciled in a documentation-only follow-up PR.
 
 **Planning owner:** Product owner / existing W4 planning
 **Implementation owner:** Codex (current implementation session)
 **Review owner:** Not assigned
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
+**Implementation ownership state:** Validated
+**Ownership transition:** Implementation slice closed after PR #717 merge; no active source owner remains for this brief.
 **Source-fix push verified:** 2026-10-31; commit `82fe4a360af726161ae3c8876a99a177546d7b70` contains the repository/test fixes and initial handoff reconciliation, and was verified on `tnyx/routine-notes-persistence`. This docs-only follow-up records the post-push checkpoint.
 **Branch:** `tnyx/routine-notes-persistence`
 **Historical Slice 1 starting branch HEAD:** `b622ac2f46bab324fd86a4d7cc825c664b0eca57`
@@ -27,7 +29,7 @@
 **Observed starting working-tree state:** Existing local SQL normalization/index migration and SQL regression changes were present before receipt-retention work; they were preserved in the scoped commit. Current scope also included the receipt-retention migration, Dart repository/result mapping, focused tests and this handoff.
 **Current commit scope:** Commit `82fe4a36` contains the two Routine Notes review fixes and initial handoff reconciliation; it was normally pushed and verified under the attached 2026-10-31 authorization. This post-push documentation sync is the only follow-up. No merge, review-thread resolution, hosted migration apply, scheduler creation or other hosted mutation occurred.
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Owner approved 30-day full-snapshot retention on 2026-10-31 and subsequently authorized a local disposable-database `pg_cron` cleanup implementation. The current working-tree migration adds scheduled dormant-receipt cleanup and successful-job-history pruning; it preserves `mutation_id`, `request_hash` and tombstone metadata, redacts only the Note body, and retains explicit `expired` replay/reconciliation behavior. Local behavior and regression matrix passed after aligning the existing disposable database to the current draft; a fresh exact-migration replay on that named project remains to be confirmed by post-push CI. Hosted enforcement is not active or claimed.
+**Merged implementation state:** The approved 30-day full-snapshot retention contract is implemented in the migration merged by PR #717, including a local disposable-database `pg_cron` cleanup schedule and successful-job-history pruning. The cleanup preserves `mutation_id`, `request_hash` and tombstone metadata, redacts only the Note body, and retains explicit `expired` replay/reconciliation behavior. The local behavior and regression matrix were validated before merge. Hosted enforcement is not active or claimed; hosted extension/scheduler configuration and production validation remain separate gates.
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
 **Prior Slice 1 validation checkpoint:** The hardened harness replayed 76 migration files on a disposable Docker database using the pre-Notes baseline and the exact migration boundary. Two legacy `NULL`-snapshot receipts failed atomically with SQLSTATE `P0001`; receipt rows, original mutation/reconciliation function definitions, the added column and migration ledger entries remained unchanged. The two-session test confirmed the `ACCESS EXCLUSIVE` lock blocks a concurrent legacy receipt write until the migration precondition is evaluated. The clean full sequence passed with non-NULL snapshots and the existing Routine Notes persistence/replay matrix. Pinned Supabase CLI `2.116.0` `db lint` exited `0`; local `db advisors` exited `0` with existing project-wide INFO/WARN findings, including the expected private receipt-table no-policy advisory. Effective Routine Note RPC grants, `SECURITY DEFINER` and empty `search_path` were verified. At that checkpoint no production Dart files changed; current bounded review remediation now changes only the Routine Notes repository and its focused test.
 **Hosted evidence:** The Notes migrations remain unapplied and hosted Notes-specific Security Advisor evidence is pending. No hosted security approval is claimed.
