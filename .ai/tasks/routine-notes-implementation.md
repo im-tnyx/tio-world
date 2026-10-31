@@ -249,7 +249,7 @@ not a hosted Notes security pass.
 | `4431238413` / `PR717-MALFORMED-RPC-RESULT` | Fixed and pushed in `82fe4a36`; GitHub thread remains unresolved/current | `_noteResult()` maps parse `TypeError` to `RoutineNoteException(malformedData)`; numeric `last_mutation_id` regression passes; applied/expired mapping regressions remain green | Independent new-head review; thread state unchanged |
 | `PR717-SECURITY-DEFINER` | S1 conditionally approved for Slice 1 | Local grants, ownership, RLS, `SECURITY DEFINER`, empty `search_path`, helper execution and cross-owner tests recorded; hosted Notes objects remain absent | Hosted deployment and Notes-specific Security Advisor/security review |
 | `PR717-RECEIPT-RETENTION` | Implemented and locally scheduled; hosted enforcement pending | Owner-approved 30-day full snapshots and redacted permanent tombstones are enforced by bounded `pg_cron` cleanup in the migration; SQL matrix and two-session cleanup/reconciliation race passed locally | Hosted deployment, scheduler permissions/operations and Notes-specific Security Advisor remain unauthorized/unverified |
-| `PR717-P3-A-UUID-SIGNAL` | Owner-approved; implemented locally | Global Note UUID collision check/primary key replaced by `(user_id, id)` identity; regression verifies cross-owner reuse and same-owner duplicate rejection | Fresh exact-head CI and independent review |
+| `PR717-P3-A-UUID-SIGNAL` | Owner-approved and pushed in `f97e8480` | Global Note UUID collision check/primary key replaced by `(user_id, id)` identity; regression verifies cross-owner reuse, RLS isolation and same-owner duplicate rejection | Exact-head CI passed; fresh independent acceptance pending |
 | `PR717-P3-B-CUSTOM-EXERCISE-LIFECYCLE` | Future lifecycle requirement; not a PR #717 defect | Authenticated hard-delete is denied, Routine composition uses `ON DELETE NO ACTION`, archive is supported, and Note creation rejects archived Custom Exercises | No hard-delete feature in this PR |
 
 ### Decision-ready follow-ups from review #5709617294
@@ -408,15 +408,14 @@ CI was green: Database `41189728092`, Flutter `41189728017`, Docs Hygiene
 `41189728023`, attribution `41189726348`. These checks predate this pending
 diff and are not current-head validation.
 
-P3-A owner-scoped UUID identity is implemented locally under explicit owner
-approval; the focused SQL matrix and a two-session same-UUID cross-owner race
+P3-A owner-scoped UUID identity was pushed in `f97e8480` under explicit owner
+approval. The focused SQL matrix and a two-session same-UUID cross-owner race
 passed on the named disposable database. P3-B is a future lifecycle requirement:
 Custom Exercise hard-delete is denied, archive is supported, and Routine
-composition uses `ON DELETE NO ACTION`. Neither finding is independently
-accepted yet. No review thread has been resolved. After scoped commit/push,
-refresh every thread/check on exact HEAD and request independent review. Do not
-merge while `CHANGES_REQUESTED`, a blocking thread, required check or security
-gate remains.
+composition uses `ON DELETE NO ACTION`. Both dispositions were sent to the
+reviewer for acceptance. Twenty verified threads were individually resolved;
+the lifecycle and S1/hosted-security threads remain open pending reviewer
+acceptance.
 Hosted pg_cron enablement, hosted schedule, Notes migration apply, hosted
 Security Advisor, deployment and production data changes remain unauthorized.
 
@@ -431,7 +430,8 @@ matrix and race harness), Flutter `41206647418` (analyze and all three package
 shards), Docs Hygiene `41206647470`, and attribution `41206644723`. Cursor
 Bugbot and Cursor Approval/Security Agents were skipped, not passes.
 
-Fresh independent review was requested from `im-tio` on this head. At the
+Historical checkpoint at `90bd5a52` (superseded by the owner-scoped UUID
+checkpoint below): fresh independent review was requested from `im-tio` on this head. At the
 latest refresh the review decision remained `CHANGES_REQUESTED`, inherited
 from older head `a0285c7bec483cd94e6905414593f266fd5eb3d9`; the reviewer had not
 yet submitted a new review. Thread counts remained 22 total, 18 unresolved
@@ -439,12 +439,85 @@ non-outdated and 4 unresolved outdated. No thread was resolved. Merge state was
 `CLEAN`, but merge is blocked until the reviewer responds, P3 dispositions are
 accepted where needed, and blocking threads are individually reconciled.
 
+### Owner-scoped Note UUID and final review checkpoint — 2026-10-31
+
+Commit `f97e8480aa03a28bb7b9ca585fe4dbcab018ff7e`
+(`fix(database): scope routine note ids by owner`) is pushed to
+`tnyx/routine-notes-persistence`. It changes Note identity from global `id` to
+`(user_id, id)`, scopes create-collision lookup to authenticated ownership, and
+adds SQL assertions for same-UUID cross-owner reuse/RLS isolation plus
+same-owner duplicate rejection. The public Note DTO is unchanged. The owner
+approved this schema shape on 2026-10-31.
+
+PASS on the named disposable project `tnyx717receipt20261031`: migration
+registered and `PRIMARY KEY (user_id, id)` verified; Routine Notes SQL matrix
+passed; two authenticated sessions concurrently created distinct Notes with
+the same UUID; temporary race accounts were removed. Exact-head checks on
+`f97e8480` passed: Database CI `41210167681` (full migration replay and
+SQL/race suites), Flutter CI `41210167566` (analyze and all three package
+shards), Docs Hygiene `41210167679`, and attribution `41210165246`. Cursor
+Bugbot and Cursor Approval/Security agents were `neutral` because usage limits
+prevented them from starting; they are not passes.
+
+The connected Linear PR mirror was refreshed at `2026-10-31T14:35:04Z` and
+reported exact head `f97e8480aa03a28bb7b9ca585fe4dbcab018ff7e`, base
+`9c782688acd13efd189b7827c139dea3aca1a5d6`, OPEN/non-draft, unmerged, and
+review requested from `im-tio`. The latest submitted independent decision is
+still `CHANGES_REQUESTED` from an earlier head; there is no fresh exact-head
+approval. The mirror reports 22 inline threads: 20 individually resolved, 2
+current threads open, 0 outdated unresolved. Per-thread evidence and disposition
+are recorded below. A direct `gh` refresh was unavailable, so these remote
+values are attributed to the connected PR mirror, not a direct GitHub API call.
+No hosted Notes migration, pg_cron installation/schedule, hosted Advisor,
+deployment or production change was performed.
+
+#### Inline review thread reconciliation at `f97e8480`
+
+`CI` below means the exact-head Database/Flutter/Docs Hygiene evidence above;
+each disposition was individually checked in the connected PR thread mirror.
+“Ack: prior review” records explicit acknowledgement in `im-tio`'s earlier
+review; otherwise no reviewer acceptance is inferred. Fixed-thread resolution
+is justified by the cited code/test evidence, not by treating missing reviewer
+acknowledgement as approval.
+
+| Thread ID | Anchor / reviewer / severity | State | Fix or disposition and regression evidence | Reviewer acknowledgement / resolution |
+|---|---|---|---|---|
+| `PRRT_kwDOTOXwB86xtCjL` | Notes migration:271 / im-tio / P2 | Current, resolved | Immutable result snapshot in `0d085586`; replay/delete/cascade SQL matrix, CI | Re-reviewed; fixed and resolved |
+| `PRRT_kwDOTOXwB86x3LGY` | Notes migration:179 / im-tnyx / P2 | Current, resolved | SQL/Dart normalization in `9d5dbda8`; whitespace/code-point boundary matrix, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86x3LGc` | `routine_note.dart`:86 / im-tnyx / P2 | Outdated, resolved | Dart trim/code-point alignment in `a6034ccf`/`9d5dbda8`; model tests, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86x3LGg` | Notes migration:271 / im-tnyx / P2 | Current, resolved | Immutable snapshot replay in `0d085586`; deletion/cascade/legacy SQL tests, CI | No separate reviewer acknowledgement recorded; code/test fix verified and resolved |
+| `PRRT_kwDOTOXwB86x3LGk` | Notes migration:201 / im-tnyx / P2 | Current, resolved | Per-scope and total per-user caps in `a6034ccf`/`9d5dbda8`; quota matrix, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86x3LGn` | Notes migration:359 / im-tnyx / P3 | Outdated, resolved | Owner-scoped PK and collision lookup in `f97e8480`; RLS, duplicate and two-session SQL tests | Evidence reply posted; resolved for implemented finding |
+| `PRRT_kwDOTOXwB86x3LGs` | Notes migration:62 / im-tnyx / P3 | Current, resolved | Scheduled 30-day redaction in `90bd5a52`; expiry/batch/race matrix, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86x3LGw` | Notes migration:9 / im-tnyx / P3 | Current, open | Not a PR defect: authenticated hard-delete denied, FK `NO ACTION`, archived Exercise rejected by Notes create; lifecycle remains separate | Evidence reply posted; reviewer disposition pending; not resolved |
+| `PRRT_kwDOTOXwB86x91cq` | Snapshot migration:98 / im-tio / P1 | Current, resolved | Legacy-receipt gate moved before wrapper change in `2cd8fb7f`; full migration-sequence regression harness, CI | Re-reviewed; fixed and resolved |
+| `PRRT_kwDOTOXwB86x91cw` | Task handoff:30 / im-tio / P3 | Outdated, resolved | Handoff checkpoints corrected in `d3e7c9d8` and this record; docs diff check | No separate reviewer acknowledgement recorded; stale statement superseded and resolved |
+| `PRRT_kwDOTOXwB86yGTp4` | Snapshot migration:104 / im-tio / P2 | Current, open | S1 only conditionally approved for Slice 1 test/compatibility; local ACL/RLS/ownership/search_path tests; hosted Notes Advisor/deployment not verified | Evidence reply posted; reviewer says hosted/security boundary disposition pending; not resolved |
+| `PRRT_kwDOTOXwB86yPTfm` | Task handoff:139 / im-tio / P3 | Current, resolved | S1 table aligned to conditional owner decision in `d3e7c9d8`; docs hygiene | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPTlD` | Workout Notes repository:285 / Codex / P2 | Outdated, resolved | Session-switch mutation receipt preserved in `b622ac2f`; focused repository test, CI | Ack: im-tio review on `a0285c7b`; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPTlG` | Notes migration:357 / Codex / P3 | Current, resolved | Same owner-scoped identity fix in `f97e8480`; RLS, duplicate and two-session SQL tests | Evidence reply posted; resolved for implemented finding |
+| `PRRT_kwDOTOXwB86yPZP9` | Snapshot migration:60 / Codex / P2 | Current, resolved | 30-day cleanup in `90bd5a52`; expiry/tombstone/concurrency matrix, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPZQB` | Notes migration:180 / Codex / P2 | Current, resolved | Normalize before hash/length in `9d5dbda8`; direct RPC Unicode-boundary tests, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPZQC` | Contract migration:94 / Codex / P2 | Current, resolved | Unfiltered owner index in `9d5dbda8`; catalog/index assertions, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPaZn` | Notes migration:179 / im-tio / P2 | Current, resolved | Approved whitespace normalization before request hash in `9d5dbda8`; NBSP direct-RPC test, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPaZq` | Snapshot migration:60 / im-tio / P2 | Current, resolved | 30-day cleanup in `90bd5a52`; dormant receipt, batch and race tests, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPaZr` | Contract migration:94 / im-tio / P2 | Current, resolved | Non-partial `user_id` quota index in `9d5dbda8`; catalog assertion, CI | Ack: prior review; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPoTj` | Workout repository:104 / Codex / P2 | Outdated, resolved | Read session-switch now reports a read error, not a fake mutation receipt, in `82fe4a36`; focused test, CI | Ack: im-tio review on `a0285c7b`; fixed and resolved |
+| `PRRT_kwDOTOXwB86yPoTm` | `routine_note.dart`:115 / Codex / P2 | Current, resolved | Malformed RPC map conversion in `82fe4a36`; wrong-type `last_mutation_id` test, CI | No separate reviewer acknowledgement recorded; code/test fix verified and resolved |
+
+The two open threads are the P3-B future lifecycle disposition and conditional
+S1/hosted-security boundary. Both have factual evidence replies; reviewer
+acceptance remains pending. Do not merge while the independent review decision
+is `CHANGES_REQUESTED` or these dispositions remain unresolved.
+
 ## Exit Criteria
 
-PR #717 remains OPEN, non-draft and unmerged as last verified. This working
-tree's scheduled cleanup implementation, regression coverage, CI wiring and
-handoff are pushed at `90bd5a52a16da0b85cdc32c02fe96f5e5d76cf62`; exact-head CI
-passed. Hosted 30-day enforcement and security approval are not claimed.
-Remaining gates are fresh independent approval, reviewer-compatible
-disposition of P3 threads, no blocking unresolved findings, and repository
-merge protection.
+At the connected PR mirror refresh (`2026-10-31T14:35:04Z`), PR #717 was OPEN,
+non-draft and unmerged at `f97e8480aa03a28bb7b9ca585fe4dbcab018ff7e`. Exact-
+head Database, Flutter, Docs Hygiene and attribution checks passed;
+Cursor checks were neutral due usage limits. Twenty of 22 inline threads were
+resolved individually; the two current threads and independent review remain
+open, so merge is BLOCKED. Hosted 30-day enforcement and Notes-specific
+production security approval are not claimed; hosted migration, scheduler
+activation and deployment remain unauthorized. Direct GitHub API refresh was
+unavailable; the cited state is from the connected Linear PR mirror.
