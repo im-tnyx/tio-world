@@ -548,10 +548,11 @@ usage limits prevented review. A fresh `@codex review` request was posted, but
 Codex reported its review usage limit; no new Codex review is available for
 this head. `im-tio` re-review is requested; the last submitted independent
 decision remains `CHANGES_REQUESTED` on an earlier head. Four inline threads
-remain open: two fixed P2 findings now outdated at the new head, plus the
-current P3-B lifecycle and conditional S1/hosted-security threads. The two P2
-threads have evidence replies; they remain unresolved pending explicit
-authorization/reviewer disposition. PR is OPEN, in review and unmerged; merge
-is BLOCKED until fresh independent approval and remaining review dispositions.
+were open at the initial post-push review snapshot. The two fixed P2 findings
+(`PRRT_kwDOTOXwB86ySBND`, `PRRT_kwDOTOXwB86ySBNE`) were resolved on 2026-10-31
+after explicit owner authorization, evidence replies, and 14/14 focused
+repository tests. Two current threads remain open: P3-B lifecycle and
+conditional S1/hosted-security. PR is OPEN, in review and unmerged; merge is
+BLOCKED until fresh independent approval and remaining review dispositions.
 Hosted migrations, scheduler activation, Notes-specific hosted Advisor and
 production deployment are not claimed.
