@@ -204,7 +204,7 @@ reset role;
 | Cron roles / ACL | Disposable role membership, narrow function EXECUTE, no direct receipt access, concurrent cleanup/reconciliation and recovery pass. | Verify role flags/membership, job owner and `cron.job` ACL; resolve localhost scheduler authentication before activation. |
 | Extension privilege | Hosted `supautils.privileged_extensions` includes `pg_cron`; hosted default 1.6.4 available but absent. | Actual extension install occurs only through approved migration/control-plane flow; verify installed version and schema. |
 | Backup / lock / availability | CLI rollback/interruption pass in disposable DB. | Verify PITR/backup and recovery ownership, lock/activity preflight, approved low-traffic window and stop criteria. |
-| Security Advisor baseline | Hosted Advisor observed `2026-10-31T19:15:15Z`: INFO count 1 (`private.deleted_user_workout_routine_ids` has RLS without policy); WARN count 14 authenticated-callable `SECURITY DEFINER`; WARN count 1 leaked-password protection disabled. | Re-run after deploy, compare by function/object, and disposition new Notes RPC warnings. Current baseline is not Notes validation. |
+| Security Advisor baseline | Hosted Advisor observed `2026-10-31T19:43:33Z`: INFO count 1 (`private.deleted_user_workout_routine_ids` has RLS without policy); WARN count 14 authenticated-callable `SECURITY DEFINER`; WARN count 1 leaked-password protection disabled. This is the same snapshot recorded in the discovery table above. | Re-run after deploy, compare by function/object, and disposition new Notes RPC warnings. Current baseline is not Notes validation. |
 
 ## 6. Explicit Owner Approval Checklist
 
