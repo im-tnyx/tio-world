@@ -8,6 +8,9 @@ enum RoutineNoteFailureKind {
   quotaExceeded,
   revisionConflict,
   mutationConflict,
+
+  /// Receipt is past retention; its mutation cannot be retried or recovered.
+  expired,
   malformedData,
   unavailable,
 }

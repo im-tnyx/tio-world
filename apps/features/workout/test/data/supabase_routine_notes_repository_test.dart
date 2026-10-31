@@ -88,6 +88,71 @@ void main() {
     expect(gateway.lastReconciledMutationId, _mutation);
   });
 
+  test('expired reconciliation is a definite result and preserves mutation ID',
+      () async {
+    final gateway = _Gateway(
+      error: TimeoutException('lost response'),
+      reconciliation: {
+        'status': 'expired',
+        'mutation_id': _mutation,
+        'operation': 'create',
+        'note_id': _note,
+        'created_at': '2026-09-30T10:00:00Z',
+      },
+    );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteException>().having(
+        (error) => error.kind,
+        'kind',
+        RoutineNoteFailureKind.expired,
+      )),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 1);
+    expect(gateway.lastReconciledMutationId, _mutation);
+  });
+
+  test('expired duplicate mutation result is surfaced without re-reconcile',
+      () async {
+    final gateway = _Gateway(
+      result: {
+        'status': 'expired',
+        'mutation_id': _mutation,
+        'operation': 'create',
+        'note_id': _note,
+      },
+    );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteException>().having(
+        (error) => error.kind,
+        'kind',
+        RoutineNoteFailureKind.expired,
+      )),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 0);
+  });
+
   test('account switch after mutation is reported as unknown', () async {
     var owner = _owner;
     final gateway = _Gateway(

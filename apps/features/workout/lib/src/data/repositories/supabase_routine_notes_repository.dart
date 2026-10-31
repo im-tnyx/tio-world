@@ -146,6 +146,9 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
   @override
   Future<void> delete(RoutineNoteDelete command) async {
     final result = await _mutate(_deleteParams(command), command.mutationId);
+    if (result['status'] == 'expired') {
+      throw const RoutineNoteException(RoutineNoteFailureKind.expired);
+    }
     if (result['status'] != 'deleted') {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     }
@@ -195,6 +198,9 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
       final status = result['status'];
       if (status == 'pending') {
         throw RoutineNoteOutcomeUnknown(mutationId: mutationId);
+      }
+      if (status == 'expired') {
+        throw const RoutineNoteException(RoutineNoteFailureKind.expired);
       }
       if (status == 'applied' || status == 'deleted') return result;
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
@@ -258,6 +264,9 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
       };
 
   RoutineNote _noteResult(Map<String, dynamic> result) {
+    if (result['status'] == 'expired') {
+      throw const RoutineNoteException(RoutineNoteFailureKind.expired);
+    }
     if (result['status'] != 'applied' || result['note'] is! Map) {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     }

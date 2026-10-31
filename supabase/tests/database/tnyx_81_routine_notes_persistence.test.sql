@@ -94,6 +94,12 @@ select pg_temp.assert_true(
   and (select count(*) = 1
        from supabase_migrations.schema_migrations
        where version = '20261030081321')
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261031100000')
+  and (select count(*) = 1
+       from supabase_migrations.schema_migrations
+       where version = '20261031110000')
   and not exists (
     select 1
     from private.user_workout_routine_note_mutations
@@ -125,11 +131,40 @@ select pg_temp.assert_true(
     'EXECUTE'
   )
   and not has_function_privilege(
+    'authenticated',
+    'private.expire_user_workout_routine_note_receipt(uuid,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'private.expire_user_workout_routine_note_receipt(uuid,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
     'anon',
     'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)',
     'EXECUTE'
   ),
-  'Notes tables, receipts and legacy-snapshot migration gate use the approved boundary'
+  'Notes tables, receipts, legacy snapshot gate and approved migration versions are present'
+);
+
+select pg_temp.assert_true(
+  (select index_catalog.indisvalid
+      and index_catalog.indisready
+      and index_catalog.indpred is null
+      and access_method.amname = 'btree'
+      and pg_catalog.pg_get_indexdef(index_catalog.indexrelid, 1, true)
+        = 'user_id'
+   from pg_catalog.pg_index as index_catalog
+   join pg_catalog.pg_class as index_relation
+     on index_relation.oid = index_catalog.indexrelid
+   join pg_catalog.pg_am as access_method
+     on access_method.oid = index_relation.relam
+   where index_relation.oid =
+     'public.idx_user_workout_routine_notes_user_id'::regclass
+     and index_catalog.indrelid =
+       'public.user_workout_routine_notes'::regclass),
+  'user-wide quota index is valid, ready, non-partial B-tree beginning with user_id'
 );
 
 select pg_temp.assert_true(
@@ -164,6 +199,15 @@ select pg_temp.assert_true(
     'EXECUTE'
   ),
   'public Notes RPCs have authenticated-only effective EXECUTE privileges'
+);
+
+select pg_temp.assert_true(
+  (select procedure.prosecdef
+          and procedure.proconfig @> array['search_path=""']
+   from pg_catalog.pg_proc as procedure
+   where procedure.oid =
+     'private.expire_user_workout_routine_note_receipt(uuid,uuid)'::regprocedure),
+  'private receipt expiry helper is SECURITY DEFINER with empty search_path'
 );
 
 select pg_temp.assert_true(
@@ -539,6 +583,40 @@ select pg_temp.assert_true(
   )->>'status') = 'applied',
   'SQL accepts 500 Unicode scalar values'
 );
+do $$
+declare
+  v_body text := repeat('😀', 500);
+  v_first jsonb;
+  v_replay jsonb;
+begin
+  v_first := public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000134',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    U&'\00A0' || v_body || U&'\00A0', null,
+    'a8100000-0000-4000-8000-000000000234'
+  );
+  v_replay := public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000134',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    v_body, null, 'a8100000-0000-4000-8000-000000000234'
+  );
+
+  perform pg_temp.assert_true(
+    v_first->>'status' = 'applied'
+    and v_first = v_replay
+    and v_first->'note'->>'body' = v_body
+    and pg_catalog.char_length(v_first->'note'->>'body') = 500
+    and position(U&'\00A0' in v_first->'note'->>'body') = 0,
+    'NBSP-wrapped 500-code-point RPC normalizes before validation and hashes the normalized request for exact replay'
+  );
+  perform pg_temp.assert_true(
+    (select body = v_body
+     from public.user_workout_routine_notes
+     where id = 'a8100000-0000-4000-8000-000000000134'),
+    'NBSP-wrapped 500-code-point request persists exactly the normalized body'
+  );
+end;
+$$;
 select pg_temp.assert_raises(
   $$select public.mutate_user_workout_routine_note(
     'create', 'a8100000-0000-4000-8000-000000000133',
@@ -1176,6 +1254,136 @@ select pg_temp.assert_raises(
     'a8100000-0000-4000-8000-000000000902'
   )$$,
   '42501', 'service_role reconciliation RPC is denied at the function permission boundary'
+);
+reset role;
+
+-- The same mutation UUID is independently owned by A and B. Keep B's receipt
+-- just inside retention, expire A's exactly at the transaction boundary, and
+-- prove repeated reconciliation/retry cannot recreate the mutation.
+update private.user_workout_routine_note_mutations
+set created_at = transaction_timestamp() - interval '30 days' + interval '1 second'
+where user_id = 'a8100000-0000-4000-8000-000000000002'
+  and mutation_id = 'a8100000-0000-4000-8000-000000000902';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000002',
+  true
+);
+select pg_temp.assert_true(
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )->>'status' = 'applied'
+  and public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'body' = 'User B original result',
+  'receipt remains fully reconcilable one second before the 30-day boundary'
+);
+reset role;
+
+insert into routine_note_test_results (mutation_id, result)
+select 'a8100000-0000-4000-8000-000000000996',
+       pg_catalog.jsonb_build_object('request_hash', request_hash)
+from private.user_workout_routine_note_mutations
+where user_id = 'a8100000-0000-4000-8000-000000000001'
+  and mutation_id = 'a8100000-0000-4000-8000-000000000902';
+update private.user_workout_routine_note_mutations
+set created_at = transaction_timestamp() - interval '30 days'
+where user_id = 'a8100000-0000-4000-8000-000000000001'
+  and mutation_id = 'a8100000-0000-4000-8000-000000000902';
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000997',
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )
+);
+select pg_temp.assert_jsonb_equal(
+  '{"status":"expired","mutation_id":"a8100000-0000-4000-8000-000000000902","operation":"create","result_kind":"applied","note_id":"a8100000-0000-4000-8000-000000000903","revision":0}'::jsonb,
+  (select result - 'created_at'
+   from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000997'),
+  'receipt expires exactly at 30 days with an explicit body-free tombstone'
+);
+insert into routine_note_test_results (mutation_id, result)
+values (
+  'a8100000-0000-4000-8000-000000000998',
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )
+);
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000997'),
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000998'),
+  'repeated reconciliation returns the same durable expired tombstone'
+);
+reset role;
+select pg_temp.assert_jsonb_equal(
+  (select result from routine_note_test_results
+   where mutation_id = 'a8100000-0000-4000-8000-000000000997'),
+  (select result_snapshot
+   from private.user_workout_routine_note_mutations
+   where user_id = 'a8100000-0000-4000-8000-000000000001'
+     and mutation_id = 'a8100000-0000-4000-8000-000000000902'),
+  'reconciled result equals the owner-private durable tombstone'
+);
+select pg_temp.assert_true(
+  (select request_hash ~ '^[0-9a-f]{64}$'
+          and request_hash = (select result->>'request_hash'
+                              from routine_note_test_results
+                              where mutation_id = 'a8100000-0000-4000-8000-000000000996')
+          and mutation_id = 'a8100000-0000-4000-8000-000000000902'
+          and result_snapshot->>'status' = 'expired'
+          and result_snapshot->'note' is null
+   from private.user_workout_routine_note_mutations
+   where user_id = 'a8100000-0000-4000-8000-000000000001'
+     and mutation_id = 'a8100000-0000-4000-8000-000000000902'),
+  'expiry redacts snapshot body while preserving request hash and mutation tombstone'
+);
+set local role authenticated;
+select pg_temp.assert_jsonb_equal(
+  '{"status":"expired","mutation_id":"a8100000-0000-4000-8000-000000000902","operation":"create","result_kind":"applied","note_id":"a8100000-0000-4000-8000-000000000903","revision":0}'::jsonb,
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000903',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    'User A independent result', null,
+    'a8100000-0000-4000-8000-000000000902'
+  ) - 'created_at'),
+  'same-hash duplicate retry returns expired and does not re-execute'
+);
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000904',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    'different request after expiry', null,
+    'a8100000-0000-4000-8000-000000000902'
+  )$$,
+  'P0001', 'routine_note_mutation_conflict',
+  'expired mutation ID cannot execute a different request as a new mutation'
+);
+reset role;
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000002',
+  true
+);
+select pg_temp.assert_true(
+  (public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'body') = 'User B original result',
+  'same mutation UUID retains User B receipt and snapshot independently'
 );
 reset role;
 

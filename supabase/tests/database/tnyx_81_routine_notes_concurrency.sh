@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TNYX-81: real two-session Routine Notes quota and transfer races.
+# TNYX-81: two-session Routine Notes quota, transfer and expired-retry races.
 # Disposable Supabase CI Postgres ONLY; never run against hosted production.
 database_url="${DATABASE_URL:-}"
 ci_database_url="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -339,6 +339,18 @@ log_a="$sync_dir/duplicate-a.log"
 log_b="$sync_dir/duplicate-b.log"
 mkfifo "$fifo_a" "$fifo_b"
 
+# Commit a receipt first, then move it beyond the retention boundary. The two
+# sessions below race identical retries against the same expired tombstone.
+create_note \
+  'a8100100-0000-4000-8000-000000000036' \
+  'a8100100-0000-4000-8000-000000000136' \
+  "$transfer_source_routine" 'Concurrent duplicate'
+psql "$database_url" --set=ON_ERROR_STOP=1 --quiet \
+  --command="update private.user_workout_routine_note_mutations
+    set created_at = transaction_timestamp() - interval '30 days'
+    where user_id='$owner'::uuid
+      and mutation_id='a8100100-0000-4000-8000-000000000136'::uuid"
+
 psql "$database_url" --set=ON_ERROR_STOP=1 \
   --set=owner="$owner" --set=routine_id="$transfer_source_routine" \
   --set=note_id='a8100100-0000-4000-8000-000000000036' \
@@ -421,6 +433,8 @@ wait "$pid_b"
 pid_b=""
 writer_b_open=0
 grep -Fq 'SESSION_B_DUPLICATE_RESULT_RETURNED' "$log_b"
+grep -Fq 'expired' "$log_a"
+grep -Fq 'expired' "$log_b"
 grep -Fq 'a8100100-0000-4000-8000-000000000036' "$log_a"
 grep -Fq 'a8100100-0000-4000-8000-000000000036' "$log_b"
 
@@ -434,7 +448,9 @@ duplicate_note_result="$(psql "$database_url" --set=ON_ERROR_STOP=1 -At \
   | tr -d '[:space:]')"
 duplicate_receipt_result="$(psql "$database_url" --set=ON_ERROR_STOP=1 -At \
   --command="select count(*) = 1
-    and min(result_snapshot->'note'->>'id') =
+    and bool_and(result_snapshot->>'status' = 'expired')
+    and bool_and(result_snapshot->'note' is null)
+    and min(result_snapshot->>'note_id') =
       'a8100100-0000-4000-8000-000000000036'
     from private.user_workout_routine_note_mutations
     where user_id='$owner'::uuid
@@ -444,4 +460,4 @@ if [[ "$duplicate_note_result" != t || "$duplicate_receipt_result" != t ]]; then
   echo 'Concurrent duplicate requests did not produce one Note and one immutable receipt' >&2
   exit 1
 fi
-echo 'TNYX-81 concurrent duplicate requests returned one immutable result.'
+echo 'TNYX-81 concurrent expired retries returned one body-free tombstone.'
