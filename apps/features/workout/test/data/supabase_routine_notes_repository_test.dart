@@ -118,6 +118,77 @@ void main() {
     );
   });
 
+  test(
+      'ambiguous mutation after account switch is unknown without reconciliation',
+      () async {
+    var owner = _owner;
+    final gateway = _Gateway(
+      error: TimeoutException('lost response'),
+      onMutate: () {
+        owner = _other;
+      },
+    );
+    final repository = SupabaseRoutineNotesRepository(
+      gateway: gateway,
+      currentUserId: () => owner,
+    );
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteOutcomeUnknown>().having(
+        (error) => error.reason,
+        'reason',
+        RoutineNoteUncertainty.sessionChanged,
+      )),
+    );
+    expect(gateway.reconcileCalls, 0);
+  });
+
+  test('account switch during reconciliation does not return old owner result',
+      () async {
+    var owner = _owner;
+    final reconciliationStarted = Completer<void>();
+    final reconciliationResult = Completer<Map<String, dynamic>>();
+    final gateway = _Gateway(
+      error: TimeoutException('lost response'),
+      reconciliationCompleter: reconciliationResult,
+      onReconcile: reconciliationStarted.complete,
+    );
+    final repository = SupabaseRoutineNotesRepository(
+      gateway: gateway,
+      currentUserId: () => owner,
+    );
+
+    final resultFuture = repository.create(
+      RoutineNoteCreate(
+        id: _note,
+        scope: RoutineNoteScope.routine(RoutineId(_routine)),
+        body: 'saved',
+        mutationId: _mutation,
+      ),
+    );
+    await reconciliationStarted.future;
+    owner = _other;
+    reconciliationResult.complete(_appliedNote(body: 'old owner result'));
+
+    await expectLater(
+      resultFuture,
+      throwsA(isA<RoutineNoteOutcomeUnknown>().having(
+        (error) => error.reason,
+        'reason',
+        RoutineNoteUncertainty.sessionChanged,
+      )),
+    );
+    expect(gateway.reconcileCalls, 1);
+  });
+
   test('read rejects a row returned for the wrong owner or scope', () async {
     final mismatchedRow = Map<String, dynamic>.from(
       _appliedNote()['note'] as Map,
@@ -167,6 +238,8 @@ final class _Gateway implements RoutineNotesGateway {
     this.error,
     this.rows = const [],
     this.onMutate,
+    this.reconciliationCompleter,
+    this.onReconcile,
   });
 
   final Map<String, dynamic>? result;
@@ -174,6 +247,8 @@ final class _Gateway implements RoutineNotesGateway {
   final Object? error;
   final List<Map<String, dynamic>> rows;
   final void Function()? onMutate;
+  final Completer<Map<String, dynamic>>? reconciliationCompleter;
+  final void Function()? onReconcile;
   Map<String, dynamic>? lastParams;
   String? lastReconciledMutationId;
   int mutateCalls = 0;
@@ -199,6 +274,8 @@ final class _Gateway implements RoutineNotesGateway {
   Future<Map<String, dynamic>> reconcile({required String mutationId}) async {
     reconcileCalls++;
     lastReconciledMutationId = mutationId;
+    onReconcile?.call();
+    if (reconciliationCompleter != null) return reconciliationCompleter!.future;
     return reconciliation ?? {'status': 'pending'};
   }
 }

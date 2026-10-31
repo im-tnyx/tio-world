@@ -19,22 +19,80 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-10-30; this authorized four-file checkpoint starts from hosted PR #717 head `eea5338a0b19ae17848f5057f18128096d97db7e` and contains the P1 migration-order fix plus its focused validation changes; after push, GitHub PR history and exact-head CI are authoritative
+**Repository state last verified:** 2026-10-31; the S1 security-test checkpoint starts from exact PR #717/local branch HEAD `2cd8fb7f36cff7bf5d9a431719098282e81709d9`; the GitHub CLI was unavailable, while the read-only connector refresh is recorded below
 **Branch:** `tnyx/routine-notes-persistence`
-**Starting branch HEAD SHA:** `eea5338a0b19ae17848f5057f18128096d97db7e` (current task preflight)
-**Validated pre-commit base SHA:** `eea5338a0b19ae17848f5057f18128096d97db7e` (P1 migration-order validation ran against this base plus the uncommitted four-file change set)
+**Starting branch HEAD SHA:** `2cd8fb7f36cff7bf5d9a431719098282e81709d9` (S1 task preflight)
+**Validated pre-commit base SHA:** `2cd8fb7f36cff7bf5d9a431719098282e81709d9` (S1 tests ran against this base plus the allowlisted uncommitted test/handoff changes)
 **Slice 1 commit:** `ec8a314e` (`feat(database): add routine notes persistence foundation`)
-**Observed pre-commit working-tree state:** The approved four-file checkpoint was present; no unrelated files observed
-**Current commit scope:** `.ai/tasks/routine-notes-implementation.md`, `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`; the existing Option A implementation and unrelated repository state are preserved
+**Observed pre-commit working-tree state:** Clean before the S1 edits; only the allowlisted SQL test, focused Dart test and this handoff are dirty now
+**Current commit scope:** Owner-authorized S1 checkpoint commit is limited to `.ai/tasks/routine-notes-implementation.md`, `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql` and `apps/features/workout/test/data/supabase_routine_notes_repository_test.dart`; no production source or migration is included
 **PR / tracker:** Linear `TNYX-81` parent; no dedicated Notes issue created
-**Current implementation state:** Domain, migration/RPC, repository adapter, Option A snapshot replay, body normalization and 50-total-quota remediation are hosted at PR #717 head `eea5338a`; this four-file checkpoint adds the P1 fail-closed legacy-receipt guard inside the snapshot migration transaction before trigger/RPC replacement, while the separate `20261030081321` gate remains defense-in-depth; hosted Notes migration is unapplied
+**Current implementation state:** Domain, migration/RPC, repository adapter, Option A snapshot replay, body normalization, 50-total-quota remediation and the P1 fail-closed legacy-receipt guard are present locally at HEAD `2cd8fb7f`; hosted Notes migration remains unapplied
 **Relevant execution surface:** `apps/shared`, `apps/features/workout`, `supabase/migrations`, `supabase/tests/database`
-**Validation completed at working tree:** The hardened harness replayed 76 migration files on a disposable Docker database using the pre-Notes baseline and the exact migration boundary. Two legacy `NULL`-snapshot receipts failed atomically with SQLSTATE `P0001`; receipt rows, original mutation/reconciliation function definitions, the added column and migration ledger entries remained unchanged. The two-session test confirmed the `ACCESS EXCLUSIVE` lock blocks a concurrent legacy receipt write until the migration precondition is evaluated. The clean full sequence passed with non-NULL snapshots and the existing Routine Notes persistence/replay matrix. Pinned Supabase CLI `2.116.0` `db lint` exited `0`; local `db advisors` exited `0` with existing project-wide INFO/WARN findings, including the expected private receipt-table no-policy advisory. Effective Routine Note RPC grants, `SECURITY DEFINER` and empty `search_path` were verified. No Dart files changed.
-**Hosted evidence:** Exact project ref `oykupyiitspujzpwwvuj` was verified as the linked healthy Tio-world project. Hosted migration history ends at `20261028110000`; the Notes tables, mutation RPC and reconciliation RPC are absent on the hosted project, so the Notes migration remains unapplied and hosted Notes security is not verified. Current PR #717 head is `eea5338a0b19ae17848f5057f18128096d97db7e`; current checks were successful, but hosted review remains `CHANGES_REQUESTED`.
-**Validation remaining:** After this checkpoint is pushed, refresh PR #717 at the exact new head and recheck reviews, threads and CI. S1/S2 architecture and the P3 recommendations remain separate owner decisions; hosted apply/deployment and merge remain out of scope.
-**Current blocker:** No local P1 validation failure remains. Hosted Notes security and migration application remain intentionally unverified/unapplied; the latest hosted review decision must be re-evaluated at the pushed head.
-**Review status:** Review `5712332272` on hosted PR #717 at pre-checkpoint head `eea5338a0b19ae17848f5057f18128096d97db7e` remains `CHANGES_REQUESTED` for the late legacy-receipt gate and separate hosted security evidence concerns. This checkpoint addresses the P1 gate locally under the approved no-backfill contract; post-push GitHub review state is authoritative. No hosted migration or Linear mutation was performed.
-**Next exact action:** Refresh PR #717, reviews, unresolved threads and CI at the pushed exact head. Keep PR #717 unmerged and do not apply the migration or release.
+**Validation completed at working tree:** The hardened harness replayed 76 migration files on a disposable Docker database using the pre-Notes baseline and the exact migration boundary. Two legacy `NULL`-snapshot receipts failed atomically with SQLSTATE `P0001`; receipt rows, original mutation/reconciliation function definitions, the added column and migration ledger entries remained unchanged. The two-session test confirmed the `ACCESS EXCLUSIVE` lock blocks a concurrent legacy receipt write until the migration precondition is evaluated. The clean full sequence passed with non-NULL snapshots and the existing Routine Notes persistence/replay matrix. Pinned Supabase CLI `2.116.0` `db lint` exited `0`; local `db advisors` exited `0` with existing project-wide INFO/WARN findings, including the expected private receipt-table no-policy advisory. Effective Routine Note RPC grants, `SECURITY DEFINER` and empty `search_path` were verified. No production Dart files changed; the allowlisted focused repository test contains the local S1 regressions.
+**Hosted evidence:** Exact project ref `oykupyiitspujzpwwvuj` was verified as the linked healthy Tio-world project. Hosted migration history ends at `20261028110000`; the Notes tables, mutation RPC and reconciliation RPC are absent on the hosted project, so the Notes migration remains unapplied and hosted Notes security is not verified. Last verified PR #717 state at exact head `2cd8fb7f36cff7bf5d9a431719098282e81709d9` was OPEN and `CHANGES_REQUESTED`; a fresh GitHub refresh during this S1 task failed with API connectivity.
+**Validation remaining:** Independently run the hosted Security Advisor gate after the Notes migration is deployed; S1/S2 architecture and P3 recommendations remain separate owner decisions; hosted apply/deployment and merge remain out of scope.
+**Current blocker:** Local S1 test coverage is complete. Hosted Notes security/Advisor evidence remains unavailable while migrations are unapplied.
+**Review status:** The last exact-head hosted review remains `CHANGES_REQUESTED` for the separate S1/security evidence gate. Local S1 test additions are not hosted or reviewed. No hosted migration or Linear mutation was performed.
+**Next exact action:** After a separately authorized commit/push, refresh PR #717 reviews, unresolved threads and CI at the exact pushed head. Keep PR #717 unmerged and do not apply the migration or release.
+
+## 2026-10-31 — S1 security test coverage completion checkpoint
+
+Owner conditionally approved retaining the existing public authenticated-only
+`SECURITY DEFINER` Routine Notes RPC architecture on 2026-10-31. The rationale
+is to preserve the already-reviewed trusted `auth.uid()` owner boundary,
+transactional mutation path and immutable receipt replay contract without an
+unapproved S2 architecture migration. This is conditional test coverage
+approval, not production security approval.
+
+Required conditions are effective PostgreSQL ACL verification for `PUBLIC`,
+`anon`, `authenticated` and `service_role`; owner/schema/table/RLS checks;
+empty `search_path` for Notes `SECURITY DEFINER` functions; explicit
+`SECURITY INVOKER` inspection for trigger helpers; cross-user mutation and
+receipt-isolation regressions; anonymous and `service_role` runtime denial;
+and a hosted Security Advisor review after the Notes migrations are deployed.
+The shared `public.set_row_updated_at()` helper was inspected without changing
+it: it is `SECURITY INVOKER`, owned by `postgres`, has the existing PUBLIC
+`EXECUTE` ACL, and uses `search_path=public, pg_temp`; this remains a documented
+shared-helper risk review rather than a production grant change.
+
+This checkpoint started from branch `tnyx/routine-notes-persistence` and exact
+HEAD `2cd8fb7f36cff7bf5d9a431719098282e81709d9` for PR #717. The existing Dart
+`account switch after mutation is reported as unknown` test was retained. New
+focused Dart tests cover ambiguous mutation failure after an account switch
+without reconciliation, and an account switch while reconciliation is in
+flight; both require `RoutineNoteOutcomeUnknown` with
+`RoutineNoteUncertainty.sessionChanged`. The fake gateway uses only
+deterministic callbacks/completers.
+
+The SQL matrix now covers effective public-RPC/legacy/private-helper ACLs,
+PUBLIC catalog defaults via `pg_proc.proacl`, `aclexplode` and `acldefault`,
+function/schema ownership and CREATE/USAGE inspection, Notes/receipt table
+ACLs and RLS, cross-user update/delete/reconcile, same-mutation-UUID
+account-switch isolation, and `anon`/`service_role` SQLSTATE `42501` runtime
+denial. It passed on 2026-10-31 against a disposable Postgres container with
+all 76 repository migrations replayed. `dart format` passed with direct Dart
+3.12.2 and `dart analyze` reported no issues. The package-correct
+`flutter test --reporter expanded --concurrency=1 --timeout 30s`
+invocation passed all 7 tests with exit code `0`; the two newly added
+account-switch regression tests also passed independently with exit code `0`.
+The earlier root-checkout invocation exited `1` immediately because the root
+package has no `flutter_test`/`test` dependency; the prior 90-second no-output
+run was a runner/environment issue, not an async test failure. `git diff --check`
+passed with `core.fsmonitor=false`.
+
+The current working-tree changes are limited to the approved SQL test, focused
+Dart test and this handoff. No migration, RPC, RLS, grant, production source,
+Supabase configuration, hosted project, GitHub, Linear, commit or push was
+changed. The GitHub CLI refresh failed with an API connectivity error, but the
+read-only GitHub connector refresh succeeded on 2026-10-31: PR #717 remains
+OPEN, non-draft and mergeable at exact head
+`2cd8fb7f36cff7bf5d9a431719098282e81709d9`; the latest review is
+`CHANGES_REQUESTED`, with 11 total review threads and 9 unresolved,
+non-outdated threads. Hosted Notes migrations and Notes Security Advisor
+coverage remain absent. Therefore local S1 test coverage is complete, while
+the hosted post-deploy Advisor gate remains pending and S1 is not a hosted
+security approval.
 
 ## 1. Discovery
 
@@ -160,9 +218,9 @@ not a hosted Notes security pass.
 | Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
 |---|---|---|---|---|
 | Immutable mutation replay | `supabase/migrations/20261030065649_routine_note_mutation_result_snapshot.sql` | Additive snapshot column, private trigger, public wrapper and reconciliation passed in the SQL matrix after delete/update/transfer/cascade | Disposable Supabase Postgres, CLI 2.116.0 | Hosted schema not changed |
-| Canonical ExerciseRef and adapter compatibility | `apps/shared/lib/src/workout/routine_note.dart` and focused test | Dart normalization source and test were formatted; focused Dart test/analyze could not complete because the local runner hung without diagnostics | Local direct Dart 3.12.2 | No hosted/client parity claim until focused Dart validation |
+| Canonical ExerciseRef and adapter compatibility | `apps/shared/lib/src/workout/routine_note.dart` and focused test | Direct Dart format and analyze passed; package-correct Flutter test passed all 7 focused repository tests, including both account-switch regressions | Local direct Dart 3.12.2 / Flutter SDK package runner | No hosted/client parity claim until hosted evidence exists |
 | SQL security and grants | Snapshot migration plus existing Notes RPCs | SQL matrix, db lint exit 0, local Advisor exit 0 with reported INFO/WARN findings, and explicit local client-grant/RPC query passed | Disposable Supabase Postgres | Hosted Notes objects are unapplied; hosted security review remains pending |
-| Review-contract regression coverage | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `apps/shared/test/workout/routine_note_test.dart` | 75-migration replay, Unicode body parity, 500/501 scalar boundaries, 50-user quota and existing two-session harness passed; focused Dart test remains blocked by local runner hang | Disposable Docker Postgres / local Dart SDK | Hosted PR head does not yet contain this remediation |
+| Review-contract regression coverage | `supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql`, `apps/shared/test/workout/routine_note_test.dart` | 76-migration replay, Unicode body parity, 500/501 scalar boundaries, 50-user quota and existing two-session harness passed; package-correct focused Flutter test passed all 7 repository tests, including the two new account-switch regressions | Disposable Docker Postgres / local Dart and Flutter SDK | Hosted PR head does not yet contain this remediation |
 | Legacy receipt migration boundary | `supabase/migrations/20261030081321_routine_note_legacy_receipt_gate.sql`, `supabase/tests/database/tnyx_81_routine_notes_legacy_receipt_gate.sh` | Two legacy NULL receipts fail closed without mutation or ledger success; clean valid snapshot is preserved; clean gate, normal SQL matrix and hardened cleanup harness pass | Disposable Docker Postgres, CLI 2.116.0 | Hosted migration not applied; commit/push is authorized by the current task but independent review remains required |
 
 ### Review Provenance
@@ -182,8 +240,8 @@ not a hosted Notes security pass.
 | `PR717-SQL-CI` | Resolved | `.github/workflows/supabase-db-ci.yml` runs the Notes matrix with `ON_ERROR_STOP=1`; run `40877774527` passed it after full migration replay | Independent review |
 | `PR717-SQL-FIXTURES` | Resolved | Local transaction-scoped matrix passed after quota count, mutation-id uniqueness and transfer-source corrections | CI confirmation |
 | `PR717-CONCURRENCY` | Resolved | First CI run exposed a harness-only positional-argument bug; corrected run `40877774527` passed both two-session race assertions | Independent review |
-| `PR717-SNAPSHOT-TESTS` | Resolved locally | Four regression tests now cover cascade direct replay, complete JSONB equality, legacy-null fail-closed replay/reconciliation and trigger-failure rollback; disposable 75-migration replay and SQL matrix passed | Owner inspection and independent review |
-| `PR717-BODY-NORMALIZATION` | Implemented locally | SQL and Dart now trim the approved Unicode White_Space set, reject empty normalized bodies and count Unicode scalar values; focused SQL parity cases passed | Focused Dart test and independent review |
+| `PR717-SNAPSHOT-TESTS` | Resolved locally | Four regression tests now cover cascade direct replay, complete JSONB equality, legacy-null fail-closed replay/reconciliation and trigger-failure rollback; disposable 76-migration replay and SQL matrix passed | Owner inspection and independent review |
+| `PR717-BODY-NORMALIZATION` | Implemented locally | SQL and Dart now trim the approved Unicode White_Space set, reject empty normalized bodies and count Unicode scalar values; focused SQL parity cases and package-correct Flutter tests passed | Local SQL matrix, focused Flutter test and independent review |
 | `PR717-TOTAL-QUOTA` | Implemented locally | Five-per-scope quota remains and a serialized 50-active-Notes-per-user trigger rejects the 51st Note across distinct scopes; SQL quota matrix passed | Independent review |
 | `PR717-LEGACY-RECEIPT-GATE` | Implemented locally | Locked receipt table, deterministic `routine_note_legacy_receipt_snapshot_required` failure, unchanged legacy rows, no false ledger entry, clean-state snapshot preservation and hardened cleanup pass | Post-push independent review |
 | `PR717-SECURITY-DEFINER` | Open — decision-ready | Local grants, owner checks, `SECURITY DEFINER` and empty `search_path` verified; hosted Advisor returned project-wide findings but hosted Notes objects are absent; S1/S2 architecture choice not approved | Owner S1/S2 decision and post-apply hosted evidence |

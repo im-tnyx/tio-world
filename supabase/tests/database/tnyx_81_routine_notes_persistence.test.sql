@@ -133,6 +133,248 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  has_function_privilege(
+    'authenticated',
+    'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'authenticated',
+    'public.reconcile_user_workout_routine_note_mutation(uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.reconcile_user_workout_routine_note_mutation(uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'public.reconcile_user_workout_routine_note_mutation(uuid)',
+    'EXECUTE'
+  ),
+  'public Notes RPCs have authenticated-only effective EXECUTE privileges'
+);
+
+select pg_temp.assert_true(
+  not exists (
+    select 1
+    from pg_catalog.pg_proc as function_catalog
+    cross join lateral pg_catalog.aclexplode(
+      coalesce(
+        function_catalog.proacl,
+        pg_catalog.acldefault('f'::"char", function_catalog.proowner)
+      )
+    ) as privilege
+    where function_catalog.oid in (
+      'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure,
+      'public.reconcile_user_workout_routine_note_mutation(uuid)'::regprocedure
+    )
+    and privilege.grantee = 0
+    and privilege.privilege_type = 'EXECUTE'
+  ),
+  'public pseudo-role has no effective EXECUTE grant on Notes RPCs'
+);
+
+select pg_temp.assert_true(
+  not has_function_privilege(
+    'anon',
+    'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)',
+    'EXECUTE'
+  )
+  and not exists (
+    select 1
+    from pg_catalog.pg_proc as function_catalog
+    cross join lateral pg_catalog.aclexplode(
+      coalesce(
+        function_catalog.proacl,
+        pg_catalog.acldefault('f'::"char", function_catalog.proowner)
+      )
+    ) as privilege
+    where function_catalog.oid =
+      'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure
+      and privilege.grantee = 0
+      and privilege.privilege_type = 'EXECUTE'
+  ),
+  'legacy Notes RPC is not executable by client roles or PUBLIC'
+);
+
+select pg_temp.assert_true(
+  not exists (
+    select 1
+    from unnest(array[
+      'private.user_workout_routine_note_payload(uuid,uuid)'::regprocedure,
+      'private.user_workout_routine_note_receipt_snapshot()'::regprocedure,
+      'private.normalize_user_workout_routine_note_body(text)'::regprocedure,
+      'private.normalize_user_workout_routine_note_body_trigger()'::regprocedure,
+      'private.enforce_user_workout_routine_note_total_quota()'::regprocedure
+    ]) as helper(function_oid)
+    where has_function_privilege('anon', helper.function_oid, 'EXECUTE')
+       or has_function_privilege('authenticated', helper.function_oid, 'EXECUTE')
+       or has_function_privilege('service_role', helper.function_oid, 'EXECUTE')
+       or exists (
+         select 1
+         from pg_catalog.aclexplode(
+           coalesce(
+             (select p.proacl from pg_catalog.pg_proc as p
+              where p.oid = helper.function_oid),
+             pg_catalog.acldefault(
+               'f'::"char",
+               (select p.proowner from pg_catalog.pg_proc as p
+                where p.oid = helper.function_oid)
+             )
+           )
+         ) as privilege
+         where privilege.grantee = 0
+           and privilege.privilege_type = 'EXECUTE'
+       )
+  ),
+  'Notes-specific private helpers have no effective client or PUBLIC EXECUTE'
+);
+
+select pg_temp.assert_true(
+  not exists (
+    select 1
+    from pg_catalog.pg_proc as function_catalog
+    where function_catalog.oid in (
+      'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure,
+      'public.reconcile_user_workout_routine_note_mutation(uuid)'::regprocedure,
+      'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure,
+      'private.user_workout_routine_note_payload(uuid,uuid)'::regprocedure,
+      'private.user_workout_routine_note_receipt_snapshot()'::regprocedure
+    )
+    and (
+      not function_catalog.prosecdef
+      or not exists (
+        select 1
+        from unnest(coalesce(function_catalog.proconfig, array[]::text[])) as setting(value)
+        where setting.value = 'search_path=""'
+      )
+    )
+  ),
+  'Notes SECURITY DEFINER functions use an empty search_path'
+);
+select pg_temp.assert_true(
+  not exists (
+    select 1
+    from pg_catalog.pg_proc as function_catalog
+    where function_catalog.oid in (
+      'private.normalize_user_workout_routine_note_body(text)'::regprocedure,
+      'private.normalize_user_workout_routine_note_body_trigger()'::regprocedure,
+      'private.enforce_user_workout_routine_note_total_quota()'::regprocedure
+    )
+    and function_catalog.prosecdef
+  ),
+  'Notes trigger helpers remain SECURITY INVOKER'
+);
+
+select pg_temp.assert_true(
+  not exists (
+    select 1
+    from pg_catalog.pg_proc as function_catalog
+    where function_catalog.oid in (
+      'public.mutate_user_workout_routine_note(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure,
+      'public.reconcile_user_workout_routine_note_mutation(uuid)'::regprocedure,
+      'public.mutate_user_workout_routine_note_legacy(text,uuid,uuid,text,text,text,bigint,uuid)'::regprocedure,
+      'private.user_workout_routine_note_payload(uuid,uuid)'::regprocedure,
+      'private.user_workout_routine_note_receipt_snapshot()'::regprocedure,
+      'private.normalize_user_workout_routine_note_body(text)'::regprocedure,
+      'private.normalize_user_workout_routine_note_body_trigger()'::regprocedure,
+      'private.enforce_user_workout_routine_note_total_quota()'::regprocedure
+    )
+    and pg_catalog.pg_get_userbyid(function_catalog.proowner)
+      in ('anon', 'authenticated', 'service_role')
+  ),
+  'Notes functions are not owned by client roles'
+);
+
+select pg_temp.assert_true(
+  (select count(*) = 2
+   from pg_catalog.pg_namespace as namespace_catalog
+   where namespace_catalog.nspname in ('public', 'private')
+     and pg_catalog.pg_get_userbyid(namespace_catalog.nspowner)
+       not in ('anon', 'authenticated', 'service_role'))
+  and not has_schema_privilege('anon', 'public', 'CREATE')
+  and not has_schema_privilege('authenticated', 'public', 'CREATE')
+  and not has_schema_privilege('service_role', 'public', 'CREATE')
+  and not has_schema_privilege('anon', 'private', 'CREATE')
+  and not has_schema_privilege('authenticated', 'private', 'CREATE')
+  and not has_schema_privilege('service_role', 'private', 'CREATE'),
+  'public/private schema owners and CREATE privileges preserve the security boundary'
+);
+
+select nspname as schema_name,
+       pg_catalog.pg_get_userbyid(nspowner) as schema_owner,
+       has_schema_privilege('anon', nspname, 'USAGE') as anon_usage,
+       has_schema_privilege('authenticated', nspname, 'USAGE') as authenticated_usage,
+       has_schema_privilege('service_role', nspname, 'USAGE') as service_role_usage
+from pg_catalog.pg_namespace
+where nspname in ('public', 'private')
+order by nspname;
+
+select pg_temp.assert_true(
+  (select not prosecdef
+      and pg_catalog.pg_get_userbyid(proowner)
+        not in ('anon', 'authenticated', 'service_role')
+      and coalesce(array_to_string(proconfig, ','), '')
+        like '%search_path=public, pg_temp%'
+      and pg_catalog.pg_get_functiondef(oid) like '%timezone%'
+   from pg_catalog.pg_proc
+   where oid = 'public.set_row_updated_at()'::regprocedure),
+  'shared set_row_updated_at remains SECURITY INVOKER with its reviewed search_path and body'
+);
+select oid::regprocedure as function_name,
+       pg_catalog.pg_get_userbyid(proowner) as function_owner,
+       proacl as function_acl,
+       proconfig as function_config,
+       prosecdef as security_definer,
+       pg_catalog.pg_get_functiondef(oid) as function_definition
+from pg_catalog.pg_proc
+where oid = 'public.set_row_updated_at()'::regprocedure;
+
+select pg_temp.assert_true(
+  has_table_privilege('authenticated', 'public.user_workout_routine_notes', 'SELECT')
+  and not has_table_privilege('anon', 'public.user_workout_routine_notes', 'SELECT')
+  and not has_table_privilege('service_role', 'public.user_workout_routine_notes', 'SELECT')
+  and not has_table_privilege('anon', 'public.user_workout_routine_notes', 'INSERT')
+  and not has_table_privilege('anon', 'public.user_workout_routine_notes', 'UPDATE')
+  and not has_table_privilege('anon', 'public.user_workout_routine_notes', 'DELETE')
+  and not has_table_privilege('authenticated', 'public.user_workout_routine_notes', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.user_workout_routine_notes', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.user_workout_routine_notes', 'DELETE')
+  and not has_table_privilege('service_role', 'public.user_workout_routine_notes', 'INSERT')
+  and not has_table_privilege('service_role', 'public.user_workout_routine_notes', 'UPDATE')
+  and not has_table_privilege('service_role', 'public.user_workout_routine_notes', 'DELETE')
+  and not has_table_privilege('anon', 'private.user_workout_routine_note_mutations', 'SELECT')
+  and not has_table_privilege('anon', 'private.user_workout_routine_note_mutations', 'INSERT')
+  and not has_table_privilege('authenticated', 'private.user_workout_routine_note_mutations', 'SELECT')
+  and not has_table_privilege('authenticated', 'private.user_workout_routine_note_mutations', 'INSERT')
+  and not has_table_privilege('service_role', 'private.user_workout_routine_note_mutations', 'SELECT')
+  and not has_table_privilege('service_role', 'private.user_workout_routine_note_mutations', 'INSERT'),
+  'Notes and receipt table ACLs deny direct ordinary-client writes and receipt access'
+);
+
+select pg_temp.assert_true(
   (select relrowsecurity
    from pg_class where oid = 'public.user_workout_routine_notes'::regclass)
   and (select relrowsecurity
@@ -788,5 +1030,153 @@ select pg_temp.assert_true(
    where id = 'a8100000-0000-4000-8000-000000000102'),
   'deleted Note remains absent for every owner'
 );
+
+-- Verify that receipt ownership remains isolated when both users reuse the
+-- same mutation UUID on the same database connection.
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000002',
+  true
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000901',
+    'a8100000-0000-4000-8000-000000000022', null, 'pinned_routine',
+    'User B original result', null,
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000901',
+  'User B creates the original owner-scoped mutation receipt'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'update', 'a8100000-0000-4000-8000-000000000901',
+    null, null, null, 'User A must not update User B', 0,
+    'a8100000-0000-4000-8000-000000000904'
+  )$$,
+  'P0002', 'routine_note_not_found',
+  'User A cannot update User B Note'
+);
+reset role;
+select pg_temp.assert_true(
+  (select body = 'User B original result' and revision = 0
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000901')
+  and (select count(*) = 0
+       from private.user_workout_routine_note_mutations
+       where user_id = 'a8100000-0000-4000-8000-000000000001'
+         and mutation_id = 'a8100000-0000-4000-8000-000000000904'),
+  'cross-owner update leaves User B Note and User A receipts unchanged'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_raises_exact(
+  $$select public.mutate_user_workout_routine_note(
+    'delete', 'a8100000-0000-4000-8000-000000000901',
+    null, null, null, null, 0,
+    'a8100000-0000-4000-8000-000000000905'
+  )$$,
+  'P0002', 'routine_note_not_found',
+  'User A cannot delete User B Note'
+);
+reset role;
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000901')
+  and (select count(*) = 0
+       from private.user_workout_routine_note_mutations
+       where user_id = 'a8100000-0000-4000-8000-000000000001'
+         and mutation_id = 'a8100000-0000-4000-8000-000000000905'),
+  'cross-owner delete leaves User B Note and User A receipts unchanged'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000001',
+  true
+);
+select pg_temp.assert_jsonb_equal(
+  '{"status":"pending"}'::jsonb,
+  public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  ),
+  'User A cannot reconcile User B mutation receipt'
+);
+select pg_temp.assert_true(
+  (public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000903',
+    'a8100000-0000-4000-8000-000000000025', null, 'pinned_routine',
+    'User A independent result', null,
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000903',
+  'User A independently applies the same mutation UUID'
+);
+select pg_temp.assert_true(
+  (public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000903',
+  'User A reconciliation returns only User A immutable snapshot'
+);
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000002',
+  true
+);
+select pg_temp.assert_true(
+  (public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )->'note'->>'id') = 'a8100000-0000-4000-8000-000000000901',
+  'User B reconciliation still returns only User B immutable snapshot'
+);
+reset role;
+
+set local role anon;
+select pg_temp.assert_raises(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000906',
+    'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
+    'anonymous must fail at the ACL boundary', null,
+    'a8100000-0000-4000-8000-000000000906'
+  )$$,
+  '42501', 'anon mutation RPC is denied at the function permission boundary'
+);
+select pg_temp.assert_raises(
+  $$select public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )$$,
+  '42501', 'anon reconciliation RPC is denied at the function permission boundary'
+);
+reset role;
+
+set local role service_role;
+select pg_temp.assert_raises(
+  $$select public.mutate_user_workout_routine_note(
+    'create', 'a8100000-0000-4000-8000-000000000907',
+    'a8100000-0000-4000-8000-000000000021', null, 'pinned_routine',
+    'service role must fail at the ACL boundary', null,
+    'a8100000-0000-4000-8000-000000000907'
+  )$$,
+  '42501', 'service_role mutation RPC is denied at the function permission boundary'
+);
+select pg_temp.assert_raises(
+  $$select public.reconcile_user_workout_routine_note_mutation(
+    'a8100000-0000-4000-8000-000000000902'
+  )$$,
+  '42501', 'service_role reconciliation RPC is denied at the function permission boundary'
+);
+reset role;
 
 rollback;
