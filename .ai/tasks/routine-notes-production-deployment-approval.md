@@ -60,17 +60,19 @@ PR #717 adds durable persistence/repository/RPC behavior, not Notes UI or Routin
 
 ### Recommendation
 
-Use the official **Supabase CLI v2.114.0** as the preferred production candidate, subject to owner approval of its age, direct-connection authentication and secret-delivery constraints. Do not implement a custom runner. This is a candidate, not automatic production-tool approval.
+Do **not** select CLI v2.114.0 as the production candidate yet. It passed the migration replay only with a password-bearing `--db-url`, while its safer `PGPASSFILE` path has only passed read-only listing and dry-run. The official release page now marks **Supabase CLI v2.122.0** (released 2026-10-23) as Latest. Recommend qualifying v2.122.0 against this repository's LOCK migrations, full 72-to-80 replay, failure/retry behavior and protected credential delivery on disposable infrastructure, then selecting a pinned version only after those results and owner approval. Do not implement a custom runner. Neither version is automatically approved for production.
 
-The task-only official Windows x64 binary was checked against official release metadata:
+Historical v2.114.0 Windows x64 qualification artifact (not a production selection):
 
 ```text
 Version: 2.114.0
-SHA256: 848d0eacc6f4f7722f9874eaa0498e0ac674236907e5f70b44f1dac059b27b68
+Release archive: supabase_2.114.0_windows_amd64.zip
+Archive SHA256: 848d0eacc6f4f7722f9874eaa0498e0ac674236907e5f70b44f1dac059b27b68
+Extracted supabase.exe SHA256: af90dcd1401f3f98bed6f9f5f3bf7b07e1ce2501a42265ce97007a2d1b026209
 Release: https://github.com/supabase/cli/releases/tag/v2.114.0
 ```
 
-The temporary binary was removed after testing. Re-download it into a versioned side-by-side directory under `G:\dev` and verify the hash before any approved execution; do not replace another CLI installation.
+The archive checksum is the official release asset checksum; the extracted executable hash was independently recomputed locally and matches the upstream v2.114.0 Windows binary record. Keep CLI versions side-by-side and verify both the release archive and extracted executable before an approved run; do not replace another CLI installation. See the [upstream Windows asset/hash record](https://github.com/supabase/cli/issues/6174). The [v2.122.0 release](https://github.com/supabase/cli/releases/tag/v2.122.0) includes TLS propagation fixes for linked `db push` and dump paths; this does not establish that it fixes the `LOCK TABLE` regression or that this repository's exact direct-URL migration path is qualified.
 
 The release page dates v2.114.0 to 2026-08-12 and listed 899 commits to `develop` at review time. It is therefore an older candidate on 2026-11-01, not an automatically preferred long-term pin.
 
@@ -78,19 +80,20 @@ The release page dates v2.114.0 to 2026-08-12 and listed 899 commits to `develop
 
 All tests below used isolated disposable databases and are not hosted deployment evidence:
 
-- Minimal `CREATE TABLE` → `LOCK TABLE` → `ALTER TABLE`: **PASS**, no SQLSTATE `25P01`.
-- Full hosted-prefix replay (72) plus eight pending migrations: **PASS**, 80 unique, correctly ordered migration entries.
-- CLI ledger representation: **PASS**, expected Supabase `schema_migrations` records; no missing/duplicate version and no empty statement arrays.
-- Schema parity between `supabase migration up --local` and `supabase db push --db-url`: **PASS** after normalizing random `pg_dump` restrict tokens; normalized hash `2CEED53D5CE940731E2E74D35BA41516EF01E847DDF7B49BC83571DC6DABC0DF`.
-- Failed migration rollback and corrected retry: **PASS**; schema and ledger remained atomic, retry produced one entry.
-- Interrupted CLI recovery: **PASS**; stopping the CLI during a disposable migration rolled back both DDL and ledger record.
+- Minimal `CREATE TABLE` → `LOCK TABLE` → `ALTER TABLE` using CLI `2.114.0`: **PASS**, no SQLSTATE `25P01`.
+- Full hosted-prefix replay (72) plus eight pending migrations using CLI `2.114.0`: **PASS**, 80 unique, correctly ordered migration entries. This run used a password-bearing `--db-url`.
+- CLI `2.114.0` ledger representation: **PASS**, expected Supabase `schema_migrations` records; no missing/duplicate version and no empty statement arrays.
+- Schema parity between `supabase migration up --local` and CLI `2.114.0` `supabase db push --db-url`: **PASS** after normalizing random `pg_dump` restrict tokens; normalized hash `2CEED53D5CE940731E2E74D35BA41516EF01E847DDF7B49BC83571DC6DABC0DF`.
+- Failed migration rollback and corrected retry with CLI `2.114.0`: **PASS**; schema and ledger remained atomic, retry produced one entry.
+- Interrupted CLI `2.114.0` recovery: **PASS**; stopping the CLI during a disposable migration rolled back both DDL and ledger record.
 - Notes SQL/RLS/receipt-retention matrices and disposable concurrency harnesses: **PASS** on the `migration up` replay database. The separate `db push` database was schema-hash compared; the full SQL matrix was not rerun on that second database.
+- New credential-path check on disposable `tnyx717receiptfresh20261031`: CLI `2.114.0` + passwordless URL + ACL-restricted `PGPASSFILE` passed read-only `migration list` and `db push --dry-run` (79/80, one final migration pending); no migration applied. The same explicit URL with `SUPABASE_DB_PASSWORD` failed authentication; `PGPASSWORD` succeeded but is not recommended by PostgreSQL. Full replay/recovery with `PGPASSFILE` remains **not run**.
 
-Official references: [CLI migration deployment](https://supabase.com/docs/guides/deployment/database-migrations), [CLI reference](https://supabase.com/docs/reference/cli/global-flags), [CLI v2.114.0 release](https://github.com/supabase/cli/releases/tag/v2.114.0), [CLI password authentication guidance](https://supabase.com/kb/troubleshooting/supabase-cli-failed-sasl-auth-or-invalid-scram-server-final-message), [Postgres connection methods](https://supabase.com/docs/guides/database/connecting-to-postgres), and [pooling/connection limits](https://supabase.com/docs/guides/database/connecting-to-postgres/pooling-and-limits).
+Official references: [CLI migration deployment](https://supabase.com/docs/guides/deployment/database-migrations), [CLI reference](https://supabase.com/docs/reference/cli/global-flags), [CLI v2.114.0 release](https://github.com/supabase/cli/releases/tag/v2.114.0), [latest stable CLI v2.122.0 release](https://github.com/supabase/cli/releases/tag/v2.122.0), [CLI password authentication guidance](https://supabase.com/kb/troubleshooting/supabase-cli-failed-sasl-auth-or-invalid-scram-server-final-message), [Postgres connection methods](https://supabase.com/docs/guides/database/connecting-to-postgres), [pooling/connection limits](https://supabase.com/docs/guides/database/connecting-to-postgres/pooling-and-limits), [PostgreSQL 17 password-file guidance](https://www.postgresql.org/docs/17/libpq-pgpass.html), and [PostgreSQL 17 environment-variable guidance](https://www.postgresql.org/docs/17/libpq-envars.html).
 
 ### Why not simply use the current CI pin
 
-`.github/workflows/supabase-db-ci.yml` pins CLI `2.116.0`, but its migration replay uses per-file `psql --single-transaction` and then repairs only the disposable CI ledger; it is not the production runner. CLI issue [#6347](https://github.com/supabase/cli/issues/6347) documents the LOCK TABLE transaction-block regression from 2.115 onward in the CLI's pipelined migration path. The repository’s CI method does not prove that `db push` at 2.116.0 is safe for this migration set. No CI pin change is proposed.
+`.github/workflows/supabase-db-ci.yml` pins CLI `2.116.0`, but its migration replay uses per-file `psql --single-transaction` and then repairs only the disposable CI ledger; it is not the production runner. CLI issue [#6347](https://github.com/supabase/cli/issues/6347) documents the LOCK TABLE transaction-block regression from 2.115 onward in the CLI's pipelined migration path. The repository’s CI method does not prove that `db push` at 2.116.0 is safe for this migration set. The newer stable v2.122.0 has not been tested against this repo's LOCK migrations or full replay in this qualification. No CI pin change is proposed.
 
 CLI issue [#6236](https://github.com/supabase/cli/issues/6236) describes a v2.114 passwordless `--linked` login-role path that can fail after `RESET ROLE`; it closed through PR #6246. The disposable qualification used the direct `--db-url` password-authenticated path, not linked/passwordless production auth. Do not use a passwordless linked path without separately qualifying that exact path.
 
@@ -99,15 +102,16 @@ CLI issue [#6236](https://github.com/supabase/cli/issues/6236) describes a v2.11
 - Use the direct PostgreSQL endpoint for project `oykupyiitspujzpwwvuj` over TLS, not a transaction-mode pooler. Supabase direct connections require IPv6 unless the project has an IPv4 add-on. If the operator's network cannot reach the direct endpoint, a documented session-mode pooler can be considered only after separately qualifying that exact path; do not silently switch connection modes. The CLI accepts `--db-url`.
 - The migration identity is the managed `postgres` role. It is not least-privilege in an absolute sense (`BYPASSRLS`, role creation and broad DDL); it is the least-privileged tested Supabase migration principal that can carry this migration’s role creation, ownership and extension work. Do not use `supabase_admin`, a service-role API key, or an application role.
 - The required deployment capabilities include the existing managed `postgres` role’s schema/table/function DDL and grants, role creation/membership and `SET ROLE`, function ownership changes, plus the Supabase allowlisted `pg_cron` extension path. A narrower custom deployment role has not been qualified.
-- Keep the password out of `--db-url`. Supabase documents `SUPABASE_DB_PASSWORD` as the CLI password mechanism. Inject it only into the CLI process environment through an approved ephemeral secret broker/operator environment; suppress environment dumps and tracing, clear it after the command, and never echo it. The non-secret endpoint URL remains visible in process arguments. A broker cannot make a password-bearing argv safe.
-- **Qualification gap:** the prior disposable `db push` used a password-bearing `--db-url`; it did not verify CLI v2.114.0 with a passwordless URL plus `SUPABASE_DB_PASSWORD`. Qualify this exact combination on a fresh disposable database before production approval, including that the password is absent from argv, logs and shell history and that the expected role authenticated over TLS. If it fails, stop and qualify an alternative; never return the password to argv. The environment value is still a high-privilege database credential.
+- Keep the password out of `--db-url`. The recommended passwordless URL + `PGPASSFILE` path passed read-only disposable tests; the `SUPABASE_DB_PASSWORD` environment route failed with explicit `--db-url`, and `PGPASSWORD` is not recommended by PostgreSQL for security reasons. For any production path, use an ephemeral encrypted location, explicit operator-only ACL and controlled `PGPASSFILE` injection. The non-secret endpoint URL and password-file path remain visible in process arguments/environment; neither contains the password.
+- **Remaining qualification:** first qualify the latest stable CLI v2.122.0 (or another explicitly selected pinned release) against the `LOCK TABLE` regression, full 72-to-80 replay, rollback/retry/interruption and the exact protected-file delivery mechanism. The v2.114.0 full replay used a password-bearing `--db-url`; its `PGPASSFILE` test was read-only only. Verify TLS plus no credential in logs/history. Do not use a production password for qualification.
 
-Run interactively, with a human present. The URL must be passwordless; inject `SUPABASE_DB_PASSWORD` out-of-band only after the exact CLI path is qualified on disposable infrastructure:
+Run interactively, with a human present. The URL must be passwordless; set `PGPASSFILE` only to a verified operator-only temporary file:
 
 ```powershell
-$Cli = '<versioned G:\dev side-by-side path>\supabase.exe'
+$Cli = '<versioned side-by-side supabase.exe>'
 $DbUrl = 'postgresql://postgres@<approved-endpoint>:5432/postgres?sslmode=require'
-# SUPABASE_DB_PASSWORD is injected out-of-band into this process environment after disposable qualification.
+$env:PGPASSFILE = '<operator-only encrypted temporary path>\pgpass.conf'
+# File format: <endpoint-host>:5432:postgres:postgres:<secret password>
 & $Cli --version
 & $Cli migration list --db-url $DbUrl
 & $Cli db push --db-url $DbUrl --dry-run --skip-vault
@@ -115,7 +119,7 @@ $DbUrl = 'postgresql://postgres@<approved-endpoint>:5432/postgres?sslmode=requir
 & $Cli db push --db-url $DbUrl --skip-vault
 ```
 
-Do not run the final command from this packet. The disposable `db push` run displayed an interactive `[Y/n]` prompt; inspect the target and prompt rather than making this unattended. Do not use `migration repair` to fake deployment history.
+Never echo password-file contents or include them in diagnostics. Verify the file's explicit operator-only ACL and encrypted volume before use; clear `PGPASSFILE` and remove the temporary file after the process exits. The disposable test showed `SUPABASE_DB_PASSWORD` is not honored by CLI v2.114.0 when an explicit `--db-url` is supplied; do not use that combination. Do not run the final command from this packet. The disposable `db push` run displayed an interactive `[Y/n]` prompt; inspect the target and prompt rather than making this unattended. Do not use `migration repair` to fake deployment history.
 
 ## 3. Scheduler and Extension Gate
 
@@ -177,7 +181,7 @@ reset role;
 1. Freeze the deployment SHA and verify `main`, the eight local filenames and hashes, the hosted 72-entry migration prefix, and no unexpected remote-only/local-only migrations. `migration list` compares timestamps; independently verify names and prefix before proceeding.
 2. Confirm recent backup/PITR coverage, retention, RPO/RTO, restore operator and restore rehearsal evidence. Decide how a restored pre-expiry receipt snapshot is kept from becoming visible; run expiry reconciliation/cleanup before reopening Notes reads after restore.
 3. Verify low-traffic window, active sessions/long transactions and database health. Migrations #2 and #4 issue `LOCK TABLE ... ACCESS EXCLUSIVE` on the newly created private receipt table. It is expected to be empty because all Notes migrations are pending, but still inspect lock waits and have a stop/timeout decision.
-4. Verify approved CLI binary/version/hash, direct TLS endpoint/project identity (IPv6 or IPv4 add-on), `postgres` deployment identity, disposable-qualified `SUPABASE_DB_PASSWORD` injection, and interactive operator availability. Never print credentials; the URL itself must be passwordless.
+4. Verify approved CLI binary/version/hash, direct TLS endpoint/project identity (IPv6 or IPv4 add-on), `postgres` deployment identity, full-replay-qualified `PGPASSFILE` delivery with operator-only ACL, and interactive operator availability. Never print credentials; the URL itself must be passwordless.
 5. Confirm `pg_cron` remains available at 1.6.4 and on the privileged extension allowlist; confirm the scheduler authentication decision and monitoring/on-call owner. The migration itself creates the extension and jobs; do not claim those steps are independent.
 6. Run `supabase migration list --db-url ...` and `supabase db push --db-url ... --dry-run --skip-vault`; require exactly the eight versions above, in order. Any mismatch, unexpected migration, auth prompt/target mismatch or unsupported CLI output is a stop condition. Confirm the password is absent from process arguments and captured logs.
 7. With approval A–G, apply the pending sequence through official CLI `db push`. Each migration file is committed in its own transaction; the eight-file push is not one atomic transaction. Migration #7 activates both schedules as part of its own transaction. If #8 or a later step fails after #7, earlier files and jobs remain committed; stop Notes release/use, record the actual ledger, and use the authorized deactivation/forward-recovery procedure before any retry.
@@ -206,8 +210,8 @@ Reply with an explicit decision for every item. Approval of this packet alone do
 
 | ID | Operation / justification | Risks and preconditions | Verification and recovery | Status / explicit owner authorization |
 |---|---|---|---|---|
-| A | Select official CLI `2.114.0`, SHA256 `848d0eacc6f4f7722f9874eaa0498e0ac674236907e5f70b44f1dac059b27b68`; it passed the full disposable replay, while CI's `2.116.0` path differs and issue #6347 remains relevant. | Older version; pin binary and verify official release hash. Re-check current official CLI release/security advisories before window. | Record binary hash/version and dry-run; stop on mismatch. Do not silently substitute `2.116.0`; requalify a new version in disposable infra first. | **Pending owner selection.** Explicit approval required. |
-| B | Use managed `postgres` over TLS with passwordless `--db-url` plus injected `SUPABASE_DB_PASSWORD`; required DDL/role/ownership/extension privileges have not been qualified for a narrower principal. | High privilege (`BYPASSRLS`, role/DDL permissions). Exact v2.114 env-var path is not yet disposable-qualified; direct route needs IPv6 or IPv4 add-on. Never use `supabase_admin`, service-role API key, password-bearing argv, repo secret or logs. | Disposable qualification must confirm expected principal, SSL, env-var consumption, no password in argv/logs/history, and expected migration ledger. If fail, stop and design/qualify an alternative. | **Blocked on disposable credential-path qualification and owner identity/secret-delivery approval.** Explicit approval required. |
+| A | Qualify and select a pinned official CLI. Current stable `2.122.0` (release 2026-10-23) is the recommended next qualification target; `2.114.0` archive/executable hashes above apply only to the historical tested artifact. | Do not infer the `#6347` LOCK behavior from release notes. v2.122.0 and its exact direct `--db-url` path have not been tested on this repo's eight migrations. Re-check release/security advisories before the window. | On disposable infra, verify archive and executable hashes, minimal LOCK case, full replay, ledger/schema consistency, rollback/retry/interruption, SQL/security/concurrency suites and protected credential delivery. Stop on any mismatch. | **Pending qualification and owner selection.** Explicit approval required. |
+| B | Use managed `postgres` over TLS with passwordless `--db-url` and `PGPASSFILE`; narrower migration principal has not been qualified. | High privilege (`BYPASSRLS`, role/DDL permissions). v2.114.0 read-only `PGPASSFILE` path passed; full migration apply via that path remains unqualified. Direct route needs IPv6 or IPv4 add-on. Never use `supabase_admin`, service-role API key, password-bearing argv, `PGPASSWORD`, repo secret or logs. | Repeat full 72-to-80 replay/failure recovery with exact protected-file delivery on the selected CLI; verify TLS, operator-only file ACL, no password in argv/logs/history and correct ledger. | **Read-only path qualified on v2.114.0; full credentialed-apply qualification and owner identity/secret-delivery approval pending.** Explicit approval required. |
 | C | Let merged migration #7 install hosted `pg_cron` (available 1.6.4, allowlisted, absent) as part of its SQL transaction. | Production schema/extension write; scheduler jobs and roles are created by the same migration. No separate extension-only operation is authorized. | Verify extension version/schema and exact role/function ACLs. If migration fails, inspect ledger and catalog before retry; no blind repair/drop. | **Pending.** Explicit owner approval required. |
 | D | Verify real scheduler auth by applying #7 and observing the real scheduled jobs; no safe read-only preflight can test a role/job that does not exist. | This is a production write and inherently activates cleanup. No dummy job, broad trust auth, or credential/config change is approved. Require owner-confirmed narrow supported auth and maintenance-window controls first. | Verify `cron.job` owner and exact command; capture `cron.job_run_details` first success/failure. On failure, stop before #8, preserve evidence, use approved `postgres` role to `cron.unschedule` both jobs, keep Notes unavailable, then resolve/retry only by approval. | **Unverified and coupled to C/E.** Separate explicit authorization for the #7 checkpoint required. |
 | E | Activate expiry job every five minutes (up to 500 receipt bodies per run) and history-prune job daily 03:17 UTC; both are atomically registered by migration #7. | Immediate cleanup can change production receipt snapshots once eligible; there is no independent “install but do not schedule” path in merged SQL. Require monitoring and auth evidence plan. | Verify job owner/schedule/command and first successful run; inspect backlog and failures. `cron.unschedule` is the operational stop; preserve failed records and recover forward. | **Pending.** Explicit owner approval required; cannot be approved independently from #7 and C/D. |
@@ -218,7 +222,7 @@ Reply with an explicit decision for every item. Approval of this packet alone do
 
 The approval packet is ready for owner review; production is **blocked** until all of these are resolved:
 
-1. A–G are explicitly approved; the passwordless URL + `SUPABASE_DB_PASSWORD` flow is qualified with CLI v2.114.0 on disposable infrastructure, and a supported hosted auth path for the scheduler LOGIN role is identified.
+1. A–G are explicitly approved; the owner-selected current supported CLI candidate passes the full disposable replay/recovery suite with passwordless URL + protected `PGPASSFILE`, direct connection reachability is verified, and a supported hosted auth path for the scheduler LOGIN role is identified.
 2. C/D/E are treated as one staged production checkpoint: applying #7 is the first real scheduler-auth test and immediately registers both jobs. Separate owner approval must explicitly authorize this write and the potential first cleanup effects.
 3. Backup/PITR state, restore readiness, deployment window, lock stop criteria, Notes feature access gate, named monitoring owner and alert/escalation process are confirmed.
 4. Immediately before execution, refresh the hosted 72-version prefix, project identity, allowlist/settings, network connectivity and pending-eight dry run; this read-only snapshot can become stale.
@@ -231,10 +235,10 @@ The approval packet is ready for owner review; production is **blocked** until a
 
 ### Validation and limits
 
-- Prior disposable qualification: evidence recorded in section 2; no production inference.
+- Prior CLI `2.114.0` full disposable replay: used a password-bearing URL; the `PGPASSFILE` run passed only read-only migration listing and dry-run on the 79-of-80 disposable database. `SUPABASE_DB_PASSWORD` failed with explicit `--db-url`; `PGPASSWORD` worked but PostgreSQL warns against its use for secrets. Official CLI v2.122.0 is now the latest stable release verified from the release page; no local qualification or production inference for it.
 - Hosted refresh: migrations, project/version, extension availability/allowlist, cron settings, role flags and Security Advisor were read-only. Reading `pg_hba_file_rules` returned permission denied (`42501`); scheduler authentication remains unknown.
 - No hosted migration, extension, role, schedule, credential or data change; no production deployment or Linear status change. The documentation-only branch/commit/PR and current review/CI state are reported separately in the task completion report.
-- Documentation-only validation: `git diff --check` passed for the tracked index edit; the new untracked packet was separately scanned for trailing whitespace and final newline. No tests/build were needed or run.
+- Documentation-only validation: `git diff --check` passed for the tracked index edit; the packet was separately scanned for trailing whitespace and final newline. CLI v2.114.0 version and extracted executable hash were verified; read-only migration listing and `db push --dry-run` passed with ACL-restricted `PGPASSFILE` on disposable Docker. No migration was applied. No tests/build were needed or run.
 
 ### Final status
 
