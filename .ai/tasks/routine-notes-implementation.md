@@ -1,6 +1,6 @@
 # Routine Notes Persistence Foundation
 
-**Status:** Locally validated — awaiting scoped commit/push, exact-head CI and independent review; merge gates remain open
+**Status:** Cleanup implementation pushed and exact-head CI passed — awaiting independent review and remaining review-thread/security gates; PR is not merge-ready
 **Primary owner:** Codex (current implementation session)
 **Affected platforms:** Shared, Workout feature, Supabase database
 
@@ -413,12 +413,31 @@ thread/check on exact HEAD and request independent review. Do not merge while
 Hosted pg_cron enablement, hosted schedule, Notes migration apply, hosted
 Security Advisor, deployment and production data changes remain unauthorized.
 
+### Post-push verification — 2026-10-31
+
+Commit `90bd5a52a16da0b85cdc32c02fe96f5e5d76cf62`
+(`fix(database): enforce routine note receipt retention`) was pushed normally
+to `tnyx/routine-notes-persistence`. GitHub confirms the same exact PR head,
+base `9c782688acd13efd189b7827c139dea3aca1a5d6`, PR OPEN/non-draft/unmerged.
+Exact-head workflows passed: Database `41206647348` (migration replay plus SQL
+matrix and race harness), Flutter `41206647418` (analyze and all three package
+shards), Docs Hygiene `41206647470`, and attribution `41206644723`. Cursor
+Bugbot and Cursor Approval/Security Agents were skipped, not passes.
+
+Fresh independent review was requested from `im-tio` on this head. At the
+latest refresh the review decision remained `CHANGES_REQUESTED`, inherited
+from older head `a0285c7bec483cd94e6905414593f266fd5eb3d9`; the reviewer had not
+yet submitted a new review. Thread counts remained 22 total, 18 unresolved
+non-outdated and 4 unresolved outdated. No thread was resolved. Merge state was
+`CLEAN`, but merge is blocked until the reviewer responds, P3 dispositions are
+accepted where needed, and blocking threads are individually reconciled.
+
 ## Exit Criteria
 
 PR #717 remains OPEN, non-draft and unmerged as last verified. This working
-tree contains the scheduled cleanup implementation, regression coverage and
-CI wiring described above. Commit/push and fresh review are authorized after
-final diff/validation checks. Hosted 30-day enforcement and security approval
-are not claimed. Remaining gates are exact-head CI, independent review of the
-cleanup and role-membership nuance, reviewer-compatible disposition of P3
-threads, and repository merge protection.
+tree's scheduled cleanup implementation, regression coverage, CI wiring and
+handoff are pushed at `90bd5a52a16da0b85cdc32c02fe96f5e5d76cf62`; exact-head CI
+passed. Hosted 30-day enforcement and security approval are not claimed.
+Remaining gates are fresh independent approval, reviewer-compatible
+disposition of P3 threads, no blocking unresolved findings, and repository
+merge protection.
