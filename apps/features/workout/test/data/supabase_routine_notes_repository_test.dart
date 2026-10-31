@@ -153,6 +153,31 @@ void main() {
     expect(gateway.reconcileCalls, 0);
   });
 
+  test('malformed mutation note runtime types map to malformedData', () async {
+    final malformed = _appliedNote();
+    (malformed['note'] as Map<String, dynamic>)['last_mutation_id'] = 42;
+    final gateway = _Gateway(result: malformed);
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteException>().having(
+        (error) => error.kind,
+        'kind',
+        RoutineNoteFailureKind.malformedData,
+      )),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 0);
+  });
+
   test('account switch after mutation is reported as unknown', () async {
     var owner = _owner;
     final gateway = _Gateway(
@@ -280,6 +305,33 @@ void main() {
       )),
     );
   });
+
+  test('read account switch returns unauthorized without stale data or receipt',
+      () async {
+    var owner = _owner;
+    final gateway = _Gateway(
+      rows: [_appliedNote()['note'] as Map<String, dynamic>],
+      onRead: () {
+        owner = _other;
+      },
+    );
+    final repository = SupabaseRoutineNotesRepository(
+      gateway: gateway,
+      currentUserId: () => owner,
+    );
+
+    await expectLater(
+      repository.read(RoutineNoteScope.routine(RoutineId(_routine))),
+      throwsA(isA<RoutineNoteException>().having(
+        (error) => error.kind,
+        'kind',
+        RoutineNoteFailureKind.unauthorized,
+      )),
+    );
+    expect(gateway.readCalls, 1);
+    expect(gateway.mutateCalls, 0);
+    expect(gateway.reconcileCalls, 0);
+  });
 }
 
 SupabaseRoutineNotesRepository _repository(_Gateway gateway) =>
@@ -310,6 +362,7 @@ final class _Gateway implements RoutineNotesGateway {
     this.reconciliation,
     this.error,
     this.rows = const [],
+    this.onRead,
     this.onMutate,
     this.reconciliationCompleter,
     this.onReconcile,
@@ -319,11 +372,13 @@ final class _Gateway implements RoutineNotesGateway {
   final Map<String, dynamic>? reconciliation;
   final Object? error;
   final List<Map<String, dynamic>> rows;
+  final void Function()? onRead;
   final void Function()? onMutate;
   final Completer<Map<String, dynamic>>? reconciliationCompleter;
   final void Function()? onReconcile;
   Map<String, dynamic>? lastParams;
   String? lastReconciledMutationId;
+  int readCalls = 0;
   int mutateCalls = 0;
   int reconcileCalls = 0;
 
@@ -331,8 +386,11 @@ final class _Gateway implements RoutineNotesGateway {
   Future<List<Map<String, dynamic>>> read({
     required String userId,
     required RoutineNoteScope scope,
-  }) async =>
-      rows;
+  }) async {
+    readCalls++;
+    onRead?.call();
+    return rows;
+  }
 
   @override
   Future<Map<String, dynamic>> mutate(Map<String, dynamic> params) async {

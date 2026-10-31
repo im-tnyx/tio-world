@@ -101,7 +101,7 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     try {
       final rows =
           await _gateway.read(userId: owner, scope: scope).timeout(_timeout);
-      _checkOwner(owner);
+      _checkReadOwner(owner);
       final notes = rows.map(RoutineNote.fromJson).toList(growable: false);
       for (final note in notes) {
         if (note.userId != owner || note.scope != scope) {
@@ -278,6 +278,14 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     } on ArgumentError {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+    } on TypeError {
+      throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+    }
+  }
+
+  void _checkReadOwner(String owner) {
+    if (!_sameOwner(owner)) {
+      throw const RoutineNoteException(RoutineNoteFailureKind.unauthorized);
     }
   }
 
@@ -289,7 +297,7 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     return owner;
   }
 
-  void _checkOwner(String owner, {String mutationId = 'session-changed'}) {
+  void _checkOwner(String owner, {required String mutationId}) {
     if (!_sameOwner(owner)) {
       throw RoutineNoteOutcomeUnknown(
         mutationId: mutationId,
