@@ -88,6 +88,88 @@ void main() {
     expect(gateway.lastReconciledMutationId, _mutation);
   });
 
+  test('2xx mutation decode failure reconciles using the same mutation ID',
+      () async {
+    final gateway = _Gateway(
+      error: const PostgrestException(
+        message: 'successful response could not be decoded',
+        code: '200',
+      ),
+      reconciliation: _appliedNote(body: 'saved'),
+    );
+    final repository = _repository(gateway);
+
+    final result = await repository.create(
+      RoutineNoteCreate(
+        id: _note,
+        scope: RoutineNoteScope.routine(RoutineId(_routine)),
+        body: 'saved',
+        mutationId: _mutation,
+      ),
+    );
+
+    expect(result.id, _note);
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 1);
+    expect(gateway.lastReconciledMutationId, _mutation);
+  });
+
+  test('reconciliation auth failure preserves unknown mutation outcome',
+      () async {
+    final gateway = _Gateway(
+      error: TimeoutException('mutation response lost'),
+      reconciliationError: const PostgrestException(
+        message: 'JWT expired',
+        code: '401',
+      ),
+    );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteOutcomeUnknown>().having(
+        (error) => error.mutationId,
+        'mutationId',
+        _mutation,
+      )),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 1);
+    expect(gateway.lastReconciledMutationId, _mutation);
+  });
+
+  test('definite mutation auth rejection is not reconciled', () async {
+    final gateway = _Gateway(
+      error: const PostgrestException(message: 'JWT expired', code: '401'),
+    );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      repository.create(
+        RoutineNoteCreate(
+          id: _note,
+          scope: RoutineNoteScope.routine(RoutineId(_routine)),
+          body: 'saved',
+          mutationId: _mutation,
+        ),
+      ),
+      throwsA(isA<RoutineNoteException>().having(
+        (error) => error.kind,
+        'kind',
+        RoutineNoteFailureKind.unauthorized,
+      )),
+    );
+    expect(gateway.mutateCalls, 1);
+    expect(gateway.reconcileCalls, 0);
+  });
+
   test('expired reconciliation is a definite result and preserves mutation ID',
       () async {
     final gateway = _Gateway(
@@ -361,6 +443,7 @@ final class _Gateway implements RoutineNotesGateway {
     this.result,
     this.reconciliation,
     this.error,
+    this.reconciliationError,
     this.rows = const [],
     this.onRead,
     this.onMutate,
@@ -371,6 +454,7 @@ final class _Gateway implements RoutineNotesGateway {
   final Map<String, dynamic>? result;
   final Map<String, dynamic>? reconciliation;
   final Object? error;
+  final Object? reconciliationError;
   final List<Map<String, dynamic>> rows;
   final void Function()? onRead;
   final void Function()? onMutate;
@@ -406,6 +490,7 @@ final class _Gateway implements RoutineNotesGateway {
     reconcileCalls++;
     lastReconciledMutationId = mutationId;
     onReconcile?.call();
+    if (reconciliationError != null) throw reconciliationError!;
     if (reconciliationCompleter != null) return reconciliationCompleter!.future;
     return reconciliation ?? {'status': 'pending'};
   }

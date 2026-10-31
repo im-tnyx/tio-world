@@ -208,9 +208,10 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
       rethrow;
     } on RoutineNoteException {
       rethrow;
-    } on PostgrestException catch (error) {
-      final definite = _definite(error);
-      if (definite != null) throw RoutineNoteException(definite);
+    } on PostgrestException {
+      // A reconciliation failure cannot establish whether the original
+      // mutation committed. Preserve its ID for a later retry/reconciliation.
+      // In particular, auth expiry on this second request is not a rollback.
       throw RoutineNoteOutcomeUnknown(mutationId: mutationId);
     } on TimeoutException {
       throw RoutineNoteOutcomeUnknown(mutationId: mutationId);
@@ -335,7 +336,9 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     if (error.code?.startsWith('08') == true ||
         error.code == '408' ||
         error.code == '499' ||
-        (status != null && status >= 500 && status <= 599)) {
+        (status != null &&
+            ((status >= 200 && status <= 299) ||
+                (status >= 500 && status <= 599)))) {
       return null;
     }
     return switch (error.code) {

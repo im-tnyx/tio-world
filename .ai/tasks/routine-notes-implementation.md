@@ -510,14 +510,33 @@ S1/hosted-security boundary. Both have factual evidence replies; reviewer
 acceptance remains pending. Do not merge while the independent review decision
 is `CHANGES_REQUESTED` or these dispositions remain unresolved.
 
+## 2026-10-31 — Latest repository review findings
+
+At the connected PR mirror refresh, PR #717 remains OPEN and unmerged at
+`2de278a19f2c7d90e4f860d8b1f44fab5e15db5d`. The Codex review on that head
+identified two repository findings, now fixed in the local worktree:
+
+* `PRRT_kwDOTOXwB86ySBND` — successful HTTP 2xx response decode errors are
+  ambiguous; reconcile with the same mutation ID.
+* `PRRT_kwDOTOXwB86ySBNE` — a failed reconciliation request, including expired
+  JWT/401, cannot prove the original mutation rolled back; preserve
+  `RoutineNoteOutcomeUnknown` and the original mutation ID.
+
+The focused Flutter repository suite passed 14/14 on 2026-10-31 using Flutter
+3.44.6; `dart format` reported no changes and `git diff --check` passed. The
+two fixes have not yet been committed or pushed. Current hosted PR state still
+has four open threads: these two findings plus the existing P3-B Custom
+Exercise lifecycle and conditional S1/hosted-security boundary. The aggregate
+review decision remains `CHANGES_REQUESTED`; fresh exact-head review and checks
+are required after push. Do not merge or resolve threads as part of this local
+fix checkpoint.
+
 ## Exit Criteria
 
-At the connected PR mirror refresh (`2026-10-31T14:35:04Z`), PR #717 was OPEN,
-non-draft and unmerged at `f97e8480aa03a28bb7b9ca585fe4dbcab018ff7e`. Exact-
-head Database, Flutter, Docs Hygiene and attribution checks passed;
-Cursor checks were neutral due usage limits. Twenty of 22 inline threads were
-resolved individually; the two current threads and independent review remain
-open, so merge is BLOCKED. Hosted 30-day enforcement and Notes-specific
-production security approval are not claimed; hosted migration, scheduler
-activation and deployment remain unauthorized. Direct GitHub API refresh was
-unavailable; the cited state is from the connected Linear PR mirror.
+The last completed hosted check set is exact-head `2de278a1` (Database CI,
+Flutter CI, Docs Hygiene and attribution passed; Cursor agents were neutral due
+usage limits). The working-tree fixes above are not on the hosted head yet, so
+their CI and reviewer acceptance are pending. Four review threads remain open
+and aggregate review is `CHANGES_REQUESTED`; merge is BLOCKED. Hosted
+30-day-enforcement/security deployment gates remain separate and are not
+claimed as complete.
