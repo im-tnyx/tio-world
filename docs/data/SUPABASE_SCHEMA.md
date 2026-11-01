@@ -1,21 +1,23 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-24 (read-only hosted schema, migration ledger, and RPC ACL reconciliation)
+Last Verified: 2026-11-01 (read-only hosted 72-migration prefix; nine Routine Notes migrations pending)
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
 ## Status
 
-**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-10-24.**
+**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-11-01.**
 
-- GitHub protected `main@0541735248964c72618ac081f2316119d7949a53` has **69** checked-in `supabase/migrations/` SQL files, through `20261024090000_m5b_atomic_create_move_full_undo.sql`.
-- Read-only hosted migration ledger shows **69/69 exact version-and-name parity** with checked-in migrations; repository-only and hosted-only entries: **0 / 0**.
+- The hosted project remains at a read-only verified **72/72** migration prefix. The pre-Notes gate plus eight Routine Notes migrations are pending, so this inventory intentionally contains no Notes table, Notes RPC, gate-state table or Notes policy yet. Merged source PR #720 is not hosted deployment evidence.
+
+- GitHub protected `main@b1b7722cf2cbcf45f90cca0a72da56669bb8e455` has **81** checked-in `supabase/migrations/` SQL files, through `20261031142025_routine_note_owner_scoped_identity.sql`.
+- Read-only hosted migration ledger shows **72/72 exact version-and-name parity** with the checked-in hosted prefix; the remaining nine checked-in migrations are repository-only and no hosted-only entries were observed.
 - Read-only hosted `pg_catalog` confirms **19 public ordinary tables, 194 columns, 130 catalog constraint records, 55 indexes, RLS enabled on 19/19 tables**.
 - The newly hosted M5B-B1 migration adds **three nullable UUID provenance columns** and **one all-or-none CHECK** on `public.user_workout_programs`; it does **not** add a table or index. The protected `undo_create_user_workout_program_and_move_routine` RPC is present.
-- M5B Create+Move and full Undo RPCs and existing Move RPC remain **EXECUTE-denied** to `anon`, `authenticated`, `service_role`, and `PUBLIC` in live metadata. `routineMoveReleaseEnabledProvider` remains hard `false` in checked-in Flutter source. **Schema deployment is not a Move release, an RPC grant, or a real-write Android/iOS QA pass.**
+- Current read-only hosted ACL verification confirms the three Move/Create+Move/full-Undo RPCs have `authenticated EXECUTE=true`, while `anon`, `service_role` and `PUBLIC` are denied. The functions are `SECURITY DEFINER`, owned by `postgres`, with fixed empty `search_path`. The checked-in Flutter gate is the default-OFF `TIO_MOVE_ROUTINE_RELEASE` build opt-in; it controls presentation exposure only and is not RPC authorization or a remote kill switch. **Schema deployment and an RPC grant are not a public Move release or a real-write Android/iOS QA pass.**
 
-The previous **2026-10-21 68/68** checkpoint through `20261021130000_harden_move_routine_permanent_owner.sql`, the **2026-10-17 62/62** checkpoint and the **2026-10-11 55/55** checkpoint are historical. The current 69/69 verification was read-only; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
+The previous **2026-10-24 69/69** checkpoint, **2026-10-21 68/68** checkpoint, **2026-10-17 62/62** checkpoint and **2026-10-11 55/55** checkpoint are historical. The current 72/72 verification was read-only; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
 
 ## Truth Boundary
 
@@ -55,10 +57,10 @@ This inventory intentionally excludes:
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 69 / 69 |
-| Repository-only pending migrations | 0 |
+| Applied live migrations matched to repository | 72 / 72 |
+| Repository-only pending migrations | 9 |
 
-The hosted migration ledger ends at `20261024090000_m5b_atomic_create_move_full_undo`; all **69** checked-in and all **69** applied migration versions and names matched in a 2026-10-24 read-only audit, with no repository-only or hosted-only entries. Structural table/column/constraint/index/RLS counts were remeasured live on the same date. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
+The hosted migration ledger currently ends at the verified **72/72** prefix; all **72** applied migration versions and names matched the checked-in prefix in the 2026-11-01 read-only audit, while nine later checked-in Routine Notes migrations remain repository-only and no hosted-only entries were observed. Structural table/column/constraint/index/RLS counts were remeasured live on the same date. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
 
 ## Table Overview
 
@@ -588,7 +590,7 @@ The hosted migration ledger ends at `20261024090000_m5b_atomic_create_move_full_
 
 **RLS:** Enabled
 
-**Data API access boundary (2026-10-20):** `authenticated` retains SELECT and narrow column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`); **direct UPDATE, including `UPDATE(name)`, is retired** by the applied `20261017154241_retire_legacy_routine_name_update.sql` migration. That migration revokes the column grant and fails closed unless neither table-wide nor name/program ownership column UPDATE is available while protected RPC access is preserved. Owner SELECT/INSERT/UPDATE RLS policies may remain, but an RLS UPDATE policy **does not grant Data API UPDATE privileges**. Direct client revision/mutation-hash writes, Routine DELETE, renames and moves are denied. Atomic composition, Create, Name+composition Update and Delete instead use their owner-guarded RPC contracts below. This privilege statement is supported by the checked-in deployed fail-closed migration and the 66/66 applied ledger; **a separate live Routine table/column ACL query was not completed** in this review. RPC existence does not imply Move/Workout Start UI activation or a device release.
+**Historical Data API access boundary snapshot (2026-10-20; superseded for Move ACL by the current 2026-11-01 verification):** `authenticated` retains SELECT and narrow column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`); **direct UPDATE, including `UPDATE(name)`, is retired** by the applied `20261017154241_retire_legacy_routine_name_update.sql` migration. That migration revokes the column grant and fails closed unless neither table-wide nor name/program ownership column UPDATE is available while protected RPC access is preserved. Owner SELECT/INSERT/UPDATE RLS policies may remain, but an RLS UPDATE policy **does not grant Data API UPDATE privileges**. The dated snapshot recorded direct client revision/mutation-hash writes, Routine DELETE, renames and moves as denied; current Move RPC ACL is documented in the current function inventory below. Atomic composition, Create, Name+composition Update and Delete instead use their owner-guarded RPC contracts below. This privilege statement is supported by the checked-in deployed fail-closed migration and the 66/66 applied ledger; **a separate live Routine table/column ACL query was not completed** in that historical review. RPC existence does not imply Move/Workout Start UI activation or a device release.
 
 #### Columns
 
@@ -850,12 +852,12 @@ Current signatures, return types, `SECURITY DEFINER` and empty `search_path` wer
 | `create_user_workout_routine_with_composition` | `uuid, uuid, text, uuid, jsonb` | `bigint` | Yes |
 | `update_user_workout_routine_with_composition` | `uuid, uuid, bigint, text, uuid, text, jsonb` | `bigint` | Yes |
 | `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` | Yes |
-| `move_user_workout_routine` | `uuid, uuid, uuid, bigint, uuid` | `bigint` | **No — dormant** |
-| `create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, text, bigint, uuid` | `bigint` | **No — dormant** |
-| `undo_create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, uuid, bigint, uuid` | `bigint` | **No — dormant** |
+| `move_user_workout_routine` | `uuid, uuid, uuid, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
+| `create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, text, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
+| `undo_create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, uuid, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
 | `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **Yes — API granted; Flutter release OFF** |
 
-The three #569 Move/Create+Move/Undo RPCs are now **hosted** and have `SECURITY DEFINER` with an empty `search_path`. Read-only live ACL inspection confirmed **no `EXECUTE` for `anon`, `authenticated`, `service_role`, or `PUBLIC`** on all three. The #568 `create_user_workout_routine_in_my_program` RPC is authenticated-executable, while `anon`, `service_role`, and `PUBLIC` are denied. The first-Routine backend grant remains separate from the hard-false `myProgramRoutineCreateReleaseEnabledProvider` Flutter flag; the Move release provider likewise remains hard `false`. The Routine Delete path retires deleted IDs in private `private.deleted_user_workout_routine_ids`, not an ordinary `public` table.
+Current read-only live ACL inspection confirms the three #569 Move/Create+Move/Undo RPCs are hosted with `SECURITY DEFINER`, empty `search_path`, `authenticated EXECUTE=true`, and `anon`, `service_role` and `PUBLIC` denied. The #568 `create_user_workout_routine_in_my_program` RPC is authenticated-executable, while `anon`, `service_role` and `PUBLIC` are denied. The Move grant is separate from the default-OFF `TIO_MOVE_ROUTINE_RELEASE` Flutter build opt-in; that presentation gate is not RPC authorization or a remote kill switch. The Routine Delete path retires deleted IDs in private `private.deleted_user_workout_routine_ids`, not an ordinary `public` table. The earlier grant-denied Move observation is historical and superseded by the current ACL verification.
 
 **Evidence boundary:** Read-only metadata proves the listed deployed structural state, signatures and access bits, **not** authorization-body correctness, row-level mutation semantics, production activation, live device QA, or distributed app release. Routine Move grants, Program Delete lifecycle and QA remain separately tracked by live GitHub/Linear. This inventory update made no Supabase mutation.
 
