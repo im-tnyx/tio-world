@@ -57,10 +57,10 @@ This inventory intentionally excludes:
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 69 / 69 |
-| Repository-only pending migrations | 0 |
+| Applied live migrations matched to repository | 72 / 72 |
+| Repository-only pending migrations | 9 |
 
-The hosted migration ledger ends at `20261024090000_m5b_atomic_create_move_full_undo`; all **69** checked-in and all **69** applied migration versions and names matched in a 2026-10-24 read-only audit, with no repository-only or hosted-only entries. Structural table/column/constraint/index/RLS counts were remeasured live on the same date. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
+The hosted migration ledger currently ends at the verified **72/72** prefix; all **72** applied migration versions and names matched the checked-in prefix in the 2026-11-01 read-only audit, while nine later checked-in Routine Notes migrations remain repository-only and no hosted-only entries were observed. Structural table/column/constraint/index/RLS counts were remeasured live on the same date. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
 
 ## Table Overview
 
