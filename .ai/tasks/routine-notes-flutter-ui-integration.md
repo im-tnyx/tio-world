@@ -142,8 +142,13 @@ mutable PR head live from GitHub.
 **Diff or commit SHA actually reviewed:** Current PR head before remediation:
  `f4a991963a426f293dae0337fec4a78d889ac740`.
 **Last independently verifiable PR head before this handoff edit:** `b38162ca`
-**Review result and finding IDs/dispositions:** Six actionable threads were identified;
- fixes are implemented locally and require exact-head CI plus independent re-review.
+**Review result and finding IDs/dispositions:** Eight distinct actionable finding IDs
+were identified. They represent six review themes because `4436062657` and
+`4436083898` cover the same retryable-create failure, while `4436062664` and
+`4436083867` cover the same unknown-create duplicate-prevention failure. The
+remaining session, empty-state warning, same-screen refresh and lazy-header
+findings are distinct. Fixes are implemented at the commits recorded below and
+require exact-head CI plus independent re-review.
 **Independent review?** Pending — automated comments are not approval.
 **Limitations and unmet required gates:** Hosted migration, Notes activation,
 physical Android/iOS QA and production release are out of scope.
