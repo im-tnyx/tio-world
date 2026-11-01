@@ -27,15 +27,12 @@ grant execute on function private.routine_notes_data_api_gate_is_enabled()
 -- RESTRICTIVE ensures this condition is required in addition to the existing
 -- owner-scoped Notes policies. It affects SELECT only, which is the relation
 -- embedding bypass surface; existing Notes RPC/table write contracts remain
--- unchanged and the pre-request hook still covers direct Notes paths. A null
--- request.path is the explicit direct-database/operator boundary, where the
--- existing SQL/RLS contract remains testable; PostgREST always supplies it.
+-- unchanged and the pre-request hook still covers direct Notes paths. The
+-- helper is intentionally required even when request.path is absent so that
+-- authenticated SQL sessions and Realtime-style RLS evaluation fail closed.
 create policy routine_notes_data_api_gate_enabled_select
   on public.user_workout_routine_notes
   as restrictive
   for select
   to authenticated
-  using (
-    current_setting('request.path', true) is null
-    or private.routine_notes_data_api_gate_is_enabled()
-  );
+  using (private.routine_notes_data_api_gate_is_enabled());

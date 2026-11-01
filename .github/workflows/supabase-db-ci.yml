@@ -266,6 +266,13 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
 
+      - name: Enable Routine Notes gate for direct SQL contract tests
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --command="update private.routine_notes_data_api_gate_state set gate_state='enabled' where gate_key='routine_notes';"
+
       - name: Run TNYX-81 Routine Notes SQL matrix
         shell: bash
         run: |
@@ -289,6 +296,13 @@ jobs:
       - name: Run TNYX-81 Routine Notes quota and transfer two-session races
         shell: bash
         run: bash supabase/tests/database/tnyx_81_routine_notes_concurrency.sh
+
+      - name: Restore Routine Notes default-deny state
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --command="update private.routine_notes_data_api_gate_state set gate_state='disabled' where gate_key='routine_notes';"
 
       - name: Assert TNYX-81 Routine Notes Data API gate catalog contract
         shell: bash

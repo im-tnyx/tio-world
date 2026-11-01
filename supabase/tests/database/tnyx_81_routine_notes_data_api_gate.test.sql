@@ -148,10 +148,10 @@ select pg_temp.assert_true(
       and permissive = 'RESTRICTIVE'
       and cmd = 'SELECT'
       and roles = array['authenticated']::name[]
-      and qual ilike '%current_setting%request.path%'
       and qual ilike '%routine_notes_data_api_gate_is_enabled%'
+      and qual not ilike '%current_setting%request.path%'
   ),
-  'embedded Notes SELECT requires the explicit enabled gate in a restrictive policy'
+  'embedded Notes SELECT requires the explicit enabled gate without a path bypass'
 );
 
 select pg_temp.assert_true(
@@ -179,19 +179,108 @@ select pg_temp.assert_true(
   'final Notes grants from migrations #1 and #6 remain unchanged'
 );
 
+do $$
+declare
+  v_resolver regprocedure :=
+    to_regprocedure('graphql.resolve(text,jsonb,text,jsonb)');
+  v_response jsonb;
+  v_query text;
+  v_queries text[] := array[
+    'query { userWorkoutRoutineNotesCollection(first: 1) { edges { node { id } } } }',
+    'query { user_workout_routine_notesCollection(first: 1) { edges { node { id } } } }'
+  ];
+begin
+  if exists (
+    select 1 from pg_catalog.pg_extension where extname = 'pg_graphql'
+  ) then
+    if v_resolver is null then
+      raise exception 'assertion failed: pg_graphql is installed without graphql.resolve(text,jsonb,text,jsonb)';
+    end if;
+
+    foreach v_query in array v_queries loop
+      execute $graphql$
+        select graphql.resolve(
+          query := $1,
+          variables := '{}'::jsonb,
+          "operationName" := null,
+          extensions := null
+        )
+      $graphql$
+      using v_query
+      into v_response;
+
+      if coalesce(
+        (v_response->'data') ? 'userWorkoutRoutineNotesCollection', false
+      ) or coalesce(
+        (v_response->'data') ? 'user_workout_routine_notesCollection', false
+      ) then
+        raise exception 'assertion failed: GraphQL exposes Routine Notes';
+      end if;
+    end loop;
+  elsif v_resolver is not null then
+    raise exception 'assertion failed: graphql.resolve exists without pg_graphql';
+  end if;
+end;
+$$;
+
 select pg_temp.assert_true(
-  (select count(*) = 0
-   from information_schema.tables
-   where table_schema = 'graphql_public'
-     and table_name = 'user_workout_routine_notes')
-  and not exists (
+  not exists (
     select 1
     from pg_catalog.pg_publication_tables
     where schemaname = 'public'
       and tablename = 'user_workout_routine_notes'
   ),
-  'Notes are absent from GraphQL schema tables and Realtime publications'
+  'Notes are absent from Realtime publications'
 );
+
+-- Realtime postgres_changes evaluates table RLS as authenticated without a
+-- PostgREST request.path. Exercise the same boundary with a synthetic owner
+-- and note while the operator-controlled gate is disabled, then prove that
+-- enabling the state restores the existing owner-scoped read contract.
+insert into auth.users (id, email) values
+  ('a8100000-0000-4000-8000-000000000061', 'notes-gate-a@example.test');
+insert into public.user_workout_programs (id, user_id, name) values
+  ('a8100000-0000-4000-8000-000000000061',
+   'a8100000-0000-4000-8000-000000000061', 'Gate Program');
+insert into public.user_workout_routines (id, user_id, program_id, name) values
+  ('a8100000-0000-4000-8000-000000000062',
+   'a8100000-0000-4000-8000-000000000061',
+   'a8100000-0000-4000-8000-000000000061', 'Gate Routine');
+insert into public.user_workout_routine_notes (
+  id, user_id, routine_id, note_type, body
+) values (
+  'a8100000-0000-4000-8000-000000000063',
+  'a8100000-0000-4000-8000-000000000061',
+  'a8100000-0000-4000-8000-000000000062',
+  'pinned_routine', 'Synthetic gate test note'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claim.sub',
+  'a8100000-0000-4000-8000-000000000061',
+  true
+);
+select pg_temp.assert_true(
+  (select count(*) = 0
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000063'),
+  'authenticated SQL/Realtime-style Notes reads fail closed while disabled'
+);
+reset role;
+
+update private.routine_notes_data_api_gate_state
+set gate_state = 'enabled'
+where gate_key = 'routine_notes';
+
+set local role authenticated;
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.user_workout_routine_notes
+   where id = 'a8100000-0000-4000-8000-000000000063'),
+  'authenticated owner Notes reads recover when the gate is enabled'
+);
+reset role;
 
 do $$
 declare
