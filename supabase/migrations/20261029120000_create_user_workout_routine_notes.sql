@@ -91,6 +91,38 @@ on public.user_workout_routine_notes
 for select to authenticated
 using ((select auth.uid()) = user_id);
 
+-- Keep the embedding boundary in the first Notes migration so no committed
+-- state can expose owner-scoped Notes rows before the gate is effective.
+create function private.routine_notes_data_api_gate_is_enabled()
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+  select exists (
+    select 1
+    from private.routine_notes_data_api_gate_state
+    where gate_key = 'routine_notes'
+      and gate_state = 'enabled'
+  );
+$$;
+
+revoke all on function private.routine_notes_data_api_gate_is_enabled()
+  from public, anon, authenticated, service_role;
+grant execute on function private.routine_notes_data_api_gate_is_enabled()
+  to authenticated;
+
+-- RESTRICTIVE makes this condition mandatory alongside the existing
+-- owner-scoped SELECT policy. It intentionally does not inspect request.path,
+-- so authenticated SQL sessions and Realtime-style RLS evaluation fail closed.
+create policy routine_notes_data_api_gate_enabled_select
+  on public.user_workout_routine_notes
+  as restrictive
+  for select
+  to authenticated
+  using (private.routine_notes_data_api_gate_is_enabled());
+
 revoke all on table private.user_workout_routine_note_mutations
   from public, anon, authenticated, service_role;
 alter table private.user_workout_routine_note_mutations enable row level security;

@@ -120,6 +120,10 @@ jobs:
             exit 1
           fi
 
+      - name: Verify TNYX-81 atomic staged migration security
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
+
       - name: Run Slice B1 SQL matrix
         shell: bash
         run: |

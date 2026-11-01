@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -21,8 +22,13 @@ import urllib.request
 import uuid
 
 
-DB_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-API_URL = "http://127.0.0.1:3023"
+CI_DB_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+DB_URL = os.getenv("TNYX_81_DATABASE_URL", CI_DB_URL)
+POSTGREST_DB_URI = os.getenv("TNYX_81_POSTGREST_DB_URI", DB_URL)
+API_URL = os.getenv("TNYX_81_API_URL", "http://127.0.0.1:3023")
+DISPOSABLE_MODE = os.getenv("TNYX_81_DISPOSABLE_MODE", "ci")
+PSQL_CONTAINER = os.getenv("TNYX_81_PSQL_CONTAINER", "")
+API_PORT = str(urllib.parse.urlparse(API_URL).port or 3023)
 TEST_JWT_SECRET = "tnyx-81-routine-notes-gate-ci-only-20261101"
 OWNER_ID = "a8100000-0000-4000-8000-000000000001"
 GUEST_ID = "a8100000-0000-4000-8000-000000000002"
@@ -46,18 +52,48 @@ RPC_PATHS = (
     "/rpc/mutate_user_workout_routine_note_legacy",
     "/rpc/reconcile_user_workout_routine_note_mutation",
 )
+STAGE = os.getenv("TNYX_81_STAGE", "")
+STAGE_MIGRATION = os.getenv("TNYX_81_STAGE_MIGRATION", "20261028120000")
+STAGES = {
+    "baseline",
+    "pre_notes_gate",
+    "first_notes",
+    "after_20261030065649",
+    "after_20261030074635",
+    "after_20261030081321",
+    "after_20261031100000",
+    "after_20261031110000",
+    "after_20261031130000",
+    "after_20261031142025",
+}
 
 
 def psql(query):
-    proc = subprocess.run(
-        [
+    command = [
+        "psql",
+        DB_URL,
+        "--set=ON_ERROR_STOP=1",
+        "--tuples-only",
+        "--no-align",
+        "--command=" + query,
+    ]
+    if PSQL_CONTAINER:
+        command = [
+            "docker",
+            "exec",
+            PSQL_CONTAINER,
             "psql",
-            DB_URL,
+            "-U",
+            "postgres",
+            "-d",
+            "postgres",
             "--set=ON_ERROR_STOP=1",
             "--tuples-only",
             "--no-align",
             "--command=" + query,
-        ],
+        ]
+    proc = subprocess.run(
+        command,
         check=True,
         capture_output=True,
         text=True,
@@ -66,32 +102,58 @@ def psql(query):
 
 
 def require_disposable():
-    if os.getenv("GITHUB_ACTIONS") != "true" or os.getenv("DATABASE_URL") != DB_URL:
-        raise RuntimeError("Refuse Routine Notes gate test outside exact disposable Database CI")
+    if DISPOSABLE_MODE == "ci":
+        if os.getenv("GITHUB_ACTIONS") != "true" or DB_URL != CI_DB_URL:
+            raise RuntimeError("Refuse Routine Notes gate test outside exact disposable Database CI")
+    elif DISPOSABLE_MODE == "local":
+        parsed_db = urllib.parse.urlparse(DB_URL)
+        if parsed_db.hostname not in ("127.0.0.1", "localhost") or parsed_db.port in (None, 54322):
+            raise RuntimeError("Local mode requires a non-Supabase loopback disposable database port")
+        if not API_URL.startswith("http://127.0.0.1:"):
+            raise RuntimeError("Local mode requires a loopback disposable PostgREST URL")
+        if not PSQL_CONTAINER:
+            raise RuntimeError("Local mode requires an explicit disposable psql container")
+    else:
+        raise RuntimeError("Unknown Routine Notes disposable mode")
+    if STAGE and STAGE not in STAGES:
+        raise RuntimeError("Unknown Routine Notes staged checkpoint: " + STAGE)
+    if STAGE_MIGRATION and not re.fullmatch(r"[0-9]{14}", STAGE_MIGRATION):
+        raise RuntimeError("Invalid Routine Notes staged migration version")
+    migration_check = (
+        "true"
+        if STAGE == "baseline"
+        else "(select count(*) from supabase_migrations.schema_migrations "
+             "where version='%s')=1" % STAGE_MIGRATION
+    )
+    notes_fixture_check = (
+        "true"
+        if STAGE in ("baseline", "pre_notes_gate")
+        else "(select count(*) from public.user_workout_routine_notes "
+             "where id='%s'::uuid)=0" % OWNER_NOTE_ID
+    )
     identity = psql(
         """
         select current_database()='postgres'
            and current_user='postgres'
            and to_regclass('supabase_migrations.schema_migrations') is not null
-           and (select count(*) from supabase_migrations.schema_migrations
-                where version='20261028120000')=1
+           and %s
            and (select count(*) from auth.users
                 where id in ('%s'::uuid,'%s'::uuid))=0
            and (select count(*) from public.user_workout_programs
                 where id in ('%s'::uuid,'%s'::uuid))=0
            and (select count(*) from public.user_workout_routines
                 where id in ('%s'::uuid,'%s'::uuid))=0
-           and (select count(*) from public.user_workout_routine_notes
-                where id='%s'::uuid)=0
+           and %s
         """
         % (
+            migration_check,
             OWNER_ID,
             GUEST_ID,
             OWNER_PROGRAM_ID,
             GUEST_PROGRAM_ID,
             OWNER_ROUTINE_ID,
             GUEST_ROUTINE_ID,
-            OWNER_NOTE_ID,
+            notes_fixture_check,
         )
     )
     if identity != "t":
@@ -99,8 +161,7 @@ def require_disposable():
 
 
 def auth_fixture():
-    psql(
-        """
+    fixture_sql = """
         insert into auth.users (id,email,is_anonymous) values
           ('%s'::uuid,'tnyx-81-owner@example.test',false),
           ('%s'::uuid,'tnyx-81-guest@example.test',false);
@@ -110,11 +171,16 @@ def auth_fixture():
         insert into public.user_workout_routines (id,user_id,program_id,name) values
           ('%s'::uuid,'%s'::uuid,'%s'::uuid,'TNYX-81 Owner Routine'),
           ('%s'::uuid,'%s'::uuid,'%s'::uuid,'TNYX-81 Guest Routine');
+        """
+    if notes_exist():
+        fixture_sql += """
         insert into public.user_workout_routine_notes
           (id,user_id,routine_id,note_type,body)
         values
           ('%s'::uuid,'%s'::uuid,'%s'::uuid,'pinned_routine','TNYX-81 owner fixture');
-        """
+        """ % (OWNER_NOTE_ID, OWNER_ID, OWNER_ROUTINE_ID)
+    psql(
+        fixture_sql
         % (
             OWNER_ID,
             GUEST_ID,
@@ -128,9 +194,6 @@ def auth_fixture():
             GUEST_ROUTINE_ID,
             GUEST_ID,
             GUEST_PROGRAM_ID,
-            OWNER_NOTE_ID,
-            OWNER_ID,
-            OWNER_ROUTINE_ID,
         )
     )
     if psql(
@@ -256,36 +319,50 @@ def set_hook(name):
     notify_config()
 
 
+def notes_exist():
+    return psql(
+        "select to_regclass('public.user_workout_routine_notes') is not null"
+    ) == "t"
+
+
 def launch_postgrest(pre_request="private.routine_notes_data_api_gate"):
+    command = [
+        "docker",
+        "run",
+        "--rm",
+        "-d",
+    ]
+    if DISPOSABLE_MODE == "local":
+        command.extend(["-p", API_PORT + ":" + API_PORT])
+    else:
+        command.append("--network=host")
+    command.extend([
+        "--name",
+        CONTAINER,
+        "-e",
+        "PGRST_DB_URI=" + POSTGREST_DB_URI,
+        "-e",
+        "PGRST_DB_ANON_ROLE=anon",
+        "-e",
+        "PGRST_DB_SCHEMAS=public",
+        # CI connects PostgREST with the disposable postgres URI for
+        # fixture isolation; local mode uses an explicit host-gateway URI.
+        # The migration's authenticator role setting is asserted separately
+        # in the catalog test and remains the hosted configuration path.
+        "-e",
+        "PGRST_SERVER_HOST=0.0.0.0" if DISPOSABLE_MODE == "local" else "PGRST_SERVER_HOST=127.0.0.1",
+        "-e",
+        "PGRST_SERVER_PORT=" + API_PORT,
+        "-e",
+        "PGRST_JWT_SECRET=" + TEST_JWT_SECRET,
+        "--add-host",
+        "host.docker.internal:host-gateway",
+    ])
+    if pre_request:
+        command.extend(["-e", "PGRST_DB_PRE_REQUEST=" + pre_request])
+    command.append("postgrest/postgrest:v12.2.12")
     proc = subprocess.run(
-        [
-            "docker",
-            "run",
-            "--rm",
-            "-d",
-            "--network=host",
-            "--name",
-            CONTAINER,
-            "-e",
-            "PGRST_DB_URI=" + DB_URL,
-            "-e",
-            "PGRST_DB_ANON_ROLE=anon",
-            "-e",
-            "PGRST_DB_SCHEMAS=public",
-            # CI connects PostgREST with the disposable postgres URI for
-            # fixture isolation; set the same validated hook explicitly here.
-            # The migration's authenticator role setting is asserted separately
-            # in the catalog test and remains the hosted configuration path.
-            "-e",
-            "PGRST_DB_PRE_REQUEST=" + pre_request,
-            "-e",
-            "PGRST_SERVER_HOST=127.0.0.1",
-            "-e",
-            "PGRST_SERVER_PORT=3023",
-            "-e",
-            "PGRST_JWT_SECRET=" + TEST_JWT_SECRET,
-            "postgrest/postgrest:v12.2.12",
-        ],
+        command,
         capture_output=True,
         text=True,
         check=True,
@@ -383,6 +460,37 @@ def assert_disabled(owner_jwt):
         "/user_profiles?select=user_id&user_id=eq." + OWNER_ID,
     ):
         expect_status("disabled non-Notes %s" % path.split("?")[0], request(path, jwt=owner_jwt), 200)
+
+
+def assert_staged_disabled(owner_jwt):
+    if notes_exist():
+        expect_code(
+            "staged disabled direct Notes table",
+            request(NOTE_PATH + OWNER_ID, jwt=owner_jwt),
+            403,
+            "routine_notes_data_api_disabled",
+        )
+        expect_embedded_notes_empty(
+            "staged disabled parent-resource Notes embedding",
+            request(EMBEDDED_NOTE_PATH + OWNER_ROUTINE_ID, jwt=owner_jwt),
+        )
+    else:
+        expect(
+            "staged pre-Notes direct Notes table is unavailable",
+            request(NOTE_PATH + OWNER_ID, jwt=owner_jwt),
+            lambda value: value[0] != 200,
+        )
+        expect(
+            "staged pre-Notes Notes embedding is unavailable",
+            request(EMBEDDED_NOTE_PATH + OWNER_ROUTINE_ID, jwt=owner_jwt),
+            lambda value: value[0] != 200,
+        )
+    for path in (
+        "/user_nutrition_profiles?select=user_id&user_id=eq." + OWNER_ID,
+        "/user_workout_programs?select=id&user_id=eq." + OWNER_ID,
+        "/user_profiles?select=user_id&user_id=eq." + OWNER_ID,
+    ):
+        expect_status("staged non-Notes %s" % path.split("?")[0], request(path, jwt=owner_jwt), 200)
 
 
 def assert_enabled(owner_jwt, guest_jwt):
@@ -565,24 +673,31 @@ def main():
     try:
         fixture_created = True
         auth_fixture()
-        launch_postgrest()
+        launch_postgrest(None if STAGE == "baseline" else "private.routine_notes_data_api_gate")
         owner_jwt = token(OWNER_ID)
         guest_jwt = token(GUEST_ID)
 
-        restore_gate()
-        assert_disabled(owner_jwt)
+        if STAGE:
+            if STAGE != "baseline":
+                restore_gate()
+            assert_staged_disabled(owner_jwt)
+        else:
+            restore_gate()
+            assert_disabled(owner_jwt)
 
-        set_gate("enabled")
-        assert_enabled(owner_jwt, guest_jwt)
-        set_gate("disabled")
-        assert_fail_closed(owner_jwt)
-        assert_exact_path_behavior(owner_jwt)
-        assert_config_failure_and_recovery(owner_jwt)
+        if not STAGE:
+            set_gate("enabled")
+            assert_enabled(owner_jwt, guest_jwt)
+            set_gate("disabled")
+            assert_fail_closed(owner_jwt)
+            assert_exact_path_behavior(owner_jwt)
+            assert_config_failure_and_recovery(owner_jwt)
         print("PASS: TNYX-81 disposable Routine Notes gate HTTP matrix", flush=True)
     finally:
         try:
-            restore_gate()
-            set_hook("private.routine_notes_data_api_gate")
+            if STAGE != "baseline":
+                restore_gate()
+                set_hook("private.routine_notes_data_api_gate")
         except Exception as exc:
             print("CRITICAL: gate/config restore failed: %s" % exc, file=sys.stderr)
             raise
