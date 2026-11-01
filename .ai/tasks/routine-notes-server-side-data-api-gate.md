@@ -98,7 +98,7 @@ database was preserved.
 
 **Branch:** `codex/routine-notes-data-api-gate`
 **Base SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`
-**Current PR head:** `40f04266b2a255e2065edd7e5facdfa894bd9cf7`
+**Current PR head:** `4362748c1fb7ea30a8121991808c8041680132e5`
 **PR:** `#720` — open; merge and deployment unauthorized
 **Linear:** `TNYX-81` remains the bounded planning scope; no tracker status
 mutation was authorized
@@ -152,11 +152,12 @@ Additional validation passed:
 - `supabase db lint --local --schema public,private --level error`;
 - `supabase db advisors --local --type security --level error`;
 - `git diff --check`; and
-- exact-head GitHub Supabase Database CI run `41298443451`.
+- exact-head GitHub Supabase Database CI run `41304179378`.
 
-The exact-head PR checks were successful for Commit attribution guard, Docs
-Hygiene CI and Supabase Database CI. Cursor checks were neutral/skipped because
-of external usage limits, not source failures.
+The exact-head PR checks were successful for Commit attribution guard
+(`41304177479`), Docs Hygiene CI (`41304179308`) and Supabase Database CI
+(`41304179378`). Cursor checks were neutral/skipped because of external usage
+limits, not source failures.
 
 Because this documentation-only correction does not change executable behavior,
 the disposable database suite is not rerun solely for this file change. The
@@ -230,6 +231,6 @@ thread disposition
 decision refresh, separate merge authorization, hosted deployment approval and
 production Notes activation approval
 
-The next bounded action is to commit and push this documentation-only
-reconciliation to PR `#720`, request `im-tio` re-review on the new exact head,
-verify documentation CI, and stop before merge or deployment.
+The documentation-only reconciliation is pushed at the current exact head.
+The next bounded action is to await `im-tio` independent re-review and stop
+before merge or deployment.
