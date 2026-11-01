@@ -100,6 +100,29 @@ void main() {
     expect(repository.createCalls, 0);
   });
 
+  test('retryable create failure keeps the composer-ready state', () async {
+    final repository = _FakeRoutineNotesRepository(
+      createErrors: [
+        const RoutineNoteException(RoutineNoteFailureKind.unavailable),
+      ],
+      createResult: _note(id: _note2, body: 'retry me'),
+    );
+    final controller = _controller(repository, uuids: [
+      _note2,
+      _mutation1,
+      _note2,
+      _mutation2,
+    ]);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('retry me'), isFalse);
+    expect(controller.state.isReady, isTrue);
+    expect(controller.state.failure, RoutineNoteFailureKind.unavailable);
+    expect(await controller.create('retry me'), isTrue);
+    expect(repository.createCalls, 2);
+  });
+
   test('does not publish a read result after the session changes', () async {
     final read = Completer<List<RoutineNote>>();
     final repository = _FakeRoutineNotesRepository(readCompleter: read);
@@ -146,7 +169,25 @@ void main() {
 
     expect(controller.state.notes.single.body, 'server saved');
     expect(controller.state.actionNotice, contains('could not be confirmed'));
+    expect(controller.hasPendingMutation, isTrue);
+    expect(await controller.create('server saved'), isFalse);
+    expect(repository.createCalls, 1);
     expect(repository.readCalls, 2);
+  });
+
+  test('unknown create becomes success when the original note ID is read back',
+      () async {
+    final repository = _FakeRoutineNotesRepository(
+      createError: const RoutineNoteOutcomeUnknown(mutationId: _mutation1),
+      notesAfterUnknown: [_note(id: _note2, body: 'confirmed')],
+    );
+    final controller = _controller(repository, uuids: [_note2, _mutation1]);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('confirmed'), isTrue);
+    expect(controller.hasPendingMutation, isFalse);
+    expect(controller.state.actionNotice, 'Note save confirmed.');
   });
 }
 
@@ -170,6 +211,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     this.notes = const [],
     this.createResult,
     this.createError,
+    this.createErrors = const [],
     this.notesAfterUnknown,
     this.readCompleter,
   });
@@ -177,6 +219,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   List<RoutineNote> notes;
   final RoutineNote? createResult;
   final Object? createError;
+  final List<Object> createErrors;
   final List<RoutineNote>? notesAfterUnknown;
   final Completer<List<RoutineNote>>? readCompleter;
   RoutineNoteScope? readScope;
@@ -201,6 +244,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   Future<RoutineNote> create(RoutineNoteCreate command) async {
     createCalls++;
     createCommand = command;
+    if (createErrors.isNotEmpty) throw createErrors.removeAt(0);
     final error = createError;
     if (error != null) throw error;
     return createResult!;

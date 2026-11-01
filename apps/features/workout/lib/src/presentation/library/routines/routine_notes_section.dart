@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -76,21 +78,59 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
   Future<void> _openComposer() async {
     final controller = _controller;
     if (controller == null ||
-        controller.isBusy ||
-        !controller.state.canCreate ||
+        !controller.canCreate ||
         !widget.isSessionCurrent()) {
       return;
     }
 
     final draft = TextEditingController();
+    Timer? sessionGuard;
+    StateSetter? setSheetState;
+    BuildContext? modalContext;
     var saving = false;
+    var sessionActive = true;
     String? errorText;
+
+    void invalidateSession() {
+      if (!sessionActive) return;
+      sessionActive = false;
+      setSheetState?.call(() {});
+      final routeContext = modalContext;
+      final route = routeContext == null ? null : ModalRoute.of(routeContext);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final currentContext = routeContext;
+        if (currentContext == null ||
+            !currentContext.mounted ||
+            route == null ||
+            !route.isActive) {
+          return;
+        }
+        Navigator.of(currentContext).removeRoute(route);
+      });
+    }
+
+    void checkSession() {
+      try {
+        if (!widget.isSessionCurrent()) invalidateSession();
+      } catch (_) {
+        invalidateSession();
+      }
+    }
+
     try {
       await showTioEditorSheet<bool>(
         context: context,
         useSafeArea: true,
-        builder: (sheetContext) => StatefulBuilder(
-          builder: (context, setSheetState) {
+        isDismissible: false,
+        builder: (builderContext) => StatefulBuilder(
+          builder: (context, setState) {
+            modalContext = builderContext;
+            setSheetState = setState;
+            sessionGuard ??= Timer.periodic(
+              const Duration(milliseconds: 100),
+              (_) => checkSession(),
+            );
+            if (!sessionActive) return const SizedBox.shrink();
             final canSave = _validBody(draft.text);
             return PopScope(
               canPop: !saving,
@@ -110,9 +150,9 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
                   enabled: !saving,
                   onChanged: (value) {
                     if (errorText != null) {
-                      setSheetState(() => errorText = null);
+                      setState(() => errorText = null);
                     } else {
-                      setSheetState(() {});
+                      setState(() {});
                     }
                   },
                 ),
@@ -124,7 +164,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
                         label: 'Cancel',
                         onPressed: saving
                             ? null
-                            : () => Navigator.of(sheetContext).pop(false),
+                            : () => Navigator.of(builderContext).pop(false),
                       ),
                     ),
                     const SizedBox(width: TioSpacing.sm),
@@ -138,15 +178,17 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
                         onPressed: !canSave || saving
                             ? null
                             : () async {
-                                setSheetState(() => saving = true);
+                                if (!sessionActive) return;
+                                setState(() => saving = true);
                                 final saved =
                                     await controller.create(draft.text);
                                 if (!context.mounted) return;
+                                if (!sessionActive) return;
                                 if (saved) {
-                                  Navigator.of(sheetContext).pop(true);
+                                  Navigator.of(builderContext).pop(true);
                                   return;
                                 }
-                                setSheetState(() {
+                                setState(() {
                                   saving = false;
                                   errorText = _actionError(
                                     controller.state.failure,
@@ -163,6 +205,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
         ),
       );
     } finally {
+      sessionGuard?.cancel();
       draft.dispose();
     }
   }
@@ -207,7 +250,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
                   key: const ValueKey('routine-note-add'),
                   label: 'Note',
                   leading: const Icon(Icons.note_add_outlined),
-                  enabled: !controller!.isBusy && state?.canCreate == true,
+                  enabled: controller?.canCreate == true,
                   onPressed: _openComposer,
                 ),
             ],
@@ -230,26 +273,27 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
             _FailureView(
               key: const ValueKey('routine-notes-failed'),
               message: _failureMessage(state.failure),
-              onRetry: controller!.isBusy ? null : controller.load,
+              onRetry: controller!.isBusy ? null : () => controller.load(),
             )
-          else if (state.notes.isEmpty)
-            const _EmptyView(key: ValueKey('routine-notes-empty'))
           else ...[
             if (state.actionNotice != null)
               _NoticeText(
                 key: const ValueKey('routine-notes-notice'),
                 text: state.actionNotice!,
               ),
-            for (final note in state.notes)
-              Padding(
-                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-                child: _RoutineNoteCard(
-                  key: ValueKey('routine-note-${note.id}'),
-                  note: note,
-                  enabled: !controller!.isBusy,
-                  onDelete: () => _delete(note),
+            if (state.notes.isEmpty)
+              const _EmptyView(key: ValueKey('routine-notes-empty'))
+            else
+              for (final note in state.notes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+                  child: _RoutineNoteCard(
+                    key: ValueKey('routine-note-${note.id}'),
+                    note: note,
+                    enabled: !controller!.isBusy,
+                    onDelete: () => _delete(note),
+                  ),
                 ),
-              ),
           ],
         ],
       ),
@@ -408,5 +452,7 @@ String _actionError(RoutineNoteFailureKind? failure) => switch (failure) {
       RoutineNoteFailureKind.revisionConflict ||
       RoutineNoteFailureKind.mutationConflict =>
         'The note changed elsewhere. Refresh and try again.',
+      RoutineNoteFailureKind.unavailable =>
+        'The save result could not be confirmed. Refresh before retrying.',
       _ => 'Could not save the note. Please try again.',
     };

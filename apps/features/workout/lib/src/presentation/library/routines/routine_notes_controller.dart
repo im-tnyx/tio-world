@@ -20,9 +20,9 @@ final class RoutineNotesState {
   RoutineNotesState.ready(
     List<RoutineNote> notes, {
     this.actionNotice,
+    this.failure,
   })  : status = RoutineNotesStatus.ready,
-        notes = List.unmodifiable(notes),
-        failure = null;
+        notes = List.unmodifiable(notes);
 
   const RoutineNotesState.failed(this.failure, {this.actionNotice})
       : status = RoutineNotesStatus.failed,
@@ -85,7 +85,26 @@ final class RoutineNotesController extends ChangeNotifier {
     try {
       final notes = await _repository.read(_scope);
       if (!_active(version)) return;
-      _emit(_ready(notes, actionNotice: actionNotice));
+      final next = _ready(notes, actionNotice: actionNotice);
+      final pending = _pendingCreate;
+      if (!next.isReady || pending == null) {
+        _emit(next);
+        return;
+      }
+      final confirmed = next.notes.any(
+        (note) => note.id == pending.noteId && note.body == pending.body,
+      );
+      if (confirmed) {
+        _pendingCreate = null;
+        _emit(_ready(notes, actionNotice: 'Note save confirmed.'));
+      } else {
+        _emit(_ready(
+          notes,
+          actionNotice: actionNotice ??
+              'A previous save is still unconfirmed. Refresh before retrying.',
+          failure: RoutineNoteFailureKind.unavailable,
+        ));
+      }
     } on RoutineNoteException catch (error) {
       if (!_active(version)) return;
       _emit(RoutineNotesState.failed(_safeFailure(error.kind)));
@@ -106,6 +125,15 @@ final class RoutineNotesController extends ChangeNotifier {
   Future<bool> create(String body) async {
     if (_busy || !_sessionIsCurrent()) {
       _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+    if (_pendingCreate != null) {
+      _emit(_ready(
+        _state.notes,
+        actionNotice:
+            'A previous save is still unconfirmed. Refresh before retrying.',
+        failure: RoutineNoteFailureKind.unavailable,
+      ));
       return false;
     }
     if (!_state.isReady) return false;
@@ -144,18 +172,29 @@ final class RoutineNotesController extends ChangeNotifier {
       return true;
     } on RoutineNoteOutcomeUnknown {
       if (!_active(version)) return false;
+      _pendingCreate = _PendingCreate(
+        noteId: noteId,
+        mutationId: mutationId,
+        body: normalizedBody,
+      );
       await load(
         actionNotice:
             'The save result could not be confirmed. Refresh to verify.',
       );
-      return false;
+      return _pendingCreate == null;
     } on RoutineNoteException catch (error) {
       if (!_active(version)) return false;
-      _fail(_safeFailure(error.kind));
+      _emit(_ready(
+        _state.notes,
+        failure: _safeFailure(error.kind),
+      ));
       return false;
     } catch (_) {
       if (!_active(version)) return false;
-      _fail(RoutineNoteFailureKind.unavailable);
+      _emit(_ready(
+        _state.notes,
+        failure: RoutineNoteFailureKind.unavailable,
+      ));
       return false;
     } finally {
       _finishBusy();
@@ -212,10 +251,19 @@ final class RoutineNotesController extends ChangeNotifier {
   }
 
   bool get isBusy => _busy;
+  bool get canCreate =>
+      !_busy &&
+      _pendingCreate == null &&
+      _state.canCreate &&
+      _sessionIsCurrent();
+  bool get hasPendingMutation => _pendingCreate != null;
+
+  _PendingCreate? _pendingCreate;
 
   RoutineNotesState _ready(
     List<RoutineNote> notes, {
     String? actionNotice,
+    RoutineNoteFailureKind? failure,
   }) {
     final valid = notes.length <= routineNotesMaximumCount &&
         notes.every(
@@ -230,7 +278,11 @@ final class RoutineNotesController extends ChangeNotifier {
         final created = a.createdAt.compareTo(b.createdAt);
         return created != 0 ? created : a.id.compareTo(b.id);
       });
-    return RoutineNotesState.ready(ordered, actionNotice: actionNotice);
+    return RoutineNotesState.ready(
+      ordered,
+      actionNotice: actionNotice,
+      failure: failure,
+    );
   }
 
   bool _sessionIsCurrent() {
@@ -285,4 +337,16 @@ final class RoutineNotesController extends ChangeNotifier {
     _version++;
     super.dispose();
   }
+}
+
+final class _PendingCreate {
+  const _PendingCreate({
+    required this.noteId,
+    required this.mutationId,
+    required this.body,
+  });
+
+  final String noteId;
+  final String mutationId;
+  final String body;
 }

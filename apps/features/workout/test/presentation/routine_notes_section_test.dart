@@ -25,8 +25,9 @@ RoutineNote _routineNote({String body = 'Keep shoulders down'}) {
 
 Future<void> _pumpSection(
   WidgetTester tester,
-  _FakeRoutineNotesRepository repository,
-) async {
+  _FakeRoutineNotesRepository repository, {
+  bool Function()? isSessionCurrent,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
@@ -39,7 +40,7 @@ Future<void> _pumpSection(
             routineId: RoutineId(_routine),
             repository: repository,
             ownerId: _owner,
-            isSessionCurrent: () => true,
+            isSessionCurrent: isSessionCurrent ?? () => true,
           ),
         ),
       ),
@@ -90,6 +91,59 @@ void main() {
 
     expect(find.byKey(const ValueKey('routine-notes-empty')), findsOneWidget);
   });
+
+  testWidgets('removes the composer when the opening session is revoked',
+      (tester) async {
+    var current = true;
+    await _pumpSection(
+      tester,
+      _FakeRoutineNotesRepository(),
+      isSessionCurrent: () => current,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('routine-note-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-note-body')),
+      'private draft',
+    );
+
+    current = false;
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('routine-note-composer-sheet')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('shows unknown delete notice even when the list becomes empty',
+      (tester) async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: [_routineNote()],
+      readResults: [
+        [_routineNote()],
+        const [],
+      ],
+      deleteError: const RoutineNoteOutcomeUnknown(mutationId: _note),
+    );
+    await _pumpSection(tester, repository);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('routine-note-delete-$_note')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete Note'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('routine-notes-empty')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('routine-notes-notice-message')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('could not be confirmed'), findsOneWidget);
+  });
 }
 
 final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
@@ -97,16 +151,23 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     this.notes = const [],
     this.readCompleter,
     this.readError,
+    this.readResults = const [],
+    this.deleteError,
   });
 
   List<RoutineNote> notes;
   final Completer<List<RoutineNote>>? readCompleter;
   Object? readError;
+  final List<List<RoutineNote>> readResults;
+  final Object? deleteError;
+  var readCalls = 0;
 
   @override
   Future<List<RoutineNote>> read(RoutineNoteScope scope) async {
+    readCalls++;
     final error = readError;
     if (error != null) throw error;
+    if (readResults.isNotEmpty) return [...readResults.removeAt(0)];
     final pending = readCompleter;
     if (pending != null) return pending.future;
     return [...notes];
@@ -124,5 +185,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> delete(RoutineNoteDelete command) async {}
+  Future<void> delete(RoutineNoteDelete command) async {
+    if (deleteError != null) throw deleteError!;
+  }
 }

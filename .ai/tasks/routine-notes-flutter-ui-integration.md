@@ -120,6 +120,7 @@ PASS — focused Routine Notes controller/widget tests
 PASS — Routine Detail and existing Routine Notes repository tests
 PASS — app workout route regression tests
 PASS — git diff --check
+PASS — review-remediation focused controller/widget tests (14 tests)
 PASS — GitHub `Attribution guard`, `Commit attribution guard` and
 `Check documentation diff hygiene` at validation head `b38162ca`; resolve the
 mutable PR head live from GitHub.
@@ -136,11 +137,14 @@ mutable PR head live from GitHub.
 ### Review Provenance
 
 **Review source / link:** https://github.com/im-tnyx/tio-world/pull/722
-**Reviewer / relation to implementer:** Not available yet
-**Diff or commit SHA actually reviewed:** `ad976ff1` — implementation-owner pre-PR validation only
+**Reviewer / relation to implementer:** Codex and Copilot automated review comments;
+ independent human approval from `im-tio` is still pending.
+**Diff or commit SHA actually reviewed:** Current PR head before remediation:
+ `f4a991963a426f293dae0337fec4a78d889ac740`.
 **Last independently verifiable PR head before this handoff edit:** `b38162ca`
-**Review result and finding IDs/dispositions:** Not available yet
-**Independent review?** Unknown / unavailable
+**Review result and finding IDs/dispositions:** Six actionable threads were identified;
+ fixes are implemented locally and require exact-head CI plus independent re-review.
+**Independent review?** Pending — automated comments are not approval.
 **Limitations and unmet required gates:** Hosted migration, Notes activation,
 physical Android/iOS QA and production release are out of scope.
 
@@ -148,7 +152,12 @@ physical Android/iOS QA and production release are out of scope.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | Open | No review findings yet | — | Independent review required after PR |
+| `4436062657` | Review | Fixed locally; re-review pending | Retryable create failures left the composer unable to retry. | `f4a99196` | Create failures now preserve a ready state and focused retry test passes. |
+| `4436062664` | Review | Fixed locally; re-review pending | Unknown create outcomes could lose the original mutation identity. | `f4a99196` | Pending create identity blocks duplicate mutation and is confirmed by read-back or remains retry-blocked; focused unknown-outcome tests pass. |
+| `4436083844` | Review | Fixed locally; re-review pending | A session change could leave a private composer draft visible. | `f4a99196` | Composer polls the session guard, redacts the draft and removes the modal; focused session-revocation test passes. |
+| `4436083867` | Review | Fixed locally; re-review pending | Unknown create read-back could permit a duplicate retry. | `f4a99196` | Same pending-create identity/read-back handling as above; focused duplicate-prevention test passes. |
+| `4436083898` | Review | Fixed locally; re-review pending | Retryable create failure had no usable retry path. | `f4a99196` | Same ready-state retry correction as `4436062657`; focused retry test passes. |
+| `4436083913` | Review | Fixed locally; re-review pending | Unknown delete warnings were hidden when the list became empty. | `f4a99196` | Action notices render before the empty state; focused empty-list warning test passes. |
 
 ## 7. Final Handoff
 
@@ -183,6 +192,7 @@ or claim physical-device QA.
 
 ### Final Status
 
-`REVIEW` — source and local validation complete; focused PR and independent
-review are still required. No hosted deployment, Notes activation or merge is
-authorized by this task.
+`REVIEW` — review-remediation source changes and local validation complete;
+ exact-head CI, reviewer disposition and independent `im-tio` approval are still
+ required. No hosted deployment, Notes activation or merge is authorized by this
+ task.
