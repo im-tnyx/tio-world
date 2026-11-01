@@ -98,7 +98,9 @@ database was preserved.
 
 **Branch:** `codex/routine-notes-data-api-gate`
 **Base SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`
-**Current PR head:** `4362748c1fb7ea30a8121991808c8041680132e5`
+**Current PR head:** Resolve live from GitHub; the last executable source head
+validated before the documentation-only refresh was
+`4362748c1fb7ea30a8121991808c8041680132e5`.
 **PR:** `#720` — open; merge and deployment unauthorized
 **Linear:** `TNYX-81` remains the bounded planning scope; no tracker status
 mutation was authorized
@@ -152,12 +154,14 @@ Additional validation passed:
 - `supabase db lint --local --schema public,private --level error`;
 - `supabase db advisors --local --type security --level error`;
 - `git diff --check`; and
-- exact-head GitHub Supabase Database CI run `41304179378`.
+- last completed executable exact-head GitHub Supabase Database CI run
+  `41304179378` at source head `4362748c1fb7ea30a8121991808c8041680132e5`.
 
-The exact-head PR checks were successful for Commit attribution guard
-(`41304177479`), Docs Hygiene CI (`41304179308`) and Supabase Database CI
-(`41304179378`). Cursor checks were neutral/skipped because of external usage
-limits, not source failures.
+At source head `4362748c1fb7ea30a8121991808c8041680132e5`, the PR checks were
+successful for Commit attribution guard (`41304177479`), Docs Hygiene CI
+(`41304179308`) and Supabase Database CI (`41304179378`). Cursor checks were
+neutral/skipped because of external usage limits, not source failures. Resolve
+the current PR checks live after any later documentation-only commit.
 
 Because this documentation-only correction does not change executable behavior,
 the disposable database suite is not rerun solely for this file change. The
