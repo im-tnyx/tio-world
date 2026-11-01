@@ -70,6 +70,43 @@ final routineRepositoryProvider = Provider<RoutineRepository?>((ref) {
   );
 });
 
+/// Authenticated Routine Notes persistence.
+///
+/// The repository is session-bound: a logout or same-account re-login makes
+/// its owner callback return null, so a controller cannot continue a stale
+/// read or mutation under a new auth cycle.
+final routineNotesRepositoryProvider = Provider<RoutineNotesRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null : sessionAsync.valueOrNull;
+  if (client == null || auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id) {
+    return null;
+  }
+
+  final ownerId = auth.session.userId;
+  final loginCycleId = auth.session.loginCycleId;
+  bool isCurrentSession() {
+    try {
+      final current = ref.read(authSessionStateProvider);
+      final currentAuth = current.isLoading || current.hasError
+          ? null : current.valueOrNull;
+      return currentAuth is AuthSessionAuthenticated &&
+          currentAuth.session.userId == ownerId &&
+          currentAuth.session.loginCycleId == loginCycleId &&
+          client.auth.currentUser?.id == ownerId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  return SupabaseRoutineNotesRepository(
+    gateway: SupabaseRoutineNotesGateway(client),
+    currentUserId: () => isCurrentSession() ? ownerId : null,
+  );
+});
+
 /// Read-only Routine composition persistence (W4A owner-bound Detail).
 /// Null means no authenticated durable client, never a fake composition.
 final routineCompositionRepositoryProvider =

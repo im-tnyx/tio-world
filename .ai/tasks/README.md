@@ -4,6 +4,8 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
+[Routine Notes Flutter UI integration](routine-notes-flutter-ui-integration.md) is the active source-only first UI slice on `codex/routine-notes-flutter-ui`: Routine-level authenticated read/create/delete wiring in Routine Detail, reusing the merged Notes model/repository. Exercise-scoped Notes, edit/transfer, screenshot-specific pinned rows/swipe interaction, hosted deployment, Notes activation and production release remain separate gates.
+
 [Routine Notes Server-Side Data API Gate](../archive/2026-11-routine-notes-server-side-data-api-gate.md) is **validated and archived** after [PR #720](https://github.com/im-tnyx/tio-world/pull/720) merged at `main@b1b7722cf2cbcf45f90cca0a72da56669bb8e455`; final PR head `4008494063af25c238923810039ee5124d9b3d1e`, independent `im-tio` approval, five review threads resolved, and exact-head required CI passed. Hosted migration, PostgREST activation, Notes enablement and production deployment remain separately gated; [TNYX-81](https://linear.app/tnyx/issue/TNYX-81) remains broader W4 scope.
 
 [Routine Notes production deployment approval packet](routine-notes-production-deployment-approval.md) is the active owner-review packet for the final 81-migration architecture: hosted baseline 72 plus nine pending migrations (pre-Notes gate plus eight Notes migrations). Production deployment remains unauthorized pending CLI/credential approval, hosted scheduler authentication, backup/recovery readiness, deployment window and post-deploy monitoring ownership; Notes activation remains independently gated.

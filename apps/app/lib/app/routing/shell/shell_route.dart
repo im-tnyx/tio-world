@@ -822,6 +822,26 @@ List<RouteBase> _shellBranchChildRoutes(
                     // owner-scoped Detail repository or an Edit capability.
                     final verifiedOwner =
                         ownerId != null && ownerId == authUserId;
+                    final notesRepository = verifiedOwner
+                        ? ref.watch(routineNotesRepositoryProvider)
+                        : null;
+                    bool notesSessionIsCurrent() {
+                      try {
+                        final liveAuthAsync = ref.read(authSessionStateProvider);
+                        final liveAuth = liveAuthAsync.isLoading ||
+                                liveAuthAsync.hasError
+                            ? null
+                            : liveAuthAsync.valueOrNull;
+                        return verifiedOwner &&
+                            liveAuth is AuthSessionAuthenticated &&
+                            liveAuth.session.userId == authUserId &&
+                            liveAuth.session.loginCycleId == authCycleId &&
+                            ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
+                                authUserId;
+                      } catch (_) {
+                        return false;
+                      }
+                    }
                     final mayEdit = verifiedOwner &&
                         weightUnit != null &&
                         userExerciseRepository != null;
@@ -842,6 +862,10 @@ List<RouteBase> _shellBranchChildRoutes(
                           ? ref.watch(exerciseViewerMediaGenderProvider)
                           : null,
                       weightUnit: weightUnit,
+                      routineNotesRepository: notesRepository,
+                      routineNotesOwnerId: verifiedOwner ? authUserId : null,
+                      isRoutineNotesSessionCurrent:
+                          verifiedOwner ? notesSessionIsCurrent : null,
                       onEditPressed: !mayEdit
                           ? null
                           : (ownedRoutine) async {

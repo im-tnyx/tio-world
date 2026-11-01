@@ -10,8 +10,11 @@ import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_detail_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
+import 'routine_notes_controller.dart';
+import 'routine_notes_section.dart';
 
 
 /// A read-only preview of durable Routine content under its owning Program.
@@ -27,6 +30,9 @@ class RoutineDetailPage extends StatefulWidget {
     this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
     super.key,
   });
 
@@ -40,6 +46,12 @@ class RoutineDetailPage extends StatefulWidget {
   final ExerciseMediaGender? viewerMediaGender;
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
+
+  /// App-composed Routine Notes capability. Null fails closed for anonymous,
+  /// unresolved or owner-mismatched sessions.
+  final RoutineNotesRepository? routineNotesRepository;
+  final String? routineNotesOwnerId;
+  final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
 
   /// App-provided, account-verified navigation. True only on confirmed save.
   /// No edit capability is inferred from a read-only Detail repository.
@@ -69,7 +81,10 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
             widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
         !identical(oldWidget.userExerciseRepository,
-            widget.userExerciseRepository)) {
+            widget.userExerciseRepository) ||
+        !identical(oldWidget.routineNotesRepository,
+            widget.routineNotesRepository) ||
+        oldWidget.routineNotesOwnerId != widget.routineNotesOwnerId) {
       _bind();
     }
   }
@@ -230,6 +245,16 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                       ),
                     ),
                   ),
+                  if (widget.routineNotesRepository != null &&
+                      widget.routineNotesOwnerId != null &&
+                      widget.isRoutineNotesSessionCurrent != null)
+                    RoutineNotesSection(
+                      routineId: state.routine!.id,
+                      repository: widget.routineNotesRepository!,
+                      ownerId: widget.routineNotesOwnerId!,
+                      isSessionCurrent:
+                          widget.isRoutineNotesSessionCurrent!,
+                    ),
                 ],
               ),
             );
