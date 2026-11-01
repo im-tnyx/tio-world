@@ -1,10 +1,10 @@
 # Routine Notes Server-Side Data API Gate
 
-**Status:** Implementation in progress
+**Status:** In review
 **Primary owner:** Product owner / Supabase database owner
 **Planning owner:** Codex (preflight and gate design)
 **Implementation owner:** Codex (local implementation agent, current session)
-**Review owner:** None
+**Review owner:** Independent security reviewer (pending assignment)
 **Affected platforms:** Supabase Postgres, PostgREST Data API, disposable database security tests, deployment governance
 
 ## Owner Approval and Scope Boundary
@@ -21,22 +21,22 @@
 
 **Planning owner:** Codex (preflight and gate design)
 **Implementation owner:** Codex (local implementation agent, current session)
-**Review owner:** None
-**Implementation ownership state:** Active
+**Review owner:** Independent security reviewer (pending assignment)
+**Implementation ownership state:** Implementation complete; review pending
 **Ownership transition:** Planning owner → Codex implementation owner, authorized by the Product Owner approval above.
 **Repository state last verified:** 2026-11-01; the dedicated branch `codex/routine-notes-data-api-gate` is based on `cd81393598b5f82606c10c38058296b9052e57f4`. Git fsmonitor still reports an IPC diagnostic in normal status; status and diff checks remain usable with `core.fsmonitor=false`. The worktree contains the pre-existing task-governance edits below plus this authorized implementation slice.
 **Branch:** `codex/routine-notes-data-api-gate`
-**HEAD SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`
+**Base SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`; current PR head must be resolved live from GitHub
 **Observed working-tree state:** Existing intentional task-governance edits are preserved.
 **Observed uncommitted/dirty files:** `.ai/tasks/README.md` was pre-existing and is preserved; this brief, the candidate migration, catalog SQL assertion, disposable HTTP harness and CI workflow step are the authorized slice.
-**PR / tracker:** Linear `TNYX-81` is `Backlog`, blocked by `TNYX-78` and `TNYX-80`; GitHub #716 is closed after PR #717 validation; PR #719 is merged into the observed `main` head. No child tracker or status mutation is authorized.
+**PR / tracker:** Focused implementation PR `#720` is open at `https://github.com/im-tnyx/tio-world/pull/720`; Linear `TNYX-81` is `Backlog`, blocked by `TNYX-78` and `TNYX-80`; GitHub #716 is closed after PR #717 validation; PR #719 is merged into the observed `main` head. No child tracker or status mutation is authorized.
 **Current implementation state:** Candidate gate migration, catalog assertions, disposable PostgREST harness and CI invocation have been added on the dedicated branch. The eight existing Notes migrations remain unchanged. The isolated 81-migration replay, catalog assertions, Routine Notes SQL matrix, HTTP matrix, lint and hosted read-only alternate-surface checks passed; repository CI and independent review remain open.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/supabase-db-ci.yml`, `.ai/tasks/routine-notes-production-deployment-approval.md`
 **Validation completed at SHA:** Read-only source/config inspection, live Linear/GitHub refresh, Supabase documentation lookup, eight-migration SQL/RPC/ACL inspection, Docker Desktop `4.97.0` / Engine `29.9.2`, clean isolated 81-migration replay with ledger repair, catalog assertions, existing Routine Notes persistence SQL, committed HTTP harness via a local published-port adapter, `supabase db lint`, hosted GraphQL/Realtime/Storage/Edge read-only checks, cleanup and recovery verification. The current slice also passed Python syntax and `git diff --check`.
-**Validation remaining:** Repository-hosted CI, independent security review and PR checks. Production implementation/activation remains separately unauthorized.
-**Current blocker:** None for the authorized repository slice. Hosted deployment, production activation, Notes enablement and merge remain explicitly blocked by scope.
+**Validation remaining:** GitHub `Supabase Database CI` and independent security review. Production implementation/activation remains separately unauthorized.
+**Current blocker:** Independent security review and required GitHub CI completion are pending. Hosted deployment, production activation, Notes enablement and merge remain explicitly blocked by scope.
 **Open review finding IDs:** None assigned in this task.
-**Next exact action:** Inspect the exact parent-to-head diff, create one focused PR, request independent security review and stop before merge, hosted writes or production activation.
+**Next exact action:** Complete GitHub CI and independent security review for PR `#720`; stop before merge, hosted writes or production activation.
 
 ## 1. Discovery
 
@@ -205,9 +205,9 @@ No hosted Supabase write, production migration/hook activation, existing Notes m
 
 ### Review provenance
 
-**Review source / link:** Supabase official docs, repository source, live Linear/GitHub/Supabase read-only refresh, and manual preflight
-**Reviewer / relation to implementer:** Self-review of preflight; no implementation review yet
-**Diff or commit SHA actually reviewed:** `cd81393598b5f82606c10c38058296b9052e57f4` plus this uncommitted brief
+**Review source / link:** Supabase official docs, repository source, live Linear/GitHub/Supabase read-only refresh, manual preflight, and PR `#720`
+**Reviewer / relation to implementer:** Codex self-review; independent security reviewer pending assignment
+**Diff or commit SHA actually reviewed:** PR `#720` current head must be resolved live from GitHub; local implementation commit `1472870c` was self-reviewed
 **Review result and finding IDs/dispositions:** Disposable findings are dispositioned in the corrected design. During implementation validation, the initial no-leading-slash allowlist was found to pass disabled Notes HTTP access (`200`) and was corrected to exact leading-slash paths; the corrected replay and HTTP matrix passed. Repository implementation self-review is complete; independent security review is required before merge. Owner Approval and Implementation ownership are recorded.
 **Independent review?** No (self-review)
 **Limitations and unmet required gates:** No independent security review, no hosted configuration/activation evidence and no merge authorization. The disposable runtime does not start full Realtime/Storage/Edge endpoint services; catalog/source checks remain the bounded alternate-surface evidence for this repository slice.
@@ -233,8 +233,8 @@ The authorized repository slice installs a default-disabled private fail-closed 
 - `db_pre_request` does not cover Realtime, Storage, GraphQL, Edge Functions, or direct database connections; alternate-surface verification is mandatory before a release claim.
 - The corrected private state table is included only under the recorded Owner Approval for this repository slice; hosted apply remains separately unauthorized.
 - The disposable qualification is not hosted or production evidence; `db_pre_request` still does not cover Realtime, Storage, GraphQL, Edge Functions, or direct database connections.
-- No commit, merge, hosted write, production hook activation or Notes feature enablement was performed. PR creation and independent review remain after validation.
+- Implementation commit `1472870c` was pushed to PR `#720`; no hosted write, production hook activation, Notes feature enablement or merge was performed. Independent security review and GitHub CI remain open.
 
 ### Final status
 
-`IN PROGRESS` — Owner Approval and Implementation ownership are recorded; the bounded repository implementation exists on `codex/routine-notes-data-api-gate`. Final disposition is pending disposable replay, CI/review evidence, focused PR and independent security review. Merge and deployment remain blocked.
+`IN REVIEW` — Owner Approval and Implementation ownership are recorded; the bounded repository implementation is in focused PR `#720`. Disposable validation is complete; GitHub CI and independent security review remain pending. Merge and deployment remain blocked.
