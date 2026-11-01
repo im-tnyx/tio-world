@@ -107,7 +107,7 @@ multiline Core component and accessible labels/semantics.
 - [x] Add Routine Detail Notes UI using Core components.
 - [x] Add focused controller/widget/integration tests.
 - [x] Run targeted Flutter validation and inspect exact changed-file scope.
-- [x] Open focused PR; independent review remains pending; stop before merge.
+- [x] Open focused PR; fresh independent re-review is required after the pending-create recovery remediation; stop before merge.
 
 ## 6. Quality Review
 
@@ -120,7 +120,10 @@ PASS — focused Routine Notes controller/widget tests
 PASS — Routine Detail and existing Routine Notes repository tests
 PASS — app workout route regression tests
 PASS — git diff --check
-PASS — review-remediation focused controller/widget tests (15 tests)
+PASS — review-remediation focused controller/widget tests (16 tests)
+PASS — P2 `4436431455` pending-create recovery regression: delete preserves
+the Refresh notice, pending identity and duplicate-create block until read-back
+confirmation.
 PASS — GitHub `Attribution guard`, `Commit attribution guard` and
 `Check documentation diff hygiene` at validation head `b38162ca`; resolve the
 mutable PR head live from GitHub.
@@ -149,7 +152,9 @@ were identified. They represent six review themes because `4436062657` and
 remaining session, empty-state warning, same-screen refresh and lazy-header
 findings are distinct. Fixes are implemented at the commits recorded below and
 require exact-head CI plus independent re-review.
-**Independent review?** Pending — automated comments are not approval.
+**Independent review?** `im-tio` APPROVED current head
+`85e39ccc2a5238990c9bfe5a4fcd6686907f2df1`; fresh independent re-review is
+required after remediation commit `4f2f8e944bc6998fa9be805914475b350254b492`.
 **Limitations and unmet required gates:** Hosted migration, Notes activation,
 physical Android/iOS QA and production release are out of scope.
 
@@ -166,6 +171,7 @@ physical Android/iOS QA and production release are out of scope.
 | `4436135056` | P2 | Resolved on GitHub; independent approval pending | An unconfirmed create had no same-screen refresh/reconciliation action. | `a55728a90fd6974a89bc28ee9686405303adee12` | Unknown-save recovery now closes the composer and exposes a Notes `Refresh` action; controller and widget evidence passes. |
 | `4436187860` | P2 | Resolved on GitHub; independent approval pending | Lazy Routine Detail headers could dispose the controller and lose pending mutation identity during scrolling. | `527129fb69b2b227caf824470badf392d17cb048` | `RoutineNotesSection` now opts into `AutomaticKeepAliveClientMixin`; lazy-list scroll regression test passes. |
 | `4436255166` | P3 | Resolved on GitHub; independent approval pending | Review summary said six actionable threads while the table listed eight distinct finding IDs. | `6642f75ae0bdbba2e21b04439062ac48b24f8466` | Handoff now explains eight IDs grouped into six themes, preserving the duplicate-pair history. |
+| `4436431455` | P2 | Fixed locally; re-review pending | Deleting an older Note after an unconfirmed create cleared the pending-save recovery notice and Refresh action. | `4f2f8e944bc6998fa9be805914475b350254b492` | Controller preserves the pending-create notice after successful delete; focused regression verifies stable IDs, Refresh confirmation, no duplicate create and `canCreate == false` until read-back. |
 
 ## 7. Final Handoff
 
