@@ -159,6 +159,7 @@ physical Android/iOS QA and production release are out of scope.
 | `4436083898` | Review | Fixed locally; re-review pending | Retryable create failure had no usable retry path. | `f4a99196` | Same ready-state retry correction as `4436062657`; focused retry test passes. |
 | `4436083913` | Review | Fixed locally; re-review pending | Unknown delete warnings were hidden when the list became empty. | `f4a99196` | Action notices render before the empty state; focused empty-list warning test passes. |
 | `4436135056` | P2 | Fixed locally; re-review pending | An unconfirmed create had no same-screen refresh/reconciliation action. | `a47cd9fa` | Unknown-save recovery now closes the composer and exposes a Notes `Refresh` action; controller and widget evidence passes. |
+| `4436187860` | P2 | Fixed locally; re-review pending | Lazy Routine Detail headers could dispose the controller and lose pending mutation identity during scrolling. | `527129fb` | `RoutineNotesSection` now opts into `AutomaticKeepAliveClientMixin`; lazy-list scroll regression test passes. |
 
 ## 7. Final Handoff
 
