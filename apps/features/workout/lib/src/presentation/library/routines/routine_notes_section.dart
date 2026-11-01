@@ -127,7 +127,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
             modalContext = builderContext;
             setSheetState = setState;
             sessionGuard ??= Timer.periodic(
-              const Duration(milliseconds: 100),
+              const Duration(milliseconds: TioDuration.ms90),
               (_) => checkSession(),
             );
             if (!sessionActive) return const SizedBox.shrink();
