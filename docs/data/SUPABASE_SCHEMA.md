@@ -1,21 +1,23 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-24 (read-only hosted schema, migration ledger, and RPC ACL reconciliation)
+Last Verified: 2026-11-01 (read-only hosted 72-migration prefix; nine Routine Notes migrations pending)
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
 ## Status
 
-**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-10-24.**
+**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-11-01.**
 
-- GitHub protected `main@0541735248964c72618ac081f2316119d7949a53` has **69** checked-in `supabase/migrations/` SQL files, through `20261024090000_m5b_atomic_create_move_full_undo.sql`.
-- Read-only hosted migration ledger shows **69/69 exact version-and-name parity** with checked-in migrations; repository-only and hosted-only entries: **0 / 0**.
+- The hosted project remains at a read-only verified **72/72** migration prefix. The pre-Notes gate plus eight Routine Notes migrations are pending, so this inventory intentionally contains no Notes table, Notes RPC, gate-state table or Notes policy yet. Merged source PR #720 is not hosted deployment evidence.
+
+- GitHub protected `main@b1b7722cf2cbcf45f90cca0a72da56669bb8e455` has **81** checked-in `supabase/migrations/` SQL files, through `20261031142025_routine_note_owner_scoped_identity.sql`.
+- Read-only hosted migration ledger shows **72/72 exact version-and-name parity** with the checked-in hosted prefix; the remaining nine checked-in migrations are repository-only and no hosted-only entries were observed.
 - Read-only hosted `pg_catalog` confirms **19 public ordinary tables, 194 columns, 130 catalog constraint records, 55 indexes, RLS enabled on 19/19 tables**.
 - The newly hosted M5B-B1 migration adds **three nullable UUID provenance columns** and **one all-or-none CHECK** on `public.user_workout_programs`; it does **not** add a table or index. The protected `undo_create_user_workout_program_and_move_routine` RPC is present.
 - M5B Create+Move and full Undo RPCs and existing Move RPC remain **EXECUTE-denied** to `anon`, `authenticated`, `service_role`, and `PUBLIC` in live metadata. `routineMoveReleaseEnabledProvider` remains hard `false` in checked-in Flutter source. **Schema deployment is not a Move release, an RPC grant, or a real-write Android/iOS QA pass.**
 
-The previous **2026-10-21 68/68** checkpoint through `20261021130000_harden_move_routine_permanent_owner.sql`, the **2026-10-17 62/62** checkpoint and the **2026-10-11 55/55** checkpoint are historical. The current 69/69 verification was read-only; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
+The previous **2026-10-24 69/69** checkpoint, **2026-10-21 68/68** checkpoint, **2026-10-17 62/62** checkpoint and **2026-10-11 55/55** checkpoint are historical. The current 72/72 verification was read-only; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
 
 ## Truth Boundary
 

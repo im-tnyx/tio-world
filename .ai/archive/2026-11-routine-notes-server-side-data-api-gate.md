@@ -1,6 +1,7 @@
 # Routine Notes Server-Side Data API Gate
 
-**Status:** In review
+**Status:** Validated
+**Completed:** 2026-11-01
 **Primary owner:** Product owner / Supabase database owner
 **Implementation owner:** Codex
 **Independent security reviewer:** `im-tio`
@@ -85,8 +86,9 @@ operator instruction.
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Review owner:** `im-tio` as independent security reviewer
-**Implementation state:** Complete; documentation reconciliation and
-independent review pending
+**Implementation state:** Complete and merged in PR #720; independent security
+approval and five review-thread dispositions completed. This brief is ready for
+archive after this closure update.
 
 The Product Owner approved the exact atomic remediation scope before the
 historical migration exception was used. Hosted and local persistent migration
@@ -96,20 +98,20 @@ database was preserved.
 
 ## Repository and tracker handoff
 
-**Branch:** `codex/routine-notes-data-api-gate`
+**Implementation branch:** `codex/routine-notes-data-api-gate` (historical)
 **Base SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`
-**Current PR head:** Resolve live from GitHub; executable source validation was
-completed before this documentation-only refresh at source head
-`4362748c1fb7ea30a8121991808c8041680132e5`.
-**PR:** `#720` — open; merge and deployment unauthorized
+**Final PR head:** `4008494063af25c238923810039ee5124d9b3d1e`
+**Merge commit:** `b1b7722cf2cbcf45f90cca0a72da56669bb8e455`
+**PR:** [#720](https://github.com/im-tnyx/tio-world/pull/720) — merged;
+production deployment and Notes activation remain unauthorized
 **Linear:** `TNYX-81` remains the bounded planning scope; no tracker status
 mutation was authorized
 **GitHub #716:** closed after the related validation work
 **PR #719:** merged; it is historical context, not deployment evidence
 
-The worktree contains the pre-existing unrelated modification
-`.ai/tasks/README.md`; it must remain untouched and outside the implementation
-slice.
+The pre-existing `.ai/tasks/README.md` modification was preserved and its exact
+pre-closure text is retained below as historical context. Its two stale Routine
+Notes lines were reconciled in the separate documentation-closure slice.
 
 ## Disposable validation evidence
 
@@ -154,15 +156,14 @@ Additional validation passed:
 - `supabase db lint --local --schema public,private --level error`;
 - `supabase db advisors --local --type security --level error`;
 - `git diff --check`; and
-- executable exact-head GitHub Supabase Database CI run `41304179378` passed at
-  source head `4362748c1fb7ea30a8121991808c8041680132e5`; current PR checks
-  must be resolved live from GitHub after this documentation-only refresh.
+- executable exact-head GitHub Supabase Database CI run `41305474738` passed on
+  final PR head `4008494063af25c238923810039ee5124d9b3d1e`; Docs Hygiene CI
+  `41305474867` and required attribution checks also passed. Cursor checks were
+  neutral/skipped because of external usage limits.
 
-At source head `4362748c1fb7ea30a8121991808c8041680132e5`, the PR checks were
-successful for Commit attribution guard (`41304177479`), Docs Hygiene CI
-(`41304179308`) and Supabase Database CI (`41304179378`). Cursor checks were
-neutral/skipped because of external usage limits, not source failures. Resolve
-the current PR checks live after any later documentation-only commit.
+At final PR head `4008494063af25c238923810039ee5124d9b3d1e`, the required checks
+were successful and PR #720 received independent `im-tio` approval. The five
+review threads were verified and resolved before merge.
 
 Because this documentation-only correction does not change executable behavior,
 the disposable database suite is not rerun solely for this file change. The
@@ -171,30 +172,32 @@ will rerun after the documentation commit is pushed.
 
 ## Security findings and dispositions
 
-Five unresolved GitHub review threads were present at the reconciliation point:
+Five GitHub review threads were present at the reconciliation point and are now
+verified resolved:
 
 1. `4434807726` — Advanced Security embedding bypass. Fixed by the restrictive
    policy in the first Notes migration; disabled embedding was reproduced as
-   an empty relation and the thread remains unresolved pending independent
-   reviewer disposition.
+   an empty relation and the thread was resolved after independent reviewer
+   disposition.
 2. `4435025534` — `im-tio` P1 staged-migration exposure. Fixed by making the
-   first Notes migration atomic and validating all ten checkpoints; thread
-   remains unresolved pending reviewer disposition.
+   first Notes migration atomic and validating all ten checkpoints; the thread
+   was resolved after staged-checkpoint evidence and independent reviewer
+   disposition.
 3. `4434897849` — Advanced Security `request.path IS NULL` fail-open policy.
-   Fixed by removing the null bypass; the old thread is outdated but remains
-   unresolved until policy permits verified reviewer disposition.
+   Fixed by removing the null bypass; the outdated thread was resolved after
+   verified reviewer disposition.
 4. `4434897857` — Advanced Security ineffective GraphQL table assertion.
    Fixed with extension-aware `graphql.resolve` verification and a separate
-   Realtime publication assertion; the old thread is outdated but remains
-   unresolved pending reviewer disposition.
+   Realtime publication assertion; the outdated thread was resolved after
+   verified reviewer disposition.
 5. `4435421515` — `im-tio` P2 documentation contradiction. This update
-   reconciles the architecture, migration candidates, handoff, validation,
+   reconciled the architecture, migration candidates, handoff, validation,
    historical review descriptions and deployment sequence with the final
-   source state.
+   source state; the thread was resolved after independent review.
 
-No review thread is resolved by the implementation owner. Independent review
-from `im-tio` is still required; implementation-owner comments are evidence,
-not independent approval.
+No review thread was resolved solely by the implementation owner. Independent
+review from `im-tio` approved the final PR head; implementation-owner comments
+remain evidence, not independent approval.
 
 ## Historical review record
 
@@ -227,15 +230,25 @@ modify gate state.
 
 ## Final handoff
 
-**Current status:** `IN REVIEW`
+**Current status:** `VALIDATED / ARCHIVED`
 **Security status:** P1 remediation independently confirmed by `im-tio`; P2
-documentation correction pending review
-**Merge readiness:** blocked until exact-head independent approval and review
-thread disposition
-**Remaining blockers:** independent security re-review, current GitHub review
-decision refresh, separate merge authorization, hosted deployment approval and
-production Notes activation approval
+documentation correction completed; five review threads resolved.
+**Merge status:** PR #720 merged at
+`b1b7722cf2cbcf45f90cca0a72da56669bb8e455` after exact-head CI and independent
+approval.
+**Remaining deployment blockers:** hosted migration approval and execution,
+PostgREST hook activation, scheduler/backup/recovery gates and separate
+production Notes activation approval. TNYX-81 remains broader W4 scope and is
+not complete.
 
-The documentation-only reconciliation is pushed at the current exact head.
-The next bounded action is to await `im-tio` independent re-review and stop
-before merge or deployment.
+### Preserved historical index wording
+
+The following exact text was present in `.ai/tasks/README.md` before this
+documentation-closure authorization. It is retained only as historical context
+for the pre-merge blocked state and is not current operational guidance:
+
+```md
+[Routine Notes Server-Side Data API Gate](routine-notes-server-side-data-api-gate.md) is **BLOCKED**. Design qualification found a default-deny PostgREST `pgrst.db_pre_request` hook to be the narrowest viable candidate, but the authorized disposable Postgres/PostgREST runtime is inaccessible. No migration, hosted write, Notes enablement, or disposable runtime validation has occurred.
+
+[Routine Notes production deployment approval packet](routine-notes-production-deployment-approval.md) is ready for owner review only. Production deployment remains unauthorized pending CLI/credential approval, hosted scheduler authentication, backup/recovery readiness, deployment window and post-deploy monitoring ownership. No tracker status changes are authorized by the packet.
+```
