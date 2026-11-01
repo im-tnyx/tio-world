@@ -107,7 +107,7 @@ multiline Core component and accessible labels/semantics.
 - [x] Add Routine Detail Notes UI using Core components.
 - [x] Add focused controller/widget/integration tests.
 - [x] Run targeted Flutter validation and inspect exact changed-file scope.
-- [ ] Open focused PR; obtain independent review; stop before merge.
+- [x] Open focused PR; independent review remains pending; stop before merge.
 
 ## 6. Quality Review
 
@@ -132,9 +132,9 @@ PASS — git diff --check
 
 ### Review Provenance
 
-**Review source / link:** Pending focused PR
+**Review source / link:** https://github.com/im-tnyx/tio-world/pull/722
 **Reviewer / relation to implementer:** Not available yet
-**Diff or commit SHA actually reviewed:** Not available yet
+**Diff or commit SHA actually reviewed:** `ad976ff1` — implementation-owner pre-PR validation only
 **Review result and finding IDs/dispositions:** Not available yet
 **Independent review?** Unknown / unavailable
 **Limitations and unmet required gates:** Hosted migration, Notes activation,
