@@ -1,0 +1,222 @@
+import 'dart:async';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
+
+const _owner = '11111111-1111-4111-8111-111111111111';
+const _routine = '22222222-2222-4222-8222-222222222222';
+const _note1 = '33333333-3333-4333-8333-333333333333';
+const _note2 = '44444444-4444-4444-8444-444444444444';
+const _mutation1 = '55555555-5555-4555-8555-555555555555';
+const _mutation2 = '66666666-6666-4666-8666-666666666666';
+
+RoutineNote _note({
+  String id = _note1,
+  String body = 'Existing note',
+  DateTime? createdAt,
+  int revision = 1,
+}) {
+  final created = createdAt ?? DateTime.utc(2026, 11, 1);
+  return RoutineNote(
+    id: id,
+    userId: _owner,
+    scope: RoutineNoteScope.routine(RoutineId(_routine)),
+    body: body,
+    createdAt: created,
+    updatedAt: created,
+    revision: revision,
+  );
+}
+
+void main() {
+  test('loads ordered Routine notes and enforces owner/scope', () async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: [
+        _note(id: _note2, createdAt: DateTime.utc(2026, 11, 2)),
+        _note(id: _note1, createdAt: DateTime.utc(2026, 11, 1)),
+      ],
+    );
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(controller.state.status, RoutineNotesStatus.ready);
+    expect(controller.state.notes.map((note) => note.id), [_note1, _note2]);
+    expect(repository.readScope, RoutineNoteScope.routine(RoutineId(_routine)));
+  });
+
+  test('create uses normalized body and stable note/mutation UUIDs', () async {
+    final repository = _FakeRoutineNotesRepository(
+      createResult: _note(id: _note2, body: 'saved'),
+    );
+    final controller = _controller(
+      repository,
+      uuids: [_note2, _mutation1],
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final created = await controller.create('  saved  ');
+
+    expect(created, isTrue);
+    expect(repository.createCommand?.id, _note2);
+    expect(repository.createCommand?.mutationId, _mutation1);
+    expect(repository.createCommand?.scope,
+        RoutineNoteScope.routine(RoutineId(_routine)));
+    expect(repository.createCommand?.body, 'saved');
+    expect(controller.state.notes.single.id, _note2);
+  });
+
+  test('rejects a sixth note without calling the repository', () async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: List.generate(
+        routineNotesMaximumCount,
+        (index) => _note(
+          id: '77777777-7777-4777-8777-77777777777${index + 1}',
+        ),
+      ),
+    );
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('sixth'), isFalse);
+    expect(controller.state.failure, RoutineNoteFailureKind.quotaExceeded);
+    expect(repository.createCalls, 0);
+  });
+
+  test('rejects blank and over-limit bodies before persistence', () async {
+    final repository = _FakeRoutineNotesRepository();
+    final controller = _controller(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('   '), isFalse);
+    expect(controller.state.failure, RoutineNoteFailureKind.invalidRequest);
+    expect(await controller.create('x' * 501), isFalse);
+    expect(controller.state.failure, RoutineNoteFailureKind.invalidRequest);
+    expect(repository.createCalls, 0);
+  });
+
+  test('does not publish a read result after the session changes', () async {
+    final read = Completer<List<RoutineNote>>();
+    final repository = _FakeRoutineNotesRepository(readCompleter: read);
+    var current = true;
+    final controller = _controller(repository, isCurrent: () => current);
+    addTearDown(controller.dispose);
+
+    final loading = controller.load();
+    await pumpEventQueue();
+    current = false;
+    read.complete([_note()]);
+    await loading;
+
+    expect(controller.state.status, RoutineNotesStatus.loading);
+    expect(controller.state.notes, isEmpty);
+  });
+
+  test('delete sends expected revision and removes only the owned note',
+      () async {
+    final repository = _FakeRoutineNotesRepository(notes: [_note()]);
+    final controller = _controller(repository, uuids: [_mutation2]);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.delete(controller.state.notes.single), isTrue);
+
+    expect(repository.deleteCommand?.id, _note1);
+    expect(repository.deleteCommand?.expectedRevision, 1);
+    expect(repository.deleteCommand?.mutationId, _mutation2);
+    expect(controller.state.notes, isEmpty);
+  });
+
+  test('unknown create outcome reloads and exposes confirmation notice',
+      () async {
+    final repository = _FakeRoutineNotesRepository(
+      createError: const RoutineNoteOutcomeUnknown(mutationId: _mutation1),
+      notesAfterUnknown: [_note(body: 'server saved')],
+    );
+    final controller = _controller(repository, uuids: [_note2, _mutation1]);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(await controller.create('server saved'), isFalse);
+
+    expect(controller.state.notes.single.body, 'server saved');
+    expect(controller.state.actionNotice, contains('could not be confirmed'));
+    expect(repository.readCalls, 2);
+  });
+}
+
+RoutineNotesController _controller(
+  _FakeRoutineNotesRepository repository, {
+  List<String> uuids = const [_note2, _mutation1],
+  bool Function()? isCurrent,
+}) {
+  final values = [...uuids];
+  return RoutineNotesController(
+    routineId: RoutineId(_routine),
+    repository: repository,
+    ownerId: _owner,
+    isSessionCurrent: isCurrent ?? () => true,
+    newUuid: () => values.removeAt(0),
+  );
+}
+
+final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
+  _FakeRoutineNotesRepository({
+    this.notes = const [],
+    this.createResult,
+    this.createError,
+    this.notesAfterUnknown,
+    this.readCompleter,
+  });
+
+  List<RoutineNote> notes;
+  final RoutineNote? createResult;
+  final Object? createError;
+  final List<RoutineNote>? notesAfterUnknown;
+  final Completer<List<RoutineNote>>? readCompleter;
+  RoutineNoteScope? readScope;
+  RoutineNoteCreate? createCommand;
+  RoutineNoteDelete? deleteCommand;
+  var readCalls = 0;
+  var createCalls = 0;
+
+  @override
+  Future<List<RoutineNote>> read(RoutineNoteScope scope) async {
+    readCalls++;
+    readScope = scope;
+    final pending = readCompleter;
+    if (pending != null) return pending.future;
+    if (readCalls > 1 && notesAfterUnknown != null) {
+      notes = notesAfterUnknown!;
+    }
+    return [...notes];
+  }
+
+  @override
+  Future<RoutineNote> create(RoutineNoteCreate command) async {
+    createCalls++;
+    createCommand = command;
+    final error = createError;
+    if (error != null) throw error;
+    return createResult!;
+  }
+
+  @override
+  Future<RoutineNote> update(RoutineNoteUpdate command) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<RoutineNote> transfer(RoutineNoteTransfer command) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> delete(RoutineNoteDelete command) async {
+    deleteCommand = command;
+    notes = notes.where((note) => note.id != command.id).toList();
+  }
+}

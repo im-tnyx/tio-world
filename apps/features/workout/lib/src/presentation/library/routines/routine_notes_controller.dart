@@ -1,0 +1,288 @@
+import 'package:flutter/foundation.dart';
+import 'package:tio_shared/shared.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../domain/repositories/routine_notes_repository.dart';
+
+const routineNotesMaximumCount = 5;
+
+typedef RoutineNotesSessionIsCurrent = bool Function();
+
+enum RoutineNotesStatus { loading, ready, failed }
+
+final class RoutineNotesState {
+  const RoutineNotesState.loading()
+      : status = RoutineNotesStatus.loading,
+        notes = const [],
+        failure = null,
+        actionNotice = null;
+
+  RoutineNotesState.ready(
+    List<RoutineNote> notes, {
+    this.actionNotice,
+  })  : status = RoutineNotesStatus.ready,
+        notes = List.unmodifiable(notes),
+        failure = null;
+
+  const RoutineNotesState.failed(this.failure, {this.actionNotice})
+      : status = RoutineNotesStatus.failed,
+        notes = const [];
+
+  final RoutineNotesStatus status;
+  final List<RoutineNote> notes;
+  final RoutineNoteFailureKind? failure;
+  final String? actionNotice;
+
+  bool get isLoading => status == RoutineNotesStatus.loading;
+  bool get isReady => status == RoutineNotesStatus.ready;
+  bool get canCreate => isReady && notes.length < routineNotesMaximumCount;
+}
+
+/// Owns the Routine-scoped Notes read/create/delete lifecycle.
+///
+/// The caller supplies a live session check because a repository instance can
+/// outlive a logout or same-account re-authentication cycle. Results from an
+/// old session are never emitted into the current Routine Detail.
+final class RoutineNotesController extends ChangeNotifier {
+  RoutineNotesController({
+    required RoutineId routineId,
+    required RoutineNotesRepository repository,
+    required String ownerId,
+    required RoutineNotesSessionIsCurrent isSessionCurrent,
+    String Function()? newUuid,
+  })  : _scope = RoutineNoteScope.routine(routineId),
+        _repository = repository,
+        _ownerId = ownerId.trim().toLowerCase(),
+        _isSessionCurrent = isSessionCurrent,
+        _newUuid = newUuid ?? (() => const Uuid().v4()) {
+    if (!_isUuid(_ownerId)) {
+      throw ArgumentError.value(ownerId, 'ownerId');
+    }
+  }
+
+  final RoutineNoteScope _scope;
+  final RoutineNotesRepository _repository;
+  final String _ownerId;
+  final RoutineNotesSessionIsCurrent _isSessionCurrent;
+  final String Function() _newUuid;
+
+  RoutineNotesState _state = const RoutineNotesState.loading();
+  RoutineNotesState get state => _state;
+
+  var _version = 0;
+  var _busy = false;
+  var _disposed = false;
+
+  Future<void> load({String? actionNotice}) async {
+    final version = ++_version;
+    if (!_sessionIsCurrent()) {
+      _emit(const RoutineNotesState.failed(
+        RoutineNoteFailureKind.unauthorized,
+      ));
+      return;
+    }
+    _emit(const RoutineNotesState.loading());
+    try {
+      final notes = await _repository.read(_scope);
+      if (!_active(version)) return;
+      _emit(_ready(notes, actionNotice: actionNotice));
+    } on RoutineNoteException catch (error) {
+      if (!_active(version)) return;
+      _emit(RoutineNotesState.failed(_safeFailure(error.kind)));
+    } on RoutineNoteOutcomeUnknown {
+      if (!_active(version)) return;
+      _emit(const RoutineNotesState.failed(
+        RoutineNoteFailureKind.unavailable,
+        actionNotice: 'The Notes result could not be confirmed. Try again.',
+      ));
+    } catch (_) {
+      if (!_active(version)) return;
+      _emit(const RoutineNotesState.failed(
+        RoutineNoteFailureKind.unavailable,
+      ));
+    }
+  }
+
+  Future<bool> create(String body) async {
+    if (_busy || !_sessionIsCurrent()) {
+      _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+    if (!_state.isReady) return false;
+    if (_state.notes.length >= routineNotesMaximumCount) {
+      _fail(RoutineNoteFailureKind.quotaExceeded);
+      return false;
+    }
+
+    final normalizedBody = _normalizeBody(body);
+    if (normalizedBody == null) {
+      _fail(RoutineNoteFailureKind.invalidRequest);
+      return false;
+    }
+    final noteId = _newUuid();
+    final mutationId = _newUuid();
+    final version = ++_version;
+    _busy = true;
+    notifyListeners();
+    try {
+      final created = await _repository.create(
+        RoutineNoteCreate(
+          id: noteId,
+          scope: _scope,
+          body: normalizedBody,
+          mutationId: mutationId,
+        ),
+      );
+      if (!_active(version)) return false;
+      if (created.userId != _ownerId || created.scope != _scope) {
+        _emit(const RoutineNotesState.failed(
+          RoutineNoteFailureKind.malformedData,
+        ));
+        return false;
+      }
+      _emit(_ready([..._state.notes, created]));
+      return true;
+    } on RoutineNoteOutcomeUnknown {
+      if (!_active(version)) return false;
+      await load(
+        actionNotice:
+            'The save result could not be confirmed. Refresh to verify.',
+      );
+      return false;
+    } on RoutineNoteException catch (error) {
+      if (!_active(version)) return false;
+      _fail(_safeFailure(error.kind));
+      return false;
+    } catch (_) {
+      if (!_active(version)) return false;
+      _fail(RoutineNoteFailureKind.unavailable);
+      return false;
+    } finally {
+      _finishBusy();
+    }
+  }
+
+  Future<bool> delete(RoutineNote note) async {
+    if (_busy || !_sessionIsCurrent()) {
+      _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+    if (!_state.isReady ||
+        note.userId != _ownerId ||
+        note.scope != _scope ||
+        !_state.notes.any((current) => current.id == note.id)) {
+      _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+
+    final version = ++_version;
+    _busy = true;
+    notifyListeners();
+    try {
+      await _repository.delete(
+        RoutineNoteDelete(
+          id: note.id,
+          expectedRevision: note.revision,
+          mutationId: _newUuid(),
+        ),
+      );
+      if (!_active(version)) return false;
+      _emit(_ready(
+        _state.notes.where((current) => current.id != note.id).toList(),
+      ));
+      return true;
+    } on RoutineNoteOutcomeUnknown {
+      if (!_active(version)) return false;
+      await load(
+        actionNotice:
+            'The delete result could not be confirmed. Refresh to verify.',
+      );
+      return false;
+    } on RoutineNoteException catch (error) {
+      if (!_active(version)) return false;
+      _fail(_safeFailure(error.kind));
+      return false;
+    } catch (_) {
+      if (!_active(version)) return false;
+      _fail(RoutineNoteFailureKind.unavailable);
+      return false;
+    } finally {
+      _finishBusy();
+    }
+  }
+
+  bool get isBusy => _busy;
+
+  RoutineNotesState _ready(
+    List<RoutineNote> notes, {
+    String? actionNotice,
+  }) {
+    final valid = notes.length <= routineNotesMaximumCount &&
+        notes.every(
+          (note) => note.userId == _ownerId && note.scope == _scope,
+        );
+    if (!valid) {
+      return const RoutineNotesState.failed(
+        RoutineNoteFailureKind.malformedData,
+      );
+    }
+    final ordered = [...notes]..sort((a, b) {
+        final created = a.createdAt.compareTo(b.createdAt);
+        return created != 0 ? created : a.id.compareTo(b.id);
+      });
+    return RoutineNotesState.ready(ordered, actionNotice: actionNotice);
+  }
+
+  bool _sessionIsCurrent() {
+    try {
+      return _isSessionCurrent();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _active(int version) =>
+      !_disposed && version == _version && _sessionIsCurrent();
+
+  void _fail(RoutineNoteFailureKind failure) {
+    if (_disposed) return;
+    _version++;
+    _emit(RoutineNotesState.failed(_safeFailure(failure)));
+  }
+
+  void _finishBusy() {
+    if (_disposed) return;
+    _busy = false;
+    notifyListeners();
+  }
+
+  void _emit(RoutineNotesState next) {
+    if (_disposed) return;
+    _state = next;
+    notifyListeners();
+  }
+
+  RoutineNoteFailureKind _safeFailure(RoutineNoteFailureKind failure) {
+    if (!_sessionIsCurrent()) return RoutineNoteFailureKind.unauthorized;
+    return failure;
+  }
+
+  static String? _normalizeBody(String value) {
+    try {
+      return RoutineNote.normalizeBody(value);
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  static bool _isUuid(String value) => RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      ).hasMatch(value);
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _version++;
+    super.dispose();
+  }
+}
