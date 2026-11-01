@@ -30,8 +30,12 @@ final class RoutineNotesSection extends StatefulWidget {
   State<RoutineNotesSection> createState() => _RoutineNotesSectionState();
 }
 
-final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
+final class _RoutineNotesSectionState extends State<RoutineNotesSection>
+    with AutomaticKeepAliveClientMixin<RoutineNotesSection> {
   RoutineNotesController? _controller;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -231,6 +235,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = _controller;
     final state = controller?.state;
     return Padding(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
@@ -42,6 +43,40 @@ Future<void> _pumpSection(
             ownerId: _owner,
             isSessionCurrent: isSessionCurrent ?? () => true,
           ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
+Future<void> _pumpLazySection(
+  WidgetTester tester,
+  _FakeRoutineNotesRepository repository,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: SizedBox(
+        height: 300,
+        child: ListView.builder(
+          key: const ValueKey('routine-notes-lazy-list'),
+          scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+          itemCount: 20,
+          itemBuilder: (context, index) => index == 0
+              ? RoutineNotesSection(
+                  routineId: RoutineId(_routine),
+                  repository: repository,
+                  ownerId: _owner,
+                  isSessionCurrent: () => true,
+                )
+              : const SizedBox(
+                  height: 200,
+                  child: SizedBox.shrink(),
+                ),
         ),
       ),
     ),
@@ -148,6 +183,27 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-notes-refresh')));
     await tester.pumpAndSettle();
     expect(repository.readCalls, 3);
+  });
+
+  testWidgets('keeps pending-safe controller alive across lazy list scrolling',
+      (tester) async {
+    final repository = _FakeRoutineNotesRepository();
+    await _pumpLazySection(tester, repository);
+    await tester.pumpAndSettle();
+    expect(repository.readCalls, 1);
+
+    await tester.drag(
+      find.byKey(const ValueKey('routine-notes-lazy-list')),
+      const Offset(0, -1600),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('routine-notes-lazy-list')),
+      const Offset(0, 1600),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.readCalls, 1);
   });
 }
 
