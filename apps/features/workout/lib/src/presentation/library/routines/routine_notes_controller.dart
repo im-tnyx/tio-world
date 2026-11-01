@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
 
 const routineNotesMaximumCount = 5;
+const _pendingCreateRefreshNotice =
+    'The save result could not be confirmed. Refresh to verify.';
 
 typedef RoutineNotesSessionIsCurrent = bool Function();
 
@@ -178,8 +180,7 @@ final class RoutineNotesController extends ChangeNotifier {
         body: normalizedBody,
       );
       await load(
-        actionNotice:
-            'The save result could not be confirmed. Refresh to verify.',
+        actionNotice: _pendingCreateRefreshNotice,
       );
       return _pendingCreate == null;
     } on RoutineNoteException catch (error) {
@@ -226,8 +227,10 @@ final class RoutineNotesController extends ChangeNotifier {
         ),
       );
       if (!_active(version)) return false;
+      final pending = _pendingCreate;
       _emit(_ready(
         _state.notes.where((current) => current.id != note.id).toList(),
+        actionNotice: pending == null ? null : _pendingCreateRefreshNotice,
       ));
       return true;
     } on RoutineNoteOutcomeUnknown {

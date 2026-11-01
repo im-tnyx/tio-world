@@ -189,6 +189,45 @@ void main() {
     expect(controller.hasPendingMutation, isFalse);
     expect(controller.state.actionNotice, 'Note save confirmed.');
   });
+
+  test('preserves pending create recovery after deleting an older note',
+      () async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: [_note()],
+      createError: const RoutineNoteOutcomeUnknown(mutationId: _mutation1),
+      readResults: [
+        [_note()],
+        [_note()],
+        [_note(id: _note2, body: 'pending save')],
+      ],
+    );
+    final controller = _controller(
+      repository,
+      uuids: [_note2, _mutation1, _mutation2],
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+    expect(await controller.create('pending save'), isFalse);
+    expect(controller.hasPendingMutation, isTrue);
+    expect(controller.state.actionNotice, contains('Refresh'));
+
+    expect(await controller.delete(controller.state.notes.single), isTrue);
+    expect(controller.hasPendingMutation, isTrue);
+    expect(controller.canCreate, isFalse);
+    expect(controller.state.actionNotice, contains('Refresh'));
+
+    expect(await controller.create('duplicate attempt'), isFalse);
+    expect(repository.createCalls, 1);
+    expect(repository.createCommand?.id, _note2);
+    expect(repository.createCommand?.mutationId, _mutation1);
+
+    await controller.load();
+    expect(controller.hasPendingMutation, isFalse);
+    expect(controller.state.actionNotice, 'Note save confirmed.');
+    expect(controller.state.notes.single.id, _note2);
+    expect(repository.createCalls, 1);
+  });
 }
 
 RoutineNotesController _controller(
@@ -214,6 +253,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     this.createErrors = const [],
     this.notesAfterUnknown,
     this.readCompleter,
+    this.readResults = const [],
   });
 
   List<RoutineNote> notes;
@@ -222,6 +262,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   final List<Object> createErrors;
   final List<RoutineNote>? notesAfterUnknown;
   final Completer<List<RoutineNote>>? readCompleter;
+  final List<List<RoutineNote>> readResults;
   RoutineNoteScope? readScope;
   RoutineNoteCreate? createCommand;
   RoutineNoteDelete? deleteCommand;
@@ -234,6 +275,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     readScope = scope;
     final pending = readCompleter;
     if (pending != null) return pending.future;
+    if (readResults.isNotEmpty) return [...readResults.removeAt(0)];
     if (readCalls > 1 && notesAfterUnknown != null) {
       notes = notesAfterUnknown!;
     }
