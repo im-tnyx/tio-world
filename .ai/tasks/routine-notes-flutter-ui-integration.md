@@ -120,8 +120,9 @@ PASS — focused Routine Notes controller/widget tests
 PASS — Routine Detail and existing Routine Notes repository tests
 PASS — app workout route regression tests
 PASS — git diff --check
-PASS — exact-head GitHub `Attribution guard`, `Commit attribution guard` and
-`Check documentation diff hygiene`
+PASS — GitHub `Attribution guard`, `Commit attribution guard` and
+`Check documentation diff hygiene` at validation head `b38162ca`; resolve the
+mutable PR head live from GitHub.
 ```
 
 ### Acceptance Evidence
@@ -137,7 +138,7 @@ PASS — exact-head GitHub `Attribution guard`, `Commit attribution guard` and
 **Review source / link:** https://github.com/im-tnyx/tio-world/pull/722
 **Reviewer / relation to implementer:** Not available yet
 **Diff or commit SHA actually reviewed:** `ad976ff1` — implementation-owner pre-PR validation only
-**Current PR HEAD:** `9089d9f733df54d837f404acf63af802edb8c20c`
+**Last independently verifiable PR head before this handoff edit:** `b38162ca`
 **Review result and finding IDs/dispositions:** Not available yet
 **Independent review?** Unknown / unavailable
 **Limitations and unmet required gates:** Hosted migration, Notes activation,
