@@ -120,7 +120,7 @@ PASS — focused Routine Notes controller/widget tests
 PASS — Routine Detail and existing Routine Notes repository tests
 PASS — app workout route regression tests
 PASS — git diff --check
-PASS — review-remediation focused controller/widget tests (14 tests)
+PASS — review-remediation focused controller/widget tests (15 tests)
 PASS — GitHub `Attribution guard`, `Commit attribution guard` and
 `Check documentation diff hygiene` at validation head `b38162ca`; resolve the
 mutable PR head live from GitHub.
@@ -158,6 +158,7 @@ physical Android/iOS QA and production release are out of scope.
 | `4436083867` | Review | Fixed locally; re-review pending | Unknown create read-back could permit a duplicate retry. | `f4a99196` | Same pending-create identity/read-back handling as above; focused duplicate-prevention test passes. |
 | `4436083898` | Review | Fixed locally; re-review pending | Retryable create failure had no usable retry path. | `f4a99196` | Same ready-state retry correction as `4436062657`; focused retry test passes. |
 | `4436083913` | Review | Fixed locally; re-review pending | Unknown delete warnings were hidden when the list became empty. | `f4a99196` | Action notices render before the empty state; focused empty-list warning test passes. |
+| `4436135056` | P2 | Fixed locally; re-review pending | An unconfirmed create had no same-screen refresh/reconciliation action. | `a47cd9fa` | Unknown-save recovery now closes the composer and exposes a Notes `Refresh` action; controller and widget evidence passes. |
 
 ## 7. Final Handoff
 

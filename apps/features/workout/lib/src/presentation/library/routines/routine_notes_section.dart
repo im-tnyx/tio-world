@@ -188,6 +188,10 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
                                   Navigator.of(builderContext).pop(true);
                                   return;
                                 }
+                                if (controller.hasPendingMutation) {
+                                  Navigator.of(builderContext).pop(false);
+                                  return;
+                                }
                                 setState(() {
                                   saving = false;
                                   errorText = _actionError(
@@ -280,6 +284,7 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection> {
               _NoticeText(
                 key: const ValueKey('routine-notes-notice'),
                 text: state.actionNotice!,
+                onRefresh: controller!.isBusy ? null : () => controller.load(),
               ),
             if (state.notes.isEmpty)
               const _EmptyView(key: ValueKey('routine-notes-empty'))
@@ -366,20 +371,34 @@ final class _EmptyView extends StatelessWidget {
 }
 
 final class _NoticeText extends StatelessWidget {
-  const _NoticeText({required this.text, super.key});
+  const _NoticeText({required this.text, this.onRefresh, super.key});
 
   final String text;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-        child: Text(
-          text,
-          key: const ValueKey('routine-notes-notice-message'),
-          style: TextStyle(
-            color: context.tioColors.textSecondary,
-            fontSize: TioFontSize.size12,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              text,
+              key: const ValueKey('routine-notes-notice-message'),
+              style: TextStyle(
+                color: context.tioColors.textSecondary,
+                fontSize: TioFontSize.size12,
+              ),
+            ),
+            if (onRefresh != null) ...[
+              const SizedBox(height: TioSpacing.xs),
+              TioButton.secondary(
+                key: const ValueKey('routine-notes-refresh'),
+                label: 'Refresh',
+                onPressed: onRefresh,
+              ),
+            ],
+          ],
         ),
       );
 }

@@ -142,7 +142,12 @@ void main() {
       find.byKey(const ValueKey('routine-notes-notice-message')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('routine-notes-refresh')), findsOneWidget);
     expect(find.textContaining('could not be confirmed'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('routine-notes-refresh')));
+    await tester.pumpAndSettle();
+    expect(repository.readCalls, 3);
   });
 }
 
