@@ -98,8 +98,8 @@ database was preserved.
 
 **Branch:** `codex/routine-notes-data-api-gate`
 **Base SHA:** `cd81393598b5f82606c10c38058296b9052e57f4`
-**Current PR head:** Resolve live from GitHub; the last executable source head
-validated before the documentation-only refresh was
+**Current PR head:** Resolve live from GitHub; executable source validation was
+completed before this documentation-only refresh at source head
 `4362748c1fb7ea30a8121991808c8041680132e5`.
 **PR:** `#720` — open; merge and deployment unauthorized
 **Linear:** `TNYX-81` remains the bounded planning scope; no tracker status
@@ -154,8 +154,9 @@ Additional validation passed:
 - `supabase db lint --local --schema public,private --level error`;
 - `supabase db advisors --local --type security --level error`;
 - `git diff --check`; and
-- last completed executable exact-head GitHub Supabase Database CI run
-  `41304179378` at source head `4362748c1fb7ea30a8121991808c8041680132e5`.
+- executable exact-head GitHub Supabase Database CI run `41304179378` passed at
+  source head `4362748c1fb7ea30a8121991808c8041680132e5`; current PR checks
+  must be resolved live from GitHub after this documentation-only refresh.
 
 At source head `4362748c1fb7ea30a8121991808c8041680132e5`, the PR checks were
 successful for Commit attribution guard (`41304177479`), Docs Hygiene CI
