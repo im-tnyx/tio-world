@@ -34,6 +34,13 @@ OWNER_NOTE_ID = "a8100000-0000-4000-8000-000000000101"
 CONTAINER = "tnyx-81-routine-notes-gate-" + uuid.uuid4().hex[:12]
 
 NOTE_PATH = "/user_workout_routine_notes?select=id,user_id&user_id=eq."
+EMBEDDED_NOTE_PATH = (
+    "/user_workout_routines?select=id,user_workout_routine_notes(*)&id=eq."
+)
+EMBEDDED_FILTERED_NOTE_PATH = (
+    "/user_workout_routines?select=id,user_workout_routine_notes(id,user_id,body)"
+    "&id=eq."
+)
 RPC_PATHS = (
     "/rpc/mutate_user_workout_routine_note",
     "/rpc/mutate_user_workout_routine_note_legacy",
@@ -200,6 +207,21 @@ def expect_status(label, result, status):
     expect(label, result, lambda value: value[0] == status)
 
 
+def expect_embedded_notes_empty(label, result):
+    expect(
+        label,
+        result,
+        lambda value: value[0] == 200
+        and isinstance(value[3], list)
+        and len(value[3]) == 1
+        and all(
+            isinstance(row, dict)
+            and row.get("user_workout_routine_notes") == []
+            for row in value[3]
+        ),
+    )
+
+
 def set_gate(state):
     if state == "missing":
         psql("delete from private.routine_notes_data_api_gate_state where gate_key='routine_notes'")
@@ -341,6 +363,20 @@ def assert_disabled(owner_jwt):
         403,
         "routine_notes_data_api_disabled",
     )
+    expect_embedded_notes_empty(
+        "disabled parent-resource Notes embedding",
+        request(EMBEDDED_NOTE_PATH + OWNER_ROUTINE_ID, jwt=owner_jwt),
+    )
+    expect_embedded_notes_empty(
+        "disabled filtered parent-resource Notes embedding",
+        request(
+            EMBEDDED_FILTERED_NOTE_PATH
+            + OWNER_ROUTINE_ID
+            + "&user_workout_routine_notes.id=eq."
+            + OWNER_NOTE_ID,
+            jwt=owner_jwt,
+        ),
+    )
     for path in (
         "/user_nutrition_profiles?select=user_id&user_id=eq." + OWNER_ID,
         "/user_workout_programs?select=id&user_id=eq." + OWNER_ID,
@@ -358,6 +394,30 @@ def assert_enabled(owner_jwt, guest_jwt):
         and isinstance(value[3], list)
         and len(value[3]) == 1
         and value[3][0].get("id") == OWNER_NOTE_ID,
+    )
+    expect(
+        "enabled owner parent-resource Notes embedding",
+        request(EMBEDDED_NOTE_PATH + OWNER_ROUTINE_ID, jwt=owner_jwt),
+        lambda value: value[0] == 200
+        and isinstance(value[3], list)
+        and len(value[3]) == 1
+        and isinstance(value[3][0].get("user_workout_routine_notes"), list)
+        and len(value[3][0]["user_workout_routine_notes"]) == 1
+        and value[3][0]["user_workout_routine_notes"][0].get("id") == OWNER_NOTE_ID,
+    )
+    expect(
+        "enabled owner filtered parent-resource Notes embedding",
+        request(
+            EMBEDDED_FILTERED_NOTE_PATH
+            + OWNER_ROUTINE_ID
+            + "&user_workout_routine_notes.id=eq."
+            + OWNER_NOTE_ID,
+            jwt=owner_jwt,
+        ),
+        lambda value: value[0] == 200
+        and isinstance(value[3], list)
+        and len(value[3]) == 1
+        and len(value[3][0].get("user_workout_routine_notes", [])) == 1,
     )
     guest_result = request(NOTE_PATH + OWNER_ID, jwt=guest_jwt)
     expect(
@@ -443,6 +503,10 @@ def assert_fail_closed(owner_jwt):
             request(NOTE_PATH + OWNER_ID, jwt=owner_jwt),
             403,
             "routine_notes_data_api_disabled",
+        )
+        expect_embedded_notes_empty(
+            "fail-closed embedded gate state %r" % state,
+            request(EMBEDDED_NOTE_PATH + OWNER_ROUTINE_ID, jwt=owner_jwt),
         )
     restore_gate()
     expect_code(

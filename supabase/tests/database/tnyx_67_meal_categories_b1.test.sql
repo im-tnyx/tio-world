@@ -219,8 +219,15 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   has_schema_privilege('authenticated', 'private', 'USAGE')
     and has_schema_privilege('service_role', 'private', 'USAGE')
-    and not has_schema_privilege('anon', 'private', 'USAGE'),
-  'private schema usage must remain limited to existing server/write roles'
+    and has_schema_privilege('anon', 'private', 'USAGE')
+    and exists (
+      select 1
+      from pg_catalog.pg_proc as p
+      join pg_catalog.pg_namespace as n on n.oid = p.pronamespace
+      where n.nspname = 'private'
+        and p.proname = 'routine_notes_data_api_gate'
+    ),
+  'private schema usage includes the approved PostgREST pre-request hook path'
 );
 select pg_temp.assert_true(
   has_function_privilege('authenticated', 'private.is_valid_meal_categories_config_v1(jsonb)', 'EXECUTE')

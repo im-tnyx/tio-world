@@ -12,10 +12,10 @@
 **Trigger:** New independently scoped server-side release/security gate and Supabase role configuration change
 **Approval status:** `APPROVED` for repository-only gate implementation, disposable validation and focused PR review; hosted deployment, production activation and merge remain unauthorized.
 **Approval evidence:** Product Owner approval was explicitly recorded in the 2026-11-01 implementation authorization. The existing Routine Notes deployment packet and PR #719 remain separate production gates and do not authorize hosted deployment.
-**Approved gate mechanism:** A new pre-Notes migration, ordered after the hosted 72-migration prefix and before `20261029120000_create_user_workout_routine_notes.sql`, installs a private `SECURITY DEFINER` PostgREST pre-request hook with a fixed `search_path` and registers it through the Supabase-supported `pgrst.db_pre_request` setting on `authenticator`. The corrected design stores the operator-controlled state in one private, non-exposed gate-state table seeded to `disabled`; it does not use an arbitrary `app.*` role GUC, which failed on the qualified PostgreSQL 17 runtime. The hook reads only server-populated `request.path`, exact-matches the Notes table and three public Notes RPC paths, and permits them only when the state is exactly `enabled`; missing, null, malformed, unknown, or unreadable state remains denied. Non-Notes paths pass through. The controlled denial uses a valid PostgREST `PGRST` error payload with `status=403`, `headers`, and `status_text`.
-**Proposed migration candidate:** `supabase/migrations/20261028120000_install_routine_notes_data_api_gate.sql`. The eight merged Routine Notes migrations would remain unchanged.
+**Approved gate mechanism:** The pre-Notes migration, ordered after the hosted 72-migration prefix and before `20261029120000_create_user_workout_routine_notes.sql`, installs a private `SECURITY DEFINER` PostgREST pre-request hook with a fixed `search_path` and registers it through the Supabase-supported `pgrst.db_pre_request` setting on `authenticator`. The corrected design stores the operator-controlled state in one private, non-exposed gate-state table seeded to `disabled`; it does not use an arbitrary `app.*` role GUC, which failed on the qualified PostgreSQL 17 runtime. The hook reads only server-populated `request.path`, exact-matches the Notes table and three public Notes RPC paths, and permits them only when the state is exactly `enabled`; missing, null, malformed, unknown, or unreadable state remains denied. Non-Notes paths pass through. The controlled denial uses a valid PostgREST `PGRST` error payload with `status=403`, `headers`, and `status_text`. A post-Notes migration adds a private fixed-search-path helper and restrictive SELECT policy so Notes rows cannot be returned through parent-resource embedding while the Data API gate is disabled; the policy preserves direct SQL/operator testing when `request.path` is null and preserves the existing owner-scoped policy when enabled.
+**Migration candidates:** `supabase/migrations/20261028120000_install_routine_notes_data_api_gate.sql` and `supabase/migrations/20261101081122_routine_notes_data_api_embedding_gate.sql`. The eight merged Routine Notes migrations remain unchanged.
 **Approved product/UI/data-shape boundaries:** No Notes product-contract change, no Flutter/UI change, no table/column change to the existing Notes objects, no change to RoutineId or `(authenticated user, canonical ExerciseRef)` ownership, no change to existing RLS/RPC authorization, `SECURITY DEFINER` `search_path`, ACL boundaries, receipt retention, or migration #7 scheduler behavior.
-**Explicit non-changes:** No hosted migration or write, no hosted gate enablement, no Notes enablement, no service/scheduler/pg_cron addition, no broad role privilege, no GitHub/Linear mutation, no commit/push/merge/deploy.
+**Explicit non-changes:** No hosted migration or write, no hosted gate enablement, no Notes enablement, no service/scheduler/pg_cron addition, no broad role privilege, no GitHub/Linear status mutation, no merge/deploy.
 
 ## Active Handoff
 
@@ -30,13 +30,13 @@
 **Observed working-tree state:** Existing intentional task-governance edits are preserved.
 **Observed uncommitted/dirty files:** `.ai/tasks/README.md` was pre-existing and is preserved; this brief, the candidate migration, catalog SQL assertion, disposable HTTP harness and CI workflow step are the authorized slice.
 **PR / tracker:** Focused implementation PR `#720` is open at `https://github.com/im-tnyx/tio-world/pull/720`; Linear `TNYX-81` is `Backlog`, blocked by `TNYX-78` and `TNYX-80`; GitHub #716 is closed after PR #717 validation; PR #719 is merged into the observed `main` head. No child tracker or status mutation is authorized.
-**Current implementation state:** Candidate gate migration, catalog assertions, disposable PostgREST harness and CI invocation have been added on the dedicated branch. The eight existing Notes migrations remain unchanged. The isolated 81-migration replay, catalog assertions, Routine Notes SQL matrix, HTTP matrix, lint and hosted read-only alternate-surface checks passed; repository CI and independent review remain open.
+**Current implementation state:** Candidate pre-Notes gate migration, post-Notes embedding correction, catalog assertions, disposable PostgREST harness and CI invocation are present on the dedicated branch. The eight existing Notes migrations remain unchanged. The isolated 82-migration replay, catalog assertions, Routine Notes SQL matrix, embedding HTTP matrix, non-Notes regression, lint and hosted read-only alternate-surface checks passed; repository CI and independent review remain open.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/supabase-db-ci.yml`, `.ai/tasks/routine-notes-production-deployment-approval.md`
-**Validation completed at SHA:** Read-only source/config inspection, live Linear/GitHub refresh, Supabase documentation lookup, eight-migration SQL/RPC/ACL inspection, Docker Desktop `4.97.0` / Engine `29.9.2`, clean isolated 81-migration replay with ledger repair, catalog assertions, existing Routine Notes persistence SQL, committed HTTP harness via a local published-port adapter, `supabase db lint`, hosted GraphQL/Realtime/Storage/Edge read-only checks, cleanup and recovery verification. The current slice also passed Python syntax and `git diff --check`.
+**Validation completed at SHA:** Read-only source/config inspection, live Linear/GitHub refresh, Supabase documentation lookup, eight-migration SQL/RPC/ACL inspection, Docker Desktop `4.97.0` / Engine `29.9.2`, clean isolated 82-migration replay with ledger repair, B1 and gate catalog assertions, existing Routine Notes persistence SQL, committed HTTP harness via a local published-port adapter including parent-resource embedding, Nutrition/Workout/Profile regressions, `supabase db lint`, hosted GraphQL/Realtime/Storage/Edge read-only checks, cleanup and recovery verification. The current slice also passed Python syntax and `git diff --check`.
 **Validation remaining:** GitHub `Supabase Database CI` and independent security review. Production implementation/activation remains separately unauthorized.
 **Current blocker:** Independent security review and required GitHub CI completion are pending. Hosted deployment, production activation, Notes enablement and merge remain explicitly blocked by scope.
 **Open review finding IDs:** None assigned in this task.
-**Next exact action:** Complete GitHub CI and independent security review for PR `#720`; stop before merge, hosted writes or production activation.
+**Next exact action:** Push the embedding correction, complete exact-head GitHub CI and independent security review for PR `#720`; stop before merge, hosted writes or production activation.
 
 ## 1. Discovery
 
@@ -175,8 +175,10 @@ The authorized normal-terminal qualification accessed Docker Desktop `4.97.0` / 
 
 - [x] Record explicit owner approval for the exact mechanism and project-wide PostgREST impact.
 - [x] Add one pre-Notes migration; do not modify the eight merged Notes migrations.
+- [x] Add one post-Notes restrictive SELECT gate for Data API embedding; do not modify the eight merged Notes migrations.
 - [x] Add focused SQL/catalog assertions for function security, fixed `search_path`, exact ACLs, role config, default-deny state, path allowlist, and unchanged Notes grants/RLS/RPC definitions.
 - [x] Add a disposable PostgREST HTTP stage harness with synthetic fixtures and strict environment/credential guards, following the existing #569 loopback-only pattern.
+- [x] Add parent-resource embedding and filtered embedded-relation regression coverage.
 - [ ] Exercise baseline-before-Notes, migration #1, each grant-changing boundary including #6, migration #7/#8, enable, disable, malformed state, failure-stop and recovery.
 - [ ] Verify ordinary non-Notes Data API requests and all required anonymous/authenticated owner/cross-owner/unauthenticated cases.
 - [ ] Verify Realtime/Storage/GraphQL/direct-DB/Edge Function limits and stop if any alternate surface exposes Notes contrary to this brief.
@@ -192,7 +194,7 @@ Live GitHub: PR #719 is `MERGED`/`APPROVED` at this HEAD; issue #716 is `CLOSED`
 Live Linear: `TNYX-81` remains `Backlog`, with `TNYX-78` and `TNYX-80` blockers. Product Owner approval and local implementation ownership are recorded in the authorization and this brief; no Linear status mutation was authorized.
 Source inspection covered all eight Notes migrations, their table/RLS/RPC/receipt/retention/scheduler/identity behavior, `supabase/config.toml`, CI replay conventions, and the existing PostgREST harness.
 Previous disposable qualification executed Docker Desktop `4.97.0` / Engine `29.9.2`, Supabase CLI `2.121.0`, 72-migration replay, all eight Notes migrations, temporary hook/HTTP matrix, synthetic owner/guest/anonymous requests, non-Notes regression, malformed/missing state, configuration failure, recovery, GraphQL/catalog alternate-surface checks, `supabase db lint`, and the existing Routine Notes persistence SQL test. Temporary containers, fixtures, and files were cleaned up.
-No hosted Supabase write, production migration/hook activation, existing Notes migration edit, commit, push or merge was performed. The authorized repository source slice is ready for commit/PR review; no production behavior changed.
+No hosted Supabase write, production migration/hook activation, or existing Notes migration edit was performed. The remediation commits are repository-only; no production behavior changed and no merge was performed.
 ```
 
 ### Acceptance evidence
@@ -210,7 +212,11 @@ No hosted Supabase write, production migration/hook activation, existing Notes m
 **Diff or commit SHA actually reviewed:** PR `#720` current head must be resolved live from GitHub; local implementation commit `1472870c` was self-reviewed
 **Review result and finding IDs/dispositions:** Disposable findings are dispositioned in the corrected design. During implementation validation, the initial no-leading-slash allowlist was found to pass disabled Notes HTTP access (`200`) and was corrected to exact leading-slash paths; the corrected replay and HTTP matrix passed. Repository implementation self-review is complete; independent security review is required before merge. Owner Approval and Implementation ownership are recorded.
 **Independent review?** No (self-review)
-**Limitations and unmet required gates:** No independent security review, no hosted configuration/activation evidence and no merge authorization. The disposable runtime does not start full Realtime/Storage/Edge endpoint services; catalog/source checks remain the bounded alternate-surface evidence for this repository slice.
+**Limitations and unmet required gates:** No independent security review, no hosted configuration/activation evidence and no merge authorization. GitHub run `41286116305` failed before the gate-specific CI stages because the existing B1 private-schema assertion rejected the approved hook's required `anon` schema `USAGE`; the assertion is now narrowly reconciled and passed locally. The disposable runtime does not start full Realtime/Storage/Edge endpoint services; catalog/source checks remain the bounded alternate-surface evidence for this repository slice.
+
+### Security finding and remediation — 2026-11-01
+
+Security reviewer reproduction confirmed that the original exact-path hook allowed `GET /user_workout_routines?select=*,user_workout_routine_notes(*)` and filtered embedded Notes rows while the gate was disabled. The correction is limited to `20261101081122_routine_notes_data_api_embedding_gate.sql`: a private fixed-search-path `SECURITY DEFINER` state helper plus a `RESTRICTIVE FOR SELECT TO authenticated` policy requiring the gate only when PostgREST supplies `request.path`. Disposable evidence: disabled direct Notes `403`; disabled parent/filtered embedding `200` with an empty Notes relation; enabled owner embedding `200` with the synthetic Note; enabled cross-owner embedding empty; Nutrition/Workout/Profile `200`; direct/RPC/RLS checks unchanged. No path allowlist broadening or unrelated schema change was made.
 
 ## 7. Final Handoff
 
@@ -218,6 +224,8 @@ No hosted Supabase write, production migration/hook activation, existing Notes m
 
 - `.ai/tasks/routine-notes-server-side-data-api-gate.md`
 - `supabase/migrations/20261028120000_install_routine_notes_data_api_gate.sql`
+- `supabase/migrations/20261101081122_routine_notes_data_api_embedding_gate.sql`
+- `supabase/tests/database/tnyx_67_meal_categories_b1.test.sql`
 - `supabase/tests/database/tnyx_81_routine_notes_data_api_gate.test.sql`
 - `supabase/tests/database/tnyx_81_routine_notes_data_api_gate_smoke.py`
 - `.github/workflows/supabase-db-ci.yml`
@@ -233,8 +241,8 @@ The authorized repository slice installs a default-disabled private fail-closed 
 - `db_pre_request` does not cover Realtime, Storage, GraphQL, Edge Functions, or direct database connections; alternate-surface verification is mandatory before a release claim.
 - The corrected private state table is included only under the recorded Owner Approval for this repository slice; hosted apply remains separately unauthorized.
 - The disposable qualification is not hosted or production evidence; `db_pre_request` still does not cover Realtime, Storage, GraphQL, Edge Functions, or direct database connections.
-- Implementation commit `1472870c` was pushed to PR `#720`; no hosted write, production hook activation, Notes feature enablement or merge was performed. Independent security review and GitHub CI remain open.
+- Implementation commits were pushed to PR `#720`; no hosted write, production hook activation, Notes feature enablement or merge was performed. Independent security review and exact-head GitHub CI remain open.
 
 ### Final status
 
-`IN REVIEW` — Owner Approval and Implementation ownership are recorded; the bounded repository implementation is in focused PR `#720`. Disposable validation is complete; GitHub CI and independent security review remain pending. Merge and deployment remain blocked.
+`IN REVIEW` — Owner Approval and Implementation ownership are recorded; the bounded embedding correction is in focused PR `#720`. Disposable validation is complete; exact-head GitHub CI and independent security review remain pending. Merge and deployment remain blocked.

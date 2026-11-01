@@ -103,6 +103,58 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  (select p.proowner = 'postgres'::regrole
+          and p.prosecdef
+          and p.provolatile = 's'
+          and p.proconfig @> array['search_path=pg_catalog']::text[]
+   from pg_catalog.pg_proc as p
+   where p.oid =
+     'private.routine_notes_data_api_gate_is_enabled()'::regprocedure)
+  and has_function_privilege(
+    'authenticated',
+    'private.routine_notes_data_api_gate_is_enabled()',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'private.routine_notes_data_api_gate_is_enabled()',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'service_role',
+    'private.routine_notes_data_api_gate_is_enabled()',
+    'EXECUTE'
+  )
+  and not exists (
+    select 1
+    from pg_catalog.pg_proc as p,
+      pg_catalog.aclexplode(coalesce(
+        p.proacl, pg_catalog.acldefault('f', p.proowner)
+      )) as acl
+    where p.oid = 'private.routine_notes_data_api_gate_is_enabled()'::regprocedure
+      and acl.grantee = 0
+      and acl.privilege_type = 'EXECUTE'
+  ),
+  'embedded-read helper is SECURITY DEFINER, fixed-search-path and authenticated-only'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1
+    from pg_catalog.pg_policies
+    where schemaname = 'public'
+      and tablename = 'user_workout_routine_notes'
+      and policyname = 'routine_notes_data_api_gate_enabled_select'
+      and permissive = 'RESTRICTIVE'
+      and cmd = 'SELECT'
+      and roles = array['authenticated']::name[]
+      and qual ilike '%current_setting%request.path%'
+      and qual ilike '%routine_notes_data_api_gate_is_enabled%'
+  ),
+  'embedded Notes SELECT requires the explicit enabled gate in a restrictive policy'
+);
+
+select pg_temp.assert_true(
   has_table_privilege(
     'authenticated', 'public.user_workout_routine_notes', 'SELECT'
   )
