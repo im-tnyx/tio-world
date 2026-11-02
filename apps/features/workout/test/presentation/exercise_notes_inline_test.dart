@@ -57,6 +57,29 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+Future<void> _pumpPreview(WidgetTester tester) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: ExerciseNotesInline(
+          exerciseRef: ExerciseRef.catalog(_exercise),
+          routineId: null,
+          restControl: const SizedBox(key: ValueKey('rest-control')),
+          repository: null,
+          ownerId: null,
+          isSessionCurrent: null,
+          enabled: true,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('Note stays on the right of Rest in the action row',
       (tester) async {
@@ -100,6 +123,24 @@ void main() {
     expect(FocusManager.instance.primaryFocus, isNotNull);
     expect(
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
+  });
+
+  testWidgets('debug preview shows the field without persisting a note',
+      (tester) async {
+    await _pumpPreview(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      'Preview note',
+    );
+    await tester.tap(find.byKey(const ValueKey('exercise-note-save')));
+    await tester.pump();
+
+    expect(find.text('Preview note'), findsOneWidget);
   });
 
   testWidgets('draft survives rebuild and saves in canonical Exercise scope',

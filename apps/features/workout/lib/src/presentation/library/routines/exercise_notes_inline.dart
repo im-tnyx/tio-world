@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
@@ -54,6 +55,10 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
       widget.ownerId != null &&
       _canonicalOwnerId.hasMatch(widget.ownerId!) &&
       widget.isSessionCurrent != null;
+
+  bool get _previewOnly =>
+      kDebugMode &&
+      (!_available || _controller?.state.status == RoutineNotesStatus.failed);
 
   @override
   void initState() {
@@ -130,7 +135,10 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   void _focusDraft() {
     final controller = _controller;
-    if (!widget.enabled || controller == null || !controller.canCreate) return;
+    if (!widget.enabled ||
+        (!_previewOnly && (controller == null || !controller.canCreate))) {
+      return;
+    }
     setState(() => _showDraftInput = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -155,6 +163,12 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   Future<void> _saveDraft() async {
     final controller = _controller;
+    if (_previewOnly) {
+      setState(() => _errorText = _validBody(_draft.text)
+          ? 'Preview only: note is not saved.'
+          : 'Enter a note before saving.');
+      return;
+    }
     if (controller == null ||
         !controller.canCreate ||
         !_validBody(_draft.text)) {
@@ -211,10 +225,14 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_available) return widget.restControl;
+    if (!_available && !_previewOnly) return widget.restControl;
     final controller = _controller;
     final state = controller?.state;
-    final canCreate = widget.enabled && controller?.canCreate == true;
+    final failureState = state;
+    final notes = state?.notes ?? const <RoutineNote>[];
+    final actionNotice = state?.actionNotice;
+    final canCreate =
+        widget.enabled && (_previewOnly || controller?.canCreate == true);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -232,20 +250,21 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
           ],
         ),
         const SizedBox(height: TioSpacing.sm),
-        if (state == null || state.isLoading)
+        if (!_previewOnly && (state == null || state.isLoading))
           const _ExerciseNotesPlaceholder(
             key: ValueKey('exercise-notes-loading'),
             loading: true,
           )
-        else if (state.status == RoutineNotesStatus.failed)
+        else if (!_previewOnly &&
+            failureState?.status == RoutineNotesStatus.failed)
           _ExerciseNotesFailure(
             key: const ValueKey('exercise-notes-failed'),
-            message: _failureMessage(state.failure),
-            notice: state.actionNotice,
+            message: _failureMessage(failureState?.failure),
+            notice: failureState?.actionNotice,
           )
         else ...[
-          if (state.notes.isNotEmpty)
-            for (final note in state.notes)
+          if (notes.isNotEmpty)
+            for (final note in notes)
               Padding(
                 padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                 child: _ExerciseNoteCard(
@@ -289,9 +308,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
               },
             ),
           ],
-          if (state.actionNotice != null)
-            _ExerciseNotesNotice(text: state.actionNotice!),
-          if (state.notes.isEmpty && !canCreate)
+          if (actionNotice != null)
+            _ExerciseNotesNotice(text: actionNotice),
+          if (notes.isEmpty && !canCreate)
             Padding(
               padding: const EdgeInsets.only(top: TioSpacing.xs),
               child: Text(
