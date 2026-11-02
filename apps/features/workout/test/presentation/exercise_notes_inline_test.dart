@@ -187,6 +187,23 @@ void main() {
     );
   });
 
+  testWidgets('inline drafts stop at four active note slots', (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    final noteAction =
+        find.byKey(const ValueKey('exercise-note-action-$_exercise'));
+    for (var index = 0; index < 5; index++) {
+      await tester.tap(noteAction);
+      await tester.pump();
+    }
+
+    expect(find.byType(TextField), findsNWidgets(4));
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise-4')),
+      findsNothing,
+    );
+  });
+
   testWidgets('draft type sheet exposes Delete Note and clears the draft',
       (tester) async {
     await _pump(tester, _FakeRoutineNotesRepository());

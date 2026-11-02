@@ -13,6 +13,8 @@ final _canonicalOwnerId = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
 );
 
+const _maxInlineNotes = 4;
+
 final class _ExerciseNoteDraft {
   _ExerciseNoteDraft()
       : controller = TextEditingController(),
@@ -173,7 +175,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
       return;
     }
     final savedCount = controller?.state.notes.length ?? 0;
-    if (savedCount + _drafts.length >= 5) return;
+    if (savedCount + _drafts.length >= _maxInlineNotes) return;
     final draft = _ExerciseNoteDraft();
     _drafts.add(draft);
     setState(() {});
@@ -237,7 +239,8 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     final actionNotice = state?.actionNotice;
     final canCreate =
         widget.enabled && (_previewOnly || controller?.canCreate == true);
-    final canAddDraft = canCreate && notes.length + _drafts.length < 5;
+    final canAddDraft =
+        canCreate && notes.length + _drafts.length < _maxInlineNotes;
     final canEditDraft = widget.enabled &&
         (_previewOnly || controller?.state.status != RoutineNotesStatus.failed);
 
