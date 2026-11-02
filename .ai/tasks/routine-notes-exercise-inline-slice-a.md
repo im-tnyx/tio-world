@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `a383416905fbd58cf5f99d735cc851519a2c57c7`
+**HEAD SHA:** `daed671eb7bef0e806a38cedaa8a8163ace97845`
 **Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
 **Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes suite (8 tests passed) through the elevated SDK-root path; the suite covers borderless compact field geometry, Note focus, no inline Save/Cancel, type transfer sheet, type-sheet Delete action, left-swipe confirmation and cancel-preserves-note; `flutter analyze --no-pub` for `apps/features/workout`; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI remains to be refreshed after this change.
+**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes suite (8 tests passed) through the elevated SDK-root path; the suite covers borderless compact field geometry, Note focus, no inline Save/Cancel, type transfer sheet, icon/title first-line alignment with full-width subtitle, type-sheet Delete action, left-swipe confirmation and cancel-preserves-note; `flutter analyze --no-pub` for `apps/features/workout`; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI remains to be refreshed after this change.
 **Validation remaining:** Routine Create/Edit save integration for committing the temporary draft, exact-head CI, independent review, and physical Android/iOS QA
 **Current blocker:** The existing Routine aggregate save contract has no Notes payload. This slice intentionally does not perform a separate Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
 **Open review finding IDs:** None
-**Next exact action:** Verify CI on PR #725 HEAD `1d107b23`, then address independent review findings without merging.
+**Next exact action:** Push `daed671e`, verify CI on the exact PR HEAD, then address independent review findings without merging.
 
 ## 1. Discovery
 
@@ -164,6 +164,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
 - Tapping the pin icon opens the approved `Notes type` sheet. A saved Note can also open it through right swipe; Create mode exposes only Exercise scope, while Edit mode can transfer to the current Routine through the existing atomic repository contract.
 - The saved-note `Notes type` sheet now includes a red `Delete Note` action; selecting it closes the sheet and opens the existing confirmation before any delete mutation.
+- The type-sheet option layout keeps each icon and title on the first line, with the explanatory subtitle on a full-width line below, matching the owner screenshot.
 - Left swipe reveals the red `Delete` action; delete occurs only after tapping the revealed action and confirming.
 - Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
 
