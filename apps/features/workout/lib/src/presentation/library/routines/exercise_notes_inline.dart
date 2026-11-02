@@ -244,8 +244,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
             key: const ValueKey('exercise-notes-failed'),
             message: _failureMessage(state.failure),
             notice: state.actionNotice,
-            onRetry:
-                controller?.isBusy == true ? null : () => controller?.load(),
           )
         else ...[
           if (state.notes.isNotEmpty)
@@ -368,13 +366,11 @@ final class _ExerciseNotesFailure extends StatelessWidget {
   const _ExerciseNotesFailure({
     required this.message,
     required this.notice,
-    required this.onRetry,
     super.key,
   });
 
   final String message;
   final String? notice;
-  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -384,11 +380,6 @@ final class _ExerciseNotesFailure extends StatelessWidget {
           if (notice != null)
             Text(notice!,
                 style: TextStyle(color: context.tioColors.textSecondary)),
-          TioButton.secondary(
-            key: const ValueKey('exercise-notes-retry'),
-            label: 'Retry',
-            onPressed: onRetry,
-          ),
         ],
       );
 }

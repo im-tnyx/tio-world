@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `fd390b40f7c1b1ee0c44d59e6fb7e7ab5e6cf9f4`
+**HEAD SHA:** `fd390b40f7c1b1ee0c44d59e6fb7e7ab5e6cf9f4` before the pending Retry removal follow-up
 **Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
 **Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
@@ -156,6 +156,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - `Note` remains beside Rest and focuses the inline multiline Exercise Note input; creation uses explicit `Save Note`/`Cancel` and does not open an editor sheet.
 - `Rest` and `Note` remain in one governed action row; `Rest` stays left and `Note` sits immediately to its right with equal governed control height, without moving to the screen edge or wrapping below Rest at the approved compact width.
 - The first Exercise render shows only the action row and Set surface; `Save Note`/`Cancel` and the text field appear after `Note` is tapped, then hide after `Cancel` or a confirmed save.
+- The inline Exercise Notes error state shows only its message/notice; no `Retry` button is rendered.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
 - Tapping the pin icon opens the approved `Notes type` sheet. A saved Note can also open it through right swipe; Create mode exposes only Exercise scope, while Edit mode can transfer to the current Routine through the existing atomic repository contract.

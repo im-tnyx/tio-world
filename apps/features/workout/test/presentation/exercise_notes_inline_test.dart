@@ -81,6 +81,7 @@ void main() {
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
       findsNothing,
     );
+    expect(find.byKey(const ValueKey('exercise-notes-retry')), findsNothing);
   });
 
   testWidgets('Note focuses the inline input without opening a sheet',
