@@ -103,8 +103,19 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   }
 
   Future<void> _changeDraftType() async {
-    final type = await _chooseType(context, _scope.type, widget.routineId);
-    if (!mounted || type is! RoutineNoteType || type == _scope.type) return;
+    final selection = await _chooseType(
+      context,
+      _scope.type,
+      widget.routineId,
+      allowDelete: true,
+    );
+    if (!mounted || selection == null) return;
+    if (selection is _DeleteNoteSelection) {
+      _deleteDraft();
+      return;
+    }
+    if (selection is! RoutineNoteType || selection == _scope.type) return;
+    final type = selection;
     final routineId = widget.routineId;
     if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
     final next = type == RoutineNoteType.pinnedRoutine
@@ -112,6 +123,12 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         : RoutineNoteScope.exercise(widget.exerciseRef);
     _bind(scope: next);
     setState(() {});
+  }
+
+  void _deleteDraft() {
+    _draft.clear();
+    _focusNode.unfocus();
+    setState(() => _showDraftInput = false);
   }
 
   Future<void> _changeSavedType(RoutineNote note) async {

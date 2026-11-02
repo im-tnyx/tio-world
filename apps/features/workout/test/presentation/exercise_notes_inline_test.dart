@@ -130,6 +130,31 @@ void main() {
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
   });
 
+  testWidgets('draft type sheet exposes Delete Note and clears the draft',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      'Temporary note',
+    );
+    await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('exercise-note-delete')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-note-delete')));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+        findsNothing);
+  });
+
   testWidgets('debug preview shows a temporary field without note buttons',
       (tester) async {
     await _pumpPreview(tester);
