@@ -78,6 +78,14 @@ void main() {
     expect(note.left - rest.right, closeTo(TioSpacing.sm, 0.01));
     expect(note.height, closeTo(rest.height, 0.01));
     expect(
+      tester
+          .widget<TioButton>(
+            find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+          )
+          .variant,
+      TioButtonVariant.supporting,
+    );
+    expect(
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
       findsNothing,
     );

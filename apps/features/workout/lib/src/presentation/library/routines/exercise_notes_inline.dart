@@ -224,7 +224,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
           children: [
             widget.restControl,
             const SizedBox(width: TioSpacing.sm),
-            TioButton.secondary(
+            TioButton.supporting(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
               label: 'Note',
               leading: const Icon(Icons.note_add_outlined),
