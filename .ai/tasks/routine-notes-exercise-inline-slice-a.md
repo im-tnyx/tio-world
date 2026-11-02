@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `3702fb0adc6af245d1fa34be0cea000a890bedf1` before the follow-up validation fix
-**Observed working-tree state:** Focused follow-up fix is uncommitted; generated Android registrant has no content diff and is excluded
-**Observed uncommitted/dirty files:** `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`; Flutter test tooling also reported a metadata-only generated registrant change
+**HEAD SHA:** `1d107b237fbb3c354021e23ec18aa6f7a20868e9`
+**Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
+**Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; the new exact-head CI is pending after push.
-**Validation remaining:** Exact-head CI for the follow-up commit, independent review, and physical Android/iOS QA
+**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`; Note-right-of-Rest compact layout test. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI for `1d107b23` is pending after push.
+**Validation remaining:** Exact-head CI for `1d107b23`, independent review, and physical Android/iOS QA
 **Current blocker:** No source-level blocker remains after local fixes; hosted Notes objects are not deployed and physical device QA has not been performed. This source slice does not activate production Notes.
 **Open review finding IDs:** None
-**Next exact action:** Commit only the audited task/source fix, push the branch, verify CI on the new PR HEAD, then address independent review findings without merging.
+**Next exact action:** Verify CI on PR #725 HEAD `1d107b23`, then address independent review findings without merging.
 
 ## 1. Discovery
 
@@ -123,7 +123,7 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/app`
 PASS: Dart formatting check on 9 changed Dart files — `0 changed`
 PASS: `git -c core.fsmonitor=false diff --check`
-CI initial PR HEAD `3702fb0a`: analysis, docs hygiene and attribution passed; app-workout failed on existing route compatibility after the Notes injection (`ownerId: test-user`), and core failed the visual-ownership contract on the new inline focus duration. Both findings are fixed locally; exact-head rerun is pending.
+CI initial PR HEAD `3702fb0a`: analysis, docs hygiene and attribution passed; app-workout failed on existing route compatibility after the Notes injection (`ownerId: test-user`), and core failed the visual-ownership contract on the new inline focus duration. Both findings are fixed locally. Exact-head CI for `1d107b23` is pending.
 NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compact-layout QA
 ```
 
@@ -131,7 +131,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** PR HEAD `3702fb0adc6af245d1fa34be0cea000a890bedf1` before the follow-up fix; new HEAD pending
+**Diff or commit SHA actually reviewed:** PR HEAD `1d107b237fbb3c354021e23ec18aa6f7a20868e9`; independent review pending
 **Review result and finding IDs/dispositions:** No review findings yet; PR remains `REVIEW_REQUIRED`
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
