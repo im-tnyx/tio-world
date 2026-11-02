@@ -47,7 +47,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   late final FocusNode _focusNode;
   late RoutineNoteScope _scope;
   String? _errorText;
-  bool _showDraftActions = false;
+  bool _showDraftInput = false;
 
   bool get _available =>
       widget.repository != null &&
@@ -59,7 +59,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   void initState() {
     super.initState();
     _draft = TextEditingController();
-    _focusNode = FocusNode()..addListener(_focusChanged);
+    _focusNode = FocusNode();
     _scope = RoutineNoteScope.exercise(widget.exerciseRef);
     _bind();
   }
@@ -74,7 +74,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         oldWidget.isSessionCurrent != widget.isSessionCurrent) {
       _draft.clear();
       _errorText = null;
-      _showDraftActions = false;
+      _showDraftInput = false;
       _focusNode.unfocus();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
       _bind();
@@ -110,7 +110,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     _bind(scope: next);
     setState(() {
       _errorText = null;
-      _showDraftActions = _draft.text.isNotEmpty || _focusNode.hasFocus;
     });
   }
 
@@ -129,16 +128,10 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     if (mounted) setState(() {});
   }
 
-  void _focusChanged() {
-    if (!mounted) return;
-    setState(() =>
-        _showDraftActions = _focusNode.hasFocus || _draft.text.isNotEmpty);
-  }
-
   void _focusDraft() {
     final controller = _controller;
     if (!widget.enabled || controller == null || !controller.canCreate) return;
-    setState(() => _showDraftActions = true);
+    setState(() => _showDraftInput = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _focusNode.requestFocus();
@@ -156,7 +149,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     _focusNode.unfocus();
     setState(() {
       _errorText = null;
-      _showDraftActions = false;
+      _showDraftInput = false;
     });
   }
 
@@ -176,7 +169,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     if (saved) {
       _draft.clear();
       _focusNode.unfocus();
-      setState(() => _showDraftActions = false);
+      setState(() => _showDraftInput = false);
       return;
     }
     if (!controller.hasPendingMutation) {
@@ -211,9 +204,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     _controller
       ?..removeListener(_changed)
       ..dispose();
-    _focusNode
-      ..removeListener(_focusChanged)
-      ..dispose();
+    _focusNode.dispose();
     _draft.dispose();
     super.dispose();
   }
@@ -278,28 +269,30 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
                   ),
                 ),
               ),
-          TioInput.multiline(
-            key: ValueKey('exercise-note-input-${widget.exerciseRef.value}'),
-            controller: _draft,
-            focusNode: _focusNode,
-            leading: GestureDetector(
-              key: const ValueKey('exercise-note-draft-type'),
-              onTap: canCreate ? _changeDraftType : null,
-              child: Icon(Icons.push_pin_outlined,
-                  color: context.tioColors.textSecondary),
+          if (_showDraftInput) ...[
+            TioInput.multiline(
+              key: ValueKey('exercise-note-input-${widget.exerciseRef.value}'),
+              controller: _draft,
+              focusNode: _focusNode,
+              leading: GestureDetector(
+                key: const ValueKey('exercise-note-draft-type'),
+                onTap: canCreate ? _changeDraftType : null,
+                child: Icon(Icons.push_pin_outlined,
+                    color: context.tioColors.textSecondary),
+              ),
+              hint: 'Add a pinned exercise note',
+              minLines: 1,
+              maxLines: 4,
+              maxLength: 500,
+              errorText: _errorText,
+              enabled: canCreate,
+              onChanged: (_) {
+                setState(() {
+                  if (_errorText != null) _errorText = null;
+                });
+              },
             ),
-            hint: 'Add a pinned exercise note',
-            minLines: 1,
-            maxLines: 4,
-            maxLength: 500,
-            errorText: _errorText,
-            enabled: canCreate,
-            onChanged: (_) {
-              setState(() {
-                if (_errorText != null) _errorText = null;
-              });
-            },
-          ),
+          ],
           if (state.actionNotice != null)
             _ExerciseNotesNotice(text: state.actionNotice!),
           if (state.notes.isEmpty && !canCreate)
@@ -310,7 +303,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
                 style: TextStyle(color: context.tioColors.textSecondary),
               ),
             ),
-          if (_showDraftActions)
+          if (_showDraftInput)
             Padding(
               padding: const EdgeInsets.only(top: TioSpacing.sm),
               child: Row(

@@ -75,6 +75,10 @@ void main() {
       find.byKey(const ValueKey('exercise-note-action-$_exercise')),
     );
     expect(note.left, greaterThan(rest.right));
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      findsNothing,
+    );
   });
 
   testWidgets('Note focuses the inline input without opening a sheet',
