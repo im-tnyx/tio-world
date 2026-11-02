@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA at last source/CI audit:** `c6eeca608d1224ca80aba79a45c0ea751a2dc300`
-**Observed working-tree state:** Source remediation is pushed and exact-head CI is green; generated Android registrant remains unrelated and excluded
+**HEAD SHA at last source/CI audit:** `098b382aafcf4fc76c1d13d628de154a7b8f1b8e`; the current source follow-up is being finalized from that docs-inclusive head
+**Observed working-tree state:** Local follow-up adds unknown-command immutability, empty-draft reconciliation, inline Routine-scope presentation, transfer destination refresh, and compact action-row bounding; generated Android registrant remains unrelated and excluded
 **Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer mounts inline Exercise Notes and captures drafts for the surrounding Routine Save/Update. After the Routine mutation is confirmed, the existing `RoutineNotesRepository` receives canonical Exercise/Routine commands through a stable-ID bridge; quota/validation rejection leaves the draft editable or discardable, while unknown/unavailable outcomes keep the exit safety block. Failed Edit updates restore captured draft text after the saved-state rebuild; no new data source or backend contract is introduced.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed locally:** Elevated Flutter SDK access allowed the focused bridge/inline/Create/Edit suite (`76/76`), the full `apps/features/workout` suite (`1132/1132`), `apps/features/workout` analysis, and `apps/app` analysis to pass. The bridge suite now covers stable retry IDs, unknown reconciliation without duplicate create, quota correction/discard, and confirmed-draft edit protection. Dart formatting completed; `git diff --check` completed with only the existing generated-file and CRLF warnings. The initial sandbox failure was an SDK cache-lock permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
-**Validation remaining:** Independent review and physical Android/iOS QA
+**Validation completed locally:** Elevated Flutter SDK access allowed the focused bridge/inline/Create/Edit suite (`79/79`), the full `apps/features/workout` suite (`1135/1135`), and final `apps/features/workout` analysis to pass. The bridge suite now covers stable retry IDs, unknown reconciliation without duplicate create, immutable unknown drafts, empty-draft reconciliation, quota correction/discard, and confirmed-draft edit protection. Dart formatting completed; `git diff --check` completed with only the existing generated-file and CRLF warnings. `apps/app` analysis passed before this feature-only follow-up; it will be rerun before publication. The initial sandbox failure was an SDK cache-lock permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
+**Validation remaining:** Final `apps/app` analysis, exact-head CI for the source follow-up, independent review, and physical Android/iOS QA
 **Current blocker:** No local source/toolchain blocker remains after running Flutter with the required SDK cache access. Hosted Notes objects are not deployed and physical device QA has not been performed.
-**Open review finding IDs:** The valid follow-up findings for undispatched quota correction (`4440952050`), in-flight Save/Back/Cancel locking (`4440952061`), partial-success confirmed-draft protection (`4440952068`, duplicate `4440952082`), restored/new draft ID collision (`4440952074`), and Edit reload draft discard (`4440952090`) are addressed in `c6eeca60`. The older standalone Routine Detail Notes refresh finding (`4439233820`) is superseded by the owner-approved removal of the separate Routine Notes section. Exact-head CI is green; independent review remains open.
-**Next exact action:** Refresh independent review on `c6eeca60`, address only valid findings, and keep PR #725 unmerged until review and device QA gates pass.
+**Open review finding IDs:** The valid findings for unknown-draft immutability (`4441096026`), inline visibility of Routine-scoped Notes (`4441096041`), empty-draft unknown reconciliation (`4441136215`), and compact action-row bounds (`4439303249`) are addressed in the current local follow-up. Earlier transfer-failure preservation (`4439139964`) and the `c6eeca60` findings remain addressed. The older standalone Routine Detail Notes refresh finding (`4439233820`) is superseded by the owner-approved removal of the separate Routine Notes section. Exact-head CI for this new source follow-up and independent review remain open.
+**Next exact action:** Rerun final app analysis, publish the source follow-up, verify CI on the exact new PR HEAD, refresh independent review, and keep PR #725 unmerged until review and device QA gates pass.
 
 ## 1. Discovery
 
@@ -118,6 +118,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Share one Notes controller per canonical Exercise scope within each Create/Edit composer so duplicate Exercise cards observe the same persisted state.
 - [x] Preserve editable/discardable drafts after definite quota/validation rejection and restore captured drafts after a failed Edit Update remount; keep exit blocked only for unknown/unavailable/unauthorized Note outcomes.
 - [x] Keep undispatched quota/definite-failure commands retryable with their stable IDs, reconcile unknown outcomes before dispatched-state blocking, lock parent Save/Update and exit while Notes are in flight, keep confirmed partial successes read-only, canonicalize restored/new draft IDs, and clear captured drafts on Edit reload.
+- [x] Keep unknown commands immutable until reconciliation, reconcile pending unknown commands even after the visible draft is removed, render Routine-scoped Notes in the same inline Exercise/Set surface, refresh the destination scope after transfer, and bound the Rest action for compact rows.
 
 ## 6. Quality Review
 
@@ -138,18 +139,21 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub test/presentation/create
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub --reporter compact` in `apps/features/workout` — 1,130 tests passed.
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub test/presentation/routine_notes_save_bridge_test.dart` — 8 bridge tests passed after the retry/reconciliation remediation.
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub test/presentation/routine_notes_save_bridge_test.dart test/presentation/exercise_notes_inline_test.dart test/presentation/create_routine_page_test.dart test/presentation/edit_routine_page_test.dart` — 76 focused tests passed.
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub` in `apps/features/workout` — 1,132 tests passed.
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat analyze --no-pub` in `apps/app` after the final local remediation.
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub test/presentation/routine_notes_save_bridge_test.dart test/presentation/exercise_notes_inline_test.dart test/presentation/create_routine_page_test.dart test/presentation/edit_routine_page_test.dart` — 79 focused tests passed after the latest review remediation.
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --no-pub` in `apps/features/workout` — 1,135 tests passed.
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat analyze --no-pub` in `apps/features/workout` after the latest review remediation.
+NOT RUN: final `apps/app` analysis after the latest source follow-up.
 PASS: GitHub PR #725 exact-head CI for `c6eeca608d1224ca80aba79a45c0ea751a2dc300` — Analyze/test aggregate, Flutter matrix, docs hygiene, and attribution checks passed; Cursor agents were skipped.
-NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review approval
+PASS: GitHub PR #725 exact-head CI for `098b382aafcf4fc76c1d13d628de154a7b8f1b8e` — Analyze/test aggregate, Flutter matrix, docs hygiene, and attribution checks passed; Cursor agents were skipped.
+NOT RUN: exact-head CI for the new source follow-up, physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review approval
 ```
 
 ### Review Provenance
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** Latest completed Codex review was for PR HEAD `a2b37bec665dc7bb24b12607afa8e6ac7b086846`; `c6eeca60` is pushed and its exact-head CI is green, but a completed independent review for that SHA is not yet available.
-**Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The latest valid findings (`4440952050`, `4440952061`, `4440952068`, `4440952082`, `4440952074`, `4440952090`) are fixed in `c6eeca60`; refreshed independent review remains pending.
+**Diff or commit SHA actually reviewed:** Latest completed Codex review was for PR HEAD `098b382aafcf4fc76c1d13d628de154a7b8f1b8e`; the current source follow-up is local and has not yet received exact-head review.
+**Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The new valid findings (`4441096026`, `4441096041`, `4441136215`, `4439303249`) are fixed locally; refreshed independent review remains pending.
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
 
@@ -212,4 +216,4 @@ The bridge is intentionally sequential rather than falsely atomic because the ex
 
 ### Final Status
 
-`REVIEW`
+`PARTIAL`

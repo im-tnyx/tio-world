@@ -325,6 +325,23 @@ void main() {
         lessThan(tester.getRect(exerciseTitle).left));
   });
 
+  testWidgets('Routine-scoped Notes stay inside the inline Exercise surface',
+      (tester) async {
+    final routineNote = _note(
+      id: '44444444-4444-4444-8444-444444444444',
+      scope: RoutineNoteScope.routine(RoutineId(_routine)),
+      body: 'Routine-wide cue',
+    );
+    await _pump(
+      tester,
+      _FakeRoutineNotesRepository(notes: [routineNote]),
+      routineId: RoutineId(_routine),
+    );
+
+    expect(find.text('Routine-wide cue'), findsOneWidget);
+    expect(find.text('Routine Notes'), findsNothing);
+  });
+
   testWidgets('type sheet exposes Delete Note before confirmation',
       (tester) async {
     final repository = _FakeRoutineNotesRepository(notes: [_note()]);

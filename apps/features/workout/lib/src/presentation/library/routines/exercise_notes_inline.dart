@@ -83,6 +83,8 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     with AutomaticKeepAliveClientMixin<ExerciseNotesInline> {
   RoutineNotesController? _controller;
   var _controllerOwned = false;
+  RoutineNotesController? _routineController;
+  var _routineControllerOwned = false;
   final List<_ExerciseNoteDraft> _drafts = [];
   late RoutineNoteScope _scope;
   var _draftSequence = 0;
@@ -98,7 +100,11 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
 
   bool get _previewOnly =>
       kDebugMode &&
-      (!_available || _controller?.state.status == RoutineNotesStatus.failed);
+      (!_available ||
+          (_controller?.state.status == RoutineNotesStatus.failed &&
+              (_routineController == null ||
+                  _routineController?.state.status ==
+                      RoutineNotesStatus.failed)));
 
   @override
   void initState() {
@@ -116,6 +122,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
         !identical(oldWidget.repository, widget.repository) ||
         !identical(oldWidget.controllerRegistry, widget.controllerRegistry) ||
         oldWidget.ownerId != widget.ownerId ||
+        oldWidget.routineId != widget.routineId ||
         (oldWidget.isSessionCurrent == null) !=
             (widget.isSessionCurrent == null)) {
       _disposeDrafts();
@@ -136,33 +143,52 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     _releaseController();
     _controller = null;
     _controllerOwned = false;
+    _routineController = null;
+    _routineControllerOwned = false;
     if (!_available) return;
     if (scope != null) _scope = scope;
 
+    _controller = _createController(_scope);
+    _controllerOwned = widget.controllerRegistry == null;
+    if (widget.routineId != null) {
+      _routineController = _createController(
+        RoutineNoteScope.routine(widget.routineId!),
+      );
+      _routineControllerOwned = widget.controllerRegistry == null;
+    }
+  }
+
+  RoutineNotesController _createController(RoutineNoteScope scope) {
     final controller = widget.controllerRegistry?.controllerFor(
-          scope: _scope,
+          scope: scope,
           repository: widget.repository!,
           ownerId: widget.ownerId!,
           isSessionCurrent: widget.isSessionCurrent!,
         ) ??
         RoutineNotesController.forScope(
-          scope: _scope,
+          scope: scope,
           repository: widget.repository!,
           ownerId: widget.ownerId!,
           isSessionCurrent: widget.isSessionCurrent!,
         );
     controller.addListener(_changed);
-    _controller = controller;
-    _controllerOwned = widget.controllerRegistry == null;
     if (widget.controllerRegistry == null) unawaited(controller.load());
+    return controller;
   }
 
   void _releaseController() {
     final controller = _controller;
-    if (controller == null) return;
-    controller.removeListener(_changed);
-    if (_controllerOwned) controller.dispose();
+    final routineController = _routineController;
+    if (controller != null) {
+      controller.removeListener(_changed);
+      if (_controllerOwned) controller.dispose();
+    }
+    if (routineController != null) {
+      routineController.removeListener(_changed);
+      if (_routineControllerOwned) routineController.dispose();
+    }
     _controllerOwned = false;
+    _routineControllerOwned = false;
   }
 
   void _publishDrafts() {
@@ -228,7 +254,15 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     final destination = selection == RoutineNoteType.pinnedRoutine
         ? RoutineNoteScope.routine(routineId!)
         : RoutineNoteScope.exercise(widget.exerciseRef);
-    await _controller?.transfer(note, destination);
+    final sourceController = _controllerFor(note);
+    final transferred = await sourceController?.transfer(note, destination);
+    if (transferred == true && destination != note.scope) {
+      final destinationController =
+          destination.type == RoutineNoteType.pinnedRoutine
+              ? _routineController
+              : _controller;
+      await destinationController?.load();
+    }
   }
 
   void _changed() {
@@ -267,7 +301,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   }
 
   Future<bool> _delete(RoutineNote note) async {
-    final controller = _controller;
+    final controller = _controllerFor(note);
     final isCurrent = widget.isSessionCurrent;
     if (controller == null ||
         controller.isBusy ||
@@ -291,12 +325,22 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   }
 
   Future<void> _refresh() async {
-    final controller = _controller;
     final isCurrent = widget.isSessionCurrent;
-    if (controller == null || controller.isBusy || isCurrent == null) return;
+    if (isCurrent == null) return;
     if (!isCurrent()) return;
-    await controller.load();
+    final controllers = [
+      if (_controller != null) _controller!,
+      if (_routineController != null) _routineController!,
+    ];
+    if (controllers.any((controller) => controller.isBusy)) return;
+    await Future.wait(
+        [for (final controller in controllers) controller.load()]);
   }
+
+  RoutineNotesController? _controllerFor(RoutineNote note) =>
+      note.type == RoutineNoteType.pinnedRoutine
+          ? _routineController
+          : _controller;
 
   @override
   void dispose() {
@@ -316,15 +360,22 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   Widget build(BuildContext context) {
     super.build(context);
     final controller = _controller;
+    final routineController = _routineController;
     final state = controller?.state;
-    final notes = state?.notes ?? const <RoutineNote>[];
-    final actionNotice = state?.actionNotice;
-    final canCreate =
-        widget.enabled && (_previewOnly || controller?.canCreate == true);
+    final routineState = routineController?.state;
+    final notes = [
+      ...routineState?.notes ?? const <RoutineNote>[],
+      ...state?.notes ?? const <RoutineNote>[],
+    ];
+    final actionNotice = state?.actionNotice ?? routineState?.actionNotice;
+    final canCreate = widget.enabled &&
+        (_previewOnly ||
+            controller?.canCreate == true ||
+            routineController?.canCreate == true);
     final canAddDraft =
         canCreate && notes.length + _drafts.length < _maxInlineNotes;
     final canEditDraft = widget.enabled &&
-        (_previewOnly || controller?.state.status != RoutineNotesStatus.failed);
+        (_previewOnly || state?.status != RoutineNotesStatus.failed);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,7 +383,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Flexible(child: widget.restControl),
+            Expanded(child: widget.restControl),
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
@@ -349,16 +400,19 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
                 padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                 child: _ExerciseNoteCard(
                   key: ValueKey('exercise-note-${note.id}'),
-                  enabled: widget.enabled && controller?.isBusy != true,
+                  enabled:
+                      widget.enabled && _controllerFor(note)?.isBusy != true,
                   onDelete: () => _delete(note),
                   child: _ExerciseNoteSwipeRow(
                     key: ValueKey('exercise-note-swipe-${note.id}'),
-                    enabled: widget.enabled && controller?.isBusy != true,
+                    enabled:
+                        widget.enabled && _controllerFor(note)?.isBusy != true,
                     onDelete: () => _delete(note),
                     onTypeChange: () => _changeSavedType(note),
                     child: _ExerciseNoteCardContent(
                       note: note,
-                      enabled: widget.enabled && controller?.isBusy != true,
+                      enabled: widget.enabled &&
+                          _controllerFor(note)?.isBusy != true,
                       onTypeChange: () => _changeSavedType(note),
                     ),
                   ),

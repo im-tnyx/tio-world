@@ -573,14 +573,17 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   Future<bool> _completeConfirmedRoutineSave() async {
-    _notesCommitPending = _currentInlineNoteDrafts().isNotEmpty;
+    final bridge = _notesBridgeForSave();
+    _notesCommitPending =
+        _currentInlineNoteDrafts().isNotEmpty || bridge?.hasPending == true;
     if (!_notesCommitPending) return true;
     return _persistInlineNotes(widget.routine.id);
   }
 
   Future<bool> _persistInlineNotes(RoutineId routineId) async {
     final drafts = _currentInlineNoteDrafts();
-    if (drafts.isEmpty) {
+    final bridge = _notesBridgeForSave();
+    if (drafts.isEmpty && bridge?.hasPending != true) {
       if (mounted) {
         setState(() {
           _notesCommitPending = false;
@@ -590,7 +593,6 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       }
       return true;
     }
-    final bridge = _notesBridgeForSave();
     if (bridge == null) {
       if (mounted) {
         setState(() {

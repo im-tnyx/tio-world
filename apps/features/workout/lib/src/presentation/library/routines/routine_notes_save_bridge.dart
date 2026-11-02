@@ -130,6 +130,12 @@ final class RoutineNotesSaveBridge {
         );
       } else if (current.confirmed) {
         confirmedDraftIds.add(draft.draftId);
+      } else if (current.unknown &&
+          (current.command.scope != scope || current.command.body != body)) {
+        return const RoutineNotesSaveResult(
+          RoutineNotesSaveStatus.unknown,
+          'A previous Note result is unconfirmed. Refresh before editing it again.',
+        );
       } else if (current.dispatched && !current.unknown) {
         return const RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unknown,

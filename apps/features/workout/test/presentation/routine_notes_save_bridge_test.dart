@@ -107,6 +107,44 @@ void main() {
     expect(repository.readCalls, greaterThanOrEqualTo(3));
   });
 
+  test('does not edit an unknown command before reconciliation', () async {
+    final repository = _FakeRoutineNotesRepository(unknownCreate: true);
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final first = await bridge.save(drafts: [_draft()], routineId: null);
+    final changed = await bridge.save(
+      drafts: [_draft(body: 'Changed before refresh')],
+      routineId: null,
+    );
+
+    expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(changed.status, RoutineNotesSaveStatus.unknown);
+    expect(repository.createCalls, 1);
+  });
+
+  test('reconciles an unknown command after its draft is removed', () async {
+    final repository = _FakeRoutineNotesRepository(unknownCreate: true);
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final first = await bridge.save(drafts: [_draft()], routineId: null);
+    repository.notes = [_savedNote(repository.commands.single)];
+    final second = await bridge.save(drafts: const [], routineId: null);
+
+    expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(second.status, RoutineNotesSaveStatus.saved);
+    expect(repository.createCalls, 1);
+  });
+
   test('enforces the five-note scope quota before create', () async {
     final scope = RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise));
     final repository = _FakeRoutineNotesRepository(
