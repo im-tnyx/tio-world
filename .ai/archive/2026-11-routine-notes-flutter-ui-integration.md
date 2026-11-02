@@ -1,6 +1,16 @@
 # Routine Notes Flutter UI Integration
 
-Status: **In Progress — source-only, review-gated**
+Status: **Validated — merged via PR #722**
+
+Completed: **2026-11-01**
+
+Post-merge record: The bounded Routine-level Notes Flutter UI slice merged via
+[PR #722](https://github.com/im-tnyx/tio-world/pull/722). The reviewed PR head
+was `7bc7e03410e92cfb80c4ae2c3b1d8f0d568f3e29`; the squash merge commit on
+`main` is `285f6e0b364c64fe4008700c181a104f1b3f1cec`. Required pre-merge checks
+passed, all 10 review threads were resolved, `im-tio` approved the reviewed
+head, and post-merge Flutter CI run `41332743901` passed. No hosted Supabase
+migration, Notes activation or production deployment was performed.
 
 ## 1. Discovery
 
@@ -137,7 +147,7 @@ mutable PR head live from GitHub.
 | Session/account isolation | Implemented | Stale read, auth guard, owner/scope, UUID, quota and unknown-outcome tests PASS | Local synthetic fixtures | Live auth/device lifecycle remains unverified |
 | Existing Routine Detail regression | Implemented | Routine Detail suite and app workout route regression PASS | Local Flutter SDK, current branch | No unrelated layout change intended |
 
-### Review Provenance
+### Historical Review Provenance (pre-merge handoff snapshot)
 
 **Review source / link:** https://github.com/im-tnyx/tio-world/pull/722
 **Reviewer / relation to implementer:** Codex and Copilot automated review comments;
@@ -155,8 +165,9 @@ require exact-head CI plus independent re-review.
 **Independent review?** `im-tio` APPROVED current head
 `85e39ccc2a5238990c9bfe5a4fcd6686907f2df1`; fresh independent re-review is
 required after remediation commit `4f2f8e944bc6998fa9be805914475b350254b492`.
-**Limitations and unmet required gates:** Hosted migration, Notes activation,
-physical Android/iOS QA and production release are out of scope.
+**Historical limitations and unmet required gates:** Hosted migration, Notes
+activation, physical Android/iOS QA and production release were out of scope
+for the implementation slice.
 
 ### Review Findings And Resolution
 
@@ -206,7 +217,7 @@ or claim physical-device QA.
 
 ### Final Status
 
-`REVIEW` — review-remediation source changes and local validation complete;
- exact-head CI, reviewer disposition and independent `im-tio` approval are still
- required. No hosted deployment, Notes activation or merge is authorized by this
- task.
+`VALIDATED` — PR #722 merged at `main@285f6e0b364c64fe4008700c181a104f1b3f1cec`
+after exact-head CI, resolved review threads and independent `im-tio` approval.
+The implementation slice is complete. Hosted deployment, Notes activation,
+physical Android/iOS QA and broader TNYX-81 W4 work remain separately gated.
