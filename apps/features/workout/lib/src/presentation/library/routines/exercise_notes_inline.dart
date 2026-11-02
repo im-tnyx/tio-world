@@ -757,23 +757,27 @@ final class _ExerciseNoteTypeOption extends StatelessWidget {
         variant: TioCardVariant.outlined,
         onTap: onTap,
         padding: const EdgeInsets.all(TioSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(icon),
-            const SizedBox(width: TioSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.bodyLarge),
-                  const SizedBox(height: TioSpacing.xs),
-                  Text(subtitle,
-                      style: TextStyle(color: context.tioColors.textSecondary)),
-                ],
-              ),
+            Row(
+              children: [
+                Icon(icon),
+                const SizedBox(width: TioSpacing.md),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                if (selected) const Icon(Icons.check),
+              ],
             ),
-            if (selected) const Icon(Icons.check),
+            const SizedBox(height: TioSpacing.xs),
+            Text(
+              subtitle,
+              style: TextStyle(color: context.tioColors.textSecondary),
+            ),
           ],
         ),
       );

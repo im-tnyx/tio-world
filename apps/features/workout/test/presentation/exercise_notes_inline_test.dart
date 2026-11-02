@@ -193,6 +193,14 @@ void main() {
     );
     expect(tester.getRect(exerciseIcon).top,
         closeTo(tester.getRect(exerciseTitle).top, 0.01));
+    final exerciseSubtitle = find.descendant(
+      of: exerciseOption,
+      matching: find.text(
+        'Appears every time you log this exercise. Hidden from workout posts.',
+      ),
+    );
+    expect(tester.getRect(exerciseSubtitle).left,
+        lessThan(tester.getRect(exerciseTitle).left));
   });
 
   testWidgets('type sheet exposes Delete Note before confirmation',
