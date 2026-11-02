@@ -23,6 +23,8 @@ import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
 import 'routine_rest_timer_sheet.dart';
+import 'routine_notes_controller.dart';
+import 'routine_notes_save_bridge.dart';
 
 /// Full-screen canonical Create draft. Existing-Program and dormant programless
 /// modes share the same composition/editor UI and distinct atomic repositories.
@@ -153,6 +155,13 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   bool _unknownExitPromptOpen = false;
   RoutineCreateCommand? _trackedWriteAttempt;
   MyProgramRoutineCreateCommand? _trackedMyProgramWriteAttempt;
+  final Map<String, List<ExerciseNoteDraftSnapshot>> _inlineNoteDrafts = {};
+  RoutineNotesSaveBridge? _notesBridge;
+  RoutineNotesRepository? _notesBridgeRepository;
+  String? _notesBridgeOwnerId;
+  RoutineNotesControllerRegistry? _notesRegistry;
+  bool _notesCommitPending = false;
+  String? _notesMessage;
 
   @override
   void initState() {
@@ -167,7 +176,10 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         !identical(oldWidget.createRepository, widget.createRepository) ||
         !identical(oldWidget.myProgramRepository, widget.myProgramRepository) ||
         !identical(
-            oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
+            oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        !identical(
+            oldWidget.routineNotesRepository, widget.routineNotesRepository) ||
+        oldWidget.routineNotesOwnerId != widget.routineNotesOwnerId) {
       _draft.removeListener(_changed);
       _draft.dispose();
       _name.dispose();
@@ -178,11 +190,27 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _openSetId = null;
       _trackedWriteAttempt = null;
       _trackedMyProgramWriteAttempt = null;
+      _inlineNoteDrafts.clear();
+      _notesBridge = null;
+      _notesBridgeRepository = null;
+      _notesBridgeOwnerId = null;
+      _notesRegistry?.dispose();
+      _notesRegistry = null;
+      _notesCommitPending = false;
+      _notesMessage = null;
       _bind();
     }
   }
 
   void _bind() {
+    _notesRegistry?.dispose();
+    _notesRegistry = RoutineNotesControllerRegistry();
+    _inlineNoteDrafts.clear();
+    _notesBridge = null;
+    _notesBridgeRepository = null;
+    _notesBridgeOwnerId = null;
+    _notesCommitPending = false;
+    _notesMessage = null;
     _name = TextEditingController(text: widget.initialName);
     _draft = widget.program == null
         ? RoutineCreateController.forMyProgram(
@@ -237,6 +265,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   @override
   void dispose() {
+    _notesRegistry?.dispose();
     _draft.removeListener(_changed);
     _draft.dispose();
     _name.dispose();
@@ -489,6 +518,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   }
 
   Future<void> _save() async {
+    if (_notesCommitPending) {
+      final confirmed = await _persistInlineNotes(_draft.savedRoutineId);
+      if (confirmed && mounted) _closeConfirmed();
+      return;
+    }
     if (!_draft.state.canSave ||
         !_enabled ||
         _invalidSetIds.isNotEmpty ||
@@ -496,7 +530,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       return;
     }
     final confirmed = await _draft.save();
-    if (confirmed && mounted) _closeConfirmed();
+    if (confirmed && mounted) {
+      final notesConfirmed = await _completeConfirmedRoutineSave(
+        _draft.savedRoutineId,
+      );
+      if (notesConfirmed && mounted) _closeConfirmed();
+    }
   }
 
   Future<void> _verify() async {
@@ -512,7 +551,82 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       routines: routines,
       compositions: compositions,
     );
-    if (confirmed && mounted) _closeConfirmed();
+    if (confirmed && mounted) {
+      final notesConfirmed = await _completeConfirmedRoutineSave(
+        _draft.savedRoutineId,
+      );
+      if (notesConfirmed && mounted) _closeConfirmed();
+    }
+  }
+
+  void _captureInlineNoteDrafts(
+    String entryId,
+    List<ExerciseNoteDraftSnapshot> drafts,
+  ) {
+    if (drafts.isEmpty) {
+      _inlineNoteDrafts.remove(entryId);
+    } else {
+      _inlineNoteDrafts[entryId] = List.unmodifiable(drafts);
+    }
+  }
+
+  List<ExerciseNoteDraftSnapshot> _currentInlineNoteDrafts() => [
+        for (final entry in _draft.state.entries)
+          ...?_inlineNoteDrafts[entry.id],
+      ];
+
+  RoutineNotesSaveBridge? _notesBridgeForSave() {
+    final repository = widget.routineNotesRepository;
+    final ownerId = widget.routineNotesOwnerId;
+    final isCurrent = widget.isRoutineNotesSessionCurrent;
+    if (repository == null || ownerId == null || isCurrent == null) return null;
+    if (_notesBridge == null ||
+        !identical(_notesBridgeRepository, repository) ||
+        _notesBridgeOwnerId != ownerId) {
+      _notesBridge = RoutineNotesSaveBridge(
+        repository: repository,
+        ownerId: ownerId,
+        isSessionCurrent: isCurrent,
+        newUuid: widget.newUuid,
+      );
+      _notesBridgeRepository = repository;
+      _notesBridgeOwnerId = ownerId;
+    } else {
+      _notesBridge!.updateSessionIsCurrent(isCurrent);
+    }
+    return _notesBridge;
+  }
+
+  Future<bool> _completeConfirmedRoutineSave(RoutineId? routineId) async {
+    _notesCommitPending = _currentInlineNoteDrafts().isNotEmpty;
+    if (!_notesCommitPending) return true;
+    return _persistInlineNotes(routineId);
+  }
+
+  Future<bool> _persistInlineNotes(RoutineId? routineId) async {
+    final drafts = _currentInlineNoteDrafts();
+    if (drafts.isEmpty) {
+      if (mounted) setState(() => _notesCommitPending = false);
+      return true;
+    }
+    final bridge = _notesBridgeForSave();
+    if (bridge == null) {
+      if (mounted) {
+        setState(() {
+          _notesCommitPending = true;
+          _notesMessage =
+              'Routine was saved, but Notes persistence is unavailable.';
+        });
+      }
+      return false;
+    }
+    final result = await bridge.save(drafts: drafts, routineId: routineId);
+    if (!mounted) return false;
+    setState(() {
+      _notesCommitPending = !result.isSuccess;
+      _notesMessage = result.message;
+    });
+    return result.isSuccess;
   }
 
   void _closeConfirmed() {
@@ -577,8 +691,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         _draft.state.canSave &&
         _invalidSetIds.isEmpty &&
         _rangeCanSave;
+    final canSubmit = canSave || _notesCommitPending;
     return PopScope(
-      canPop: !locked && status != RoutineCreateStatus.outcomeUnknown,
+      canPop: !locked &&
+          status != RoutineCreateStatus.outcomeUnknown &&
+          !_notesCommitPending,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && status == RoutineCreateStatus.outcomeUnknown) {
           unawaited(_confirmUnknownExit());
@@ -589,12 +706,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         mode: RoutineComposerMode.create,
         pageKey: const ValueKey('create-routine-page'),
         cancelKey: const ValueKey('create-routine-cancel'),
-        cancelEnabled: !locked,
+        cancelEnabled: !locked && !_notesCommitPending,
         cancel: status == RoutineCreateStatus.outcomeUnknown
             ? _confirmUnknownExit
             : () => Navigator.of(context).pop<bool>(false),
         submitKey: const ValueKey('create-routine-save'),
-        onSubmit: canSave ? _save : null,
+        onSubmit: canSubmit ? _save : null,
         content: RoutineComposerContent(
           mode: RoutineComposerMode.create,
           scrollKey: const ValueKey('create-routine-scroll'),
@@ -643,6 +760,19 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                     ),
                     child: Text(
                       _draft.state.message!,
+                      style: TextStyle(color: colors.danger),
+                    ),
+                  ),
+                ),
+              if (_notesMessage != null)
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: TioSpacing.md,
+                    ),
+                    child: Text(
+                      _notesMessage!,
                       style: TextStyle(color: colors.danger),
                     ),
                   ),
@@ -783,6 +913,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       routineNotesRepository: widget.routineNotesRepository,
       routineNotesOwnerId: widget.routineNotesOwnerId,
       isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
+      controllerRegistry: _notesRegistry,
+      onNoteDraftsChanged: (drafts) =>
+          _captureInlineNoteDrafts(entry.id, drafts),
       addSet: () => _addSet(entry),
     );
   }

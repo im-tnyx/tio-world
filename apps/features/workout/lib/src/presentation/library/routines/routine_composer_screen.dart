@@ -13,6 +13,7 @@ import '../exercises/widgets/exercise_list_row.dart';
 import 'exercise_notes_inline.dart';
 import 'routine_notes_controller.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
+import 'routine_notes_save_bridge.dart';
 
 /// One rendered Routine composition screen for Create and Edit.
 /// Persistence, navigation and auth gates remain with the owning controller.
@@ -226,6 +227,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     this.routineNotesRepository,
     this.routineNotesOwnerId,
     this.isRoutineNotesSessionCurrent,
+    this.onNoteDraftsChanged,
+    this.controllerRegistry,
     super.key,
   });
 
@@ -251,6 +254,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
   final RoutineNotesRepository? routineNotesRepository;
   final String? routineNotesOwnerId;
   final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
+  final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onNoteDraftsChanged;
+  final RoutineNotesControllerRegistry? controllerRegistry;
 
   @override
   Widget build(BuildContext context) {
@@ -328,6 +333,9 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             ownerId: routineNotesOwnerId,
             isSessionCurrent: isRoutineNotesSessionCurrent,
             enabled: enabled,
+            draftKey: entry.id,
+            onDraftsChanged: onNoteDraftsChanged,
+            controllerRegistry: controllerRegistry,
             restControl: Padding(
               padding: const EdgeInsets.only(top: TioSpacing.xs),
               child: Align(
@@ -375,7 +383,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                                               ? 'Rest: '
                                               : 'Rest: OFF',
                                     ),
-                                    if (restPreset.warmUpRestSeconds != null) ...[
+                                    if (restPreset.warmUpRestSeconds !=
+                                        null) ...[
                                       if (restPreset.normalRestSeconds != null)
                                         const TextSpan(text: ' '),
                                       TextSpan(

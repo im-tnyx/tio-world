@@ -16,5 +16,6 @@ export 'routines/routine_set_editor_sheet.dart';
 export 'routines/routine_exercise_picker_controller.dart';
 export 'routines/routine_detail_page.dart';
 export 'routines/routine_notes_controller.dart';
+export 'routines/routine_notes_save_bridge.dart';
 export 'routines/routine_notes_section.dart';
 export 'routines/routine_set_input_row.dart';

@@ -20,7 +20,9 @@ import 'routine_set_type_option.dart';
 import 'routine_measurement_profile.dart';
 import 'routine_composer_screen.dart';
 import 'routine_rest_timer_sheet.dart';
+import 'routine_notes_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
+import 'routine_notes_save_bridge.dart';
 
 /// Existing shared Routine composer in Edit mode; Name and Sets share Update.
 /// Returns true only after a confirmed save or read-verified mutation.
@@ -79,6 +81,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   final Set<String> _draftRangeEntryIds = {};
   final Set<String> _blankSetIds = {};
   String? _openSetId;
+  final Map<String, List<ExerciseNoteDraftSnapshot>> _inlineNoteDrafts = {};
+  RoutineNotesSaveBridge? _notesBridge;
+  RoutineNotesRepository? _notesBridgeRepository;
+  String? _notesBridgeOwnerId;
+  RoutineNotesControllerRegistry? _notesRegistry;
+  bool _notesCommitPending = false;
+  String? _notesMessage;
 
   @override
   void initState() {
@@ -96,18 +105,29 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             oldWidget.compositionRepository, widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
         !identical(
-            oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
+            oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        !identical(
+            oldWidget.routineNotesRepository, widget.routineNotesRepository) ||
+        oldWidget.routineNotesOwnerId != widget.routineNotesOwnerId) {
       _bind(); // Revokes any previous account's in-memory data and callbacks.
     }
   }
 
   void _bind() {
+    _notesRegistry?.dispose();
+    _notesRegistry = RoutineNotesControllerRegistry();
     _nameHydrated = false;
     _name.clear();
     _draftRangeEntryIds.clear();
     _invalidSetIds.clear();
     _blankSetIds.clear();
     _openSetId = null;
+    _inlineNoteDrafts.clear();
+    _notesBridge = null;
+    _notesBridgeRepository = null;
+    _notesBridgeOwnerId = null;
+    _notesCommitPending = false;
+    _notesMessage = null;
     _editor
       ?..removeListener(_changed)
       ..dispose();
@@ -154,6 +174,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   @override
   void dispose() {
+    _notesRegistry?.dispose();
     _editor
       ?..removeListener(_changed)
       ..dispose();
@@ -458,6 +479,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Future<void> _save() async {
     final editor = _editor;
+    if (_notesCommitPending) {
+      final confirmed = await _persistInlineNotes(widget.routine.id);
+      if (mounted && identical(editor, _editor) && confirmed) {
+        _finishConfirmed();
+      }
+      return;
+    }
     if (editor == null || !_canUpdate) {
       return;
     }
@@ -466,7 +494,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         identical(editor, _editor) &&
         confirmed &&
         editor.state.status == RoutineEditorStatus.saved) {
-      _finishConfirmed();
+      final notesConfirmed = await _completeConfirmedRoutineSave();
+      if (notesConfirmed && mounted && identical(editor, _editor)) {
+        _finishConfirmed();
+      }
     }
   }
 
@@ -478,8 +509,87 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     final confirmed = await editor.reconcileUnknown();
     if (mounted && identical(editor, _editor) && confirmed) {
-      _finishConfirmed();
+      final notesConfirmed = await _completeConfirmedRoutineSave();
+      if (notesConfirmed && mounted && identical(editor, _editor)) {
+        _finishConfirmed();
+      }
     }
+  }
+
+  void _captureInlineNoteDrafts(
+    String entryId,
+    List<ExerciseNoteDraftSnapshot> drafts,
+  ) {
+    if (drafts.isEmpty) {
+      _inlineNoteDrafts.remove(entryId);
+    } else {
+      _inlineNoteDrafts[entryId] = List.unmodifiable(drafts);
+    }
+  }
+
+  List<ExerciseNoteDraftSnapshot> _currentInlineNoteDrafts() => [
+        for (final entry
+            in _editor?.state.entries ?? const <RoutineCompositionEntry>[])
+          ...?_inlineNoteDrafts[entry.id],
+      ];
+
+  RoutineNotesSaveBridge? _notesBridgeForSave() {
+    final repository = widget.routineNotesRepository;
+    final ownerId = widget.routineNotesOwnerId;
+    final isCurrent = widget.isRoutineNotesSessionCurrent;
+    if (repository == null || ownerId == null || isCurrent == null) return null;
+    if (_notesBridge == null ||
+        !identical(_notesBridgeRepository, repository) ||
+        _notesBridgeOwnerId != ownerId) {
+      _notesBridge = RoutineNotesSaveBridge(
+        repository: repository,
+        ownerId: ownerId,
+        isSessionCurrent: isCurrent,
+        newUuid: widget.newUuid,
+      );
+      _notesBridgeRepository = repository;
+      _notesBridgeOwnerId = ownerId;
+    } else {
+      _notesBridge!.updateSessionIsCurrent(isCurrent);
+    }
+    return _notesBridge;
+  }
+
+  Future<bool> _completeConfirmedRoutineSave() async {
+    _notesCommitPending = _currentInlineNoteDrafts().isNotEmpty;
+    if (!_notesCommitPending) return true;
+    return _persistInlineNotes(widget.routine.id);
+  }
+
+  Future<bool> _persistInlineNotes(RoutineId routineId) async {
+    final drafts = _currentInlineNoteDrafts();
+    if (drafts.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _notesCommitPending = false;
+          _notesMessage = null;
+        });
+      }
+      return true;
+    }
+    final bridge = _notesBridgeForSave();
+    if (bridge == null) {
+      if (mounted) {
+        setState(() {
+          _notesCommitPending = true;
+          _notesMessage =
+              'Routine was updated, but Notes persistence is unavailable.';
+        });
+      }
+      return false;
+    }
+    final result = await bridge.save(drafts: drafts, routineId: routineId);
+    if (!mounted) return false;
+    setState(() {
+      _notesCommitPending = !result.isSuccess;
+      _notesMessage = result.message;
+    });
+    return result.isSuccess;
   }
 
   // PopScope was blocking exit while the request was in flight. Wait for
@@ -497,19 +607,20 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final status = _editor?.state.status;
     final saving = status == RoutineEditorStatus.saving;
     return PopScope(
-      canPop: !saving,
+      canPop: !saving && !_notesCommitPending,
       child: RoutineComposerScreen(
         key: const ValueKey('routine-composer-screen'),
         mode: RoutineComposerMode.edit,
         pageKey: const ValueKey('edit-routine-page'),
         cancelKey: const ValueKey('edit-routine-cancel'),
-        cancelEnabled: !saving,
+        cancelEnabled: !saving && !_notesCommitPending,
         cancel: () => Navigator.of(context).pop<bool>(false),
         submitKey:
-            status == RoutineEditorStatus.ready && widget.weightUnit != null
+            (status == RoutineEditorStatus.ready || _notesCommitPending) &&
+                    widget.weightUnit != null
                 ? const ValueKey('edit-routine-update')
                 : null,
-        onSubmit: _canUpdate ? _save : null,
+        onSubmit: _canUpdate || _notesCommitPending ? _save : null,
         content: _body(),
       ),
     );
@@ -654,6 +765,17 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
               child: Text(state.message!,
                   style: TextStyle(color: context.tioColors.danger)),
             ),
+          if (_notesMessage != null)
+            Semantics(
+              liveRegion: true,
+              child: Padding(
+                padding: const EdgeInsets.all(TioSpacing.sm),
+                child: Text(
+                  _notesMessage!,
+                  style: TextStyle(color: context.tioColors.danger),
+                ),
+              ),
+            ),
           if (state.entries.isEmpty)
             const _Message(
               key: ValueKey('edit-routine-empty'),
@@ -744,6 +866,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       routineNotesRepository: widget.routineNotesRepository,
       routineNotesOwnerId: widget.routineNotesOwnerId,
       isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
+      controllerRegistry: _notesRegistry,
+      onNoteDraftsChanged: (drafts) =>
+          _captureInlineNoteDrafts(entry.id, drafts),
     );
   }
 

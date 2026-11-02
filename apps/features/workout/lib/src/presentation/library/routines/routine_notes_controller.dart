@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
@@ -465,6 +467,44 @@ final class RoutineNotesController extends ChangeNotifier {
     _disposed = true;
     _version++;
     super.dispose();
+  }
+}
+
+/// Shares one Notes controller per canonical scope inside a Routine composer.
+/// Repeated Exercise entries therefore observe the same persisted Notes state
+/// without sharing their independent temporary draft fields.
+final class RoutineNotesControllerRegistry {
+  final Map<RoutineNoteScope, RoutineNotesController> _controllers = {};
+
+  RoutineNotesController controllerFor({
+    required RoutineNoteScope scope,
+    required RoutineNotesRepository repository,
+    required String ownerId,
+    required RoutineNotesSessionIsCurrent isSessionCurrent,
+    String Function()? newUuid,
+  }) {
+    final existing = _controllers[scope];
+    if (existing != null) {
+      existing.updateSessionIsCurrent(isSessionCurrent);
+      return existing;
+    }
+    final controller = RoutineNotesController.forScope(
+      scope: scope,
+      repository: repository,
+      ownerId: ownerId,
+      isSessionCurrent: isSessionCurrent,
+      newUuid: newUuid,
+    );
+    _controllers[scope] = controller;
+    unawaited(controller.load());
+    return controller;
+  }
+
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    _controllers.clear();
   }
 }
 

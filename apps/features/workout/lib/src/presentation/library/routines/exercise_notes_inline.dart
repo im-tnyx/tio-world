@@ -8,6 +8,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_notes_controller.dart';
+import 'routine_notes_save_bridge.dart';
 
 final _canonicalOwnerId = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
@@ -16,16 +17,21 @@ final _canonicalOwnerId = RegExp(
 const _maxInlineNotes = 4;
 
 final class _ExerciseNoteDraft {
-  _ExerciseNoteDraft()
+  _ExerciseNoteDraft({required this.id, required this.onChanged})
       : controller = TextEditingController(),
         focusNode = FocusNode(),
-        type = RoutineNoteType.pinnedExercise;
+        type = RoutineNoteType.pinnedExercise {
+    controller.addListener(onChanged);
+  }
 
+  final String id;
   final TextEditingController controller;
   final FocusNode focusNode;
+  final VoidCallback onChanged;
   RoutineNoteType type;
 
   void dispose() {
+    controller.removeListener(onChanged);
     focusNode.dispose();
     controller.dispose();
   }
@@ -45,6 +51,9 @@ final class ExerciseNotesInline extends StatefulWidget {
     required this.ownerId,
     required this.isSessionCurrent,
     required this.enabled,
+    this.draftKey,
+    this.onDraftsChanged,
+    this.controllerRegistry,
     super.key,
   });
 
@@ -55,6 +64,9 @@ final class ExerciseNotesInline extends StatefulWidget {
   final String? ownerId;
   final RoutineNotesSessionIsCurrent? isSessionCurrent;
   final bool enabled;
+  final String? draftKey;
+  final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onDraftsChanged;
+  final RoutineNotesControllerRegistry? controllerRegistry;
 
   @override
   State<ExerciseNotesInline> createState() => _ExerciseNotesInlineState();
@@ -63,8 +75,10 @@ final class ExerciseNotesInline extends StatefulWidget {
 final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     with AutomaticKeepAliveClientMixin<ExerciseNotesInline> {
   RoutineNotesController? _controller;
+  var _controllerOwned = false;
   final List<_ExerciseNoteDraft> _drafts = [];
   late RoutineNoteScope _scope;
+  var _draftSequence = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -90,11 +104,14 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   void didUpdateWidget(covariant ExerciseNotesInline oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.exerciseRef != widget.exerciseRef ||
+        oldWidget.draftKey != widget.draftKey ||
         !identical(oldWidget.repository, widget.repository) ||
+        !identical(oldWidget.controllerRegistry, widget.controllerRegistry) ||
         oldWidget.ownerId != widget.ownerId ||
         (oldWidget.isSessionCurrent == null) !=
             (widget.isSessionCurrent == null)) {
       _disposeDrafts();
+      _publishDrafts();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
       _bind();
     } else if (!identical(
@@ -107,21 +124,50 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   }
 
   void _bind({RoutineNoteScope? scope}) {
-    _controller
-      ?..removeListener(_changed)
-      ..dispose();
+    _releaseController();
     _controller = null;
+    _controllerOwned = false;
     if (!_available) return;
     if (scope != null) _scope = scope;
 
-    final controller = RoutineNotesController.forScope(
-      scope: _scope,
-      repository: widget.repository!,
-      ownerId: widget.ownerId!,
-      isSessionCurrent: widget.isSessionCurrent!,
-    )..addListener(_changed);
+    final controller = widget.controllerRegistry?.controllerFor(
+          scope: _scope,
+          repository: widget.repository!,
+          ownerId: widget.ownerId!,
+          isSessionCurrent: widget.isSessionCurrent!,
+        ) ??
+        RoutineNotesController.forScope(
+          scope: _scope,
+          repository: widget.repository!,
+          ownerId: widget.ownerId!,
+          isSessionCurrent: widget.isSessionCurrent!,
+        );
+    controller.addListener(_changed);
     _controller = controller;
-    unawaited(controller.load());
+    _controllerOwned = widget.controllerRegistry == null;
+    if (widget.controllerRegistry == null) unawaited(controller.load());
+  }
+
+  void _releaseController() {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.removeListener(_changed);
+    if (_controllerOwned) controller.dispose();
+    _controllerOwned = false;
+  }
+
+  void _publishDrafts() {
+    final callback = widget.onDraftsChanged;
+    if (callback == null) return;
+    callback([
+      for (final draft in _drafts)
+        ExerciseNoteDraftSnapshot(
+          draftId: '${widget.draftKey ?? widget.exerciseRef.value}:${draft.id}',
+          exerciseRef: widget.exerciseRef,
+          type: draft.type,
+          body: draft.controller.text,
+        ),
+    ]);
   }
 
   Future<void> _changeDraftType(int index) async {
@@ -143,12 +189,14 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
     draft.type = type;
     setState(() {});
+    _publishDrafts();
   }
 
   void _deleteDraft(int index) {
     final draft = _drafts.removeAt(index);
     draft.dispose();
     setState(() {});
+    _publishDrafts();
   }
 
   Future<void> _changeSavedType(RoutineNote note) async {
@@ -186,9 +234,13 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     }
     final savedCount = controller?.state.notes.length ?? 0;
     if (savedCount + _drafts.length >= _maxInlineNotes) return;
-    final draft = _ExerciseNoteDraft();
+    final draft = _ExerciseNoteDraft(
+      id: '${_draftSequence++}',
+      onChanged: _publishDrafts,
+    );
     _drafts.add(draft);
     setState(() {});
+    _publishDrafts();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       draft.focusNode.requestFocus();
@@ -235,9 +287,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
 
   @override
   void dispose() {
-    _controller
-      ?..removeListener(_changed)
-      ..dispose();
+    _releaseController();
     _disposeDrafts();
     super.dispose();
   }

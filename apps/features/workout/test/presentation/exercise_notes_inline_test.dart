@@ -355,6 +355,68 @@ void main() {
     expect(repository.deleteCommand, isNull);
     expect(find.text('Keep shoulders down'), findsOneWidget);
   });
+
+  testWidgets('duplicate ExerciseRef cards share persisted Notes state',
+      (tester) async {
+    final repository = _FakeRoutineNotesRepository(notes: [_note()]);
+    final registry = RoutineNotesControllerRegistry();
+    addTearDown(registry.dispose);
+    final exerciseRef = ExerciseRef.catalog(_exercise);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                ExerciseNotesInline(
+                  key: const ValueKey('duplicate-note-card-1'),
+                  exerciseRef: exerciseRef,
+                  routineId: null,
+                  restControl: const SizedBox(),
+                  repository: repository,
+                  ownerId: _owner,
+                  isSessionCurrent: () => true,
+                  enabled: true,
+                  controllerRegistry: registry,
+                ),
+                ExerciseNotesInline(
+                  key: const ValueKey('duplicate-note-card-2'),
+                  exerciseRef: exerciseRef,
+                  routineId: null,
+                  restControl: const SizedBox(),
+                  repository: repository,
+                  ownerId: _owner,
+                  isSessionCurrent: () => true,
+                  enabled: true,
+                  controllerRegistry: registry,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Keep shoulders down'), findsNWidgets(2));
+    await tester.drag(
+      find.byKey(const ValueKey('exercise-note-swipe-$_noteId')).first,
+      const Offset(-220, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete Note'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deleteCommand?.id, _noteId);
+    expect(find.text('Keep shoulders down'), findsNothing);
+  });
 }
 
 final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
