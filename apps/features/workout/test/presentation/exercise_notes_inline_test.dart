@@ -76,6 +76,7 @@ void main() {
     );
     expect(note.left, greaterThan(rest.right));
     expect(note.left - rest.right, closeTo(TioSpacing.sm, 0.01));
+    expect(note.top, closeTo(rest.top, 0.01));
     expect(note.height, closeTo(rest.height, 0.01));
     expect(
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
