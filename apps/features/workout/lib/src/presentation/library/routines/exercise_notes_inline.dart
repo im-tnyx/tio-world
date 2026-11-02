@@ -220,10 +220,10 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             widget.restControl,
+            const SizedBox(width: TioSpacing.sm),
             TioButton.secondary(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
               label: 'Note',
