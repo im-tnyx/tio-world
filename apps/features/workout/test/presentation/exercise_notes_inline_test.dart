@@ -153,6 +153,40 @@ void main() {
     expect(tester.widget<Icon>(icon).icon, Icons.assignment_outlined);
   });
 
+  testWidgets('tapping Note adds another inline draft field', (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    final noteAction =
+        find.byKey(const ValueKey('exercise-note-action-$_exercise'));
+    await tester.tap(noteAction);
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      'First note',
+    );
+
+    await tester.tap(noteAction);
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise-1')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+          )
+          .controller!
+          .text,
+      'First note',
+    );
+  });
+
   testWidgets('draft type sheet exposes Delete Note and clears the draft',
       (tester) async {
     await _pump(tester, _FakeRoutineNotesRepository());

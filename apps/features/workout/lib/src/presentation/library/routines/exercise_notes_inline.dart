@@ -13,6 +13,22 @@ final _canonicalOwnerId = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
 );
 
+final class _ExerciseNoteDraft {
+  _ExerciseNoteDraft()
+      : controller = TextEditingController(),
+        focusNode = FocusNode(),
+        type = RoutineNoteType.pinnedExercise;
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  RoutineNoteType type;
+
+  void dispose() {
+    focusNode.dispose();
+    controller.dispose();
+  }
+}
+
 /// Inline Exercise Notes surface shared by the Create and Edit Routine cards.
 ///
 /// The draft is local until the surrounding Routine is saved. The Exercise
@@ -44,10 +60,8 @@ final class ExerciseNotesInline extends StatefulWidget {
 
 final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   RoutineNotesController? _controller;
-  late final TextEditingController _draft;
-  late final FocusNode _focusNode;
+  final List<_ExerciseNoteDraft> _drafts = [];
   late RoutineNoteScope _scope;
-  bool _showDraftInput = false;
 
   bool get _available =>
       widget.repository != null &&
@@ -62,8 +76,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   @override
   void initState() {
     super.initState();
-    _draft = TextEditingController();
-    _focusNode = FocusNode();
     _scope = RoutineNoteScope.exercise(widget.exerciseRef);
     _bind();
   }
@@ -76,9 +88,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         oldWidget.ownerId != widget.ownerId ||
         oldWidget.routineId != widget.routineId ||
         oldWidget.isSessionCurrent != widget.isSessionCurrent) {
-      _draft.clear();
-      _showDraftInput = false;
-      _focusNode.unfocus();
+      _disposeDrafts();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
       _bind();
     }
@@ -102,33 +112,31 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     unawaited(controller.load());
   }
 
-  Future<void> _changeDraftType() async {
+  Future<void> _changeDraftType(int index) async {
+    final draft = _drafts[index];
     final selection = await _chooseType(
       context,
-      _scope.type,
+      draft.type,
       widget.routineId,
       allowDelete: true,
     );
     if (!mounted || selection == null) return;
     if (selection is _DeleteNoteSelection) {
-      _deleteDraft();
+      _deleteDraft(index);
       return;
     }
-    if (selection is! RoutineNoteType || selection == _scope.type) return;
+    if (selection is! RoutineNoteType || selection == draft.type) return;
     final type = selection;
     final routineId = widget.routineId;
     if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
-    final next = type == RoutineNoteType.pinnedRoutine
-        ? RoutineNoteScope.routine(routineId!)
-        : RoutineNoteScope.exercise(widget.exerciseRef);
-    _bind(scope: next);
+    draft.type = type;
     setState(() {});
   }
 
-  void _deleteDraft() {
-    _draft.clear();
-    _focusNode.unfocus();
-    setState(() => _showDraftInput = false);
+  void _deleteDraft(int index) {
+    final draft = _drafts.removeAt(index);
+    draft.dispose();
+    setState(() {});
   }
 
   Future<void> _changeSavedType(RoutineNote note) async {
@@ -164,12 +172,16 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         (!_previewOnly && (controller == null || !controller.canCreate))) {
       return;
     }
-    setState(() => _showDraftInput = true);
+    final savedCount = controller?.state.notes.length ?? 0;
+    if (savedCount + _drafts.length >= 5) return;
+    final draft = _ExerciseNoteDraft();
+    _drafts.add(draft);
+    setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _focusNode.requestFocus();
+      draft.focusNode.requestFocus();
       Scrollable.ensureVisible(
-        context,
+        draft.focusNode.context ?? context,
         alignment: 0.25,
         duration: context.tioMotion.fast,
         curve: Curves.easeOut,
@@ -204,9 +216,15 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     _controller
       ?..removeListener(_changed)
       ..dispose();
-    _focusNode.dispose();
-    _draft.dispose();
+    _disposeDrafts();
     super.dispose();
+  }
+
+  void _disposeDrafts() {
+    for (final draft in _drafts) {
+      draft.dispose();
+    }
+    _drafts.clear();
   }
 
   @override
@@ -219,6 +237,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     final actionNotice = state?.actionNotice;
     final canCreate =
         widget.enabled && (_previewOnly || controller?.canCreate == true);
+    final canAddDraft = canCreate && notes.length + _drafts.length < 5;
+    final canEditDraft = widget.enabled &&
+        (_previewOnly || controller?.state.status != RoutineNotesStatus.failed);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,7 +251,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
-              enabled: canCreate,
+              enabled: canAddDraft,
               onPressed: _focusDraft,
             ),
           ],
@@ -270,15 +291,20 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
                   ),
                 ),
               ),
-          if (_showDraftInput) ...[
-            _ExerciseNoteDraftField(
-              fieldKey:
-                  ValueKey('exercise-note-input-${widget.exerciseRef.value}'),
-              controller: _draft,
-              focusNode: _focusNode,
-              enabled: canCreate,
-              noteType: _scope.type,
-              onTypeChange: canCreate ? _changeDraftType : null,
+          for (var index = 0; index < _drafts.length; index++) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+              child: _ExerciseNoteDraftField(
+                fieldKey: ValueKey(_draftInputKey(index)),
+                typeKey: ValueKey(_draftTypeKey(index)),
+                iconKey: ValueKey(_draftIconKey(index)),
+                controller: _drafts[index].controller,
+                focusNode: _drafts[index].focusNode,
+                enabled: canEditDraft,
+                noteType: _drafts[index].type,
+                onTypeChange:
+                    canEditDraft ? () => _changeDraftType(index) : null,
+              ),
             ),
           ],
           if (actionNotice != null) _ExerciseNotesNotice(text: actionNotice),
@@ -295,11 +321,25 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
       ],
     );
   }
+
+  String _draftInputKey(int index) => index == 0
+      ? 'exercise-note-input-${widget.exerciseRef.value}'
+      : 'exercise-note-input-${widget.exerciseRef.value}-$index';
+
+  String _draftTypeKey(int index) => index == 0
+      ? 'exercise-note-draft-type'
+      : 'exercise-note-draft-type-$index';
+
+  String _draftIconKey(int index) => index == 0
+      ? 'exercise-note-draft-type-icon'
+      : 'exercise-note-draft-type-icon-$index';
 }
 
 final class _ExerciseNoteDraftField extends StatelessWidget {
   const _ExerciseNoteDraftField({
     required this.fieldKey,
+    required this.typeKey,
+    required this.iconKey,
     required this.controller,
     required this.focusNode,
     required this.enabled,
@@ -308,6 +348,8 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
   });
 
   final Key fieldKey;
+  final Key typeKey;
+  final Key iconKey;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
@@ -330,7 +372,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
               enabled: onTypeChange != null,
               label: 'Change note type',
               child: InkWell(
-                key: const ValueKey('exercise-note-draft-type'),
+                key: typeKey,
                 borderRadius: BorderRadius.circular(TioRadius.full),
                 onTap: onTypeChange,
                 child: SizedBox(
@@ -338,7 +380,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                   height: TioSize.dp24,
                   child: Icon(
                     _noteTypeIcon(noteType),
-                    key: const ValueKey('exercise-note-draft-type-icon'),
+                    key: iconKey,
                     color: colors.textSecondary,
                   ),
                 ),
