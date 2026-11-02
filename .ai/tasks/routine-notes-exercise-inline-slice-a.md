@@ -10,7 +10,7 @@
 **Approval status:** Approved
 **Approval evidence:** Owner instruction `Tio-world — Exercise Notes Inline UI Implementation` received 2026-11-02, with the attached screenshot as the visual and interaction reference.
 **Approved product/UI/data-shape boundaries:** Add Exercise-scoped Notes inline inside the existing Create/Edit Routine Exercise card, directly below Rest/Note actions and above the Set table. Use `RoutineNoteScope.exercise(ExerciseRef)`, the existing `RoutineNotesRepository`, existing authenticated provider/session guards, existing five-note and 500-character limits, and existing delete/mutation-safety behavior. Owner clarification received 2026-11-02 supersedes the earlier inline `Save Note`/`Cancel` decision: the Note field is a temporary inline draft and has no separate Save or Cancel buttons; the owner expects the surrounding Routine save flow to commit it. The current slice does not invent a new aggregate Notes payload or write separately on keystroke. The owner also approves tapping the left pin icon or right-swiping a saved Note to change Note type, left-swiping a saved Note to reveal Delete, and showing `Delete Note` in the type sheet before the existing confirmation. Type transfer uses the existing atomic repository contract; `Pinned Routine` is enabled only when an existing Routine identity is available (Edit), while Create remains Exercise-scoped until the Routine has a durable identity.
-**Explicit non-changes:** No sheet/dialog/navigation page for creating or editing the Note, no autosave or per-keystroke write, no copy/share, new repository/model/table/migration/RLS/grant, hosted deployment, Rest Timer redesign, Set/table redesign, Routine-level Notes change, WorkoutSession/history/post behavior, or physical-device acceptance claim. The type chooser is limited to the explicitly approved type-change action and does not become a general Note editor.
+**Explicit non-changes:** No sheet/dialog/navigation page for creating or editing the Note, no autosave or per-keystroke write, no copy/share, new repository/model/table/migration/RLS/grant, hosted deployment, Rest Timer redesign, Set/table redesign, WorkoutSession/history/post behavior, or physical-device acceptance claim. The separate Routine Notes block is not part of the approved Exercise Notes surface and is no longer mounted on Routine Detail. The type chooser is limited to the explicitly approved type-change action and does not become a general Note editor.
 
 ## Active Handoff
 
@@ -111,6 +111,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Add focused tests and run local validation; Flutter tests require elevated SDK-root access on this machine, but pass there.
 - [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
 - [x] Remove the Notes-specific `Try again` recovery action from Routine Detail; a failed Notes read is now silent because Notes follow the surrounding Routine save contract.
+- [x] Remove the separate Routine Notes section and its Detail-route repository/session wiring; Detail now remains exercise-only.
 - [ ] Add the separately scoped parent Routine-save bridge that commits temporary Exercise Note drafts without changing the backend contract.
 
 ## 6. Quality Review
@@ -146,12 +147,14 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 - `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/routine_notes_section.dart`
+- `apps/features/workout/lib/src/presentation/library/routines/routine_detail_page.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/routine_notes_controller.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/create_routine_page.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/edit_routine_page.dart`
 - `apps/features/workout/test/presentation/exercise_notes_inline_test.dart`
 - `apps/features/workout/test/presentation/routine_notes_section_test.dart`
+- `apps/app/lib/app/routing/shell/shell_route.dart`
 - `apps/features/workout/test/presentation/routine_notes_controller_test.dart`
 - `apps/features/workout/lib/src/presentation/library/library.dart`
 - `apps/app/lib/app/routing/shell/shell_route.dart`
@@ -176,6 +179,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - Left swipe reveals the red `Delete` action; delete occurs only after tapping the revealed action and confirming.
 - Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
 - Routine Detail no longer renders a Notes-specific failure message or `Try again` action; Notes do not create a separate recovery flow.
+- Routine Detail no longer mounts the separate `Routine Notes` section; Notes remain available only in the approved Exercise/ Routine-save composition path.
 
 ### Known Limitations
 
