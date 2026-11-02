@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b`
+**HEAD SHA at last source/CI audit:** `01a632b3b87ec73d55d257e5a42e572886df54cf`
 **Observed working-tree state:** Focused remediation is committed and pushed; generated Android registrant remains unrelated and excluded
 **Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
@@ -129,7 +129,7 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
 PASS: `G:\dev\flutter-sdk\bin\dart.bat format apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart apps/features/workout/lib/src/presentation/library/routines/routine_notes_controller.dart apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart` — formatting completed
 PASS: `git -c core.fsmonitor=false diff --check`
-FAIL/OPEN: Previous exact-head PR run `41396186498` at `eeca2995d3079977a0c934e776c8953c1d8bd111` failed `Analyze and test`, `Test Flutter (core-wear)`, and `Test Flutter (app-workout)`; local reruns now pass. New exact-head run `41398852353` for `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b` is currently in progress.
+FAIL/OPEN: Previous exact-head PR run `41396186498` at `eeca2995d3079977a0c934e776c8953c1d8bd111` failed `Analyze and test`, `Test Flutter (core-wear)`, and `Test Flutter (app-workout)`; local reruns now pass. New exact-head Flutter run `41399100047` for `01a632b3b87ec73d55d257e5a42e572886df54cf` is currently pending.
 NOT RUN: parent Routine-save/Notes integration, physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review
 ```
 
